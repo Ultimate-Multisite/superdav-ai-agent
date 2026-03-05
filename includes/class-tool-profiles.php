@@ -238,6 +238,37 @@ class Tool_Profiles {
 				] ),
 				'is_builtin'  => true,
 			],
+			[
+				'slug'        => 'marketing',
+				'name'        => __( 'Marketing & SEO', 'ai-agent' ),
+				'description' => __( 'SEO auditing, content analysis, and competitive research tools.', 'ai-agent' ),
+				'tool_names'  => self::get_abilities_by_pattern( [
+					'ai-agent/seo-', 'ai-agent/content-', 'ai-agent/fetch-url', 'ai-agent/analyze-headers',
+					'ai-agent/import-stock-image',
+					'site/get-post', 'site/list-post', 'site/create-post', 'site/update-post',
+					'site/get-option', 'site/update-option',
+					'ai-agent/memory-', 'ai-agent/skill-', 'ai-agent/knowledge-',
+					'ai-agent/list-tools', 'ai-agent/execute-tool',
+				] ),
+				'is_builtin'  => true,
+			],
+			[
+				'slug'        => 'content-creator',
+				'name'        => __( 'Content Creator', 'ai-agent' ),
+				'description' => __( 'Content creation with Gutenberg blocks, media, and post management.', 'ai-agent' ),
+				'tool_names'  => self::get_abilities_by_pattern( [
+					'ai-agent/markdown-to-blocks', 'ai-agent/list-block-', 'ai-agent/get-block-type',
+					'ai-agent/create-block-content', 'ai-agent/parse-block-content',
+					'ai-agent/import-stock-image', 'ai-agent/content-',
+					'site/get-post', 'site/list-post', 'site/create-post', 'site/update-post',
+					'site/get-page', 'site/list-page', 'site/create-page', 'site/update-page',
+					'site/get-media', 'site/list-media', 'site/upload-media',
+					'site/get-categor', 'site/list-categor',
+					'ai-agent/memory-', 'ai-agent/skill-', 'ai-agent/knowledge-',
+					'ai-agent/list-tools', 'ai-agent/execute-tool',
+				] ),
+				'is_builtin'  => true,
+			],
 		];
 	}
 

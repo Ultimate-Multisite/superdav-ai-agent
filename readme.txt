@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -158,6 +158,26 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 
 == Changelog ==
 
+= 1.1.0 =
+* New: Gutenberg block content generation — markdown-to-blocks converter, block discovery, and structured block creation
+* New: 7 block abilities — markdown-to-blocks, list-block-types, get-block-type, list-block-patterns, list-block-templates, create-block-content, parse-block-content
+* New: Stock image import ability for keyword-based image imports into the media library
+* New: SEO abilities — URL auditing and content SEO analysis
+* New: Content analysis and performance reporting abilities
+* New: Marketing abilities — URL fetching and HTTP header analysis
+* New: WP-CLI command (`wp ai-agent`) for running the agent from the command line
+* New: Block editor context provider — reports block theme status, registered blocks, and pattern counts
+* New: Content Creator tool profile — scoped set of block, media, and post management tools
+* New: Gutenberg Blocks built-in skill (enabled by default)
+* New: Full Site Editing built-in skill (opt-in)
+* New: Weekly SEO Health Report and Monthly Content Performance Report automation templates
+* Enhancement: Improved agent system prompt — action-oriented with common workflow guidance
+* Enhancement: Priority tool loading — key WP-CLI tools (post/create, site/create, media/import, etc.) load directly without discovery
+* Enhancement: Streamlined tool discovery prompt — less verbose, more actionable
+* Enhancement: Max iterations default increased from 10 to 25
+* Enhancement: Agent returns tool call log and token usage when max iterations is reached
+* Enhancement: Empty input schema properties serialize as JSON objects instead of arrays for OpenAI compatibility
+
 = 1.0.0 =
 * Initial stable release
 * Agentic chat with autonomous tool-calling loop
@@ -178,6 +198,9 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * WordPress 6.9 compatibility layer (bundles AI Client SDK)
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds Gutenberg block content generation, SEO/content/marketing abilities, WP-CLI command, and improved agent behavior. Database will upgrade automatically.
 
 = 1.0.0 =
 Initial release. Requires WordPress 6.9+ and an AI provider connector plugin.

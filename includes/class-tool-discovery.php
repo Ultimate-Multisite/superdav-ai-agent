@@ -25,6 +25,28 @@ class Tool_Discovery {
 	private const DEFAULT_PRIORITY_CATEGORIES = [ 'ai-agent', 'site', 'user' ];
 
 	/**
+	 * Default priority tool names — loaded directly even if their category
+	 * isn't in the priority categories list. These are the most commonly
+	 * needed WP-CLI tools for content creation workflows.
+	 *
+	 * @var string[]
+	 */
+	private const DEFAULT_PRIORITY_TOOLS = [
+		'wpcli/site/create',
+		'wpcli/site/list',
+		'wpcli/post/create',
+		'wpcli/post/update',
+		'wpcli/post/list',
+		'wpcli/post/get',
+		'wpcli/media/import',
+		'wpcli/option/update',
+		'wpcli/option/get',
+		'wpcli/theme/list',
+		'wpcli/theme/activate',
+		'wpcli/plugin/list',
+	];
+
+	/**
 	 * Register the meta-tool abilities.
 	 */
 	public static function register(): void {
@@ -122,8 +144,9 @@ class Tool_Discovery {
 		$perms      = Settings::get( 'tool_permissions' ) ?: [];
 		$priorities = self::get_priority_categories();
 
-		// Filter out disabled tools and priority-category tools (already loaded directly).
-		$tools = [];
+		// Filter out disabled tools and priority tools (already loaded directly).
+		$priority_tools = self::get_priority_tools();
+		$tools          = [];
 		foreach ( $all as $ability ) {
 			$name = $ability->get_name();
 			$perm = $perms[ $name ] ?? 'auto';
@@ -133,6 +156,10 @@ class Tool_Discovery {
 			}
 
 			if ( in_array( $ability->get_category(), $priorities, true ) ) {
+				continue;
+			}
+
+			if ( self::is_priority_tool( $ability, $priority_tools ) ) {
 				continue;
 			}
 
@@ -337,6 +364,50 @@ class Tool_Discovery {
 	}
 
 	/**
+	 * Get the list of priority tool names (loaded directly regardless of category).
+	 *
+	 * @return string[]
+	 */
+	public static function get_priority_tools(): array {
+		/**
+		 * Filter the priority tool names that are always loaded as direct tools.
+		 *
+		 * @param string[] $tools Default priority tool names.
+		 */
+		return apply_filters( 'ai_agent_priority_tools', self::DEFAULT_PRIORITY_TOOLS );
+	}
+
+	/**
+	 * Check if an ability matches a priority tool name.
+	 *
+	 * Matches both exact names (e.g. "wpcli/post/create") and suffix patterns
+	 * so that registered names like "wpcli/wp-cli/post/create" also match
+	 * a priority entry of "wpcli/post/create".
+	 *
+	 * @param \WP_Ability $ability        The ability to check.
+	 * @param string[]    $priority_tools The priority tool names.
+	 * @return bool
+	 */
+	private static function is_priority_tool( \WP_Ability $ability, array $priority_tools ): bool {
+		$name = $ability->get_name();
+
+		foreach ( $priority_tools as $tool ) {
+			if ( $name === $tool ) {
+				return true;
+			}
+
+			// Also match if the ability name ends with the priority tool's
+			// path segments (e.g. "wpcli/wp-cli/post/create" ends with "post/create").
+			$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
+			if ( str_ends_with( $name, '/' . $suffix ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Get the system prompt section describing discovery mode.
 	 *
 	 * @return string
@@ -348,26 +419,13 @@ class Tool_Discovery {
 			return '';
 		}
 
+		$total = array_sum( $categories );
+
 		$lines   = [];
 		$lines[] = '## Tool Discovery';
-		$lines[] = 'You have a small set of priority tools loaded directly. Many more tools are available through discovery:';
-		$lines[] = '';
-		$lines[] = '**Available tool categories** (not loaded directly — use `ai-agent/list-tools` to browse):';
-
-		$total = 0;
-		foreach ( $categories as $cat => $count ) {
-			$lines[] = sprintf( '- **%s**: %d tools', $cat, $count );
-			$total  += $count;
-		}
-
-		$lines[] = sprintf( '- **Total discoverable**: %d tools', $total );
-		$lines[] = '';
-		$lines[] = '**How to discover and use tools:**';
-		$lines[] = '1. Call `ai-agent/list-tools` with no args to see category overview';
-		$lines[] = '2. Call `ai-agent/list-tools` with `category` or `query` to find specific tools';
-		$lines[] = '3. Call `ai-agent/execute-tool` with `tool_name` and `parameters` to run a discovered tool';
-		$lines[] = '';
-		$lines[] = 'The response from list-tools includes `parameters_hint` showing required parameters for each tool.';
+		$lines[] = 'Your most-used tools (site management, content creation, media) are loaded directly — use them without discovery.';
+		$lines[] = sprintf( '%d additional tools are available via `ai-agent/list-tools` (search by name or category) and `ai-agent/execute-tool`.', $total );
+		$lines[] = 'Only use discovery if you need a tool not already in your loaded set.';
 
 		return implode( "\n", $lines );
 	}
@@ -382,9 +440,10 @@ class Tool_Discovery {
 			return [];
 		}
 
-		$all        = wp_get_abilities();
-		$perms      = Settings::get( 'tool_permissions' ) ?: [];
-		$priorities = self::get_priority_categories();
+		$all            = wp_get_abilities();
+		$perms          = Settings::get( 'tool_permissions' ) ?: [];
+		$priorities     = self::get_priority_categories();
+		$priority_tools = self::get_priority_tools();
 
 		$tools = [];
 		foreach ( $all as $ability ) {
@@ -396,6 +455,10 @@ class Tool_Discovery {
 			}
 
 			if ( in_array( $ability->get_category(), $priorities, true ) ) {
+				continue;
+			}
+
+			if ( self::is_priority_tool( $ability, $priority_tools ) ) {
 				continue;
 			}
 

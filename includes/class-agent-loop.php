@@ -170,7 +170,7 @@ class Agent_Loop {
 
 		$this->provider_id        = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
 		$this->model_id           = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
-		$this->max_iterations     = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 10 );
+		$this->max_iterations     = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
 		$this->temperature        = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		$this->max_output_tokens  = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
 
@@ -314,14 +314,21 @@ class Agent_Loop {
 			$this->log_tool_responses( $response_message );
 		}
 
-		// Exhausted iterations — return what we have.
+		// Exhausted iterations — return what we have so callers can inspect the log.
 		return new WP_Error(
 			'ai_agent_max_iterations',
 			sprintf(
 				/* translators: %d: max iterations */
 				__( 'Agent reached the maximum of %d iterations without completing.', 'ai-agent' ),
 				$this->max_iterations
-			)
+			),
+			[
+				'tool_calls'      => $this->tool_call_log,
+				'token_usage'     => $this->token_usage,
+				'iterations_used' => $this->iterations_used,
+				'model_id'        => $this->model_id,
+				'history'         => $this->serialize_history(),
+			]
 		);
 	}
 
@@ -452,6 +459,11 @@ class Agent_Loop {
 			];
 
 			if ( ! empty( $input_schema ) ) {
+				// Ensure 'properties' is an object, not an empty array.
+				// PHP's json_encode([]) produces "[]" but OpenAI requires "{}".
+				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
+					$input_schema['properties'] = new \stdClass();
+				}
 				$tool['function']['parameters'] = $input_schema;
 			} else {
 				$tool['function']['parameters'] = [
@@ -827,11 +839,28 @@ class Agent_Loop {
 			$all = Tool_Profiles::filter_abilities( $all, $active_profile );
 		}
 
-		// Discovery mode: only load priority-category tools when threshold exceeded.
+		// Discovery mode: only load priority-category and priority-named tools.
 		if ( Tool_Discovery::should_use_discovery_mode() ) {
-			$priority_cats = Tool_Discovery::get_priority_categories();
-			$priority      = array_filter( $all, function ( $ability ) use ( $priority_cats ) {
-				return in_array( $ability->get_category(), $priority_cats, true );
+			$priority_cats  = Tool_Discovery::get_priority_categories();
+			$priority_tools = Tool_Discovery::get_priority_tools();
+			$priority       = array_filter( $all, function ( $ability ) use ( $priority_cats, $priority_tools ) {
+				if ( in_array( $ability->get_category(), $priority_cats, true ) ) {
+					return true;
+				}
+
+				// Check if this ability matches a priority tool name.
+				$name = $ability->get_name();
+				foreach ( $priority_tools as $tool ) {
+					if ( $name === $tool ) {
+						return true;
+					}
+					$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
+					if ( str_ends_with( $name, '/' . $suffix ) ) {
+						return true;
+					}
+				}
+
+				return false;
 			} );
 			return array_values( $priority );
 		}
@@ -1004,15 +1033,30 @@ class Agent_Loop {
 		$wp_path  = ABSPATH;
 		$site_url = get_site_url();
 
-		return "You are a helpful WordPress assistant with access to tools that can interact with this WordPress site.\n\n"
+		return "You are a WordPress assistant that ACTS — you execute tasks immediately using your tools.\n\n"
 			. "## WordPress Environment\n"
 			. "- WordPress path: {$wp_path}\n"
 			. "- Site URL: {$site_url}\n"
 			. "- WP-CLI is available at: wp\n\n"
-			. "## How to interact with WordPress\n"
-			. "Use the available tools to help the user accomplish their goals. "
-			. "When you need information from the site, call the appropriate tool rather than guessing. "
-			. "After using tools, summarize the results clearly for the user.";
+			. "## Core Principles\n"
+			. "1. **Act, don't ask.** Execute the task right away. Don't ask \"shall I proceed?\" or request confirmation unless the task is destructive (deleting data, dropping tables).\n"
+			. "2. **Generate real content.** When creating pages or posts, write substantial, realistic content (3+ paragraphs). Never use placeholder text like \"Lorem ipsum\" or \"Content goes here\".\n"
+			. "3. **Use tools directly.** Your loaded tools cover site management, content, media, and more. Call them immediately — don't describe what you would do.\n\n"
+			. "## Common Workflows\n"
+			. "- **Create a subsite:** Use `site/create` (or `wpcli/site/create`), then target it with `--url=<subsite_url>` in subsequent WP-CLI commands.\n"
+			. "- **Target a subsite:** Pass `url` (the site URL) on any WP-CLI command to target a specific subsite. The URL carries over — once you pass `url` on any command, subsequent commands will automatically target the same site without needing to pass it again.\n"
+			. "- **Create pages with content:** Use `post/create` with `--post_type=page --post_status=publish --post_content='<html content>'`.\n"
+			. "- **Import images:** Use `ai-agent/import-stock-image` with a keyword and optional site_url. Returns attachment_id and url.\n"
+			. "- **Set a homepage:** Use `option/update` to set `show_on_front=page` and `page_on_front=<page_id>` with `--url=<site>`.\n"
+			. "- **Get IDs from create commands:** Add `--porcelain` (as boolean true, not a string) to WP-CLI commands to return just the ID.\n\n"
+			. "## Tips\n"
+			. "- Target a subsite: pass `url` to any WP-CLI tool. It persists for subsequent calls.\n"
+			. "- Chain operations: create content first, then configure settings.\n"
+			. "- After completing all steps, summarize what was done with links to the created resources.\n\n"
+			. "## Error Handling\n"
+			. "- If a tool call fails, try a different approach or skip it and continue with the next step.\n"
+			. "- Never stop after a single error — complete as many steps as possible.\n"
+			. "- If you've retried the same tool 2 times with similar args, move on.";
 	}
 
 	/**

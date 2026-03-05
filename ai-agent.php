@@ -3,7 +3,7 @@
  * Plugin Name: AI Agent
  * Plugin URI:  https://developer.wordpress.org/
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Dave
  * License:     GPL-2.0-or-later
  * Requires at least: 6.9
@@ -39,6 +39,12 @@ require_once AI_AGENT_DIR . '/includes/class-knowledge-hooks.php';
 require_once AI_AGENT_DIR . '/includes/class-knowledge-abilities.php';
 require_once AI_AGENT_DIR . '/includes/class-context-providers.php';
 require_once AI_AGENT_DIR . '/includes/class-tool-discovery.php';
+require_once AI_AGENT_DIR . '/includes/class-stock-image-abilities.php';
+require_once AI_AGENT_DIR . '/includes/class-seo-abilities.php';
+require_once AI_AGENT_DIR . '/includes/class-content-abilities.php';
+require_once AI_AGENT_DIR . '/includes/class-marketing-abilities.php';
+require_once AI_AGENT_DIR . '/includes/class-markdown-to-blocks.php';
+require_once AI_AGENT_DIR . '/includes/class-block-abilities.php';
 require_once AI_AGENT_DIR . '/includes/class-custom-tools.php';
 require_once AI_AGENT_DIR . '/includes/class-custom-tool-executor.php';
 require_once AI_AGENT_DIR . '/includes/class-tool-profiles.php';
@@ -90,6 +96,17 @@ Knowledge_Hooks::register();
 // Tool discovery meta-tools.
 Tool_Discovery::register();
 
+// Stock image import ability.
+Stock_Image_Abilities::register();
+
+// SEO, content, and marketing abilities.
+SEO_Abilities::register();
+Content_Abilities::register();
+Marketing_Abilities::register();
+
+// Block content abilities (markdown-to-blocks, block discovery, content creation).
+Block_Abilities::register();
+
 // Custom tool abilities (registered as WordPress Abilities).
 Custom_Tool_Executor::register();
 
@@ -102,3 +119,9 @@ add_action( 'ai_agent_run_event_automation', [ Event_Trigger_Handler::class, 'ex
 
 // Floating widget on all admin pages.
 Floating_Widget::register();
+
+// WP-CLI command.
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once AI_AGENT_DIR . '/includes/class-cli-command.php';
+	\WP_CLI::add_command( 'ai-agent', CLI_Command::class );
+}

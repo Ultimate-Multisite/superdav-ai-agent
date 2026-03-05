@@ -250,6 +250,18 @@ class Automations {
 				'prompt'      => "Perform database maintenance:\n1. Delete expired transients\n2. Report how many post revisions exist\n3. Report autoloaded option size\n4. List any database tables that could benefit from optimization\n\nDo NOT delete revisions — just report.",
 				'schedule'    => 'weekly',
 			],
+			[
+				'name'        => __( 'Weekly SEO Health Report', 'ai-agent' ),
+				'description' => __( 'Audit your homepage and top pages for SEO issues.', 'ai-agent' ),
+				'prompt'      => "Run an SEO audit on the site's homepage using the seo-audit-url tool. Then check the 5 most recent published posts with seo-analyze-content. Report:\n1. Homepage SEO score and issues\n2. Posts missing meta descriptions\n3. Posts with titles that are too long or too short\n4. Images missing alt text\n5. Any technical SEO concerns\n\nProvide a prioritized action list.",
+				'schedule'    => 'weekly',
+			],
+			[
+				'name'        => __( 'Monthly Content Performance Report', 'ai-agent' ),
+				'description' => __( 'Summarize content publishing activity and performance.', 'ai-agent' ),
+				'prompt'      => "Generate a content performance report for the last 30 days using the content-performance-report tool. Also run content-analyze to check content health. Report:\n1. Posts published this month vs last month\n2. Content by category breakdown\n3. Average word count\n4. Posts missing featured images\n5. Draft posts pending review\n6. Content recommendations for next month",
+				'schedule'    => 'weekly',
+			],
 		];
 	}
 

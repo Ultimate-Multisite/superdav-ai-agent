@@ -304,6 +304,42 @@ class Skill {
 				'enabled'     => false,
 				'content'     => self::builtin_multisite_management(),
 			],
+			'seo-optimization' => [
+				'name'        => 'SEO Optimization',
+				'description' => 'SEO auditing, on-page optimization, meta tags, technical SEO checks',
+				'enabled'     => true,
+				'content'     => self::builtin_seo_optimization(),
+			],
+			'content-marketing' => [
+				'name'        => 'Content Marketing',
+				'description' => 'Content strategy, editorial workflows, content audits, publishing analysis',
+				'enabled'     => true,
+				'content'     => self::builtin_content_marketing(),
+			],
+			'competitive-analysis' => [
+				'name'        => 'Competitive Analysis',
+				'description' => 'Analyzing competitor sites, tech stack discovery, content gap analysis',
+				'enabled'     => false,
+				'content'     => self::builtin_competitive_analysis(),
+			],
+			'analytics-reporting' => [
+				'name'        => 'Analytics & Reporting',
+				'description' => 'Content performance reports, site growth metrics, publishing analytics',
+				'enabled'     => true,
+				'content'     => self::builtin_analytics_reporting(),
+			],
+			'gutenberg-blocks' => [
+				'name'        => 'Gutenberg Blocks',
+				'description' => 'Creating content with Gutenberg blocks, converting markdown, building layouts',
+				'enabled'     => true,
+				'content'     => self::builtin_gutenberg_blocks(),
+			],
+			'full-site-editing' => [
+				'name'        => 'Full Site Editing',
+				'description' => 'Block theme templates, template parts, site-wide layout customization',
+				'enabled'     => false,
+				'content'     => self::builtin_full_site_editing(),
+			],
 		];
 	}
 
@@ -570,6 +606,408 @@ After network changes:
 2. Check that plugins/themes are correctly activated
 3. Confirm user roles across relevant sites
 4. Test network admin access
+MD;
+	}
+
+	private static function builtin_seo_optimization(): string {
+		return <<<'MD'
+# SEO Optimization
+
+## When to Use
+Use this skill for SEO audits, keyword optimization, meta tag management, and technical SEO checks.
+
+## Available Tools
+- `ai-agent/seo-audit-url` — Fetch any URL and analyze its SEO elements (title, meta description, headings, images, OG tags, structured data)
+- `ai-agent/seo-analyze-content` — Analyze a specific post's SEO quality (keyword density, title length, heading structure, links, readability)
+
+## Key WP-CLI Commands for SEO
+
+### Yoast SEO Meta
+- `wp post meta get <id> _yoast_wpseo_title` — SEO title
+- `wp post meta get <id> _yoast_wpseo_metadesc` — Meta description
+- `wp post meta get <id> _yoast_wpseo_focuskw` — Focus keyword
+- `wp post meta update <id> _yoast_wpseo_metadesc "<description>"` — Set meta description
+
+### RankMath Meta
+- `wp post meta get <id> rank_math_title` — SEO title
+- `wp post meta get <id> rank_math_description` — Meta description
+- `wp post meta get <id> rank_math_focus_keyword` — Focus keyword
+
+### Sitemap & Permalinks
+- `wp option get permalink_structure` — Current permalink structure
+- `wp rewrite flush` — Regenerate rewrite rules
+- Check sitemap at: `/sitemap_index.xml` (Yoast) or `/sitemap.xml` (RankMath)
+
+## On-Page SEO Checklist
+1. **Title**: 50-60 characters, includes focus keyword
+2. **Meta description**: 150-160 characters, compelling and keyword-rich
+3. **One H1 tag**: Should match or relate to the page title
+4. **Heading hierarchy**: Use H2, H3, H4 in logical order
+5. **Focus keyword**: In first paragraph, in title, 0.5-2.5% density
+6. **Images**: All images have descriptive alt text
+7. **Internal links**: At least 2-3 links to related content
+8. **External links**: Link to authoritative sources where relevant
+
+## Technical SEO Checks
+- Canonical URL is set and correct
+- Meta robots is not accidentally set to "noindex"
+- Sitemap exists and is accessible
+- Permalink structure uses descriptive slugs (not `?p=123`)
+- Pages load without redirect chains
+
+## Common Workflows
+
+### Audit a page
+1. Use `ai-agent/seo-audit-url` with the page URL
+2. Review the issues list for quick wins
+3. Check title length, meta description, heading structure
+4. Verify Open Graph tags are set for social sharing
+
+### Optimize existing content for a keyword
+1. Use `ai-agent/seo-analyze-content` with the post ID and focus keyword
+2. Check keyword density and placement
+3. Review heading structure for keyword inclusion
+4. Ensure meta description includes the keyword
+5. Add internal links to related content
+
+### Check technical SEO across the site
+1. Audit the homepage with `ai-agent/seo-audit-url`
+2. Check top pages for missing meta descriptions
+3. Verify sitemap accessibility
+4. Confirm canonical URLs are correct
+MD;
+	}
+
+	private static function builtin_content_marketing(): string {
+		return <<<'MD'
+# Content Marketing
+
+## When to Use
+Use this skill for content strategy planning, editorial workflows, content audits, and content repurposing.
+
+## Available Tools
+- `ai-agent/content-analyze` — Analyze content strategy across posts (frequency, word counts, categories, gaps)
+- `ai-agent/content-performance-report` — Generate content performance summaries for a time period
+- `ai-agent/import-stock-image` — Import stock images for content
+
+## Content Strategy Patterns
+
+### Topic Clusters
+- Identify a pillar topic (broad, high-volume keyword)
+- Create cluster content (specific, long-tail subtopics)
+- Interlink cluster posts back to the pillar page
+- Use `ai-agent/content-analyze` to identify category distribution and gaps
+
+### Content Gaps
+- Run content analysis to find categories with few posts
+- Identify topics competitors cover that you don't
+- Look for "thin content" (posts under 300 words) that could be expanded
+
+### Content Calendar
+- Use the performance report to understand publishing frequency
+- Aim for consistent publishing (e.g., 2-3 posts per week)
+- Plan content around seasonal trends and events
+
+## Editorial Workflows
+
+### Draft to Publish
+1. Create draft: `wp post create --post_type=post --post_title="Title" --post_status=draft`
+2. Review and edit content
+3. Add featured image and meta description
+4. Schedule or publish: `wp post update <id> --post_status=publish`
+
+### Bulk Operations
+- `wp post list --post_status=draft --fields=ID,post_title` — Review drafts
+- `wp post update <id> --post_status=publish` — Publish a draft
+- `wp post list --s="keyword" --fields=ID,post_title,post_status` — Find content about a topic
+
+## Content Audit Checklist
+1. **Thin content**: Posts under 300 words — expand or consolidate
+2. **Stale content**: Posts older than 6 months — refresh with current information
+3. **Missing categories**: Posts without category assignments
+4. **Missing featured images**: Posts without thumbnails for social/archive display
+5. **Missing meta descriptions**: Posts without SEO descriptions
+6. **Orphan content**: Posts with no internal links pointing to them
+MD;
+	}
+
+	private static function builtin_competitive_analysis(): string {
+		return <<<'MD'
+# Competitive Analysis
+
+## When to Use
+Use this skill for analyzing competitor websites, discovering their tech stack, comparing content strategies, and identifying opportunities.
+
+**Note:** This skill is opt-in because it fetches external URLs. Enable it when you need competitive intelligence.
+
+## Available Tools
+- `ai-agent/fetch-url` — Fetch any URL and return headers, head content, title, meta description, generator tag
+- `ai-agent/analyze-headers` — Analyze HTTP security and performance headers, detect CDN usage
+
+## What to Look For
+
+### Tech Stack Indicators
+- **Generator meta tag**: Reveals CMS (WordPress, Shopify, Squarespace, etc.)
+- **X-Powered-By header**: Server-side technology (PHP, ASP.NET, Express)
+- **Server header**: Web server (nginx, Apache, LiteSpeed)
+- **CDN headers**: cf-ray (Cloudflare), x-amz-cf-id (CloudFront), x-vercel-id (Vercel)
+
+### Content Structure
+- Page title format and length
+- Heading hierarchy (H1, H2 usage)
+- Meta description quality and length
+- Open Graph / social sharing tags
+- Structured data (JSON-LD schemas)
+
+### SEO Indicators
+- Canonical URL implementation
+- Meta robots directives
+- Sitemap presence (check /sitemap.xml, /sitemap_index.xml)
+
+## Workflow
+
+### Analyze a competitor
+1. Fetch their homepage with `ai-agent/fetch-url`
+2. Note the generator, server, and CDN from headers
+3. Analyze their title and meta description quality
+4. Check security headers with `ai-agent/analyze-headers`
+5. Compare findings with your own site
+
+### Content Gap Analysis
+1. Fetch competitor's key pages to see their content focus
+2. Note topics and keywords they target
+3. Compare with your own content using `ai-agent/content-analyze`
+4. Identify topics they cover that you don't
+
+## Ethical Guidelines
+- Respect robots.txt directives
+- Rate limit your requests — don't send rapid-fire fetches
+- Do not scrape or reproduce competitor content
+- Use findings for strategic planning, not content copying
+- This tool is for analysis, not automated scraping
+MD;
+	}
+
+	private static function builtin_analytics_reporting(): string {
+		return <<<'MD'
+# Analytics & Reporting
+
+## When to Use
+Use this skill for generating content reports, tracking publishing activity, measuring site growth, and understanding content performance.
+
+## Available Tools
+- `ai-agent/content-performance-report` — Content publishing summary with period comparisons
+- `ai-agent/content-analyze` — Content health and strategy metrics
+
+## WP-CLI Commands for Data
+
+### Post Metrics
+- `wp post list --post_type=post --post_status=publish --fields=ID,post_title,post_date,comment_count --orderby=date --order=DESC` — Recent posts with comment counts
+- `wp post list --post_type=post --post_status=publish --date_query='{"after":"2024-01-01"}' --format=count` — Count posts since date
+
+### Comments
+- `wp comment list --status=approve --fields=comment_ID,comment_post_ID,comment_date --number=20` — Recent comments
+- `wp comment count` — Comment counts by status
+
+### Users
+- `wp user list --fields=ID,user_login,user_registered --orderby=registered --order=DESC` — Recent registrations
+
+## Report Types
+
+### Content Velocity
+- Posts published per week/month
+- Comparison with previous period
+- Publishing trend (increasing, stable, declining)
+
+### Category Breakdown
+- Posts per category
+- Categories with most activity
+- Underserved categories (content gaps)
+
+### Author Productivity
+- Posts per author in the period
+- Word count averages per author
+
+### Engagement Metrics
+- Comments per post
+- Posts with most comments
+- Pending comments awaiting moderation
+
+## Reporting Workflows
+
+### Weekly Content Summary
+1. Run `ai-agent/content-performance-report` with `days: 7`
+2. Highlight posts published this week
+3. Note drafts pending review
+4. Compare with previous week
+
+### Monthly Growth Report
+1. Run `ai-agent/content-performance-report` with `days: 30`
+2. Run `ai-agent/content-analyze` for content health
+3. Report publishing velocity vs last month
+4. Identify top categories and content gaps
+5. List actionable recommendations
+MD;
+	}
+
+	private static function builtin_gutenberg_blocks(): string {
+		return <<<'MD'
+# Gutenberg Blocks
+
+## When to Use
+Use this skill when creating content with Gutenberg blocks, converting markdown to blocks, or building custom layouts with columns, groups, buttons, and other block types.
+
+## Available Tools
+- `ai-agent/markdown-to-blocks` — Convert markdown text to serialized Gutenberg block HTML
+- `ai-agent/list-block-types` — Browse and search registered block types
+- `ai-agent/get-block-type` — Get full metadata for a specific block type (attributes, supports, styles)
+- `ai-agent/list-block-patterns` — Browse and search registered block patterns
+- `ai-agent/list-block-templates` — List block templates in the current theme
+- `ai-agent/create-block-content` — Build block HTML from a structured block array
+- `ai-agent/parse-block-content` — Parse existing block content into a structured tree
+
+## Decision Guide
+
+### Use `ai-agent/markdown-to-blocks` when:
+- Creating text-heavy content (blog posts, articles, documentation)
+- The content is primarily headings, paragraphs, lists, quotes, code blocks, images, and tables
+- You want a fast, simple conversion from markdown
+
+### Use `ai-agent/create-block-content` when:
+- Building layouts that need columns, buttons, groups, or other structural blocks
+- Creating landing pages or custom page layouts
+- You need precise control over block attributes and nesting
+- The content uses blocks that markdown cannot represent (buttons, spacers, covers)
+
+## Block Format Reference
+Gutenberg blocks are stored as HTML comments in post_content:
+```
+<!-- wp:paragraph -->
+<p>Hello world</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Title</h3>
+<!-- /wp:heading -->
+```
+
+## Common Block Types
+| Block | Name | Use |
+|-------|------|-----|
+| Paragraph | core/paragraph | Regular text |
+| Heading | core/heading | H1-H6 headings |
+| List | core/list | Ordered/unordered lists |
+| Image | core/image | Single images |
+| Quote | core/quote | Blockquotes |
+| Code | core/code | Code snippets |
+| Table | core/table | Data tables |
+| Columns | core/columns | Multi-column layouts |
+| Group | core/group | Container for grouping blocks |
+| Buttons | core/buttons | Button groups |
+| Separator | core/separator | Horizontal rule |
+| Spacer | core/spacer | Vertical spacing |
+| Cover | core/cover | Image/color overlay with text |
+
+## Workflows
+
+### Create a blog post
+1. Write the content in markdown
+2. Use `ai-agent/markdown-to-blocks` to convert it
+3. Use `site/create-post` with the block content
+
+### Build a custom layout
+1. Use `ai-agent/list-block-types` to discover available blocks
+2. Use `ai-agent/get-block-type` to check attributes for specific blocks
+3. Use `ai-agent/create-block-content` to build the layout
+4. Use `site/create-page` with the block content
+
+### Analyze existing content
+1. Use `ai-agent/parse-block-content` with a post_id
+2. Inspect the block structure and attributes
+3. Modify and recreate with `ai-agent/create-block-content` if needed
+MD;
+	}
+
+	private static function builtin_full_site_editing(): string {
+		return <<<'MD'
+# Full Site Editing
+
+## When to Use
+Use this skill when working with block themes, editing templates, template parts, or customizing site-wide layout with the Site Editor.
+
+## Prerequisites
+Full Site Editing requires a block theme (e.g. Twenty Twenty-Five). Check with `wp_is_block_theme()` or the block editor context.
+
+## Key Concepts
+
+### Block Themes vs Classic Themes
+- **Block themes**: Use HTML templates with block markup, theme.json for configuration
+- **Classic themes**: Use PHP template files, functions.php for configuration
+- FSE features only work with block themes
+
+### Template Hierarchy
+Block themes use the same template hierarchy as classic themes but with HTML files:
+- `templates/index.html` — Default template
+- `templates/single.html` — Single post
+- `templates/page.html` — Single page
+- `templates/archive.html` — Archive pages
+- `templates/404.html` — Not found page
+
+### Template Parts
+Reusable sections of templates:
+- `parts/header.html` — Site header
+- `parts/footer.html` — Site footer
+- `parts/sidebar.html` — Sidebar
+
+## Available Tools
+- `ai-agent/list-block-templates` — List all templates with slugs and descriptions
+- `ai-agent/list-block-patterns` — Browse patterns for page creation and templates
+
+## WP-CLI Commands
+- `wp theme list --status=active` — Current active theme
+- `wp option get template` — Active theme slug
+- `wp option get stylesheet` — Active child theme slug
+
+## Theme.json Overview
+The `theme.json` file controls global styles and settings:
+
+### Settings
+- `color.palette` — Custom color palette
+- `typography.fontFamilies` — Custom fonts
+- `spacing.spacingSizes` — Spacing presets
+- `layout.contentSize` — Default content width
+
+### Styles
+- `color.background` — Global background color
+- `typography.fontFamily` — Global font
+- `elements.link.color` — Link colors
+
+### Custom Templates
+Define custom page templates in theme.json:
+```json
+{
+  "customTemplates": [
+    { "name": "blank", "title": "Blank", "postTypes": ["page"] }
+  ]
+}
+```
+
+## Block Patterns and FSE
+- Page creation patterns appear when creating new pages
+- Template patterns can be used in the Site Editor
+- Use `ai-agent/list-block-patterns` to discover available patterns
+- Synced patterns (reusable blocks) are stored as `wp_block` post type
+
+## Workflows
+
+### Inspect current theme templates
+1. Use `ai-agent/list-block-templates` to see all templates
+2. Use `ai-agent/parse-block-content` to analyze template structure
+
+### Find patterns for page building
+1. Use `ai-agent/list-block-patterns` with relevant category
+2. Review pattern content for suitable layouts
+3. Adapt patterns using `ai-agent/create-block-content`
 MD;
 	}
 }

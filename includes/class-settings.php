@@ -41,7 +41,7 @@ class Settings {
 		return [
 			'default_provider'       => '',
 			'default_model'          => '',
-			'max_iterations'         => 10,
+			'max_iterations'         => 25,
 			'greeting_message'       => '',
 			'system_prompt'          => '',
 			'auto_memory'            => true,

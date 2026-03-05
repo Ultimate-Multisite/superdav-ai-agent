@@ -139,6 +139,12 @@ class Context_Providers {
 
 		// System context.
 		self::register( 'system_context', [ __CLASS__, 'provide_system_context' ], 25 );
+
+		// SEO context.
+		self::register( 'seo_context', [ __CLASS__, 'provide_seo_context' ], 30 );
+
+		// Block editor context.
+		self::register( 'block_editor_context', [ __CLASS__, 'provide_block_editor_context' ], 35 );
 	}
 
 	/**
@@ -248,6 +254,102 @@ class Context_Providers {
 		$tags = wp_get_post_tags( $post->ID, [ 'fields' => 'names' ] );
 		if ( ! is_wp_error( $tags ) && ! empty( $tags ) ) {
 			$data['Tags'] = $tags;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Provide SEO context — active SEO plugin, sitemap URL, permalink structure.
+	 *
+	 * @param array $page_context Page context from widget.
+	 * @return array
+	 */
+	public static function provide_seo_context( array $page_context ): array {
+		$data = [];
+
+		// Detect active SEO plugin.
+		$seo_plugins = [
+			'wordpress-seo/wp-seo.php'                    => 'Yoast SEO',
+			'wordpress-seo-premium/wp-seo-premium.php'    => 'Yoast SEO Premium',
+			'seo-by-rank-math/rank-math.php'              => 'Rank Math',
+			'all-in-one-seo-pack/all_in_one_seo_pack.php' => 'All in One SEO',
+			'wp-seopress/seopress.php'                    => 'SEOPress',
+			'autodescription/autodescription.php'          => 'The SEO Framework',
+		];
+
+		$active_plugins = get_option( 'active_plugins', [] );
+		$seo_plugin     = 'None detected';
+
+		foreach ( $seo_plugins as $file => $name ) {
+			if ( in_array( $file, $active_plugins, true ) ) {
+				$seo_plugin = $name;
+				break;
+			}
+		}
+
+		$data['SEO Plugin'] = $seo_plugin;
+		$data['Permalink Structure'] = get_option( 'permalink_structure' ) ?: 'Plain (default)';
+
+		// Sitemap URL guess based on SEO plugin.
+		$site_url = get_site_url();
+		if ( str_contains( $seo_plugin, 'Yoast' ) ) {
+			$data['Sitemap URL'] = $site_url . '/sitemap_index.xml';
+		} elseif ( str_contains( $seo_plugin, 'Rank Math' ) ) {
+			$data['Sitemap URL'] = $site_url . '/sitemap_index.xml';
+		} else {
+			$data['Sitemap URL'] = $site_url . '/sitemap.xml';
+		}
+
+		// Post-specific SEO meta if on a post edit screen.
+		$post_id = $page_context['post_id'] ?? 0;
+		if ( $post_id ) {
+			$focus_kw  = get_post_meta( (int) $post_id, '_yoast_wpseo_focuskw', true );
+			$meta_desc = get_post_meta( (int) $post_id, '_yoast_wpseo_metadesc', true );
+
+			if ( empty( $focus_kw ) ) {
+				$focus_kw = get_post_meta( (int) $post_id, 'rank_math_focus_keyword', true );
+			}
+			if ( empty( $meta_desc ) ) {
+				$meta_desc = get_post_meta( (int) $post_id, 'rank_math_description', true );
+			}
+
+			if ( $focus_kw ) {
+				$data['Focus Keyword'] = $focus_kw;
+			}
+			if ( $meta_desc ) {
+				$data['SEO Meta Description'] = $meta_desc;
+			}
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Provide block editor context — theme type, registered blocks, patterns.
+	 *
+	 * @param array $page_context Unused.
+	 * @return array
+	 */
+	public static function provide_block_editor_context( array $page_context ): array {
+		$data = [];
+
+		if ( function_exists( 'wp_is_block_theme' ) ) {
+			$data['Block Theme'] = wp_is_block_theme()
+				? 'Yes (Full Site Editing)'
+				: 'No (Classic theme)';
+		}
+
+		if ( class_exists( 'WP_Block_Type_Registry' ) ) {
+			$data['Registered Blocks'] = (string) count(
+				\WP_Block_Type_Registry::get_instance()->get_all_registered()
+			);
+		}
+
+		if ( class_exists( 'WP_Block_Patterns_Registry' ) ) {
+			$data['Block Patterns'] = (string) count(
+				\WP_Block_Patterns_Registry::get_instance()->get_all_registered()
+			);
 		}
 
 		return $data;

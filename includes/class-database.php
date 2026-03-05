@@ -10,7 +10,7 @@ namespace AiAgent;
 class Database {
 
 	const DB_VERSION_OPTION = 'ai_agent_db_version';
-	const DB_VERSION        = '6.0.0';
+	const DB_VERSION        = '8.0.0';
 
 	/**
 	 * Get the sessions table name.

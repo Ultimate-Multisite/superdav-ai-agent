@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, zip
+          tools: composer:v2
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Create plugin directory
+        run: |
+          mkdir -p build/ai-agent
+          
+          # Copy PHP files
+          cp ai-agent.php build/ai-agent/
+          cp -r includes build/ai-agent/
+          cp -r compat build/ai-agent/
+          
+          # Copy built assets
+          cp -r build/*.js build/*.css build/*.asset.php build/ai-agent/build/ 2>/dev/null || true
+          mkdir -p build/ai-agent/build
+          cp -r build/*.js build/*.css build/*.asset.php build/ai-agent/build/ 2>/dev/null || true
+          
+          # Copy other assets
+          cp -r assets build/ai-agent/ 2>/dev/null || true
+          cp -r languages build/ai-agent/ 2>/dev/null || true
+          
+          # Copy vendor (production only)
+          cp -r vendor build/ai-agent/
+          
+          # Copy documentation
+          cp README.md build/ai-agent/
+          cp readme.txt build/ai-agent/
+          cp LICENSE build/ai-agent/
+
+      - name: Create ZIP file
+        run: |
+          cd build
+          zip -r ../ai-agent-${{ steps.version.outputs.VERSION }}.zip ai-agent -x "*.DS_Store" -x "*.git*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ai-agent-${{ steps.version.outputs.VERSION }}.zip
+          name: AI Agent v${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

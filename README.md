@@ -1,5 +1,13 @@
 # AI Agent
 
+[![Tests](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/tests.yml)
+[![Code Quality](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/code-quality.yml/badge.svg)](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/code-quality.yml)
+[![PHP 8.2+](https://img.shields.io/badge/php-%3E%3D%208.2-blue.svg)](https://www.php.net/)
+[![WordPress 6.9+](https://img.shields.io/badge/WordPress-%3E%3D%206.9-blue.svg)](https://wordpress.org/)
+[![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+
+[Try in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint.json) | [Documentation](https://github.com/Ultimate-Multisite/ai-agent/wiki)
+
 An agentic AI assistant that lives inside your WordPress dashboard. It can chat, remember context across sessions, call WordPress tools autonomously, run scheduled tasks, react to WordPress events, and manage your site — all powered by the AI provider of your choice.
 
 Built on the **WordPress AI Client SDK** and **Abilities API** (WordPress 6.9+), AI Agent avoids vendor lock-in entirely. Bring your own API key, swap providers at any time, and keep every token charge on your own account.
@@ -258,13 +266,26 @@ npm install
 composer install
 
 # Development build with watch
-npx wp-scripts start
+npm start
 
 # Production build
-npx wp-scripts build
+npm run build
+
+# Run linters
+composer phpcs      # PHP CodeSniffer
+composer phpcbf     # Auto-fix PHPCS issues
+composer phpstan    # Static analysis
+composer test       # PHPUnit tests
 ```
 
 The plugin builds three entry points: `admin-page`, `floating-widget`, and `settings-page`.
+
+### WordPress Playground Testing
+
+Test the plugin instantly in your browser without any local setup:
+
+- **Latest release**: [Open in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint.json)
+- **Development branch**: [Open dev version](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint-dev.json)
 
 ## License
 

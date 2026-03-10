@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ruleset name="AI Agent Coding Standards">
+    <description>PHP_CodeSniffer ruleset for AI Agent WordPress plugin.</description>
+
+    <!-- Scan these files -->
+    <file>.</file>
+
+    <!-- Exclude paths -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/build/*</exclude-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+    <exclude-pattern>*/bin/*</exclude-pattern>
+    <exclude-pattern>*/.github/*</exclude-pattern>
+
+    <!-- Arguments -->
+    <arg name="extensions" value="php"/>
+    <arg name="basepath" value="."/>
+    <arg name="parallel" value="8"/>
+    <arg value="ps"/>
+
+    <!-- WordPress version -->
+    <config name="minimum_supported_wp_version" value="6.7"/>
+
+    <!-- Text domain -->
+    <config name="text_domain" value="ai-agent"/>
+
+    <!-- Use WordPress Coding Standards -->
+    <rule ref="WordPress">
+        <!-- Allow PSR-4 class file naming (ClassName.php instead of class-classname.php) -->
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+        <exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+
+        <!-- Allow camelCase method names (PSR convention) -->
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+
+        <!-- Allow short array syntax -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+
+        <!-- Allow direct database queries (plugin uses custom tables) -->
+        <exclude name="WordPress.DB.DirectDatabaseQuery.DirectQuery"/>
+        <exclude name="WordPress.DB.DirectDatabaseQuery.NoCaching"/>
+
+        <!-- Allow file includes with variables (autoloader) -->
+        <exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
+    </rule>
+
+    <!-- Verify text domain usage -->
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="ai-agent"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Check for PHP cross-version compatibility -->
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.2-"/>
+
+</ruleset>

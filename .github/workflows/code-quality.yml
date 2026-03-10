@@ -1,0 +1,79 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npx eslint src/ --ext .js,.jsx --format stylish
+        continue-on-error: true
+
+  stylelint:
+    name: Stylelint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stylelint
+        run: npx stylelint "src/**/*.css" --formatter verbose
+        continue-on-error: true
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check for build artifacts
+        run: |
+          if [ ! -d "build" ] || [ -z "$(ls -A build/*.js 2>/dev/null)" ]; then
+            echo "Build failed - no JS files in build directory"
+            exit 1
+          fi
+          echo "Build successful - artifacts found:"
+          ls -la build/

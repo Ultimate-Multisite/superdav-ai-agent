@@ -16,9 +16,13 @@
 		"wordpress/php-ai-client": "^1.2"
 	},
 	"require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
 		"phpstan/phpstan": "^2.0",
 		"phpunit/phpunit": "^9.6 || ^10.0",
+		"squizlabs/php_codesniffer": "^3.7",
 		"szepeviktor/phpstan-wordpress": "^2.0",
+		"wp-coding-standards/wpcs": "^3.0",
 		"yoast/phpunit-polyfills": "^3.0"
 	},
 	"autoload": {
@@ -33,10 +37,18 @@
 	},
 	"config": {
 		"allow-plugins": {
-			"automattic/jetpack-autoloader": true
+			"automattic/jetpack-autoloader": true,
+			"dealerdirect/phpcodesniffer-composer-installer": true
 		},
 		"preferred-install": "dist",
 		"sort-packages": true
+	},
+	"scripts": {
+		"phpcs": "vendor/bin/phpcs",
+		"phpcbf": "vendor/bin/phpcbf",
+		"phpstan": "vendor/bin/phpstan analyse",
+		"test": "vendor/bin/phpunit",
+		"lint": ["@phpcs", "@phpstan"]
 	},
 	"homepage": "https://github.com/Ultimate-Multisite/ai-agent",
 	"support": {

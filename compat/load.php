@@ -58,6 +58,14 @@ function ai_agent_load_compat_ai_client(): void {
 		return; // Core already provides it.
 	}
 
+	// The adapter classes require WordPress core's prefixed PSR interfaces.
+	// These are only available when running within WordPress 7.0+ or with the
+	// Jetpack Autoloader (which scopes dependencies). Skip loading if unavailable
+	// (e.g., during PHPUnit tests with standard Composer autoloader).
+	if ( ! interface_exists( 'WordPress\AiClientDependencies\Psr\Http\Client\ClientInterface' ) ) {
+		return;
+	}
+
 	// WordPress adapter classes.
 	require_once AI_AGENT_COMPAT_DIR . '/ai-client/adapters/class-wp-ai-client-http-client.php';
 	require_once AI_AGENT_COMPAT_DIR . '/ai-client/adapters/class-wp-ai-client-cache.php';

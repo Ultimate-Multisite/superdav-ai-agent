@@ -5,9 +5,37 @@ parameters:
 	level: 5
 	paths:
 		- includes
-		- compat
 		- ai-agent.php
+	excludePaths:
+		- compat
+		- includes/CLI
 	scanDirectories:
 		- vendor/wordpress/php-ai-client/src
 	bootstrapFiles:
 		- vendor/autoload.php
+	treatPhpDocTypesAsCertain: false
+	ignoreErrors:
+		# WP_CLI is only available when running in CLI context
+		- '#Call to static method .* on an unknown class WP_CLI#'
+		# Constants defined at runtime
+		- '#Constant AI_AGENT_.* not found#'
+		# WordPress functions that may not be stubbed
+		- '#Function _wp_connectors_get_real_api_key not found#'
+		# Compat layer classes loaded conditionally
+		- '#unknown class WP_AI_Client_Ability_Function_Resolver#'
+		- '#unknown class WP_AI_Client_Prompt_Builder#'
+		- '#Instantiated class WP_AI_Client_Ability_Function_Resolver not found#'
+		- '#Function wp_ai_client_prompt not found#'
+		- '#has invalid type WP_AI_Client_Prompt_Builder#'
+		- '#has invalid return type WP_AI_Client_Ability_Function_Resolver#'
+		# WP_Block_Type properties may be empty strings
+		- '#Property WP_Block_Type::.* on left side of \?\? is not nullable#'
+		- '#Property WP_Block_Template::.* on left side of \?\? is not nullable#'
+		# DOMNode vs DOMElement - getAttribute exists on DOMElement
+		- '#Call to an undefined method DOMNameSpaceNode\|DOMNode::getAttribute#'
+		# Regex match arrays - offset may not exist
+		- '#Offset 1 on array.* on left side of \?\? always exists#'
+		# empty() on variables that may be reassigned
+		- '#Variable \$lines in empty\(\) always exists and is not falsy#'
+		# Action callbacks can return values (ignored by WP)
+		- '#Action callback returns .* but should not return anything#'

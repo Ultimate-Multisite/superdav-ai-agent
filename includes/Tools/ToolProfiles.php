@@ -77,7 +77,7 @@ class ToolProfiles {
 		foreach ( $custom as $i => $existing ) {
 			if ( $existing['slug'] === $data['slug'] ) {
 				$custom[ $i ] = $data;
-				$found = true;
+				$found        = true;
 				break;
 			}
 		}
@@ -124,9 +124,12 @@ class ToolProfiles {
 
 		$allowed = array_flip( $profile['tool_names'] );
 
-		return array_filter( $abilities, function ( $ability ) use ( $allowed ) {
-			return isset( $allowed[ $ability->get_name() ] );
-		} );
+		return array_filter(
+			$abilities,
+			function ( $ability ) use ( $allowed ) {
+				return isset( $allowed[ $ability->get_name() ] );
+			}
+		);
 	}
 
 	/**
@@ -154,7 +157,7 @@ class ToolProfiles {
 		foreach ( $profiles as $profile ) {
 			if ( ! empty( $profile['slug'] ) && ! empty( $profile['name'] ) ) {
 				if ( self::save( $profile ) ) {
-					$count++;
+					++$count;
 				}
 			}
 		}
@@ -177,98 +180,172 @@ class ToolProfiles {
 				'slug'        => 'wp-read-only',
 				'name'        => __( 'WP Read Only', 'ai-agent' ),
 				'description' => __( 'Read-only WordPress tools. No modifications.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'site/get-', 'site/list-', 'site/search-',
-					'user/get-', 'user/list-',
-					'ai-agent/memory-', 'ai-agent/skill-', 'ai-agent/knowledge-',
-					'ai-agent/list-tools', 'ai-agent/execute-tool',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'site/get-',
+						'site/list-',
+						'site/search-',
+						'user/get-',
+						'user/list-',
+						'ai-agent/memory-',
+						'ai-agent/skill-',
+						'ai-agent/knowledge-',
+						'ai-agent/list-tools',
+						'ai-agent/execute-tool',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'wp-full-management',
 				'name'        => __( 'WP Full Management', 'ai-agent' ),
 				'description' => __( 'All WordPress management tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'site/', 'user/', 'ai-agent/', 'wpcli/',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'site/',
+						'user/',
+						'ai-agent/',
+						'wpcli/',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'content-management',
 				'name'        => __( 'Content Management', 'ai-agent' ),
 				'description' => __( 'Post, page, and media management tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'site/get-post', 'site/list-post', 'site/create-post', 'site/update-post', 'site/delete-post',
-					'site/get-page', 'site/list-page', 'site/create-page', 'site/update-page',
-					'site/get-media', 'site/list-media', 'site/upload-media',
-					'site/get-categor', 'site/list-categor', 'site/get-tag', 'site/list-tag',
-					'ai-agent/',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'site/get-post',
+						'site/list-post',
+						'site/create-post',
+						'site/update-post',
+						'site/delete-post',
+						'site/get-page',
+						'site/list-page',
+						'site/create-page',
+						'site/update-page',
+						'site/get-media',
+						'site/list-media',
+						'site/upload-media',
+						'site/get-categor',
+						'site/list-categor',
+						'site/get-tag',
+						'site/list-tag',
+						'ai-agent/',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'user-management',
 				'name'        => __( 'User Management', 'ai-agent' ),
 				'description' => __( 'User and role management tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'user/',
-					'ai-agent/',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'user/',
+						'ai-agent/',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'maintenance',
 				'name'        => __( 'Maintenance', 'ai-agent' ),
 				'description' => __( 'Cache, updates, and site health tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'site/get-option', 'site/update-option',
-					'site/get-plugin', 'site/list-plugin', 'site/activate-plugin', 'site/deactivate-plugin', 'site/update-plugin',
-					'site/get-theme', 'site/list-theme', 'site/activate-theme',
-					'wpcli/',
-					'ai-agent-custom/',
-					'ai-agent/',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'site/get-option',
+						'site/update-option',
+						'site/get-plugin',
+						'site/list-plugin',
+						'site/activate-plugin',
+						'site/deactivate-plugin',
+						'site/update-plugin',
+						'site/get-theme',
+						'site/list-theme',
+						'site/activate-theme',
+						'wpcli/',
+						'ai-agent-custom/',
+						'ai-agent/',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'developer',
 				'name'        => __( 'Developer', 'ai-agent' ),
 				'description' => __( 'Full access including WP-CLI and custom tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'site/', 'user/', 'wpcli/', 'ai-agent/', 'ai-agent-custom/',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'site/',
+						'user/',
+						'wpcli/',
+						'ai-agent/',
+						'ai-agent-custom/',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'marketing',
 				'name'        => __( 'Marketing & SEO', 'ai-agent' ),
 				'description' => __( 'SEO auditing, content analysis, and competitive research tools.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'ai-agent/seo-', 'ai-agent/content-', 'ai-agent/fetch-url', 'ai-agent/analyze-headers',
-					'ai-agent/import-stock-image',
-					'site/get-post', 'site/list-post', 'site/create-post', 'site/update-post',
-					'site/get-option', 'site/update-option',
-					'ai-agent/memory-', 'ai-agent/skill-', 'ai-agent/knowledge-',
-					'ai-agent/list-tools', 'ai-agent/execute-tool',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'ai-agent/seo-',
+						'ai-agent/content-',
+						'ai-agent/fetch-url',
+						'ai-agent/analyze-headers',
+						'ai-agent/import-stock-image',
+						'site/get-post',
+						'site/list-post',
+						'site/create-post',
+						'site/update-post',
+						'site/get-option',
+						'site/update-option',
+						'ai-agent/memory-',
+						'ai-agent/skill-',
+						'ai-agent/knowledge-',
+						'ai-agent/list-tools',
+						'ai-agent/execute-tool',
+					]
+				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'content-creator',
 				'name'        => __( 'Content Creator', 'ai-agent' ),
 				'description' => __( 'Content creation with Gutenberg blocks, media, and post management.', 'ai-agent' ),
-				'tool_names'  => self::get_abilities_by_pattern( [
-					'ai-agent/markdown-to-blocks', 'ai-agent/list-block-', 'ai-agent/get-block-type',
-					'ai-agent/create-block-content', 'ai-agent/parse-block-content',
-					'ai-agent/import-stock-image', 'ai-agent/content-',
-					'site/get-post', 'site/list-post', 'site/create-post', 'site/update-post',
-					'site/get-page', 'site/list-page', 'site/create-page', 'site/update-page',
-					'site/get-media', 'site/list-media', 'site/upload-media',
-					'site/get-categor', 'site/list-categor',
-					'ai-agent/memory-', 'ai-agent/skill-', 'ai-agent/knowledge-',
-					'ai-agent/list-tools', 'ai-agent/execute-tool',
-				] ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'ai-agent/markdown-to-blocks',
+						'ai-agent/list-block-',
+						'ai-agent/get-block-type',
+						'ai-agent/create-block-content',
+						'ai-agent/parse-block-content',
+						'ai-agent/import-stock-image',
+						'ai-agent/content-',
+						'site/get-post',
+						'site/list-post',
+						'site/create-post',
+						'site/update-post',
+						'site/get-page',
+						'site/list-page',
+						'site/create-page',
+						'site/update-page',
+						'site/get-media',
+						'site/list-media',
+						'site/upload-media',
+						'site/get-categor',
+						'site/list-categor',
+						'ai-agent/memory-',
+						'ai-agent/skill-',
+						'ai-agent/knowledge-',
+						'ai-agent/list-tools',
+						'ai-agent/execute-tool',
+					]
+				),
 				'is_builtin'  => true,
 			],
 		];
@@ -285,7 +362,7 @@ class ToolProfiles {
 			return [];
 		}
 
-		$all = wp_get_abilities();
+		$all     = wp_get_abilities();
 		$matched = [];
 
 		foreach ( $all as $ability ) {

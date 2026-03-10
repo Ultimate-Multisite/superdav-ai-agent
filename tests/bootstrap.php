@@ -5,8 +5,12 @@
  * @package AiAgent
  */
 
+// Load standard Composer autoloader (not Jetpack) - required for PSR interfaces used by compat layer.
+// Jetpack Autoloader requires WordPress functions, so we use the standard autoloader for tests.
+$plugin_dir = dirname( __DIR__ );
+require_once $plugin_dir . '/vendor/autoload.php';
+
 $_tests_dir = getenv('WP_TESTS_DIR');
-require 'vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
 if ( ! $_tests_dir ) {
 	$_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
 }
@@ -30,6 +34,10 @@ require_once "{$_tests_dir}/includes/functions.php";
  */
 function _manually_load_plugin() {
 	require dirname(__DIR__) . '/ai-agent.php';
+
+	// Install database tables (normally done on activation).
+	// Database::install() includes KnowledgeDatabase schema.
+	AiAgent\Core\Database::install();
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');

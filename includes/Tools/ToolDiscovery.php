@@ -65,67 +65,73 @@ class ToolDiscovery {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/list-tools', [
-			'label'              => __( 'List Tools', 'ai-agent' ),
-			'description'        => __( 'Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter.', 'ai-agent' ),
-			'category'           => 'ai-agent',
-			'input_schema'       => [
-				'type'       => 'object',
-				'properties' => [
-					'query'    => [
-						'type'        => 'string',
-						'description' => 'Search query to fuzzy-match against tool names and descriptions.',
-					],
-					'category' => [
-						'type'        => 'string',
-						'description' => 'Filter tools by category slug.',
-					],
-					'page'     => [
-						'type'        => 'integer',
-						'description' => 'Page number for pagination (default: 1).',
-						'default'     => 1,
-					],
-					'per_page' => [
-						'type'        => 'integer',
-						'description' => 'Tools per page (default: 20, max: 50).',
-						'default'     => 20,
+		wp_register_ability(
+			'ai-agent/list-tools',
+			[
+				'label'               => __( 'List Tools', 'ai-agent' ),
+				'description'         => __( 'Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'query'    => [
+							'type'        => 'string',
+							'description' => 'Search query to fuzzy-match against tool names and descriptions.',
+						],
+						'category' => [
+							'type'        => 'string',
+							'description' => 'Filter tools by category slug.',
+						],
+						'page'     => [
+							'type'        => 'integer',
+							'description' => 'Page number for pagination (default: 1).',
+							'default'     => 1,
+						],
+						'per_page' => [
+							'type'        => 'integer',
+							'description' => 'Tools per page (default: 20, max: 50).',
+							'default'     => 20,
+						],
 					],
 				],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_list_tools' ],
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_list_tools' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/execute-tool', [
-			'label'              => __( 'Execute Tool', 'ai-agent' ),
-			'description'        => __( 'Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval.', 'ai-agent' ),
-			'category'           => 'ai-agent',
-			'input_schema'       => [
-				'type'       => 'object',
-				'properties' => [
-					'tool_name'  => [
-						'type'        => 'string',
-						'description' => 'The ability name to execute (e.g. "wpcli/wp-cli").',
+		wp_register_ability(
+			'ai-agent/execute-tool',
+			[
+				'label'               => __( 'Execute Tool', 'ai-agent' ),
+				'description'         => __( 'Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'tool_name'  => [
+							'type'        => 'string',
+							'description' => 'The ability name to execute (e.g. "wpcli/wp-cli").',
+						],
+						'parameters' => [
+							'type'        => 'object',
+							'description' => 'Parameters to pass to the tool.',
+						],
+						'confirmed'  => [
+							'type'        => 'boolean',
+							'description' => 'Set to true to confirm execution of tools that require confirmation.',
+							'default'     => false,
+						],
 					],
-					'parameters' => [
-						'type'        => 'object',
-						'description' => 'Parameters to pass to the tool.',
-					],
-					'confirmed'  => [
-						'type'        => 'boolean',
-						'description' => 'Set to true to confirm execution of tools that require confirmation.',
-						'default'     => false,
-					],
+					'required'   => [ 'tool_name' ],
 				],
-				'required' => [ 'tool_name' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_execute_tool' ],
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_execute_tool' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -184,9 +190,12 @@ class ToolDiscovery {
 
 		// Filter by category.
 		if ( '' !== $category ) {
-			$tools = array_filter( $tools, function ( $ability ) use ( $category ) {
-				return $ability->get_category() === $category;
-			} );
+			$tools = array_filter(
+				$tools,
+				function ( $ability ) use ( $category ) {
+					return $ability->get_category() === $category;
+				}
+			);
 			$tools = array_values( $tools );
 		}
 
@@ -196,9 +205,9 @@ class ToolDiscovery {
 			$scored      = [];
 
 			foreach ( $tools as $ability ) {
-				$name_lower = strtolower( $ability->get_name() );
+				$name_lower  = strtolower( $ability->get_name() );
 				$label_lower = strtolower( $ability->get_label() );
-				$desc_lower = strtolower( $ability->get_description() );
+				$desc_lower  = strtolower( $ability->get_description() );
 
 				$score = 0;
 
@@ -231,17 +240,26 @@ class ToolDiscovery {
 				}
 
 				if ( $score > 0 ) {
-					$scored[] = [ 'ability' => $ability, 'score' => $score ];
+					$scored[] = [
+						'ability' => $ability,
+						'score'   => $score,
+					];
 				}
 			}
 
-			usort( $scored, function ( $a, $b ) {
-				return $b['score'] - $a['score'];
-			} );
+			usort(
+				$scored,
+				function ( $a, $b ) {
+					return $b['score'] - $a['score'];
+				}
+			);
 
-			$tools = array_map( function ( $item ) {
-				return $item['ability'];
-			}, $scored );
+			$tools = array_map(
+				function ( $item ) {
+					return $item['ability'];
+				},
+				$scored
+			);
 		}
 
 		$total  = count( $tools );
@@ -314,8 +332,8 @@ class ToolDiscovery {
 
 		if ( is_wp_error( $result ) ) {
 			return [
-				'error'   => $result->get_error_message(),
-				'code'    => $result->get_error_code(),
+				'error' => $result->get_error_message(),
+				'code'  => $result->get_error_code(),
 			];
 		}
 
@@ -521,7 +539,7 @@ class ToolDiscovery {
 			if ( is_array( $type ) ) {
 				$type = implode( '|', $type );
 			}
-			$req  = in_array( $name, $required, true ) ? ', required' : '';
+			$req     = in_array( $name, $required, true ) ? ', required' : '';
 			$parts[] = sprintf( '%s(%s%s)', $name, $type, $req );
 		}
 

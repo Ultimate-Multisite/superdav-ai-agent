@@ -39,25 +39,28 @@ class CustomToolExecutor {
 		foreach ( $tools as $tool ) {
 			$ability_name = 'ai-agent-custom/' . $tool['slug'];
 
-			wp_register_ability( $ability_name, [
-				'label'       => $tool['name'],
-				'description' => $tool['description'] ?: sprintf(
-					/* translators: %s: tool type */
-					__( 'Custom %s tool', 'ai-agent' ),
-					strtoupper( $tool['type'] )
-				),
-				'category'    => 'ai-agent',
-				'input_schema' => ! empty( $tool['input_schema'] ) ? $tool['input_schema'] : [
-					'type'       => 'object',
-					'properties' => new \stdClass(),
-				],
-				'execute_callback'    => function ( array $input ) use ( $tool ) {
-					return self::execute( $tool, $input );
-				},
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
-			] );
+			wp_register_ability(
+				$ability_name,
+				[
+					'label'               => $tool['name'],
+					'description'         => $tool['description'] ?: sprintf(
+						/* translators: %s: tool type */
+						__( 'Custom %s tool', 'ai-agent' ),
+						strtoupper( $tool['type'] )
+					),
+					'category'            => 'ai-agent',
+					'input_schema'        => ! empty( $tool['input_schema'] ) ? $tool['input_schema'] : [
+						'type'       => 'object',
+						'properties' => new \stdClass(),
+					],
+					'execute_callback'    => function ( array $input ) use ( $tool ) {
+						return self::execute( $tool, $input );
+					},
+					'permission_callback' => function () {
+						return current_user_can( 'manage_options' );
+					},
+				]
+			);
 		}
 	}
 
@@ -144,7 +147,7 @@ class CustomToolExecutor {
 			];
 		}
 
-		$code         = wp_remote_retrieve_response_code( $response );
+		$code          = wp_remote_retrieve_response_code( $response );
 		$response_body = wp_remote_retrieve_body( $response );
 
 		// Try to parse JSON response.
@@ -178,7 +181,7 @@ class CustomToolExecutor {
 		}
 
 		// Build arguments from config defaults + input.
-		$args = [];
+		$args     = [];
 		$arg_defs = $config['args'] ?? [];
 
 		if ( is_array( $arg_defs ) ) {
@@ -237,7 +240,7 @@ class CustomToolExecutor {
 		$command = preg_replace( '/[;&|`$]/', '', $command );
 
 		// Build full WP-CLI command.
-		$wp_cli_path = defined( 'WP_CLI_PATH' ) ? WP_CLI_PATH : 'wp';
+		$wp_cli_path  = defined( 'WP_CLI_PATH' ) ? WP_CLI_PATH : 'wp';
 		$full_command = sprintf(
 			'%s %s --path=%s 2>&1',
 			escapeshellcmd( $wp_cli_path ),
@@ -246,8 +249,8 @@ class CustomToolExecutor {
 		);
 
 		// Execute with a timeout.
-		$timeout = (int) ( $config['timeout'] ?? 30 );
-		$output = [];
+		$timeout     = (int) ( $config['timeout'] ?? 30 );
+		$output      = [];
 		$return_code = 0;
 
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
@@ -274,29 +277,33 @@ class CustomToolExecutor {
 	 * @return string
 	 */
 	public static function replace_placeholders( string $template, array $input ): string {
-		return preg_replace_callback( '/\{\{(\w[\w.]*)\}\}/', function ( $matches ) use ( $input ) {
-			$key = $matches[1];
+		return preg_replace_callback(
+			'/\{\{(\w[\w.]*)\}\}/',
+			function ( $matches ) use ( $input ) {
+				$key = $matches[1];
 
-			// Direct key lookup.
-			if ( isset( $input[ $key ] ) ) {
-				return is_scalar( $input[ $key ] ) ? (string) $input[ $key ] : wp_json_encode( $input[ $key ] );
-			}
-
-			// Dot-notation traversal.
-			if ( str_contains( $key, '.' ) ) {
-				$parts = explode( '.', $key );
-				$value = $input;
-				foreach ( $parts as $part ) {
-					if ( is_array( $value ) && isset( $value[ $part ] ) ) {
-						$value = $value[ $part ];
-					} else {
-						return $matches[0]; // Leave placeholder as-is if not found.
-					}
+				// Direct key lookup.
+				if ( isset( $input[ $key ] ) ) {
+					return is_scalar( $input[ $key ] ) ? (string) $input[ $key ] : wp_json_encode( $input[ $key ] );
 				}
-				return is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
-			}
 
-			return $matches[0]; // Leave placeholder as-is if not found.
-		}, $template );
+				// Dot-notation traversal.
+				if ( str_contains( $key, '.' ) ) {
+					$parts = explode( '.', $key );
+					$value = $input;
+					foreach ( $parts as $part ) {
+						if ( is_array( $value ) && isset( $value[ $part ] ) ) {
+							$value = $value[ $part ];
+						} else {
+							return $matches[0]; // Leave placeholder as-is if not found.
+						}
+					}
+					return is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+				}
+
+				return $matches[0]; // Leave placeholder as-is if not found.
+			},
+			$template
+		);
 	}
 }

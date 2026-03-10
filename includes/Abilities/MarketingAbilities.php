@@ -30,45 +30,51 @@ class MarketingAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/fetch-url', [
-			'label'       => __( 'Fetch URL', 'ai-agent' ),
-			'description' => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'url' => [
-						'type'        => 'string',
-						'description' => 'The URL to fetch.',
+		wp_register_ability(
+			'ai-agent/fetch-url',
+			[
+				'label'               => __( 'Fetch URL', 'ai-agent' ),
+				'description'         => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'url' => [
+							'type'        => 'string',
+							'description' => 'The URL to fetch.',
+						],
 					],
+					'required'   => [ 'url' ],
 				],
-				'required' => [ 'url' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_fetch_url' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_fetch_url' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/analyze-headers', [
-			'label'       => __( 'Analyze HTTP Headers', 'ai-agent' ),
-			'description' => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'url' => [
-						'type'        => 'string',
-						'description' => 'The URL to analyze headers for.',
+		wp_register_ability(
+			'ai-agent/analyze-headers',
+			[
+				'label'               => __( 'Analyze HTTP Headers', 'ai-agent' ),
+				'description'         => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'url' => [
+							'type'        => 'string',
+							'description' => 'The URL to analyze headers for.',
+						],
 					],
+					'required'   => [ 'url' ],
 				],
-				'required' => [ 'url' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_analyze_headers' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_analyze_headers' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -84,11 +90,14 @@ class MarketingAbilities {
 			return [ 'error' => 'url is required.' ];
 		}
 
-		$response = wp_remote_get( $url, [
-			'timeout'    => 15,
-			'user-agent' => 'AI-Agent/1.0',
-			'redirection' => 5,
-		] );
+		$response = wp_remote_get(
+			$url,
+			[
+				'timeout'     => 15,
+				'user-agent'  => 'AI-Agent/1.0',
+				'redirection' => 5,
+			]
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return [ 'error' => 'Failed to fetch URL: ' . $response->get_error_message() ];
@@ -159,11 +168,14 @@ class MarketingAbilities {
 			return [ 'error' => 'url is required.' ];
 		}
 
-		$response = wp_remote_head( $url, [
-			'timeout'    => 15,
-			'user-agent' => 'AI-Agent/1.0',
-			'redirection' => 5,
-		] );
+		$response = wp_remote_head(
+			$url,
+			[
+				'timeout'     => 15,
+				'user-agent'  => 'AI-Agent/1.0',
+				'redirection' => 5,
+			]
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return [ 'error' => 'Failed to fetch headers: ' . $response->get_error_message() ];
@@ -202,23 +214,23 @@ class MarketingAbilities {
 				'label'  => 'HSTS (Strict-Transport-Security)',
 				'impact' => 'Ensures browsers only connect via HTTPS.',
 			],
-			'x-content-type-options' => [
+			'x-content-type-options'    => [
 				'label'  => 'X-Content-Type-Options',
 				'impact' => 'Prevents MIME-type sniffing attacks.',
 			],
-			'x-frame-options' => [
+			'x-frame-options'           => [
 				'label'  => 'X-Frame-Options',
 				'impact' => 'Prevents clickjacking by controlling iframe embedding.',
 			],
-			'content-security-policy' => [
+			'content-security-policy'   => [
 				'label'  => 'Content-Security-Policy',
 				'impact' => 'Controls resource loading to prevent XSS and data injection.',
 			],
-			'referrer-policy' => [
+			'referrer-policy'           => [
 				'label'  => 'Referrer-Policy',
 				'impact' => 'Controls how much referrer information is sent.',
 			],
-			'permissions-policy' => [
+			'permissions-policy'        => [
 				'label'  => 'Permissions-Policy',
 				'impact' => 'Controls which browser features can be used.',
 			],
@@ -226,7 +238,7 @@ class MarketingAbilities {
 
 		$results = [];
 		foreach ( $checks as $header => $info ) {
-			$value = $headers[ $header ] ?? null;
+			$value     = $headers[ $header ] ?? null;
 			$results[] = [
 				'header' => $info['label'],
 				'status' => $value ? 'present' : 'missing',
@@ -248,20 +260,20 @@ class MarketingAbilities {
 		$results = [];
 
 		$cache_control = $headers['cache-control'] ?? null;
-		$results[] = [
+		$results[]     = [
 			'header' => 'Cache-Control',
 			'status' => $cache_control ? 'present' : 'missing',
 			'value'  => $cache_control ? ( is_array( $cache_control ) ? implode( ', ', $cache_control ) : (string) $cache_control ) : null,
 		];
 
-		$etag = $headers['etag'] ?? null;
+		$etag      = $headers['etag'] ?? null;
 		$results[] = [
 			'header' => 'ETag',
 			'status' => $etag ? 'present' : 'missing',
 			'value'  => $etag ? ( is_array( $etag ) ? implode( ', ', $etag ) : (string) $etag ) : null,
 		];
 
-		$vary = $headers['vary'] ?? null;
+		$vary      = $headers['vary'] ?? null;
 		$results[] = [
 			'header' => 'Vary',
 			'status' => $vary ? 'present' : 'missing',
@@ -279,15 +291,15 @@ class MarketingAbilities {
 	 */
 	private static function detect_cdn( $headers ): array {
 		$indicators = [
-			'cf-ray'        => 'Cloudflare',
-			'x-cache'       => 'CDN Cache',
-			'x-cdn'         => 'CDN',
-			'x-amz-cf-id'   => 'Amazon CloudFront',
-			'x-served-by'   => 'Fastly / Varnish',
-			'x-vercel-id'   => 'Vercel',
-			'x-netlify-id'  => 'Netlify',
-			'via'           => 'Proxy / CDN',
-			'server'        => 'Server',
+			'cf-ray'       => 'Cloudflare',
+			'x-cache'      => 'CDN Cache',
+			'x-cdn'        => 'CDN',
+			'x-amz-cf-id'  => 'Amazon CloudFront',
+			'x-served-by'  => 'Fastly / Varnish',
+			'x-vercel-id'  => 'Vercel',
+			'x-netlify-id' => 'Netlify',
+			'via'          => 'Proxy / CDN',
+			'server'       => 'Server',
 		];
 
 		$detected = [];

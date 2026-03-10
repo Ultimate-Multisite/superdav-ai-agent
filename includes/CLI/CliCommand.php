@@ -165,7 +165,10 @@ class CliCommand extends \WP_CLI_Command {
 
 			$resume_options                  = $options;
 			$resume_options['tool_call_log'] = $result['tool_call_log'] ?? [];
-			$resume_options['token_usage']   = $result['token_usage'] ?? [ 'prompt' => 0, 'completion' => 0 ];
+			$resume_options['token_usage']   = $result['token_usage'] ?? [
+				'prompt'     => 0,
+				'completion' => 0,
+			];
 
 			$loop   = new AgentLoop( '', $abilities, $history, $resume_options );
 			$result = $loop->resume_after_confirmation( true, $remaining );
@@ -203,7 +206,7 @@ class CliCommand extends \WP_CLI_Command {
 
 			foreach ( $tool_calls as $entry ) {
 				if ( 'call' === $entry['type'] ) {
-					$iteration++;
+					++$iteration;
 
 					if ( $verbose ) {
 						WP_CLI::log( '' );

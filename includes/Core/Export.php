@@ -150,12 +150,14 @@ class Export {
 
 		$title = ! empty( $data['title'] ) ? sanitize_text_field( $data['title'] ) . ' (imported)' : 'Imported conversation';
 
-		$session_id = Database::create_session( [
-			'user_id'     => $user_id,
-			'title'       => $title,
-			'provider_id' => sanitize_text_field( $data['provider_id'] ?? '' ),
-			'model_id'    => sanitize_text_field( $data['model_id'] ?? '' ),
-		] );
+		$session_id = Database::create_session(
+			[
+				'user_id'     => $user_id,
+				'title'       => $title,
+				'provider_id' => sanitize_text_field( $data['provider_id'] ?? '' ),
+				'model_id'    => sanitize_text_field( $data['model_id'] ?? '' ),
+			]
+		);
 
 		if ( ! $session_id ) {
 			return new WP_Error(
@@ -165,10 +167,13 @@ class Export {
 			);
 		}
 
-		Database::update_session( $session_id, [
-			'messages'   => wp_json_encode( $data['messages'] ),
-			'tool_calls' => wp_json_encode( $data['tool_calls'] ?? [] ),
-		] );
+		Database::update_session(
+			$session_id,
+			[
+				'messages'   => wp_json_encode( $data['messages'] ),
+				'tool_calls' => wp_json_encode( $data['tool_calls'] ?? [] ),
+			]
+		);
 
 		return $session_id;
 	}

@@ -17,6 +17,8 @@ use WP_UnitTestCase;
 
 /**
  * Test ConversationTrimmer functionality.
+ *
+ * @group ai-client
  */
 class ConversationTrimmerTest extends WP_UnitTestCase {
 
@@ -25,6 +27,12 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		// Skip tests if AI Client SDK is not available.
+		if ( ! class_exists( AssistantMessage::class ) ) {
+			$this->markTestSkipped( 'AI Client SDK not available.' );
+		}
+
 		// Reset settings before each test.
 		delete_option( 'ai_agent_settings' );
 	}

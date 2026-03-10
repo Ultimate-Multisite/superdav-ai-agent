@@ -990,12 +990,12 @@ class RestController {
 					'callback'            => [ __CLASS__, 'handle_save_tool_profile' ],
 					'permission_callback' => [ __CLASS__, 'check_permission' ],
 					'args'                => [
-						'slug' => [
+						'slug'        => [
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_title',
 						],
-						'name' => [
+						'name'        => [
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
@@ -1006,7 +1006,7 @@ class RestController {
 							'default'           => '',
 							'sanitize_callback' => 'sanitize_textarea_field',
 						],
-						'tool_names' => [
+						'tool_names'  => [
 							'required' => false,
 							'type'     => 'array',
 							'default'  => [],
@@ -1048,12 +1048,12 @@ class RestController {
 					'callback'            => [ __CLASS__, 'handle_create_automation' ],
 					'permission_callback' => [ __CLASS__, 'check_permission' ],
 					'args'                => [
-						'name' => [
+						'name'     => [
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						],
-						'prompt' => [
+						'prompt'   => [
 							'required' => true,
 							'type'     => 'string',
 						],
@@ -1158,12 +1158,12 @@ class RestController {
 					'callback'            => [ __CLASS__, 'handle_create_event_automation' ],
 					'permission_callback' => [ __CLASS__, 'check_permission' ],
 					'args'                => [
-						'name' => [
+						'name'            => [
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						],
-						'hook_name' => [
+						'hook_name'       => [
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
@@ -1317,10 +1317,12 @@ class RestController {
 				'timeout'   => 0.01,
 				'blocking'  => false,
 				'sslverify' => false,
-				'body'      => wp_json_encode( [
-					'job_id' => $job_id,
-					'token'  => $token,
-				] ),
+				'body'      => wp_json_encode(
+					[
+						'job_id' => $job_id,
+						'token'  => $token,
+					]
+				),
 				'headers'   => [
 					'Content-Type' => 'application/json',
 				],
@@ -1366,13 +1368,16 @@ class RestController {
 			$response['history']         = $job['result']['history'] ?? [];
 			$response['tool_calls']      = $job['result']['tool_calls'] ?? [];
 			$response['session_id']      = $job['result']['session_id'] ?? null;
-			$response['token_usage']     = $job['result']['token_usage'] ?? [ 'prompt' => 0, 'completion' => 0 ];
+			$response['token_usage']     = $job['result']['token_usage'] ?? [
+				'prompt'     => 0,
+				'completion' => 0,
+			];
 			$response['model_id']        = $job['result']['model_id'] ?? ( $job['params']['model_id'] ?? '' );
 			$response['iterations_used'] = $job['result']['iterations_used'] ?? 0;
 
 			// Compute cost estimate from token usage and model.
-			$model    = $response['model_id'];
-			$tokens   = $response['token_usage'];
+			$model                     = $response['model_id'];
+			$tokens                    = $response['token_usage'];
 			$response['cost_estimate'] = CostCalculator::calculate_cost(
 				$model,
 				(int) ( $tokens['prompt'] ?? 0 ),
@@ -1477,10 +1482,12 @@ class RestController {
 				'timeout'   => 0.01,
 				'blocking'  => false,
 				'sslverify' => false,
-				'body'      => wp_json_encode( [
-					'job_id' => $job_id,
-					'token'  => $token,
-				] ),
+				'body'      => wp_json_encode(
+					[
+						'job_id' => $job_id,
+						'token'  => $token,
+					]
+				),
 				'headers'   => [
 					'Content-Type' => 'application/json',
 				],
@@ -1588,9 +1595,12 @@ class RestController {
 				return new WP_REST_Response( [ 'ok' => false ], 200 );
 			}
 
-			$resume_options = $options;
+			$resume_options                  = $options;
 			$resume_options['tool_call_log'] = $state['tool_call_log'] ?? [];
-			$resume_options['token_usage']   = $state['token_usage'] ?? [ 'prompt' => 0, 'completion' => 0 ];
+			$resume_options['token_usage']   = $state['token_usage'] ?? [
+				'prompt'     => 0,
+				'completion' => 0,
+			];
 
 			$loop   = new AgentLoop( '', [], $resume_history, $resume_options );
 			$result = $loop->resume_after_confirmation( $confirmed, $state['iterations_remaining'] ?? 5 );
@@ -1606,10 +1616,13 @@ class RestController {
 			$job['status']             = 'awaiting_confirmation';
 			$job['pending_tools']      = $result['pending_tools'] ?? [];
 			$job['confirmation_state'] = [
-				'history'               => $result['history'] ?? [],
-				'tool_call_log'         => $result['tool_call_log'] ?? [],
-				'token_usage'           => $result['token_usage'] ?? [ 'prompt' => 0, 'completion' => 0 ],
-				'iterations_remaining'  => $result['iterations_remaining'] ?? 5,
+				'history'              => $result['history'] ?? [],
+				'tool_call_log'        => $result['tool_call_log'] ?? [],
+				'token_usage'          => $result['token_usage'] ?? [
+					'prompt'     => 0,
+					'completion' => 0,
+				],
+				'iterations_remaining' => $result['iterations_remaining'] ?? 5,
 			];
 			// Keep token and params for the resume flow.
 			unset( $job['token'] );
@@ -1648,22 +1661,24 @@ class RestController {
 				}
 
 				// Log to usage tracking table.
-				$provider_id = $params['provider_id'] ?? '';
-				$model_id    = $params['model_id'] ?? '';
-				$prompt_t    = $token_usage['prompt'] ?? 0;
+				$provider_id  = $params['provider_id'] ?? '';
+				$model_id     = $params['model_id'] ?? '';
+				$prompt_t     = $token_usage['prompt'] ?? 0;
 				$completion_t = $token_usage['completion'] ?? 0;
 
 				if ( $prompt_t > 0 || $completion_t > 0 ) {
 					$cost = CostCalculator::calculate_cost( $model_id, $prompt_t, $completion_t );
-					Database::log_usage( [
-						'user_id'           => $job['user_id'] ?? 0,
-						'session_id'        => $session_id,
-						'provider_id'       => $provider_id,
-						'model_id'          => $model_id,
-						'prompt_tokens'     => $prompt_t,
-						'completion_tokens' => $completion_t,
-						'cost_usd'          => $cost,
-					] );
+					Database::log_usage(
+						[
+							'user_id'           => $job['user_id'] ?? 0,
+							'session_id'        => $session_id,
+							'provider_id'       => $provider_id,
+							'model_id'          => $model_id,
+							'prompt_tokens'     => $prompt_t,
+							'completion_tokens' => $completion_t,
+							'cost_usd'          => $cost,
+						]
+					);
 				}
 
 				// Auto-generate title from first user message if empty.
@@ -1749,7 +1764,7 @@ class RestController {
 				}
 
 				$metadata = $class::metadata();
-				$models = [];
+				$models   = [];
 
 				// For the OpenAI-compatible connector, fetch models directly
 				// from the endpoint rather than going through the SDK model
@@ -1928,12 +1943,14 @@ class RestController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_create_session( WP_REST_Request $request ) {
-		$session_id = Database::create_session( [
-			'user_id'     => get_current_user_id(),
-			'title'       => $request->get_param( 'title' ),
-			'provider_id' => $request->get_param( 'provider_id' ),
-			'model_id'    => $request->get_param( 'model_id' ),
-		] );
+		$session_id = Database::create_session(
+			[
+				'user_id'     => get_current_user_id(),
+				'title'       => $request->get_param( 'title' ),
+				'provider_id' => $request->get_param( 'provider_id' ),
+				'model_id'    => $request->get_param( 'model_id' ),
+			]
+		);
 
 		if ( ! $session_id ) {
 			return new WP_Error(
@@ -2050,20 +2067,23 @@ class RestController {
 	public static function handle_list_skills(): WP_REST_Response {
 		$skills = Skill::get_all();
 
-		$list = array_map( function ( $s ) {
-			return [
-				'id'          => (int) $s->id,
-				'slug'        => $s->slug,
-				'name'        => $s->name,
-				'description' => $s->description,
-				'content'     => $s->content,
-				'is_builtin'  => (bool) (int) $s->is_builtin,
-				'enabled'     => (bool) (int) $s->enabled,
-				'word_count'  => str_word_count( $s->content ),
-				'created_at'  => $s->created_at,
-				'updated_at'  => $s->updated_at,
-			];
-		}, $skills );
+		$list = array_map(
+			function ( $s ) {
+				return [
+					'id'          => (int) $s->id,
+					'slug'        => $s->slug,
+					'name'        => $s->name,
+					'description' => $s->description,
+					'content'     => $s->content,
+					'is_builtin'  => (bool) (int) $s->is_builtin,
+					'enabled'     => (bool) (int) $s->enabled,
+					'word_count'  => str_word_count( $s->content ),
+					'created_at'  => $s->created_at,
+					'updated_at'  => $s->updated_at,
+				];
+			},
+			$skills
+		);
 
 		return new WP_REST_Response( $list, 200 );
 	}
@@ -2087,14 +2107,16 @@ class RestController {
 			);
 		}
 
-		$id = Skill::create( [
-			'slug'        => $slug,
-			'name'        => $request->get_param( 'name' ),
-			'description' => $request->get_param( 'description' ),
-			'content'     => $request->get_param( 'content' ),
-			'is_builtin'  => false,
-			'enabled'     => true,
-		] );
+		$id = Skill::create(
+			[
+				'slug'        => $slug,
+				'name'        => $request->get_param( 'name' ),
+				'description' => $request->get_param( 'description' ),
+				'content'     => $request->get_param( 'content' ),
+				'is_builtin'  => false,
+				'enabled'     => true,
+			]
+		);
 
 		if ( false === $id ) {
 			return new WP_Error(
@@ -2106,18 +2128,21 @@ class RestController {
 
 		$skill = Skill::get( $id );
 
-		return new WP_REST_Response( [
-			'id'          => (int) $skill->id,
-			'slug'        => $skill->slug,
-			'name'        => $skill->name,
-			'description' => $skill->description,
-			'content'     => $skill->content,
-			'is_builtin'  => false,
-			'enabled'     => true,
-			'word_count'  => str_word_count( $skill->content ),
-			'created_at'  => $skill->created_at,
-			'updated_at'  => $skill->updated_at,
-		], 201 );
+		return new WP_REST_Response(
+			[
+				'id'          => (int) $skill->id,
+				'slug'        => $skill->slug,
+				'name'        => $skill->name,
+				'description' => $skill->description,
+				'content'     => $skill->content,
+				'is_builtin'  => false,
+				'enabled'     => true,
+				'word_count'  => str_word_count( $skill->content ),
+				'created_at'  => $skill->created_at,
+				'updated_at'  => $skill->updated_at,
+			],
+			201
+		);
 	}
 
 	/**
@@ -2155,18 +2180,21 @@ class RestController {
 
 		$skill = Skill::get( $id );
 
-		return new WP_REST_Response( [
-			'id'          => (int) $skill->id,
-			'slug'        => $skill->slug,
-			'name'        => $skill->name,
-			'description' => $skill->description,
-			'content'     => $skill->content,
-			'is_builtin'  => (bool) (int) $skill->is_builtin,
-			'enabled'     => (bool) (int) $skill->enabled,
-			'word_count'  => str_word_count( $skill->content ),
-			'created_at'  => $skill->created_at,
-			'updated_at'  => $skill->updated_at,
-		], 200 );
+		return new WP_REST_Response(
+			[
+				'id'          => (int) $skill->id,
+				'slug'        => $skill->slug,
+				'name'        => $skill->name,
+				'description' => $skill->description,
+				'content'     => $skill->content,
+				'is_builtin'  => (bool) (int) $skill->is_builtin,
+				'enabled'     => (bool) (int) $skill->enabled,
+				'word_count'  => str_word_count( $skill->content ),
+				'created_at'  => $skill->created_at,
+				'updated_at'  => $skill->updated_at,
+			],
+			200
+		);
 	}
 
 	/**
@@ -2218,18 +2246,21 @@ class RestController {
 
 		$skill = Skill::get( $id );
 
-		return new WP_REST_Response( [
-			'id'          => (int) $skill->id,
-			'slug'        => $skill->slug,
-			'name'        => $skill->name,
-			'description' => $skill->description,
-			'content'     => $skill->content,
-			'is_builtin'  => (bool) (int) $skill->is_builtin,
-			'enabled'     => (bool) (int) $skill->enabled,
-			'word_count'  => str_word_count( $skill->content ),
-			'created_at'  => $skill->created_at,
-			'updated_at'  => $skill->updated_at,
-		], 200 );
+		return new WP_REST_Response(
+			[
+				'id'          => (int) $skill->id,
+				'slug'        => $skill->slug,
+				'name'        => $skill->name,
+				'description' => $skill->description,
+				'content'     => $skill->content,
+				'is_builtin'  => (bool) (int) $skill->is_builtin,
+				'enabled'     => (bool) (int) $skill->enabled,
+				'word_count'  => str_word_count( $skill->content ),
+				'created_at'  => $skill->created_at,
+				'updated_at'  => $skill->updated_at,
+			],
+			200
+		);
 	}
 
 	// ─── Settings ────────────────────────────────────────────────────
@@ -2291,9 +2322,9 @@ class RestController {
 
 		return new WP_REST_Response(
 			[
-				'saved'            => true,
-				'has_token'        => ! empty( $token ),
-				'token_prefix'     => ! empty( $token ) ? substr( $token, 0, 20 ) . '…' : '',
+				'saved'        => true,
+				'has_token'    => ! empty( $token ),
+				'token_prefix' => ! empty( $token ) ? substr( $token, 0, 20 ) . '…' : '',
 			],
 			200
 		);
@@ -2310,15 +2341,18 @@ class RestController {
 		$category = $request->get_param( 'category' );
 		$memories = Memory::get_all( $category ?: null );
 
-		$list = array_map( function ( $m ) {
-			return [
-				'id'         => (int) $m->id,
-				'category'   => $m->category,
-				'content'    => $m->content,
-				'created_at' => $m->created_at,
-				'updated_at' => $m->updated_at,
-			];
-		}, $memories );
+		$list = array_map(
+			function ( $m ) {
+				return [
+					'id'         => (int) $m->id,
+					'category'   => $m->category,
+					'content'    => $m->content,
+					'created_at' => $m->created_at,
+					'updated_at' => $m->updated_at,
+				];
+			},
+			$memories
+		);
 
 		return new WP_REST_Response( $list, 200 );
 	}
@@ -2338,11 +2372,14 @@ class RestController {
 			return new WP_Error( 'ai_agent_memory_create_failed', __( 'Failed to create memory.', 'ai-agent' ), [ 'status' => 500 ] );
 		}
 
-		return new WP_REST_Response( [
-			'id'       => $id,
-			'category' => $category,
-			'content'  => $content,
-		], 201 );
+		return new WP_REST_Response(
+			[
+				'id'       => $id,
+				'category' => $category,
+				'content'  => $content,
+			],
+			201
+		);
 	}
 
 	/**
@@ -2367,7 +2404,13 @@ class RestController {
 			return new WP_Error( 'ai_agent_memory_update_failed', __( 'Failed to update memory.', 'ai-agent' ), [ 'status' => 500 ] );
 		}
 
-		return new WP_REST_Response( [ 'updated' => true, 'id' => $id ], 200 );
+		return new WP_REST_Response(
+			[
+				'updated' => true,
+				'id'      => $id,
+			],
+			200
+		);
 	}
 
 	/**
@@ -2424,21 +2467,24 @@ class RestController {
 	public static function handle_list_collections(): WP_REST_Response {
 		$collections = KnowledgeDatabase::list_collections();
 
-		$list = array_map( function ( $c ) {
-			return [
-				'id'              => (int) $c->id,
-				'name'            => $c->name,
-				'slug'            => $c->slug,
-				'description'     => $c->description,
-				'auto_index'      => (bool) (int) $c->auto_index,
-				'source_config'   => $c->source_config,
-				'status'          => $c->status,
-				'chunk_count'     => (int) $c->chunk_count,
-				'last_indexed_at' => $c->last_indexed_at,
-				'created_at'      => $c->created_at,
-				'updated_at'      => $c->updated_at,
-			];
-		}, $collections );
+		$list = array_map(
+			function ( $c ) {
+				return [
+					'id'              => (int) $c->id,
+					'name'            => $c->name,
+					'slug'            => $c->slug,
+					'description'     => $c->description,
+					'auto_index'      => (bool) (int) $c->auto_index,
+					'source_config'   => $c->source_config,
+					'status'          => $c->status,
+					'chunk_count'     => (int) $c->chunk_count,
+					'last_indexed_at' => $c->last_indexed_at,
+					'created_at'      => $c->created_at,
+					'updated_at'      => $c->updated_at,
+				];
+			},
+			$collections
+		);
 
 		return new WP_REST_Response( $list, 200 );
 	}
@@ -2462,13 +2508,15 @@ class RestController {
 			);
 		}
 
-		$id = KnowledgeDatabase::create_collection( [
-			'name'          => $request->get_param( 'name' ),
-			'slug'          => $slug,
-			'description'   => $request->get_param( 'description' ),
-			'auto_index'    => $request->get_param( 'auto_index' ),
-			'source_config' => $request->get_param( 'source_config' ),
-		] );
+		$id = KnowledgeDatabase::create_collection(
+			[
+				'name'          => $request->get_param( 'name' ),
+				'slug'          => $slug,
+				'description'   => $request->get_param( 'description' ),
+				'auto_index'    => $request->get_param( 'auto_index' ),
+				'source_config' => $request->get_param( 'source_config' ),
+			]
+		);
 
 		if ( ! $id ) {
 			return new WP_Error(
@@ -2480,19 +2528,22 @@ class RestController {
 
 		$collection = KnowledgeDatabase::get_collection( $id );
 
-		return new WP_REST_Response( [
-			'id'              => (int) $collection->id,
-			'name'            => $collection->name,
-			'slug'            => $collection->slug,
-			'description'     => $collection->description,
-			'auto_index'      => (bool) (int) $collection->auto_index,
-			'source_config'   => $collection->source_config,
-			'status'          => $collection->status,
-			'chunk_count'     => 0,
-			'last_indexed_at' => null,
-			'created_at'      => $collection->created_at,
-			'updated_at'      => $collection->updated_at,
-		], 201 );
+		return new WP_REST_Response(
+			[
+				'id'              => (int) $collection->id,
+				'name'            => $collection->name,
+				'slug'            => $collection->slug,
+				'description'     => $collection->description,
+				'auto_index'      => (bool) (int) $collection->auto_index,
+				'source_config'   => $collection->source_config,
+				'status'          => $collection->status,
+				'chunk_count'     => 0,
+				'last_indexed_at' => null,
+				'created_at'      => $collection->created_at,
+				'updated_at'      => $collection->updated_at,
+			],
+			201
+		);
 	}
 
 	/**
@@ -2530,19 +2581,22 @@ class RestController {
 
 		$collection = KnowledgeDatabase::get_collection( $id );
 
-		return new WP_REST_Response( [
-			'id'              => (int) $collection->id,
-			'name'            => $collection->name,
-			'slug'            => $collection->slug,
-			'description'     => $collection->description,
-			'auto_index'      => (bool) (int) $collection->auto_index,
-			'source_config'   => $collection->source_config,
-			'status'          => $collection->status,
-			'chunk_count'     => (int) $collection->chunk_count,
-			'last_indexed_at' => $collection->last_indexed_at,
-			'created_at'      => $collection->created_at,
-			'updated_at'      => $collection->updated_at,
-		], 200 );
+		return new WP_REST_Response(
+			[
+				'id'              => (int) $collection->id,
+				'name'            => $collection->name,
+				'slug'            => $collection->slug,
+				'description'     => $collection->description,
+				'auto_index'      => (bool) (int) $collection->auto_index,
+				'source_config'   => $collection->source_config,
+				'status'          => $collection->status,
+				'chunk_count'     => (int) $collection->chunk_count,
+				'last_indexed_at' => $collection->last_indexed_at,
+				'created_at'      => $collection->created_at,
+				'updated_at'      => $collection->updated_at,
+			],
+			200
+		);
 	}
 
 	/**
@@ -2576,21 +2630,24 @@ class RestController {
 		$id      = absint( $request->get_param( 'id' ) );
 		$sources = KnowledgeDatabase::get_sources_for_collection( $id );
 
-		$list = array_map( function ( $s ) {
-			return [
-				'id'            => (int) $s->id,
-				'collection_id' => (int) $s->collection_id,
-				'source_type'   => $s->source_type,
-				'source_id'     => $s->source_id ? (int) $s->source_id : null,
-				'source_url'    => $s->source_url,
-				'title'         => $s->title,
-				'status'        => $s->status,
-				'chunk_count'   => (int) $s->chunk_count,
-				'error_message' => $s->error_message,
-				'created_at'    => $s->created_at,
-				'updated_at'    => $s->updated_at,
-			];
-		}, $sources );
+		$list = array_map(
+			function ( $s ) {
+				return [
+					'id'            => (int) $s->id,
+					'collection_id' => (int) $s->collection_id,
+					'source_type'   => $s->source_type,
+					'source_id'     => $s->source_id ? (int) $s->source_id : null,
+					'source_url'    => $s->source_url,
+					'title'         => $s->title,
+					'status'        => $s->status,
+					'chunk_count'   => (int) $s->chunk_count,
+					'error_message' => $s->error_message,
+					'created_at'    => $s->created_at,
+					'updated_at'    => $s->updated_at,
+				];
+			},
+			$sources
+		);
 
 		return new WP_REST_Response( $list, 200 );
 	}
@@ -2651,17 +2708,23 @@ class RestController {
 		$result = Knowledge::index_attachment( $attachment_id, $collection_id );
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_REST_Response( [
-				'attachment_id' => $attachment_id,
-				'status'        => 'error',
-				'error'         => $result->get_error_message(),
-			], 200 );
+			return new WP_REST_Response(
+				[
+					'attachment_id' => $attachment_id,
+					'status'        => 'error',
+					'error'         => $result->get_error_message(),
+				],
+				200
+			);
 		}
 
-		return new WP_REST_Response( [
-			'attachment_id' => $attachment_id,
-			'status'        => 'indexed',
-		], 201 );
+		return new WP_REST_Response(
+			[
+				'attachment_id' => $attachment_id,
+				'status'        => 'indexed',
+			],
+			201
+		);
 	}
 
 	/**
@@ -2725,11 +2788,14 @@ class RestController {
 			];
 		}
 
-		return new WP_REST_Response( [
-			'total_collections' => count( $collections ),
-			'total_chunks'      => $total_chunks,
-			'collections'       => $per_collection,
-		], 200 );
+		return new WP_REST_Response(
+			[
+				'total_collections' => count( $collections ),
+				'total_chunks'      => $total_chunks,
+				'collections'       => $per_collection,
+			],
+			200
+		);
 	}
 
 	/**
@@ -2742,10 +2808,13 @@ class RestController {
 		$topic   = $request->get_param( 'topic' );
 		$deleted = Memory::forget_by_topic( $topic );
 
-		return new WP_REST_Response( [
-			'deleted' => $deleted,
-			'topic'   => $topic,
-		], 200 );
+		return new WP_REST_Response(
+			[
+				'deleted' => $deleted,
+				'topic'   => $topic,
+			],
+			200
+		);
 	}
 
 	// ─── Export / Import ─────────────────────────────────────────────

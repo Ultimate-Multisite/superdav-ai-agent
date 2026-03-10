@@ -12,37 +12,34 @@ namespace AiAgent\Enums;
 /**
  * Valid memory categories for the AI agent's persistent memory system.
  */
-enum MemoryCategory: string
-{
-    case SiteInfo = 'site_info';
-    case UserPreferences = 'user_preferences';
-    case TechnicalNotes = 'technical_notes';
-    case Workflows = 'workflows';
-    case General = 'general';
+enum MemoryCategory: string {
 
-    /**
-     * Get all category values as an array.
-     *
-     * @return array<string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
-    }
+	case SiteInfo        = 'site_info';
+	case UserPreferences = 'user_preferences';
+	case TechnicalNotes  = 'technical_notes';
+	case Workflows       = 'workflows';
+	case General         = 'general';
 
-    /**
-     * Check if a value is a valid category.
-     */
-    public static function isValid(string $value): bool
-    {
-        return in_array($value, self::values(), true);
-    }
+	/**
+	 * Get all category values as an array.
+	 *
+	 * @return array<string>
+	 */
+	public static function values(): array {
+		return array_column( self::cases(), 'value' );
+	}
 
-    /**
-     * Get a category from string, defaulting to General if invalid.
-     */
-    public static function fromStringOrDefault(string $value): self
-    {
-        return self::tryFrom($value) ?? self::General;
-    }
+	/**
+	 * Check if a value is a valid category.
+	 */
+	public static function isValid( string $value ): bool {
+		return in_array( $value, self::values(), true );
+	}
+
+	/**
+	 * Get a category from string, defaulting to General if invalid.
+	 */
+	public static function fromStringOrDefault( string $value ): self {
+		return self::tryFrom( $value ) ?? self::General;
+	}
 }

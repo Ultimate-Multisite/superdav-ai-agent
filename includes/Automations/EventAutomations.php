@@ -48,7 +48,7 @@ class EventAutomations {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", self::table_name(), $id )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', self::table_name(), $id )
 		);
 
 		return $row ? self::decode_row( $row ) : null;
@@ -103,40 +103,40 @@ class EventAutomations {
 			return false;
 		}
 
-		$update = [];
+		$update  = [];
 		$formats = [];
 
 		$string_fields = [ 'name', 'hook_name', 'tool_profile' ];
 		foreach ( $string_fields as $field ) {
 			if ( isset( $data[ $field ] ) ) {
 				$update[ $field ] = sanitize_text_field( $data[ $field ] );
-				$formats[] = '%s';
+				$formats[]        = '%s';
 			}
 		}
 
 		if ( isset( $data['description'] ) ) {
 			$update['description'] = sanitize_textarea_field( $data['description'] );
-			$formats[] = '%s';
+			$formats[]             = '%s';
 		}
 
 		if ( isset( $data['prompt_template'] ) ) {
 			$update['prompt_template'] = wp_kses_post( $data['prompt_template'] );
-			$formats[] = '%s';
+			$formats[]                 = '%s';
 		}
 
 		if ( isset( $data['conditions'] ) ) {
 			$update['conditions'] = wp_json_encode( $data['conditions'] );
-			$formats[] = '%s';
+			$formats[]            = '%s';
 		}
 
 		if ( isset( $data['max_iterations'] ) ) {
 			$update['max_iterations'] = absint( $data['max_iterations'] );
-			$formats[] = '%d';
+			$formats[]                = '%d';
 		}
 
 		if ( isset( $data['enabled'] ) ) {
 			$update['enabled'] = (int) $data['enabled'];
-			$formats[] = '%d';
+			$formats[]         = '%d';
 		}
 
 		if ( empty( $update ) ) {
@@ -144,7 +144,7 @@ class EventAutomations {
 		}
 
 		$update['updated_at'] = current_time( 'mysql', true );
-		$formats[] = '%s';
+		$formats[]            = '%s';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->update(
@@ -190,7 +190,7 @@ class EventAutomations {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET last_run_at = %s, run_count = run_count + 1, updated_at = %s WHERE id = %d",
+				'UPDATE %i SET last_run_at = %s, run_count = run_count + 1, updated_at = %s WHERE id = %d',
 				self::table_name(),
 				$now,
 				$now,

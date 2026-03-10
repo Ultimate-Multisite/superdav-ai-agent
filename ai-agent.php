@@ -64,14 +64,20 @@ add_action( 'admin_menu', [ AdminPage::class, 'register' ] );
 add_action( 'admin_menu', [ Settings::class, 'register' ] );
 
 // Register ability category.
-add_action( 'wp_abilities_api_categories_init', function () {
-	if ( function_exists( 'wp_register_ability_category' ) ) {
-		wp_register_ability_category( 'ai-agent', [
-			'label'       => __( 'AI Agent', 'ai-agent' ),
-			'description' => __( 'AI Agent memory and skill abilities.', 'ai-agent' ),
-		] );
+add_action(
+	'wp_abilities_api_categories_init',
+	function () {
+		if ( function_exists( 'wp_register_ability_category' ) ) {
+			wp_register_ability_category(
+				'ai-agent',
+				[
+					'label'       => __( 'AI Agent', 'ai-agent' ),
+					'description' => __( 'AI Agent memory and skill abilities.', 'ai-agent' ),
+				]
+			);
+		}
 	}
-} );
+);
 
 // Memory abilities.
 MemoryAbilities::register();

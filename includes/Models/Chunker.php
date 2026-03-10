@@ -72,7 +72,7 @@ class Chunker {
 						$word_buffer = '';
 						foreach ( $words as $word ) {
 							if ( strlen( $word_buffer ) + strlen( $word ) + 1 > $max_chars && ! empty( $word_buffer ) ) {
-								$segments[] = trim( $word_buffer );
+								$segments[]  = trim( $word_buffer );
 								$word_buffer = '';
 							}
 							$word_buffer .= ( empty( $word_buffer ) ? '' : ' ' ) . $word;

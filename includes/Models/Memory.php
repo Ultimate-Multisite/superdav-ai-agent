@@ -39,7 +39,7 @@ class Memory {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 			return $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE category = %s ORDER BY updated_at DESC",
+					'SELECT * FROM %i WHERE category = %s ORDER BY updated_at DESC',
 					$table,
 					$category
 				)
@@ -49,7 +49,7 @@ class Memory {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i ORDER BY category ASC, updated_at DESC",
+				'SELECT * FROM %i ORDER BY category ASC, updated_at DESC',
 				$table
 			)
 		);
@@ -158,7 +158,7 @@ class Memory {
 		$table = self::table_name();
 
 		// Build boolean mode search terms.
-		$words        = preg_split( '/\s+/', trim( $query ) );
+		$words         = preg_split( '/\s+/', trim( $query ) );
 		$boolean_terms = [];
 		foreach ( $words as $word ) {
 			$word = preg_replace( '/[^\w]/', '', $word );
@@ -176,11 +176,11 @@ class Memory {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT *, MATCH(content) AGAINST(%s IN BOOLEAN MODE) AS relevance
+				'SELECT *, MATCH(content) AGAINST(%s IN BOOLEAN MODE) AS relevance
 				FROM %i
 				WHERE MATCH(content) AGAINST(%s IN BOOLEAN MODE)
 				ORDER BY relevance DESC
-				LIMIT %d",
+				LIMIT %d',
 				$search_expr,
 				$table,
 				$search_expr,
@@ -207,7 +207,7 @@ class Memory {
 		$deleted = 0;
 		foreach ( $matches as $memory ) {
 			if ( self::delete( (int) $memory->id ) ) {
-				$deleted++;
+				++$deleted;
 			}
 		}
 

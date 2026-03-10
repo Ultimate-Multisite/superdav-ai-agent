@@ -34,7 +34,7 @@ class Skill {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 			return $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE enabled = %d ORDER BY name ASC",
+					'SELECT * FROM %i WHERE enabled = %d ORDER BY name ASC',
 					$table,
 					$enabled ? 1 : 0
 				)
@@ -44,7 +44,7 @@ class Skill {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i ORDER BY name ASC",
+				'SELECT * FROM %i ORDER BY name ASC',
 				$table
 			)
 		);
@@ -62,7 +62,7 @@ class Skill {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$id
 			)
@@ -81,7 +81,7 @@ class Skill {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE slug = %s",
+				'SELECT * FROM %i WHERE slug = %s',
 				self::table_name(),
 				$slug
 			)
@@ -216,11 +216,14 @@ class Skill {
 
 		$definition = $builtins[ $skill->slug ];
 
-		return self::update( $id, [
-			'name'        => $definition['name'],
-			'description' => $definition['description'],
-			'content'     => $definition['content'],
-		] );
+		return self::update(
+			$id,
+			[
+				'name'        => $definition['name'],
+				'description' => $definition['description'],
+				'content'     => $definition['content'],
+			]
+		);
 	}
 
 	/**
@@ -258,14 +261,16 @@ class Skill {
 				continue;
 			}
 
-			self::create( [
-				'slug'        => $slug,
-				'name'        => $definition['name'],
-				'description' => $definition['description'],
-				'content'     => $definition['content'],
-				'is_builtin'  => true,
-				'enabled'     => $definition['enabled'],
-			] );
+			self::create(
+				[
+					'slug'        => $slug,
+					'name'        => $definition['name'],
+					'description' => $definition['description'],
+					'content'     => $definition['content'],
+					'is_builtin'  => true,
+					'enabled'     => $definition['enabled'],
+				]
+			);
 		}
 	}
 
@@ -276,19 +281,19 @@ class Skill {
 	 */
 	public static function get_builtin_definitions(): array {
 		return [
-			'wordpress-admin' => [
+			'wordpress-admin'      => [
 				'name'        => 'WordPress Administration',
 				'description' => 'General WordPress administration (settings, updates, users, options)',
 				'enabled'     => true,
 				'content'     => self::builtin_wordpress_admin(),
 			],
-			'content-management' => [
+			'content-management'   => [
 				'name'        => 'Content Management',
 				'description' => 'Managing posts, pages, media, taxonomies',
 				'enabled'     => true,
 				'content'     => self::builtin_content_management(),
 			],
-			'woocommerce' => [
+			'woocommerce'          => [
 				'name'        => 'WooCommerce Store Management',
 				'description' => 'WooCommerce store management (products, orders, coupons)',
 				'enabled'     => false,
@@ -306,13 +311,13 @@ class Skill {
 				'enabled'     => false,
 				'content'     => self::builtin_multisite_management(),
 			],
-			'seo-optimization' => [
+			'seo-optimization'     => [
 				'name'        => 'SEO Optimization',
 				'description' => 'SEO auditing, on-page optimization, meta tags, technical SEO checks',
 				'enabled'     => true,
 				'content'     => self::builtin_seo_optimization(),
 			],
-			'content-marketing' => [
+			'content-marketing'    => [
 				'name'        => 'Content Marketing',
 				'description' => 'Content strategy, editorial workflows, content audits, publishing analysis',
 				'enabled'     => true,
@@ -324,19 +329,19 @@ class Skill {
 				'enabled'     => false,
 				'content'     => self::builtin_competitive_analysis(),
 			],
-			'analytics-reporting' => [
+			'analytics-reporting'  => [
 				'name'        => 'Analytics & Reporting',
 				'description' => 'Content performance reports, site growth metrics, publishing analytics',
 				'enabled'     => true,
 				'content'     => self::builtin_analytics_reporting(),
 			],
-			'gutenberg-blocks' => [
+			'gutenberg-blocks'     => [
 				'name'        => 'Gutenberg Blocks',
 				'description' => 'Creating content with Gutenberg blocks, converting markdown, building layouts',
 				'enabled'     => true,
 				'content'     => self::builtin_gutenberg_blocks(),
 			],
-			'full-site-editing' => [
+			'full-site-editing'    => [
 				'name'        => 'Full Site Editing',
 				'description' => 'Block theme templates, template parts, site-wide layout customization',
 				'enabled'     => false,

@@ -52,9 +52,12 @@ class ContextProviders {
 		self::ensure_initialized();
 
 		// Sort providers by priority.
-		uasort( self::$providers, function ( $a, $b ) {
-			return $a['priority'] <=> $b['priority'];
-		} );
+		uasort(
+			self::$providers,
+			function ( $a, $b ) {
+				return $a['priority'] <=> $b['priority'];
+			}
+		);
 
 		$context = [];
 
@@ -207,10 +210,10 @@ class ContextProviders {
 		$plugin_count = count( get_option( 'active_plugins', [] ) );
 
 		$data = [
-			'Site Name'    => get_bloginfo( 'name' ),
-			'Site URL'     => get_site_url(),
-			'WP Version'   => $wp_version,
-			'Theme'        => $theme->get( 'Name' ) . ' ' . $theme->get( 'Version' ),
+			'Site Name'      => get_bloginfo( 'name' ),
+			'Site URL'       => get_site_url(),
+			'WP Version'     => $wp_version,
+			'Theme'          => $theme->get( 'Name' ) . ' ' . $theme->get( 'Version' ),
 			'Active Plugins' => (string) $plugin_count,
 		];
 
@@ -241,11 +244,11 @@ class ContextProviders {
 		}
 
 		$data = [
-			'Post ID'    => (string) $post->ID,
-			'Title'      => $post->post_title,
-			'Type'       => $post->post_type,
-			'Status'     => $post->post_status,
-			'Author'     => get_the_author_meta( 'display_name', $post->post_author ),
+			'Post ID' => (string) $post->ID,
+			'Title'   => $post->post_title,
+			'Type'    => $post->post_type,
+			'Status'  => $post->post_status,
+			'Author'  => get_the_author_meta( 'display_name', (int) $post->post_author ),
 		];
 
 		$categories = wp_get_post_categories( $post->ID, [ 'fields' => 'names' ] );
@@ -277,7 +280,7 @@ class ContextProviders {
 			'seo-by-rank-math/rank-math.php'              => 'Rank Math',
 			'all-in-one-seo-pack/all_in_one_seo_pack.php' => 'All in One SEO',
 			'wp-seopress/seopress.php'                    => 'SEOPress',
-			'autodescription/autodescription.php'          => 'The SEO Framework',
+			'autodescription/autodescription.php'         => 'The SEO Framework',
 		];
 
 		$active_plugins = get_option( 'active_plugins', [] );
@@ -290,7 +293,7 @@ class ContextProviders {
 			}
 		}
 
-		$data['SEO Plugin'] = $seo_plugin;
+		$data['SEO Plugin']          = $seo_plugin;
 		$data['Permalink Structure'] = get_option( 'permalink_structure' ) ?: 'Plain (default)';
 
 		// Sitemap URL guess based on SEO plugin.
@@ -367,8 +370,8 @@ class ContextProviders {
 		global $wpdb;
 
 		$data = [
-			'PHP Version'    => PHP_VERSION,
-			'Memory Limit'   => ini_get( 'memory_limit' ),
+			'PHP Version'  => PHP_VERSION,
+			'Memory Limit' => ini_get( 'memory_limit' ),
 		];
 
 		if ( ! empty( $wpdb->db_server_info ) ) {

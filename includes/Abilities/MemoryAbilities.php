@@ -32,58 +32,70 @@ class MemoryAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/memory-save', [
-			'label'       => __( 'Save Memory', 'ai-agent' ),
-			'description' => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'category' => [
-						'type'        => 'string',
-						'description' => 'Memory category: site_info, user_preferences, technical_notes, workflows, or general',
-						'enum'        => Memory::CATEGORIES,
+		wp_register_ability(
+			'ai-agent/memory-save',
+			[
+				'label'               => __( 'Save Memory', 'ai-agent' ),
+				'description'         => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'category' => [
+							'type'        => 'string',
+							'description' => 'Memory category: site_info, user_preferences, technical_notes, workflows, or general',
+							'enum'        => Memory::CATEGORIES,
+						],
+						'content'  => [
+							'type'        => 'string',
+							'description' => 'The information to remember',
+						],
 					],
-					'content'  => [
-						'type'        => 'string',
-						'description' => 'The information to remember',
-					],
+					'required'   => [ 'category', 'content' ],
 				],
-				'required' => [ 'category', 'content' ],
-			],
-			'execute_callback' => [ __CLASS__, 'handle_memory_save' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_memory_save' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
 
-		wp_register_ability( 'ai-agent/memory-list', [
-			'label'       => __( 'List Memories', 'ai-agent' ),
-			'description' => __( 'List all stored memories, grouped by category.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => new \stdClass(),
-			],
-			'execute_callback' => [ __CLASS__, 'handle_memory_list' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
-
-		wp_register_ability( 'ai-agent/memory-delete', [
-			'label'       => __( 'Delete Memory', 'ai-agent' ),
-			'description' => __( 'Delete a specific memory by its ID.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'id' => [
-						'type'        => 'integer',
-						'description' => 'The memory ID to delete',
-					],
+		wp_register_ability(
+			'ai-agent/memory-list',
+			[
+				'label'               => __( 'List Memories', 'ai-agent' ),
+				'description'         => __( 'List all stored memories, grouped by category.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => new \stdClass(),
 				],
-				'required' => [ 'id' ],
-			],
-			'execute_callback' => [ __CLASS__, 'handle_memory_delete' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_memory_list' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/memory-delete',
+			[
+				'label'               => __( 'Delete Memory', 'ai-agent' ),
+				'description'         => __( 'Delete a specific memory by its ID.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'id' => [
+							'type'        => 'integer',
+							'description' => 'The memory ID to delete',
+						],
+					],
+					'required'   => [ 'id' ],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_memory_delete' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
 	}
 
 	/**

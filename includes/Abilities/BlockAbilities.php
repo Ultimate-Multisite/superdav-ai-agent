@@ -35,177 +35,198 @@ class BlockAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/markdown-to-blocks', [
-			'label'       => __( 'Markdown to Blocks', 'ai-agent' ),
-			'description' => __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'markdown' => [
-						'type'        => 'string',
-						'description' => 'Markdown text to convert into Gutenberg blocks.',
+		wp_register_ability(
+			'ai-agent/markdown-to-blocks',
+			[
+				'label'               => __( 'Markdown to Blocks', 'ai-agent' ),
+				'description'         => __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'markdown' => [
+							'type'        => 'string',
+							'description' => 'Markdown text to convert into Gutenberg blocks.',
+						],
 					],
+					'required'   => [ 'markdown' ],
 				],
-				'required' => [ 'markdown' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_markdown_to_blocks' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_markdown_to_blocks' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/list-block-types', [
-			'label'       => __( 'List Block Types', 'ai-agent' ),
-			'description' => __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'category' => [
-						'type'        => 'string',
-						'description' => 'Filter by block category slug (e.g. "text", "media", "design").',
+		wp_register_ability(
+			'ai-agent/list-block-types',
+			[
+				'label'               => __( 'List Block Types', 'ai-agent' ),
+				'description'         => __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'category' => [
+							'type'        => 'string',
+							'description' => 'Filter by block category slug (e.g. "text", "media", "design").',
+						],
+						'search'   => [
+							'type'        => 'string',
+							'description' => 'Search term to filter block types by name, title, or keywords.',
+						],
+						'per_page' => [
+							'type'        => 'integer',
+							'description' => 'Results per page (default: 20).',
+						],
+						'page'     => [
+							'type'        => 'integer',
+							'description' => 'Page number (default: 1).',
+						],
 					],
-					'search' => [
-						'type'        => 'string',
-						'description' => 'Search term to filter block types by name, title, or keywords.',
-					],
-					'per_page' => [
-						'type'        => 'integer',
-						'description' => 'Results per page (default: 20).',
-					],
-					'page' => [
-						'type'        => 'integer',
-						'description' => 'Page number (default: 1).',
-					],
+					'required'   => [],
 				],
-				'required' => [],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_list_block_types' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_types' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/get-block-type', [
-			'label'       => __( 'Get Block Type', 'ai-agent' ),
-			'description' => __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'name' => [
-						'type'        => 'string',
-						'description' => 'Block type name (e.g. "core/paragraph", "core/image").',
+		wp_register_ability(
+			'ai-agent/get-block-type',
+			[
+				'label'               => __( 'Get Block Type', 'ai-agent' ),
+				'description'         => __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'name' => [
+							'type'        => 'string',
+							'description' => 'Block type name (e.g. "core/paragraph", "core/image").',
+						],
 					],
+					'required'   => [ 'name' ],
 				],
-				'required' => [ 'name' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_get_block_type' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_get_block_type' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/list-block-patterns', [
-			'label'       => __( 'List Block Patterns', 'ai-agent' ),
-			'description' => __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'category' => [
-						'type'        => 'string',
-						'description' => 'Filter by pattern category slug.',
+		wp_register_ability(
+			'ai-agent/list-block-patterns',
+			[
+				'label'               => __( 'List Block Patterns', 'ai-agent' ),
+				'description'         => __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'category'     => [
+							'type'        => 'string',
+							'description' => 'Filter by pattern category slug.',
+						],
+						'search'       => [
+							'type'        => 'string',
+							'description' => 'Search term to filter patterns by name or title.',
+						],
+						'per_page'     => [
+							'type'        => 'integer',
+							'description' => 'Results per page (default: 10).',
+						],
+						'full_content' => [
+							'type'        => 'boolean',
+							'description' => 'Return full pattern content instead of truncated (default: false).',
+						],
 					],
-					'search' => [
-						'type'        => 'string',
-						'description' => 'Search term to filter patterns by name or title.',
-					],
-					'per_page' => [
-						'type'        => 'integer',
-						'description' => 'Results per page (default: 10).',
-					],
-					'full_content' => [
-						'type'        => 'boolean',
-						'description' => 'Return full pattern content instead of truncated (default: false).',
-					],
+					'required'   => [],
 				],
-				'required' => [],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_list_block_patterns' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_patterns' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/list-block-templates', [
-			'label'       => __( 'List Block Templates', 'ai-agent' ),
-			'description' => __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'search' => [
-						'type'        => 'string',
-						'description' => 'Search term to filter templates.',
+		wp_register_ability(
+			'ai-agent/list-block-templates',
+			[
+				'label'               => __( 'List Block Templates', 'ai-agent' ),
+				'description'         => __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'search' => [
+							'type'        => 'string',
+							'description' => 'Search term to filter templates.',
+						],
 					],
+					'required'   => [],
 				],
-				'required' => [],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_list_block_templates' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_templates' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/create-block-content', [
-			'label'       => __( 'Create Block Content', 'ai-agent' ),
-			'description' => __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'blocks' => [
-						'type'        => 'array',
-						'description' => 'Array of block objects. Each has: blockName (string, required), attrs (object, optional), content (string, optional — inner text/HTML), innerBlocks (array, optional — nested blocks).',
+		wp_register_ability(
+			'ai-agent/create-block-content',
+			[
+				'label'               => __( 'Create Block Content', 'ai-agent' ),
+				'description'         => __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'blocks' => [
+							'type'        => 'array',
+							'description' => 'Array of block objects. Each has: blockName (string, required), attrs (object, optional), content (string, optional — inner text/HTML), innerBlocks (array, optional — nested blocks).',
+						],
 					],
+					'required'   => [ 'blocks' ],
 				],
-				'required' => [ 'blocks' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_create_block_content' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_create_block_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/parse-block-content', [
-			'label'       => __( 'Parse Block Content', 'ai-agent' ),
-			'description' => __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'post_id' => [
-						'type'        => 'integer',
-						'description' => 'Post ID to read block content from.',
+		wp_register_ability(
+			'ai-agent/parse-block-content',
+			[
+				'label'               => __( 'Parse Block Content', 'ai-agent' ),
+				'description'         => __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'  => [
+							'type'        => 'integer',
+							'description' => 'Post ID to read block content from.',
+						],
+						'content'  => [
+							'type'        => 'string',
+							'description' => 'Raw block content string to parse.',
+						],
+						'site_url' => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite (e.g. "https://example.com/mysite").',
+						],
 					],
-					'content' => [
-						'type'        => 'string',
-						'description' => 'Raw block content string to parse.',
-					],
-					'site_url' => [
-						'type'        => 'string',
-						'description' => 'Subsite URL for multisite (e.g. "https://example.com/mysite").',
-					],
+					'required'   => [],
 				],
-				'required' => [],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_parse_block_content' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_parse_block_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
 	// ─── Handlers ─────────────────────────────────────────────────
@@ -254,7 +275,7 @@ class BlockAbilities {
 			if ( ! isset( $categories[ $cat ] ) ) {
 				$categories[ $cat ] = 0;
 			}
-			$categories[ $cat ]++;
+			++$categories[ $cat ];
 		}
 
 		// Filter blocks.
@@ -285,9 +306,12 @@ class BlockAbilities {
 		}
 
 		// Sort by name.
-		usort( $filtered, function ( $a, $b ) {
-			return strcmp( $a['name'], $b['name'] );
-		} );
+		usort(
+			$filtered,
+			function ( $a, $b ) {
+				return strcmp( $a['name'], $b['name'] );
+			}
+		);
 
 		$total  = count( $filtered );
 		$offset = ( $page - 1 ) * $per_page;
@@ -337,19 +361,22 @@ class BlockAbilities {
 		}
 
 		if ( ! empty( $block->variations ) ) {
-			$result['variations'] = array_map( function ( $v ) {
-				return [
-					'name'        => $v['name'] ?? '',
-					'title'       => $v['title'] ?? '',
-					'description' => $v['description'] ?? '',
-					'isDefault'   => $v['isDefault'] ?? false,
-				];
-			}, $block->variations );
+			$result['variations'] = array_map(
+				function ( $v ) {
+					return [
+						'name'        => $v['name'] ?? '',
+						'title'       => $v['title'] ?? '',
+						'description' => $v['description'] ?? '',
+						'isDefault'   => $v['isDefault'] ?? false,
+					];
+				},
+				$block->variations
+			);
 		}
 
 		// Generate example markup if example data exists.
 		if ( ! empty( $block->example ) ) {
-			$example_block = [
+			$example_block            = [
 				'blockName'    => $block->name,
 				'attrs'        => $block->example['attributes'] ?? [],
 				'innerBlocks'  => [],
@@ -384,7 +411,7 @@ class BlockAbilities {
 				if ( ! isset( $categories[ $cat ] ) ) {
 					$categories[ $cat ] = 0;
 				}
-				$categories[ $cat ]++;
+				++$categories[ $cat ];
 			}
 		}
 
@@ -490,7 +517,7 @@ class BlockAbilities {
 		foreach ( $blocks as $block_data ) {
 			$normalized = self::normalize_block( $block_data );
 			$output    .= serialize_block( $normalized ) . "\n\n";
-			$block_count++;
+			++$block_count;
 			$block_count += self::count_inner_blocks( $normalized );
 		}
 
@@ -564,10 +591,10 @@ class BlockAbilities {
 	 * @return array Full block array for serialize_block().
 	 */
 	private static function normalize_block( array $data ): array {
-		$block_name  = $data['blockName'] ?? '';
-		$attrs       = $data['attrs'] ?? [];
-		$content     = $data['content'] ?? '';
-		$inner_data  = $data['innerBlocks'] ?? [];
+		$block_name = $data['blockName'] ?? '';
+		$attrs      = $data['attrs'] ?? [];
+		$content    = $data['content'] ?? '';
+		$inner_data = $data['innerBlocks'] ?? [];
 
 		// Recursively normalize inner blocks.
 		$inner_blocks = [];
@@ -764,7 +791,7 @@ class BlockAbilities {
 	private static function count_inner_blocks( array $block ): int {
 		$count = 0;
 		foreach ( $block['innerBlocks'] ?? [] as $child ) {
-			$count++;
+			++$count;
 			$count += self::count_inner_blocks( $child );
 		}
 		return $count;

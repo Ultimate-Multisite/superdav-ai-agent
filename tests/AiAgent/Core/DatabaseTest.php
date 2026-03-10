@@ -221,15 +221,18 @@ class DatabaseTest extends WP_UnitTestCase {
 			'title'   => 'Active Session',
 		] );
 
+		$this->assertNotFalse( $session_id, 'Session should be created successfully.' );
+
 		// Move to trash.
-		Database::update_session( $session_id, [ 'status' => 'trash' ] );
+		$updated = Database::update_session( $session_id, [ 'status' => 'trash' ] );
+		$this->assertTrue( $updated, 'Session should be updated successfully.' );
 
 		$active = Database::list_sessions( $user_id, [ 'status' => 'active' ] );
 		$trashed = Database::list_sessions( $user_id, [ 'status' => 'trash' ] );
 
 		// The trashed session should appear in trash list.
 		$trashed_ids = array_column( $trashed, 'id' );
-		$this->assertContains( $session_id, $trashed_ids );
+		$this->assertContains( (int) $session_id, array_map( 'intval', $trashed_ids ) );
 	}
 
 	/**

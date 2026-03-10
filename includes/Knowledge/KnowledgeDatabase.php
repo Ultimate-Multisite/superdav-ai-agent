@@ -144,7 +144,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				self::collections_table(),
 				$id
 			)
@@ -169,7 +169,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE slug = %s",
+				'SELECT * FROM %i WHERE slug = %s',
 				self::collections_table(),
 				$slug
 			)
@@ -267,7 +267,7 @@ class KnowledgeDatabase {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE status = %s ORDER BY name ASC",
+					'SELECT * FROM %i WHERE status = %s ORDER BY name ASC',
 					$table,
 					$status
 				)
@@ -276,7 +276,7 @@ class KnowledgeDatabase {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i ORDER BY name ASC",
+					'SELECT * FROM %i ORDER BY name ASC',
 					$table
 				)
 			);
@@ -335,7 +335,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				self::sources_table(),
 				$id
 			)
@@ -356,7 +356,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE collection_id = %d AND source_type = %s AND source_id = %d",
+				'SELECT * FROM %i WHERE collection_id = %d AND source_type = %s AND source_id = %d',
 				self::sources_table(),
 				$collection_id,
 				$source_type,
@@ -418,7 +418,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE collection_id = %d ORDER BY updated_at DESC",
+				'SELECT * FROM %i WHERE collection_id = %d ORDER BY updated_at DESC',
 				self::sources_table(),
 				$collection_id
 			)
@@ -486,7 +486,7 @@ class KnowledgeDatabase {
 			);
 
 			if ( $result ) {
-				$inserted++;
+				++$inserted;
 			}
 		}
 
@@ -505,7 +505,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM %i WHERE source_id = %d",
+				'DELETE FROM %i WHERE source_id = %d',
 				self::chunks_table(),
 				$source_id
 			)
@@ -530,7 +530,7 @@ class KnowledgeDatabase {
 		$collections_table = self::collections_table();
 
 		// Build boolean mode search terms: prefix each word with +.
-		$words        = preg_split( '/\s+/', trim( $query ) );
+		$words         = preg_split( '/\s+/', trim( $query ) );
 		$boolean_terms = [];
 		foreach ( $words as $word ) {
 			$word = preg_replace( '/[^\w]/', '', $word );
@@ -549,7 +549,7 @@ class KnowledgeDatabase {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Custom table query; caching not applicable.
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT c.id, c.chunk_text, c.chunk_index, c.metadata,
+					'SELECT c.id, c.chunk_text, c.chunk_index, c.metadata,
 						s.title AS source_title, s.source_type, s.source_id, s.source_url,
 						col.name AS collection_name, col.slug AS collection_slug,
 						MATCH(c.chunk_text) AGAINST(%s IN BOOLEAN MODE) AS relevance
@@ -559,7 +559,7 @@ class KnowledgeDatabase {
 					WHERE MATCH(c.chunk_text) AGAINST(%s IN BOOLEAN MODE)
 						AND c.collection_id = %d
 					ORDER BY relevance DESC
-					LIMIT %d",
+					LIMIT %d',
 					$search_expr,
 					$chunks_table,
 					$sources_table,
@@ -573,7 +573,7 @@ class KnowledgeDatabase {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Custom table query; caching not applicable.
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT c.id, c.chunk_text, c.chunk_index, c.metadata,
+					'SELECT c.id, c.chunk_text, c.chunk_index, c.metadata,
 						s.title AS source_title, s.source_type, s.source_id, s.source_url,
 						col.name AS collection_name, col.slug AS collection_slug,
 						MATCH(c.chunk_text) AGAINST(%s IN BOOLEAN MODE) AS relevance
@@ -582,7 +582,7 @@ class KnowledgeDatabase {
 					INNER JOIN %i col ON c.collection_id = col.id
 					WHERE MATCH(c.chunk_text) AGAINST(%s IN BOOLEAN MODE)
 					ORDER BY relevance DESC
-					LIMIT %d",
+					LIMIT %d',
 					$search_expr,
 					$chunks_table,
 					$sources_table,
@@ -607,7 +607,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i",
+				'SELECT COUNT(*) FROM %i',
 				self::chunks_table()
 			)
 		);
@@ -624,7 +624,7 @@ class KnowledgeDatabase {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i WHERE collection_id = %d",
+				'SELECT COUNT(*) FROM %i WHERE collection_id = %d',
 				self::chunks_table(),
 				$collection_id
 			)

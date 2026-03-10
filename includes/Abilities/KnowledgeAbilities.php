@@ -32,27 +32,31 @@ class KnowledgeAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/knowledge-search', [
-			'label'       => __( 'Search Knowledge Base', 'ai-agent' ),
-			'description' => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'query' => [
-						'type'        => 'string',
-						'description' => 'The search query to find relevant knowledge.',
+		wp_register_ability(
+			'ai-agent/knowledge-search',
+			[
+				'label'               => __( 'Search Knowledge Base', 'ai-agent' ),
+				'description'         => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'query'      => [
+							'type'        => 'string',
+							'description' => 'The search query to find relevant knowledge.',
+						],
+						'collection' => [
+							'type'        => 'string',
+							'description' => 'Optional collection slug to search within. Leave empty to search all collections.',
+						],
 					],
-					'collection' => [
-						'type'        => 'string',
-						'description' => 'Optional collection slug to search within. Leave empty to search all collections.',
-					],
+					'required'   => [ 'query' ],
 				],
-				'required' => [ 'query' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_knowledge_search' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_knowledge_search' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
 	}
 
 	/**

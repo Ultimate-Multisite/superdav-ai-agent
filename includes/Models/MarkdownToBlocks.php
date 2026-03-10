@@ -85,16 +85,16 @@ class MarkdownToBlocks {
 
 			// Blank line — flush.
 			if ( trim( $line ) === '' ) {
-				$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
-				$buffer      = [];
-				$table_rows  = [];
-				$state       = 'none';
+				$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+				$buffer     = [];
+				$table_rows = [];
+				$state      = 'none';
 				continue;
 			}
 
 			// Heading.
 			if ( preg_match( '/^(#{1,6})\s+(.+)$/', $line, $m ) ) {
-				$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+				$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 				$buffer     = [];
 				$table_rows = [];
 				$state      = 'none';
@@ -106,7 +106,7 @@ class MarkdownToBlocks {
 
 			// Separator.
 			if ( preg_match( '/^(\-{3,}|\*{3,}|_{3,})$/', trim( $line ) ) ) {
-				$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+				$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 				$buffer     = [];
 				$table_rows = [];
 				$state      = 'none';
@@ -117,7 +117,7 @@ class MarkdownToBlocks {
 
 			// Standalone image on its own line.
 			if ( preg_match( '/^!\[([^\]]*)\]\(([^)]+)\)$/', trim( $line ), $m ) ) {
-				$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+				$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 				$buffer     = [];
 				$table_rows = [];
 				$state      = 'none';
@@ -129,7 +129,7 @@ class MarkdownToBlocks {
 			// Unordered list item.
 			if ( preg_match( '/^[\-\*]\s+(.+)$/', $line, $m ) ) {
 				if ( $state !== 'list' || $list_ordered ) {
-					$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+					$blocks       = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 					$buffer       = [];
 					$table_rows   = [];
 					$state        = 'list';
@@ -142,7 +142,7 @@ class MarkdownToBlocks {
 			// Ordered list item.
 			if ( preg_match( '/^\d+\.\s+(.+)$/', $line, $m ) ) {
 				if ( $state !== 'list' || ! $list_ordered ) {
-					$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+					$blocks       = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 					$buffer       = [];
 					$table_rows   = [];
 					$state        = 'list';
@@ -155,7 +155,7 @@ class MarkdownToBlocks {
 			// Blockquote.
 			if ( preg_match( '/^>\s?(.*)$/', $line, $m ) ) {
 				if ( $state !== 'quote' ) {
-					$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+					$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 					$buffer     = [];
 					$table_rows = [];
 					$state      = 'quote';
@@ -167,7 +167,7 @@ class MarkdownToBlocks {
 			// Table row.
 			if ( preg_match( '/^\|(.+)\|$/', $line ) ) {
 				if ( $state !== 'table' ) {
-					$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+					$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 					$buffer     = [];
 					$table_rows = [];
 					$state      = 'table';
@@ -178,7 +178,7 @@ class MarkdownToBlocks {
 
 			// Default: paragraph text.
 			if ( $state !== 'paragraph' ) {
-				$blocks = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
+				$blocks     = array_merge( $blocks, self::flush_buffer( $buffer, $state, $list_ordered, $table_rows ) );
 				$buffer     = [];
 				$table_rows = [];
 				$state      = 'paragraph';
@@ -269,7 +269,7 @@ class MarkdownToBlocks {
 			return [];
 		}
 
-		$parsed_rows = [];
+		$parsed_rows     = [];
 		$separator_index = -1;
 
 		foreach ( $rows as $index => $row ) {
@@ -365,15 +365,15 @@ class MarkdownToBlocks {
 	 * @return array Block array.
 	 */
 	public static function make_list( array $items, bool $ordered = false ): array {
-		$tag         = $ordered ? 'ol' : 'ul';
-		$attrs       = $ordered ? [ 'ordered' => true ] : [];
-		$inner_blocks = [];
+		$tag           = $ordered ? 'ol' : 'ul';
+		$attrs         = $ordered ? [ 'ordered' => true ] : [];
+		$inner_blocks  = [];
 		$inner_content = [ '<' . $tag . '>' ];
 
 		foreach ( $items as $item ) {
-			$item_html    = self::parse_inline( $item );
-			$li_html      = '<li>' . $item_html . '</li>';
-			$inner_blocks[] = [
+			$item_html       = self::parse_inline( $item );
+			$li_html         = '<li>' . $item_html . '</li>';
+			$inner_blocks[]  = [
 				'blockName'    => 'core/list-item',
 				'attrs'        => [],
 				'innerBlocks'  => [],
@@ -497,7 +497,10 @@ class MarkdownToBlocks {
 			foreach ( $headers as $row ) {
 				$cells = [];
 				foreach ( $row['cells'] as $cell ) {
-					$cells[] = [ 'content' => $cell['content'], 'tag' => 'th' ];
+					$cells[] = [
+						'content' => $cell['content'],
+						'tag'     => 'th',
+					];
 				}
 				$head_rows[] = [ 'cells' => $cells ];
 			}
@@ -509,7 +512,10 @@ class MarkdownToBlocks {
 			foreach ( $body as $row ) {
 				$cells = [];
 				foreach ( $row['cells'] as $cell ) {
-					$cells[] = [ 'content' => $cell['content'], 'tag' => 'td' ];
+					$cells[] = [
+						'content' => $cell['content'],
+						'tag'     => 'td',
+					];
 				}
 				$body_rows[] = [ 'cells' => $cells ];
 			}

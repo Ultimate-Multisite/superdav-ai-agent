@@ -54,19 +54,24 @@ class Knowledge {
 		if ( $existing ) {
 			$source_id = (int) $existing->id;
 			KnowledgeDatabase::delete_chunks_for_source( $source_id );
-			KnowledgeDatabase::update_source( $source_id, [
-				'title'        => $post->post_title,
-				'content_hash' => $hash,
-				'status'       => 'pending',
-			] );
+			KnowledgeDatabase::update_source(
+				$source_id,
+				[
+					'title'        => $post->post_title,
+					'content_hash' => $hash,
+					'status'       => 'pending',
+				]
+			);
 		} else {
-			$source_id = KnowledgeDatabase::create_source( [
-				'collection_id' => $collection_id,
-				'source_type'   => 'post',
-				'source_id'     => $post_id,
-				'title'         => $post->post_title,
-				'content_hash'  => $hash,
-			] );
+			$source_id = KnowledgeDatabase::create_source(
+				[
+					'collection_id' => $collection_id,
+					'source_type'   => 'post',
+					'source_id'     => $post_id,
+					'title'         => $post->post_title,
+					'content_hash'  => $hash,
+				]
+			);
 
 			if ( ! $source_id ) {
 				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'ai-agent' ) );
@@ -101,16 +106,22 @@ class Knowledge {
 		$inserted = KnowledgeDatabase::insert_chunks( $collection_id, $source_id, $chunks );
 
 		// Update source.
-		KnowledgeDatabase::update_source( $source_id, [
-			'chunk_count' => $inserted,
-			'status'      => 'indexed',
-		] );
+		KnowledgeDatabase::update_source(
+			$source_id,
+			[
+				'chunk_count' => $inserted,
+				'status'      => 'indexed',
+			]
+		);
 
 		// Update collection.
 		KnowledgeDatabase::recalculate_collection_chunk_count( $collection_id );
-		KnowledgeDatabase::update_collection( $collection_id, [
-			'last_indexed_at' => current_time( 'mysql', true ),
-		] );
+		KnowledgeDatabase::update_collection(
+			$collection_id,
+			[
+				'last_indexed_at' => current_time( 'mysql', true ),
+			]
+		);
 
 		return true;
 	}
@@ -129,10 +140,13 @@ class Knowledge {
 			// Record the error in the source.
 			$existing = KnowledgeDatabase::find_source( $collection_id, 'attachment', $attachment_id );
 			if ( $existing ) {
-				KnowledgeDatabase::update_source( (int) $existing->id, [
-					'status'        => 'error',
-					'error_message' => $content->get_error_message(),
-				] );
+				KnowledgeDatabase::update_source(
+					(int) $existing->id,
+					[
+						'status'        => 'error',
+						'error_message' => $content->get_error_message(),
+					]
+				);
 			}
 			return $content;
 		}
@@ -150,19 +164,24 @@ class Knowledge {
 		if ( $existing ) {
 			$source_id = (int) $existing->id;
 			KnowledgeDatabase::delete_chunks_for_source( $source_id );
-			KnowledgeDatabase::update_source( $source_id, [
-				'title'        => $title,
-				'content_hash' => $hash,
-				'status'       => 'pending',
-			] );
+			KnowledgeDatabase::update_source(
+				$source_id,
+				[
+					'title'        => $title,
+					'content_hash' => $hash,
+					'status'       => 'pending',
+				]
+			);
 		} else {
-			$source_id = KnowledgeDatabase::create_source( [
-				'collection_id' => $collection_id,
-				'source_type'   => 'attachment',
-				'source_id'     => $attachment_id,
-				'title'         => $title,
-				'content_hash'  => $hash,
-			] );
+			$source_id = KnowledgeDatabase::create_source(
+				[
+					'collection_id' => $collection_id,
+					'source_type'   => 'attachment',
+					'source_id'     => $attachment_id,
+					'title'         => $title,
+					'content_hash'  => $hash,
+				]
+			);
 
 			if ( ! $source_id ) {
 				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'ai-agent' ) );
@@ -172,15 +191,21 @@ class Knowledge {
 		$chunks   = Chunker::chunk( $content );
 		$inserted = KnowledgeDatabase::insert_chunks( $collection_id, $source_id, $chunks );
 
-		KnowledgeDatabase::update_source( $source_id, [
-			'chunk_count' => $inserted,
-			'status'      => 'indexed',
-		] );
+		KnowledgeDatabase::update_source(
+			$source_id,
+			[
+				'chunk_count' => $inserted,
+				'status'      => 'indexed',
+			]
+		);
 
 		KnowledgeDatabase::recalculate_collection_chunk_count( $collection_id );
-		KnowledgeDatabase::update_collection( $collection_id, [
-			'last_indexed_at' => current_time( 'mysql', true ),
-		] );
+		KnowledgeDatabase::update_collection(
+			$collection_id,
+			[
+				'last_indexed_at' => current_time( 'mysql', true ),
+			]
+		);
 
 		return true;
 	}
@@ -201,30 +226,39 @@ class Knowledge {
 		$config     = $collection->source_config;
 		$post_types = $config['post_types'] ?? [ 'post', 'page' ];
 
-		$posts = get_posts( [
-			'post_type'      => $post_types,
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-		] );
+		$posts = get_posts(
+			[
+				'post_type'      => $post_types,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			]
+		);
 
-		$stats = [ 'indexed' => 0, 'skipped' => 0, 'errors' => 0 ];
+		$stats = [
+			'indexed' => 0,
+			'skipped' => 0,
+			'errors'  => 0,
+		];
 
 		foreach ( $posts as $post_id ) {
 			$result = self::index_post( $post_id, $collection_id );
 
 			if ( is_wp_error( $result ) ) {
-				$stats['errors']++;
+				++$stats['errors'];
 			} elseif ( true === $result ) {
-				$stats['indexed']++;
+				++$stats['indexed'];
 			} else {
-				$stats['skipped']++;
+				++$stats['skipped'];
 			}
 		}
 
-		KnowledgeDatabase::update_collection( $collection_id, [
-			'last_indexed_at' => current_time( 'mysql', true ),
-		] );
+		KnowledgeDatabase::update_collection(
+			$collection_id,
+			[
+				'last_indexed_at' => current_time( 'mysql', true ),
+			]
+		);
 
 		return $stats;
 	}

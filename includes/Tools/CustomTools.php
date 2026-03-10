@@ -61,7 +61,7 @@ class CustomTools {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", self::table_name(), $id )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', self::table_name(), $id )
 		);
 
 		return $row ? self::decode_row( $row ) : null;
@@ -78,7 +78,7 @@ class CustomTools {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE slug = %s", self::table_name(), $slug )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE slug = %s', self::table_name(), $slug )
 		);
 
 		return $row ? self::decode_row( $row ) : null;
@@ -135,42 +135,42 @@ class CustomTools {
 			return false;
 		}
 
-		$update = [];
+		$update  = [];
 		$formats = [];
 
 		if ( isset( $data['name'] ) ) {
 			$update['name'] = sanitize_text_field( $data['name'] );
-			$formats[] = '%s';
+			$formats[]      = '%s';
 		}
 
 		if ( isset( $data['slug'] ) ) {
 			$update['slug'] = sanitize_title( $data['slug'] );
-			$formats[] = '%s';
+			$formats[]      = '%s';
 		}
 
 		if ( isset( $data['description'] ) ) {
 			$update['description'] = sanitize_textarea_field( $data['description'] );
-			$formats[] = '%s';
+			$formats[]             = '%s';
 		}
 
 		if ( isset( $data['type'] ) && in_array( $data['type'], self::VALID_TYPES, true ) ) {
 			$update['type'] = $data['type'];
-			$formats[] = '%s';
+			$formats[]      = '%s';
 		}
 
 		if ( isset( $data['config'] ) ) {
 			$update['config'] = wp_json_encode( $data['config'] );
-			$formats[] = '%s';
+			$formats[]        = '%s';
 		}
 
 		if ( isset( $data['input_schema'] ) ) {
 			$update['input_schema'] = wp_json_encode( $data['input_schema'] );
-			$formats[] = '%s';
+			$formats[]              = '%s';
 		}
 
 		if ( isset( $data['enabled'] ) ) {
 			$update['enabled'] = (int) $data['enabled'];
-			$formats[] = '%d';
+			$formats[]         = '%d';
 		}
 
 		if ( empty( $update ) ) {
@@ -178,7 +178,7 @@ class CustomTools {
 		}
 
 		$update['updated_at'] = current_time( 'mysql', true );
-		$formats[] = '%s';
+		$formats[]            = '%s';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->update(
@@ -231,8 +231,8 @@ class CustomTools {
 			$data['slug'] = sanitize_title( $data['name'] );
 		}
 
-		$data['name'] = sanitize_text_field( $data['name'] );
-		$data['slug'] = sanitize_title( $data['slug'] );
+		$data['name']        = sanitize_text_field( $data['name'] );
+		$data['slug']        = sanitize_title( $data['slug'] );
 		$data['description'] = sanitize_textarea_field( $data['description'] ?? '' );
 
 		// Validate type-specific config.
@@ -294,7 +294,7 @@ class CustomTools {
 							'description' => 'City name (e.g. "London", "New York")',
 						],
 					],
-					'required' => [ 'city' ],
+					'required'   => [ 'city' ],
 				],
 				'enabled'      => 0,
 			],
@@ -316,7 +316,7 @@ class CustomTools {
 							'description' => 'JSON data to send to Zapier',
 						],
 					],
-					'required' => [ 'data' ],
+					'required'   => [ 'data' ],
 				],
 				'enabled'      => 0,
 			],
@@ -351,7 +351,7 @@ class CustomTools {
 							'description' => 'Whether to activate, deactivate, or check maintenance mode.',
 						],
 					],
-					'required' => [ 'action' ],
+					'required'   => [ 'action' ],
 				],
 				'enabled'      => 1,
 			],

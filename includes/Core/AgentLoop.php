@@ -164,10 +164,10 @@ class AgentLoop {
 	private $ability_resolver = null;
 
 	/**
-	 * @param string   $user_message The user's prompt.
-	 * @param string[] $abilities    Ability names to enable (empty = all).
+	 * @param string    $user_message The user's prompt.
+	 * @param string[]  $abilities    Ability names to enable (empty = all).
 	 * @param Message[] $history     Prior messages for multi-turn.
-	 * @param array    $options      Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
+	 * @param array     $options      Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
 	 */
 	public function __construct( string $user_message, array $abilities = [], array $history = [], array $options = [] ) {
 		$this->user_message = $user_message;
@@ -178,18 +178,21 @@ class AgentLoop {
 		// Merge explicit options with saved settings as fallbacks.
 		$settings = Settings::get();
 
-		$this->provider_id        = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
-		$this->model_id           = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
-		$this->max_iterations     = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
-		$this->temperature        = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
-		$this->max_output_tokens  = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
+		$this->provider_id       = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
+		$this->model_id          = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
+		$this->max_iterations    = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
+		$this->temperature       = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
+		$this->max_output_tokens = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
 
 		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
 
 		// Tool permissions and resumable state.
 		$this->tool_permissions = $settings['tool_permissions'] ?? [];
-		$this->tool_call_log   = $options['tool_call_log'] ?? [];
-		$this->token_usage     = $options['token_usage'] ?? [ 'prompt' => 0, 'completion' => 0 ];
+		$this->tool_call_log    = $options['tool_call_log'] ?? [];
+		$this->token_usage      = $options['token_usage'] ?? [
+			'prompt'     => 0,
+			'completion' => 0,
+		];
 	}
 
 	/**
@@ -240,11 +243,13 @@ class AgentLoop {
 		} else {
 			// Remove the model's tool call message and tell the model the call was rejected.
 			array_pop( $this->history );
-			$this->history[] = new UserMessage( [
-				new MessagePart(
-					'The user declined the requested tool calls. Please respond directly without using those tools.'
-				),
-			] );
+			$this->history[] = new UserMessage(
+				[
+					new MessagePart(
+						'The user declined the requested tool calls. Please respond directly without using those tools.'
+					),
+				]
+			);
 		}
 
 		return $this->run_loop( $remaining_iterations );
@@ -258,8 +263,8 @@ class AgentLoop {
 	 */
 	private function run_loop( int $iterations ) {
 		while ( $iterations > 0 ) {
-			$iterations--;
-			$this->iterations_used++;
+			--$iterations;
+			++$this->iterations_used;
 
 			// Smart conversation trimming before each LLM call.
 			$max_turns = (int) Settings::get( 'max_history_turns' );
@@ -292,9 +297,9 @@ class AgentLoop {
 				}
 
 				return [
-					'reply'       => $reply,
-					'history'     => $this->serialize_history(),
-					'tool_calls'  => $this->tool_call_log,
+					'reply'           => $reply,
+					'history'         => $this->serialize_history(),
+					'tool_calls'      => $this->tool_call_log,
 					'token_usage'     => $this->token_usage,
 					'iterations_used' => $this->iterations_used,
 					'model_id'        => $this->model_id,
@@ -313,8 +318,8 @@ class AgentLoop {
 					'tool_call_log'         => $this->tool_call_log,
 					'token_usage'           => $this->token_usage,
 					'iterations_remaining'  => $iterations,
-					'iterations_used'      => $this->iterations_used,
-					'model_id'             => $this->model_id,
+					'iterations_used'       => $this->iterations_used,
+					'model_id'              => $this->model_id,
 				];
 			}
 
@@ -435,8 +440,8 @@ class AgentLoop {
 		}
 
 		// Resolve abilities and convert to OpenAI tools format.
-		$tools          = [];
-		$abilities      = $this->resolve_abilities();
+		$tools     = [];
+		$abilities = $this->resolve_abilities();
 
 		/**
 		 * Cap the number of tools sent to the model to avoid overwhelming
@@ -489,7 +494,10 @@ class AgentLoop {
 		$messages = [];
 
 		if ( ! empty( $this->system_instruction ) ) {
-			$messages[] = [ 'role' => 'system', 'content' => $this->system_instruction ];
+			$messages[] = [
+				'role'    => 'system',
+				'content' => $this->system_instruction,
+			];
 		}
 
 		foreach ( $this->history as $msg ) {
@@ -561,7 +569,7 @@ class AgentLoop {
 						'role'       => 'assistant',
 						'tool_calls' => $msg_tool_calls,
 					];
-					$text_content = implode( '', $texts );
+					$text_content  = implode( '', $texts );
 					if ( '' !== $text_content ) {
 						$assistant_msg['content'] = $text_content;
 					} else {
@@ -582,7 +590,10 @@ class AgentLoop {
 					// Regular text message.
 					$content = implode( '', $texts );
 					if ( '' !== $content ) {
-						$messages[] = [ 'role' => $role, 'content' => $content ];
+						$messages[] = [
+							'role'    => $role,
+							'content' => $content,
+						];
 					}
 				}
 			} catch ( \Throwable $e ) {
@@ -609,13 +620,13 @@ class AgentLoop {
 		$response = wp_remote_post(
 			$endpoint_url . '/chat/completions',
 			[
-				'timeout'    => $timeout,
-				'headers'    => [
+				'timeout'   => $timeout,
+				'headers'   => [
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
 				],
-				'body'       => wp_json_encode( $request_body ),
-				'sslverify'  => false,
+				'body'      => wp_json_encode( $request_body ),
+				'sslverify' => false,
 			]
 		);
 
@@ -820,16 +831,22 @@ class AgentLoop {
 		// Use tool_permissions if set, otherwise fall back to disabled_abilities.
 		if ( ! empty( $this->tool_permissions ) ) {
 			$perms = $this->tool_permissions;
-			$all   = array_filter( $all, function ( $ability ) use ( $perms ) {
-				$perm = $perms[ $ability->get_name() ] ?? 'auto';
-				return 'disabled' !== $perm;
-			} );
+			$all   = array_filter(
+				$all,
+				function ( $ability ) use ( $perms ) {
+					$perm = $perms[ $ability->get_name() ] ?? 'auto';
+					return 'disabled' !== $perm;
+				}
+			);
 		} else {
 			$disabled = Settings::get( 'disabled_abilities' );
 			if ( ! empty( $disabled ) && is_array( $disabled ) ) {
-				$all = array_filter( $all, function ( $ability ) use ( $disabled ) {
-					return ! in_array( $ability->get_name(), $disabled, true );
-				} );
+				$all = array_filter(
+					$all,
+					function ( $ability ) use ( $disabled ) {
+						return ! in_array( $ability->get_name(), $disabled, true );
+					}
+				);
 			}
 		}
 
@@ -853,25 +870,28 @@ class AgentLoop {
 		if ( ToolDiscovery::should_use_discovery_mode() ) {
 			$priority_cats  = ToolDiscovery::get_priority_categories();
 			$priority_tools = ToolDiscovery::get_priority_tools();
-			$priority       = array_filter( $all, function ( $ability ) use ( $priority_cats, $priority_tools ) {
-				if ( in_array( $ability->get_category(), $priority_cats, true ) ) {
-					return true;
-				}
-
-				// Check if this ability matches a priority tool name.
-				$name = $ability->get_name();
-				foreach ( $priority_tools as $tool ) {
-					if ( $name === $tool ) {
+			$priority       = array_filter(
+				$all,
+				function ( $ability ) use ( $priority_cats, $priority_tools ) {
+					if ( in_array( $ability->get_category(), $priority_cats, true ) ) {
 						return true;
 					}
-					$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
-					if ( str_ends_with( $name, '/' . $suffix ) ) {
-						return true;
-					}
-				}
 
-				return false;
-			} );
+					// Check if this ability matches a priority tool name.
+					$name = $ability->get_name();
+					foreach ( $priority_tools as $tool ) {
+						if ( $name === $tool ) {
+							return true;
+						}
+						$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
+						if ( str_ends_with( $name, '/' . $suffix ) ) {
+							return true;
+						}
+					}
+
+					return false;
+				}
+			);
 			return array_values( $priority );
 		}
 
@@ -885,7 +905,7 @@ class AgentLoop {
 	 */
 	private function get_ability_resolver(): WP_AI_Client_Ability_Function_Resolver {
 		if ( null === $this->ability_resolver ) {
-			$abilities = $this->resolve_abilities();
+			$abilities              = $this->resolve_abilities();
 			$this->ability_resolver = new WP_AI_Client_Ability_Function_Resolver( ...$abilities );
 		}
 		return $this->ability_resolver;
@@ -986,7 +1006,7 @@ class AgentLoop {
 				. "- Use **ai-agent/memory-list** to recall what you've previously stored.\n"
 				. "- Use **ai-agent/memory-delete** to remove outdated memories.\n"
 				. "- Use **ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
-				. "Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.";
+				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
 		}
 
 		// Inject knowledge context if enabled and user message is available.
@@ -998,7 +1018,7 @@ class AgentLoop {
 					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
 					. $context
 					. "\n\nUse this information to provide accurate, contextual responses. "
-					. "Cite the source when using specific facts from the knowledge base.";
+					. 'Cite the source when using specific facts from the knowledge base.';
 			}
 		}
 

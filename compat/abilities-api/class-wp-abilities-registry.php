@@ -44,7 +44,7 @@ final class WP_Abilities_Registry {
 	 * @see wp_register_ability()
 	 *
 	 * @param string               $name The name of the ability. Must be the fully-namespaced
- *                                       string identifier, e.g. `my-plugin/my-ability` or `my-plugin/resource/my-ability`.
+	 *                                       string identifier, e.g. `my-plugin/my-ability` or `my-plugin/resource/my-ability`.
 	 * @param array<string, mixed> $args {
 	 *     An associative array of arguments for the ability.
 	 *

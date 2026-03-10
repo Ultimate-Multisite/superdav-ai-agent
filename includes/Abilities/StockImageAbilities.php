@@ -33,37 +33,40 @@ class StockImageAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/import-stock-image', [
-			'label'       => __( 'Import Stock Image', 'ai-agent' ),
-			'description' => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'keyword' => [
-						'type'        => 'string',
-						'description' => 'Search term for finding a relevant image (e.g. "dogs", "mountain landscape", "coffee shop")',
+		wp_register_ability(
+			'ai-agent/import-stock-image',
+			[
+				'label'               => __( 'Import Stock Image', 'ai-agent' ),
+				'description'         => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'keyword'  => [
+							'type'        => 'string',
+							'description' => 'Search term for finding a relevant image (e.g. "dogs", "mountain landscape", "coffee shop")',
+						],
+						'site_url' => [
+							'type'        => 'string',
+							'description' => 'Subsite URL to import into (e.g. "https://example.com/mysite"). Omit for the main site.',
+						],
+						'width'    => [
+							'type'        => 'integer',
+							'description' => 'Image width in pixels (default: 1200)',
+						],
+						'height'   => [
+							'type'        => 'integer',
+							'description' => 'Image height in pixels (default: 800)',
+						],
 					],
-					'site_url' => [
-						'type'        => 'string',
-						'description' => 'Subsite URL to import into (e.g. "https://example.com/mysite"). Omit for the main site.',
-					],
-					'width' => [
-						'type'        => 'integer',
-						'description' => 'Image width in pixels (default: 1200)',
-					],
-					'height' => [
-						'type'        => 'integer',
-						'description' => 'Image height in pixels (default: 800)',
-					],
+					'required'   => [ 'keyword' ],
 				],
-				'required' => [ 'keyword' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_import' ],
-			'permission_callback' => function () {
-				return current_user_can( 'upload_files' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_import' ],
+				'permission_callback' => function () {
+					return current_user_can( 'upload_files' );
+				},
+			]
+		);
 	}
 
 	/**

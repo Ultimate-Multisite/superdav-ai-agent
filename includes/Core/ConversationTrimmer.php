@@ -75,14 +75,16 @@ class ConversationTrimmer {
 
 		// Create a summary marker message.
 		$removed_turns = $keep_from - 1; // Minus the first turn we're keeping.
-		$marker = new \WordPress\AiClient\Messages\DTO\UserMessage( [
-			new \WordPress\AiClient\Messages\DTO\MessagePart(
-				sprintf(
-					'[%d earlier conversation turns were trimmed to save context. The conversation continues below.]',
-					$removed_turns
-				)
-			),
-		] );
+		$marker        = new \WordPress\AiClient\Messages\DTO\UserMessage(
+			[
+				new \WordPress\AiClient\Messages\DTO\MessagePart(
+					sprintf(
+						'[%d earlier conversation turns were trimmed to save context. The conversation continues below.]',
+						$removed_turns
+					)
+				),
+			]
+		);
 
 		return array_merge( $first_turn, [ $marker ], $kept_history );
 	}
@@ -98,7 +100,7 @@ class ConversationTrimmer {
 
 		foreach ( $history as $i => $message ) {
 			try {
-				$role = $message->getRole();
+				$role     = $message->getRole();
 				$role_str = '';
 
 				if ( method_exists( $role, 'value' ) ) {

@@ -97,15 +97,15 @@ class Database {
 			return;
 		}
 
-		$table                  = self::table_name();
-		$usage_table            = self::usage_table_name();
-		$memories_table         = self::memories_table_name();
-		$skills_table           = self::skills_table_name();
-		$custom_tools_table     = self::custom_tools_table_name();
-		$automations_table      = self::automations_table_name();
-		$automation_logs_table  = self::automation_logs_table_name();
+		$table                   = self::table_name();
+		$usage_table             = self::usage_table_name();
+		$memories_table          = self::memories_table_name();
+		$skills_table            = self::skills_table_name();
+		$custom_tools_table      = self::custom_tools_table_name();
+		$automations_table       = self::automations_table_name();
+		$automation_logs_table   = self::automation_logs_table_name();
 		$event_automations_table = self::event_automations_table_name();
-		$charset                = $wpdb->get_charset_collate();
+		$charset                 = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
 		$sql = KnowledgeDatabase::get_schema( $charset );
@@ -308,7 +308,7 @@ class Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$session_id
 			)
@@ -329,7 +329,7 @@ class Database {
 
 		$where = [ $wpdb->prepare( 'user_id = %d', $user_id ) ];
 
-		$status = $filters['status'] ?? 'active';
+		$status  = $filters['status'] ?? 'active';
 		$where[] = $wpdb->prepare( 'status = %s', $status );
 
 		if ( ! empty( $filters['folder'] ) ) {
@@ -384,9 +384,9 @@ class Database {
 	/**
 	 * Bulk update sessions.
 	 *
-	 * @param array  $session_ids Array of session IDs.
-	 * @param int    $user_id     User ID for ownership check.
-	 * @param array  $data        Fields to update (status, pinned, folder).
+	 * @param array $session_ids Array of session IDs.
+	 * @param int   $user_id     User ID for ownership check.
+	 * @param array $data        Fields to update (status, pinned, folder).
 	 * @return int Number of rows affected.
 	 */
 	public static function bulk_update_sessions( array $session_ids, int $user_id, array $data ): int {
@@ -396,7 +396,7 @@ class Database {
 			return 0;
 		}
 
-		$table = self::table_name();
+		$table              = self::table_name();
 		$data['updated_at'] = current_time( 'mysql', true );
 
 		$set_parts = [];
@@ -407,7 +407,7 @@ class Database {
 			$values[]    = $value;
 		}
 
-		$set_sql     = implode( ', ', $set_parts );
+		$set_sql      = implode( ', ', $set_parts );
 		$placeholders = implode( ',', array_fill( 0, count( $session_ids ), '%d' ) );
 		$values       = array_merge( $values, $session_ids, [ $user_id ] );
 
@@ -500,13 +500,13 @@ class Database {
 		if ( ! empty( $filters['period'] ) ) {
 			switch ( $filters['period'] ) {
 				case '7d':
-					$where[] = "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
 					break;
 				case '30d':
-					$where[] = "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
 					break;
 				case '90d':
-					$where[] = "created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)";
+					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)';
 					break;
 			}
 		}
@@ -615,7 +615,7 @@ class Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET prompt_tokens = prompt_tokens + %d, completion_tokens = completion_tokens + %d, updated_at = %s WHERE id = %d",
+				'UPDATE %i SET prompt_tokens = prompt_tokens + %d, completion_tokens = completion_tokens + %d, updated_at = %s WHERE id = %d',
 				$table,
 				$prompt_tokens,
 				$completion_tokens,
@@ -650,9 +650,12 @@ class Database {
 		$merged_messages   = array_merge( $existing_messages, $messages );
 		$merged_tool_calls = array_merge( $existing_tool_calls, $tool_calls );
 
-		return self::update_session( $session_id, [
-			'messages'   => wp_json_encode( $merged_messages ),
-			'tool_calls' => wp_json_encode( $merged_tool_calls ),
-		] );
+		return self::update_session(
+			$session_id,
+			[
+				'messages'   => wp_json_encode( $merged_messages ),
+				'tool_calls' => wp_json_encode( $merged_tool_calls ),
+			]
+		);
 	}
 }

@@ -26,33 +26,37 @@ class PlaceholderResolver {
 		$context = self::build_context( $hook_name, $hook_args );
 
 		// Replace {{placeholders}}.
-		return preg_replace_callback( '/\{\{(\w[\w.]*)\}\}/', function ( $matches ) use ( $context ) {
-			$key = $matches[1];
+		return preg_replace_callback(
+			'/\{\{(\w[\w.]*)\}\}/',
+			function ( $matches ) use ( $context ) {
+				$key = $matches[1];
 
-			// Direct lookup.
-			if ( isset( $context[ $key ] ) ) {
-				$val = $context[ $key ];
-				return is_scalar( $val ) ? (string) $val : wp_json_encode( $val );
-			}
-
-			// Dot-notation traversal.
-			if ( str_contains( $key, '.' ) ) {
-				$parts = explode( '.', $key );
-				$value = $context;
-				foreach ( $parts as $part ) {
-					if ( is_array( $value ) && isset( $value[ $part ] ) ) {
-						$value = $value[ $part ];
-					} elseif ( is_object( $value ) && isset( $value->$part ) ) {
-						$value = $value->$part;
-					} else {
-						return $matches[0]; // Leave as-is.
-					}
+				// Direct lookup.
+				if ( isset( $context[ $key ] ) ) {
+					$val = $context[ $key ];
+					return is_scalar( $val ) ? (string) $val : wp_json_encode( $val );
 				}
-				return is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
-			}
 
-			return $matches[0];
-		}, $template );
+				// Dot-notation traversal.
+				if ( str_contains( $key, '.' ) ) {
+					$parts = explode( '.', $key );
+					$value = $context;
+					foreach ( $parts as $part ) {
+						if ( is_array( $value ) && isset( $value[ $part ] ) ) {
+							$value = $value[ $part ];
+						} elseif ( is_object( $value ) && isset( $value->$part ) ) {
+							$value = $value->$part;
+						} else {
+							return $matches[0]; // Leave as-is.
+						}
+					}
+					return is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+				}
+
+				return $matches[0];
+			},
+			$template
+		);
 	}
 
 	/**

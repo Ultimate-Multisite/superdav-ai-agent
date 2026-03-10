@@ -66,10 +66,15 @@ class EventTriggerHandler {
 			$trigger_def = EventTriggerRegistry::get( $hook_name );
 			$arg_count   = $trigger_def ? count( $trigger_def['args'] ?? [] ) : 5;
 
-			add_action( $hook_name, function () use ( $hook_name ) {
-				$args = func_get_args();
-				self::dispatch( $hook_name, $args );
-			}, 99, $arg_count );
+			add_action(
+				$hook_name,
+				function () use ( $hook_name ) {
+					$args = func_get_args();
+					self::dispatch( $hook_name, $args );
+				},
+				99,
+				$arg_count
+			);
 		}
 	}
 
@@ -165,18 +170,20 @@ class EventTriggerHandler {
 		$is_error = is_wp_error( $result );
 
 		// Log the execution.
-		AutomationLogs::create( [
-			'automation_id'     => $event_id,
-			'trigger_type'      => 'event',
-			'trigger_name'      => $hook_name,
-			'status'            => $is_error ? 'error' : 'success',
-			'reply'             => $is_error ? $result->get_error_message() : ( $result['reply'] ?? '' ),
-			'tool_calls'        => $is_error ? [] : ( $result['tool_calls'] ?? [] ),
-			'prompt_tokens'     => $is_error ? 0 : ( $result['token_usage']['prompt'] ?? 0 ),
-			'completion_tokens' => $is_error ? 0 : ( $result['token_usage']['completion'] ?? 0 ),
-			'duration_ms'       => $duration,
-			'error_message'     => $is_error ? $result->get_error_message() : '',
-		] );
+		AutomationLogs::create(
+			[
+				'automation_id'     => $event_id,
+				'trigger_type'      => 'event',
+				'trigger_name'      => $hook_name,
+				'status'            => $is_error ? 'error' : 'success',
+				'reply'             => $is_error ? $result->get_error_message() : ( $result['reply'] ?? '' ),
+				'tool_calls'        => $is_error ? [] : ( $result['tool_calls'] ?? [] ),
+				'prompt_tokens'     => $is_error ? 0 : ( $result['token_usage']['prompt'] ?? 0 ),
+				'completion_tokens' => $is_error ? 0 : ( $result['token_usage']['completion'] ?? 0 ),
+				'duration_ms'       => $duration,
+				'error_message'     => $is_error ? $result->get_error_message() : '',
+			]
+		);
 
 		EventAutomations::record_run( $event_id );
 
@@ -208,7 +215,7 @@ class EventTriggerHandler {
 		}
 
 		// Build context for condition evaluation.
-		$context = [];
+		$context     = [];
 		$trigger_def = EventTriggerRegistry::get( $hook_name );
 		if ( $trigger_def && ! empty( $trigger_def['args'] ) ) {
 			foreach ( $trigger_def['args'] as $i => $arg_name ) {

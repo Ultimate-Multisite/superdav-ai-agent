@@ -32,35 +32,43 @@ class SkillAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/skill-load', [
-			'label'       => __( 'Load Skill', 'ai-agent' ),
-			'description' => __( 'Load the full instructions for a specific skill guide by its slug.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'slug' => [
-						'type'        => 'string',
-						'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
+		wp_register_ability(
+			'ai-agent/skill-load',
+			[
+				'label'               => __( 'Load Skill', 'ai-agent' ),
+				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'slug' => [
+							'type'        => 'string',
+							'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
+						],
 					],
+					'required'   => [ 'slug' ],
 				],
-				'required' => [ 'slug' ],
-			],
-			'execute_callback' => [ __CLASS__, 'handle_skill_load' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_skill_load' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
 
-		wp_register_ability( 'ai-agent/skill-list', [
-			'label'       => __( 'List Skills', 'ai-agent' ),
-			'description' => __( 'List all available skill guides with their slugs, names, and descriptions.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => new \stdClass(),
-			],
-			'execute_callback' => [ __CLASS__, 'handle_skill_list' ],
-			'permission_callback' => function () { return current_user_can( 'manage_options' ); },
-		] );
+		wp_register_ability(
+			'ai-agent/skill-list',
+			[
+				'label'               => __( 'List Skills', 'ai-agent' ),
+				'description'         => __( 'List all available skill guides with their slugs, names, and descriptions.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => new \stdClass(),
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_skill_list' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
+			]
+		);
 	}
 
 	/**

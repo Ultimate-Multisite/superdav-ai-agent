@@ -30,57 +30,63 @@ class SeoAbilities {
 			return;
 		}
 
-		wp_register_ability( 'ai-agent/seo-audit-url', [
-			'label'       => __( 'SEO Audit URL', 'ai-agent' ),
-			'description' => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'url' => [
-						'type'        => 'string',
-						'description' => 'The URL to audit (e.g. "https://example.com/page").',
+		wp_register_ability(
+			'ai-agent/seo-audit-url',
+			[
+				'label'               => __( 'SEO Audit URL', 'ai-agent' ),
+				'description'         => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'url'      => [
+							'type'        => 'string',
+							'description' => 'The URL to audit (e.g. "https://example.com/page").',
+						],
+						'site_url' => [
+							'type'        => 'string',
+							'description' => 'Subsite URL context for multisite. Omit for the main site.',
+						],
 					],
-					'site_url' => [
-						'type'        => 'string',
-						'description' => 'Subsite URL context for multisite. Omit for the main site.',
-					],
+					'required'   => [ 'url' ],
 				],
-				'required' => [ 'url' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_audit_url' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_audit_url' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 
-		wp_register_ability( 'ai-agent/seo-analyze-content', [
-			'label'       => __( 'SEO Analyze Content', 'ai-agent' ),
-			'description' => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'ai-agent' ),
-			'category'    => 'ai-agent',
-			'input_schema' => [
-				'type'       => 'object',
-				'properties' => [
-					'post_id' => [
-						'type'        => 'integer',
-						'description' => 'The WordPress post ID to analyze.',
+		wp_register_ability(
+			'ai-agent/seo-analyze-content',
+			[
+				'label'               => __( 'SEO Analyze Content', 'ai-agent' ),
+				'description'         => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'       => [
+							'type'        => 'integer',
+							'description' => 'The WordPress post ID to analyze.',
+						],
+						'focus_keyword' => [
+							'type'        => 'string',
+							'description' => 'Optional focus keyword to check density and placement.',
+						],
+						'site_url'      => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite. Omit for the main site.',
+						],
 					],
-					'focus_keyword' => [
-						'type'        => 'string',
-						'description' => 'Optional focus keyword to check density and placement.',
-					],
-					'site_url' => [
-						'type'        => 'string',
-						'description' => 'Subsite URL for multisite. Omit for the main site.',
-					],
+					'required'   => [ 'post_id' ],
 				],
-				'required' => [ 'post_id' ],
-			],
-			'execute_callback'    => [ __CLASS__, 'handle_analyze_content' ],
-			'permission_callback' => function () {
-				return current_user_can( 'edit_posts' );
-			},
-		] );
+				'execute_callback'    => [ __CLASS__, 'handle_analyze_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -96,10 +102,13 @@ class SeoAbilities {
 			return [ 'error' => 'url is required.' ];
 		}
 
-		$response = wp_remote_get( $url, [
-			'timeout'    => 15,
-			'user-agent' => 'AI-Agent-SEO-Audit/1.0',
-		] );
+		$response = wp_remote_get(
+			$url,
+			[
+				'timeout'    => 15,
+				'user-agent' => 'AI-Agent-SEO-Audit/1.0',
+			]
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return [ 'error' => 'Failed to fetch URL: ' . $response->get_error_message() ];
@@ -145,8 +154,8 @@ class SeoAbilities {
 		// Title.
 		$title_nodes = $doc->getElementsByTagName( 'title' );
 		if ( $title_nodes->length > 0 ) {
-			$title = trim( $title_nodes->item( 0 )->textContent );
-			$result['title'] = $title;
+			$title                  = trim( $title_nodes->item( 0 )->textContent );
+			$result['title']        = $title;
 			$result['title_length'] = mb_strlen( $title );
 
 			if ( mb_strlen( $title ) < 30 ) {
@@ -156,7 +165,7 @@ class SeoAbilities {
 			}
 		} else {
 			$result['title'] = null;
-			$issues[] = 'Missing <title> tag.';
+			$issues[]        = 'Missing <title> tag.';
 		}
 
 		// Meta description.
@@ -164,7 +173,7 @@ class SeoAbilities {
 		if ( empty( $result['meta_description'] ) ) {
 			$issues[] = 'Missing meta description.';
 		} else {
-			$desc_len = mb_strlen( $result['meta_description'] );
+			$desc_len                          = mb_strlen( $result['meta_description'] );
 			$result['meta_description_length'] = $desc_len;
 			if ( $desc_len < 120 ) {
 				$issues[] = 'Meta description is too short (under 120 characters).';
@@ -177,7 +186,7 @@ class SeoAbilities {
 		$result['meta_robots'] = self::get_meta_content( $xpath, 'robots' );
 
 		// Canonical.
-		$canonical_nodes = $xpath->query( '//link[@rel="canonical"]' );
+		$canonical_nodes     = $xpath->query( '//link[@rel="canonical"]' );
 		$result['canonical'] = $canonical_nodes->length > 0
 			? $canonical_nodes->item( 0 )->getAttribute( 'href' )
 			: null;
@@ -186,7 +195,7 @@ class SeoAbilities {
 		}
 
 		// Headings.
-		$h1_nodes = $doc->getElementsByTagName( 'h1' );
+		$h1_nodes           = $doc->getElementsByTagName( 'h1' );
 		$result['h1_count'] = $h1_nodes->length;
 		$result['h1_texts'] = [];
 		foreach ( $h1_nodes as $h1 ) {
@@ -201,23 +210,23 @@ class SeoAbilities {
 		$result['h2_count'] = $doc->getElementsByTagName( 'h2' )->length;
 
 		// Images without alt.
-		$images = $doc->getElementsByTagName( 'img' );
+		$images             = $doc->getElementsByTagName( 'img' );
 		$images_without_alt = 0;
-		$total_images = $images->length;
+		$total_images       = $images->length;
 		foreach ( $images as $img ) {
 			$alt = $img->getAttribute( 'alt' );
 			if ( $alt === '' || $alt === null ) {
-				$images_without_alt++;
+				++$images_without_alt;
 			}
 		}
-		$result['total_images'] = $total_images;
+		$result['total_images']       = $total_images;
 		$result['images_without_alt'] = $images_without_alt;
 		if ( $images_without_alt > 0 ) {
 			$issues[] = "{$images_without_alt} image(s) missing alt text.";
 		}
 
 		// Open Graph.
-		$og = [];
+		$og       = [];
 		$og_nodes = $xpath->query( '//meta[starts-with(@property, "og:")]' );
 		foreach ( $og_nodes as $node ) {
 			$og[ $node->getAttribute( 'property' ) ] = $node->getAttribute( 'content' );
@@ -228,7 +237,7 @@ class SeoAbilities {
 		}
 
 		// Structured data (JSON-LD).
-		$jsonld = [];
+		$jsonld       = [];
 		$script_nodes = $xpath->query( '//script[@type="application/ld+json"]' );
 		foreach ( $script_nodes as $script ) {
 			$decoded = json_decode( $script->textContent, true );
@@ -238,7 +247,7 @@ class SeoAbilities {
 		}
 		$result['structured_data_types'] = $jsonld;
 
-		$result['issues'] = $issues;
+		$result['issues']      = $issues;
 		$result['issue_count'] = count( $issues );
 
 		return $result;
@@ -314,9 +323,9 @@ class SeoAbilities {
 	 * @return array Analysis data.
 	 */
 	private static function analyze_post_seo( \WP_Post $post, string $focus_keyword ): array {
-		$content   = $post->post_content;
-		$title     = $post->post_title;
-		$plain     = wp_strip_all_tags( $content );
+		$content    = $post->post_content;
+		$title      = $post->post_title;
+		$plain      = wp_strip_all_tags( $content );
 		$word_count = str_word_count( $plain );
 
 		$result = [
@@ -329,7 +338,7 @@ class SeoAbilities {
 		$recommendations = [];
 
 		// Title length.
-		$title_len = mb_strlen( $title );
+		$title_len              = mb_strlen( $title );
 		$result['title_length'] = $title_len;
 		if ( $title_len < 30 ) {
 			$recommendations[] = 'Title is too short. Aim for 50-60 characters.';
@@ -351,7 +360,7 @@ class SeoAbilities {
 		if ( empty( $meta_desc ) ) {
 			$recommendations[] = 'No meta description set. Add one for better click-through rates.';
 		} else {
-			$desc_len = mb_strlen( $meta_desc );
+			$desc_len                          = mb_strlen( $meta_desc );
 			$result['meta_description_length'] = $desc_len;
 			if ( $desc_len > 160 ) {
 				$recommendations[] = 'Meta description exceeds 160 characters.';
@@ -360,7 +369,7 @@ class SeoAbilities {
 
 		// Heading structure.
 		preg_match_all( '/<h([1-6])[^>]*>/i', $content, $heading_matches );
-		$heading_counts = array_count_values( $heading_matches[1] ?? [] );
+		$heading_counts              = array_count_values( $heading_matches[1] ?? [] );
 		$result['heading_structure'] = [];
 		for ( $i = 1; $i <= 6; $i++ ) {
 			$count = $heading_counts[ (string) $i ] ?? 0;
@@ -376,13 +385,13 @@ class SeoAbilities {
 		preg_match_all( '/<a\s[^>]*href=["\']([^"\']+)["\']/i', $content, $link_matches );
 		$internal_links = 0;
 		$external_links = 0;
-		$site_host = wp_parse_url( get_site_url(), PHP_URL_HOST );
+		$site_host      = wp_parse_url( get_site_url(), PHP_URL_HOST );
 		foreach ( $link_matches[1] ?? [] as $href ) {
 			$link_host = wp_parse_url( $href, PHP_URL_HOST );
 			if ( $link_host && $link_host !== $site_host ) {
-				$external_links++;
+				++$external_links;
 			} else {
-				$internal_links++;
+				++$internal_links;
 			}
 		}
 		$result['internal_links'] = $internal_links;
@@ -392,10 +401,10 @@ class SeoAbilities {
 		}
 
 		// Readability (average sentence length).
-		$sentences = preg_split( '/[.!?]+/', $plain, -1, PREG_SPLIT_NO_EMPTY );
+		$sentences      = preg_split( '/[.!?]+/', $plain, -1, PREG_SPLIT_NO_EMPTY );
 		$sentence_count = count( $sentences );
 		if ( $sentence_count > 0 ) {
-			$avg_sentence_len = $word_count / $sentence_count;
+			$avg_sentence_len              = $word_count / $sentence_count;
 			$result['avg_sentence_length'] = round( $avg_sentence_len, 1 );
 			if ( $avg_sentence_len > 25 ) {
 				$recommendations[] = 'Average sentence length is high (' . round( $avg_sentence_len, 1 ) . ' words). Consider shorter sentences.';
@@ -404,14 +413,14 @@ class SeoAbilities {
 
 		// Focus keyword analysis.
 		if ( ! empty( $focus_keyword ) ) {
-			$keyword_lower  = mb_strtolower( $focus_keyword );
-			$plain_lower    = mb_strtolower( $plain );
-			$title_lower    = mb_strtolower( $title );
-			$keyword_count  = mb_substr_count( $plain_lower, $keyword_lower );
+			$keyword_lower = mb_strtolower( $focus_keyword );
+			$plain_lower   = mb_strtolower( $plain );
+			$title_lower   = mb_strtolower( $title );
+			$keyword_count = mb_substr_count( $plain_lower, $keyword_lower );
 
-			$result['focus_keyword'] = $focus_keyword;
-			$result['keyword_count'] = $keyword_count;
-			$result['keyword_density'] = $word_count > 0
+			$result['focus_keyword']    = $focus_keyword;
+			$result['keyword_count']    = $keyword_count;
+			$result['keyword_density']  = $word_count > 0
 				? round( ( $keyword_count / $word_count ) * 100, 2 )
 				: 0;
 			$result['keyword_in_title'] = mb_strpos( $title_lower, $keyword_lower ) !== false;
@@ -442,7 +451,7 @@ class SeoAbilities {
 			$recommendations[] = 'No featured image set.';
 		}
 
-		$result['recommendations'] = $recommendations;
+		$result['recommendations']      = $recommendations;
 		$result['recommendation_count'] = count( $recommendations );
 
 		return $result;

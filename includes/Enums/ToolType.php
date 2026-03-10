@@ -12,27 +12,25 @@ namespace AiAgent\Enums;
 /**
  * Valid custom tool types.
  */
-enum ToolType: string
-{
-    case Http = 'http';
-    case Action = 'action';
-    case Cli = 'cli';
+enum ToolType: string {
 
-    /**
-     * Get all type values as an array.
-     *
-     * @return array<string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
-    }
+	case Http   = 'http';
+	case Action = 'action';
+	case Cli    = 'cli';
 
-    /**
-     * Check if a value is a valid tool type.
-     */
-    public static function isValid(string $value): bool
-    {
-        return in_array($value, self::values(), true);
-    }
+	/**
+	 * Get all type values as an array.
+	 *
+	 * @return array<string>
+	 */
+	public static function values(): array {
+		return array_column( self::cases(), 'value' );
+	}
+
+	/**
+	 * Check if a value is a valid tool type.
+	 */
+	public static function isValid( string $value ): bool {
+		return in_array( $value, self::values(), true );
+	}
 }

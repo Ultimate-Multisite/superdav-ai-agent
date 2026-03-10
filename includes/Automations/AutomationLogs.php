@@ -64,7 +64,7 @@ class AutomationLogs {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE automation_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				'SELECT * FROM %i WHERE automation_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d',
 				self::table_name(),
 				$automation_id,
 				$limit,
@@ -87,7 +87,7 @@ class AutomationLogs {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i ORDER BY created_at DESC LIMIT %d",
+				'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d',
 				self::table_name(),
 				$limit
 			)
@@ -107,7 +107,7 @@ class AutomationLogs {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", self::table_name(), $id )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', self::table_name(), $id )
 		);
 
 		return $row ? self::decode_row( $row ) : null;
@@ -149,7 +149,7 @@ class AutomationLogs {
 		foreach ( $automation_ids as $aid ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 			$count = $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE automation_id = %d", $table, $aid )
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE automation_id = %d', $table, $aid )
 			);
 
 			if ( (int) $count > $keep_per_automation ) {
@@ -157,7 +157,7 @@ class AutomationLogs {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 				$wpdb->query(
 					$wpdb->prepare(
-						"DELETE FROM %i WHERE automation_id = %d ORDER BY created_at ASC LIMIT %d",
+						'DELETE FROM %i WHERE automation_id = %d ORDER BY created_at ASC LIMIT %d',
 						$table,
 						$aid,
 						$delete_count

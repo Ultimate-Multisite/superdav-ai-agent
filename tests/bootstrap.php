@@ -34,6 +34,10 @@ require_once "{$_tests_dir}/includes/functions.php";
  */
 function _manually_load_plugin() {
 	require dirname(__DIR__) . '/ai-agent.php';
+
+	// Install database tables (normally done on activation).
+	// Database::install() includes KnowledgeDatabase schema.
+	AiAgent\Core\Database::install();
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');

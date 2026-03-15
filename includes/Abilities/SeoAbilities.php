@@ -35,69 +35,64 @@ class SeoAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/seo-audit-url',
 			[
-				'label'               => __( 'SEO Audit URL', 'gratis-ai-agent' ),
-				'description'         => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'url'      => [
-							'type'        => 'string',
-							'description' => 'The URL to audit (e.g. "https://example.com/page").',
-						],
-						'site_url' => [
-							'type'        => 'string',
-							'description' => 'Subsite URL context for multisite. Omit for the main site.',
-						],
-					],
-					'required'   => [ 'url' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_audit_url' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'SEO Audit URL', 'gratis-ai-agent' ),
+				'description'   => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'gratis-ai-agent' ),
+				'ability_class' => SeoAuditUrlAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/seo-analyze-content',
 			[
-				'label'               => __( 'SEO Analyze Content', 'gratis-ai-agent' ),
-				'description'         => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'post_id'       => [
-							'type'        => 'integer',
-							'description' => 'The WordPress post ID to analyze.',
-						],
-						'focus_keyword' => [
-							'type'        => 'string',
-							'description' => 'Optional focus keyword to check density and placement.',
-						],
-						'site_url'      => [
-							'type'        => 'string',
-							'description' => 'Subsite URL for multisite. Omit for the main site.',
-						],
-					],
-					'required'   => [ 'post_id' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_analyze_content' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'SEO Analyze Content', 'gratis-ai-agent' ),
+				'description'   => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'gratis-ai-agent' ),
+				'ability_class' => SeoAnalyzeContentAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the seo-audit-url ability call.
-	 *
-	 * @param array $input Input with url and optional site_url.
-	 * @return array|\WP_Error Audit results or WP_Error on failure.
-	 */
-	public static function handle_audit_url( array $input ): array|\WP_Error {
+/**
+ * SEO Audit URL ability.
+ *
+ * @since 1.0.0
+ */
+class SeoAuditUrlAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url'      => [
+					'type'        => 'string',
+					'description' => 'The URL to audit (e.g. "https://example.com/page").',
+				],
+				'site_url' => [
+					'type'        => 'string',
+					'description' => 'Subsite URL context for multisite. Omit for the main site.',
+				],
+			],
+			'required'   => [ 'url' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url'              => [ 'type' => 'string' ],
+				'status_code'      => [ 'type' => 'integer' ],
+				'title'            => [ 'type' => 'string' ],
+				'title_length'     => [ 'type' => 'integer' ],
+				'meta_description' => [ 'type' => 'string' ],
+				'h1_count'         => [ 'type' => 'integer' ],
+				'issues'           => [ 'type' => 'array' ],
+				'issue_count'      => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
@@ -137,7 +132,22 @@ class SeoAbilities {
 			);
 		}
 
-		return self::parse_seo_elements( $url, $status_code, $body );
+		return $this->parse_seo_elements( $url, $status_code, $body );
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
+		];
 	}
 
 	/**
@@ -148,7 +158,7 @@ class SeoAbilities {
 	 * @param string $html        Raw HTML.
 	 * @return array Structured SEO data.
 	 */
-	private static function parse_seo_elements( string $url, int $status_code, string $html ): array {
+	private function parse_seo_elements( string $url, int $status_code, string $html ): array {
 		$result = [
 			'url'         => $url,
 			'status_code' => $status_code,
@@ -181,7 +191,7 @@ class SeoAbilities {
 		}
 
 		// Meta description.
-		$result['meta_description'] = self::get_meta_content( $xpath, 'description' );
+		$result['meta_description'] = $this->get_meta_content( $xpath, 'description' );
 		if ( empty( $result['meta_description'] ) ) {
 			$issues[] = 'Missing meta description.';
 		} else {
@@ -195,7 +205,7 @@ class SeoAbilities {
 		}
 
 		// Meta robots.
-		$result['meta_robots'] = self::get_meta_content( $xpath, 'robots' );
+		$result['meta_robots'] = $this->get_meta_content( $xpath, 'robots' );
 
 		// Canonical.
 		$canonical_nodes     = $xpath->query( '//link[@rel="canonical"]' );
@@ -272,21 +282,57 @@ class SeoAbilities {
 	 * @param string    $name  Meta name attribute.
 	 * @return string|null
 	 */
-	private static function get_meta_content( \DOMXPath $xpath, string $name ): ?string {
+	private function get_meta_content( \DOMXPath $xpath, string $name ): ?string {
 		$nodes = $xpath->query( '//meta[@name="' . $name . '"]' );
 		if ( $nodes->length > 0 ) {
 			return $nodes->item( 0 )->getAttribute( 'content' );
 		}
 		return null;
 	}
+}
 
-	/**
-	 * Handle the seo-analyze-content ability call.
-	 *
-	 * @param array $input Input with post_id, optional focus_keyword, site_url.
-	 * @return array|\WP_Error Analysis results or WP_Error on failure.
-	 */
-	public static function handle_analyze_content( array $input ): array|\WP_Error {
+/**
+ * SEO Analyze Content ability.
+ *
+ * @since 1.0.0
+ */
+class SeoAnalyzeContentAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'post_id'       => [
+					'type'        => 'integer',
+					'description' => 'The WordPress post ID to analyze.',
+				],
+				'focus_keyword' => [
+					'type'        => 'string',
+					'description' => 'Optional focus keyword to check density and placement.',
+				],
+				'site_url'      => [
+					'type'        => 'string',
+					'description' => 'Subsite URL for multisite. Omit for the main site.',
+				],
+			],
+			'required'   => [ 'post_id' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'post_id'              => [ 'type' => 'integer' ],
+				'title'                => [ 'type' => 'string' ],
+				'word_count'           => [ 'type' => 'integer' ],
+				'recommendations'      => [ 'type' => 'array' ],
+				'recommendation_count' => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$post_id       = (int) ( $input['post_id'] ?? 0 );
 		$focus_keyword = sanitize_text_field( $input['focus_keyword'] ?? '' );
 		$site_url      = $input['site_url'] ?? '';
@@ -325,13 +371,28 @@ class SeoAbilities {
 			);
 		}
 
-		$result = self::analyze_post_seo( $post, $focus_keyword );
+		$result = $this->analyze_post_seo( $post, $focus_keyword );
 
 		if ( $switched ) {
 			restore_current_blog();
 		}
 
 		return $result;
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => false,
+		];
 	}
 
 	/**
@@ -341,7 +402,7 @@ class SeoAbilities {
 	 * @param string   $focus_keyword Optional focus keyword.
 	 * @return array Analysis data.
 	 */
-	private static function analyze_post_seo( \WP_Post $post, string $focus_keyword ): array {
+	private function analyze_post_seo( \WP_Post $post, string $focus_keyword ): array {
 		$content    = $post->post_content;
 		$title      = $post->post_title;
 		$plain      = wp_strip_all_tags( $content );

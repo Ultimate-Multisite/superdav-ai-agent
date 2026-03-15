@@ -25,25 +25,29 @@ define( 'GRATIS_AI_AGENT_COMPAT_DIR', __DIR__ );
  */
 function gratis_ai_agent_load_compat_abilities_api(): void {
 
-	if ( class_exists( 'WP_Ability' ) ) {
-		return; // Core already provides it.
+	if ( ! class_exists( 'WP_Ability' ) ) {
+		// Core does not provide the Abilities API — load our bundled copy.
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability-category.php';
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability-categories-registry.php';
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability.php';
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-abilities-registry.php';
+
+		// API functions (wp_register_ability, wp_get_abilities, etc.).
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api.php';
+
+		// Core categories & abilities (site, user, environment).
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities.php';
+
+		// Register the default hooks that wp-includes/default-filters.php would add.
+		add_action( 'wp_abilities_api_categories_init', 'wp_register_core_ability_categories' );
+		add_action( 'wp_abilities_api_init', 'wp_register_core_abilities' );
 	}
 
-	// Classes.
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability-category.php';
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability-categories-registry.php';
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-ability.php';
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-wp-abilities-registry.php';
-
-	// API functions (wp_register_ability, wp_get_abilities, etc.).
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api.php';
-
-	// Core categories & abilities (site, user, environment).
-	require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities.php';
-
-	// Register the default hooks that wp-includes/default-filters.php would add.
-	add_action( 'wp_abilities_api_categories_init', 'wp_register_core_ability_categories' );
-	add_action( 'wp_abilities_api_init', 'wp_register_core_abilities' );
+	// Abstract base class for OOP-style ability definitions (mirrors WordPress/ai Abstract_Ability).
+	// Loaded unconditionally: WP_Ability is now available either from core or from the bundled copy above.
+	if ( ! class_exists( 'GratisAiAgent_Abstract_Ability' ) ) {
+		require_once GRATIS_AI_AGENT_COMPAT_DIR . '/abilities-api/class-abstract-ability.php';
+	}
 }
 
 /**

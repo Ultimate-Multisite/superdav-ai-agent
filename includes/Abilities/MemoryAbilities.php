@@ -36,76 +36,69 @@ class MemoryAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/memory-save',
 			[
-				'label'               => __( 'Save Memory', 'gratis-ai-agent' ),
-				'description'         => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'category' => [
-							'type'        => 'string',
-							'description' => 'Memory category: site_info, user_preferences, technical_notes, workflows, or general',
-							'enum'        => Memory::CATEGORIES,
-						],
-						'content'  => [
-							'type'        => 'string',
-							'description' => 'The information to remember',
-						],
-					],
-					'required'   => [ 'category', 'content' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_memory_save' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'Save Memory', 'gratis-ai-agent' ),
+				'description'   => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'gratis-ai-agent' ),
+				'ability_class' => MemorySaveAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/memory-list',
 			[
-				'label'               => __( 'List Memories', 'gratis-ai-agent' ),
-				'description'         => __( 'List all stored memories, grouped by category.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => new \stdClass(),
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_memory_list' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'List Memories', 'gratis-ai-agent' ),
+				'description'   => __( 'List all stored memories, grouped by category.', 'gratis-ai-agent' ),
+				'ability_class' => MemoryListAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/memory-delete',
 			[
-				'label'               => __( 'Delete Memory', 'gratis-ai-agent' ),
-				'description'         => __( 'Delete a specific memory by its ID.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'id' => [
-							'type'        => 'integer',
-							'description' => 'The memory ID to delete',
-						],
-					],
-					'required'   => [ 'id' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_memory_delete' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'Delete Memory', 'gratis-ai-agent' ),
+				'description'   => __( 'Delete a specific memory by its ID.', 'gratis-ai-agent' ),
+				'ability_class' => MemoryDeleteAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the memory-save ability call.
-	 *
-	 * @param array $input Input with category and content.
-	 * @return array|\WP_Error Result or WP_Error on failure.
-	 */
-	public static function handle_memory_save( array $input ): array|\WP_Error {
+/**
+ * Save Memory ability.
+ *
+ * @since 1.0.0
+ */
+class MemorySaveAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'category' => [
+					'type'        => 'string',
+					'description' => 'Memory category: site_info, user_preferences, technical_notes, workflows, or general',
+					'enum'        => Memory::CATEGORIES,
+				],
+				'content'  => [
+					'type'        => 'string',
+					'description' => 'The information to remember',
+				],
+			],
+			'required'   => [ 'category', 'content' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'success' => [ 'type' => 'boolean' ],
+				'id'      => [ 'type' => 'integer' ],
+				'message' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$category = $input['category'] ?? 'general';
 		$content  = $input['content'] ?? '';
 
@@ -126,12 +119,44 @@ class MemoryAbilities {
 		];
 	}
 
-	/**
-	 * Handle the memory-list ability call.
-	 *
-	 * @return array Result.
-	 */
-	public static function handle_memory_list(): array {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => false,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
+		];
+	}
+}
+
+/**
+ * List Memories ability.
+ *
+ * @since 1.0.0
+ */
+class MemoryListAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'memories' => [ 'type' => 'array' ],
+				'message'  => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$memories = Memory::get_all();
 
 		if ( empty( $memories ) ) {
@@ -150,13 +175,53 @@ class MemoryAbilities {
 		return [ 'memories' => $list ];
 	}
 
-	/**
-	 * Handle the memory-delete ability call.
-	 *
-	 * @param array $input Input with id.
-	 * @return array|\WP_Error Result or WP_Error on failure.
-	 */
-	public static function handle_memory_delete( array $input ): array|\WP_Error {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => false,
+		];
+	}
+}
+
+/**
+ * Delete Memory ability.
+ *
+ * @since 1.0.0
+ */
+class MemoryDeleteAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'id' => [
+					'type'        => 'integer',
+					'description' => 'The memory ID to delete',
+				],
+			],
+			'required'   => [ 'id' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'success' => [ 'type' => 'boolean' ],
+				'message' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$id = $input['id'] ?? 0;
 
 		if ( empty( $id ) ) {
@@ -172,6 +237,21 @@ class MemoryAbilities {
 		return [
 			'success' => true,
 			'message' => "Memory $id deleted.",
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => false,
+				'destructive' => true,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
 		];
 	}
 }

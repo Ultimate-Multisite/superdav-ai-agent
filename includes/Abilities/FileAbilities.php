@@ -40,296 +40,74 @@ class FileAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/file-read',
 			[
-				'label'               => __( 'Read File', 'gratis-ai-agent' ),
-				'description'         => __( 'Read the contents of a file within the wp-content directory.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'path' => [
-							'type'        => 'string',
-							'description' => 'Relative path from wp-content (e.g., "plugins/my-plugin/file.php")',
-						],
-					],
-					'required'   => [ 'path' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'path'     => [ 'type' => 'string' ],
-						'content'  => [ 'type' => 'string' ],
-						'size'     => [ 'type' => 'integer' ],
-						'modified' => [ 'type' => 'string' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'   => true,
-						'idempotent' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_read_file' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Read File', 'gratis-ai-agent' ),
+				'description'   => __( 'Read the contents of a file within the wp-content directory.', 'gratis-ai-agent' ),
+				'ability_class' => FileReadAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/file-write',
 			[
-				'label'               => __( 'Write File', 'gratis-ai-agent' ),
-				'description'         => __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'path'    => [
-							'type'        => 'string',
-							'description' => 'Relative path from wp-content (e.g., "plugins/my-plugin/file.php")',
-						],
-						'content' => [
-							'type'        => 'string',
-							'description' => 'The content to write to the file',
-						],
-					],
-					'required'   => [ 'path', 'content' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'path'   => [ 'type' => 'string' ],
-						'action' => [ 'type' => 'string' ],
-						'size'   => [ 'type' => 'integer' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'destructive' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_write_file' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Write File', 'gratis-ai-agent' ),
+				'description'   => __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'gratis-ai-agent' ),
+				'ability_class' => FileWriteAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/file-edit',
 			[
-				'label'               => __( 'Edit File', 'gratis-ai-agent' ),
-				'description'         => __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'path'  => [
-							'type'        => 'string',
-							'description' => 'Relative path from wp-content',
-						],
-						'edits' => [
-							'type'        => 'array',
-							'description' => 'Array of {search, replace} edit operations to apply in order',
-							'items'       => [
-								'type'       => 'object',
-								'properties' => [
-									'search'  => [
-										'type'        => 'string',
-										'description' => 'The exact string to find (must be unique in the file)',
-									],
-									'replace' => [
-										'type'        => 'string',
-										'description' => 'The string to replace it with',
-									],
-								],
-								'required'   => [ 'search', 'replace' ],
-							],
-						],
-					],
-					'required'   => [ 'path', 'edits' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'path'          => [ 'type' => 'string' ],
-						'edits_applied' => [ 'type' => 'integer' ],
-						'edits_failed'  => [ 'type' => 'integer' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'destructive' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_edit_file' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Edit File', 'gratis-ai-agent' ),
+				'description'   => __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'gratis-ai-agent' ),
+				'ability_class' => FileEditAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/file-delete',
 			[
-				'label'               => __( 'Delete File', 'gratis-ai-agent' ),
-				'description'         => __( 'Delete a file within the wp-content directory.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'path' => [
-							'type'        => 'string',
-							'description' => 'Relative path from wp-content',
-						],
-					],
-					'required'   => [ 'path' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'path'   => [ 'type' => 'string' ],
-						'action' => [ 'type' => 'string' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'destructive' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_delete_file' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Delete File', 'gratis-ai-agent' ),
+				'description'   => __( 'Delete a file within the wp-content directory.', 'gratis-ai-agent' ),
+				'ability_class' => FileDeleteAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/file-list',
 			[
-				'label'               => __( 'List Directory', 'gratis-ai-agent' ),
-				'description'         => __( 'List files and directories within a directory in wp-content.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'path' => [
-							'type'        => 'string',
-							'description' => 'Relative path from wp-content (e.g., "plugins" or "themes/theme-name")',
-						],
-					],
-					'required'   => [ 'path' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'path'  => [ 'type' => 'string' ],
-						'items' => [ 'type' => 'array' ],
-						'count' => [ 'type' => 'integer' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'   => true,
-						'idempotent' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_list_directory' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'List Directory', 'gratis-ai-agent' ),
+				'description'   => __( 'List files and directories within a directory in wp-content.', 'gratis-ai-agent' ),
+				'ability_class' => FileListAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/file-search',
 			[
-				'label'               => __( 'Search Files', 'gratis-ai-agent' ),
-				'description'         => __( 'Search for files matching a glob pattern within wp-content.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'pattern' => [
-							'type'        => 'string',
-							'description' => 'Glob pattern (e.g., "plugins/*/*.php" or "themes/**/*.css")',
-						],
-					],
-					'required'   => [ 'pattern' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'pattern' => [ 'type' => 'string' ],
-						'matches' => [ 'type' => 'array' ],
-						'count'   => [ 'type' => 'integer' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'   => true,
-						'idempotent' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_search_files' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Search Files', 'gratis-ai-agent' ),
+				'description'   => __( 'Search for files matching a glob pattern within wp-content.', 'gratis-ai-agent' ),
+				'ability_class' => FileSearchAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/content-search',
 			[
-				'label'               => __( 'Search Content', 'gratis-ai-agent' ),
-				'description'         => __( 'Search for text content within files in wp-content.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'needle'       => [
-							'type'        => 'string',
-							'description' => 'The text to search for',
-						],
-						'directory'    => [
-							'type'        => 'string',
-							'description' => 'Directory to search in (relative to wp-content), default is entire wp-content',
-						],
-						'file_pattern' => [
-							'type'        => 'string',
-							'description' => 'File extension filter (e.g., "*.php")',
-						],
-					],
-					'required'   => [ 'needle' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'needle'  => [ 'type' => 'string' ],
-						'matches' => [ 'type' => 'array' ],
-						'count'   => [ 'type' => 'integer' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'   => true,
-						'idempotent' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_search_content' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Search Content', 'gratis-ai-agent' ),
+				'description'   => __( 'Search for text content within files in wp-content.', 'gratis-ai-agent' ),
+				'ability_class' => ContentSearchAbility::class,
 			]
 		);
 	}
+}
+
+/**
+ * Shared file path resolution and PHP linting helpers.
+ *
+ * @since 1.0.0
+ */
+abstract class AbstractFileAbility extends AbstractAbility {
 
 	/**
 	 * Validate and resolve a path within wp-content.
@@ -337,7 +115,7 @@ class FileAbilities {
 	 * @param string $relative_path Path relative to wp-content.
 	 * @return string|WP_Error Full path on success, WP_Error on failure.
 	 */
-	private static function resolve_path( string $relative_path ) {
+	protected function resolve_path( string $relative_path ) {
 		$relative_path = ltrim( $relative_path, '/\\' );
 
 		if ( empty( $relative_path ) ) {
@@ -383,7 +161,7 @@ class FileAbilities {
 	 * @param string $path File path.
 	 * @return bool
 	 */
-	private static function is_php_file( string $path ): bool {
+	protected function is_php_file( string $path ): bool {
 		return (bool) preg_match( '/\.php$/i', $path );
 	}
 
@@ -394,7 +172,7 @@ class FileAbilities {
 	 * @return array{valid: bool, error?: string, line?: int}
 	 */
 	// phpcs:disable WordPress.PHP.DevelopmentFunctions, WordPress.PHP.DiscouragedPHPFunctions -- Intentional: error_reporting and set_error_handler used for PHP syntax validation.
-	private static function lint_php( string $content ): array {
+	protected function lint_php( string $content ): array {
 		$previous = error_reporting( 0 );
 
 		set_error_handler(
@@ -437,16 +215,43 @@ class FileAbilities {
 		}
 	}
 	// phpcs:enable WordPress.PHP.DevelopmentFunctions, WordPress.PHP.DiscouragedPHPFunctions
+}
 
-	/**
-	 * Handle the file-read ability.
-	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
-	 */
-	public static function handle_read_file( array $input ) {
+/**
+ * File Read ability.
+ *
+ * @since 1.0.0
+ */
+class FileReadAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path' => [
+					'type'        => 'string',
+					'description' => 'Relative path from wp-content (e.g., "plugins/my-plugin/file.php")',
+				],
+			],
+			'required'   => [ 'path' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'     => [ 'type' => 'string' ],
+				'content'  => [ 'type' => 'string' ],
+				'size'     => [ 'type' => 'integer' ],
+				'modified' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$path      = $input['path'] ?? '';
-		$full_path = self::resolve_path( $path );
+		$full_path = $this->resolve_path( $path );
 
 		if ( is_wp_error( $full_path ) ) {
 			return $full_path;
@@ -474,24 +279,68 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the file-write ability.
-	 *
-	 * @param array $input Input with path and content.
-	 * @return array|WP_Error
-	 */
-	public static function handle_write_file( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'   => true,
+				'idempotent' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * File Write ability.
+ *
+ * @since 1.0.0
+ */
+class FileWriteAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'    => [
+					'type'        => 'string',
+					'description' => 'Relative path from wp-content (e.g., "plugins/my-plugin/file.php")',
+				],
+				'content' => [
+					'type'        => 'string',
+					'description' => 'The content to write to the file',
+				],
+			],
+			'required'   => [ 'path', 'content' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'   => [ 'type' => 'string' ],
+				'action' => [ 'type' => 'string' ],
+				'size'   => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$path    = $input['path'] ?? '';
 		$content = $input['content'] ?? '';
 
-		$full_path = self::resolve_path( $path );
+		$full_path = $this->resolve_path( $path );
 		if ( is_wp_error( $full_path ) ) {
 			return $full_path;
 		}
 
 		// Validate PHP syntax before writing.
-		if ( self::is_php_file( $path ) ) {
-			$lint = self::lint_php( $content );
+		if ( $this->is_php_file( $path ) ) {
+			$lint = $this->lint_php( $content );
 			if ( ! $lint['valid'] ) {
 				return new WP_Error(
 					'gratis_ai_agent_php_syntax_error',
@@ -531,17 +380,74 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the file-edit ability.
-	 *
-	 * @param array $input Input with path and edits array.
-	 * @return array|WP_Error
-	 */
-	public static function handle_edit_file( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'destructive' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * File Edit ability.
+ *
+ * @since 1.0.0
+ */
+class FileEditAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'  => [
+					'type'        => 'string',
+					'description' => 'Relative path from wp-content',
+				],
+				'edits' => [
+					'type'        => 'array',
+					'description' => 'Array of {search, replace} edit operations to apply in order',
+					'items'       => [
+						'type'       => 'object',
+						'properties' => [
+							'search'  => [
+								'type'        => 'string',
+								'description' => 'The exact string to find (must be unique in the file)',
+							],
+							'replace' => [
+								'type'        => 'string',
+								'description' => 'The string to replace it with',
+							],
+						],
+						'required'   => [ 'search', 'replace' ],
+					],
+				],
+			],
+			'required'   => [ 'path', 'edits' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'          => [ 'type' => 'string' ],
+				'edits_applied' => [ 'type' => 'integer' ],
+				'edits_failed'  => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$path  = $input['path'] ?? '';
 		$edits = $input['edits'] ?? [];
 
-		$full_path = self::resolve_path( $path );
+		$full_path = $this->resolve_path( $path );
 		if ( is_wp_error( $full_path ) ) {
 			return $full_path;
 		}
@@ -606,8 +512,8 @@ class FileAbilities {
 
 		if ( count( $applied ) > 0 ) {
 			// Validate PHP syntax after edits.
-			if ( self::is_php_file( $path ) ) {
-				$lint = self::lint_php( $content );
+			if ( $this->is_php_file( $path ) ) {
+				$lint = $this->lint_php( $content );
 				if ( ! $lint['valid'] ) {
 					return new WP_Error(
 						'gratis_ai_agent_php_syntax_error',
@@ -640,15 +546,53 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the file-delete ability.
-	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
-	 */
-	public static function handle_delete_file( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'destructive' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * File Delete ability.
+ *
+ * @since 1.0.0
+ */
+class FileDeleteAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path' => [
+					'type'        => 'string',
+					'description' => 'Relative path from wp-content',
+				],
+			],
+			'required'   => [ 'path' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'   => [ 'type' => 'string' ],
+				'action' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$path      = $input['path'] ?? '';
-		$full_path = self::resolve_path( $path );
+		$full_path = $this->resolve_path( $path );
 
 		if ( is_wp_error( $full_path ) ) {
 			return $full_path;
@@ -680,15 +624,54 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the file-list ability.
-	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
-	 */
-	public static function handle_list_directory( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'destructive' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * File List ability.
+ *
+ * @since 1.0.0
+ */
+class FileListAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path' => [
+					'type'        => 'string',
+					'description' => 'Relative path from wp-content (e.g., "plugins" or "themes/theme-name")',
+				],
+			],
+			'required'   => [ 'path' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'path'  => [ 'type' => 'string' ],
+				'items' => [ 'type' => 'array' ],
+				'count' => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$path      = $input['path'] ?? '';
-		$full_path = self::resolve_path( $path );
+		$full_path = $this->resolve_path( $path );
 
 		if ( is_wp_error( $full_path ) ) {
 			return $full_path;
@@ -724,13 +707,53 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the file-search ability.
-	 *
-	 * @param array $input Input with pattern.
-	 * @return array|WP_Error
-	 */
-	public static function handle_search_files( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'   => true,
+				'idempotent' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * File Search ability.
+ *
+ * @since 1.0.0
+ */
+class FileSearchAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'pattern' => [
+					'type'        => 'string',
+					'description' => 'Glob pattern (e.g., "plugins/*/*.php" or "themes/**/*.css")',
+				],
+			],
+			'required'   => [ 'pattern' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'pattern' => [ 'type' => 'string' ],
+				'matches' => [ 'type' => 'array' ],
+				'count'   => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$pattern      = $input['pattern'] ?? '';
 		$full_pattern = WP_CONTENT_DIR . '/' . ltrim( $pattern, '/' );
 
@@ -755,13 +778,61 @@ class FileAbilities {
 		];
 	}
 
-	/**
-	 * Handle the content-search ability.
-	 *
-	 * @param array $input Input with needle, optional directory and file_pattern.
-	 * @return array|WP_Error
-	 */
-	public static function handle_search_content( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'   => true,
+				'idempotent' => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * Content Search ability.
+ *
+ * @since 1.0.0
+ */
+class ContentSearchAbility extends AbstractFileAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'needle'       => [
+					'type'        => 'string',
+					'description' => 'The text to search for',
+				],
+				'directory'    => [
+					'type'        => 'string',
+					'description' => 'Directory to search in (relative to wp-content), default is entire wp-content',
+				],
+				'file_pattern' => [
+					'type'        => 'string',
+					'description' => 'File extension filter (e.g., "*.php")',
+				],
+			],
+			'required'   => [ 'needle' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'needle'  => [ 'type' => 'string' ],
+				'matches' => [ 'type' => 'array' ],
+				'count'   => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$needle       = $input['needle'] ?? '';
 		$directory    = $input['directory'] ?? '';
 		$file_pattern = $input['file_pattern'] ?? '*.php';
@@ -772,7 +843,7 @@ class FileAbilities {
 
 		$search_path = WP_CONTENT_DIR;
 		if ( ! empty( $directory ) ) {
-			$resolved = self::resolve_path( $directory );
+			$resolved = $this->resolve_path( $directory );
 			if ( is_wp_error( $resolved ) ) {
 				return $resolved;
 			}
@@ -780,13 +851,27 @@ class FileAbilities {
 		}
 
 		$results = [];
-		self::search_content_recursive( $search_path, $needle, $file_pattern, $results );
+		$this->search_content_recursive( $search_path, $needle, $file_pattern, $results );
 
 		return [
 			'needle'    => $needle,
 			'directory' => $directory ?: 'wp-content',
 			'matches'   => $results,
 			'count'     => count( $results ),
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'   => true,
+				'idempotent' => true,
+			],
+			'show_in_rest' => true,
 		];
 	}
 
@@ -799,7 +884,7 @@ class FileAbilities {
 	 * @param array  $results      Results accumulator (passed by reference).
 	 * @param int    $limit        Maximum results.
 	 */
-	private static function search_content_recursive( string $dir, string $needle, string $pattern, array &$results, int $limit = 50 ): void {
+	private function search_content_recursive( string $dir, string $needle, string $pattern, array &$results, int $limit = 50 ): void {
 		if ( count( $results ) >= $limit || ! is_dir( $dir ) ) {
 			return;
 		}
@@ -850,7 +935,7 @@ class FileAbilities {
 				if ( 'vendor' === $basename || 'node_modules' === $basename ) {
 					continue;
 				}
-				self::search_content_recursive( $subdir, $needle, $pattern, $results, $limit );
+				$this->search_content_recursive( $subdir, $needle, $pattern, $results, $limit );
 			}
 		}
 	}

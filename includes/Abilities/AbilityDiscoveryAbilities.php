@@ -38,209 +38,80 @@ class AbilityDiscoveryAbilities {
 			return;
 		}
 
-		// list_abilities - List all registered abilities.
 		wp_register_ability(
 			'gratis-ai-agent/discovery-list',
 			[
-				'label'               => __( 'List Abilities', 'gratis-ai-agent' ),
-				'description'         => __( 'List all available WordPress abilities (from plugins, themes, and core). Returns ability names and brief descriptions.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'category' => [
-							'type'        => 'string',
-							'description' => __( 'Optional category to filter abilities (e.g., "content", "media", "users")', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-					],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'abilities' => [
-							'type'        => 'array',
-							'description' => __( 'List of abilities with their details', 'gratis-ai-agent' ),
-							'items'       => [
-								'type'       => 'object',
-								'properties' => [
-									'id'          => [
-										'type'        => 'string',
-										'description' => __( 'Ability identifier', 'gratis-ai-agent' ),
-									],
-									'name'        => [
-										'type'        => 'string',
-										'description' => __( 'Human-readable name', 'gratis-ai-agent' ),
-									],
-									'description' => [
-										'type'        => 'string',
-										'description' => __( 'Brief description of what the ability does', 'gratis-ai-agent' ),
-									],
-									'category'    => [
-										'type'        => 'string',
-										'description' => __( 'Category this ability belongs to', 'gratis-ai-agent' ),
-									],
-								],
-							],
-						],
-						'count'     => [
-							'type'        => 'integer',
-							'description' => __( 'Total number of abilities returned', 'gratis-ai-agent' ),
-						],
-						'filter'    => [
-							'type'        => 'string',
-							'description' => __( 'Category filter applied (if any)', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'    => true,
-						'idempotent'  => true,
-						'destructive' => false,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_list_abilities' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'List Abilities', 'gratis-ai-agent' ),
+				'description'   => __( 'List all available WordPress abilities (from plugins, themes, and core). Returns ability names and brief descriptions.', 'gratis-ai-agent' ),
+				'ability_class' => DiscoveryListAbility::class,
 			]
 		);
 
-		// get_ability - Get full details of a specific ability.
 		wp_register_ability(
 			'gratis-ai-agent/discovery-get',
 			[
-				'label'               => __( 'Get Ability', 'gratis-ai-agent' ),
-				'description'         => __( 'Get full details of a specific WordPress ability including its parameters schema, permissions, and usage information. Call this before execute_ability to understand what arguments are needed.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'ability' => [
-							'type'        => 'string',
-							'description' => __( 'The ability identifier (e.g., "memory/save_memory", "file/read_file")', 'gratis-ai-agent' ),
-							'required'    => true,
-						],
-					],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'id'            => [
-							'type'        => 'string',
-							'description' => __( 'Ability identifier', 'gratis-ai-agent' ),
-						],
-						'name'          => [
-							'type'        => 'string',
-							'description' => __( 'Human-readable name', 'gratis-ai-agent' ),
-						],
-						'description'   => [
-							'type'        => 'string',
-							'description' => __( 'Full description of the ability', 'gratis-ai-agent' ),
-						],
-						'category'      => [
-							'type'        => 'string',
-							'description' => __( 'Category this ability belongs to', 'gratis-ai-agent' ),
-						],
-						'input_schema'  => [
-							'type'        => 'object',
-							'description' => __( 'JSON Schema for input parameters', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-						'output_schema' => [
-							'type'        => 'object',
-							'description' => __( 'JSON Schema for output', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-						'instructions'  => [
-							'type'        => 'string',
-							'description' => __( 'Additional instructions or notes', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'    => true,
-						'idempotent'  => true,
-						'destructive' => false,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_get_ability' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Get Ability', 'gratis-ai-agent' ),
+				'description'   => __( 'Get full details of a specific WordPress ability including its parameters schema, permissions, and usage information. Call this before execute_ability to understand what arguments are needed.', 'gratis-ai-agent' ),
+				'ability_class' => DiscoveryGetAbility::class,
 			]
 		);
 
-		// execute_ability - Execute an ability with arguments.
 		wp_register_ability(
 			'gratis-ai-agent/discovery-execute',
 			[
-				'label'               => __( 'Execute Ability', 'gratis-ai-agent' ),
-				'description'         => __( 'Execute a WordPress ability with the given arguments. Use get_ability first to understand required parameters.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'ability'   => [
-							'type'        => 'string',
-							'description' => __( 'The ability identifier to execute', 'gratis-ai-agent' ),
-							'required'    => true,
-						],
-						'arguments' => [
-							'type'        => 'object',
-							'description' => __( 'Arguments to pass to the ability (schema varies by ability)', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-					],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'ability' => [
-							'type'        => 'string',
-							'description' => __( 'Ability identifier that was executed', 'gratis-ai-agent' ),
-						],
-						'success' => [
-							'type'        => 'boolean',
-							'description' => __( 'Whether the execution was successful', 'gratis-ai-agent' ),
-						],
-						'result'  => [
-							'type'        => 'object',
-							'description' => __( 'Result of the ability execution', 'gratis-ai-agent' ),
-							'required'    => false,
-						],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'    => false,
-						'idempotent'  => false,
-						'destructive' => false,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_execute_ability' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'label'         => __( 'Execute Ability', 'gratis-ai-agent' ),
+				'description'   => __( 'Execute a WordPress ability with the given arguments. Use get_ability first to understand required parameters.', 'gratis-ai-agent' ),
+				'ability_class' => DiscoveryExecuteAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle list_abilities execution.
-	 *
-	 * @param array $args Arguments (category).
-	 * @return array|WP_Error Result or error.
-	 */
-	public static function handle_list_abilities( array $args ): array|WP_Error {
-		$category = $args['category'] ?? '';
+/**
+ * Discovery List ability.
+ *
+ * @since 1.0.0
+ */
+class DiscoveryListAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'category' => [
+					'type'        => 'string',
+					'description' => __( 'Optional category to filter abilities (e.g., "content", "media", "users")', 'gratis-ai-agent' ),
+					'required'    => false,
+				],
+			],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'abilities' => [
+					'type'        => 'array',
+					'description' => __( 'List of abilities with their details', 'gratis-ai-agent' ),
+					'items'       => [
+						'type'       => 'object',
+						'properties' => [
+							'id'          => [ 'type' => 'string' ],
+							'name'        => [ 'type' => 'string' ],
+							'description' => [ 'type' => 'string' ],
+							'category'    => [ 'type' => 'string' ],
+						],
+					],
+				],
+				'count'     => [ 'type' => 'integer' ],
+				'filter'    => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
+		$category = $input['category'] ?? '';
 
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
 			return new WP_Error(
@@ -277,14 +148,59 @@ class AbilityDiscoveryAbilities {
 		];
 	}
 
-	/**
-	 * Handle get_ability execution.
-	 *
-	 * @param array $args Arguments (ability).
-	 * @return array|WP_Error Result or error.
-	 */
-	public static function handle_get_ability( array $args ): array|WP_Error {
-		$ability_id = $args['ability'] ?? '';
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'idempotent'  => true,
+				'destructive' => false,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * Discovery Get ability.
+ *
+ * @since 1.0.0
+ */
+class DiscoveryGetAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'ability' => [
+					'type'        => 'string',
+					'description' => __( 'The ability identifier (e.g., "memory/save_memory", "file/read_file")', 'gratis-ai-agent' ),
+					'required'    => true,
+				],
+			],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'id'            => [ 'type' => 'string' ],
+				'name'          => [ 'type' => 'string' ],
+				'description'   => [ 'type' => 'string' ],
+				'category'      => [ 'type' => 'string' ],
+				'input_schema'  => [ 'type' => 'object' ],
+				'output_schema' => [ 'type' => 'object' ],
+				'instructions'  => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
+		$ability_id = $input['ability'] ?? '';
 
 		if ( empty( $ability_id ) ) {
 			return new WP_Error(
@@ -325,15 +241,61 @@ class AbilityDiscoveryAbilities {
 		];
 	}
 
-	/**
-	 * Handle execute_ability execution.
-	 *
-	 * @param array $args Arguments (ability, arguments).
-	 * @return array|WP_Error Result or error.
-	 */
-	public static function handle_execute_ability( array $args ): array|WP_Error {
-		$ability_id   = $args['ability'] ?? '';
-		$ability_args = $args['arguments'] ?? [];
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'idempotent'  => true,
+				'destructive' => false,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * Discovery Execute ability.
+ *
+ * @since 1.0.0
+ */
+class DiscoveryExecuteAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'ability'   => [
+					'type'        => 'string',
+					'description' => __( 'The ability identifier to execute', 'gratis-ai-agent' ),
+					'required'    => true,
+				],
+				'arguments' => [
+					'type'        => 'object',
+					'description' => __( 'Arguments to pass to the ability (schema varies by ability)', 'gratis-ai-agent' ),
+					'required'    => false,
+				],
+			],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'ability' => [ 'type' => 'string' ],
+				'success' => [ 'type' => 'boolean' ],
+				'result'  => [ 'type' => 'object' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
+		$ability_id   = $input['ability'] ?? '';
+		$ability_args = $input['arguments'] ?? [];
 
 		if ( empty( $ability_id ) ) {
 			return new WP_Error(
@@ -361,8 +323,8 @@ class AbilityDiscoveryAbilities {
 			);
 		}
 
-		$input  = ! empty( $ability_args ) ? $ability_args : null;
-		$result = $ability->execute( $input );
+		$input_data = ! empty( $ability_args ) ? $ability_args : null;
+		$result     = $ability->execute( $input_data );
 
 		if ( is_wp_error( $result ) ) {
 			$error_message = $result->get_error_message();
@@ -380,6 +342,21 @@ class AbilityDiscoveryAbilities {
 			'ability' => $ability_id,
 			'success' => true,
 			'result'  => $result,
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => false,
+				'idempotent'  => false,
+				'destructive' => false,
+			],
+			'show_in_rest' => true,
 		];
 	}
 }

@@ -33,69 +33,62 @@ class ContentAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/content-analyze',
 			[
-				'label'               => __( 'Analyze Content Strategy', 'gratis-ai-agent' ),
-				'description'         => __( 'Analyze content strategy: publishing frequency, word counts, category distribution, missing featured images, and content gaps.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'post_type' => [
-							'type'        => 'string',
-							'description' => 'Post type to analyze (default: "post").',
-						],
-						'limit'     => [
-							'type'        => 'integer',
-							'description' => 'Number of recent posts to analyze (default: 20).',
-						],
-						'site_url'  => [
-							'type'        => 'string',
-							'description' => 'Subsite URL for multisite. Omit for the main site.',
-						],
-					],
-					'required'   => [],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_content_analyze' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'Analyze Content Strategy', 'gratis-ai-agent' ),
+				'description'   => __( 'Analyze content strategy: publishing frequency, word counts, category distribution, missing featured images, and content gaps.', 'gratis-ai-agent' ),
+				'ability_class' => ContentAnalyzeAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/content-performance-report',
 			[
-				'label'               => __( 'Content Performance Report', 'gratis-ai-agent' ),
-				'description'         => __( 'Generate a content performance summary for a given time period: posts published, category breakdown, word counts, drafts pending.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'days'     => [
-							'type'        => 'integer',
-							'description' => 'Number of days to look back (default: 30).',
-						],
-						'site_url' => [
-							'type'        => 'string',
-							'description' => 'Subsite URL for multisite. Omit for the main site.',
-						],
-					],
-					'required'   => [],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_performance_report' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'Content Performance Report', 'gratis-ai-agent' ),
+				'description'   => __( 'Generate a content performance summary for a given time period: posts published, category breakdown, word counts, drafts pending.', 'gratis-ai-agent' ),
+				'ability_class' => ContentPerformanceReportAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the content-analyze ability call.
-	 *
-	 * @param array $input Input with optional post_type, limit, site_url.
-	 * @return array Content analysis results.
-	 */
-	public static function handle_content_analyze( array $input ): array {
+/**
+ * Content Analyze ability.
+ *
+ * @since 1.0.0
+ */
+class ContentAnalyzeAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'post_type' => [
+					'type'        => 'string',
+					'description' => 'Post type to analyze (default: "post").',
+				],
+				'limit'     => [
+					'type'        => 'integer',
+					'description' => 'Number of recent posts to analyze (default: 20).',
+				],
+				'site_url'  => [
+					'type'        => 'string',
+					'description' => 'Subsite URL for multisite. Omit for the main site.',
+				],
+			],
+			'required'   => [],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'post_type'      => [ 'type' => 'string' ],
+				'total_analyzed' => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
 		$limit     = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
 		$site_url  = $input['site_url'] ?? '';
@@ -124,13 +117,28 @@ class ContentAbilities {
 			]
 		);
 
-		$result = self::analyze_content_strategy( $posts, $post_type );
+		$result = $this->analyze_content_strategy( $posts, $post_type );
 
 		if ( $switched ) {
 			restore_current_blog();
 		}
 
 		return $result;
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => false,
+		];
 	}
 
 	/**
@@ -140,7 +148,7 @@ class ContentAbilities {
 	 * @param string     $post_type Post type being analyzed.
 	 * @return array Analysis data.
 	 */
-	private static function analyze_content_strategy( array $posts, string $post_type ): array {
+	private function analyze_content_strategy( array $posts, string $post_type ): array {
 		$total = count( $posts );
 
 		if ( $total === 0 ) {
@@ -232,14 +240,43 @@ class ContentAbilities {
 			'thin_content_count'             => count( array_filter( $word_counts, fn( $wc ) => $wc < 300 ) ),
 		];
 	}
+}
 
-	/**
-	 * Handle the content-performance-report ability call.
-	 *
-	 * @param array $input Input with optional days, site_url.
-	 * @return array Performance report.
-	 */
-	public static function handle_performance_report( array $input ): array {
+/**
+ * Content Performance Report ability.
+ *
+ * @since 1.0.0
+ */
+class ContentPerformanceReportAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'days'     => [
+					'type'        => 'integer',
+					'description' => 'Number of days to look back (default: 30).',
+				],
+				'site_url' => [
+					'type'        => 'string',
+					'description' => 'Subsite URL for multisite. Omit for the main site.',
+				],
+			],
+			'required'   => [],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'period_days'     => [ 'type' => 'integer' ],
+				'posts_published' => [ 'type' => 'integer' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$days     = max( 1, min( 365, (int) ( $input['days'] ?? 30 ) ) );
 		$site_url = $input['site_url'] ?? '';
 
@@ -257,7 +294,7 @@ class ContentAbilities {
 			}
 		}
 
-		$result = self::generate_performance_report( $days );
+		$result = $this->generate_performance_report( $days );
 
 		if ( $switched ) {
 			restore_current_blog();
@@ -266,13 +303,28 @@ class ContentAbilities {
 		return $result;
 	}
 
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
+		];
+	}
+
 	/**
 	 * Generate a content performance report.
 	 *
 	 * @param int $days Number of days to look back.
 	 * @return array Report data.
 	 */
-	private static function generate_performance_report( int $days ): array {
+	private function generate_performance_report( int $days ): array {
 		$after_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// Published posts in period.

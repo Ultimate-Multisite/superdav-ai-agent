@@ -38,46 +38,59 @@ class StockImageAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/import-stock-image',
 			[
-				'label'               => __( 'Import Stock Image', 'gratis-ai-agent' ),
-				'description'         => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'keyword'  => [
-							'type'        => 'string',
-							'description' => 'Search term for finding a relevant image (e.g. "dogs", "mountain landscape", "coffee shop")',
-						],
-						'site_url' => [
-							'type'        => 'string',
-							'description' => 'Subsite URL to import into (e.g. "https://example.com/mysite"). Omit for the main site.',
-						],
-						'width'    => [
-							'type'        => 'integer',
-							'description' => 'Image width in pixels (default: 1200)',
-						],
-						'height'   => [
-							'type'        => 'integer',
-							'description' => 'Image height in pixels (default: 800)',
-						],
-					],
-					'required'   => [ 'keyword' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_import' ],
-				'permission_callback' => function () {
-					return current_user_can( 'upload_files' );
-				},
+				'label'         => __( 'Import Stock Image', 'gratis-ai-agent' ),
+				'description'   => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'gratis-ai-agent' ),
+				'ability_class' => ImportStockImageAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the import-stock-image ability call.
-	 *
-	 * @param array $input Input with keyword, optional site_url, width, height.
-	 * @return array|\WP_Error Result with attachment_id, url, alt, title or WP_Error on failure.
-	 */
-	public static function handle_import( array $input ): array|\WP_Error {
+/**
+ * Import Stock Image ability.
+ *
+ * @since 1.0.0
+ */
+class ImportStockImageAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'keyword'  => [
+					'type'        => 'string',
+					'description' => 'Search term for finding a relevant image (e.g. "dogs", "mountain landscape", "coffee shop")',
+				],
+				'site_url' => [
+					'type'        => 'string',
+					'description' => 'Subsite URL to import into (e.g. "https://example.com/mysite"). Omit for the main site.',
+				],
+				'width'    => [
+					'type'        => 'integer',
+					'description' => 'Image width in pixels (default: 1200)',
+				],
+				'height'   => [
+					'type'        => 'integer',
+					'description' => 'Image height in pixels (default: 800)',
+				],
+			],
+			'required'   => [ 'keyword' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'attachment_id' => [ 'type' => 'integer' ],
+				'url'           => [ 'type' => 'string' ],
+				'alt'           => [ 'type' => 'string' ],
+				'title'         => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$keyword  = sanitize_text_field( $input['keyword'] ?? '' );
 		$site_url = $input['site_url'] ?? '';
 		$width    = (int) ( $input['width'] ?? 1200 );
@@ -115,13 +128,28 @@ class StockImageAbilities {
 			}
 		}
 
-		$result = self::download_and_import( $keyword, $width, $height );
+		$result = $this->download_and_import( $keyword, $width, $height );
 
 		if ( $switched ) {
 			restore_current_blog();
 		}
 
 		return $result;
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'upload_files' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => false,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
+		];
 	}
 
 	/**
@@ -132,7 +160,7 @@ class StockImageAbilities {
 	 * @param int    $height  Image height.
 	 * @return array|\WP_Error Result array or WP_Error on failure.
 	 */
-	private static function download_and_import( string $keyword, int $width, int $height ): array|\WP_Error {
+	private function download_and_import( string $keyword, int $width, int $height ) {
 		// Build a deterministic-ish lock so the same keyword doesn't always
 		// return the exact same image, but retries in the same request do.
 		$lock = crc32( $keyword . gmdate( 'Y-m-d-H' ) );

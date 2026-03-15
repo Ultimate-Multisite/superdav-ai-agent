@@ -36,37 +36,50 @@ class KnowledgeAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/knowledge-search',
 			[
-				'label'               => __( 'Search Knowledge Base', 'gratis-ai-agent' ),
-				'description'         => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'query'      => [
-							'type'        => 'string',
-							'description' => 'The search query to find relevant knowledge.',
-						],
-						'collection' => [
-							'type'        => 'string',
-							'description' => 'Optional collection slug to search within. Leave empty to search all collections.',
-						],
-					],
-					'required'   => [ 'query' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_knowledge_search' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'Search Knowledge Base', 'gratis-ai-agent' ),
+				'description'   => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'gratis-ai-agent' ),
+				'ability_class' => KnowledgeSearchAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the knowledge-search ability call.
-	 *
-	 * @param array $input Input with query and optional collection.
-	 * @return array|\WP_Error Result or WP_Error on failure.
-	 */
-	public static function handle_knowledge_search( array $input ): array|\WP_Error {
+/**
+ * Knowledge Search ability.
+ *
+ * @since 1.0.0
+ */
+class KnowledgeSearchAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'query'      => [
+					'type'        => 'string',
+					'description' => 'The search query to find relevant knowledge.',
+				],
+				'collection' => [
+					'type'        => 'string',
+					'description' => 'Optional collection slug to search within. Leave empty to search all collections.',
+				],
+			],
+			'required'   => [ 'query' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'results' => [ 'type' => 'array' ],
+				'count'   => [ 'type' => 'integer' ],
+				'message' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$query = $input['query'] ?? '';
 
 		if ( empty( $query ) ) {
@@ -103,6 +116,21 @@ class KnowledgeAbilities {
 		return [
 			'results' => $formatted,
 			'count'   => count( $formatted ),
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
 		];
 	}
 }

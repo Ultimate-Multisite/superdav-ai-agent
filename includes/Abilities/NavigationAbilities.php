@@ -37,90 +37,55 @@ class NavigationAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/navigate',
 			[
-				'label'               => __( 'Navigate', 'gratis-ai-agent' ),
-				'description'         => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'url' => [
-							'type'        => 'string',
-							'description' => 'The URL to navigate to. Can be a full URL (must start with the site URL) or a relative path (e.g., "/wp-admin/edit.php").',
-						],
-					],
-					'required'   => [ 'url' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'url'     => [ 'type' => 'string' ],
-						'action'  => [ 'type' => 'string' ],
-						'message' => [ 'type' => 'string' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_navigate' ],
-				'permission_callback' => function () {
-					return current_user_can( 'read' );
-				},
+				'label'         => __( 'Navigate', 'gratis-ai-agent' ),
+				'description'   => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
+				'ability_class' => NavigateAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/get-page-html',
 			[
-				'label'               => __( 'Get Page HTML', 'gratis-ai-agent' ),
-				'description'         => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'selector'   => [
-							'type'        => 'string',
-							'description' => 'CSS selector to query (e.g., "#main-content", ".entry-title", "article", "body")',
-						],
-						'max_length' => [
-							'type'        => 'number',
-							'description' => 'Maximum characters to return per element (default: 5000)',
-						],
-					],
-					'required'   => [ 'selector' ],
-				],
-				'output_schema'       => [
-					'type'       => 'object',
-					'properties' => [
-						'selector' => [ 'type' => 'string' ],
-						'action'   => [ 'type' => 'string' ],
-						'message'  => [ 'type' => 'string' ],
-					],
-				],
-				'meta'                => [
-					'annotations'  => [
-						'readonly'   => true,
-						'idempotent' => true,
-					],
-					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_get_page_html' ],
-				'permission_callback' => function () {
-					return current_user_can( 'read' );
-				},
+				'label'         => __( 'Get Page HTML', 'gratis-ai-agent' ),
+				'description'   => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
+				'ability_class' => GetPageHtmlAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the navigate ability.
-	 *
-	 * @param array $input Input with url.
-	 * @return array|WP_Error
-	 */
-	public static function handle_navigate( array $input ) {
+/**
+ * Navigate ability.
+ *
+ * @since 1.0.0
+ */
+class NavigateAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url' => [
+					'type'        => 'string',
+					'description' => 'The URL to navigate to. Can be a full URL (must start with the site URL) or a relative path (e.g., "/wp-admin/edit.php").',
+				],
+			],
+			'required'   => [ 'url' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url'     => [ 'type' => 'string' ],
+				'action'  => [ 'type' => 'string' ],
+				'message' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$url      = $input['url'] ?? '';
 		$home_url = home_url();
 
@@ -161,17 +126,59 @@ class NavigationAbilities {
 		];
 	}
 
-	/**
-	 * Handle the get-page-html ability.
-	 *
-	 * This returns a client-side instruction. The actual HTML extraction
-	 * happens in JavaScript on the client, since the server doesn't have
-	 * access to the rendered DOM.
-	 *
-	 * @param array $input Input with selector and optional max_length.
-	 * @return array|WP_Error
-	 */
-	public static function handle_get_page_html( array $input ) {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'read' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * Get Page HTML ability.
+ *
+ * @since 1.0.0
+ */
+class GetPageHtmlAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'selector'   => [
+					'type'        => 'string',
+					'description' => 'CSS selector to query (e.g., "#main-content", ".entry-title", "article", "body")',
+				],
+				'max_length' => [
+					'type'        => 'number',
+					'description' => 'Maximum characters to return per element (default: 5000)',
+				],
+			],
+			'required'   => [ 'selector' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'selector'   => [ 'type' => 'string' ],
+				'max_length' => [ 'type' => 'integer' ],
+				'action'     => [ 'type' => 'string' ],
+				'message'    => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$selector   = $input['selector'] ?? '';
 		$max_length = (int) ( $input['max_length'] ?? 5000 );
 
@@ -186,6 +193,21 @@ class NavigationAbilities {
 			'max_length' => $max_length,
 			'action'     => 'get_page_html',
 			'message'    => sprintf( 'Querying page HTML with selector: %s', $selector ),
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'read' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => true,
 		];
 	}
 }

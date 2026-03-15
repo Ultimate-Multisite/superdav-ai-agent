@@ -35,57 +35,59 @@ class MarketingAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/fetch-url',
 			[
-				'label'               => __( 'Fetch URL', 'gratis-ai-agent' ),
-				'description'         => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'url' => [
-							'type'        => 'string',
-							'description' => 'The URL to fetch.',
-						],
-					],
-					'required'   => [ 'url' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_fetch_url' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'Fetch URL', 'gratis-ai-agent' ),
+				'description'   => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
+				'ability_class' => FetchUrlAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/analyze-headers',
 			[
-				'label'               => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
-				'description'         => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'url' => [
-							'type'        => 'string',
-							'description' => 'The URL to analyze headers for.',
-						],
-					],
-					'required'   => [ 'url' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_analyze_headers' ],
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'label'         => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
+				'description'   => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
+				'ability_class' => AnalyzeHeadersAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the fetch-url ability call.
-	 *
-	 * @param array $input Input with url.
-	 * @return array|\WP_Error Fetch results or WP_Error on failure.
-	 */
-	public static function handle_fetch_url( array $input ): array|\WP_Error {
+/**
+ * Fetch URL ability.
+ *
+ * @since 1.0.0
+ */
+class FetchUrlAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url' => [
+					'type'        => 'string',
+					'description' => 'The URL to fetch.',
+				],
+			],
+			'required'   => [ 'url' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url'              => [ 'type' => 'string' ],
+				'status_code'      => [ 'type' => 'integer' ],
+				'headers'          => [ 'type' => 'object' ],
+				'title'            => [ 'type' => 'string' ],
+				'meta_description' => [ 'type' => 'string' ],
+				'generator'        => [ 'type' => 'string' ],
+				'head_content'     => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
@@ -164,13 +166,56 @@ class MarketingAbilities {
 		];
 	}
 
-	/**
-	 * Handle the analyze-headers ability call.
-	 *
-	 * @param array $input Input with url.
-	 * @return array|\WP_Error Header analysis results or WP_Error on failure.
-	 */
-	public static function handle_analyze_headers( array $input ): array|\WP_Error {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
+		];
+	}
+}
+
+/**
+ * Analyze HTTP Headers ability.
+ *
+ * @since 1.0.0
+ */
+class AnalyzeHeadersAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url' => [
+					'type'        => 'string',
+					'description' => 'The URL to analyze headers for.',
+				],
+			],
+			'required'   => [ 'url' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'url'         => [ 'type' => 'string' ],
+				'status_code' => [ 'type' => 'integer' ],
+				'security'    => [ 'type' => 'array' ],
+				'performance' => [ 'type' => 'array' ],
+				'cdn'         => [ 'type' => 'array' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
@@ -200,21 +245,27 @@ class MarketingAbilities {
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$headers     = wp_remote_retrieve_headers( $response );
 
-		// Security headers.
-		$security = self::check_security_headers( $headers );
-
-		// Performance headers.
-		$performance = self::check_performance_headers( $headers );
-
-		// CDN indicators.
-		$cdn = self::detect_cdn( $headers );
-
 		return [
 			'url'         => $url,
 			'status_code' => $status_code,
-			'security'    => $security,
-			'performance' => $performance,
-			'cdn'         => $cdn,
+			'security'    => $this->check_security_headers( $headers ),
+			'performance' => $this->check_performance_headers( $headers ),
+			'cdn'         => $this->detect_cdn( $headers ),
+		];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => false,
+			],
+			'show_in_rest' => false,
 		];
 	}
 
@@ -224,7 +275,7 @@ class MarketingAbilities {
 	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array Security header analysis.
 	 */
-	private static function check_security_headers( $headers ): array {
+	private function check_security_headers( $headers ): array {
 		$checks = [
 			'strict-transport-security' => [
 				'label'  => 'HSTS (Strict-Transport-Security)',
@@ -272,7 +323,7 @@ class MarketingAbilities {
 	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array Performance header analysis.
 	 */
-	private static function check_performance_headers( $headers ): array {
+	private function check_performance_headers( $headers ): array {
 		$results = [];
 
 		$cache_control = $headers['cache-control'] ?? null;
@@ -305,7 +356,7 @@ class MarketingAbilities {
 	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array CDN detection results.
 	 */
-	private static function detect_cdn( $headers ): array {
+	private function detect_cdn( $headers ): array {
 		$indicators = [
 			'cf-ray'       => 'Cloudflare',
 			'x-cache'      => 'CDN Cache',

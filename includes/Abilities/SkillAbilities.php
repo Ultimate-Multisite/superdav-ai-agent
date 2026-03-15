@@ -36,49 +36,55 @@ class SkillAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/skill-load',
 			[
-				'label'               => __( 'Load Skill', 'gratis-ai-agent' ),
-				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => [
-						'slug' => [
-							'type'        => 'string',
-							'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
-						],
-					],
-					'required'   => [ 'slug' ],
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_skill_load' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'Load Skill', 'gratis-ai-agent' ),
+				'description'   => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
+				'ability_class' => SkillLoadAbility::class,
 			]
 		);
 
 		wp_register_ability(
 			'gratis-ai-agent/skill-list',
 			[
-				'label'               => __( 'List Skills', 'gratis-ai-agent' ),
-				'description'         => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
-					'type'       => 'object',
-					'properties' => new \stdClass(),
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_skill_list' ],
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' ); },
+				'label'         => __( 'List Skills', 'gratis-ai-agent' ),
+				'description'   => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
+				'ability_class' => SkillListAbility::class,
 			]
 		);
 	}
+}
 
-	/**
-	 * Handle the skill-load ability call.
-	 *
-	 * @param array $input Input with slug.
-	 * @return array|\WP_Error Result with skill content or WP_Error on failure.
-	 */
-	public static function handle_skill_load( array $input ): array|\WP_Error {
+/**
+ * Load Skill ability.
+ *
+ * @since 1.0.0
+ */
+class SkillLoadAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'slug' => [
+					'type'        => 'string',
+					'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
+				],
+			],
+			'required'   => [ 'slug' ],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'name'    => [ 'type' => 'string' ],
+				'slug'    => [ 'type' => 'string' ],
+				'content' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$slug = $input['slug'] ?? '';
 
 		if ( empty( $slug ) ) {
@@ -116,12 +122,44 @@ class SkillAbilities {
 		];
 	}
 
-	/**
-	 * Handle the skill-list ability call.
-	 *
-	 * @return array Result with skills index.
-	 */
-	public static function handle_skill_list(): array {
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => false,
+		];
+	}
+}
+
+/**
+ * List Skills ability.
+ *
+ * @since 1.0.0
+ */
+class SkillListAbility extends AbstractAbility {
+
+	protected function input_schema(): array {
+		return [];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'skills'  => [ 'type' => 'array' ],
+				'message' => [ 'type' => 'string' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
 		$skills = Skill::get_all( true );
 
 		if ( empty( $skills ) ) {
@@ -138,5 +176,20 @@ class SkillAbilities {
 		}
 
 		return [ 'skills' => $list ];
+	}
+
+	protected function permission_callback( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => false,
+		];
 	}
 }

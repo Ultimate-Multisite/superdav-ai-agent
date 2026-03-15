@@ -1,0 +1,69 @@
+# Agent Instructions
+
+This directory contains project-specific agent context. The [aidevops](https://aidevops.sh)
+framework is loaded separately via the global config (`~/.aidevops/agents/`).
+
+## Purpose
+
+Files in `.agents/` provide project-specific instructions that AI assistants
+read when working in this repository. Use this for:
+
+- Domain-specific conventions not covered by the framework
+- Project architecture decisions and patterns
+- API design rules, data models, naming conventions
+- Integration details (third-party services, deployment targets)
+
+## Adding Agents
+
+Create `.md` files in this directory for domain-specific context:
+
+```text
+.agents/
+  AGENTS.md              # This file - overview and index
+  api-patterns.md        # API design conventions
+  deployment.md          # Deployment procedures
+  data-model.md          # Database schema and relationships
+```
+
+Each file is read on demand by AI assistants when relevant to the task.
+
+## Security
+
+### Prompt Injection Defense
+
+Any feature that processes untrusted content (tool outputs, user input, webhook
+payloads) and passes it to an LLM must defend against prompt injection. This is
+a JS/TS project — use `@stackone/defender` to sanitize untrusted tool results
+before they enter the LLM context:
+
+```bash
+npm install @stackone/defender
+```
+
+```typescript
+import { createPromptDefense } from '@stackone/defender';
+
+const defense = createPromptDefense({ enableTier2: true, blockHighRisk: true });
+
+// Sanitize untrusted tool output before adding to LLM context
+const result = await defense.defendToolResult(toolResponse, 'tool_name');
+if (!result.allowed) {
+  throw new Error('Blocked untrusted content');
+}
+const safeContent = result.sanitized;
+```
+
+For features that don't use LLMs but process untrusted text (webhooks, form
+submissions, API endpoints), validate and sanitize inputs at the boundary.
+
+### General Security Rules
+
+- Never log or expose API keys, tokens, or credentials in output
+- Store secrets via `aidevops secret set <NAME>` (gopass-encrypted) or
+  environment variables — never hardcode them in source
+- Use `<PLACEHOLDER>` values in code examples; note the secure storage location
+- Validate all external input (user input, webhook payloads, API responses)
+- Pin third-party GitHub Actions to SHA hashes, not branch tags
+- Run `aidevops security audit` periodically to check security posture
+- See `~/.aidevops/agents/tools/security/prompt-injection-defender.md` for
+  the framework's prompt injection defense patterns

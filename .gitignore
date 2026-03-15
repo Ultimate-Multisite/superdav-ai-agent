@@ -3,3 +3,5 @@ vendor/
 .agents/loop-state/
 .phpunit.result.cache
 screenshots/
+.aidevops.json
+.beads

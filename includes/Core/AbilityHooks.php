@@ -74,10 +74,10 @@ class AbilityHooks {
 	/**
 	 * Fire the before-ability action and return filtered args.
 	 *
-	 * @param string     $ability_name The ability name.
-	 * @param array|null $args         The raw arguments from the model.
-	 * @param string     $call_id      The function call ID.
-	 * @return array|null Filtered arguments.
+	 * @param string                    $ability_name The ability name.
+	 * @param array<string, mixed>|null $args    The raw arguments from the model.
+	 * @param string                    $call_id The function call ID.
+	 * @return array<string, mixed>|null Filtered arguments.
 	 */
 	public static function before( string $ability_name, ?array $args, string $call_id ): ?array {
 		/**
@@ -102,9 +102,9 @@ class AbilityHooks {
 	/**
 	 * Check whether an ability should be blocked before execution.
 	 *
-	 * @param string     $ability_name The ability name.
-	 * @param array|null $args         The arguments that would be passed.
-	 * @param string     $call_id      The function call ID.
+	 * @param string                    $ability_name The ability name.
+	 * @param array<string, mixed>|null $args         The arguments that would be passed.
+	 * @param string                    $call_id      The function call ID.
 	 * @return bool True if the ability should be blocked.
 	 */
 	public static function is_blocked( string $ability_name, ?array $args, string $call_id ): bool {
@@ -125,10 +125,10 @@ class AbilityHooks {
 	/**
 	 * Fire the after-ability action and return filtered result.
 	 *
-	 * @param string     $ability_name The ability name.
-	 * @param array|null $args         The arguments that were passed.
-	 * @param mixed      $result       The raw result from the ability.
-	 * @param string     $call_id      The function call ID.
+	 * @param string                    $ability_name The ability name.
+	 * @param array<string, mixed>|null $args         The arguments that were passed.
+	 * @param mixed                     $result       The raw result from the ability.
+	 * @param string                    $call_id      The function call ID.
 	 * @return mixed Filtered result.
 	 */
 	public static function after( string $ability_name, ?array $args, mixed $result, string $call_id ): mixed {

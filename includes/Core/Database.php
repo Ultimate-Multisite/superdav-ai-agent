@@ -635,10 +635,13 @@ class Database {
 	 *
 	 * Loads current data, merges new entries, and saves back.
 	 *
-	 * @param int                  $session_id Session ID.
-	 * @param array<string, mixed> $messages   New message arrays to append.
-	 * @param array<string, mixed> $tool_calls New tool call log entries to append.
+	 * @param int   $session_id Session ID.
+	 * @param array $messages   New message arrays to append.
+	 * @param array $tool_calls New tool call log entries to append.
 	 * @return bool Whether the update succeeded.
+	 *
+	 * @phpstan-param list<mixed>                $messages
+	 * @phpstan-param list<array<string, mixed>> $tool_calls
 	 */
 	public static function append_to_session( int $session_id, array $messages, array $tool_calls = [] ): bool {
 		$session = self::get_session( $session_id );

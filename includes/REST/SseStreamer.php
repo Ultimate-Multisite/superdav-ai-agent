@@ -72,8 +72,8 @@ class SseStreamer {
 	/**
 	 * Emit a tool-call event (agent is executing a tool).
 	 *
-	 * @param string $name Tool name.
-	 * @param array  $args Tool arguments.
+	 * @param string               $name Tool name.
+	 * @param array<string, mixed> $args Tool arguments.
 	 */
 	public function send_tool_call( string $name, array $args ): void {
 		$this->emit(
@@ -104,8 +104,8 @@ class SseStreamer {
 	/**
 	 * Emit a confirmation-required event (user must approve a tool call).
 	 *
-	 * @param string $job_id       Job identifier for the confirm/reject endpoints.
-	 * @param array  $pending_tools Tools awaiting confirmation.
+	 * @param string                     $job_id        Job identifier for the confirm/reject endpoints.
+	 * @param list<array<string, mixed>> $pending_tools Tools awaiting confirmation.
 	 */
 	public function send_confirmation_required( string $job_id, array $pending_tools ): void {
 		$this->emit(
@@ -120,7 +120,7 @@ class SseStreamer {
 	/**
 	 * Emit the final `done` event and close the stream.
 	 *
-	 * @param array $metadata Optional metadata (session_id, token_usage, etc.).
+	 * @param array<string, mixed> $metadata Optional metadata (session_id, token_usage, etc.).
 	 */
 	public function send_done( array $metadata = [] ): void {
 		$this->emit( 'done', $metadata );
@@ -147,8 +147,8 @@ class SseStreamer {
 	/**
 	 * Emit a single SSE event.
 	 *
-	 * @param string $event Event name.
-	 * @param array  $data  Event payload (will be JSON-encoded).
+	 * @param string               $event Event name.
+	 * @param array<string, mixed> $data  Event payload (will be JSON-encoded).
 	 */
 	private function emit( string $event, array $data ): void {
 		if ( ! $this->started ) {

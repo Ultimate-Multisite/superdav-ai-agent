@@ -28,6 +28,7 @@ import UsageDashboard from './usage-dashboard';
 import CustomToolsManager from './custom-tools-manager';
 import ToolProfilesManager from './tool-profiles-manager';
 import AutomationsManager from './automations-manager';
+import ProvidersManager from './providers-manager';
 import EventsManager from './events-manager';
 
 export default function SettingsApp() {
@@ -111,6 +112,11 @@ export default function SettingsApp() {
 
 	const tabs = [
 		{
+			name: 'providers',
+			title: __( 'Providers', 'ai-agent' ),
+			className: 'ai-agent-settings-tab',
+		},
+		{
 			name: 'general',
 			title: __( 'General', 'ai-agent' ),
 			className: 'ai-agent-settings-tab',
@@ -186,6 +192,17 @@ export default function SettingsApp() {
 			<TabPanel tabs={ tabs }>
 				{ ( tab ) => {
 					switch ( tab.name ) {
+						case 'providers':
+							return (
+								<div className="ai-agent-settings-section">
+									<ProvidersManager
+										providerKeys={
+											settings?._provider_keys || {}
+										}
+									/>
+								</div>
+							);
+
 						case 'general':
 							return (
 								<div className="ai-agent-settings-section">

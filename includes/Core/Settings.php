@@ -30,6 +30,54 @@ class Settings {
 	const CLAUDE_MAX_TOKEN_OPTION = 'ai_agent_claude_max_token';
 
 	/**
+	 * Option name for directly-configured provider API keys.
+	 * Stored separately from general settings to avoid leaking credentials
+	 * through the GET /settings endpoint.
+	 */
+	const PROVIDER_KEYS_OPTION = 'ai_agent_provider_keys';
+
+	/**
+	 * Supported direct providers with their metadata.
+	 */
+	const DIRECT_PROVIDERS = [
+		'openai'    => [
+			'name'          => 'OpenAI',
+			'default_model' => 'gpt-4o',
+			'models'        => [
+				[ 'id' => 'gpt-4o',                'name' => 'GPT-4o' ],
+				[ 'id' => 'gpt-4o-mini',           'name' => 'GPT-4o Mini' ],
+				[ 'id' => 'gpt-4-turbo',           'name' => 'GPT-4 Turbo' ],
+				[ 'id' => 'o1',                    'name' => 'o1' ],
+				[ 'id' => 'o1-mini',               'name' => 'o1 Mini' ],
+				[ 'id' => 'o3-mini',               'name' => 'o3 Mini' ],
+			],
+		],
+		'anthropic' => [
+			'name'          => 'Anthropic',
+			'default_model' => 'claude-sonnet-4-5',
+			'models'        => [
+				[ 'id' => 'claude-opus-4-5',       'name' => 'Claude Opus 4.5' ],
+				[ 'id' => 'claude-sonnet-4-5',     'name' => 'Claude Sonnet 4.5' ],
+				[ 'id' => 'claude-haiku-3-5',      'name' => 'Claude Haiku 3.5' ],
+				[ 'id' => 'claude-opus-4-20250514',   'name' => 'Claude Opus 4' ],
+				[ 'id' => 'claude-sonnet-4-20250514', 'name' => 'Claude Sonnet 4' ],
+				[ 'id' => 'claude-haiku-3-20241022',  'name' => 'Claude Haiku 3' ],
+			],
+		],
+		'google'    => [
+			'name'          => 'Google',
+			'default_model' => 'gemini-2.0-flash',
+			'models'        => [
+				[ 'id' => 'gemini-2.5-pro-preview-05-06', 'name' => 'Gemini 2.5 Pro' ],
+				[ 'id' => 'gemini-2.0-flash',             'name' => 'Gemini 2.0 Flash' ],
+				[ 'id' => 'gemini-2.0-flash-lite',        'name' => 'Gemini 2.0 Flash Lite' ],
+				[ 'id' => 'gemini-1.5-pro',               'name' => 'Gemini 1.5 Pro' ],
+				[ 'id' => 'gemini-1.5-flash',             'name' => 'Gemini 1.5 Flash' ],
+			],
+		],
+	];
+
+	/**
 	 * Settings page slug.
 	 */
 	const PAGE_SLUG = 'ai-agent-settings';
@@ -90,6 +138,68 @@ class Settings {
 			return delete_option( self::CLAUDE_MAX_TOKEN_OPTION );
 		}
 		return update_option( self::CLAUDE_MAX_TOKEN_OPTION, $token );
+	}
+
+	/**
+	 * Get the API key for a directly-configured provider.
+	 *
+	 * Keys are stored in a dedicated option, never in the general settings blob,
+	 * so they are not exposed through GET /settings.
+	 *
+	 * @param string $provider_id One of 'openai', 'anthropic', 'google'.
+	 * @return string Empty string when not configured.
+	 */
+	public static function get_provider_key( string $provider_id ): string {
+		$keys = get_option( self::PROVIDER_KEYS_OPTION, [] );
+		return isset( $keys[ $provider_id ] ) ? (string) $keys[ $provider_id ] : '';
+	}
+
+	/**
+	 * Persist an API key for a directly-configured provider.
+	 *
+	 * Pass an empty string to clear the credential.
+	 *
+	 * @param string $provider_id One of 'openai', 'anthropic', 'google'.
+	 * @param string $api_key     The API key value.
+	 * @return bool True on success.
+	 */
+	public static function set_provider_key( string $provider_id, string $api_key ): bool {
+		if ( ! array_key_exists( $provider_id, self::DIRECT_PROVIDERS ) ) {
+			return false;
+		}
+
+		$keys = get_option( self::PROVIDER_KEYS_OPTION, [] );
+
+		if ( '' === $api_key ) {
+			unset( $keys[ $provider_id ] );
+		} else {
+			$keys[ $provider_id ] = $api_key;
+		}
+
+		return update_option( self::PROVIDER_KEYS_OPTION, $keys );
+	}
+
+	/**
+	 * Get all configured direct providers (those with a non-empty API key).
+	 *
+	 * Returns an array of provider metadata arrays, each with:
+	 *   - id, name, configured (bool), models (array), has_key (bool)
+	 *
+	 * @return array
+	 */
+	public static function get_configured_direct_providers(): array {
+		$result = [];
+		foreach ( self::DIRECT_PROVIDERS as $id => $meta ) {
+			$key          = self::get_provider_key( $id );
+			$result[]     = [
+				'id'         => $id,
+				'name'       => $meta['name'],
+				'configured' => '' !== $key,
+				'has_key'    => '' !== $key,
+				'models'     => $meta['models'],
+			];
+		}
+		return $result;
 	}
 
 	/**

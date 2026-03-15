@@ -208,6 +208,56 @@ class RestController {
 			]
 		);
 
+		// Direct provider API key endpoint (credential — never returned in GET /settings).
+		register_rest_route(
+			self::NAMESPACE,
+			'/settings/provider-key',
+			[
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ __CLASS__, 'handle_set_provider_key' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
+					'args'                => [
+						'provider' => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+						'api_key'  => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+					],
+				],
+			]
+		);
+
+		// Test a direct provider API key.
+		register_rest_route(
+			self::NAMESPACE,
+			'/settings/provider-key/test',
+			[
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ __CLASS__, 'handle_test_provider_key' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
+					'args'                => [
+						'provider' => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+						'api_key'  => [
+							'required'          => false,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+					],
+				],
+			]
+		);
+
 		// Memory endpoints.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1737,74 +1787,95 @@ class RestController {
 	 * @return WP_REST_Response
 	 */
 	public static function handle_providers(): WP_REST_Response {
-		if ( ! class_exists( '\\WordPress\\AiClient\\AiClient' ) ) {
-			return new WP_REST_Response( [], 200 );
-		}
-
-		try {
-			$registry     = \WordPress\AiClient\AiClient::defaultRegistry();
-			$provider_ids = $registry->getRegisteredProviderIds();
-		} catch ( \Throwable $e ) {
-			return new WP_REST_Response( [], 200 );
-		}
-
-		// Ensure credentials are loaded (same logic the agent loop uses).
-		AgentLoop::ensure_provider_credentials_static();
-
 		$providers = [];
 
-		foreach ( $provider_ids as $provider_id ) {
-			try {
-				$class = $registry->getProviderClassName( $provider_id );
-
-				// Only include providers that have authentication set.
-				$auth = $registry->getProviderRequestAuthentication( $provider_id );
-				if ( null === $auth ) {
-					continue;
-				}
-
-				$metadata = $class::metadata();
-				$models   = [];
-
-				// For the OpenAI-compatible connector, fetch models directly
-				// from the endpoint rather than going through the SDK model
-				// directory (which can fail due to SDK transporter issues).
-				if ( 'ai-provider-for-any-openai-compatible' === $provider_id
-					&& function_exists( 'OpenAiCompatibleConnector\\rest_list_models' )
-				) {
-					$fake_request = new WP_REST_Request( 'GET' );
-					$result       = \OpenAiCompatibleConnector\rest_list_models( $fake_request );
-					if ( ! is_wp_error( $result ) ) {
-						$data = $result instanceof WP_REST_Response ? $result->get_data() : $result;
-						if ( is_array( $data ) ) {
-							$models = $data;
-						}
-					}
-				} else {
-					try {
-						$directory      = $class::modelMetadataDirectory();
-						$model_metadata = $directory->listModelMetadata();
-
-						foreach ( $model_metadata as $model_meta ) {
-							$models[] = [
-								'id'   => $model_meta->getId(),
-								'name' => $model_meta->getName(),
-							];
-						}
-					} catch ( \Throwable $e ) {
-						// Model listing failed — still include the provider.
-					}
-				}
-
+		// ── 1. Directly-configured providers (OpenAI, Anthropic, Google) ──
+		// These are available regardless of whether the WordPress AI SDK is installed.
+		foreach ( Settings::get_configured_direct_providers() as $direct ) {
+			if ( $direct['has_key'] ) {
 				$providers[] = [
-					'id'         => $provider_id,
-					'name'       => $metadata->getName(),
-					'type'       => (string) $metadata->getType(),
+					'id'         => $direct['id'],
+					'name'       => $direct['name'],
+					'type'       => 'direct',
 					'configured' => true,
-					'models'     => $models,
+					'models'     => $direct['models'],
 				];
+			}
+		}
+
+		// ── 2. WordPress AI SDK providers (requires WP 6.9+ AI Experiments) ──
+		if ( class_exists( '\\WordPress\\AiClient\\AiClient' ) ) {
+			try {
+				$registry     = \WordPress\AiClient\AiClient::defaultRegistry();
+				$provider_ids = $registry->getRegisteredProviderIds();
+
+				// Ensure credentials are loaded (same logic the agent loop uses).
+				AgentLoop::ensure_provider_credentials_static();
+
+				// Track IDs already added via direct config to avoid duplicates.
+				$direct_ids = array_column( $providers, 'id' );
+
+				foreach ( $provider_ids as $provider_id ) {
+					// Skip if already listed as a direct provider.
+					if ( in_array( $provider_id, $direct_ids, true ) ) {
+						continue;
+					}
+
+					try {
+						$class = $registry->getProviderClassName( $provider_id );
+
+						// Only include providers that have authentication set.
+						$auth = $registry->getProviderRequestAuthentication( $provider_id );
+						if ( null === $auth ) {
+							continue;
+						}
+
+						$metadata = $class::metadata();
+						$models   = [];
+
+						// For the OpenAI-compatible connector, fetch models directly
+						// from the endpoint rather than going through the SDK model
+						// directory (which can fail due to SDK transporter issues).
+						if ( 'ai-provider-for-any-openai-compatible' === $provider_id
+							&& function_exists( 'OpenAiCompatibleConnector\\rest_list_models' )
+						) {
+							$fake_request = new WP_REST_Request( 'GET' );
+							$result       = \OpenAiCompatibleConnector\rest_list_models( $fake_request );
+							if ( ! is_wp_error( $result ) ) {
+								$data = $result instanceof WP_REST_Response ? $result->get_data() : $result;
+								if ( is_array( $data ) ) {
+									$models = $data;
+								}
+							}
+						} else {
+							try {
+								$directory      = $class::modelMetadataDirectory();
+								$model_metadata = $directory->listModelMetadata();
+
+								foreach ( $model_metadata as $model_meta ) {
+									$models[] = [
+										'id'   => $model_meta->getId(),
+										'name' => $model_meta->getName(),
+									];
+								}
+							} catch ( \Throwable $e ) {
+								// Model listing failed — still include the provider.
+							}
+						}
+
+						$providers[] = [
+							'id'         => $provider_id,
+							'name'       => $metadata->getName(),
+							'type'       => (string) $metadata->getType(),
+							'configured' => true,
+							'models'     => $models,
+						];
+					} catch ( \Throwable $e ) {
+						continue;
+					}
+				}
 			} catch ( \Throwable $e ) {
-				continue;
+				// SDK registry unavailable — direct providers already added above.
 			}
 		}
 
@@ -2280,6 +2351,12 @@ class RestController {
 		// Indicate whether a Claude Max token is stored without exposing the token itself.
 		$settings['_has_claude_max_token'] = '' !== Settings::get_claude_max_token();
 
+		// Indicate which direct providers have API keys configured (without exposing the keys).
+		$settings['_provider_keys'] = [];
+		foreach ( array_keys( Settings::DIRECT_PROVIDERS ) as $provider_id ) {
+			$settings['_provider_keys'][ $provider_id ] = '' !== Settings::get_provider_key( $provider_id );
+		}
+
 		return new WP_REST_Response( $settings, 200 );
 	}
 
@@ -2328,6 +2405,176 @@ class RestController {
 			],
 			200
 		);
+	}
+
+	/**
+	 * Handle POST /settings/provider-key — store a direct provider API key.
+	 *
+	 * The key is stored in a dedicated WordPress option and never returned
+	 * in GET /settings to avoid leaking credentials through the general endpoint.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public static function handle_set_provider_key( WP_REST_Request $request ): WP_REST_Response {
+		$provider = (string) $request->get_param( 'provider' );
+		$api_key  = (string) $request->get_param( 'api_key' );
+		$api_key  = trim( $api_key );
+
+		$valid_providers = array_keys( Settings::DIRECT_PROVIDERS );
+		if ( ! in_array( $provider, $valid_providers, true ) ) {
+			return new WP_REST_Response(
+				[ 'error' => sprintf( 'Unknown provider "%s". Valid: %s', $provider, implode( ', ', $valid_providers ) ) ],
+				400
+			);
+		}
+
+		$success = Settings::set_provider_key( $provider, $api_key );
+
+		if ( ! $success && ! empty( $api_key ) ) {
+			return new WP_REST_Response( [ 'error' => 'Failed to save API key.' ], 500 );
+		}
+
+		return new WP_REST_Response(
+			[
+				'saved'      => true,
+				'provider'   => $provider,
+				'has_key'    => ! empty( $api_key ),
+				'key_prefix' => ! empty( $api_key ) ? substr( $api_key, 0, 8 ) . '…' : '',
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle POST /settings/provider-key/test — test a direct provider API key.
+	 *
+	 * Sends a minimal request to the provider's API to verify the key works.
+	 * Uses the stored key if api_key param is omitted.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public static function handle_test_provider_key( WP_REST_Request $request ): WP_REST_Response {
+		$provider = (string) $request->get_param( 'provider' );
+		$api_key  = trim( (string) ( $request->get_param( 'api_key' ) ?: '' ) );
+
+		// Fall back to stored key if none provided.
+		if ( empty( $api_key ) ) {
+			$api_key = Settings::get_provider_key( $provider );
+		}
+
+		if ( empty( $api_key ) ) {
+			return new WP_REST_Response(
+				[ 'success' => false, 'error' => __( 'No API key provided or stored.', 'ai-agent' ) ],
+				400
+			);
+		}
+
+		$result = self::test_provider_api_key( $provider, $api_key );
+
+		if ( is_wp_error( $result ) ) {
+			return new WP_REST_Response(
+				[ 'success' => false, 'error' => $result->get_error_message() ],
+				200
+			);
+		}
+
+		return new WP_REST_Response( [ 'success' => true, 'model' => $result ], 200 );
+	}
+
+	/**
+	 * Test a provider API key by sending a minimal prompt.
+	 *
+	 * @param string $provider One of 'openai', 'anthropic', 'google'.
+	 * @param string $api_key  The API key to test.
+	 * @return string|WP_Error Model name on success, WP_Error on failure.
+	 */
+	private static function test_provider_api_key( string $provider, string $api_key ) {
+		switch ( $provider ) {
+			case 'openai':
+				$response = wp_remote_post(
+					'https://api.openai.com/v1/chat/completions',
+					[
+						'timeout' => 30,
+						'headers' => [
+							'Content-Type'  => 'application/json',
+							'Authorization' => 'Bearer ' . $api_key,
+						],
+						'body'    => wp_json_encode( [
+							'model'      => 'gpt-4o-mini',
+							'messages'   => [ [ 'role' => 'user', 'content' => 'Hi' ] ],
+							'max_tokens' => 5,
+						] ),
+					]
+				);
+				if ( is_wp_error( $response ) ) {
+					return $response;
+				}
+				$code = wp_remote_retrieve_response_code( $response );
+				$data = json_decode( wp_remote_retrieve_body( $response ), true );
+				if ( 200 !== $code ) {
+					$msg = $data['error']['message'] ?? "HTTP $code";
+					return new WP_Error( 'ai_agent_test_failed', $msg );
+				}
+				return $data['model'] ?? 'gpt-4o-mini';
+
+			case 'anthropic':
+				$response = wp_remote_post(
+					'https://api.anthropic.com/v1/messages',
+					[
+						'timeout' => 30,
+						'headers' => [
+							'Content-Type'      => 'application/json',
+							'x-api-key'         => $api_key,
+							'anthropic-version' => '2023-06-01',
+						],
+						'body'    => wp_json_encode( [
+							'model'      => 'claude-haiku-3-20241022',
+							'max_tokens' => 5,
+							'messages'   => [ [ 'role' => 'user', 'content' => 'Hi' ] ],
+						] ),
+					]
+				);
+				if ( is_wp_error( $response ) ) {
+					return $response;
+				}
+				$code = wp_remote_retrieve_response_code( $response );
+				$data = json_decode( wp_remote_retrieve_body( $response ), true );
+				if ( 200 !== $code ) {
+					$msg = $data['error']['message'] ?? "HTTP $code";
+					return new WP_Error( 'ai_agent_test_failed', $msg );
+				}
+				return $data['model'] ?? 'claude-haiku-3-20241022';
+
+			case 'google':
+				$response = wp_remote_post(
+					'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+					[
+						'timeout' => 30,
+						'headers' => [
+							'Content-Type'  => 'application/json',
+							'Authorization' => 'Bearer ' . $api_key,
+						],
+						'body'    => wp_json_encode( [
+							'model'      => 'gemini-2.0-flash-lite',
+							'messages'   => [ [ 'role' => 'user', 'content' => 'Hi' ] ],
+							'max_tokens' => 5,
+						] ),
+					]
+				);
+				if ( is_wp_error( $response ) ) {
+					return $response;
+				}
+				$code = wp_remote_retrieve_response_code( $response );
+				$data = json_decode( wp_remote_retrieve_body( $response ), true );
+				if ( 200 !== $code ) {
+					$msg = $data['error']['message'] ?? "HTTP $code";
+					return new WP_Error( 'ai_agent_test_failed', $msg );
+				}
+				return $data['model'] ?? 'gemini-2.0-flash-lite';
+
+			default:
+				return new WP_Error( 'ai_agent_unknown_provider', "Unknown provider: $provider" );
+		}
 	}
 
 	// ─── Memory ──────────────────────────────────────────────────────

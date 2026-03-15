@@ -410,4 +410,81 @@
 	border-radius: 3px;
 }
 
+/* Tab overflow for many tabs */
+.ai-agent-settings .components-tab-panel__tabs {
+	flex-wrap: wrap;
+}
 
+/* Providers Manager */
+.ai-agent-providers-manager__intro {
+	color: #50575e;
+	margin-bottom: 8px;
+}
+
+.ai-agent-providers-manager__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.ai-agent-provider-card {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
+
+.ai-agent-provider-card__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+}
+
+.ai-agent-provider-card__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.ai-agent-provider-card__badge {
+	font-size: 11px;
+	font-weight: 500;
+	padding: 2px 8px;
+	border-radius: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.ai-agent-provider-card__badge--configured {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.ai-agent-provider-card__docs-link {
+	font-size: 12px;
+	color: #2271b1;
+	text-decoration: none;
+}
+
+.ai-agent-provider-card__docs-link:hover {
+	text-decoration: underline;
+}
+
+.ai-agent-provider-card__description {
+	color: #50575e;
+	font-size: 13px;
+	margin-bottom: 12px;
+}
+
+.ai-agent-provider-card__key-row {
+	margin-bottom: 12px;
+}
+
+.ai-agent-provider-card__actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+}

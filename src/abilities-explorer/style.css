@@ -1,0 +1,195 @@
+/* Abilities Explorer admin page */
+
+.ai-agent-abilities-explorer-wrap {
+	max-width: 1200px;
+}
+
+.ai-agent-abilities-explorer {
+	margin-top: 16px;
+}
+
+.ai-agent-abilities-explorer__loading {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 40px 0;
+}
+
+.ai-agent-abilities-explorer__error {
+	padding: 16px;
+	background: #fcf0f1;
+	border-left: 4px solid #cc1818;
+	color: #cc1818;
+}
+
+.ai-agent-abilities-explorer__toolbar {
+	display: flex;
+	align-items: flex-end;
+	gap: 16px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+
+.ai-agent-abilities-explorer__search {
+	flex: 1;
+	min-width: 200px;
+}
+
+.ai-agent-abilities-explorer__category-filter {
+	min-width: 180px;
+}
+
+.ai-agent-abilities-explorer__count {
+	color: #757575;
+	font-size: 13px;
+	white-space: nowrap;
+	align-self: center;
+}
+
+.ai-agent-abilities-explorer__empty {
+	color: #757575;
+	padding: 24px 0;
+}
+
+.ai-agent-abilities-explorer__list {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.ai-agent-abilities-explorer__row {
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.ai-agent-abilities-explorer__row:last-child {
+	border-bottom: none;
+}
+
+.ai-agent-abilities-explorer__row-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	cursor: pointer;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.ai-agent-abilities-explorer__row-header:hover {
+	background: #f6f7f7;
+}
+
+.ai-agent-abilities-explorer__row-header:focus {
+	outline: 2px solid #007cba;
+	outline-offset: -2px;
+}
+
+.ai-agent-abilities-explorer__row-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.ai-agent-abilities-explorer__name {
+	font-family: monospace;
+	font-size: 13px;
+	background: #f0f0f1;
+	padding: 2px 6px;
+	border-radius: 3px;
+	word-break: break-all;
+}
+
+.ai-agent-abilities-explorer__label {
+	color: #50575e;
+	font-size: 13px;
+}
+
+.ai-agent-abilities-explorer__row-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+.ai-agent-abilities-explorer__category {
+	font-size: 12px;
+	color: #757575;
+	background: #f0f0f1;
+	padding: 2px 8px;
+	border-radius: 10px;
+}
+
+.ai-agent-abilities-explorer__badge {
+	font-size: 11px;
+}
+
+.ai-agent-abilities-explorer__toggle {
+	font-size: 10px;
+	color: #757575;
+	margin-left: 4px;
+}
+
+.ai-agent-abilities-explorer__description {
+	margin: 0;
+	padding: 0 16px 12px;
+	color: #50575e;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.ai-agent-abilities-explorer__details {
+	padding: 0 16px 16px;
+	border-top: 1px solid #f0f0f1;
+	background: #f9f9f9;
+}
+
+.ai-agent-abilities-explorer__detail-section {
+	margin-top: 16px;
+}
+
+.ai-agent-abilities-explorer__detail-section h4 {
+	margin: 0 0 8px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #757575;
+}
+
+.ai-agent-abilities-explorer__annotations-table {
+	border-collapse: collapse;
+	font-size: 13px;
+	width: auto;
+}
+
+.ai-agent-abilities-explorer__annotations-table th,
+.ai-agent-abilities-explorer__annotations-table td {
+	padding: 4px 12px 4px 0;
+	text-align: left;
+	vertical-align: top;
+}
+
+.ai-agent-abilities-explorer__annotations-table th {
+	font-family: monospace;
+	font-weight: normal;
+	color: #50575e;
+	width: 120px;
+}
+
+.ai-agent-abilities-explorer__schema {
+	background: #1e1e1e;
+	color: #d4d4d4;
+	padding: 12px 16px;
+	border-radius: 4px;
+	font-size: 12px;
+	line-height: 1.6;
+	overflow-x: auto;
+	max-height: 400px;
+	overflow-y: auto;
+	margin: 0;
+	white-space: pre;
+}

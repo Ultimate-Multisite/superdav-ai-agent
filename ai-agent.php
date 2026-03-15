@@ -46,6 +46,7 @@ use AiAgent\Abilities\SeoAbilities;
 use AiAgent\Abilities\SkillAbilities;
 use AiAgent\Abilities\StockImageAbilities;
 use AiAgent\Abilities\WordPressAbilities;
+use AiAgent\Admin\AbilitiesExplorer;
 use AiAgent\Admin\AdminPage;
 use AiAgent\Admin\FloatingWidget;
 use AiAgent\Automations\AutomationRunner;
@@ -66,6 +67,7 @@ add_action( 'admin_init', [ Database::class, 'install' ] );
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
 add_action( 'admin_menu', [ AdminPage::class, 'register' ] );
+add_action( 'admin_menu', [ AbilitiesExplorer::class, 'register' ] );
 add_action( 'admin_menu', [ Settings::class, 'register' ] );
 
 // Register ability category.

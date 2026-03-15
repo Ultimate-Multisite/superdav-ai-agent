@@ -163,6 +163,10 @@
 }
 
 .ai-agent-floating-panel .ai-agent-messages {
+	flex: 1;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
 	padding: 12px;
 	gap: 8px;
 	flex: 1;

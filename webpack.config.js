@@ -15,5 +15,10 @@ module.exports = {
 			'src/settings-page',
 			'index.js'
 		),
+		'abilities-explorer': path.resolve(
+			process.cwd(),
+			'src/abilities-explorer',
+			'index.js'
+		),
 	},
 };

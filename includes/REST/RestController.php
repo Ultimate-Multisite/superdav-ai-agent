@@ -159,6 +159,17 @@ class RestController {
 			]
 		);
 
+		// Abilities Explorer endpoint — full metadata for the admin reference page.
+		register_rest_route(
+			self::NAMESPACE,
+			'/abilities-explorer',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ __CLASS__, 'handle_abilities_explorer' ],
+				'permission_callback' => [ __CLASS__, 'check_permission' ],
+			]
+		);
+
 		// Providers endpoint.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1725,6 +1736,44 @@ class RestController {
 				'label'       => $ability->get_label(),
 				'description' => $description,
 				'category'    => $ability->get_category(),
+			];
+		}
+
+		return new WP_REST_Response( $list, 200 );
+	}
+
+	/**
+	 * Handle the /abilities-explorer endpoint — full ability metadata for the admin reference page.
+	 *
+	 * Returns name, label, description, category, annotations (readonly/destructive/idempotent),
+	 * output_schema, and show_in_rest for every registered ability.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function handle_abilities_explorer(): WP_REST_Response {
+		if ( ! function_exists( 'wp_get_abilities' ) ) {
+			return new WP_REST_Response( [], 200 );
+		}
+
+		$abilities = wp_get_abilities();
+		$list      = [];
+
+		foreach ( $abilities as $ability ) {
+			$meta        = $ability->get_meta();
+			$annotations = $meta['annotations'] ?? [];
+
+			$list[] = [
+				'name'          => $ability->get_name(),
+				'label'         => $ability->get_label(),
+				'description'   => $ability->get_description(),
+				'category'      => $ability->get_category(),
+				'annotations'   => [
+					'readonly'    => (bool) ( $annotations['readonly'] ?? false ),
+					'destructive' => (bool) ( $annotations['destructive'] ?? false ),
+					'idempotent'  => (bool) ( $annotations['idempotent'] ?? false ),
+				],
+				'output_schema' => $ability->get_output_schema(),
+				'show_in_rest'  => (bool) ( $meta['show_in_rest'] ?? false ),
 			];
 		}
 

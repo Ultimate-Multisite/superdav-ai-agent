@@ -4,6 +4,7 @@
    The WordPress admin menu can be taller than the viewport, making
    the body scrollable. Without this, focusing the chat input or
    updating messages can inadvertently scroll the whole page. */
+/* stylelint-disable selector-class-pattern */
 html:has(body.tools_page_ai-agent),
 body.tools_page_ai-agent {
 	overflow: hidden;
@@ -22,6 +23,7 @@ body.tools_page_ai-agent #wpbody-content > .notice,
 body.tools_page_ai-agent #wpbody-content > .updated {
 	display: none !important;
 }
+/* stylelint-enable selector-class-pattern */
 
 .ai-agent-admin-wrap {
 	margin-right: 0;

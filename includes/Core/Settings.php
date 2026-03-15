@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace AiAgent\Core;
 
+use AiAgent\Core\CredentialResolver;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -67,29 +69,26 @@ class Settings {
 	/**
 	 * Get the stored Claude Max OAuth access token.
 	 *
-	 * The token is stored in its own option rather than the general settings
-	 * blob so that it can be excluded from REST API exposure and treated as a
-	 * credential (not a preference).
+	 * Delegates to {@see CredentialResolver::getClaudeMaxToken()} so that all
+	 * credential reads are centralised in one place.
 	 *
 	 * @return string Empty string when not configured.
 	 */
 	public static function get_claude_max_token(): string {
-		return (string) get_option( self::CLAUDE_MAX_TOKEN_OPTION, '' );
+		return CredentialResolver::getClaudeMaxToken();
 	}
 
 	/**
 	 * Persist the Claude Max OAuth access token.
 	 *
+	 * Delegates to {@see CredentialResolver::setClaudeMaxToken()}.
 	 * Pass an empty string to clear the credential.
 	 *
 	 * @param string $token The OAuth access token (sk-ant-oat01-… or similar).
 	 * @return bool True on success.
 	 */
 	public static function set_claude_max_token( string $token ): bool {
-		if ( '' === $token ) {
-			return delete_option( self::CLAUDE_MAX_TOKEN_OPTION );
-		}
-		return update_option( self::CLAUDE_MAX_TOKEN_OPTION, $token );
+		return CredentialResolver::setClaudeMaxToken( $token );
 	}
 
 	/**

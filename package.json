@@ -12,6 +12,7 @@
 		"lint:php": "composer phpcs",
 		"lint:php:fix": "composer phpcbf",
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php",
+		"test:js": "wp-scripts test-unit-js",
 		"test:unit": "wp-scripts test-unit-js",
 		"test:e2e": "wp-scripts test-e2e",
 		"test:php": "wp-env run tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/gratis-ai-agent && php vendor/bin/phpunit'",
@@ -27,7 +28,8 @@
 		"@wordpress/env": "^10.39.0",
 		"@wordpress/scripts": "^31.2.0",
 		"husky": "^9.1.7",
-		"lint-staged": "^16.4.0"
+		"lint-staged": "^16.4.0",
+		"react-dom": "^18.3.1"
 	},
 	"dependencies": {
 		"@wordpress/api-fetch": "^7.36.0",

@@ -17,5 +17,19 @@
 		"build/",
 		"node_modules/",
 		"vendor/"
+	],
+	"overrides": [
+		{
+			"files": [ "**/__tests__/**/*.js", "**/*.test.js", "**/*.spec.js" ],
+			"env": {
+				"jest": true
+			},
+			"rules": {
+				"import/no-extraneous-dependencies": [
+					"error",
+					{ "devDependencies": true }
+				]
+			}
+		}
 	]
 }

@@ -8,18 +8,26 @@ on:
 
 jobs:
   phpunit:
-    name: PHPUnit (wp-env)
+    name: PHPUnit
     runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:lts
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -43,18 +51,14 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Install npm dependencies
-        run: npm ci
+      - name: Install subversion
+        run: sudo apt-get update && sudo apt-get install -y subversion
 
-      - name: Start wp-env
-        run: npm run wp-env:start
+      - name: Install WordPress test suite
+        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 latest true
 
-      - name: Run PHPUnit via wp-env
-        run: npm run test:php
-
-      - name: Stop wp-env
-        if: always()
-        run: npm run wp-env:stop
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit
 
   phpcs:
     name: PHPCS

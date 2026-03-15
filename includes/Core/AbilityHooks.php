@@ -15,6 +15,7 @@ declare(strict_types=1);
  *
  * `gratis_ai_agent_before_ability`
  *   Fires before an ability is executed.
+ *
  *   @param string $ability_name  The ability name (e.g. "gratis-ai-agent/memory-save").
  *   @param array  $args          The arguments passed to the ability.
  *   @param string $call_id       The unique function call ID from the model.

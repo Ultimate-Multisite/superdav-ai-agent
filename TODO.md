@@ -67,7 +67,7 @@
 
 ### Code Quality & Dev Environment (P1)
 
-- [ ] t006 Fix npm audit vulnerabilities (21 issues: 7 moderate, 14 high) @dave #security ~2h logged:2026-03-14
+- [x] t006 Fix npm audit vulnerabilities (21 issues: 7 moderate, 14 high) @dave #security ~2h logged:2026-03-14 pr:#262 completed:2026-03-15
 - [x] t007 Add pre-commit hooks via husky + lint-staged for PHP/JS/CSS @dave #quality ~2h logged:2026-03-14 pr:#84 completed:2026-03-15
 - [x] t008 Make CI workflows non-continue-on-error @dave #ci ~1h logged:2026-03-14 pr:#83 completed:2026-03-15
 - [x] t009 Tighten PHPCS: re-enable EscapeOutput, add nonce verification rules @dave #quality ~4h logged:2026-03-14 pr:#87 completed:2026-03-15

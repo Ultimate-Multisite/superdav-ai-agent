@@ -16,10 +16,10 @@ declare(strict_types=1);
  * - Response parsing into SimpleAiResult
  * - Error handling returning WP_Error on failure
  *
- * @package AiAgent\Core
+ * @package GratisAiAgent\Core
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
 use WP_AI_Client_Ability_Function_Resolver;
 use WP_Error;
@@ -96,7 +96,7 @@ class OpenAIProxy {
 		if ( empty( $this->endpoint_url ) ) {
 			return new WP_Error(
 				'ai_agent_no_endpoint',
-				__( 'OpenAI-compatible endpoint URL is not configured.', 'ai-agent' )
+				__( 'OpenAI-compatible endpoint URL is not configured.', 'gratis-ai-agent' )
 			);
 		}
 

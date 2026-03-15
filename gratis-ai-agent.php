@@ -22,6 +22,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'GRATIS_AI_AGENT_DIR', __DIR__ );
 define( 'GRATIS_AI_AGENT_URL', plugin_dir_url( __FILE__ ) );
 
+/**
+ * Built-in fallback model ID used when no model is configured in settings
+ * and no connector default is available.
+ *
+ * Developers can override the effective default at runtime via the
+ * `gratis_ai_agent_default_model` filter rather than changing this constant.
+ */
+define( 'GRATIS_AI_AGENT_DEFAULT_MODEL', 'claude-sonnet-4' );
+
 // Load Jetpack Autoloader for PSR-4 autoloading with version conflict resolution.
 // Jetpack Autoloader ensures the newest version of shared packages (like php-ai-client) is used.
 if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {

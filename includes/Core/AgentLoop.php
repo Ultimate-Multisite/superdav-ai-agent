@@ -854,13 +854,13 @@ class AgentLoop {
 		}
 
 		// Resolve model for the OpenAI-compatible endpoint.
-		// Priority: explicit selection → connector default → hardcoded fallback.
+		// Priority: explicit selection → connector default → configurable plugin default.
 		$model_id = $this->model_id;
 		if ( empty( $model_id ) && function_exists( 'OpenAiCompatibleConnector\\get_default_model' ) ) {
 			$model_id = \OpenAiCompatibleConnector\get_default_model();
 		}
 		if ( empty( $model_id ) ) {
-			$model_id = 'claude-sonnet-4';
+			$model_id = Settings::get_default_model();
 		}
 
 		$messages = $this->build_openai_messages();

@@ -254,6 +254,41 @@ class Settings {
 	}
 
 	/**
+	 * Resolve the effective default model ID.
+	 *
+	 * Resolution order (first non-empty value wins):
+	 *   1. `default_model` setting saved by the site administrator.
+	 *   2. Value returned by the `gratis_ai_agent_default_model` filter (allows
+	 *      developers to override the default programmatically).
+	 *   3. The `GRATIS_AI_AGENT_DEFAULT_MODEL` constant defined in the plugin root.
+	 *
+	 * Example — override the default model from a theme or mu-plugin:
+	 *
+	 *   add_filter( 'gratis_ai_agent_default_model', function ( string $model ): string {
+	 *       return 'gpt-4o';
+	 *   } );
+	 *
+	 * @return string Non-empty model ID.
+	 */
+	public static function get_default_model(): string {
+		$settings = self::get();
+		$model    = (string) ( $settings['default_model'] ?? '' );
+
+		if ( '' === $model ) {
+			$builtin = defined( 'GRATIS_AI_AGENT_DEFAULT_MODEL' ) ? (string) GRATIS_AI_AGENT_DEFAULT_MODEL : 'claude-sonnet-4';
+
+			/**
+			 * Filter the default model ID used when no model is configured in settings.
+			 *
+			 * @param string $model The built-in fallback model ID (GRATIS_AI_AGENT_DEFAULT_MODEL).
+			 */
+			$model = (string) apply_filters( 'gratis_ai_agent_default_model', $builtin );
+		}
+
+		return $model;
+	}
+
+	/**
 	 * Get a single setting or all settings merged with defaults.
 	 *
 	 * @param string|null $key Optional key to retrieve.

@@ -8,7 +8,7 @@ declare(strict_types=1);
  * AI clients (Claude Desktop, Cursor, etc.) can discover and invoke them
  * via the standard MCP protocol over HTTP.
  *
- * Endpoint: POST /wp-json/ai-agent/v1/mcp
+ * Endpoint: POST /wp-json/gratis-ai-agent/v1/mcp
  *
  * Supported methods:
  *   - list_tools  — returns all registered abilities as MCP tool definitions
@@ -17,10 +17,10 @@ declare(strict_types=1);
  * Authentication: WordPress nonce (X-WP-Nonce header) or Application Password
  * (HTTP Basic Auth). Both are handled transparently by the WP REST API.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\REST;
+namespace GratisAiAgent\REST;
 
 use WP_Error;
 use WP_REST_Request;
@@ -107,7 +107,7 @@ class McpController {
 					'ai_agent_mcp_unknown_method',
 					sprintf(
 						/* translators: %s: MCP method name */
-						__( 'Unknown MCP method: %s. Supported methods: list_tools, call_tool.', 'ai-agent' ),
+						__( 'Unknown MCP method: %s. Supported methods: list_tools, call_tool.', 'gratis-ai-agent' ),
 						$method
 					),
 					[ 'status' => 400 ]
@@ -154,7 +154,7 @@ class McpController {
 		if ( '' === $tool_name ) {
 			return new WP_Error(
 				'ai_agent_mcp_missing_name',
-				__( 'call_tool requires a "name" parameter.', 'ai-agent' ),
+				__( 'call_tool requires a "name" parameter.', 'gratis-ai-agent' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -162,7 +162,7 @@ class McpController {
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			return new WP_Error(
 				'ai_agent_mcp_no_abilities_api',
-				__( 'WordPress Abilities API is not available. WordPress 6.9+ is required.', 'ai-agent' ),
+				__( 'WordPress Abilities API is not available. WordPress 6.9+ is required.', 'gratis-ai-agent' ),
 				[ 'status' => 503 ]
 			);
 		}
@@ -177,7 +177,7 @@ class McpController {
 				'ai_agent_mcp_tool_not_found',
 				sprintf(
 					/* translators: %s: tool name */
-					__( 'Tool not found: %s', 'ai-agent' ),
+					__( 'Tool not found: %s', 'gratis-ai-agent' ),
 					$tool_name
 				),
 				[ 'status' => 404 ]

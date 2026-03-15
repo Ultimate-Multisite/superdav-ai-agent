@@ -793,11 +793,11 @@ class FileAbilities {
 	/**
 	 * Recursively search file contents.
 	 *
-	 * @param string                     $dir          Directory to search.
-	 * @param string                     $needle       Text to find.
-	 * @param string                     $pattern      File glob pattern.
-	 * @param list<array<string, mixed>> $results      Results accumulator (passed by reference).
-	 * @param int                        $limit        Maximum results.
+	 * @param string                     $dir     Directory to search.
+	 * @param string                     $needle  Text to find.
+	 * @param string                     $pattern File glob pattern.
+	 * @param list<array<string, mixed>> $results Results accumulator (passed by reference).
+	 * @param int                        $limit   Maximum results.
 	 */
 	private static function search_content_recursive( string $dir, string $needle, string $pattern, array &$results, int $limit = 50 ): void {
 		if ( count( $results ) >= $limit || ! is_dir( $dir ) ) {

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Tools;
 
 use GratisAiAgent\Core\Settings;
+use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -138,11 +139,11 @@ class ToolDiscovery {
 	 * Handle the list-tools ability call.
 	 *
 	 * @param array<string, mixed> $input The input parameters.
-	 * @return array<string, mixed> The result.
+	 * @return array<string, mixed>|\WP_Error The result or WP_Error on failure.
 	 */
-	public static function handle_list_tools( array $input ): array {
+	public static function handle_list_tools( array $input ): array|\WP_Error {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return [ 'error' => 'Abilities API not available.' ];
+			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
 		}
 
 		$query    = $input['query'] ?? '';
@@ -287,25 +288,32 @@ class ToolDiscovery {
 	 * Handle the execute-tool ability call.
 	 *
 	 * @param array<string, mixed> $input The input parameters.
-	 * @return array<string, mixed> The result.
+	 * @return array<string, mixed>|\WP_Error The result or WP_Error on failure.
 	 */
-	public static function handle_execute_tool( array $input ): array {
+	public static function handle_execute_tool( array $input ): array|\WP_Error {
 		$tool_name  = $input['tool_name'] ?? '';
 		$parameters = $input['parameters'] ?? null;
 		$confirmed  = $input['confirmed'] ?? false;
 
 		if ( '' === $tool_name ) {
-			return [ 'error' => 'tool_name is required.' ];
+			return new WP_Error( 'missing_param', __( 'tool_name is required.', 'gratis-ai-agent' ) );
 		}
 
 		if ( ! function_exists( 'wp_get_ability' ) ) {
-			return [ 'error' => 'Abilities API not available.' ];
+			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
 		}
 
 		$ability = wp_get_ability( $tool_name );
 
 		if ( ! $ability instanceof \WP_Ability ) {
-			return [ 'error' => sprintf( 'Tool "%s" not found.', $tool_name ) ];
+			return new WP_Error(
+				'not_found',
+				sprintf(
+					/* translators: %s: tool name */
+					__( 'Tool "%s" not found.', 'gratis-ai-agent' ),
+					$tool_name
+				)
+			);
 		}
 
 		// Check tool permissions.
@@ -313,7 +321,14 @@ class ToolDiscovery {
 		$permission = $perms[ $tool_name ] ?? 'auto';
 
 		if ( 'disabled' === $permission ) {
-			return [ 'error' => sprintf( 'Tool "%s" is disabled.', $tool_name ) ];
+			return new WP_Error(
+				'tool_disabled',
+				sprintf(
+					/* translators: %s: tool name */
+					__( 'Tool "%s" is disabled.', 'gratis-ai-agent' ),
+					$tool_name
+				)
+			);
 		}
 
 		if ( 'confirm' === $permission && ! $confirmed ) {

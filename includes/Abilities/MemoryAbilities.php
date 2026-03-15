@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Abilities;
 
 use GratisAiAgent\Models\Memory;
+use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -102,20 +103,20 @@ class MemoryAbilities {
 	 * Handle the memory-save ability call.
 	 *
 	 * @param array<string, mixed> $input Input with category and content.
-	 * @return array<string, mixed> Result.
+	 * @return array<string, mixed>|\WP_Error Result or WP_Error on failure.
 	 */
-	public static function handle_memory_save( array $input ): array {
+	public static function handle_memory_save( array $input ): array|\WP_Error {
 		$category = $input['category'] ?? 'general';
 		$content  = $input['content'] ?? '';
 
 		if ( empty( $content ) ) {
-			return [ 'error' => 'Content is required.' ];
+			return new WP_Error( 'missing_param', __( 'Content is required.', 'gratis-ai-agent' ) );
 		}
 
 		$id = Memory::create( $category, $content );
 
 		if ( false === $id ) {
-			return [ 'error' => 'Failed to save memory.' ];
+			return new WP_Error( 'save_failed', __( 'Failed to save memory.', 'gratis-ai-agent' ) );
 		}
 
 		return [
@@ -153,19 +154,19 @@ class MemoryAbilities {
 	 * Handle the memory-delete ability call.
 	 *
 	 * @param array<string, mixed> $input Input with id.
-	 * @return array<string, mixed> Result.
+	 * @return array<string, mixed>|\WP_Error Result or WP_Error on failure.
 	 */
-	public static function handle_memory_delete( array $input ): array {
+	public static function handle_memory_delete( array $input ): array|\WP_Error {
 		$id = $input['id'] ?? 0;
 
 		if ( empty( $id ) ) {
-			return [ 'error' => 'Memory ID is required.' ];
+			return new WP_Error( 'missing_param', __( 'Memory ID is required.', 'gratis-ai-agent' ) );
 		}
 
 		$deleted = Memory::delete( (int) $id );
 
 		if ( ! $deleted ) {
-			return [ 'error' => 'Failed to delete memory or memory not found.' ];
+			return new WP_Error( 'delete_failed', __( 'Failed to delete memory or memory not found.', 'gratis-ai-agent' ) );
 		}
 
 		return [

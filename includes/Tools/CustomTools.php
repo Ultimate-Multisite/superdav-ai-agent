@@ -36,7 +36,7 @@ class CustomTools {
 	 * List all custom tools.
 	 *
 	 * @param bool $enabled_only Only return enabled tools.
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;

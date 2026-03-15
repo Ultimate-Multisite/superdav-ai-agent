@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -73,16 +75,16 @@ class StockImageAbilities {
 	 * Handle the import-stock-image ability call.
 	 *
 	 * @param array<string, mixed> $input Input with keyword, optional site_url, width, height.
-	 * @return array<string, mixed> Result with attachment_id, url, alt, title or error.
+	 * @return array<string, mixed>|\WP_Error Result with attachment_id, url, alt, title or WP_Error on failure.
 	 */
-	public static function handle_import( array $input ): array {
+	public static function handle_import( array $input ): array|\WP_Error {
 		$keyword  = sanitize_text_field( $input['keyword'] ?? '' );
 		$site_url = $input['site_url'] ?? '';
 		$width    = (int) ( $input['width'] ?? 1200 );
 		$height   = (int) ( $input['height'] ?? 800 );
 
 		if ( empty( $keyword ) ) {
-			return [ 'error' => 'keyword is required.' ];
+			return new WP_Error( 'missing_param', __( 'keyword is required.', 'gratis-ai-agent' ) );
 		}
 
 		// Clamp dimensions to reasonable range.
@@ -102,7 +104,14 @@ class StockImageAbilities {
 				switch_to_blog( $blog_id );
 				$switched = true;
 			} elseif ( ! $blog_id ) {
-				return [ 'error' => "Could not find a site matching URL: {$site_url}" ];
+				return new WP_Error(
+					'site_not_found',
+					sprintf(
+						/* translators: %s: site URL */
+						__( 'Could not find a site matching URL: %s', 'gratis-ai-agent' ),
+						$site_url
+					)
+				);
 			}
 		}
 
@@ -121,9 +130,9 @@ class StockImageAbilities {
 	 * @param string $keyword Search keyword.
 	 * @param int    $width   Image width.
 	 * @param int    $height  Image height.
-	 * @return array<string, mixed> Result array.
+	 * @return array<string, mixed>|\WP_Error Result array or WP_Error on failure.
 	 */
-	private static function download_and_import( string $keyword, int $width, int $height ): array {
+	private static function download_and_import( string $keyword, int $width, int $height ): array|\WP_Error {
 		// Build a deterministic-ish lock so the same keyword doesn't always
 		// return the exact same image, but retries in the same request do.
 		$lock = crc32( $keyword . gmdate( 'Y-m-d-H' ) );
@@ -152,7 +161,14 @@ class StockImageAbilities {
 			$tmp_file     = download_url( $fallback_url, 30 );
 
 			if ( is_wp_error( $tmp_file ) ) {
-				return [ 'error' => 'Failed to download image: ' . $tmp_file->get_error_message() ];
+				return new WP_Error(
+					'download_failed',
+					sprintf(
+						/* translators: %s: error message */
+						__( 'Failed to download image: %s', 'gratis-ai-agent' ),
+						$tmp_file->get_error_message()
+					)
+				);
 			}
 		}
 
@@ -174,7 +190,14 @@ class StockImageAbilities {
 			if ( file_exists( $tmp_file ) ) {
 				unlink( $tmp_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 			}
-			return [ 'error' => 'Failed to import image: ' . $attachment_id->get_error_message() ];
+			return new WP_Error(
+				'import_failed',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Failed to import image: %s', 'gratis-ai-agent' ),
+					$attachment_id->get_error_message()
+				)
+			);
 		}
 
 		// Set alt text from keyword.

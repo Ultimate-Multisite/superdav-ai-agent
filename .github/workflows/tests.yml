@@ -64,8 +64,9 @@ jobs:
           # WP-CLI is updated inside the container at build time. This is more
           # reliable than patching the base image because it runs inside the
           # container build and is not affected by Docker image caching.
-          WP_CLI_RUN='RUN curl -sSf -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \&\& chmod +x /usr/local/bin/wp'
-          sed -i "s|return \`FROM wordpress:cli\\\${ phpVersion }|return \`FROM wordpress:cli\${ phpVersion }\n\n# Update WP-CLI to fix PHP 8.2 deprecation (trim() null parameter).\n# The base image ships with WP-CLI < 2.8.0 which fails on PHP 8.2.\n${WP_CLI_RUN}|" "$INIT_CONFIG"
+          # The base image runs as www-data; switch to root to write to /usr/local/bin.
+          WP_CLI_BLOCK='USER root\nRUN curl -sSf -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \&\& chmod +x /usr/local/bin/wp\nUSER www-data'
+          sed -i "s|return \`FROM wordpress:cli\\\${ phpVersion }|return \`FROM wordpress:cli\${ phpVersion }\n\n# Update WP-CLI to fix PHP 8.2 deprecation (trim() null parameter).\n# The base image ships with WP-CLI < 2.8.0 which fails on PHP 8.2.\n${WP_CLI_BLOCK}|" "$INIT_CONFIG"
           grep -q 'Update WP-CLI' "$INIT_CONFIG" || { echo "Patch failed — line not found in $INIT_CONFIG"; exit 1; }
 
       - name: Start wp-env

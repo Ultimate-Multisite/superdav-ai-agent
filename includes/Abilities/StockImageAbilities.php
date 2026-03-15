@@ -66,6 +66,14 @@ class StockImageAbilities {
  */
 class ImportStockImageAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Import Stock Image', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',

@@ -125,6 +125,14 @@ class WordPressAbilities {
  */
 class GetPluginsAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'List Plugins', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List all installed WordPress plugins with their status (active/inactive).', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [];
 	}
@@ -189,6 +197,14 @@ class GetPluginsAbility extends AbstractAbility {
  */
 class GetThemesAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'List Themes', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List all installed WordPress themes with their status.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [];
 	}
@@ -248,6 +264,14 @@ class GetThemesAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class InstallPluginAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Install Plugin', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Install a plugin from the WordPress.org plugin directory by slug. Optionally activate after installation.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -401,6 +425,14 @@ class InstallPluginAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class RunPhpAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Run PHP', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

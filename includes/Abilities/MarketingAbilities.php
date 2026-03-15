@@ -83,6 +83,14 @@ class MarketingAbilities {
  */
 class FetchUrlAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Fetch URL', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -212,6 +220,14 @@ class FetchUrlAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class AnalyzeHeadersAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Analyze HTTP Headers', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

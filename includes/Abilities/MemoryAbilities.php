@@ -104,6 +104,14 @@ class MemoryAbilities {
  */
 class MemorySaveAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Save Memory', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -177,6 +185,14 @@ class MemorySaveAbility extends AbstractAbility {
  */
 class MemoryListAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'List Memories', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List all stored memories, grouped by category.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [];
 	}
@@ -232,6 +248,14 @@ class MemoryListAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class MemoryDeleteAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Delete Memory', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Delete a specific memory by its ID.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

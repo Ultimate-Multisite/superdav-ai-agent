@@ -66,6 +66,14 @@ class DatabaseAbilities {
  */
 class DatabaseQueryAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Database Query', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',

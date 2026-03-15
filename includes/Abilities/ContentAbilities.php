@@ -81,6 +81,14 @@ class ContentAbilities {
  */
 class ContentAnalyzeAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Analyze Content Strategy', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Analyze content strategy: publishing frequency, word counts, category distribution, missing featured images, and content gaps.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -272,6 +280,14 @@ class ContentAnalyzeAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class ContentPerformanceReportAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Content Performance Report', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Generate a content performance summary for a given time period: posts published, category breakdown, word counts, drafts pending.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

@@ -109,6 +109,14 @@ class AbilityDiscoveryAbilities {
  */
 class DiscoveryListAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'List Abilities', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List all available WordPress abilities (from plugins, themes, and core). Returns ability names and brief descriptions.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -206,6 +214,14 @@ class DiscoveryListAbility extends AbstractAbility {
  */
 class DiscoveryGetAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Get Ability', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Get full details of a specific WordPress ability including its parameters schema, permissions, and usage information. Call this before execute_ability to understand what arguments are needed.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -298,6 +314,14 @@ class DiscoveryGetAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class DiscoveryExecuteAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Execute Ability', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Execute a WordPress ability with the given arguments. Use get_ability first to understand required parameters.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

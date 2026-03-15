@@ -83,6 +83,14 @@ class SeoAbilities {
  */
 class SeoAuditUrlAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'SEO Audit URL', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -321,6 +329,14 @@ class SeoAuditUrlAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class SeoAnalyzeContentAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'SEO Analyze Content', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

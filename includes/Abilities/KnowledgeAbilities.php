@@ -64,6 +64,14 @@ class KnowledgeAbilities {
  */
 class KnowledgeSearchAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Search Knowledge Base', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',

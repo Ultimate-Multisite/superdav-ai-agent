@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Base implementation for a WordPress Ability.
  *
  * Subclasses must implement:
+ *  - label(): string
+ *  - description(): string
  *  - category(): string
  *  - input_schema(): array
  *  - output_schema(): array
@@ -40,6 +42,11 @@ abstract class GratisAiAgent_Abstract_Ability extends WP_Ability {
 	 * Builds the WP_Ability args array from the abstract method implementations
 	 * and delegates to the parent constructor.
 	 *
+	 * When registered via wp_register_ability() with 'ability_class', the registry
+	 * passes the registration 'label' and 'description' as $properties, which take
+	 * precedence over the abstract method return values. When instantiated directly
+	 * (e.g. in tests), the abstract methods provide the values.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string              $name       The namespaced ability name (e.g. 'gratis-ai-agent/memory-save').
@@ -49,8 +56,8 @@ abstract class GratisAiAgent_Abstract_Ability extends WP_Ability {
 		parent::__construct(
 			$name,
 			array(
-				'label'               => $properties['label'] ?? '',
-				'description'         => $properties['description'] ?? '',
+				'label'               => ! empty( $properties['label'] ) ? $properties['label'] : $this->label(),
+				'description'         => ! empty( $properties['description'] ) ? $properties['description'] : $this->description(),
 				'category'            => $this->category(),
 				'input_schema'        => $this->input_schema(),
 				'output_schema'       => $this->output_schema(),
@@ -60,6 +67,32 @@ abstract class GratisAiAgent_Abstract_Ability extends WP_Ability {
 			)
 		);
 	}
+
+	/**
+	 * Returns the human-readable label for this ability.
+	 *
+	 * Used when the ability is instantiated directly (e.g. in tests) without
+	 * a 'label' property override. When registered via wp_register_ability()
+	 * with 'ability_class', the registration label takes precedence.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Non-empty human-readable label.
+	 */
+	abstract protected function label(): string;
+
+	/**
+	 * Returns the description for this ability.
+	 *
+	 * Used when the ability is instantiated directly (e.g. in tests) without
+	 * a 'description' property override. When registered via wp_register_ability()
+	 * with 'ability_class', the registration description takes precedence.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Non-empty description string.
+	 */
+	abstract protected function description(): string;
 
 	/**
 	 * Returns the category slug for this ability.

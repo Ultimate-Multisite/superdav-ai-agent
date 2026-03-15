@@ -303,6 +303,14 @@ abstract class AbstractFileAbility extends AbstractAbility {
  */
 class FileReadAbility extends AbstractFileAbility {
 
+	protected function label(): string {
+		return __( 'Read File', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Read the contents of a file within the wp-content directory.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -379,6 +387,14 @@ class FileReadAbility extends AbstractFileAbility {
  * @since 1.0.0
  */
 class FileWriteAbility extends AbstractFileAbility {
+
+	protected function label(): string {
+		return __( 'Write File', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -479,6 +495,14 @@ class FileWriteAbility extends AbstractFileAbility {
  * @since 1.0.0
  */
 class FileEditAbility extends AbstractFileAbility {
+
+	protected function label(): string {
+		return __( 'Edit File', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -646,6 +670,14 @@ class FileEditAbility extends AbstractFileAbility {
  */
 class FileDeleteAbility extends AbstractFileAbility {
 
+	protected function label(): string {
+		return __( 'Delete File', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Delete a file within the wp-content directory.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -723,6 +755,14 @@ class FileDeleteAbility extends AbstractFileAbility {
  * @since 1.0.0
  */
 class FileListAbility extends AbstractFileAbility {
+
+	protected function label(): string {
+		return __( 'List Directory', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List files and directories within a directory in wp-content.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -808,6 +848,14 @@ class FileListAbility extends AbstractFileAbility {
  */
 class FileSearchAbility extends AbstractFileAbility {
 
+	protected function label(): string {
+		return __( 'Search Files', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Search for files matching a glob pattern within wp-content.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -878,6 +926,14 @@ class FileSearchAbility extends AbstractFileAbility {
  * @since 1.0.0
  */
 class ContentSearchAbility extends AbstractFileAbility {
+
+	protected function label(): string {
+		return __( 'Search Content', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Search for text content within files in wp-content.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

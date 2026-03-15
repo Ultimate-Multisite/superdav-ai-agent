@@ -406,6 +406,14 @@ abstract class AbstractBlockAbility extends AbstractAbility {
  */
 class MarkdownToBlocksAbility extends AbstractBlockAbility {
 
+	protected function label(): string {
+		return __( 'Markdown to Blocks', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -467,6 +475,14 @@ class MarkdownToBlocksAbility extends AbstractBlockAbility {
  * @since 1.0.0
  */
 class ListBlockTypesAbility extends AbstractBlockAbility {
+
+	protected function label(): string {
+		return __( 'List Block Types', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -594,6 +610,14 @@ class ListBlockTypesAbility extends AbstractBlockAbility {
  */
 class GetBlockTypeAbility extends AbstractBlockAbility {
 
+	protected function label(): string {
+		return __( 'Get Block Type', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -705,6 +729,14 @@ class GetBlockTypeAbility extends AbstractBlockAbility {
  * @since 1.0.0
  */
 class ListBlockPatternsAbility extends AbstractBlockAbility {
+
+	protected function label(): string {
+		return __( 'List Block Patterns', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [
@@ -830,6 +862,14 @@ class ListBlockPatternsAbility extends AbstractBlockAbility {
  */
 class ListBlockTemplatesAbility extends AbstractBlockAbility {
 
+	protected function label(): string {
+		return __( 'List Block Templates', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -908,6 +948,14 @@ class ListBlockTemplatesAbility extends AbstractBlockAbility {
  */
 class CreateBlockContentAbility extends AbstractBlockAbility {
 
+	protected function label(): string {
+		return __( 'Create Block Content', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -976,6 +1024,14 @@ class CreateBlockContentAbility extends AbstractBlockAbility {
  * @since 1.0.0
  */
 class ParseBlockContentAbility extends AbstractBlockAbility {
+
+	protected function label(): string {
+		return __( 'Parse Block Content', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [

@@ -84,6 +84,14 @@ class SkillAbilities {
  */
 class SkillLoadAbility extends AbstractAbility {
 
+	protected function label(): string {
+		return __( 'Load Skill', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' );
+	}
+
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
@@ -168,6 +176,14 @@ class SkillLoadAbility extends AbstractAbility {
  * @since 1.0.0
  */
 class SkillListAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'List Skills', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' );
+	}
 
 	protected function input_schema(): array {
 		return [];

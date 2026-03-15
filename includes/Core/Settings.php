@@ -162,6 +162,7 @@ class Settings {
 			'active_tool_profile'      => '',
 			'max_history_turns'        => 20,
 			'suggestion_count'         => 3,
+			'yolo_mode'                => false,
 		];
 	}
 

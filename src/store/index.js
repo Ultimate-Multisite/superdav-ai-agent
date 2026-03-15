@@ -70,6 +70,9 @@ const DEFAULT_STATE = {
 	// Pending confirmation (Batch 8)
 	pendingConfirmation: null,
 
+	// Action card — inline confirmation rendered in the message list (t074).
+	pendingActionCard: null,
+
 	// Debug mode
 	debugMode: localStorage.getItem( 'gratisAiAgentDebugMode' ) === 'true',
 	sendTimestamp: 0,
@@ -152,6 +155,9 @@ const actions = {
 	},
 	setPendingConfirmation( confirmation ) {
 		return { type: 'SET_PENDING_CONFIRMATION', confirmation };
+	},
+	setPendingActionCard( card ) {
+		return { type: 'SET_PENDING_ACTION_CARD', card };
 	},
 	truncateMessagesTo( index ) {
 		return { type: 'TRUNCATE_MESSAGES_TO', index };
@@ -769,6 +775,7 @@ const actions = {
 	confirmToolCall( jobId, alwaysAllow = false ) {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
+			dispatch.setPendingActionCard( null );
 			try {
 				await apiFetch( {
 					path: `/gratis-ai-agent/v1/job/${ jobId }/confirm`,
@@ -796,6 +803,7 @@ const actions = {
 	rejectToolCall( jobId ) {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
+			dispatch.setPendingActionCard( null );
 			try {
 				await apiFetch( {
 					path: `/gratis-ai-agent/v1/job/${ jobId }/reject`,
@@ -940,10 +948,12 @@ const actions = {
 					}
 
 					if ( result.status === 'awaiting_confirmation' ) {
-						dispatch.setPendingConfirmation( {
+						const cardData = {
 							jobId,
 							tools: result.pending_tools || [],
-						} );
+						};
+						dispatch.setPendingConfirmation( cardData );
+						dispatch.setPendingActionCard( cardData );
 						// Don't clear sending — we're still waiting.
 						return;
 					}
@@ -1331,6 +1341,16 @@ const selectors = {
 		return state.pendingConfirmation;
 	},
 
+	// Pending action card (inline confirmation in message list, t074)
+	getPendingActionCard( state ) {
+		return state.pendingActionCard;
+	},
+
+	// YOLO mode (skip all confirmations)
+	isYoloMode( state ) {
+		return state.settings?.yolo_mode ?? false;
+	},
+
 	// Debug mode
 	isDebugMode( state ) {
 		return state.debugMode;
@@ -1460,6 +1480,8 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, folders: action.folders, foldersLoaded: true };
 		case 'SET_PENDING_CONFIRMATION':
 			return { ...state, pendingConfirmation: action.confirmation };
+		case 'SET_PENDING_ACTION_CARD':
+			return { ...state, pendingActionCard: action.card };
 		case 'TRUNCATE_MESSAGES_TO':
 			return {
 				...state,

@@ -46,10 +46,25 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # The wordpress:cli-php8.2 base image may ship with WP-CLI < 2.8.0, which
-      # emits "Deprecated: trim(): Passing null" on PHP 8.2 and then exits with
-      # an empty "Error:" — causing wp-env start to fail. Patch the local image
-      # with the latest WP-CLI before wp-env builds its CLI container from it.
+      # wp-env's pullAll (docker compose pull) re-pulls the wordpress:cli-php8.2
+      # base image even after we patch it, because it runs on every fresh CI runner
+      # when the config hash has never been cached. Adding --ignore-buildable tells
+      # docker compose pull to skip base images for services that use build:, so
+      # our patched image is used when wp-env builds the CLI container.
+      - name: Patch wp-env to skip pulling CLI base image
+        run: |
+          WP_ENV_INDEX="node_modules/@wordpress/env/lib/runtime/docker/index.js"
+          sed -i \
+            's/await dockerCompose\.pullAll( dockerComposeConfig );/await dockerCompose.pullAll( { ...dockerComposeConfig, commandOptions: ["--ignore-buildable"] } );/' \
+            "$WP_ENV_INDEX"
+          grep -q 'ignore-buildable' "$WP_ENV_INDEX" || { echo "Patch failed — line not found"; exit 1; }
+
+      # The wordpress:cli-php8.2 base image ships with WP-CLI < 2.8.0, which
+      # emits "Deprecated: trim(): Passing null" on PHP 8.2 and exits with an
+      # empty "Error:" during wp core multisite-install. Patch the local image
+      # with the latest WP-CLI phar before wp-env builds its CLI container.
+      # The --ignore-buildable patch above ensures docker compose pull does not
+      # re-pull this image and overwrite our fix.
       - name: Update WP-CLI in base Docker image
         run: |
           docker pull wordpress:cli-php8.2

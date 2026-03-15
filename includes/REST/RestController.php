@@ -52,6 +52,9 @@ class RestController {
 	 * Register REST routes.
 	 */
 	public static function register_routes(): void {
+		// MCP (Model Context Protocol) endpoint.
+		McpController::register_routes();
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/run',

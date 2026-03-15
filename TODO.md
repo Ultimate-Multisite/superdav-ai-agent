@@ -110,7 +110,7 @@
 - [ ] t041 Update compat layer to match WordPress/ai Abstract_Ability pattern @dave #refactor ~4h logged:2026-03-14
 - [ ] t042 Port abilities from WordPress/ai experiments plugin @dave #feature ~6h logged:2026-03-14 blocked-by:t041
 - [ ] t043 Add Abilities Explorer admin page @dave #feature ~6h logged:2026-03-14
-- [x] t044 Support all three official AI providers @dave #feature ~3h logged:2026-03-14 pr:#93 ref=GH#53 pr:#271 completed:2026-03-15
+- [x] t044 Support all three official AI providers @dave #feature ~3h logged:2026-03-14 pr:#271 ref=GH#236 completed:2026-03-15
 
 ### White-Label & Resale (P2)
 

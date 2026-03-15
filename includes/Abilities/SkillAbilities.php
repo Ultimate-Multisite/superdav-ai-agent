@@ -4,55 +4,18 @@ declare(strict_types=1);
 /**
  * Register skill-related WordPress abilities (tools) for the AI agent.
  *
- * @package GratisAiAgent
+ * @package AiAgent
  */
 
-namespace GratisAiAgent\Abilities;
+namespace AiAgent\Abilities;
 
-use GratisAiAgent\Models\Skill;
-use WP_Error;
+use AiAgent\Models\Skill;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class SkillAbilities {
-
-	// ─── Static proxy methods (for backwards-compatible test access) ─────────
-
-	/**
-	 * Load a skill by slug.
-	 *
-	 * @param array<string,mixed> $input Input args.
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_skill_load( array $input = [] ) {
-		$ability = new SkillLoadAbility(
-			'gratis-ai-agent/skill-load',
-			[
-				'label'       => __( 'Load Skill', 'gratis-ai-agent' ),
-				'description' => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * List all available skills.
-	 *
-	 * @param array<string,mixed> $input Input args.
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_skill_list( array $input = [] ) {
-		$ability = new SkillListAbility(
-			'gratis-ai-agent/skill-list',
-			[
-				'label'       => __( 'List Skills', 'gratis-ai-agent' ),
-				'description' => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
 
 	/**
 	 * Register skill abilities on init.
@@ -70,93 +33,81 @@ class SkillAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/skill-load',
+			'ai-agent/skill-load',
 			[
-				'label'         => __( 'Load Skill', 'gratis-ai-agent' ),
-				'description'   => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
-				'ability_class' => SkillLoadAbility::class,
+				'label'               => __( 'Load Skill', 'gratis-ai-agent' ),
+				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'slug' => [
+							'type'        => 'string',
+							'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
+						],
+					],
+					'required'   => [ 'slug' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'name'    => [ 'type' => 'string' ],
+						'slug'    => [ 'type' => 'string' ],
+						'content' => [ 'type' => 'string' ],
+						'error'   => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_skill_load' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/skill-list',
+			'ai-agent/skill-list',
 			[
-				'label'         => __( 'List Skills', 'gratis-ai-agent' ),
-				'description'   => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
-				'ability_class' => SkillListAbility::class,
+				'label'               => __( 'List Skills', 'gratis-ai-agent' ),
+				'description'         => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => new \stdClass(),
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'skills'  => [ 'type' => 'array' ],
+						'message' => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_skill_list' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' ); },
 			]
 		);
 	}
-}
 
-/**
- * Load Skill ability.
- *
- * @since 1.0.0
- */
-class SkillLoadAbility extends AbstractAbility {
-
-	protected function label(): string {
-		return __( 'Load Skill', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'slug' => [
-					'type'        => 'string',
-					'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
-				],
-			],
-			'required'   => [ 'slug' ],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'name'    => [ 'type' => 'string' ],
-				'slug'    => [ 'type' => 'string' ],
-				'content' => [ 'type' => 'string' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle the skill-load ability call.
+	 *
+	 * @param array $input Input with slug.
+	 * @return array Result with skill content.
+	 */
+	public static function handle_skill_load( array $input ): array {
 		$slug = $input['slug'] ?? '';
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'missing_param', __( 'Skill slug is required.', 'gratis-ai-agent' ) );
+			return [ 'error' => 'Skill slug is required.' ];
 		}
 
 		$skill = Skill::get_by_slug( $slug );
 
 		if ( ! $skill ) {
-			return new WP_Error(
-				'not_found',
-				sprintf(
-					/* translators: %s: skill slug */
-					__( "Skill '%s' not found.", 'gratis-ai-agent' ),
-					$slug
-				)
-			);
+			return [ 'error' => "Skill '$slug' not found." ];
 		}
 
 		if ( ! (int) $skill->enabled ) {
-			return new WP_Error(
-				'skill_disabled',
-				sprintf(
-					/* translators: %s: skill slug */
-					__( "Skill '%s' is disabled.", 'gratis-ai-agent' ),
-					$slug
-				)
-			);
+			return [ 'error' => "Skill '$slug' is disabled." ];
 		}
 
 		return [
@@ -166,52 +117,12 @@ class SkillLoadAbility extends AbstractAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * List Skills ability.
- *
- * @since 1.0.0
- */
-class SkillListAbility extends AbstractAbility {
-
-	protected function label(): string {
-		return __( 'List Skills', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'skills'  => [ 'type' => 'array' ],
-				'message' => [ 'type' => 'string' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input = null ) {
+	/**
+	 * Handle the skill-list ability call.
+	 *
+	 * @return array Result with skills index.
+	 */
+	public static function handle_skill_list(): array {
 		$skills = Skill::get_all( true );
 
 		if ( empty( $skills ) ) {
@@ -228,20 +139,5 @@ class SkillListAbility extends AbstractAbility {
 		}
 
 		return [ 'skills' => $list ];
-	}
-
-	protected function permission_callback( $input = null ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
 	}
 }

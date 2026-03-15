@@ -25,6 +25,13 @@ export default function SessionContextMenu( { session, onClose } ) {
 	const [ isRenaming, setIsRenaming ] = useState( false );
 	const [ renameTitle, setRenameTitle ] = useState( session.title || '' );
 	const menuRef = useRef( null );
+	const renameInputRef = useRef( null );
+
+	useEffect( () => {
+		if ( isRenaming && renameInputRef.current ) {
+			renameInputRef.current.focus();
+		}
+	}, [ isRenaming ] );
 
 	const {
 		pinSession,
@@ -62,9 +69,10 @@ export default function SessionContextMenu( { session, onClose } ) {
 
 	if ( isRenaming ) {
 		return (
-			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
-				<div className="gratis-ai-agent-context-menu-rename">
+			<div className="ai-agent-context-menu" ref={ menuRef }>
+				<div className="ai-agent-context-menu-rename">
 					<input
+						ref={ renameInputRef }
 						type="text"
 						value={ renameTitle }
 						onChange={ ( e ) => setRenameTitle( e.target.value ) }
@@ -76,11 +84,9 @@ export default function SessionContextMenu( { session, onClose } ) {
 								onClose();
 							}
 						} }
-						// eslint-disable-next-line jsx-a11y/no-autofocus
-						autoFocus
 					/>
 					<button type="button" onClick={ handleRename }>
-						{ __( 'Save', 'gratis-ai-agent' ) }
+						{ __( 'Save', 'ai-agent' ) }
 					</button>
 				</div>
 			</div>
@@ -89,7 +95,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 
 	if ( showFolderPicker ) {
 		return (
-			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
+			<div className="ai-agent-context-menu" ref={ menuRef }>
 				<FolderPicker
 					currentFolder={ session.folder || '' }
 					onSelect={ ( folder ) => {
@@ -103,14 +109,14 @@ export default function SessionContextMenu( { session, onClose } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
+		<div className="ai-agent-context-menu" ref={ menuRef }>
 			{ ! isTrashed && (
 				<>
 					<button
 						type="button"
 						onClick={ () => setIsRenaming( true ) }
 					>
-						{ __( 'Rename', 'gratis-ai-agent' ) }
+						{ __( 'Rename', 'ai-agent' ) }
 					</button>
 					<button
 						type="button"
@@ -120,14 +126,14 @@ export default function SessionContextMenu( { session, onClose } ) {
 						} }
 					>
 						{ isPinned
-							? __( 'Unpin', 'gratis-ai-agent' )
-							: __( 'Pin', 'gratis-ai-agent' ) }
+							? __( 'Unpin', 'ai-agent' )
+							: __( 'Pin', 'ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						onClick={ () => setShowFolderPicker( true ) }
 					>
-						{ __( 'Move to Folder', 'gratis-ai-agent' ) }
+						{ __( 'Move to Folder', 'ai-agent' ) }
 					</button>
 					<button
 						type="button"
@@ -136,7 +142,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 							onClose();
 						} }
 					>
-						{ __( 'Export', 'gratis-ai-agent' ) }
+						{ __( 'Export', 'ai-agent' ) }
 					</button>
 					<hr />
 				</>
@@ -149,7 +155,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 						onClose();
 					} }
 				>
-					{ __( 'Archive', 'gratis-ai-agent' ) }
+					{ __( 'Archive', 'ai-agent' ) }
 				</button>
 			) }
 			{ ( isArchived || isTrashed ) && (
@@ -160,19 +166,19 @@ export default function SessionContextMenu( { session, onClose } ) {
 						onClose();
 					} }
 				>
-					{ __( 'Restore', 'gratis-ai-agent' ) }
+					{ __( 'Restore', 'ai-agent' ) }
 				</button>
 			) }
 			{ ! isTrashed && (
 				<button
 					type="button"
-					className="gratis-ai-agent-context-menu-danger"
+					className="ai-agent-context-menu-danger"
 					onClick={ () => {
 						trashSession( sessionId );
 						onClose();
 					} }
 				>
-					{ __( 'Move to Trash', 'gratis-ai-agent' ) }
+					{ __( 'Move to Trash', 'ai-agent' ) }
 				</button>
 			) }
 		</div>

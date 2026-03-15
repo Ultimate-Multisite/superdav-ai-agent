@@ -13,17 +13,17 @@ import { trash, pencil, plus } from '@wordpress/icons';
 import STORE_NAME from '../store';
 
 const CATEGORIES = [
-	{ label: __( 'General', 'gratis-ai-agent' ), value: 'general' },
-	{ label: __( 'Site Info', 'gratis-ai-agent' ), value: 'site_info' },
+	{ label: __( 'General', 'ai-agent' ), value: 'general' },
+	{ label: __( 'Site Info', 'ai-agent' ), value: 'site_info' },
 	{
-		label: __( 'User Preferences', 'gratis-ai-agent' ),
+		label: __( 'User Preferences', 'ai-agent' ),
 		value: 'user_preferences',
 	},
 	{
-		label: __( 'Technical Notes', 'gratis-ai-agent' ),
+		label: __( 'Technical Notes', 'ai-agent' ),
 		value: 'technical_notes',
 	},
-	{ label: __( 'Workflows', 'gratis-ai-agent' ), value: 'workflows' },
+	{ label: __( 'Workflows', 'ai-agent' ), value: 'workflows' },
 ];
 
 export default function MemoryManager() {
@@ -76,10 +76,7 @@ export default function MemoryManager() {
 	const handleDelete = useCallback(
 		async ( id ) => {
 			// eslint-disable-next-line no-alert
-			const confirmed = window.confirm(
-				__( 'Delete this memory?', 'gratis-ai-agent' )
-			);
-			if ( confirmed ) {
+			if ( window.confirm( __( 'Delete this memory?', 'ai-agent' ) ) ) {
 				await deleteMemory( id );
 			}
 		},
@@ -94,9 +91,9 @@ export default function MemoryManager() {
 	}, [] );
 
 	return (
-		<div className="gratis-ai-agent-memory-manager">
-			<div className="gratis-ai-agent-memory-header">
-				<h3>{ __( 'Stored Memories', 'gratis-ai-agent' ) }</h3>
+		<div className="ai-agent-memory-manager">
+			<div className="ai-agent-memory-header">
+				<h3>{ __( 'Stored Memories', 'ai-agent' ) }</h3>
 				{ ! showForm && (
 					<Button
 						variant="secondary"
@@ -104,27 +101,27 @@ export default function MemoryManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Memory', 'gratis-ai-agent' ) }
+						{ __( 'Add Memory', 'ai-agent' ) }
 					</Button>
 				) }
 			</div>
 
 			{ showForm && (
-				<div className="gratis-ai-agent-memory-form">
+				<div className="ai-agent-memory-form">
 					<SelectControl
-						label={ __( 'Category', 'gratis-ai-agent' ) }
+						label={ __( 'Category', 'ai-agent' ) }
 						value={ formCategory }
 						options={ CATEGORIES }
 						onChange={ setFormCategory }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Content', 'gratis-ai-agent' ) }
+						label={ __( 'Content', 'ai-agent' ) }
 						value={ formContent }
 						onChange={ setFormContent }
 						rows={ 3 }
 					/>
-					<div className="gratis-ai-agent-memory-form-actions">
+					<div className="ai-agent-memory-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -132,62 +129,57 @@ export default function MemoryManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'gratis-ai-agent' )
-								: __( 'Save', 'gratis-ai-agent' ) }
+								? __( 'Update', 'ai-agent' )
+								: __( 'Save', 'ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ handleCancel }
 							size="compact"
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'ai-agent' ) }
 						</Button>
 					</div>
 				</div>
 			) }
 
 			{ ! memoriesLoaded && (
-				<p className="description">
-					{ __( 'Loading…', 'gratis-ai-agent' ) }
-				</p>
+				<p className="description">{ __( 'Loading…', 'ai-agent' ) }</p>
 			) }
 
 			{ memoriesLoaded && memories.length === 0 && (
 				<p className="description">
 					{ __(
 						'No memories stored yet. The AI will save memories as you interact, or you can add them manually.',
-						'gratis-ai-agent'
+						'ai-agent'
 					) }
 				</p>
 			) }
 
 			{ memories.length > 0 && (
-				<table className="gratis-ai-agent-memory-table widefat striped">
+				<table className="ai-agent-memory-table widefat striped">
 					<thead>
 						<tr>
-							<th>{ __( 'Category', 'gratis-ai-agent' ) }</th>
-							<th>{ __( 'Content', 'gratis-ai-agent' ) }</th>
-							<th>{ __( 'Actions', 'gratis-ai-agent' ) }</th>
+							<th>{ __( 'Category', 'ai-agent' ) }</th>
+							<th>{ __( 'Content', 'ai-agent' ) }</th>
+							<th>{ __( 'Actions', 'ai-agent' ) }</th>
 						</tr>
 					</thead>
 					<tbody>
 						{ memories.map( ( memory ) => (
 							<tr key={ memory.id }>
 								<td>
-									<span className="gratis-ai-agent-memory-category">
+									<span className="ai-agent-memory-category">
 										{ memory.category.replace( /_/g, ' ' ) }
 									</span>
 								</td>
 								<td>{ memory.content }</td>
 								<td>
-									<div className="gratis-ai-agent-memory-actions">
+									<div className="ai-agent-memory-actions">
 										<Button
 											icon={ pencil }
 											size="small"
-											label={ __(
-												'Edit',
-												'gratis-ai-agent'
-											) }
+											label={ __( 'Edit', 'ai-agent' ) }
 											onClick={ () =>
 												handleEdit( memory )
 											}
@@ -195,10 +187,7 @@ export default function MemoryManager() {
 										<Button
 											icon={ trash }
 											size="small"
-											label={ __(
-												'Delete',
-												'gratis-ai-agent'
-											) }
+											label={ __( 'Delete', 'ai-agent' ) }
 											isDestructive
 											onClick={ () =>
 												handleDelete( memory.id )

@@ -53,68 +53,74 @@ export default function ExportDialog( { sessionId, onClose } ) {
 	}, [ sessionId, format, exportSession, onClose ] );
 
 	return (
-		<div className="gratis-ai-agent-shortcuts-overlay">
-			<div className="gratis-ai-agent-export-dialog" ref={ dialogRef }>
-				<div className="gratis-ai-agent-export-header">
-					<h3>{ __( 'Export Conversation', 'gratis-ai-agent' ) }</h3>
+		<div className="ai-agent-shortcuts-overlay">
+			<div className="ai-agent-export-dialog" ref={ dialogRef }>
+				<div className="ai-agent-export-header">
+					<h3>{ __( 'Export Conversation', 'ai-agent' ) }</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
 				</div>
-				<div className="gratis-ai-agent-export-body">
-					{ /* eslint-disable jsx-a11y/label-has-associated-control */ }
-					<label className="gratis-ai-agent-export-option">
+				<div className="ai-agent-export-body">
+					<label
+						className="ai-agent-export-option"
+						htmlFor="export-format-json"
+					>
 						<input
+							id="export-format-json"
 							type="radio"
 							name="format"
 							value="json"
 							checked={ format === 'json' }
 							onChange={ () => setFormat( 'json' ) }
 						/>
-						<div>
-							<strong>JSON</strong>
-							<p>
+						<span>
+							{ __( 'JSON', 'ai-agent' ) }
+							<span className="ai-agent-export-option-desc">
 								{ __(
 									'Full conversation data. Can be imported back.',
-									'gratis-ai-agent'
+									'ai-agent'
 								) }
-							</p>
-						</div>
+							</span>
+						</span>
 					</label>
-					<label className="gratis-ai-agent-export-option">
+					<label
+						className="ai-agent-export-option"
+						htmlFor="export-format-markdown"
+					>
 						<input
+							id="export-format-markdown"
 							type="radio"
 							name="format"
 							value="markdown"
 							checked={ format === 'markdown' }
 							onChange={ () => setFormat( 'markdown' ) }
 						/>
-						<div>
-							<strong>Markdown</strong>
-							<p>
+						<span>
+							{ __( 'Markdown', 'ai-agent' ) }
+							<span className="ai-agent-export-option-desc">
 								{ __(
 									'Human-readable format. Good for sharing.',
-									'gratis-ai-agent'
+									'ai-agent'
 								) }
-							</p>
-						</div>
+							</span>
+						</span>
 					</label>
-					{ /* eslint-enable jsx-a11y/label-has-associated-control */ }
 				</div>
-				<div className="gratis-ai-agent-export-footer">
+				<div className="ai-agent-export-footer">
 					<button
 						type="button"
 						className="button"
 						onClick={ onClose }
 					>
-						{ __( 'Cancel', 'gratis-ai-agent' ) }
+						{ __( 'Cancel', 'ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ handleExport }
 					>
-						{ __( 'Download', 'gratis-ai-agent' ) }
+						{ __( 'Download', 'ai-agent' ) }
 					</button>
 				</div>
 			</div>

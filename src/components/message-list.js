@@ -20,7 +20,7 @@ import DebugPanel from './debug-panel';
  * Suggestions are lines starting with `[suggestion]`.
  *
  * @param {string} text The full response text.
- * @return {{ cleanText: string, suggestions: string[] }} Parsed text and suggestion chips.
+ * @return {{ cleanText: string, suggestions: string[] }} Object with cleaned text and extracted suggestion chips.
  */
 function parseSuggestions( text ) {
 	const lines = text.split( '\n' );
@@ -100,17 +100,14 @@ function extractText( message ) {
 }
 
 export default function MessageList() {
-	const { messages, sending, debugMode, streamingText, isStreaming } =
-		useSelect( ( select ) => {
-			const store = select( STORE_NAME );
-			return {
-				messages: store.getCurrentSessionMessages(),
-				sending: store.isSending(),
-				debugMode: store.isDebugMode(),
-				streamingText: store.getStreamingText(),
-				isStreaming: store.isStreamingActive(),
-			};
-		}, [] );
+	const { messages, sending, debugMode } = useSelect( ( select ) => {
+		const store = select( STORE_NAME );
+		return {
+			messages: store.getCurrentSessionMessages(),
+			sending: store.isSending(),
+			debugMode: store.isDebugMode(),
+		};
+	}, [] );
 
 	const { sendMessage } = useDispatch( STORE_NAME );
 	const messagesRef = useRef( null );
@@ -126,7 +123,7 @@ export default function MessageList() {
 				window.scrollTo( 0, savedY );
 			}
 		}
-	}, [ messages, sending, streamingText ] );
+	}, [ messages, sending ] );
 
 	const visibleMessages = messages.filter( ( msg ) => {
 		// Skip function-role messages (tool responses).
@@ -149,7 +146,7 @@ export default function MessageList() {
 				<div className="ai-agent-empty-state">
 					{ __(
 						'Send a message to start a conversation.',
-						'gratis-ai-agent'
+						'ai-agent'
 					) }
 				</div>
 			) }
@@ -186,21 +183,10 @@ export default function MessageList() {
 					</div>
 				);
 			} ) }
-			{ isStreaming && streamingText && (
-				<div className="ai-agent-message-row ai-agent-message-row--streaming">
-					<div className="ai-agent-bubble ai-agent-assistant ai-agent-streaming">
-						<MarkdownMessage content={ streamingText } />
-						<span
-							className="ai-agent-streaming-cursor"
-							aria-hidden="true"
-						/>
-					</div>
-				</div>
-			) }
-			{ sending && ! isStreaming && (
+			{ sending && (
 				<div className="ai-agent-bubble ai-agent-assistant ai-agent-thinking">
 					<Spinner />
-					{ __( 'Thinking…', 'gratis-ai-agent' ) }
+					{ __( 'Thinking…', 'ai-agent' ) }
 				</div>
 			) }
 		</div>

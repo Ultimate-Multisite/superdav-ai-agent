@@ -38,7 +38,7 @@ export default function FloatingPanel() {
 	}
 
 	const classNames = [
-		'gratis-ai-agent-floating-panel',
+		'ai-agent-floating-panel',
 		isDragging ? 'is-dragging' : '',
 		isMinimized ? 'is-minimized' : '',
 	]
@@ -47,20 +47,20 @@ export default function FloatingPanel() {
 
 	return (
 		<div className={ classNames } style={ panelStyle }>
-			{ /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */ }
 			<div
-				className="gratis-ai-agent-floating-titlebar"
+				role="presentation"
+				className="ai-agent-floating-titlebar"
 				onMouseDown={ handleMouseDown }
 			>
-				<span className="gratis-ai-agent-floating-title">
-					{ __( 'Gratis AI Agent', 'gratis-ai-agent' ) }
+				<span className="ai-agent-floating-title">
+					{ __( 'AI Agent', 'ai-agent' ) }
 				</span>
-				<div className="gratis-ai-agent-floating-titlebar-actions">
+				<div className="ai-agent-floating-titlebar-actions">
 					{ currentSessionId && (
 						<Button
 							icon={ plus }
 							size="small"
-							label={ __( 'New Chat', 'gratis-ai-agent' ) }
+							label={ __( 'New Chat', 'ai-agent' ) }
 							onClick={ clearCurrentSession }
 						/>
 					) }
@@ -68,7 +68,7 @@ export default function FloatingPanel() {
 						<Button
 							icon={ reset }
 							size="small"
-							label={ __( 'Reset Position', 'gratis-ai-agent' ) }
+							label={ __( 'Reset Position', 'ai-agent' ) }
 							onClick={ resetPosition }
 						/>
 					) }
@@ -77,15 +77,15 @@ export default function FloatingPanel() {
 						size="small"
 						label={
 							isMinimized
-								? __( 'Expand', 'gratis-ai-agent' )
-								: __( 'Minimize', 'gratis-ai-agent' )
+								? __( 'Expand', 'ai-agent' )
+								: __( 'Minimize', 'ai-agent' )
 						}
 						onClick={ () => setFloatingMinimized( ! isMinimized ) }
 					/>
 					<Button
 						icon={ close }
 						size="small"
-						label={ __( 'Close', 'gratis-ai-agent' ) }
+						label={ __( 'Close', 'ai-agent' ) }
 						onClick={ () => setFloatingOpen( false ) }
 					/>
 				</div>

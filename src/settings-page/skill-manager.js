@@ -95,10 +95,7 @@ export default function SkillManager() {
 	const handleDelete = useCallback(
 		async ( id ) => {
 			// eslint-disable-next-line no-alert
-			const confirmed = window.confirm(
-				__( 'Delete this skill?', 'gratis-ai-agent' )
-			);
-			if ( confirmed ) {
+			if ( window.confirm( __( 'Delete this skill?', 'ai-agent' ) ) ) {
 				await deleteSkill( id );
 			}
 		},
@@ -107,14 +104,12 @@ export default function SkillManager() {
 
 	const handleReset = useCallback(
 		async ( id ) => {
-			// eslint-disable-next-line no-alert
-			const confirmed = window.confirm(
-				__(
-					'Reset this skill to its default content?',
-					'gratis-ai-agent'
+			if (
+				// eslint-disable-next-line no-alert
+				window.confirm(
+					__( 'Reset this skill to its default content?', 'ai-agent' )
 				)
-			);
-			if ( confirmed ) {
+			) {
 				await resetSkill( id );
 			}
 		},
@@ -129,14 +124,14 @@ export default function SkillManager() {
 	);
 
 	return (
-		<div className="gratis-ai-agent-skill-manager">
-			<div className="gratis-ai-agent-skill-header">
+		<div className="ai-agent-skill-manager">
+			<div className="ai-agent-skill-header">
 				<div>
-					<h3>{ __( 'Agent Skills', 'gratis-ai-agent' ) }</h3>
+					<h3>{ __( 'Agent Skills', 'ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Skills are instruction guides loaded on-demand when the AI encounters a relevant task.',
-							'gratis-ai-agent'
+							'ai-agent'
 						) }
 					</p>
 				</div>
@@ -147,52 +142,52 @@ export default function SkillManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Skill', 'gratis-ai-agent' ) }
+						{ __( 'Add Skill', 'ai-agent' ) }
 					</Button>
 				) }
 			</div>
 
 			{ showForm && (
-				<div className="gratis-ai-agent-skill-form">
+				<div className="ai-agent-skill-form">
 					{ ! editId && (
 						<TextControl
-							label={ __( 'Slug', 'gratis-ai-agent' ) }
+							label={ __( 'Slug', 'ai-agent' ) }
 							value={ formSlug }
 							onChange={ setFormSlug }
 							help={ __(
 								'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-								'gratis-ai-agent'
+								'ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 					) }
 					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
+						label={ __( 'Name', 'ai-agent' ) }
 						value={ formName }
 						onChange={ setFormName }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'ai-agent' ) }
 						value={ formDescription }
 						onChange={ setFormDescription }
 						help={ __(
 							'One-line summary shown in the skill index.',
-							'gratis-ai-agent'
+							'ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Instructions', 'gratis-ai-agent' ) }
+						label={ __( 'Instructions', 'ai-agent' ) }
 						value={ formContent }
 						onChange={ setFormContent }
 						rows={ 12 }
 						help={ __(
 							'Full markdown instructions loaded when the AI requests this skill.',
-							'gratis-ai-agent'
+							'ai-agent'
 						) }
 					/>
-					<div className="gratis-ai-agent-skill-form-actions">
+					<div className="ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -204,80 +199,72 @@ export default function SkillManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'gratis-ai-agent' )
-								: __( 'Create', 'gratis-ai-agent' ) }
+								? __( 'Update', 'ai-agent' )
+								: __( 'Create', 'ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'ai-agent' ) }
 						</Button>
 					</div>
 				</div>
 			) }
 
 			{ ! skillsLoaded && (
-				<p className="description">
-					{ __( 'Loading…', 'gratis-ai-agent' ) }
-				</p>
+				<p className="description">{ __( 'Loading…', 'ai-agent' ) }</p>
 			) }
 
 			{ skillsLoaded && skills.length === 0 && (
 				<p className="description">
 					{ __(
 						'No skills found. Deactivate and reactivate the plugin to seed built-in skills.',
-						'gratis-ai-agent'
+						'ai-agent'
 					) }
 				</p>
 			) }
 
 			{ skills.length > 0 && (
-				<div className="gratis-ai-agent-skill-cards">
+				<div className="ai-agent-skill-cards">
 					{ skills.map( ( skill ) => (
 						<div
 							key={ skill.id }
-							className={ `gratis-ai-agent-skill-card ${
+							className={ `ai-agent-skill-card ${
 								! skill.enabled
-									? 'gratis-ai-agent-skill-card--disabled'
+									? 'ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="gratis-ai-agent-skill-card-header">
+							<div className="ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ skill.enabled }
 									onChange={ () => handleToggle( skill ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="gratis-ai-agent-skill-card-title">
+								<div className="ai-agent-skill-card-title">
 									<strong>{ skill.name }</strong>
 									{ skill.is_builtin && (
-										<span className="gratis-ai-agent-skill-badge">
-											{ __(
-												'Built-in',
-												'gratis-ai-agent'
-											) }
+										<span className="ai-agent-skill-badge">
+											{ __( 'Built-in', 'ai-agent' ) }
 										</span>
 									) }
 								</div>
 							</div>
-							<p className="gratis-ai-agent-skill-card-description">
+							<p className="ai-agent-skill-card-description">
 								{ skill.description }
 							</p>
-							<div className="gratis-ai-agent-skill-card-footer">
-								<span className="gratis-ai-agent-skill-word-count">
+							<div className="ai-agent-skill-card-footer">
+								<span className="ai-agent-skill-word-count">
 									{ skill.word_count }{ ' ' }
-									{ __( 'words', 'gratis-ai-agent' ) }
+									{ __( 'words', 'ai-agent' ) }
 								</span>
-								<div className="gratis-ai-agent-skill-card-actions">
+								<div className="ai-agent-skill-card-actions">
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __(
-											'Edit',
-											'gratis-ai-agent'
-										) }
+										label={ __( 'Edit', 'ai-agent' ) }
 										onClick={ () => handleEdit( skill ) }
 									/>
 									{ skill.is_builtin ? (
@@ -286,7 +273,7 @@ export default function SkillManager() {
 											size="small"
 											label={ __(
 												'Reset to Default',
-												'gratis-ai-agent'
+												'ai-agent'
 											) }
 											onClick={ () =>
 												handleReset( skill.id )
@@ -296,10 +283,7 @@ export default function SkillManager() {
 										<Button
 											icon={ trash }
 											size="small"
-											label={ __(
-												'Delete',
-												'gratis-ai-agent'
-											) }
+											label={ __( 'Delete', 'ai-agent' ) }
 											isDestructive
 											onClick={ () =>
 												handleDelete( skill.id )

@@ -77,7 +77,7 @@
 ### Testing Infrastructure (P1)
 
 - [x] t012 Set up wp-env based test runner for local and CI @dave #testing ~4h logged:2026-03-14 pr:#88 completed:2026-03-15
-- [ ] t013 Add integration tests for all Abilities classes @dave #testing ~8h logged:2026-03-14 blocked-by:t012
+- [x] t013 Add integration tests for all Abilities classes @dave #testing ~8h logged:2026-03-14 blocked-by:t012 pr:#276 completed:2026-03-15
 - [x] t014 Add integration tests for AgentLoop (mock AI responses) @dave #testing ~6h logged:2026-03-14 blocked-by:t012 pr:#274 completed:2026-03-15
 - [ ] t015 Add integration tests for RestController endpoints @dave #testing ~4h logged:2026-03-14 blocked-by:t012
 - [x] t016 Add integration tests for Database schema and migrations @dave #testing ~3h logged:2026-03-14 blocked-by:t012 pr:#273 completed:2026-03-15

@@ -66,6 +66,7 @@ use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\AdminPage;
 use GratisAiAgent\Admin\ChangesAdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
+use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
@@ -209,6 +210,9 @@ FreshInstallDetector::register();
 
 // Floating widget on all admin pages.
 FloatingWidget::register();
+
+// Screen-meta Help tab chat panel.
+ScreenMetaPanel::register();
 
 // WP-CLI command.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

@@ -24,5 +24,10 @@ module.exports = {
 			'src/settings-page',
 			'index.js'
 		),
+		'screen-meta': path.resolve(
+			process.cwd(),
+			'src/screen-meta',
+			'index.js'
+		),
 	},
 };

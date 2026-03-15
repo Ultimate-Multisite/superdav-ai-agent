@@ -1,0 +1,30 @@
+/* Screen-meta Help tab chat panel */
+
+.ai-agent-screen-meta-wrap {
+	display: flex;
+	flex-direction: column;
+	height: 400px;
+	max-height: 60vh;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+.ai-agent-screen-meta-intro {
+	margin: 0 0 8px;
+	font-size: 13px;
+	color: #646970;
+	flex-shrink: 0;
+}
+
+/* Override chat panel sizing for the compact Help tab context */
+.ai-agent-screen-meta-wrap .ai-agent-chat-panel {
+	flex: 1;
+	min-height: 0;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.ai-agent-screen-meta-wrap .ai-agent-chat-panel.is-compact {
+	height: 100%;
+}

@@ -48,6 +48,7 @@ use AiAgent\Abilities\StockImageAbilities;
 use AiAgent\Abilities\WordPressAbilities;
 use AiAgent\Admin\AdminPage;
 use AiAgent\Admin\FloatingWidget;
+use AiAgent\Admin\ScreenMetaPanel;
 use AiAgent\Automations\AutomationRunner;
 use AiAgent\Automations\EventTriggerHandler;
 use AiAgent\CLI\CliCommand;
@@ -135,6 +136,9 @@ add_action( 'ai_agent_run_event_automation', [ EventTriggerHandler::class, 'exec
 
 // Floating widget on all admin pages.
 FloatingWidget::register();
+
+// Screen-meta Help tab chat panel.
+ScreenMetaPanel::register();
 
 // WP-CLI command.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

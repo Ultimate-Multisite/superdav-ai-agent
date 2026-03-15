@@ -82,7 +82,7 @@
 - [ ] t015 Add integration tests for RestController endpoints @dave #testing ~4h logged:2026-03-14 blocked-by:t012
 - [x] t016 Add integration tests for Database schema and migrations @dave #testing ~3h logged:2026-03-14 blocked-by:t012 pr:#273 completed:2026-03-15
 - [ ] t017 Add integration tests for Automations system @dave #testing ~4h logged:2026-03-14 blocked-by:t012
-- [ ] t018 Add JS unit tests with @wordpress/scripts test-unit-js @dave #testing ~6h logged:2026-03-14
+- [x] t018 Add JS unit tests with @wordpress/scripts test-unit-js @dave #testing ~6h logged:2026-03-14 pr:#272 completed:2026-03-15
 - [ ] t019 Add code coverage reporting to CI @dave #ci ~2h logged:2026-03-14 blocked-by:t012
 - [ ] t020 Add E2E tests with wp-env + Playwright for chat UI @dave #testing ~8h logged:2026-03-14 blocked-by:t012
 

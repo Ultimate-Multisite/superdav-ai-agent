@@ -17,6 +17,7 @@
 			<directory>./build</directory>
 			<directory>./node_modules</directory>
 			<directory>./src</directory>
+			<directory>./includes/CLI</directory>
 		</exclude>
 		<report>
 			<html outputDirectory="coverage-html"/>

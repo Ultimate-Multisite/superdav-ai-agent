@@ -376,7 +376,7 @@ class AgentLoop {
 	 * Shared by send_prompt_direct(), send_prompt_openai(), and
 	 * send_prompt_google() (which uses Google's OpenAI-compatible endpoint).
 	 *
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_messages(): array {
 		$messages = [];
@@ -485,7 +485,7 @@ class AgentLoop {
 	 * Shared by send_prompt_direct(), send_prompt_openai(), and
 	 * send_prompt_google().
 	 *
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_tools(): array {
 		$tools     = [];

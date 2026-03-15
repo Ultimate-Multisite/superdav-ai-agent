@@ -208,7 +208,7 @@ class Settings {
 	 * Returns an array of provider metadata arrays, each with:
 	 *   - id, name, configured (bool), models (array), has_key (bool)
 	 *
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_configured_direct_providers(): array {
 		$result = [];

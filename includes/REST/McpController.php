@@ -142,7 +142,7 @@ class McpController {
 	 * Executes a named ability with the provided arguments and returns
 	 * the result in MCP tool-result format.
 	 *
-	 * @param array $params MCP params: { name: string, arguments?: object }.
+	 * @param array<string, mixed> $params MCP params: { name: string, arguments?: object }.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private static function handle_call_tool( array $params ) {
@@ -227,7 +227,7 @@ class McpController {
 	/**
 	 * Build the full list of MCP tool definitions from registered abilities.
 	 *
-	 * @return array<int, array{name: string, description: string, inputSchema: array}>
+	 * @return array<int, array{name: string, description: string, inputSchema: array<string, mixed>}>
 	 */
 	private static function get_mcp_tools(): array {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {

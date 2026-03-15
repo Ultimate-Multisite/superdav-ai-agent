@@ -20,6 +20,9 @@
 				"WP_ENVIRONMENT_TYPE": "development",
 				"MULTISITE": true,
 				"SUBDOMAIN_INSTALL": false
+			},
+			"mappings": {
+				"wp-content/mu-plugins": "./tests/mu-plugins"
 			}
 		}
 	}

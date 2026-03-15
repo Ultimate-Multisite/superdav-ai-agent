@@ -42,9 +42,6 @@
         <exclude name="WordPress.DB.DirectDatabaseQuery.DirectQuery"/>
         <exclude name="WordPress.DB.DirectDatabaseQuery.NoCaching"/>
 
-        <!-- Allow file includes with variables (autoloader) -->
-        <exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
-
         <!-- Allow short ternary (null coalescing style) - modern PHP -->
         <exclude name="Universal.Operators.DisallowShortTernary.Found"/>
 
@@ -59,9 +56,6 @@
 
         <!-- Allow unused function parameters (interface compliance) -->
         <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.Found"/>
-
-        <!-- Allow exception messages without escaping (internal use) -->
-        <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
 
         <!-- Relax commenting requirements for now -->
         <exclude name="Squiz.Commenting.FileComment.Missing"/>
@@ -88,6 +82,19 @@
         <!-- Allow property names from external APIs -->
         <exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
     </rule>
+
+    <!-- Enforce output escaping: all dynamic output must pass through an escaping function.
+         Use esc_html(), esc_attr(), esc_url(), wp_kses_post(), etc. as appropriate.
+         Inline phpcs:ignore is permitted only for false positives (e.g. ErrorException
+         constructor arguments, which are not output). -->
+    <rule ref="WordPress.Security.EscapeOutput"/>
+
+    <!-- Enforce nonce verification: any handler that reads $_POST, $_GET, $_REQUEST, or
+         $_COOKIE must verify a nonce via wp_verify_nonce(), check_admin_referer(), or
+         check_ajax_referer() before accessing those values.
+         REST API endpoints are exempt — WP_REST_Request enforces authentication and
+         permission callbacks at the framework level. -->
+    <rule ref="WordPress.Security.NonceVerification"/>
 
     <!-- Verify text domain usage -->
     <rule ref="WordPress.WP.I18n">

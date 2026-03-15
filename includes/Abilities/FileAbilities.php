@@ -399,6 +399,7 @@ class FileAbilities {
 
 		set_error_handler(
 			function ( $severity, $message, $file, $line ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ErrorException constructor arguments are not output; PHPCS false positive.
 				throw new \ErrorException( $message, 0, $severity, $file, $line );
 			}
 		);

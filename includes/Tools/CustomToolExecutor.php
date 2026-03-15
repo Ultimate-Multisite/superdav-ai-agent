@@ -69,9 +69,9 @@ class CustomToolExecutor {
 	 *
 	 * @param array $tool  The tool definition.
 	 * @param array $input Input parameters from the AI.
-	 * @return array Result array.
+	 * @return array|\WP_Error Result array or WP_Error on failure.
 	 */
-	public static function execute( array $tool, array $input ): array {
+	public static function execute( array $tool, array $input ): array|\WP_Error {
 		switch ( $tool['type'] ) {
 			case CustomTools::TYPE_HTTP:
 				return self::execute_http( $tool, $input );
@@ -83,7 +83,14 @@ class CustomToolExecutor {
 				return self::execute_cli( $tool, $input );
 
 			default:
-				return [ 'error' => sprintf( 'Unknown tool type: %s', $tool['type'] ) ];
+				return new WP_Error(
+					'unknown_tool_type',
+					sprintf(
+						/* translators: %s: tool type */
+						__( 'Unknown tool type: %s', 'gratis-ai-agent' ),
+						$tool['type']
+					)
+				);
 		}
 	}
 
@@ -92,9 +99,9 @@ class CustomToolExecutor {
 	 *
 	 * @param array $tool  Tool definition.
 	 * @param array $input Input parameters.
-	 * @return array
+	 * @return array|\WP_Error
 	 */
-	private static function execute_http( array $tool, array $input ): array {
+	private static function execute_http( array $tool, array $input ): array|\WP_Error {
 		$config = $tool['config'];
 		$url    = $config['url'] ?? '';
 		$method = strtoupper( $config['method'] ?? 'GET' );
@@ -141,10 +148,7 @@ class CustomToolExecutor {
 		$response = wp_remote_request( $url, $args );
 
 		if ( is_wp_error( $response ) ) {
-			return [
-				'success' => false,
-				'error'   => $response->get_error_message(),
-			];
+			return new WP_Error( 'http_request_failed', $response->get_error_message() );
 		}
 
 		$code          = wp_remote_retrieve_response_code( $response );
@@ -165,19 +169,19 @@ class CustomToolExecutor {
 	 *
 	 * @param array $tool  Tool definition.
 	 * @param array $input Input parameters.
-	 * @return array
+	 * @return array|\WP_Error
 	 */
-	private static function execute_action( array $tool, array $input ): array {
+	private static function execute_action( array $tool, array $input ): array|\WP_Error {
 		$config    = $tool['config'];
 		$hook_name = $config['hook_name'] ?? '';
 
 		if ( empty( $hook_name ) ) {
-			return [ 'error' => 'No hook_name configured.' ];
+			return new WP_Error( 'missing_config', __( 'No hook_name configured.', 'gratis-ai-agent' ) );
 		}
 
 		// Sanitize hook name — only allow valid hook characters.
 		if ( ! preg_match( '/^[a-zA-Z0-9_]+$/', $hook_name ) ) {
-			return [ 'error' => 'Invalid hook name.' ];
+			return new WP_Error( 'invalid_hook_name', __( 'Invalid hook name.', 'gratis-ai-agent' ) );
 		}
 
 		// Build arguments from config defaults + input.
@@ -211,10 +215,7 @@ class CustomToolExecutor {
 		} catch ( \Throwable $e ) {
 			ob_end_clean();
 
-			return [
-				'success' => false,
-				'error'   => $e->getMessage(),
-			];
+			return new WP_Error( 'action_exception', $e->getMessage() );
 		}
 	}
 
@@ -223,14 +224,14 @@ class CustomToolExecutor {
 	 *
 	 * @param array $tool  Tool definition.
 	 * @param array $input Input parameters.
-	 * @return array
+	 * @return array|\WP_Error
 	 */
-	private static function execute_cli( array $tool, array $input ): array {
+	private static function execute_cli( array $tool, array $input ): array|\WP_Error {
 		$config  = $tool['config'];
 		$command = $config['command'] ?? '';
 
 		if ( empty( $command ) ) {
-			return [ 'error' => 'No command configured.' ];
+			return new WP_Error( 'missing_config', __( 'No command configured.', 'gratis-ai-agent' ) );
 		}
 
 		// Replace {{placeholders}} in the command.

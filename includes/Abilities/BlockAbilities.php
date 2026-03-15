@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Abilities;
 
 use GratisAiAgent\Models\MarkdownToBlocks;
+use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -235,13 +236,13 @@ class BlockAbilities {
 	 * Handle markdown-to-blocks conversion.
 	 *
 	 * @param array $input Input with 'markdown' key.
-	 * @return array Result with block_content and block_count.
+	 * @return array|\WP_Error Result with block_content and block_count or WP_Error on failure.
 	 */
-	public static function handle_markdown_to_blocks( array $input ): array {
+	public static function handle_markdown_to_blocks( array $input ): array|\WP_Error {
 		$markdown = $input['markdown'] ?? '';
 
 		if ( empty( $markdown ) ) {
-			return [ 'error' => 'markdown is required.' ];
+			return new WP_Error( 'missing_param', __( 'markdown is required.', 'gratis-ai-agent' ) );
 		}
 
 		$blocks        = MarkdownToBlocks::parse( $markdown );
@@ -330,20 +331,27 @@ class BlockAbilities {
 	 * Handle getting a single block type's full metadata.
 	 *
 	 * @param array $input Input with 'name' key.
-	 * @return array Full block type metadata.
+	 * @return array|\WP_Error Full block type metadata or WP_Error on failure.
 	 */
-	public static function handle_get_block_type( array $input ): array {
+	public static function handle_get_block_type( array $input ): array|\WP_Error {
 		$name = $input['name'] ?? '';
 
 		if ( empty( $name ) ) {
-			return [ 'error' => 'name is required.' ];
+			return new WP_Error( 'missing_param', __( 'name is required.', 'gratis-ai-agent' ) );
 		}
 
 		$registry = \WP_Block_Type_Registry::get_instance();
 		$block    = $registry->get_registered( $name );
 
 		if ( ! $block ) {
-			return [ 'error' => "Block type '{$name}' not found." ];
+			return new WP_Error(
+				'not_found',
+				sprintf(
+					/* translators: %s: block type name */
+					__( "Block type '%s' not found.", 'gratis-ai-agent' ),
+					$name
+				)
+			);
 		}
 
 		$result = [
@@ -502,13 +510,13 @@ class BlockAbilities {
 	 * Handle creating block content from a structured array.
 	 *
 	 * @param array $input Input with 'blocks' array.
-	 * @return array Result with block_content and block_count.
+	 * @return array|\WP_Error Result with block_content and block_count or WP_Error on failure.
 	 */
-	public static function handle_create_block_content( array $input ): array {
+	public static function handle_create_block_content( array $input ): array|\WP_Error {
 		$blocks = $input['blocks'] ?? [];
 
 		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
-			return [ 'error' => 'blocks array is required.' ];
+			return new WP_Error( 'missing_param', __( 'blocks array is required.', 'gratis-ai-agent' ) );
 		}
 
 		$output      = '';
@@ -531,15 +539,15 @@ class BlockAbilities {
 	 * Handle parsing existing block content.
 	 *
 	 * @param array $input Input with post_id or content, optional site_url.
-	 * @return array Result with blocks and block_count.
+	 * @return array|\WP_Error Result with blocks and block_count or WP_Error on failure.
 	 */
-	public static function handle_parse_block_content( array $input ): array {
+	public static function handle_parse_block_content( array $input ): array|\WP_Error {
 		$post_id  = (int) ( $input['post_id'] ?? 0 );
 		$content  = $input['content'] ?? '';
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id && empty( $content ) ) {
-			return [ 'error' => 'Either post_id or content is required.' ];
+			return new WP_Error( 'missing_param', __( 'Either post_id or content is required.', 'gratis-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -554,7 +562,14 @@ class BlockAbilities {
 				switch_to_blog( $blog_id );
 				$switched = true;
 			} elseif ( ! $blog_id ) {
-				return [ 'error' => "Could not find a site matching URL: {$site_url}" ];
+				return new WP_Error(
+					'site_not_found',
+					sprintf(
+						/* translators: %s: site URL */
+						__( 'Could not find a site matching URL: %s', 'gratis-ai-agent' ),
+						$site_url
+					)
+				);
 			}
 		}
 
@@ -564,7 +579,14 @@ class BlockAbilities {
 				if ( $switched ) {
 					restore_current_blog();
 				}
-				return [ 'error' => "Post {$post_id} not found." ];
+				return new WP_Error(
+					'not_found',
+					sprintf(
+						/* translators: %d: post ID */
+						__( 'Post %d not found.', 'gratis-ai-agent' ),
+						$post_id
+					)
+				);
 			}
 			$content = $post->post_content;
 		}

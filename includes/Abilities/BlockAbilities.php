@@ -51,6 +51,9 @@ class BlockAbilities {
 					],
 					'required'   => [ 'markdown' ],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_markdown_to_blocks' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -86,6 +89,9 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_types' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -108,6 +114,9 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [ 'name' ],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_get_block_type' ],
 				'permission_callback' => function () {
@@ -144,6 +153,9 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_patterns' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -167,6 +179,9 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_templates' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -189,6 +204,9 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [ 'blocks' ],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_create_block_content' ],
 				'permission_callback' => function () {
@@ -220,6 +238,9 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_parse_block_content' ],
 				'permission_callback' => function () {

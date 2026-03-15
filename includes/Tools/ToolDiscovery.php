@@ -94,6 +94,9 @@ class ToolDiscovery {
 						],
 					],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_tools' ],
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' );
@@ -125,6 +128,9 @@ class ToolDiscovery {
 						],
 					],
 					'required'   => [ 'tool_name' ],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_execute_tool' ],
 				'permission_callback' => function () {

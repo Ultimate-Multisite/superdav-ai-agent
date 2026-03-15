@@ -48,6 +48,9 @@ class SkillAbilities {
 					],
 					'required'   => [ 'slug' ],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_skill_load' ],
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' ); },
@@ -63,6 +66,9 @@ class SkillAbilities {
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_skill_list' ],
 				'permission_callback' => function () {

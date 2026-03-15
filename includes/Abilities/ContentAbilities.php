@@ -54,6 +54,9 @@ class ContentAbilities {
 					],
 					'required'   => [],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_content_analyze' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -80,6 +83,9 @@ class ContentAbilities {
 						],
 					],
 					'required'   => [],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_performance_report' ],
 				'permission_callback' => function () {

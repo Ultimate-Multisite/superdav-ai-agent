@@ -53,6 +53,9 @@ class MemoryAbilities {
 					],
 					'required'   => [ 'category', 'content' ],
 				],
+				'meta'                => [
+					'show_in_rest' => true,
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_memory_save' ],
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' ); },
@@ -68,6 +71,9 @@ class MemoryAbilities {
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_memory_list' ],
 				'permission_callback' => function () {
@@ -90,6 +96,9 @@ class MemoryAbilities {
 						],
 					],
 					'required'   => [ 'id' ],
+				],
+				'meta'                => [
+					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_memory_delete' ],
 				'permission_callback' => function () {

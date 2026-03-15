@@ -53,6 +53,9 @@ class CustomToolExecutor {
 						'type'       => 'object',
 						'properties' => new \stdClass(),
 					],
+					'meta'                => [
+						'show_in_rest' => true,
+					],
 					'execute_callback'    => function ( array $input ) use ( $tool ) {
 						return self::execute( $tool, $input );
 					},

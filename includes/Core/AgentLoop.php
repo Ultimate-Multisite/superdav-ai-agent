@@ -461,7 +461,7 @@ class AgentLoop {
 		$tools     = [];
 		$abilities = $this->resolve_abilities();
 
-		/** @param int $max_tools Maximum number of tools to include. */
+		/** @var int $max_tools Maximum number of tools to include. */
 		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
 		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
 			$abilities = array_slice( $abilities, 0, $max_tools );

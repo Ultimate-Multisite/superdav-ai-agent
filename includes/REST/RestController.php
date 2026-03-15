@@ -1809,6 +1809,8 @@ class RestController {
 
 		// WP SDK providers (AI Experiments plugin, OpenAI-compatible connector, etc.).
 		if ( class_exists( '\\WordPress\\AiClient\\AiClient' ) ) {
+			$registry     = null;
+			$provider_ids = [];
 			try {
 				$registry     = \WordPress\AiClient\AiClient::defaultRegistry();
 				$provider_ids = $registry->getRegisteredProviderIds();
@@ -1822,6 +1824,10 @@ class RestController {
 			foreach ( $provider_ids as $provider_id ) {
 				// Skip if already added as a direct provider.
 				if ( in_array( $provider_id, $added_ids, true ) ) {
+					continue;
+				}
+
+				if ( null === $registry ) {
 					continue;
 				}
 

@@ -4,6 +4,19 @@
 import { createReduxStore, register } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 
+/**
+ * @typedef {import('../types').StoreState} StoreState
+ * @typedef {import('../types').Provider} Provider
+ * @typedef {import('../types').Session} Session
+ * @typedef {import('../types').Message} Message
+ * @typedef {import('../types').ToolCall} ToolCall
+ * @typedef {import('../types').TokenUsage} TokenUsage
+ * @typedef {import('../types').PendingConfirmation} PendingConfirmation
+ * @typedef {import('../types').Settings} Settings
+ * @typedef {import('../types').Memory} Memory
+ * @typedef {import('../types').Skill} Skill
+ */
+
 const STORE_NAME = 'gratis-ai-agent';
 
 // Migrate localStorage keys from old "aiAgent" prefix to "gratisAiAgent".
@@ -83,12 +96,34 @@ const DEFAULT_STATE = {
 };
 
 const actions = {
+	/**
+	 * Replace the providers list.
+	 *
+	 * @param {Provider[]} providers - Available AI providers.
+	 * @return {Object} Redux action.
+	 */
 	setProviders( providers ) {
 		return { type: 'SET_PROVIDERS', providers };
 	},
+
+	/**
+	 * Replace the sessions list.
+	 *
+	 * @param {Session[]} sessions - Session summaries.
+	 * @return {Object} Redux action.
+	 */
 	setSessions( sessions ) {
 		return { type: 'SET_SESSIONS', sessions };
 	},
+
+	/**
+	 * Set the active session and its messages/tool-calls.
+	 *
+	 * @param {number}     sessionId - Session identifier.
+	 * @param {Message[]}  messages  - Messages for the session.
+	 * @param {ToolCall[]} toolCalls - Tool calls for the session.
+	 * @return {Object} Redux action.
+	 */
 	setCurrentSession( sessionId, messages, toolCalls ) {
 		return {
 			type: 'SET_CURRENT_SESSION',
@@ -97,71 +132,216 @@ const actions = {
 			toolCalls,
 		};
 	},
+
+	/**
+	 * Clear the active session (start a new chat).
+	 *
+	 * @return {Object} Redux action.
+	 */
 	clearCurrentSession() {
 		return { type: 'CLEAR_CURRENT_SESSION' };
 	},
+
+	/**
+	 * Set the sending/loading state.
+	 *
+	 * @param {boolean} sending - Whether a message is in-flight.
+	 * @return {Object} Redux action.
+	 */
 	setSending( sending ) {
 		return { type: 'SET_SENDING', sending };
 	},
+
+	/**
+	 * Set the active polling job ID.
+	 *
+	 * @param {string|null} jobId - Job identifier, or null to clear.
+	 * @return {Object} Redux action.
+	 */
 	setCurrentJobId( jobId ) {
 		return { type: 'SET_CURRENT_JOB_ID', jobId };
 	},
+
+	/**
+	 * Select an AI provider and persist the choice to localStorage.
+	 *
+	 * @param {string} providerId - Provider identifier.
+	 * @return {Object} Redux action.
+	 */
 	setSelectedProvider( providerId ) {
 		localStorage.setItem( 'gratisAiAgentProvider', providerId );
 		return { type: 'SET_SELECTED_PROVIDER', providerId };
 	},
+
+	/**
+	 * Select a model and persist the choice to localStorage.
+	 *
+	 * @param {string} modelId - Model identifier.
+	 * @return {Object} Redux action.
+	 */
 	setSelectedModel( modelId ) {
 		localStorage.setItem( 'gratisAiAgentModel', modelId );
 		return { type: 'SET_SELECTED_MODEL', modelId };
 	},
+
+	/**
+	 * Open or close the floating panel.
+	 *
+	 * @param {boolean} open - Whether the panel should be open.
+	 * @return {Object} Redux action.
+	 */
 	setFloatingOpen( open ) {
 		return { type: 'SET_FLOATING_OPEN', open };
 	},
+
+	/**
+	 * Minimize or expand the floating panel.
+	 *
+	 * @param {boolean} minimized - Whether the panel should be minimized.
+	 * @return {Object} Redux action.
+	 */
 	setFloatingMinimized( minimized ) {
 		return { type: 'SET_FLOATING_MINIMIZED', minimized };
 	},
+
+	/**
+	 * Set structured page context for the AI.
+	 *
+	 * @param {string|Object} context - Page context object or string.
+	 * @return {Object} Redux action.
+	 */
 	setPageContext( context ) {
 		return { type: 'SET_PAGE_CONTEXT', context };
 	},
+
+	/**
+	 * Append a message to the current session.
+	 *
+	 * @param {Message} message - Message to append.
+	 * @return {Object} Redux action.
+	 */
 	appendMessage( message ) {
 		return { type: 'APPEND_MESSAGE', message };
 	},
+
+	/**
+	 * Remove the last message from the current session.
+	 *
+	 * @return {Object} Redux action.
+	 */
 	removeLastMessage() {
 		return { type: 'REMOVE_LAST_MESSAGE' };
 	},
+
+	/**
+	 * Replace the plugin settings.
+	 *
+	 * @param {Settings} settings - Plugin settings object.
+	 * @return {Object} Redux action.
+	 */
 	setSettings( settings ) {
 		return { type: 'SET_SETTINGS', settings };
 	},
+
+	/**
+	 * Replace the memories list.
+	 *
+	 * @param {Memory[]} memories - Memory entries.
+	 * @return {Object} Redux action.
+	 */
 	setMemories( memories ) {
 		return { type: 'SET_MEMORIES', memories };
 	},
+
+	/**
+	 * Replace the skills list.
+	 *
+	 * @param {Skill[]} skills - Skill entries.
+	 * @return {Object} Redux action.
+	 */
 	setSkills( skills ) {
 		return { type: 'SET_SKILLS', skills };
 	},
+
+	/**
+	 * Update cumulative token usage for the current session.
+	 *
+	 * @param {TokenUsage} tokenUsage - Token usage counters.
+	 * @return {Object} Redux action.
+	 */
 	setTokenUsage( tokenUsage ) {
 		return { type: 'SET_TOKEN_USAGE', tokenUsage };
 	},
+
+	/**
+	 * Set the active session filter tab.
+	 *
+	 * @param {string} filter - Filter key: 'active', 'archived', or 'trash'.
+	 * @return {Object} Redux action.
+	 */
 	setSessionFilter( filter ) {
 		return { type: 'SET_SESSION_FILTER', filter };
 	},
+
+	/**
+	 * Set the active folder filter.
+	 *
+	 * @param {string} folder - Folder name, or empty string for all.
+	 * @return {Object} Redux action.
+	 */
 	setSessionFolder( folder ) {
 		return { type: 'SET_SESSION_FOLDER', folder };
 	},
+
+	/**
+	 * Set the session search query.
+	 *
+	 * @param {string} search - Search string.
+	 * @return {Object} Redux action.
+	 */
 	setSessionSearch( search ) {
 		return { type: 'SET_SESSION_SEARCH', search };
 	},
+
+	/**
+	 * Replace the folders list.
+	 *
+	 * @param {string[]} folders - Available folder names.
+	 * @return {Object} Redux action.
+	 */
 	setFolders( folders ) {
 		return { type: 'SET_FOLDERS', folders };
 	},
+
+	/**
+	 * Set or clear the pending tool confirmation.
+	 *
+	 * @param {PendingConfirmation|null} confirmation - Confirmation payload, or null to clear.
+	 * @return {Object} Redux action.
+	 */
 	setPendingConfirmation( confirmation ) {
 		return { type: 'SET_PENDING_CONFIRMATION', confirmation };
 	},
 	setPendingActionCard( card ) {
 		return { type: 'SET_PENDING_ACTION_CARD', card };
 	},
+
+	/**
+	 * Truncate the message list to the given index (exclusive).
+	 *
+	 * @param {number} index - Keep messages[0..index-1]; discard the rest.
+	 * @return {Object} Redux action.
+	 */
 	truncateMessagesTo( index ) {
 		return { type: 'TRUNCATE_MESSAGES_TO', index };
 	},
+
+	/**
+	 * Enable or disable debug mode and persist the choice to localStorage.
+	 *
+	 * @param {boolean} enabled - Whether debug mode should be active.
+	 * @return {Object} Redux action.
+	 */
 	setDebugMode( enabled ) {
 		localStorage.setItem(
 			'gratisAiAgentDebugMode',
@@ -169,24 +349,66 @@ const actions = {
 		);
 		return { type: 'SET_DEBUG_MODE', enabled };
 	},
+
+	/**
+	 * Record the timestamp of the most recent send (for latency calculation).
+	 *
+	 * @param {number} ts - Timestamp in milliseconds since epoch.
+	 * @return {Object} Redux action.
+	 */
 	setSendTimestamp( ts ) {
 		return { type: 'SET_SEND_TIMESTAMP', ts };
 	},
+
+	/**
+	 * Replace the streaming text buffer.
+	 *
+	 * @param {string} text - Full accumulated streaming text.
+	 * @return {Object} Redux action.
+	 */
 	setStreamingText( text ) {
 		return { type: 'SET_STREAMING_TEXT', text };
 	},
+
+	/**
+	 * Append a token to the streaming text buffer.
+	 *
+	 * @param {string} token - Token string to append.
+	 * @return {Object} Redux action.
+	 */
 	appendStreamingText( token ) {
 		return { type: 'APPEND_STREAMING_TEXT', token };
 	},
+
+	/**
+	 * Set whether an SSE stream is currently active.
+	 *
+	 * @param {boolean} streaming - Whether streaming is in progress.
+	 * @return {Object} Redux action.
+	 */
 	setIsStreaming( streaming ) {
 		return { type: 'SET_IS_STREAMING', streaming };
 	},
+
+	/**
+	 * Store the AbortController for the active SSE stream.
+	 *
+	 * @param {AbortController|null} controller - Controller, or null to clear.
+	 * @return {Object} Redux action.
+	 */
 	setStreamAbortController( controller ) {
 		return { type: 'SET_STREAM_ABORT_CONTROLLER', controller };
 	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
 
+	/**
+	 * Fetch available AI providers from the REST API and populate the store.
+	 * Auto-selects the first provider/model when none is saved or the saved
+	 * provider is no longer available.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchProviders() {
 		return async ( { dispatch } ) => {
 			try {
@@ -217,6 +439,11 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Fetch sessions from the REST API, applying the current filter/folder/search.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchSessions() {
 		return async ( { dispatch, select } ) => {
 			try {
@@ -247,6 +474,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Load a session by ID and make it the active session.
+	 * Restores the provider/model selection if the provider is still available.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	openSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			try {
@@ -280,6 +514,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Permanently delete a session.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	deleteSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			try {
@@ -297,6 +537,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Pin or unpin a session.
+	 *
+	 * @param {number}  sessionId - Session identifier.
+	 * @param {boolean} pinned    - Whether to pin (true) or unpin (false).
+	 * @return {Function} Redux thunk.
+	 */
 	pinSession( sessionId, pinned ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -308,6 +555,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Archive a session (move to archived status).
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	archiveSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
@@ -322,6 +575,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Move a session to trash.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	trashSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
@@ -336,6 +595,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Restore a session from archived or trash back to active.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	restoreSession( sessionId ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -347,6 +612,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Move a session to a folder (or remove from folder when folder is empty string).
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @param {string} folder    - Target folder name, or '' to remove from folder.
+	 * @return {Function} Redux thunk.
+	 */
 	moveSessionToFolder( sessionId, folder ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -359,6 +631,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Rename a session.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @param {string} title     - New session title.
+	 * @return {Function} Redux thunk.
+	 */
 	renameSession( sessionId, title ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -370,6 +649,11 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Fetch the list of folder names from the REST API.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchFolders() {
 		return async ( { dispatch } ) => {
 			try {
@@ -383,6 +667,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Export a session and trigger a browser download.
+	 *
+	 * @param {number}            sessionId       - Session identifier.
+	 * @param {'json'|'markdown'} [format='json'] - Export format.
+	 * @return {Function} Redux thunk.
+	 */
 	exportSession( sessionId, format = 'json' ) {
 		return async () => {
 			const result = await apiFetch( {
@@ -404,6 +695,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Import a session from exported JSON data.
+	 *
+	 * @param {Object} data - Parsed export JSON (gratis-ai-agent-v1 format).
+	 * @return {Function} Redux thunk.
+	 */
 	importSession( data ) {
 		return async ( { dispatch } ) => {
 			const session = await apiFetch( {
@@ -416,6 +713,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Regenerate the model response for the message at the given index.
+	 * Finds the preceding user message, truncates to that point, and resends.
+	 *
+	 * @param {number} index - Index of the message to regenerate from.
+	 * @return {Function} Redux thunk.
+	 */
 	regenerateMessage( index ) {
 		return async ( { dispatch, select } ) => {
 			const messages = select.getCurrentSessionMessages();
@@ -440,6 +744,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Edit a user message and resend from that point.
+	 *
+	 * @param {number} index   - Index of the message to replace.
+	 * @param {string} newText - Replacement message text.
+	 * @return {Function} Redux thunk.
+	 */
 	editAndResend( index, newText ) {
 		return async ( { dispatch } ) => {
 			dispatch.truncateMessagesTo( index );
@@ -447,6 +758,11 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Abort any active SSE stream or polling job and reset sending state.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	stopGeneration() {
 		return async ( { dispatch, select } ) => {
 			// Abort any active SSE stream.
@@ -772,6 +1088,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Confirm a pending tool call and resume the job.
+	 *
+	 * @param {string}  jobId               - Job identifier awaiting confirmation.
+	 * @param {boolean} [alwaysAllow=false] - Whether to grant permanent auto-allow.
+	 * @return {Function} Redux thunk.
+	 */
 	confirmToolCall( jobId, alwaysAllow = false ) {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
@@ -800,6 +1123,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Reject a pending tool call and resume the job without executing the tool.
+	 *
+	 * @param {string} jobId - Job identifier awaiting confirmation.
+	 * @return {Function} Redux thunk.
+	 */
 	rejectToolCall( jobId ) {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
@@ -827,6 +1156,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Send a message via the polling (non-streaming) endpoint.
+	 * Creates a session lazily on the first message.
+	 *
+	 * @param {string} message - User message text.
+	 * @return {Function} Redux thunk.
+	 */
 	sendMessage( message ) {
 		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
@@ -915,6 +1251,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Poll a job until it completes, errors, or requires confirmation.
+	 * Retries every 3 seconds up to 200 attempts (~10 minutes).
+	 *
+	 * @param {string} jobId - Job identifier to poll.
+	 * @return {Function} Redux thunk.
+	 */
 	pollJob( jobId ) {
 		return async ( { dispatch, select } ) => {
 			let attempts = 0;
@@ -1063,6 +1406,11 @@ const actions = {
 
 	// ─── Settings thunks ─────────────────────────────────────────
 
+	/**
+	 * Fetch plugin settings from the REST API.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchSettings() {
 		return async ( { dispatch } ) => {
 			try {
@@ -1076,6 +1424,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Save plugin settings via the REST API.
+	 *
+	 * @param {Partial<Settings>} data - Settings fields to update.
+	 * @return {Function} Redux thunk that resolves with the saved settings.
+	 */
 	saveSettings( data ) {
 		return async ( { dispatch } ) => {
 			try {
@@ -1094,6 +1448,11 @@ const actions = {
 
 	// ─── Memory thunks ───────────────────────────────────────────
 
+	/**
+	 * Fetch all memory entries from the REST API.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchMemories() {
 		return async ( { dispatch } ) => {
 			try {
@@ -1107,6 +1466,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Create a new memory entry.
+	 *
+	 * @param {string} category - Memory category (e.g. 'general').
+	 * @param {string} content  - Memory content text.
+	 * @return {Function} Redux thunk.
+	 */
 	createMemory( category, content ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1118,6 +1484,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Update an existing memory entry.
+	 *
+	 * @param {number}          id   - Memory identifier.
+	 * @param {Partial<Memory>} data - Fields to update.
+	 * @return {Function} Redux thunk.
+	 */
 	updateMemory( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1129,6 +1502,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Delete a memory entry.
+	 *
+	 * @param {number} id - Memory identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	deleteMemory( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1141,6 +1520,11 @@ const actions = {
 
 	// ─── Skills thunks ──────────────────────────────────────────
 
+	/**
+	 * Fetch all skill entries from the REST API.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	fetchSkills() {
 		return async ( { dispatch } ) => {
 			try {
@@ -1154,6 +1538,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Create a new skill.
+	 *
+	 * @param {Partial<Skill>} data - Skill fields.
+	 * @return {Function} Redux thunk.
+	 */
 	createSkill( data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1165,6 +1555,13 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Update an existing skill.
+	 *
+	 * @param {number}         id   - Skill identifier.
+	 * @param {Partial<Skill>} data - Fields to update.
+	 * @return {Function} Redux thunk.
+	 */
 	updateSkill( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1176,6 +1573,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Delete a skill.
+	 *
+	 * @param {number} id - Skill identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	deleteSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1186,6 +1589,12 @@ const actions = {
 		};
 	},
 
+	/**
+	 * Reset a skill to its built-in defaults.
+	 *
+	 * @param {number} id - Skill identifier.
+	 * @return {Function} Redux thunk.
+	 */
 	resetSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
@@ -1198,6 +1607,13 @@ const actions = {
 
 	// ─── Compact thunk ───────────────────────────────────────────
 
+	/**
+	 * Compact the current conversation into a new session with a summary.
+	 * Builds a text summary of all messages, creates a new session, and
+	 * sends the summary as the first message to preserve context.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
 	compactConversation() {
 		return async ( { dispatch, select } ) => {
 			const messages = select.getCurrentSessionMessages();
@@ -1246,97 +1662,231 @@ const actions = {
 };
 
 const selectors = {
+	/**
+	 * @param {StoreState} state
+	 * @return {Provider[]} Available AI providers.
+	 */
 	getProviders( state ) {
 		return state.providers;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether providers have been fetched.
+	 */
 	getProvidersLoaded( state ) {
 		return state.providersLoaded;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Session[]} Session list.
+	 */
 	getSessions( state ) {
 		return state.sessions;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether sessions have been fetched.
+	 */
 	getSessionsLoaded( state ) {
 		return state.sessionsLoaded;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number|null} Active session ID, or null.
+	 */
 	getCurrentSessionId( state ) {
 		return state.currentSessionId;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Message[]} Messages in the active session.
+	 */
 	getCurrentSessionMessages( state ) {
 		return state.currentSessionMessages;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {ToolCall[]} Tool calls in the active session.
+	 */
 	getCurrentSessionToolCalls( state ) {
 		return state.currentSessionToolCalls;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether a message is in-flight.
+	 */
 	isSending( state ) {
 		return state.sending;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string|null} Active polling job ID, or null.
+	 */
 	getCurrentJobId( state ) {
 		return state.currentJobId;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Currently selected provider ID.
+	 */
 	getSelectedProviderId( state ) {
 		return state.selectedProviderId;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Currently selected model ID.
+	 */
 	getSelectedModelId( state ) {
 		return state.selectedModelId;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {import('../types').ProviderModel[]} Models for the selected provider.
+	 */
 	getSelectedProviderModels( state ) {
 		const provider = state.providers.find(
 			( p ) => p.id === state.selectedProviderId
 		);
 		return provider?.models || [];
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether the floating panel is open.
+	 */
 	isFloatingOpen( state ) {
 		return state.floatingOpen;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether the floating panel is minimized.
+	 */
 	isFloatingMinimized( state ) {
 		return state.floatingMinimized;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string|Object} Structured page context for the AI.
+	 */
 	getPageContext( state ) {
 		return state.pageContext;
 	},
 
 	// Settings
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Settings|null} Plugin settings, or null if not yet loaded.
+	 */
 	getSettings( state ) {
 		return state.settings;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether settings have been fetched.
+	 */
 	getSettingsLoaded( state ) {
 		return state.settingsLoaded;
 	},
 
 	// Memory
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Memory[]} Memory entries.
+	 */
 	getMemories( state ) {
 		return state.memories;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether memories have been fetched.
+	 */
 	getMemoriesLoaded( state ) {
 		return state.memoriesLoaded;
 	},
 
 	// Skills
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Skill[]} Skill entries.
+	 */
 	getSkills( state ) {
 		return state.skills;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether skills have been fetched.
+	 */
 	getSkillsLoaded( state ) {
 		return state.skillsLoaded;
 	},
 
 	// Session filters
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Active session filter tab ('active', 'archived', 'trash').
+	 */
 	getSessionFilter( state ) {
 		return state.sessionFilter;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Active folder filter, or '' for all.
+	 */
 	getSessionFolder( state ) {
 		return state.sessionFolder;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Active search query.
+	 */
 	getSessionSearch( state ) {
 		return state.sessionSearch;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string[]} Available folder names.
+	 */
 	getFolders( state ) {
 		return state.folders;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether folders have been fetched.
+	 */
 	getFoldersLoaded( state ) {
 		return state.foldersLoaded;
 	},
 
 	// Pending confirmation
+
+	/**
+	 * @param {StoreState} state
+	 * @return {PendingConfirmation|null} Pending tool confirmation, or null.
+	 */
 	getPendingConfirmation( state ) {
 		return state.pendingConfirmation;
 	},
@@ -1352,29 +1902,65 @@ const selectors = {
 	},
 
 	// Debug mode
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether debug mode is active.
+	 */
 	isDebugMode( state ) {
 		return state.debugMode;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number} Timestamp of the last send in ms since epoch.
+	 */
 	getSendTimestamp( state ) {
 		return state.sendTimestamp;
 	},
 
 	// Token usage
+
+	/**
+	 * @param {StoreState} state
+	 * @return {TokenUsage} Cumulative token usage for the current session.
+	 */
 	getTokenUsage( state ) {
 		return state.tokenUsage;
 	},
 
 	// Streaming
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Accumulated streaming text buffer.
+	 */
 	getStreamingText( state ) {
 		return state.streamingText;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether an SSE stream is currently active.
+	 */
 	isStreamingActive( state ) {
 		return state.isStreaming;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {AbortController|null} Controller for the active stream, or null.
+	 */
 	getStreamAbortController( state ) {
 		return state.streamAbortController || null;
 	},
 
+	/**
+	 * Calculate the context window usage as a percentage (0–100+).
+	 *
+	 * @param {StoreState} state
+	 * @return {number} Percentage of context window consumed by prompt tokens.
+	 */
 	getContextPercentage( state ) {
 		const contextLimit =
 			MODEL_CONTEXT_WINDOWS[ state.selectedModelId ] ||
@@ -1382,6 +1968,13 @@ const selectors = {
 			128000;
 		return ( state.tokenUsage.prompt / contextLimit ) * 100;
 	},
+
+	/**
+	 * Whether the context window usage exceeds the 80% warning threshold.
+	 *
+	 * @param {StoreState} state
+	 * @return {boolean} True when context usage is above 80%.
+	 */
 	isContextWarning( state ) {
 		const contextLimit =
 			MODEL_CONTEXT_WINDOWS[ state.selectedModelId ] ||
@@ -1391,6 +1984,13 @@ const selectors = {
 	},
 };
 
+/**
+ * Redux reducer for the Gratis AI Agent store.
+ *
+ * @param {StoreState} state  - Current state (defaults to DEFAULT_STATE).
+ * @param {Object}     action - Dispatched action.
+ * @return {StoreState} Next state.
+ */
 const reducer = ( state = DEFAULT_STATE, action ) => {
 	switch ( action.type ) {
 		case 'SET_PROVIDERS':

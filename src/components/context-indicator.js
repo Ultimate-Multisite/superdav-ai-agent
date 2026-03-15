@@ -10,6 +10,12 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Format a token count as a human-readable string (e.g. '12.3K', '1.5M').
+ *
+ * @param {number} n - Token count.
+ * @return {string} Formatted string.
+ */
 function formatTokens( n ) {
 	if ( n >= 1_000_000 ) {
 		return ( n / 1_000_000 ).toFixed( 1 ) + 'M';
@@ -20,6 +26,15 @@ function formatTokens( n ) {
 	return n.toString();
 }
 
+/**
+ * Context window usage indicator bar.
+ *
+ * Shows total token count, a colour-coded progress bar (green → yellow → red),
+ * and a warning with Compact/New Chat actions when usage exceeds 80%.
+ * Hidden when no tokens have been tracked yet.
+ *
+ * @return {JSX.Element|null} The context indicator, or null when hidden.
+ */
 export default function ContextIndicator() {
 	const { percentage, isWarning, tokenUsage } = useSelect(
 		( select ) => ( {

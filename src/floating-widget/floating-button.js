@@ -12,9 +12,11 @@ import { Icon, comment } from '@wordpress/icons';
 import STORE_NAME from '../store';
 
 /**
- * Floating action button that opens the AI Agent chat panel.
+ * Floating action button (FAB) that opens the chat panel.
  *
- * @return {JSX.Element} Floating button element.
+ * Rendered in the bottom-right corner when the floating panel is closed.
+ *
+ * @return {JSX.Element} The floating action button element.
  */
 export default function FloatingButton() {
 	const { setFloatingOpen } = useDispatch( STORE_NAME );

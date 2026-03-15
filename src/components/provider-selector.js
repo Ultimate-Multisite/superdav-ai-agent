@@ -10,6 +10,17 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Provider and model selector dropdowns.
+ *
+ * Changing the provider auto-selects the first available model for that
+ * provider. Both selections are persisted to localStorage via the store.
+ *
+ * @param {Object}  props                 - Component props.
+ * @param {boolean} [props.compact=false] - When true, hides labels and uses
+ *                                        compact control sizing.
+ * @return {JSX.Element} The provider/model selector element.
+ */
 export default function ProviderSelector( { compact = false } ) {
 	const { providers, selectedProviderId, selectedModelId, models } =
 		useSelect( ( select ) => {

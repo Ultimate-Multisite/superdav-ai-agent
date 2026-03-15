@@ -10,6 +10,17 @@ import { __ } from '@wordpress/i18n';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+/**
+ * Syntax-highlighted code block with a copy-to-clipboard button.
+ *
+ * Uses Prism via react-syntax-highlighter with the One Dark theme.
+ * The copy button resets to its original label after 2 seconds.
+ *
+ * @param {Object} props            - Component props.
+ * @param {string} [props.language] - Language identifier for syntax highlighting.
+ * @param {*}      props.children   - Code content (string or React nodes).
+ * @return {JSX.Element} The code block element.
+ */
 export default function CodeBlock( { language, children } ) {
 	const [ copied, setCopied ] = useState( false );
 	const code = String( children ).replace( /\n$/, '' );

@@ -4,6 +4,15 @@
 import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
+/**
+ * @typedef {import('../types').SlashCommand} SlashCommand
+ */
+
+/**
+ * All registered slash commands.
+ *
+ * @type {SlashCommand[]}
+ */
 const COMMANDS = [
 	{
 		name: '/new',
@@ -58,6 +67,20 @@ const COMMANDS = [
 	},
 ];
 
+/**
+ * Autocomplete dropdown for slash commands.
+ *
+ * Filters the command list as the user types, supports keyboard navigation
+ * (ArrowUp/Down, Enter/Tab to select, Escape to close), and closes when
+ * no commands match.
+ *
+ * @param {Object}           props            - Component props.
+ * @param {string}           props.filter     - Current input text used to filter commands.
+ * @param {Function}         props.onSelect   - Called with the selected SlashCommand object.
+ * @param {Function}         props.onClose    - Called when the menu should close.
+ * @param {{bottom: number}} [props.position] - Optional CSS bottom offset for positioning.
+ * @return {JSX.Element|null} The command menu, or null when no commands match.
+ */
 export default function SlashCommandMenu( {
 	filter,
 	onSelect,

@@ -10,6 +10,17 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Session import dialog with drag-and-drop and click-to-browse support.
+ *
+ * Validates that the uploaded file is a gratis-ai-agent-v1 or ai-agent-v1
+ * export before enabling the Import button. Shows an error message for
+ * invalid files.
+ *
+ * @param {Object}   props         - Component props.
+ * @param {Function} props.onClose - Called when the dialog should close.
+ * @return {JSX.Element} The import dialog element.
+ */
 export default function ImportDialog( { onClose } ) {
 	const [ fileData, setFileData ] = useState( null );
 	const [ fileName, setFileName ] = useState( '' );

@@ -4,17 +4,19 @@
 import { useEffect, useCallback } from '@wordpress/element';
 
 /**
- * @typedef {Object} ShortcutEntry
- * @property {string} combo - Key combo string (e.g. 'mod+k', 'Escape').
- * @property {string} label - Human-readable label for the shortcut.
+ * @typedef {import('../types').KeyboardShortcut} KeyboardShortcut
  */
 
 /**
- * Hook to register keyboard shortcuts.
+ * React hook to register document-level keyboard shortcuts.
  *
- * @param {Object.<string, Function>} shortcuts - Map of key combo strings to
- *                                              handler functions. Keys use format: "mod+k", "mod+n", "escape", "mod+/".
- *                                              "mod" maps to Cmd on Mac, Ctrl on other platforms.
+ * Attaches a single keydown listener that checks each registered combo.
+ * The listener is re-registered whenever the shortcuts map or platform
+ * detection changes.
+ *
+ * @param {Object.<string, Function>} shortcuts - Map of combo strings to handler
+ *                                              functions. Keys use the format "mod+k", "mod+n", "escape", "mod+/".
+ *                                              "mod" maps to Cmd (⌘) on macOS and Ctrl on all other platforms.
  * @return {void}
  */
 export function useKeyboardShortcuts( shortcuts ) {
@@ -42,12 +44,12 @@ export function useKeyboardShortcuts( shortcuts ) {
 }
 
 /**
- * Check whether a keyboard event matches a shortcut combo string.
+ * Test whether a KeyboardEvent matches a combo string.
  *
  * @param {KeyboardEvent} e     - The keyboard event to test.
  * @param {string}        combo - Combo string (e.g. 'mod+k', 'escape').
- * @param {boolean}       isMac - Whether the current platform is macOS.
- * @return {boolean} True if the event matches the combo.
+ * @param {boolean}       isMac - Whether the platform is macOS.
+ * @return {boolean} True when the event matches the combo.
  */
 function matchesCombo( e, combo, isMac ) {
 	const parts = combo.toLowerCase().split( '+' );
@@ -89,9 +91,9 @@ function matchesCombo( e, combo, isMac ) {
 }
 
 /**
- * All available keyboard shortcuts for the help dialog.
+ * All available keyboard shortcuts displayed in the help dialog.
  *
- * @type {ShortcutEntry[]}
+ * @type {KeyboardShortcut[]}
  */
 export const SHORTCUTS = [
 	{ combo: 'mod+n', label: 'New chat' },

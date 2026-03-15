@@ -10,6 +10,18 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Folder picker for moving a session to an existing or new folder.
+ *
+ * Lists existing folders, allows creating a new one by typing and pressing
+ * Enter, and provides a "Remove from folder" option when a folder is active.
+ *
+ * @param {Object}   props               - Component props.
+ * @param {string}   props.currentFolder - Currently assigned folder name, or ''.
+ * @param {Function} props.onSelect      - Called with the chosen folder name (or '' to remove).
+ * @param {Function} props.onClose       - Called when the picker should close without selecting.
+ * @return {JSX.Element} The folder picker element.
+ */
 export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 	const [ newFolder, setNewFolder ] = useState( '' );
 	const { fetchFolders } = useDispatch( STORE_NAME );

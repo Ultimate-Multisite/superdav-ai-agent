@@ -49,6 +49,14 @@ function parseSuggestions( text ) {
 	return { cleanText, suggestions };
 }
 
+/**
+ * Renders a single message bubble with role-appropriate styling.
+ *
+ * @param {Object} props      - Component props.
+ * @param {string} props.role - Message role: 'user', 'model', or 'system'.
+ * @param {string} props.text - Rendered text content (markdown for model messages).
+ * @return {JSX.Element} The message bubble element.
+ */
 function MessageBubble( { role, text } ) {
 	const classMap = {
 		user: 'ai-agent-bubble ai-agent-user',
@@ -69,6 +77,14 @@ function MessageBubble( { role, text } ) {
 	);
 }
 
+/**
+ * Renders suggestion chip buttons below the last model message.
+ *
+ * @param {Object}   props             - Component props.
+ * @param {string[]} props.suggestions - Suggestion strings to display.
+ * @param {Function} props.onSelect    - Called with the selected suggestion text.
+ * @return {JSX.Element|null} The suggestion chips, or null when empty.
+ */
 function SuggestionChips( { suggestions, onSelect } ) {
 	if ( ! suggestions?.length ) {
 		return null;
@@ -90,6 +106,12 @@ function SuggestionChips( { suggestions, onSelect } ) {
 	);
 }
 
+/**
+ * Extract the concatenated text content from a message's parts array.
+ *
+ * @param {import('../types').Message} message - Message object.
+ * @return {string} Concatenated text from all text parts.
+ */
 function extractText( message ) {
 	if ( ! message.parts?.length ) {
 		return '';
@@ -100,6 +122,15 @@ function extractText( message ) {
 		.join( '' );
 }
 
+/**
+ * Scrollable list of chat messages for the current session.
+ *
+ * Renders user/model/system bubbles, tool call details, message actions,
+ * debug panels, suggestion chips, and the streaming text indicator.
+ * Auto-scrolls to the bottom on new messages.
+ *
+ * @return {JSX.Element} The message list element.
+ */
 export default function MessageList() {
 	const {
 		messages,

@@ -4,6 +4,16 @@
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
+/**
+ * @typedef {import('../types').MessageDebug} MessageDebug
+ */
+
+/**
+ * Format a duration in milliseconds as a human-readable string.
+ *
+ * @param {number} ms - Duration in milliseconds.
+ * @return {string} Formatted string (e.g. '450ms', '1.2s').
+ */
 function formatTime( ms ) {
 	if ( ms < 1000 ) {
 		return ms + 'ms';
@@ -11,6 +21,12 @@ function formatTime( ms ) {
 	return ( ms / 1000 ).toFixed( 1 ) + 's';
 }
 
+/**
+ * Format a cost in USD as a human-readable string.
+ *
+ * @param {number} cost - Cost in USD.
+ * @return {string} Formatted string (e.g. '$0', '$0.0012', '$1.23').
+ */
 function formatCost( cost ) {
 	if ( ! cost || cost === 0 ) {
 		return '$0';
@@ -21,6 +37,16 @@ function formatCost( cost ) {
 	return '$' + cost.toFixed( 2 );
 }
 
+/**
+ * Collapsible debug metrics panel shown below model messages in debug mode.
+ *
+ * Displays response time, token counts, speed, cost, iteration count, and
+ * tool call summary. Collapsed by default; click the summary row to expand.
+ *
+ * @param {Object}            props       - Component props.
+ * @param {MessageDebug|null} props.debug - Debug metadata from the store message.
+ * @return {JSX.Element|null} The debug panel, or null when debug is falsy.
+ */
 export default function DebugPanel( { debug } ) {
 	const [ expanded, setExpanded ] = useState( false );
 

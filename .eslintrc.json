@@ -9,7 +9,18 @@
 		"jQuery": "readonly"
 	},
 	"rules": {
-		"jsdoc/require-jsdoc": "off",
+		"jsdoc/require-jsdoc": [
+			"warn",
+			{
+				"require": {
+					"FunctionDeclaration": true,
+					"MethodDefinition": false,
+					"ClassDeclaration": false,
+					"ArrowFunctionExpression": false,
+					"FunctionExpression": false
+				}
+			}
+		],
 		"jsdoc/no-undefined-types": [ "error", { "definedTypes": [ "JSX" ] } ],
 		"@wordpress/no-unsafe-wp-apis": "warn",
 		"no-console": "warn"

@@ -12,13 +12,15 @@ import STORE_NAME from '../store';
 import FolderPicker from './folder-picker';
 
 /**
- * Context menu for a session item. Provides rename, pin, folder, export,
- * archive, trash, and restore actions. Closes on click outside.
+ * Context menu for a session item (rename, pin, folder, export, archive, trash).
+ *
+ * Closes when the user clicks outside the menu. Renders an inline rename
+ * input or a FolderPicker when those sub-flows are active.
  *
  * @param {Object}                     props         - Component props.
- * @param {import('../store').Session} props.session - Session data.
- * @param {Function}                   props.onClose - Callback to close the menu.
- * @return {JSX.Element} Context menu element.
+ * @param {import('../types').Session} props.session - Session data.
+ * @param {Function}                   props.onClose - Called when the menu should close.
+ * @return {JSX.Element} The context menu element.
  */
 export default function SessionContextMenu( { session, onClose } ) {
 	const [ showFolderPicker, setShowFolderPicker ] = useState( false );

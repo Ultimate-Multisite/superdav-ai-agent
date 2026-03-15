@@ -3,13 +3,21 @@
  */
 import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 
+/**
+ * @typedef {import('../types').Position} Position
+ * @typedef {import('../types').UseDragReturn} UseDragReturn
+ */
+
 const STORAGE_KEY = 'aiAgentWidgetPosition';
 
 /**
  * Custom hook for making the floating panel draggable.
  *
- * Returns position, isDragging, handleMouseDown, and resetPosition.
- * Position is null when using CSS default (bottom-right).
+ * Persists the panel position to localStorage under the key
+ * `aiAgentWidgetPosition`. Position is null when using the CSS default
+ * (bottom-right corner).
+ *
+ * @return {UseDragReturn} Drag state and handlers.
  */
 export default function useDrag() {
 	const [ position, setPosition ] = useState( () => {
@@ -25,6 +33,13 @@ export default function useDrag() {
 	const dragOffset = useRef( { x: 0, y: 0 } );
 	const panelRef = useRef( null );
 
+	/**
+	 * Clamp a position so the panel stays fully within the viewport.
+	 *
+	 * @param {number} x - Desired left offset in pixels.
+	 * @param {number} y - Desired top offset in pixels.
+	 * @return {Position} Clamped position.
+	 */
 	const clampToViewport = useCallback( ( x, y ) => {
 		const vw = window.innerWidth;
 		const vh = window.innerHeight;

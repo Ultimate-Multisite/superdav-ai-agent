@@ -13,6 +13,17 @@ import apiFetch from '@wordpress/api-fetch';
 import STORE_NAME from '../store';
 import ProviderSelector from './provider-selector';
 
+/**
+ * Multi-step onboarding wizard shown on first activation.
+ *
+ * Steps: Welcome → Choose AI Provider → Configure Abilities → All Set.
+ * Saves settings (default provider/model, disabled abilities, onboarding_complete)
+ * on finish or skip.
+ *
+ * @param {Object}   props            - Component props.
+ * @param {Function} props.onComplete - Called when the wizard is finished or skipped.
+ * @return {JSX.Element} The onboarding wizard element.
+ */
 export default function OnboardingWizard( { onComplete } ) {
 	const [ step, setStep ] = useState( 0 );
 	const [ abilities, setAbilities ] = useState( [] );

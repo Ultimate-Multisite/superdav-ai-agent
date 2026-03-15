@@ -10,6 +10,18 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Per-message action buttons (Copy, Edit, Regenerate).
+ *
+ * - Copy: available on all messages.
+ * - Edit: available on user messages; opens an inline edit textarea.
+ * - Regenerate: available on model messages; re-runs from the preceding user message.
+ *
+ * @param {Object}                     props         - Component props.
+ * @param {import('../types').Message} props.message - The message to act on.
+ * @param {number}                     props.index   - Index of the message in the list.
+ * @return {JSX.Element} The message actions element.
+ */
 export default function MessageActions( { message, index } ) {
 	const [ copied, setCopied ] = useState( false );
 	const [ editing, setEditing ] = useState( false );

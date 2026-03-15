@@ -13,6 +13,16 @@ import { plus, upload } from '@wordpress/icons';
 import STORE_NAME from '../store';
 import SessionContextMenu from './session-context-menu';
 
+/**
+ * @typedef {import('../types').Session} Session
+ */
+
+/**
+ * Format a date string as a relative time label (e.g. 'just now', '3h ago').
+ *
+ * @param {string} dateStr - ISO 8601 date string without trailing Z (UTC assumed).
+ * @return {string} Human-readable relative time, or '' when dateStr is falsy.
+ */
 function relativeTime( dateStr ) {
 	if ( ! dateStr ) {
 		return '';
@@ -36,6 +46,17 @@ function relativeTime( dateStr ) {
 	return date.toLocaleDateString();
 }
 
+/**
+ * A single session row in the sidebar list.
+ *
+ * Clicking the row opens the session. The ⋯ button opens a context menu
+ * with rename, pin, folder, export, archive, and trash actions.
+ *
+ * @param {Object}  props          - Component props.
+ * @param {Session} props.session  - Session data.
+ * @param {boolean} props.isActive - Whether this session is currently open.
+ * @return {JSX.Element} The session item element.
+ */
 function SessionItem( { session, isActive } ) {
 	const [ showMenu, setShowMenu ] = useState( false );
 	const { openSession } = useDispatch( STORE_NAME );
@@ -106,6 +127,14 @@ function getEmptyMessage( filter ) {
 	return __( 'No conversations yet', 'ai-agent' );
 }
 
+/**
+ * Session management sidebar.
+ *
+ * Provides search, filter tabs (Active/Archived/Trash), folder tabs,
+ * a session list, and import/new-chat controls.
+ *
+ * @return {JSX.Element} The session sidebar element.
+ */
 export default function SessionSidebar() {
 	const {
 		sessions,

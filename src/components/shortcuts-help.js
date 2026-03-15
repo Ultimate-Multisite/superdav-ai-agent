@@ -9,6 +9,16 @@ import { useEffect, useRef } from '@wordpress/element';
  */
 import { SHORTCUTS } from '../utils/keyboard-shortcuts';
 
+/**
+ * Keyboard shortcuts and slash commands help dialog.
+ *
+ * Closes on Escape or click outside. Adapts modifier key label for macOS (⌘)
+ * vs other platforms (Ctrl).
+ *
+ * @param {Object}   props         - Component props.
+ * @param {Function} props.onClose - Called when the dialog should close.
+ * @return {JSX.Element} The shortcuts help dialog element.
+ */
 export default function ShortcutsHelp( { onClose } ) {
 	const dialogRef = useRef( null );
 

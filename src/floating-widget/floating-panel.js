@@ -14,6 +14,15 @@ import ChatPanel from '../components/chat-panel';
 import SessionTabs from './session-tabs';
 import useDrag from './use-drag';
 
+/**
+ * Draggable floating chat panel.
+ *
+ * Renders a title bar (drag handle + controls), session tabs, and the
+ * compact ChatPanel. Supports minimize/expand and custom positioning via
+ * the useDrag hook. Position is persisted to localStorage.
+ *
+ * @return {JSX.Element} The floating panel element.
+ */
 export default function FloatingPanel() {
 	const { setFloatingOpen, setFloatingMinimized, clearCurrentSession } =
 		useDispatch( STORE_NAME );

@@ -4,6 +4,24 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
+/**
+ * @typedef {import('../types').PendingConfirmation} PendingConfirmation
+ */
+
+/**
+ * Modal dialog asking the user to allow or deny pending tool calls.
+ *
+ * Includes an "Always allow" checkbox that grants permanent auto-allow
+ * permission for the listed tools. Pressing Escape triggers onReject.
+ *
+ * @param {Object}              props              - Component props.
+ * @param {PendingConfirmation} props.confirmation - Pending confirmation payload.
+ * @param {Function}            props.onConfirm    - Called with (alwaysAllow: boolean)
+ *                                                 when the user clicks Allow.
+ * @param {Function}            props.onReject     - Called when the user clicks Deny
+ *                                                 or presses Escape.
+ * @return {JSX.Element|null} The dialog element, or null when there are no tools.
+ */
 export default function ToolConfirmationDialog( {
 	confirmation,
 	onConfirm,

@@ -14,6 +14,19 @@ import apiFetch from '@wordpress/api-fetch';
 import STORE_NAME from '../store';
 import SlashCommandMenu from './slash-command-menu';
 
+/**
+ * Message input area with auto-resize, slash command menu, and send/stop controls.
+ *
+ * Handles the /remember and /forget slash commands locally; all other messages
+ * are dispatched via streamMessage (when Fetch + ReadableStream are available)
+ * or sendMessage (polling fallback).
+ *
+ * @param {Object}   props                  - Component props.
+ * @param {boolean}  [props.compact=false]  - Whether to render in compact mode.
+ * @param {Function} [props.onSlashCommand] - Callback for slash command results.
+ *                                          Signature: (type: string, message?: string) => void
+ * @return {JSX.Element} The message input element.
+ */
 export default function MessageInput( { compact = false, onSlashCommand } ) {
 	const [ text, setText ] = useState( '' );
 	const [ showSlash, setShowSlash ] = useState( false );

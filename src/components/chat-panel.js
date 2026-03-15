@@ -16,15 +16,19 @@ import ContextIndicator from './context-indicator';
 import ToolConfirmationDialog from './tool-confirmation-dialog';
 
 /**
- * Main chat panel component. Renders the provider selector, message list,
- * message input, and tool confirmation dialog.
+ * Main chat panel component.
+ *
+ * Renders the provider selector, context indicator, message list, message
+ * input, and (when required) the tool confirmation dialog.
  *
  * @param {Object}   props                  - Component props.
  * @param {boolean}  [props.compact=false]  - Whether to render in compact mode
  *                                          (used inside the floating widget).
- * @param {Function} [props.onSlashCommand] - Callback for slash command actions.
- *                                          Receives (action: string, data?: string).
- * @return {JSX.Element} Chat panel element.
+ * @param {Function} [props.onSlashCommand] - Callback invoked when a slash
+ *                                          command produces a notice or opens
+ *                                          the help dialog.
+ *                                          Signature: (type: string, message?: string) => void
+ * @return {JSX.Element} The chat panel element.
  */
 export default function ChatPanel( { compact = false, onSlashCommand } ) {
 	const { confirmToolCall, rejectToolCall } = useDispatch( STORE_NAME );

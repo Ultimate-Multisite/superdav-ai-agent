@@ -33,7 +33,7 @@ class SeoAbilities {
 				'description' => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -50,7 +50,7 @@ class SeoAbilities {
 				'description' => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

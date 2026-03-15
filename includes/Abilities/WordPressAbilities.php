@@ -35,7 +35,7 @@ class WordPressAbilities {
 				'description' => __( 'List all installed WordPress plugins with their status (active/inactive).', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -52,7 +52,7 @@ class WordPressAbilities {
 				'description' => __( 'List all installed WordPress themes with their status.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -69,7 +69,7 @@ class WordPressAbilities {
 				'description' => __( 'Install a plugin from the WordPress.org plugin directory by slug. Optionally activate after installation.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -86,7 +86,7 @@ class WordPressAbilities {
 				'description' => __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

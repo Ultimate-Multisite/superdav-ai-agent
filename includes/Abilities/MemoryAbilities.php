@@ -34,7 +34,7 @@ class MemoryAbilities {
 				'description' => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -51,7 +51,7 @@ class MemoryAbilities {
 				'description' => __( 'List all stored memories, grouped by category.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -68,7 +68,7 @@ class MemoryAbilities {
 				'description' => __( 'Delete a specific memory by its ID.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

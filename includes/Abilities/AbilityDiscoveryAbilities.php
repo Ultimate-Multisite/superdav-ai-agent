@@ -46,7 +46,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'List all available WordPress abilities (from plugins, themes, and core). Returns ability names and brief descriptions.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -63,7 +63,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'Get full details of a specific WordPress ability including its parameters schema, permissions, and usage information. Call this before execute_ability to understand what arguments are needed.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -80,7 +80,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'Execute a WordPress ability with the given arguments. Use get_ability first to understand required parameters.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

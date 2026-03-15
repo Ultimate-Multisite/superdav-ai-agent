@@ -36,7 +36,7 @@ class StockImageAbilities {
 				'description' => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

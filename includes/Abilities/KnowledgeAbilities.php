@@ -34,7 +34,7 @@ class KnowledgeAbilities {
 				'description' => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

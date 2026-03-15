@@ -38,7 +38,7 @@ class FileAbilities {
 				'description' => __( 'Read the contents of a file within the wp-content directory.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -55,7 +55,7 @@ class FileAbilities {
 				'description' => __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -72,7 +72,7 @@ class FileAbilities {
 				'description' => __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -89,7 +89,7 @@ class FileAbilities {
 				'description' => __( 'Delete a file within the wp-content directory.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -106,7 +106,7 @@ class FileAbilities {
 				'description' => __( 'List files and directories within a directory in wp-content.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -123,7 +123,7 @@ class FileAbilities {
 				'description' => __( 'Search for files matching a glob pattern within wp-content.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -140,7 +140,7 @@ class FileAbilities {
 				'description' => __( 'Search for text content within files in wp-content.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

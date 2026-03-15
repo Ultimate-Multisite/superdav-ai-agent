@@ -33,7 +33,7 @@ class MarketingAbilities {
 				'description' => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -50,7 +50,7 @@ class MarketingAbilities {
 				'description' => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

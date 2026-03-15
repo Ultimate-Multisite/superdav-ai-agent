@@ -36,7 +36,7 @@ class DatabaseAbilities {
 				'description' => __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

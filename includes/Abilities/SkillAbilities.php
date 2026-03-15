@@ -34,7 +34,7 @@ class SkillAbilities {
 				'description' => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -51,7 +51,7 @@ class SkillAbilities {
 				'description' => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

@@ -35,7 +35,7 @@ class NavigationAbilities {
 				'description' => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**
@@ -52,7 +52,7 @@ class NavigationAbilities {
 				'description' => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
 			]
 		);
-		return $ability->execute( $input );
+		return $ability->run( $input );
 	}
 
 	/**

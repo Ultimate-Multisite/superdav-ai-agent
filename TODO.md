@@ -158,7 +158,7 @@
 - [ ] t086 Google Search Console integration: SEO insights ability @dave #feature ~4h logged:2026-03-15
 - [ ] t087 Slack/Discord notification forwarding for automation results @dave #feature ~3h logged:2026-03-15
 - [ ] t088 Webhook API: trigger AI conversations from external systems @dave #feature ~4h logged:2026-03-15
-- [ ] t089 MCP server: expose abilities as MCP tools for external AI clients @dave #feature ~6h logged:2026-03-15
+- [x] t089 MCP server: expose abilities as MCP tools for external AI clients @dave #feature ~6h logged:2026-03-15 pr:#404 completed:2026-03-15
 
 ### Documentation & Packaging (P2)
 

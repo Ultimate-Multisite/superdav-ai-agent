@@ -72,7 +72,7 @@
 - [x] t008 Make CI workflows non-continue-on-error @dave #ci ~1h logged:2026-03-14 pr:#83 completed:2026-03-15
 - [x] t009 Tighten PHPCS: re-enable EscapeOutput, add nonce verification rules @dave #quality ~4h logged:2026-03-14 pr:#87 completed:2026-03-15
 - [ ] t010 Raise PHPStan level from 5 to 6, fix new errors @dave #quality ~4h logged:2026-03-14
-- [ ] t011 Add PHPDoc blocks to all classes/methods @dave #quality ~8h logged:2026-03-14
+- [x] t011 Add PHPDoc blocks to all classes/methods @dave #quality ~8h logged:2026-03-14 pr:#89 completed:2026-03-15
 
 ### Testing Infrastructure (P1)
 

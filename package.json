@@ -12,6 +12,7 @@
 		"lint:php": "composer phpcs",
 		"lint:php:fix": "composer phpcbf",
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php",
+		"test:js": "wp-scripts test-unit-js",
 		"test:unit": "wp-scripts test-unit-js",
 		"test:e2e": "wp-scripts test-e2e",
 		"test:php": "wp-env run tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/ai-agent && php vendor/bin/phpunit'",

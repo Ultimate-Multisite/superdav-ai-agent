@@ -31,6 +31,9 @@ enum MemoryCategory: string {
 
 	/**
 	 * Check if a value is a valid category.
+	 *
+	 * @param string $value The category string to validate.
+	 * @return bool True if valid, false otherwise.
 	 */
 	public static function isValid( string $value ): bool {
 		return in_array( $value, self::values(), true );
@@ -38,6 +41,9 @@ enum MemoryCategory: string {
 
 	/**
 	 * Get a category from string, defaulting to General if invalid.
+	 *
+	 * @param string $value The category string to convert.
+	 * @return self The matching enum case, or General if the value is invalid.
 	 */
 	public static function fromStringOrDefault( string $value ): self {
 		return self::tryFrom( $value ) ?? self::General;

@@ -30,6 +30,9 @@ enum Schedule: string {
 
 	/**
 	 * Check if a value is a valid schedule.
+	 *
+	 * @param string $value The schedule string to validate.
+	 * @return bool True if valid, false otherwise.
 	 */
 	public static function isValid( string $value ): bool {
 		return in_array( $value, self::values(), true );

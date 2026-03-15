@@ -2,7 +2,8 @@
 	"extends": "@wordpress/stylelint-config/scss",
 	"rules": {
 		"no-descending-specificity": null,
-		"font-family-no-missing-generic-family-keyword": null
+		"font-family-no-missing-generic-family-keyword": null,
+		"selector-class-pattern": null
 	},
 	"ignoreFiles": [
 		"build/**",

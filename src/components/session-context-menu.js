@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -26,11 +26,6 @@ export default function SessionContextMenu( { session, onClose } ) {
 		moveSessionToFolder,
 		exportSession,
 	} = useDispatch( STORE_NAME );
-
-	const sessionFilter = useSelect(
-		( select ) => select( STORE_NAME ).getSessionFilter(),
-		[]
-	);
 
 	const sessionId = parseInt( session.id, 10 );
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
@@ -72,6 +67,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 								onClose();
 							}
 						} }
+						// eslint-disable-next-line jsx-a11y/no-autofocus
 						autoFocus
 					/>
 					<button type="button" onClick={ handleRename }>

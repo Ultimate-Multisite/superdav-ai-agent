@@ -107,15 +107,29 @@ class SimpleAiResult {
 			private int $prompt;
 			private int $completion;
 
+			/**
+			 * @param int $prompt     Number of prompt tokens.
+			 * @param int $completion Number of completion tokens.
+			 */
 			public function __construct( int $prompt, int $completion ) {
 				$this->prompt     = $prompt;
 				$this->completion = $completion;
 			}
 
+			/**
+			 * Get the number of prompt (input) tokens used.
+			 *
+			 * @return int
+			 */
 			public function getPromptTokens(): int {
 				return $this->prompt;
 			}
 
+			/**
+			 * Get the number of completion (output) tokens used.
+			 *
+			 * @return int
+			 */
 			public function getCompletionTokens(): int {
 				return $this->completion;
 			}

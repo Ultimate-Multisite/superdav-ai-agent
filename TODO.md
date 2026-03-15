@@ -68,15 +68,15 @@
 ### Code Quality & Dev Environment (P1)
 
 - [ ] t006 Fix npm audit vulnerabilities (21 issues: 7 moderate, 14 high) @dave #security ~2h logged:2026-03-14
-- [ ] t007 Add pre-commit hooks via husky + lint-staged for PHP/JS/CSS @dave #quality ~2h logged:2026-03-14
-- [ ] t008 Make CI workflows non-continue-on-error @dave #ci ~1h logged:2026-03-14
-- [ ] t009 Tighten PHPCS: re-enable EscapeOutput, add nonce verification rules @dave #quality ~4h logged:2026-03-14
+- [x] t007 Add pre-commit hooks via husky + lint-staged for PHP/JS/CSS @dave #quality ~2h logged:2026-03-14 pr:#84 completed:2026-03-15
+- [x] t008 Make CI workflows non-continue-on-error @dave #ci ~1h logged:2026-03-14 pr:#83 completed:2026-03-15
+- [x] t009 Tighten PHPCS: re-enable EscapeOutput, add nonce verification rules @dave #quality ~4h logged:2026-03-14 pr:#87 completed:2026-03-15
 - [ ] t010 Raise PHPStan level from 5 to 6, fix new errors @dave #quality ~4h logged:2026-03-14
-- [ ] t011 Add PHPDoc blocks to all classes/methods @dave #quality ~8h logged:2026-03-14
+- [x] t011 Add PHPDoc blocks to all classes/methods @dave #quality ~8h logged:2026-03-14 pr:#89 completed:2026-03-15
 
 ### Testing Infrastructure (P1)
 
-- [ ] t012 Set up wp-env based test runner for local and CI @dave #testing ~4h logged:2026-03-14
+- [x] t012 Set up wp-env based test runner for local and CI @dave #testing ~4h logged:2026-03-14 pr:#88 completed:2026-03-15
 - [ ] t013 Add integration tests for all Abilities classes @dave #testing ~8h logged:2026-03-14 blocked-by:t012
 - [ ] t014 Add integration tests for AgentLoop (mock AI responses) @dave #testing ~6h logged:2026-03-14 blocked-by:t012
 - [ ] t015 Add integration tests for RestController endpoints @dave #testing ~4h logged:2026-03-14 blocked-by:t012
@@ -110,7 +110,7 @@
 - [ ] t041 Update compat layer to match WordPress/ai Abstract_Ability pattern @dave #refactor ~4h logged:2026-03-14
 - [ ] t042 Port abilities from WordPress/ai experiments plugin @dave #feature ~6h logged:2026-03-14 blocked-by:t041
 - [ ] t043 Add Abilities Explorer admin page @dave #feature ~6h logged:2026-03-14
-- [ ] t044 Support all three official AI providers @dave #feature ~3h logged:2026-03-14
+- [ ] t044 Support all three official AI providers @dave #feature ~3h logged:2026-03-14 pr:#93 ref=GH#53
 
 ### White-Label & Resale (P2)
 
@@ -162,9 +162,9 @@
 
 ### Documentation & Packaging (P2)
 
-- [ ] t057 Add CONTRIBUTING.md with dev setup, testing, and PR guidelines @dave #docs ~1h logged:2026-03-14
+- [x] t057 Add CONTRIBUTING.md with dev setup, testing, and PR guidelines @dave #docs ~1h logged:2026-03-14 pr:#167 completed:2026-03-15
 - [ ] t058 Add WordPress Playground blueprint for instant demo @dave #devops ~2h logged:2026-03-14
-- [ ] t059 Update .distignore for clean plugin packaging @dave #devops ~1h logged:2026-03-14
+- [x] t059 Update .distignore for clean plugin packaging @dave #devops ~1h logged:2026-03-14 pr:#168 completed:2026-03-15
 
 ## Done
 

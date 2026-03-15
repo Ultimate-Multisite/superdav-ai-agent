@@ -1,8 +1,13 @@
 /**
  * WordPress dependencies
  */
-import { createRoot } from '@wordpress/element';
-import { useEffect, useState, useCallback, useMemo } from '@wordpress/element';
+import {
+	createRoot,
+	useEffect,
+	useState,
+	useCallback,
+	useMemo,
+} from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 
 /**

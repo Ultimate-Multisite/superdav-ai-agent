@@ -8,35 +8,23 @@ on:
 
 jobs:
   phpunit:
-    name: PHPUnit (PHP ${{ matrix.php }})
+    name: PHPUnit (wp-env)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php: ['8.2', '8.3']
-      fail-fast: false
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: wordpress_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: '8.2'
           extensions: mbstring, intl, zip, pdo_sqlite, mysqli
           tools: composer:v2
           coverage: none
@@ -52,18 +40,21 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Install dependencies
+      - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Install subversion
-        run: sudo apt-get update && sudo apt-get install -y subversion
+      - name: Install npm dependencies
+        run: npm ci
 
-      - name: Install WordPress test suite
-        run: |
-          bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 latest true
+      - name: Start wp-env
+        run: npm run wp-env:start
 
-      - name: Run PHPUnit
-        run: vendor/bin/phpunit
+      - name: Run PHPUnit via wp-env
+        run: npm run test:php
+
+      - name: Stop wp-env
+        if: always()
+        run: npm run wp-env:stop
 
   phpcs:
     name: PHPCS

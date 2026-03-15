@@ -26,7 +26,6 @@ jobs:
 
       - name: Run ESLint
         run: npx eslint src/ --ext .js,.jsx --format stylish
-        continue-on-error: true
 
   stylelint:
     name: Stylelint
@@ -47,7 +46,6 @@ jobs:
 
       - name: Run Stylelint
         run: npx stylelint "src/**/*.css" --formatter verbose
-        continue-on-error: true
 
   build:
     name: Build Check

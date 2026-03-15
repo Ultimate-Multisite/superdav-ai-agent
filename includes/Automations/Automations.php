@@ -191,7 +191,7 @@ class Automations {
 			[ '%d' ]
 		);
 
-		return $result !== false;
+		return (int) $result > 0;
 	}
 
 	/**

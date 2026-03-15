@@ -174,7 +174,7 @@ class EventAutomations {
 			[ '%d' ]
 		);
 
-		return $result !== false;
+		return (int) $result > 0;
 	}
 
 	/**

@@ -61,6 +61,14 @@ const components = {
 
 const remarkPlugins = [ remarkGfm ];
 
+/**
+ * Renders markdown content using ReactMarkdown with GFM support.
+ * Uses custom renderers for code blocks, links, tables, and images.
+ *
+ * @param {Object} props         - Component props.
+ * @param {string} props.content - Markdown string to render.
+ * @return {JSX.Element} Rendered markdown element.
+ */
 export default function MarkdownMessage( { content } ) {
 	const memoizedContent = useMemo( () => content, [ content ] );
 

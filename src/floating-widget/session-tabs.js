@@ -11,6 +11,12 @@ import { plus } from '@wordpress/icons';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Horizontal tab bar showing up to 5 recent sessions in the floating panel.
+ * Returns null when there are no sessions.
+ *
+ * @return {JSX.Element|null} Session tabs element, or null if no sessions.
+ */
 export default function SessionTabs() {
 	const { sessions, currentSessionId } = useSelect(
 		( select ) => ( {

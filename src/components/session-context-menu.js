@@ -11,6 +11,15 @@ import { __ } from '@wordpress/i18n';
 import STORE_NAME from '../store';
 import FolderPicker from './folder-picker';
 
+/**
+ * Context menu for a session item. Provides rename, pin, folder, export,
+ * archive, trash, and restore actions. Closes on click outside.
+ *
+ * @param {Object}                     props         - Component props.
+ * @param {import('../store').Session} props.session - Session data.
+ * @param {Function}                   props.onClose - Callback to close the menu.
+ * @return {JSX.Element} Context menu element.
+ */
 export default function SessionContextMenu( { session, onClose } ) {
 	const [ showFolderPicker, setShowFolderPicker ] = useState( false );
 	const [ isRenaming, setIsRenaming ] = useState( false );

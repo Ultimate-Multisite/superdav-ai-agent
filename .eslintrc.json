@@ -10,6 +10,7 @@
 	},
 	"rules": {
 		"jsdoc/require-jsdoc": "off",
+		"jsdoc/no-undefined-types": [ "error", { "definedTypes": [ "JSX" ] } ],
 		"@wordpress/no-unsafe-wp-apis": "warn",
 		"no-console": "warn"
 	},

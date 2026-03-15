@@ -3,6 +3,14 @@
  */
 import { __ } from '@wordpress/i18n';
 
+/**
+ * Collapsible details panel showing tool calls and their results.
+ * Returns null when there are no tool calls.
+ *
+ * @param {Object}                        props           - Component props.
+ * @param {import('../store').ToolCall[]} props.toolCalls - Tool call entries to display.
+ * @return {JSX.Element|null} Tool call details element, or null if empty.
+ */
 export default function ToolCallDetails( { toolCalls } ) {
 	if ( ! toolCalls?.length ) {
 		return null;
@@ -65,6 +73,13 @@ export default function ToolCallDetails( { toolCalls } ) {
 	);
 }
 
+/**
+ * Truncate a string to a maximum length, appending '...' if truncated.
+ *
+ * @param {string} str - Input string.
+ * @param {number} max - Maximum character length.
+ * @return {string} Truncated string.
+ */
 function truncate( str, max ) {
 	if ( ! str ) {
 		return '';

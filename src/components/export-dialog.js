@@ -10,6 +10,15 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 
+/**
+ * Modal dialog for exporting a session in JSON or Markdown format.
+ * Closes on Escape key or click outside.
+ *
+ * @param {Object}   props           - Component props.
+ * @param {number}   props.sessionId - ID of the session to export.
+ * @param {Function} props.onClose   - Callback to close the dialog.
+ * @return {JSX.Element} Export dialog element.
+ */
 export default function ExportDialog( { sessionId, onClose } ) {
 	const [ format, setFormat ] = useState( 'json' );
 	const { exportSession } = useDispatch( STORE_NAME );

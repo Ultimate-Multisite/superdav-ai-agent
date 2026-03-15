@@ -12,6 +12,13 @@ import FloatingButton from './floating-button';
 import FloatingPanel from './floating-panel';
 import './style.css';
 
+/**
+ * Root floating widget component. Renders either the floating button or the
+ * floating panel depending on open state. Fetches providers and sessions on mount
+ * and gathers page context.
+ *
+ * @return {JSX.Element} Floating widget element.
+ */
 function FloatingWidget() {
 	const { fetchProviders, fetchSessions, setPageContext } =
 		useDispatch( STORE_NAME );
@@ -42,9 +49,10 @@ function FloatingWidget() {
 }
 
 /**
- * Gather structured context about the current admin page.
+ * Gather structured context about the current WordPress admin page.
  *
- * Returns an object with url, admin_page, screen_id, post_id.
+ * @return {{url: string, admin_page?: string, screen_id?: string, post_id?: number, page_title?: string}}
+ *   Page context object with available fields populated from the DOM and window globals.
  */
 function gatherPageContext() {
 	const context = {

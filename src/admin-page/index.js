@@ -21,6 +21,12 @@ import ShortcutsHelp from '../components/shortcuts-help';
 import { useKeyboardShortcuts } from '../utils/keyboard-shortcuts';
 import './style.css';
 
+/**
+ * Root admin page application component. Renders the session sidebar and chat panel,
+ * handles onboarding wizard display, keyboard shortcuts, and slash command routing.
+ *
+ * @return {JSX.Element|null} Admin page app element, or null while settings are loading.
+ */
 function AdminPageApp() {
 	const {
 		fetchProviders,

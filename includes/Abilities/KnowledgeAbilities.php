@@ -52,6 +52,15 @@ class KnowledgeAbilities {
 					],
 					'required'   => [ 'query' ],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'results' => [ 'type' => 'array' ],
+						'count'   => [ 'type' => 'integer' ],
+						'message' => [ 'type' => 'string' ],
+						'error'   => [ 'type' => 'string' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_knowledge_search' ],
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' ); },

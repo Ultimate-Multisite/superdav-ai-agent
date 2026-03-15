@@ -46,6 +46,19 @@ class MarketingAbilities {
 					],
 					'required'   => [ 'url' ],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'url'              => [ 'type' => 'string' ],
+						'status_code'      => [ 'type' => 'integer' ],
+						'headers'          => [ 'type' => 'object' ],
+						'title'            => [ 'type' => 'string' ],
+						'meta_description' => [ 'type' => 'string' ],
+						'generator'        => [ 'type' => 'string' ],
+						'head_content'     => [ 'type' => 'string' ],
+						'error'            => [ 'type' => 'string' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_fetch_url' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -68,6 +81,17 @@ class MarketingAbilities {
 						],
 					],
 					'required'   => [ 'url' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'url'         => [ 'type' => 'string' ],
+						'status_code' => [ 'type' => 'integer' ],
+						'security'    => [ 'type' => 'array' ],
+						'performance' => [ 'type' => 'array' ],
+						'cdn'         => [ 'type' => 'array' ],
+						'error'       => [ 'type' => 'string' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_analyze_headers' ],
 				'permission_callback' => function () {

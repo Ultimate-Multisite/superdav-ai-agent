@@ -51,6 +51,14 @@ class BlockAbilities {
 					],
 					'required'   => [ 'markdown' ],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_content' => [ 'type' => 'string' ],
+						'block_count'   => [ 'type' => 'integer' ],
+						'error'         => [ 'type' => 'string' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_markdown_to_blocks' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -86,6 +94,16 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_types' => [ 'type' => 'array' ],
+						'total'       => [ 'type' => 'integer' ],
+						'page'        => [ 'type' => 'integer' ],
+						'per_page'    => [ 'type' => 'integer' ],
+						'categories'  => [ 'type' => 'object' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_types' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -108,6 +126,20 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [ 'name' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'name'           => [ 'type' => 'string' ],
+						'title'          => [ 'type' => 'string' ],
+						'description'    => [ 'type' => 'string' ],
+						'category'       => [ 'type' => 'string' ],
+						'keywords'       => [ 'type' => 'array' ],
+						'attributes'     => [ 'type' => 'object' ],
+						'supports'       => [ 'type' => 'object' ],
+						'example_markup' => [ 'type' => 'string' ],
+						'error'          => [ 'type' => 'string' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_get_block_type' ],
 				'permission_callback' => function () {
@@ -144,6 +176,14 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'patterns'   => [ 'type' => 'array' ],
+						'total'      => [ 'type' => 'integer' ],
+						'categories' => [ 'type' => 'object' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_patterns' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -167,6 +207,13 @@ class BlockAbilities {
 					],
 					'required'   => [],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'templates' => [ 'type' => 'array' ],
+						'total'     => [ 'type' => 'integer' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_list_block_templates' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -189,6 +236,14 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [ 'blocks' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_content' => [ 'type' => 'string' ],
+						'block_count'   => [ 'type' => 'integer' ],
+						'error'         => [ 'type' => 'string' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_create_block_content' ],
 				'permission_callback' => function () {
@@ -220,6 +275,14 @@ class BlockAbilities {
 						],
 					],
 					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'blocks'      => [ 'type' => 'array' ],
+						'block_count' => [ 'type' => 'integer' ],
+						'error'       => [ 'type' => 'string' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_parse_block_content' ],
 				'permission_callback' => function () {

@@ -54,6 +54,22 @@ class ContentAbilities {
 					],
 					'required'   => [],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'post_type'                      => [ 'type' => 'string' ],
+						'total_analyzed'                 => [ 'type' => 'integer' ],
+						'publishing_frequency'           => [ 'type' => 'object' ],
+						'avg_word_count'                 => [ 'type' => 'integer' ],
+						'min_word_count'                 => [ 'type' => 'integer' ],
+						'max_word_count'                 => [ 'type' => 'integer' ],
+						'category_distribution'          => [ 'type' => 'object' ],
+						'posts_without_featured_image'   => [ 'type' => 'array' ],
+						'posts_without_meta_description' => [ 'type' => 'array' ],
+						'content_gap_categories'         => [ 'type' => 'array' ],
+						'thin_content_count'             => [ 'type' => 'integer' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_content_analyze' ],
 				'permission_callback' => function () {
 					return current_user_can( 'edit_posts' );
@@ -80,6 +96,20 @@ class ContentAbilities {
 						],
 					],
 					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'period_days'               => [ 'type' => 'integer' ],
+						'posts_published'           => [ 'type' => 'integer' ],
+						'previous_period_published' => [ 'type' => 'integer' ],
+						'avg_word_count'            => [ 'type' => 'integer' ],
+						'posts_by_category'         => [ 'type' => 'object' ],
+						'posts_by_author'           => [ 'type' => 'object' ],
+						'all_posts_by_status'       => [ 'type' => 'object' ],
+						'drafts_pending_review'     => [ 'type' => 'array' ],
+						'drafts_pending_count'      => [ 'type' => 'integer' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_performance_report' ],
 				'permission_callback' => function () {

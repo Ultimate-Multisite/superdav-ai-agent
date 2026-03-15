@@ -48,6 +48,15 @@ class SkillAbilities {
 					],
 					'required'   => [ 'slug' ],
 				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'name'    => [ 'type' => 'string' ],
+						'slug'    => [ 'type' => 'string' ],
+						'content' => [ 'type' => 'string' ],
+						'error'   => [ 'type' => 'string' ],
+					],
+				],
 				'execute_callback'    => [ __CLASS__, 'handle_skill_load' ],
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' ); },
@@ -63,6 +72,13 @@ class SkillAbilities {
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'skills'  => [ 'type' => 'array' ],
+						'message' => [ 'type' => 'string' ],
+					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_skill_list' ],
 				'permission_callback' => function () {

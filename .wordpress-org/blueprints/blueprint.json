@@ -20,15 +20,6 @@
   },
   "steps": [
     {
-      "step": "defineWpConfigConsts",
-      "consts": {
-        "WP_DEBUG": true,
-        "WP_DEBUG_LOG": true,
-        "WP_DEBUG_DISPLAY": true,
-        "SCRIPT_DEBUG": true
-      }
-    },
-    {
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
@@ -45,6 +36,14 @@
         "blogname": "AI Agent Demo",
         "blogdescription": "WordPress AI Agent — instant demo"
       }
+    },
+    {
+      "step": "wp-cli",
+      "command": "user update admin --display_name='Demo Admin' --user_email=demo@example.com"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; update_option('ai_agent_settings', array_merge((array) get_option('ai_agent_settings', []), ['_demo_note' => 'Add your API key under Tools > AI Agent Settings > General to start chatting.'])); echo 'Demo settings applied.'; ?>"
     }
   ]
 }

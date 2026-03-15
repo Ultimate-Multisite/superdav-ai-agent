@@ -2,7 +2,7 @@
 
 ## Ready
 
-- [ ] t090 Rename plugin to "Gratis AI Agent" with slug "gratis-ai-agent" for WP.org guidelines @dave #chore ~4h logged:2026-03-15
+- [x] t090 Rename plugin to "Gratis AI Agent" with slug "gratis-ai-agent" for WP.org guidelines @dave #chore ~4h logged:2026-03-15 pr:#194 completed:2026-03-15
   - Rename main file, text domain, namespace, constants, REST namespace, DB tables, options, CSS classes, ability names, CLI command, build assets, config files, CI/docs
   - Add activation hook migration for existing installs (detect old option/table names and rename)
 
@@ -10,7 +10,7 @@
 
 ### Onboarding & First-Run Experience (P0)
 
-- [ ] t060 Detect fresh WordPress install and trigger site builder mode @dave #feature ~3h logged:2026-03-15 blocked-by:t090
+- [ ] t060 Detect fresh WordPress install and trigger site builder mode @dave #feature ~3h logged:2026-03-15
   - Check post count, theme, and whether any real content exists
   - Set `site_builder_mode` flag; floating widget opens automatically in expanded mode
 - [ ] t061 Site builder conversation flow: interview user then generate full site @dave #feature ~12h logged:2026-03-15 blocked-by:t060
@@ -20,13 +20,13 @@
   - Target: 5-page site from prompt in < 3 minutes
 - [ ] t062 Full-screen site builder widget mode for fresh installs @dave #ui ~6h logged:2026-03-15 blocked-by:t060
   - Centered full-screen overlay instead of FAB; progress indicators; "Skip" option
-- [ ] t063 Smart onboarding: agent scans existing site on first activation @dave #feature ~8h logged:2026-03-15 blocked-by:t090
+- [ ] t063 Smart onboarding: agent scans existing site on first activation @dave #feature ~8h logged:2026-03-15
   - Background wp-cron scan: plugins, theme, post types, post count, categories, WooCommerce status
   - Store results as memories; detect site type; index first 50 posts into knowledge base
 - [ ] t064 Onboarding interview: ask user about site goals after scan @dave #feature ~4h logged:2026-03-15 blocked-by:t063
   - Agent asks targeted questions based on scan results
   - Store answers as memories; suggest relevant automations
-- [ ] t065 Integrate provider setup into onboarding conversation @dave #ui ~4h logged:2026-03-15 blocked-by:t090
+- [ ] t065 Integrate provider setup into onboarding conversation @dave #ui ~4h logged:2026-03-15
   - Replace 4-step wizard with conversational flow; agent guides provider setup in chat
 
 ### Floating Widget & Frontend (P0)

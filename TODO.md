@@ -80,7 +80,7 @@
 - [ ] t013 Add integration tests for all Abilities classes @dave #testing ~8h logged:2026-03-14 blocked-by:t012
 - [ ] t014 Add integration tests for AgentLoop (mock AI responses) @dave #testing ~6h logged:2026-03-14 blocked-by:t012
 - [ ] t015 Add integration tests for RestController endpoints @dave #testing ~4h logged:2026-03-14 blocked-by:t012
-- [ ] t016 Add integration tests for Database schema and migrations @dave #testing ~3h logged:2026-03-14 blocked-by:t012
+- [x] t016 Add integration tests for Database schema and migrations @dave #testing ~3h logged:2026-03-14 blocked-by:t012 pr:#273 completed:2026-03-15
 - [ ] t017 Add integration tests for Automations system @dave #testing ~4h logged:2026-03-14 blocked-by:t012
 - [ ] t018 Add JS unit tests with @wordpress/scripts test-unit-js @dave #testing ~6h logged:2026-03-14
 - [ ] t019 Add code coverage reporting to CI @dave #ci ~2h logged:2026-03-14 blocked-by:t012

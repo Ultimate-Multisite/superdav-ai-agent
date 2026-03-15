@@ -60,6 +60,10 @@ const DEFAULT_STATE = {
 	// Debug mode
 	debugMode: localStorage.getItem( 'aiAgentDebugMode' ) === 'true',
 	sendTimestamp: 0,
+
+	// Streaming state — token buffer for the in-progress assistant message.
+	streamingText: '',
+	isStreaming: false,
 };
 
 const actions = {
@@ -146,6 +150,18 @@ const actions = {
 	setSendTimestamp( ts ) {
 		return { type: 'SET_SEND_TIMESTAMP', ts };
 	},
+	setStreamingText( text ) {
+		return { type: 'SET_STREAMING_TEXT', text };
+	},
+	appendStreamingText( token ) {
+		return { type: 'APPEND_STREAMING_TEXT', token };
+	},
+	setIsStreaming( streaming ) {
+		return { type: 'SET_IS_STREAMING', streaming };
+	},
+	setStreamAbortController( controller ) {
+		return { type: 'SET_STREAM_ABORT_CONTROLLER', controller };
+	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
 
@@ -226,13 +242,9 @@ const actions = {
 						( p ) => p.id === session.provider_id
 					);
 					if ( providerExists ) {
-						dispatch.setSelectedProvider(
-							session.provider_id
-						);
+						dispatch.setSelectedProvider( session.provider_id );
 						if ( session.model_id ) {
-							dispatch.setSelectedModel(
-								session.model_id
-							);
+							dispatch.setSelectedModel( session.model_id );
 						}
 					}
 				}
@@ -358,10 +370,7 @@ const actions = {
 					? JSON.stringify( result.content, null, 2 )
 					: result.content;
 			const blob = new Blob( [ content ], {
-				type:
-					format === 'json'
-						? 'application/json'
-						: 'text/markdown',
+				type: format === 'json' ? 'application/json' : 'text/markdown',
 			} );
 			const url = URL.createObjectURL( blob );
 			const a = document.createElement( 'a' );
@@ -416,8 +425,326 @@ const actions = {
 	},
 
 	stopGeneration() {
-		return async ( { dispatch } ) => {
+		return async ( { dispatch, select } ) => {
+			// Abort any active SSE stream.
+			const controller = select.getStreamAbortController();
+			if ( controller ) {
+				controller.abort();
+				dispatch.setStreamAbortController( null );
+			}
 			dispatch.setCurrentJobId( null );
+			dispatch.setSending( false );
+			dispatch.setIsStreaming( false );
+			dispatch.setStreamingText( '' );
+		};
+	},
+
+	/**
+	 * Send a message and stream the response token-by-token via SSE.
+	 *
+	 * Uses the Fetch API with a ReadableStream reader to consume the
+	 * text/event-stream response from POST /ai-agent/v1/stream.
+	 *
+	 * @param {string} message The user message to send.
+	 */
+	streamMessage( message ) {
+		return async ( { dispatch, select } ) => {
+			dispatch.setSending( true );
+			dispatch.setIsStreaming( false );
+			dispatch.setStreamingText( '' );
+
+			// Append user message immediately.
+			dispatch.appendMessage( {
+				role: 'user',
+				parts: [ { text: message } ],
+			} );
+
+			let sessionId = select.getCurrentSessionId();
+
+			// Lazy-create session on first message.
+			if ( ! sessionId ) {
+				try {
+					const session = await apiFetch( {
+						path: '/ai-agent/v1/sessions',
+						method: 'POST',
+						data: {
+							provider_id: select.getSelectedProviderId(),
+							model_id: select.getSelectedModelId(),
+						},
+					} );
+					sessionId = session.id;
+					dispatch.setCurrentSession(
+						session.id,
+						select.getCurrentSessionMessages(),
+						[]
+					);
+				} catch {
+					dispatch.appendMessage( {
+						role: 'system',
+						parts: [ { text: 'Error: Failed to create session.' } ],
+					} );
+					dispatch.setSending( false );
+					return;
+				}
+			}
+
+			const body = {
+				message,
+				session_id: sessionId,
+				provider_id: select.getSelectedProviderId(),
+				model_id: select.getSelectedModelId(),
+			};
+
+			const pageContext = select.getPageContext();
+			if ( pageContext ) {
+				body.page_context = pageContext;
+			}
+
+			dispatch.setSendTimestamp( Date.now() );
+
+			// Build the URL with nonce for authentication.
+			const streamUrl =
+				( window.wpApiSettings?.root || '/wp-json/' ) +
+				'ai-agent/v1/stream';
+
+			const abortController = new AbortController();
+			dispatch.setStreamAbortController( abortController );
+
+			let response;
+			try {
+				response = await fetch( streamUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': window.wpApiSettings?.nonce || '',
+					},
+					body: JSON.stringify( body ),
+					signal: abortController.signal,
+				} );
+			} catch ( err ) {
+				if ( err.name === 'AbortError' ) {
+					dispatch.setSending( false );
+					dispatch.setIsStreaming( false );
+					dispatch.setStreamingText( '' );
+					dispatch.setStreamAbortController( null );
+					return;
+				}
+				dispatch.appendMessage( {
+					role: 'system',
+					parts: [
+						{
+							text: `Error: ${
+								err.message || 'Failed to connect to stream'
+							}`,
+						},
+					],
+				} );
+				dispatch.setSending( false );
+				dispatch.setStreamAbortController( null );
+				return;
+			}
+
+			if ( ! response.ok ) {
+				dispatch.appendMessage( {
+					role: 'system',
+					parts: [
+						{
+							text: `Error: HTTP ${ response.status } from stream endpoint`,
+						},
+					],
+				} );
+				dispatch.setSending( false );
+				dispatch.setStreamAbortController( null );
+				return;
+			}
+
+			dispatch.setIsStreaming( true );
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = '';
+			let accumulatedText = '';
+			let doneMetadata = null;
+			let pendingConfirmationData = null;
+
+			try {
+				// eslint-disable-next-line no-constant-condition
+				while ( true ) {
+					const { done, value } = await reader.read();
+					if ( done ) {
+						break;
+					}
+
+					buffer += decoder.decode( value, { stream: true } );
+
+					// Process complete SSE messages (terminated by \n\n).
+					const parts = buffer.split( '\n\n' );
+					// Keep the last (possibly incomplete) chunk in the buffer.
+					buffer = parts.pop() || '';
+
+					for ( const part of parts ) {
+						const lines = part.split( '\n' );
+						let eventName = 'message';
+						let dataLine = '';
+
+						for ( const line of lines ) {
+							if ( line.startsWith( 'event: ' ) ) {
+								eventName = line.slice( 7 );
+							} else if ( line.startsWith( 'data: ' ) ) {
+								dataLine = line.slice( 6 );
+							}
+						}
+
+						if ( ! dataLine ) {
+							continue;
+						}
+
+						let payload;
+						try {
+							payload = JSON.parse( dataLine );
+						} catch {
+							continue;
+						}
+
+						switch ( eventName ) {
+							case 'token':
+								accumulatedText += payload.token || '';
+								dispatch.appendStreamingText(
+									payload.token || ''
+								);
+								break;
+
+							case 'tool_call':
+								// Tool calls are surfaced in the done metadata.
+								break;
+
+							case 'tool_result':
+								// Tool results are surfaced in the done metadata.
+								break;
+
+							case 'confirmation_required':
+								pendingConfirmationData = payload;
+								break;
+
+							case 'done':
+								doneMetadata = payload;
+								break;
+
+							case 'error':
+								dispatch.setIsStreaming( false );
+								dispatch.setStreamingText( '' );
+								dispatch.appendMessage( {
+									role: 'system',
+									parts: [
+										{
+											text: `Error: ${
+												payload.message ||
+												'Unknown error'
+											}`,
+										},
+									],
+								} );
+								dispatch.setSending( false );
+								dispatch.setStreamAbortController( null );
+								return;
+						}
+					}
+				}
+			} catch ( err ) {
+				if ( err.name !== 'AbortError' ) {
+					dispatch.appendMessage( {
+						role: 'system',
+						parts: [
+							{
+								text: `Error: ${
+									err.message || 'Stream read error'
+								}`,
+							},
+						],
+					} );
+				}
+				dispatch.setIsStreaming( false );
+				dispatch.setStreamingText( '' );
+				dispatch.setSending( false );
+				dispatch.setStreamAbortController( null );
+				return;
+			}
+
+			dispatch.setIsStreaming( false );
+			dispatch.setStreamingText( '' );
+			dispatch.setStreamAbortController( null );
+
+			// Handle tool confirmation pause.
+			if ( pendingConfirmationData ) {
+				dispatch.setPendingConfirmation( {
+					jobId: pendingConfirmationData.job_id,
+					tools: pendingConfirmationData.pending_tools || [],
+				} );
+				// Keep sending=true — we're still waiting for user input.
+				return;
+			}
+
+			// Commit the streamed text as a proper message.
+			if ( accumulatedText ) {
+				const msg = {
+					role: 'model',
+					parts: [ { text: accumulatedText } ],
+					toolCalls: doneMetadata?.tool_calls || [],
+				};
+
+				if ( select.isDebugMode() && doneMetadata ) {
+					const sendTs = select.getSendTimestamp();
+					const elapsed = sendTs ? Date.now() - sendTs : 0;
+					const tu = doneMetadata.token_usage || {};
+					const completionTokens = tu.completion || 0;
+					const promptTokens = tu.prompt || 0;
+					const tokPerSec =
+						elapsed > 0 ? completionTokens / ( elapsed / 1000 ) : 0;
+					const tc = doneMetadata.tool_calls || [];
+					const toolCalls = tc.filter( ( t ) => t.type === 'call' );
+					const toolNames = [
+						...new Set( toolCalls.map( ( t ) => t.name ) ),
+					];
+
+					msg.debug = {
+						responseTimeMs: elapsed,
+						tokenUsage: {
+							prompt: promptTokens,
+							completion: completionTokens,
+						},
+						tokensPerSecond: Math.round( tokPerSec * 10 ) / 10,
+						modelId: doneMetadata.model_id || '',
+						costEstimate: doneMetadata.cost_estimate || 0,
+						iterationsUsed: doneMetadata.iterations_used || 0,
+						toolCallCount: toolCalls.length,
+						toolNames,
+					};
+				}
+
+				dispatch.appendMessage( msg );
+			}
+
+			if ( doneMetadata?.session_id ) {
+				dispatch.setCurrentSession(
+					doneMetadata.session_id,
+					select.getCurrentSessionMessages(),
+					select.getCurrentSessionToolCalls()
+				);
+			}
+
+			if ( doneMetadata?.token_usage ) {
+				const current = select.getTokenUsage();
+				dispatch.setTokenUsage( {
+					prompt:
+						current.prompt +
+						( doneMetadata.token_usage.prompt || 0 ),
+					completion:
+						current.completion +
+						( doneMetadata.token_usage.completion || 0 ),
+				} );
+			}
+
+			dispatch.fetchSessions();
 			dispatch.setSending( false );
 		};
 	},
@@ -437,7 +764,9 @@ const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `Error: ${ err.message || 'Failed to confirm tool call' }`,
+							text: `Error: ${
+								err.message || 'Failed to confirm tool call'
+							}`,
 						},
 					],
 				} );
@@ -461,7 +790,9 @@ const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `Error: ${ err.message || 'Failed to reject tool call' }`,
+							text: `Error: ${
+								err.message || 'Failed to reject tool call'
+							}`,
 						},
 					],
 				} );
@@ -548,7 +879,9 @@ const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `Error: ${ err.message || 'Failed to start job' }`,
+							text: `Error: ${
+								err.message || 'Failed to start job'
+							}`,
 						},
 					],
 				} );
@@ -603,7 +936,9 @@ const actions = {
 							role: 'system',
 							parts: [
 								{
-									text: `Error: ${ result.message || 'Unknown error' }`,
+									text: `Error: ${
+										result.message || 'Unknown error'
+									}`,
 								},
 							],
 						} );
@@ -621,21 +956,36 @@ const actions = {
 							// Attach debug metadata when debug mode is active.
 							if ( select.isDebugMode() ) {
 								const sendTs = select.getSendTimestamp();
-								const elapsed = sendTs ? Date.now() - sendTs : 0;
+								const elapsed = sendTs
+									? Date.now() - sendTs
+									: 0;
 								const tu = result.token_usage || {};
 								const completionTokens = tu.completion || 0;
 								const promptTokens = tu.prompt || 0;
-								const tokPerSec = elapsed > 0 ? ( completionTokens / ( elapsed / 1000 ) ) : 0;
+								const tokPerSec =
+									elapsed > 0
+										? completionTokens / ( elapsed / 1000 )
+										: 0;
 
 								// Derive tool call count and names.
 								const tc = result.tool_calls || [];
-								const toolCalls = tc.filter( ( t ) => t.type === 'call' );
-								const toolNames = [ ...new Set( toolCalls.map( ( t ) => t.name ) ) ];
+								const toolCalls = tc.filter(
+									( t ) => t.type === 'call'
+								);
+								const toolNames = [
+									...new Set(
+										toolCalls.map( ( t ) => t.name )
+									),
+								];
 
 								msg.debug = {
 									responseTimeMs: elapsed,
-									tokenUsage: { prompt: promptTokens, completion: completionTokens },
-									tokensPerSecond: Math.round( tokPerSec * 10 ) / 10,
+									tokenUsage: {
+										prompt: promptTokens,
+										completion: completionTokens,
+									},
+									tokensPerSecond:
+										Math.round( tokPerSec * 10 ) / 10,
 									modelId: result.model_id || '',
 									costEstimate: result.cost_estimate || 0,
 									iterationsUsed: result.iterations_used || 0,
@@ -976,6 +1326,18 @@ const selectors = {
 	getTokenUsage( state ) {
 		return state.tokenUsage;
 	},
+
+	// Streaming
+	getStreamingText( state ) {
+		return state.streamingText;
+	},
+	isStreamingActive( state ) {
+		return state.isStreaming;
+	},
+	getStreamAbortController( state ) {
+		return state.streamAbortController || null;
+	},
+
 	getContextPercentage( state ) {
 		const contextLimit =
 			MODEL_CONTEXT_WINDOWS[ state.selectedModelId ] ||
@@ -1093,6 +1455,17 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, debugMode: action.enabled };
 		case 'SET_SEND_TIMESTAMP':
 			return { ...state, sendTimestamp: action.ts };
+		case 'SET_STREAMING_TEXT':
+			return { ...state, streamingText: action.text };
+		case 'APPEND_STREAMING_TEXT':
+			return {
+				...state,
+				streamingText: state.streamingText + action.token,
+			};
+		case 'SET_IS_STREAMING':
+			return { ...state, isStreaming: action.streaming };
+		case 'SET_STREAM_ABORT_CONTROLLER':
+			return { ...state, streamAbortController: action.controller };
 		default:
 			return state;
 	}

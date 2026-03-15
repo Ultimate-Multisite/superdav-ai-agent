@@ -15,6 +15,7 @@ namespace AiAgent\Core;
 use AiAgent\Knowledge\Knowledge;
 use AiAgent\Models\Memory;
 use AiAgent\Models\Skill;
+use AiAgent\REST\SseStreamer;
 use AiAgent\Tools\ToolDiscovery;
 use AiAgent\Tools\ToolProfiles;
 use WP_AI_Client_Ability_Function_Resolver;
@@ -76,6 +77,9 @@ class AgentLoop {
 	/** @var WP_AI_Client_Ability_Function_Resolver|null */
 	private $ability_resolver = null;
 
+	/** @var SseStreamer|null Optional SSE streamer for token-by-token output. */
+	private ?SseStreamer $sse_streamer = null;
+
 	/**
 	 * @param string    $user_message The user's prompt.
 	 * @param string[]  $abilities    Ability names to enable (empty = all).
@@ -106,6 +110,11 @@ class AgentLoop {
 			'prompt'     => 0,
 			'completion' => 0,
 		];
+
+		// Optional SSE streamer for token-by-token output.
+		if ( isset( $options['sse_streamer'] ) && $options['sse_streamer'] instanceof SseStreamer ) {
+			$this->sse_streamer = $options['sse_streamer'];
+		}
 	}
 
 	/**
@@ -221,6 +230,17 @@ class AgentLoop {
 
 			// Log tool calls and check for confirmation requirement.
 			$this->log_tool_calls( $assistant_message );
+
+			// Emit tool_call events via SSE if streaming.
+			if ( null !== $this->sse_streamer ) {
+				foreach ( $assistant_message->getParts() as $part ) {
+					$call = $part->getFunctionCall();
+					if ( $call ) {
+						$this->sse_streamer->send_tool_call( $call->getName(), $call->getArgs() ?: [] );
+					}
+				}
+			}
+
 			$confirm_needed = $this->get_tools_needing_confirmation( $assistant_message );
 
 			if ( ! empty( $confirm_needed ) ) {
@@ -240,6 +260,16 @@ class AgentLoop {
 			$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
 			$this->history[]  = $response_message;
 			$this->log_tool_responses( $response_message );
+
+			// Emit tool_result events via SSE if streaming.
+			if ( null !== $this->sse_streamer ) {
+				foreach ( $response_message->getParts() as $part ) {
+					$fr = $part->getFunctionResponse();
+					if ( $fr ) {
+						$this->sse_streamer->send_tool_result( $fr->getName(), $fr->getResponse() );
+					}
+				}
+			}
 		}
 
 		// Exhausted iterations — return what we have so callers can inspect the log.
@@ -523,12 +553,14 @@ class AgentLoop {
 		$api_key = (string) get_option( 'openai_compat_api_key', 'no-key' );
 		$timeout = (int) get_option( 'openai_compat_timeout', 600 );
 
+		$use_streaming = null !== $this->sse_streamer;
+
 		$request_body = [
 			'model'       => $model_id,
 			'messages'    => $messages,
 			'temperature' => (float) $this->temperature,
 			'max_tokens'  => (int) $this->max_output_tokens,
-			'stream'      => false,
+			'stream'      => $use_streaming,
 		];
 
 		if ( ! empty( $tools ) ) {
@@ -564,6 +596,11 @@ class AgentLoop {
 		// converts stdClass back to an empty array during serialization.
 		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
 
+		// When streaming, use PHP stream context to read the SSE response line-by-line.
+		if ( $use_streaming ) {
+			return $this->send_prompt_direct_streaming( $endpoint_url, $api_key, $encoded_body, $timeout );
+		}
+
 		$response = wp_remote_post(
 			$endpoint_url . '/chat/completions',
 			[
@@ -593,6 +630,149 @@ class AgentLoop {
 		$text = $data['choices'][0]['message']['content'] ?? '';
 
 		return new SimpleAiResult( $text, $data );
+	}
+
+	/**
+	 * Send a streaming prompt to the OpenAI-compatible endpoint.
+	 *
+	 * Opens a persistent HTTP connection, reads the SSE stream line-by-line,
+	 * emits each text delta token via the SseStreamer, and returns a
+	 * SimpleAiResult with the fully-assembled text once the stream ends.
+	 *
+	 * @param string $endpoint_url  Base URL of the OpenAI-compatible endpoint.
+	 * @param string $api_key       API key (may be 'no-key').
+	 * @param string $encoded_body  JSON-encoded request body (stream=true already set).
+	 * @param int    $timeout       Request timeout in seconds.
+	 * @return SimpleAiResult|WP_Error
+	 */
+	private function send_prompt_direct_streaming( string $endpoint_url, string $api_key, string $encoded_body, int $timeout ) {
+		$url = $endpoint_url . '/chat/completions';
+
+		$context = stream_context_create(
+			[
+				'http' => [
+					'method'        => 'POST',
+					'header'        => implode(
+						"\r\n",
+						[
+							'Content-Type: application/json',
+							'Authorization: Bearer ' . ( $api_key ?: 'no-key' ),
+							'Accept: text/event-stream',
+						]
+					),
+					'content'       => $encoded_body,
+					'timeout'       => $timeout,
+					'ignore_errors' => true,
+				],
+				'ssl'  => [
+					'verify_peer'      => false,
+					'verify_peer_name' => false,
+				],
+			]
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming HTTP requires fopen
+		$stream = fopen( $url, 'r', false, $context );
+
+		if ( false === $stream ) {
+			return new WP_Error( 'ai_agent_stream_open_failed', __( 'Failed to open streaming connection to AI endpoint.', 'ai-agent' ) );
+		}
+
+		$full_text        = '';
+		$tool_calls_delta = [];
+
+		// phpcs:ignore WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- standard stream-reading pattern
+		while ( ! feof( $stream ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgets -- streaming HTTP requires fgets
+			$line = fgets( $stream );
+
+			if ( false === $line ) {
+				break;
+			}
+
+			$line = rtrim( $line );
+
+			// SSE lines start with "data: ".
+			if ( strpos( $line, 'data: ' ) !== 0 ) {
+				continue;
+			}
+
+			$json_str = substr( $line, 6 );
+
+			if ( '[DONE]' === $json_str ) {
+				break;
+			}
+
+			$chunk = json_decode( $json_str, true );
+
+			if ( ! is_array( $chunk ) ) {
+				continue;
+			}
+
+			$delta = $chunk['choices'][0]['delta'] ?? [];
+
+			// Text token delta.
+			if ( isset( $delta['content'] ) && is_string( $delta['content'] ) && '' !== $delta['content'] ) {
+				$full_text .= $delta['content'];
+				if ( null !== $this->sse_streamer ) {
+					$this->sse_streamer->send_token( $delta['content'] );
+				}
+			}
+
+			// Tool call deltas — accumulate across chunks.
+			if ( ! empty( $delta['tool_calls'] ) ) {
+				foreach ( $delta['tool_calls'] as $tc_delta ) {
+					$idx = $tc_delta['index'] ?? 0;
+
+					if ( ! isset( $tool_calls_delta[ $idx ] ) ) {
+						$tool_calls_delta[ $idx ] = [
+							'id'       => '',
+							'type'     => 'function',
+							'function' => [
+								'name'      => '',
+								'arguments' => '',
+							],
+						];
+					}
+
+					if ( ! empty( $tc_delta['id'] ) ) {
+						$tool_calls_delta[ $idx ]['id'] = $tc_delta['id'];
+					}
+					if ( ! empty( $tc_delta['function']['name'] ) ) {
+						$tool_calls_delta[ $idx ]['function']['name'] .= $tc_delta['function']['name'];
+					}
+					if ( isset( $tc_delta['function']['arguments'] ) ) {
+						$tool_calls_delta[ $idx ]['function']['arguments'] .= $tc_delta['function']['arguments'];
+					}
+				}
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with fopen above
+		fclose( $stream );
+
+		// Build a synthetic full-response array for SimpleAiResult.
+		$synthetic_data = [
+			'choices' => [
+				[
+					'message' => [
+						'role'    => 'assistant',
+						'content' => $full_text,
+					],
+				],
+			],
+		];
+
+		// Attach assembled tool calls if any.
+		if ( ! empty( $tool_calls_delta ) ) {
+			$assembled = [];
+			foreach ( $tool_calls_delta as $tc ) {
+				$assembled[] = $tc;
+			}
+			$synthetic_data['choices'][0]['message']['tool_calls'] = $assembled;
+		}
+
+		return new SimpleAiResult( $full_text, $synthetic_data );
 	}
 
 	/**

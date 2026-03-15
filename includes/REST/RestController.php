@@ -54,6 +54,59 @@ class RestController {
 	public static function register_routes(): void {
 		register_rest_route(
 			self::NAMESPACE,
+			'/stream',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ __CLASS__, 'handle_stream' ],
+				'permission_callback' => [ __CLASS__, 'check_permission' ],
+				'args'                => [
+					'message'            => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'session_id'         => [
+						'required'          => false,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+					'abilities'          => [
+						'required' => false,
+						'type'     => 'array',
+						'default'  => [],
+					],
+					'system_instruction' => [
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					],
+					'max_iterations'     => [
+						'required'          => false,
+						'type'              => 'integer',
+						'default'           => 10,
+						'sanitize_callback' => 'absint',
+					],
+					'provider_id'        => [
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'model_id'           => [
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'page_context'       => [
+						'required' => false,
+						'type'     => 'object',
+						'default'  => [],
+					],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/run',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -1697,6 +1750,191 @@ class RestController {
 		set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 
 		return new WP_REST_Response( [ 'ok' => true ], 200 );
+	}
+
+	/**
+	 * Handle POST /stream — run the agent loop and stream tokens via SSE.
+	 *
+	 * This endpoint bypasses the normal WP_REST_Response system and emits
+	 * a raw text/event-stream response. The agent loop runs synchronously
+	 * in the same request, streaming each text token as it is produced.
+	 *
+	 * SSE event types emitted:
+	 *   - token              {"token": "..."}
+	 *   - tool_call          {"name": "...", "args": {...}}
+	 *   - tool_result        {"name": "...", "result": ...}
+	 *   - confirmation_required {"job_id": "...", "pending_tools": [...]}
+	 *   - done               {"session_id": N, "token_usage": {...}, ...}
+	 *   - error              {"code": "...", "message": "..."}
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return void This method exits after streaming; it never returns a WP_REST_Response.
+	 */
+	public static function handle_stream( WP_REST_Request $request ): void {
+		$streamer = new SseStreamer();
+		$streamer->start();
+
+		$session_id = absint( $request->get_param( 'session_id' ) );
+		$params     = [
+			'message'            => $request->get_param( 'message' ),
+			'abilities'          => $request->get_param( 'abilities' ) ?? [],
+			'system_instruction' => $request->get_param( 'system_instruction' ),
+			'max_iterations'     => $request->get_param( 'max_iterations' ) ?? 10,
+			'provider_id'        => $request->get_param( 'provider_id' ),
+			'model_id'           => $request->get_param( 'model_id' ),
+			'page_context'       => $request->get_param( 'page_context' ) ?? [],
+		];
+
+		// Load conversation history from session.
+		$history = [];
+		if ( $session_id ) {
+			$session = Database::get_session( $session_id );
+			if ( $session ) {
+				$session_messages = json_decode( $session->messages, true ) ?: [];
+				if ( ! empty( $session_messages ) ) {
+					try {
+						$history = AgentLoop::deserialize_history( $session_messages );
+					} catch ( \Exception $e ) {
+						$history = [];
+					}
+				}
+			}
+		}
+
+		$options = [
+			'max_iterations' => $params['max_iterations'],
+		];
+
+		if ( ! empty( $params['system_instruction'] ) ) {
+			$options['system_instruction'] = $params['system_instruction'];
+		}
+		if ( ! empty( $params['provider_id'] ) ) {
+			$options['provider_id'] = $params['provider_id'];
+		}
+		if ( ! empty( $params['model_id'] ) ) {
+			$options['model_id'] = $params['model_id'];
+		}
+		if ( ! empty( $params['page_context'] ) ) {
+			$options['page_context'] = $params['page_context'];
+		}
+
+		// Attach the SSE streamer so AgentLoop can emit tokens as they arrive.
+		$options['sse_streamer'] = $streamer;
+
+		$loop   = new AgentLoop( $params['message'], $params['abilities'], $history, $options );
+		$result = $loop->run();
+
+		if ( is_wp_error( $result ) ) {
+			$streamer->send_error( $result->get_error_message(), $result->get_error_code() );
+			exit;
+		}
+
+		// Handle tool confirmation pause — emit a confirmation_required event
+		// so the frontend can show the confirmation dialog, then the user
+		// confirms/rejects via the existing /job/{id}/confirm|reject endpoints.
+		if ( ! empty( $result['awaiting_confirmation'] ) ) {
+			// Persist the paused state as a job transient so the confirm/reject
+			// endpoints can resume it.
+			$job_id = wp_generate_uuid4();
+			$token  = wp_generate_password( 40, false );
+
+			$job = [
+				'status'             => 'awaiting_confirmation',
+				'token'              => $token,
+				'user_id'            => get_current_user_id(),
+				'pending_tools'      => $result['pending_tools'] ?? [],
+				'confirmation_state' => [
+					'history'              => $result['history'] ?? [],
+					'tool_call_log'        => $result['tool_call_log'] ?? [],
+					'token_usage'          => $result['token_usage'] ?? [
+						'prompt'     => 0,
+						'completion' => 0,
+					],
+					'iterations_remaining' => $result['iterations_remaining'] ?? 5,
+				],
+				'params'             => $params,
+			];
+
+			set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
+
+			$streamer->send_confirmation_required( $job_id, $result['pending_tools'] ?? [] );
+			exit;
+		}
+
+		// Persist to session.
+		if ( $session_id && ! empty( $result ) ) {
+			$session        = Database::get_session( $session_id );
+			$existing_count = 0;
+			if ( $session ) {
+				$existing_messages = json_decode( $session->messages, true ) ?: [];
+				$existing_count    = count( $existing_messages );
+			}
+
+			$full_history = $result['history'] ?? [];
+			$appended     = array_slice( $full_history, $existing_count );
+
+			Database::append_to_session( $session_id, $appended, $result['tool_calls'] ?? [] );
+
+			$token_usage = $result['token_usage'] ?? [];
+			if ( ! empty( $token_usage ) ) {
+				Database::update_session_tokens(
+					$session_id,
+					$token_usage['prompt'] ?? 0,
+					$token_usage['completion'] ?? 0
+				);
+			}
+
+			// Log usage.
+			$prompt_t     = $token_usage['prompt'] ?? 0;
+			$completion_t = $token_usage['completion'] ?? 0;
+			if ( $prompt_t > 0 || $completion_t > 0 ) {
+				$model_id = $params['model_id'] ?? '';
+				$cost     = CostCalculator::calculate_cost( $model_id, $prompt_t, $completion_t );
+				Database::log_usage(
+					[
+						'user_id'           => get_current_user_id(),
+						'session_id'        => $session_id,
+						'provider_id'       => $params['provider_id'] ?? '',
+						'model_id'          => $model_id,
+						'prompt_tokens'     => $prompt_t,
+						'completion_tokens' => $completion_t,
+						'cost_usd'          => $cost,
+					]
+				);
+			}
+
+			// Auto-generate title.
+			if ( $session && empty( $session->title ) ) {
+				$title = mb_substr( $params['message'], 0, 60 );
+				if ( mb_strlen( $params['message'] ) > 60 ) {
+					$title .= '...';
+				}
+				Database::update_session( $session_id, [ 'title' => $title ] );
+			}
+		}
+
+		$token_usage = $result['token_usage'] ?? [
+			'prompt'     => 0,
+			'completion' => 0,
+		];
+		$model_id    = $result['model_id'] ?? ( $params['model_id'] ?? '' );
+
+		$streamer->send_done(
+			[
+				'session_id'      => $session_id ?: null,
+				'token_usage'     => $token_usage,
+				'model_id'        => $model_id,
+				'iterations_used' => $result['iterations_used'] ?? 0,
+				'cost_estimate'   => CostCalculator::calculate_cost(
+					$model_id,
+					(int) ( $token_usage['prompt'] ?? 0 ),
+					(int) ( $token_usage['completion'] ?? 0 )
+				),
+				'tool_calls'      => $result['tool_calls'] ?? [],
+			]
+		);
+
+		exit;
 	}
 
 	/**

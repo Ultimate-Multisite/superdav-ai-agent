@@ -17,6 +17,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SeoAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Audit a URL for SEO elements.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_audit_url( array $input ) {
+		$ability = new SeoAuditUrlAbility( 'gratis-ai-agent/seo-audit-url' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Analyze a post's content for SEO quality.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_analyze_content( array $input ) {
+		$ability = new SeoAnalyzeContentAbility( 'gratis-ai-agent/seo-analyze-content' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register abilities on init.
 	 */

@@ -18,6 +18,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SkillAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Load a skill by slug.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_skill_load( array $input ) {
+		$ability = new SkillLoadAbility( 'gratis-ai-agent/skill-load' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * List all available skills.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_skill_list( array $input ) {
+		$ability = new SkillListAbility( 'gratis-ai-agent/skill-list' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register skill abilities on init.
 	 */

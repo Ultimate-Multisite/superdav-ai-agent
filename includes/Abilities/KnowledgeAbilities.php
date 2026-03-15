@@ -18,6 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class KnowledgeAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Search the knowledge base.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_knowledge_search( array $input ) {
+		$ability = new KnowledgeSearchAbility( 'gratis-ai-agent/knowledge-search' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register knowledge abilities on init.
 	 */

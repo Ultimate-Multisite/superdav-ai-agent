@@ -20,6 +20,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class DatabaseAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Execute a SELECT database query.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_db_query( array $input ) {
+		$ability = new DatabaseQueryAbility( 'gratis-ai-agent/db-query' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register database abilities on init.
 	 */

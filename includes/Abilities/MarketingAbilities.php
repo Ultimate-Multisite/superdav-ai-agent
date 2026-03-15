@@ -17,6 +17,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class MarketingAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Fetch a URL and return HTTP status, headers, and page metadata.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_fetch_url( array $input ) {
+		$ability = new FetchUrlAbility( 'gratis-ai-agent/fetch-url' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Analyze HTTP security and performance headers for a URL.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_analyze_headers( array $input ) {
+		$ability = new AnalyzeHeadersAbility( 'gratis-ai-agent/analyze-headers' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register abilities on init.
 	 */

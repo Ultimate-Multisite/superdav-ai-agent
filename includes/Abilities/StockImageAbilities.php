@@ -20,6 +20,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class StockImageAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Import a stock image into the media library.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_import( array $input ) {
+		$ability = new ImportStockImageAbility( 'gratis-ai-agent/import-stock-image' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register abilities on init.
 	 */

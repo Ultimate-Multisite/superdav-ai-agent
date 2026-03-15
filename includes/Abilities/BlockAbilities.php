@@ -21,6 +21,74 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class BlockAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Convert markdown to Gutenberg blocks.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'markdown' key).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_markdown_to_blocks( array $input ) {
+		$ability = new MarkdownToBlocksAbility( 'gratis-ai-agent/markdown-to-blocks' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * List registered block types.
+	 *
+	 * @param array<string,mixed> $input Input args (supports 'category', 'search', 'per_page', 'page').
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_list_block_types( array $input ) {
+		$ability = new ListBlockTypesAbility( 'gratis-ai-agent/list-block-types' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Get metadata for a specific block type.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'name' key).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_get_block_type( array $input ) {
+		$ability = new GetBlockTypeAbility( 'gratis-ai-agent/get-block-type' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * List registered block patterns.
+	 *
+	 * @param array<string,mixed> $input Input args (supports 'category', 'search', 'per_page', 'full_content').
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_list_block_patterns( array $input ) {
+		$ability = new ListBlockPatternsAbility( 'gratis-ai-agent/list-block-patterns' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Build serialized Gutenberg block HTML from a structured block array.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'blocks' key).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_create_block_content( array $input ) {
+		$ability = new CreateBlockContentAbility( 'gratis-ai-agent/create-block-content' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Parse existing Gutenberg block content into a structured block tree.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'post_id' or 'content').
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_parse_block_content( array $input ) {
+		$ability = new ParseBlockContentAbility( 'gratis-ai-agent/parse-block-content' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register abilities on init.
 	 */

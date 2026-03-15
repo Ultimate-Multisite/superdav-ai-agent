@@ -18,6 +18,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class MemoryAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Save a memory entry.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_memory_save( array $input ) {
+		$ability = new MemorySaveAbility( 'gratis-ai-agent/memory-save' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * List all memories.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_memory_list( array $input ) {
+		$ability = new MemoryListAbility( 'gratis-ai-agent/memory-list' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Delete a memory entry.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_memory_delete( array $input ) {
+		$ability = new MemoryDeleteAbility( 'gratis-ai-agent/memory-delete' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register memory abilities on init.
 	 */

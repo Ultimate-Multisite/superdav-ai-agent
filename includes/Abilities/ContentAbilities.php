@@ -15,6 +15,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ContentAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * Analyze content strategy.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_content_analyze( array $input ) {
+		$ability = new ContentAnalyzeAbility( 'gratis-ai-agent/content-analyze' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Generate a content performance report.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_performance_report( array $input ) {
+		$ability = new ContentPerformanceReportAbility( 'gratis-ai-agent/content-performance-report' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register abilities on init.
 	 */

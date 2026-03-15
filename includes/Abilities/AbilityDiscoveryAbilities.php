@@ -30,6 +30,41 @@ class AbilityDiscoveryAbilities {
 		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
 	}
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * List all registered abilities.
+	 *
+	 * @param array<string,mixed> $input Input args (supports 'category' filter).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_list_abilities( array $input ) {
+		$ability = new DiscoveryListAbility( 'gratis-ai-agent/discovery-list' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Get details of a specific ability.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'ability' key).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_get_ability( array $input ) {
+		$ability = new DiscoveryGetAbility( 'gratis-ai-agent/discovery-get' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Execute a registered ability.
+	 *
+	 * @param array<string,mixed> $input Input args (requires 'ability' key).
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_execute_ability( array $input ) {
+		$ability = new DiscoveryExecuteAbility( 'gratis-ai-agent/discovery-execute' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register all ability discovery abilities.
 	 */

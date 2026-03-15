@@ -19,6 +19,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WordPressAbilities {
 
+	// ─── Static proxy methods (for backwards-compatible test access) ─────────
+
+	/**
+	 * List all installed plugins.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_get_plugins( array $input ) {
+		$ability = new GetPluginsAbility( 'gratis-ai-agent/get-plugins' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * List all installed themes.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_get_themes( array $input ) {
+		$ability = new GetThemesAbility( 'gratis-ai-agent/get-themes' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Install a plugin from WordPress.org.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_install_plugin( array $input ) {
+		$ability = new InstallPluginAbility( 'gratis-ai-agent/install-plugin' );
+		return $ability->execute( $input );
+	}
+
+	/**
+	 * Execute PHP code in the WordPress environment.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_run_php( array $input ) {
+		$ability = new RunPhpAbility( 'gratis-ai-agent/run-php' );
+		return $ability->execute( $input );
+	}
+
 	/**
 	 * Register WordPress abilities on init.
 	 */

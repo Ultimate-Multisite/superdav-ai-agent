@@ -76,20 +76,25 @@ class AgentLoop {
 	/** @var WP_AI_Client_Ability_Function_Resolver|null */
 	private $ability_resolver = null;
 
+	/** @var Settings Injected settings dependency. */
+	private $settings_service;
+
 	/**
-	 * @param string    $user_message The user's prompt.
-	 * @param string[]  $abilities    Ability names to enable (empty = all).
-	 * @param Message[] $history     Prior messages for multi-turn.
-	 * @param array     $options      Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
+	 * @param string        $user_message      The user's prompt.
+	 * @param string[]      $abilities         Ability names to enable (empty = all).
+	 * @param Message[]     $history           Prior messages for multi-turn.
+	 * @param array         $options           Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
+	 * @param Settings|null $settings_service Injected Settings service (uses static Settings::get() when null).
 	 */
-	public function __construct( string $user_message, array $abilities = [], array $history = [], array $options = [] ) {
-		$this->user_message = $user_message;
-		$this->abilities    = $abilities;
-		$this->history      = $history;
-		$this->page_context = $options['page_context'] ?? [];
+	public function __construct( string $user_message, array $abilities = [], array $history = [], array $options = [], ?Settings $settings_service = null ) {
+		$this->user_message     = $user_message;
+		$this->abilities        = $abilities;
+		$this->history          = $history;
+		$this->page_context     = $options['page_context'] ?? [];
+		$this->settings_service = $settings_service ?? new Settings();
 
 		// Merge explicit options with saved settings as fallbacks.
-		$settings = Settings::get();
+		$settings = $this->settings_service->get();
 
 		$this->provider_id       = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
 		$this->model_id          = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
@@ -180,7 +185,7 @@ class AgentLoop {
 			++$this->iterations_used;
 
 			// Smart conversation trimming before each LLM call.
-			$max_turns = (int) Settings::get( 'max_history_turns' );
+			$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
 			if ( $max_turns > 0 ) {
 				$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
 			}
@@ -838,7 +843,7 @@ class AgentLoop {
 				}
 			);
 		} else {
-			$disabled = Settings::get( 'disabled_abilities' );
+			$disabled = $this->settings_service->get( 'disabled_abilities' );
 			if ( ! empty( $disabled ) && is_array( $disabled ) ) {
 				$all = array_filter(
 					$all,
@@ -860,7 +865,7 @@ class AgentLoop {
 		}
 
 		// Apply tool profile filter.
-		$active_profile = Settings::get( 'active_tool_profile' );
+		$active_profile = $this->settings_service->get( 'active_tool_profile' );
 		if ( ! empty( $active_profile ) && 'all' !== $active_profile ) {
 			$all = ToolProfiles::filter_abilities( $all, $active_profile );
 		}

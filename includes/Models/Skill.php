@@ -352,6 +352,11 @@ class Skill {
 
 	// ─── Built-in skill content ─────────────────────────────────────
 
+	/**
+	 * Return the built-in WordPress Administration skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_wordpress_admin(): string {
 		return <<<'MD'
 # WordPress Administration
@@ -401,6 +406,11 @@ After making changes, always verify:
 MD;
 	}
 
+	/**
+	 * Return the built-in Content Management skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_content_management(): string {
 		return <<<'MD'
 # Content Management
@@ -448,6 +458,11 @@ After creating or updating content:
 MD;
 	}
 
+	/**
+	 * Return the built-in WooCommerce skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_woocommerce(): string {
 		return <<<'MD'
 # WooCommerce Store Management
@@ -500,6 +515,11 @@ After making changes:
 MD;
 	}
 
+	/**
+	 * Return the built-in Site Troubleshooting skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_site_troubleshooting(): string {
 		return <<<'MD'
 # Site Troubleshooting
@@ -568,6 +588,11 @@ After applying a fix:
 MD;
 	}
 
+	/**
+	 * Return the built-in Multisite Management skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_multisite_management(): string {
 		return <<<'MD'
 # Multisite Network Management
@@ -616,6 +641,11 @@ After network changes:
 MD;
 	}
 
+	/**
+	 * Return the built-in SEO Optimization skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_seo_optimization(): string {
 		return <<<'MD'
 # SEO Optimization
@@ -685,6 +715,11 @@ Use this skill for SEO audits, keyword optimization, meta tag management, and te
 MD;
 	}
 
+	/**
+	 * Return the built-in Content Marketing skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_content_marketing(): string {
 		return <<<'MD'
 # Content Marketing
@@ -738,6 +773,11 @@ Use this skill for content strategy planning, editorial workflows, content audit
 MD;
 	}
 
+	/**
+	 * Return the built-in Competitive Analysis skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_competitive_analysis(): string {
 		return <<<'MD'
 # Competitive Analysis
@@ -795,6 +835,11 @@ Use this skill for analyzing competitor websites, discovering their tech stack, 
 MD;
 	}
 
+	/**
+	 * Return the built-in Analytics & Reporting skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_analytics_reporting(): string {
 		return <<<'MD'
 # Analytics & Reporting
@@ -857,6 +902,11 @@ Use this skill for generating content reports, tracking publishing activity, mea
 MD;
 	}
 
+	/**
+	 * Return the built-in Gutenberg Blocks skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_gutenberg_blocks(): string {
 		return <<<'MD'
 # Gutenberg Blocks
@@ -935,6 +985,11 @@ Gutenberg blocks are stored as HTML comments in post_content:
 MD;
 	}
 
+	/**
+	 * Return the built-in Full Site Editing skill content.
+	 *
+	 * @return string Markdown skill content.
+	 */
 	private static function builtin_full_site_editing(): string {
 		return <<<'MD'
 # Full Site Editing

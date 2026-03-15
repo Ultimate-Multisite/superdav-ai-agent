@@ -31,6 +31,9 @@ enum HttpMethod: string {
 
 	/**
 	 * Check if a value is a valid HTTP method.
+	 *
+	 * @param string $value The HTTP method string to validate.
+	 * @return bool True if valid, false otherwise.
 	 */
 	public static function isValid( string $value ): bool {
 		return in_array( strtoupper( $value ), self::values(), true );

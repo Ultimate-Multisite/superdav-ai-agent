@@ -22,7 +22,7 @@ class EventTriggerHandler {
 	/**
 	 * Track which hooks we've registered to avoid duplicates.
 	 *
-	 * @var array
+	 * @var array<string, bool>
 	 */
 	private static $registered_hooks = [];
 
@@ -83,6 +83,7 @@ class EventTriggerHandler {
 	 *
 	 * @param string $hook_name The WordPress hook that fired.
 	 * @param array  $hook_args The arguments passed to the hook.
+	 * @phpstan-param list<mixed> $hook_args
 	 */
 	private static function dispatch( string $hook_name, array $hook_args ): void {
 		// Prevent re-entrant execution (avoid infinite loops).
@@ -202,9 +203,10 @@ class EventTriggerHandler {
 	/**
 	 * Check if event conditions are met.
 	 *
-	 * @param array  $event     The event automation definition.
-	 * @param string $hook_name The hook that fired.
-	 * @param array  $hook_args The hook arguments.
+	 * @param array<string, mixed> $event     The event automation definition.
+	 * @param string               $hook_name The hook that fired.
+	 * @param array                $hook_args The hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
 	 * @return bool
 	 */
 	private static function check_conditions( array $event, string $hook_name, array $hook_args ): bool {

@@ -61,7 +61,7 @@ class CostCalculator {
 	 * Get pricing for a model, matching by prefix if exact match not found.
 	 *
 	 * @param string $model_id Model identifier.
-	 * @return array|null [input_per_million, output_per_million] or null.
+	 * @return array{float, float}|null [input_per_million, output_per_million] or null.
 	 */
 	public static function get_pricing( string $model_id ): ?array {
 		if ( isset( self::PRICING[ $model_id ] ) ) {
@@ -81,7 +81,7 @@ class CostCalculator {
 	/**
 	 * Get all known model pricing.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_all_pricing(): array {
 		return self::PRICING;

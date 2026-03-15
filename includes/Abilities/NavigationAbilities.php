@@ -117,8 +117,8 @@ class NavigationAbilities {
 	/**
 	 * Handle the navigate ability.
 	 *
-	 * @param array $input Input with url.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with url.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_navigate( array $input ) {
 		$url      = $input['url'] ?? '';
@@ -168,8 +168,8 @@ class NavigationAbilities {
 	 * happens in JavaScript on the client, since the server doesn't have
 	 * access to the rendered DOM.
 	 *
-	 * @param array $input Input with selector and optional max_length.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with selector and optional max_length.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_get_page_html( array $input ) {
 		$selector   = $input['selector'] ?? '';

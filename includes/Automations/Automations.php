@@ -25,7 +25,7 @@ class Automations {
 	 * List all automations.
 	 *
 	 * @param bool $enabled_only Only return enabled automations.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;
@@ -43,7 +43,7 @@ class Automations {
 	 * Get a single automation by ID.
 	 *
 	 * @param int $id Automation ID.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
@@ -59,7 +59,7 @@ class Automations {
 	/**
 	 * Create a new automation.
 	 *
-	 * @param array $data Automation data.
+	 * @param array<string, mixed> $data Automation data.
 	 * @return int|false Inserted ID or false.
 	 */
 	public static function create( array $data ) {
@@ -105,8 +105,8 @@ class Automations {
 	/**
 	 * Update an existing automation.
 	 *
-	 * @param int   $id   Automation ID.
-	 * @param array $data Fields to update.
+	 * @param int                  $id   Automation ID.
+	 * @param array<string, mixed> $data Fields to update.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
@@ -218,7 +218,7 @@ class Automations {
 	/**
 	 * Get pre-built automation templates.
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	public static function get_templates(): array {
 		return [
@@ -271,7 +271,7 @@ class Automations {
 	 * Decode a database row into an array with parsed JSON.
 	 *
 	 * @param object $row Database row.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	private static function decode_row( object $row ): array {
 		return [

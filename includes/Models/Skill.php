@@ -23,7 +23,7 @@ class Skill {
 	 * Get all skills, optionally filtered by enabled status.
 	 *
 	 * @param bool|null $enabled Filter by enabled status (null = all).
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_all( ?bool $enabled = null ): array {
 		global $wpdb;
@@ -91,7 +91,7 @@ class Skill {
 	/**
 	 * Create a new skill.
 	 *
-	 * @param array $data Skill data: slug, name, description, content, is_builtin, enabled.
+	 * @param array<string, mixed> $data Skill data: slug, name, description, content, is_builtin, enabled.
 	 * @return int|false Inserted row ID or false on failure.
 	 */
 	public static function create( array $data ) {
@@ -120,8 +120,8 @@ class Skill {
 	/**
 	 * Update an existing skill.
 	 *
-	 * @param int   $id   Skill ID.
-	 * @param array $data Fields to update (name, description, content, enabled).
+	 * @param int                  $id   Skill ID.
+	 * @param array<string, mixed> $data Fields to update (name, description, content, enabled).
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
@@ -277,7 +277,7 @@ class Skill {
 	/**
 	 * Return the built-in skill definitions.
 	 *
-	 * @return array Keyed by slug.
+	 * @return array<string, mixed> Keyed by slug.
 	 */
 	public static function get_builtin_definitions(): array {
 		return [

@@ -94,8 +94,8 @@ class SeoAbilities {
 	/**
 	 * Handle the seo-audit-url ability call.
 	 *
-	 * @param array $input Input with url and optional site_url.
-	 * @return array|\WP_Error Audit results or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with url and optional site_url.
+	 * @return array<string, mixed>|\WP_Error Audit results or WP_Error on failure.
 	 */
 	public static function handle_audit_url( array $input ): array|\WP_Error {
 		$url = esc_url_raw( $input['url'] ?? '' );
@@ -146,7 +146,7 @@ class SeoAbilities {
 	 * @param string $url         The audited URL.
 	 * @param int    $status_code HTTP status code.
 	 * @param string $html        Raw HTML.
-	 * @return array Structured SEO data.
+	 * @return array<string, mixed> Structured SEO data.
 	 */
 	private static function parse_seo_elements( string $url, int $status_code, string $html ): array {
 		$result = [
@@ -283,8 +283,8 @@ class SeoAbilities {
 	/**
 	 * Handle the seo-analyze-content ability call.
 	 *
-	 * @param array $input Input with post_id, optional focus_keyword, site_url.
-	 * @return array|\WP_Error Analysis results or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with post_id, optional focus_keyword, site_url.
+	 * @return array<string, mixed>|\WP_Error Analysis results or WP_Error on failure.
 	 */
 	public static function handle_analyze_content( array $input ): array|\WP_Error {
 		$post_id       = (int) ( $input['post_id'] ?? 0 );
@@ -339,7 +339,7 @@ class SeoAbilities {
 	 *
 	 * @param \WP_Post $post          The post to analyze.
 	 * @param string   $focus_keyword Optional focus keyword.
-	 * @return array Analysis data.
+	 * @return array<string, mixed> Analysis data.
 	 */
 	private static function analyze_post_seo( \WP_Post $post, string $focus_keyword ): array {
 		$content    = $post->post_content;

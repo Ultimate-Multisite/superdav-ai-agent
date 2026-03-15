@@ -180,7 +180,7 @@ class WordPressAbilities {
 	/**
 	 * Handle the get-plugins ability.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function handle_get_plugins(): array {
 		if ( ! function_exists( 'get_plugins' ) ) {
@@ -212,7 +212,7 @@ class WordPressAbilities {
 	/**
 	 * Handle the get-themes ability.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function handle_get_themes(): array {
 		$all_themes   = wp_get_themes();
@@ -240,8 +240,8 @@ class WordPressAbilities {
 	/**
 	 * Handle the install-plugin ability.
 	 *
-	 * @param array $input Input with slug and optional activate.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with slug and optional activate.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_install_plugin( array $input ) {
 		$slug     = $input['slug'] ?? '';
@@ -349,8 +349,8 @@ class WordPressAbilities {
 	/**
 	 * Handle the run-php ability.
 	 *
-	 * @param array $input Input with code.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with code.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_run_php( array $input ) {
 		$code = $input['code'] ?? '';

@@ -42,7 +42,7 @@ class MarkdownToBlocks {
 	 * Each block array is compatible with WordPress core's serialize_block().
 	 *
 	 * @param string $markdown Raw markdown text.
-	 * @return array Array of block arrays.
+	 * @return list<array<string, mixed>> Array of block arrays.
 	 */
 	public static function parse( string $markdown ): array {
 		$lines  = explode( "\n", $markdown );
@@ -199,7 +199,9 @@ class MarkdownToBlocks {
 	 * @param string $state        Current state.
 	 * @param bool   $list_ordered Whether the list is ordered.
 	 * @param array  $table_rows   Accumulated table rows.
-	 * @return array Array of block arrays.
+	 * @phpstan-param list<string> $buffer
+	 * @phpstan-param list<string> $table_rows
+	 * @return list<array<string, mixed>> Array of block arrays.
 	 */
 	private static function flush_buffer( array $buffer, string $state, bool $list_ordered, array $table_rows ): array {
 		if ( empty( $buffer ) && empty( $table_rows ) ) {
@@ -262,7 +264,8 @@ class MarkdownToBlocks {
 	 * Parse table rows into a table block.
 	 *
 	 * @param array $rows Raw table row lines.
-	 * @return array Array containing the table block (or empty).
+	 * @phpstan-param list<string> $rows
+	 * @return list<array<string, mixed>> Array containing the table block (or empty).
 	 */
 	private static function parse_table( array $rows ): array {
 		if ( count( $rows ) < 2 ) {
@@ -319,7 +322,7 @@ class MarkdownToBlocks {
 	 * Make a core/paragraph block.
 	 *
 	 * @param string $html Inner HTML content.
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_paragraph( string $html ): array {
 		$inner = '<p>' . $html . '</p>';
@@ -337,7 +340,7 @@ class MarkdownToBlocks {
 	 *
 	 * @param string $text  Heading text (may contain inline markdown).
 	 * @param int    $level Heading level (1-6).
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_heading( string $text, int $level = 2 ): array {
 		$html  = self::parse_inline( $text );
@@ -362,7 +365,8 @@ class MarkdownToBlocks {
 	 *
 	 * @param array $items   Array of item text strings.
 	 * @param bool  $ordered Whether the list is ordered.
-	 * @return array Block array.
+	 * @phpstan-param list<string> $items
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_list( array $items, bool $ordered = false ): array {
 		$tag           = $ordered ? 'ol' : 'ul';
@@ -404,7 +408,7 @@ class MarkdownToBlocks {
 	 * Make a core/quote block.
 	 *
 	 * @param string $content HTML content for the quote.
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_quote( string $content ): array {
 		$inner = '<blockquote class="wp-block-quote"><p>' . $content . '</p></blockquote>';
@@ -422,7 +426,7 @@ class MarkdownToBlocks {
 	 *
 	 * @param string $code     Raw code content (will be HTML-escaped).
 	 * @param string $language Code language identifier.
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_code( string $code, string $language = '' ): array {
 		$escaped = esc_html( $code );
@@ -447,7 +451,7 @@ class MarkdownToBlocks {
 	 *
 	 * @param string $url Image URL.
 	 * @param string $alt Alt text.
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_image( string $url, string $alt = '' ): array {
 		$alt_attr = esc_attr( $alt );
@@ -469,7 +473,7 @@ class MarkdownToBlocks {
 	/**
 	 * Make a core/separator block.
 	 *
-	 * @return array Block array.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_separator(): array {
 		$inner = '<hr class="wp-block-separator has-alpha-channel-opacity"/>';
@@ -485,9 +489,9 @@ class MarkdownToBlocks {
 	/**
 	 * Make a core/table block.
 	 *
-	 * @param array $headers Array of header row data with 'cells' arrays.
-	 * @param array $body    Array of body row data with 'cells' arrays.
-	 * @return array Block array.
+	 * @param list<array<string, mixed>> $headers Array of header row data with 'cells' arrays.
+	 * @param list<array<string, mixed>> $body    Array of body row data with 'cells' arrays.
+	 * @return array<string, mixed> Block array.
 	 */
 	public static function make_table( array $headers, array $body ): array {
 		$attrs = [];

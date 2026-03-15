@@ -102,8 +102,8 @@ class MemoryAbilities {
 	/**
 	 * Handle the memory-save ability call.
 	 *
-	 * @param array $input Input with category and content.
-	 * @return array|\WP_Error Result or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with category and content.
+	 * @return array<string, mixed>|\WP_Error Result or WP_Error on failure.
 	 */
 	public static function handle_memory_save( array $input ): array|\WP_Error {
 		$category = $input['category'] ?? 'general';
@@ -129,7 +129,7 @@ class MemoryAbilities {
 	/**
 	 * Handle the memory-list ability call.
 	 *
-	 * @return array Result.
+	 * @return array<string, mixed> Result.
 	 */
 	public static function handle_memory_list(): array {
 		$memories = Memory::get_all();
@@ -153,8 +153,8 @@ class MemoryAbilities {
 	/**
 	 * Handle the memory-delete ability call.
 	 *
-	 * @param array $input Input with id.
-	 * @return array|\WP_Error Result or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with id.
+	 * @return array<string, mixed>|\WP_Error Result or WP_Error on failure.
 	 */
 	public static function handle_memory_delete( array $input ): array|\WP_Error {
 		$id = $input['id'] ?? 0;

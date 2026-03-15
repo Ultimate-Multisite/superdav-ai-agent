@@ -51,7 +51,7 @@ class AgentLoop {
 	/** @var string AI model ID. */
 	private $model_id;
 
-	/** @var array Logged tool call activity. */
+	/** @var list<array<string, mixed>> Logged tool call activity. */
 	private $tool_call_log = [];
 
 	/** @var float */
@@ -63,16 +63,16 @@ class AgentLoop {
 	/** @var int Number of loop iterations used. */
 	private $iterations_used = 0;
 
-	/** @var array Token usage accumulator. */
+	/** @var array<string, int> Token usage accumulator. */
 	private $token_usage = [
 		'prompt'     => 0,
 		'completion' => 0,
 	];
 
-	/** @var array Tool permission levels from settings. */
+	/** @var array<string, string> Tool permission levels from settings. */
 	private $tool_permissions = [];
 
-	/** @var array Page context from the widget. */
+	/** @var array<string, mixed> Page context from the widget. */
 	private $page_context = [];
 
 	/** @var WP_AI_Client_Ability_Function_Resolver|null */
@@ -82,10 +82,10 @@ class AgentLoop {
 	private ?SseStreamer $sse_streamer = null;
 
 	/**
-	 * @param string    $user_message The user's prompt.
-	 * @param string[]  $abilities    Ability names to enable (empty = all).
-	 * @param Message[] $history     Prior messages for multi-turn.
-	 * @param array     $options      Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
+	 * @param string               $user_message The user's prompt.
+	 * @param string[]             $abilities    Ability names to enable (empty = all).
+	 * @param Message[]            $history     Prior messages for multi-turn.
+	 * @param array<string, mixed> $options      Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
 	 */
 	public function __construct( string $user_message, array $abilities = [], array $history = [], array $options = [] ) {
 		$this->user_message = $user_message;
@@ -121,7 +121,7 @@ class AgentLoop {
 	/**
 	 * Run the agentic loop.
 	 *
-	 * @return array{reply: string, history: array, tool_calls: array}|WP_Error
+	 * @return array{reply: string, history: list<mixed>, tool_calls: list<array<string, mixed>>}|WP_Error
 	 */
 	public function run() {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
@@ -145,7 +145,7 @@ class AgentLoop {
 	 *
 	 * @param bool $confirmed Whether the user approved the tool call.
 	 * @param int  $remaining_iterations Remaining loop iterations.
-	 * @return array|WP_Error
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public function resume_after_confirmation( bool $confirmed, int $remaining_iterations ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
@@ -182,7 +182,7 @@ class AgentLoop {
 	 * Inner loop: send prompts, handle tool calls, repeat.
 	 *
 	 * @param int $iterations Max iterations remaining.
-	 * @return array|WP_Error
+	 * @return array<string, mixed>|WP_Error
 	 */
 	private function run_loop( int $iterations ) {
 		while ( $iterations > 0 ) {
@@ -376,7 +376,7 @@ class AgentLoop {
 	 * Shared by send_prompt_direct(), send_prompt_openai(), and
 	 * send_prompt_google() (which uses Google's OpenAI-compatible endpoint).
 	 *
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_messages(): array {
 		$messages = [];
@@ -485,7 +485,7 @@ class AgentLoop {
 	 * Shared by send_prompt_direct(), send_prompt_openai(), and
 	 * send_prompt_google().
 	 *
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_tools(): array {
 		$tools     = [];
@@ -1105,8 +1105,8 @@ class AgentLoop {
 	 * Ensures that 'properties' fields are JSON objects (not arrays),
 	 * removes empty 'required' arrays, and handles nested schemas.
 	 *
-	 * @param array $tool The tool definition.
-	 * @return array The sanitized tool definition.
+	 * @param array<string, mixed> $tool The tool definition.
+	 * @return array<string, mixed> The sanitized tool definition.
 	 */
 	private function sanitize_tool_schema( array $tool ): array {
 		if ( isset( $tool['function']['parameters'] ) ) {
@@ -1275,7 +1275,7 @@ class AgentLoop {
 	 * Check which tool calls in an assistant message require user confirmation.
 	 *
 	 * @param Message $message The assistant's tool-call message.
-	 * @return array Array of tool details needing confirmation (empty if none).
+	 * @return list<array<string, mixed>> Array of tool details needing confirmation (empty if none).
 	 */
 	private function get_tools_needing_confirmation( Message $message ): array {
 		if ( empty( $this->tool_permissions ) ) {
@@ -1447,7 +1447,7 @@ class AgentLoop {
 	/**
 	 * Serialize conversation history to transportable arrays.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	private function serialize_history(): array {
 		return array_map(
@@ -1461,7 +1461,7 @@ class AgentLoop {
 	/**
 	 * Deserialize conversation history from arrays back to Message objects.
 	 *
-	 * @param array $data Serialized history arrays.
+	 * @param array<string, mixed> $data Serialized history arrays.
 	 * @return Message[]
 	 */
 	public static function deserialize_history( array $data ): array {
@@ -1476,7 +1476,7 @@ class AgentLoop {
 	/**
 	 * Build the system instruction, incorporating custom prompt and memories.
 	 *
-	 * @param array $settings Plugin settings.
+	 * @param array<string, mixed> $settings Plugin settings.
 	 * @return string
 	 */
 	private function build_system_instruction( array $settings ): string {

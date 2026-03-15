@@ -75,8 +75,8 @@ class SkillAbilities {
 	/**
 	 * Handle the skill-load ability call.
 	 *
-	 * @param array $input Input with slug.
-	 * @return array|\WP_Error Result with skill content or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with slug.
+	 * @return array<string, mixed>|\WP_Error Result with skill content or WP_Error on failure.
 	 */
 	public static function handle_skill_load( array $input ): array|\WP_Error {
 		$slug = $input['slug'] ?? '';
@@ -119,7 +119,7 @@ class SkillAbilities {
 	/**
 	 * Handle the skill-list ability call.
 	 *
-	 * @return array Result with skills index.
+	 * @return array<string, mixed> Result with skills index.
 	 */
 	public static function handle_skill_list(): array {
 		$skills = Skill::get_all( true );

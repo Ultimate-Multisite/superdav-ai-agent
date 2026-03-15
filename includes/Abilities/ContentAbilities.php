@@ -92,8 +92,8 @@ class ContentAbilities {
 	/**
 	 * Handle the content-analyze ability call.
 	 *
-	 * @param array $input Input with optional post_type, limit, site_url.
-	 * @return array Content analysis results.
+	 * @param array<string, mixed> $input Input with optional post_type, limit, site_url.
+	 * @return array<string, mixed> Content analysis results.
 	 */
 	public static function handle_content_analyze( array $input ): array {
 		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
@@ -138,7 +138,7 @@ class ContentAbilities {
 	 *
 	 * @param \WP_Post[] $posts     Array of posts.
 	 * @param string     $post_type Post type being analyzed.
-	 * @return array Analysis data.
+	 * @return array<string, mixed> Analysis data.
 	 */
 	private static function analyze_content_strategy( array $posts, string $post_type ): array {
 		$total = count( $posts );
@@ -236,8 +236,8 @@ class ContentAbilities {
 	/**
 	 * Handle the content-performance-report ability call.
 	 *
-	 * @param array $input Input with optional days, site_url.
-	 * @return array Performance report.
+	 * @param array<string, mixed> $input Input with optional days, site_url.
+	 * @return array<string, mixed> Performance report.
 	 */
 	public static function handle_performance_report( array $input ): array {
 		$days     = max( 1, min( 365, (int) ( $input['days'] ?? 30 ) ) );
@@ -270,7 +270,7 @@ class ContentAbilities {
 	 * Generate a content performance report.
 	 *
 	 * @param int $days Number of days to look back.
-	 * @return array Report data.
+	 * @return array<string, mixed> Report data.
 	 */
 	private static function generate_performance_report( int $days ): array {
 		$after_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );

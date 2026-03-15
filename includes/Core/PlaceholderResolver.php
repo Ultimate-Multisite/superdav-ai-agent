@@ -16,9 +16,10 @@ class PlaceholderResolver {
 	/**
 	 * Resolve all {{placeholders}} in a prompt template given hook arguments.
 	 *
-	 * @param string $template The prompt template with placeholders.
+	 * @param string $template  The prompt template with placeholders.
 	 * @param string $hook_name The WordPress hook that fired.
 	 * @param array  $hook_args The arguments passed to the hook.
+	 * @phpstan-param list<mixed> $hook_args
 	 * @return string Resolved prompt.
 	 */
 	public static function resolve( string $template, string $hook_name, array $hook_args ): string {
@@ -66,7 +67,8 @@ class PlaceholderResolver {
 	 *
 	 * @param string $hook_name The hook name.
 	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Context map.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Context map.
 	 */
 	private static function build_context( string $hook_name, array $hook_args ): array {
 		$context = [];
@@ -94,10 +96,11 @@ class PlaceholderResolver {
 	/**
 	 * Enrich context with post data.
 	 *
-	 * @param array  $context   Current context map.
-	 * @param string $hook_name The WordPress hook that fired.
-	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Enriched context map.
+	 * @param array<string, mixed> $context   Current context.
+	 * @param string               $hook_name WordPress hook name.
+	 * @param array                $hook_args Hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Enriched context.
 	 */
 	private static function enrich_post_context( array $context, string $hook_name, array $hook_args ): array {
 		$post = null;
@@ -131,10 +134,11 @@ class PlaceholderResolver {
 	/**
 	 * Enrich context with user data.
 	 *
-	 * @param array  $context   Current context map.
-	 * @param string $hook_name The WordPress hook that fired.
-	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Enriched context map.
+	 * @param array<string, mixed> $context   Current context.
+	 * @param string               $hook_name WordPress hook name.
+	 * @param array                $hook_args Hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Enriched context.
 	 */
 	private static function enrich_user_context( array $context, string $hook_name, array $hook_args ): array {
 		$user = null;
@@ -172,10 +176,11 @@ class PlaceholderResolver {
 	/**
 	 * Enrich context with comment data.
 	 *
-	 * @param array  $context   Current context map.
-	 * @param string $hook_name The WordPress hook that fired.
-	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Enriched context map.
+	 * @param array<string, mixed> $context   Current context.
+	 * @param string               $hook_name WordPress hook name.
+	 * @param array                $hook_args Hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Enriched context.
 	 */
 	private static function enrich_comment_context( array $context, string $hook_name, array $hook_args ): array {
 		if ( 'comment_post' !== $hook_name || empty( $hook_args[0] ) ) {
@@ -200,10 +205,11 @@ class PlaceholderResolver {
 	/**
 	 * Enrich context with WooCommerce order data.
 	 *
-	 * @param array  $context   Current context map.
-	 * @param string $hook_name The WordPress hook that fired.
-	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Enriched context map.
+	 * @param array<string, mixed> $context   Current context.
+	 * @param string               $hook_name WordPress hook name.
+	 * @param array                $hook_args Hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Enriched context.
 	 */
 	private static function enrich_order_context( array $context, string $hook_name, array $hook_args ): array {
 		$order_hooks = [
@@ -237,10 +243,11 @@ class PlaceholderResolver {
 	/**
 	 * Enrich context with WooCommerce product data.
 	 *
-	 * @param array  $context   Current context map.
-	 * @param string $hook_name The WordPress hook that fired.
-	 * @param array  $hook_args Raw hook arguments.
-	 * @return array Enriched context map.
+	 * @param array<string, mixed> $context   Current context.
+	 * @param string               $hook_name WordPress hook name.
+	 * @param array                $hook_args Hook arguments.
+	 * @phpstan-param list<mixed> $hook_args
+	 * @return array<string, mixed> Enriched context.
 	 */
 	private static function enrich_product_context( array $context, string $hook_name, array $hook_args ): array {
 		if ( 'woocommerce_low_stock' !== $hook_name || empty( $hook_args[0] ) ) {

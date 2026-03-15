@@ -273,7 +273,7 @@ class Database {
 	/**
 	 * Create a new session.
 	 *
-	 * @param array $data Session data: user_id, title, provider_id, model_id.
+	 * @param array<string, mixed> $data Session data: user_id, title, provider_id, model_id.
 	 * @return int|false Inserted row ID or false on failure.
 	 */
 	public static function create_session( array $data ) {
@@ -321,9 +321,9 @@ class Database {
 	/**
 	 * List sessions for a user (lightweight — no messages/tool_calls).
 	 *
-	 * @param int   $user_id WordPress user ID.
-	 * @param array $filters Optional filters: status, folder, search, pinned.
-	 * @return array Array of session summary objects.
+	 * @param int                  $user_id WordPress user ID.
+	 * @param array<string, mixed> $filters Optional filters: status, folder, search, pinned.
+	 * @return array<string, mixed> Array of session summary objects.
 	 */
 	public static function list_sessions( int $user_id, array $filters = [] ): array {
 		global $wpdb;
@@ -365,7 +365,7 @@ class Database {
 	 * List distinct folders for a user.
 	 *
 	 * @param int $user_id WordPress user ID.
-	 * @return array Array of folder name strings.
+	 * @return array<string, mixed> Array of folder name strings.
 	 */
 	public static function list_folders( int $user_id ): array {
 		global $wpdb;
@@ -387,9 +387,9 @@ class Database {
 	/**
 	 * Bulk update sessions.
 	 *
-	 * @param array $session_ids Array of session IDs.
-	 * @param int   $user_id     User ID for ownership check.
-	 * @param array $data        Fields to update (status, pinned, folder).
+	 * @param array<string, mixed> $session_ids Array of session IDs.
+	 * @param int                  $user_id     User ID for ownership check.
+	 * @param array<string, mixed> $data        Fields to update (status, pinned, folder).
 	 * @return int Number of rows affected.
 	 */
 	public static function bulk_update_sessions( array $session_ids, int $user_id, array $data ): int {
@@ -451,7 +451,7 @@ class Database {
 	/**
 	 * Log a usage record.
 	 *
-	 * @param array $data Usage data: user_id, session_id, provider_id, model_id, prompt_tokens, completion_tokens, cost_usd.
+	 * @param array<string, mixed> $data Usage data: user_id, session_id, provider_id, model_id, prompt_tokens, completion_tokens, cost_usd.
 	 * @return int|false Inserted row ID or false.
 	 */
 	public static function log_usage( array $data ) {
@@ -479,8 +479,8 @@ class Database {
 	/**
 	 * Get usage summary with optional filters.
 	 *
-	 * @param array $filters Optional: user_id, period (7d, 30d, all), start_date, end_date.
-	 * @return array Summary with totals and per-model breakdown.
+	 * @param array<string, mixed> $filters Optional: user_id, period (7d, 30d, all), start_date, end_date.
+	 * @return array<string, mixed> Summary with totals and per-model breakdown.
 	 */
 	public static function get_usage_summary( array $filters = [] ): array {
 		global $wpdb;
@@ -553,8 +553,8 @@ class Database {
 	/**
 	 * Update session fields.
 	 *
-	 * @param int   $session_id Session ID.
-	 * @param array $data       Fields to update.
+	 * @param int                  $session_id Session ID.
+	 * @param array<string, mixed> $data       Fields to update.
 	 * @return bool Whether the update succeeded.
 	 */
 	public static function update_session( int $session_id, array $data ): bool {
@@ -639,6 +639,9 @@ class Database {
 	 * @param array $messages   New message arrays to append.
 	 * @param array $tool_calls New tool call log entries to append.
 	 * @return bool Whether the update succeeded.
+	 *
+	 * @phpstan-param list<mixed>                $messages
+	 * @phpstan-param list<array<string, mixed>> $tool_calls
 	 */
 	public static function append_to_session( int $session_id, array $messages, array $tool_calls = [] ): bool {
 		$session = self::get_session( $session_id );

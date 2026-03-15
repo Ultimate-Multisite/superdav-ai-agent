@@ -74,8 +74,8 @@ class StockImageAbilities {
 	/**
 	 * Handle the import-stock-image ability call.
 	 *
-	 * @param array $input Input with keyword, optional site_url, width, height.
-	 * @return array|\WP_Error Result with attachment_id, url, alt, title or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with keyword, optional site_url, width, height.
+	 * @return array<string, mixed>|\WP_Error Result with attachment_id, url, alt, title or WP_Error on failure.
 	 */
 	public static function handle_import( array $input ): array|\WP_Error {
 		$keyword  = sanitize_text_field( $input['keyword'] ?? '' );
@@ -130,7 +130,7 @@ class StockImageAbilities {
 	 * @param string $keyword Search keyword.
 	 * @param int    $width   Image width.
 	 * @param int    $height  Image height.
-	 * @return array|\WP_Error Result array or WP_Error on failure.
+	 * @return array<string, mixed>|\WP_Error Result array or WP_Error on failure.
 	 */
 	private static function download_and_import( string $keyword, int $width, int $height ): array|\WP_Error {
 		// Build a deterministic-ish lock so the same keyword doesn't always

@@ -28,7 +28,7 @@ class Memory {
 	 * Get all memories, optionally filtered by category.
 	 *
 	 * @param string|null $category Optional category filter.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_all( ?string $category = null ): array {
 		global $wpdb;
@@ -59,7 +59,7 @@ class Memory {
 	 * Get memories by category.
 	 *
 	 * @param string $category Category name.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_by_category( string $category ): array {
 		return self::get_all( $category );
@@ -98,8 +98,8 @@ class Memory {
 	/**
 	 * Update an existing memory.
 	 *
-	 * @param int   $id   Memory ID.
-	 * @param array $data Fields to update (category, content).
+	 * @param int                  $id   Memory ID.
+	 * @param array<string, mixed> $data Fields to update (category, content).
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
@@ -150,7 +150,7 @@ class Memory {
 	 *
 	 * @param string $query Search query.
 	 * @param int    $limit Max results.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function search( string $query, int $limit = 20 ): array {
 		global $wpdb;

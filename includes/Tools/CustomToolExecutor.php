@@ -67,9 +67,9 @@ class CustomToolExecutor {
 	/**
 	 * Execute a custom tool.
 	 *
-	 * @param array $tool  The tool definition.
-	 * @param array $input Input parameters from the AI.
-	 * @return array|\WP_Error Result array or WP_Error on failure.
+	 * @param array<string, mixed> $tool  The tool definition.
+	 * @param array<string, mixed> $input Input parameters from the AI.
+	 * @return array<string, mixed>|\WP_Error Result array or WP_Error on failure.
 	 */
 	public static function execute( array $tool, array $input ): array|\WP_Error {
 		switch ( $tool['type'] ) {
@@ -97,9 +97,9 @@ class CustomToolExecutor {
 	/**
 	 * Execute an HTTP tool.
 	 *
-	 * @param array $tool  Tool definition.
-	 * @param array $input Input parameters.
-	 * @return array|\WP_Error
+	 * @param array<string, mixed> $tool  Tool definition.
+	 * @param array<string, mixed> $input Input parameters.
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function execute_http( array $tool, array $input ): array|\WP_Error {
 		$config = $tool['config'];
@@ -167,9 +167,9 @@ class CustomToolExecutor {
 	/**
 	 * Execute an ACTION tool (do_action).
 	 *
-	 * @param array $tool  Tool definition.
-	 * @param array $input Input parameters.
-	 * @return array|\WP_Error
+	 * @param array<string, mixed> $tool  Tool definition.
+	 * @param array<string, mixed> $input Input parameters.
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function execute_action( array $tool, array $input ): array|\WP_Error {
 		$config    = $tool['config'];
@@ -222,9 +222,9 @@ class CustomToolExecutor {
 	/**
 	 * Execute a CLI tool (WP-CLI command).
 	 *
-	 * @param array $tool  Tool definition.
-	 * @param array $input Input parameters.
-	 * @return array|\WP_Error
+	 * @param array<string, mixed> $tool  Tool definition.
+	 * @param array<string, mixed> $input Input parameters.
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function execute_cli( array $tool, array $input ): array|\WP_Error {
 		$config  = $tool['config'];
@@ -273,8 +273,8 @@ class CustomToolExecutor {
 	 * Supports nested dot-notation: {{order.id}} will look for $input['order']['id']
 	 * then fall back to $input['order.id'].
 	 *
-	 * @param string $template Template string with placeholders.
-	 * @param array  $input    Input values.
+	 * @param string               $template Template string with placeholders.
+	 * @param array<string, mixed> $input    Input values.
 	 * @return string
 	 */
 	public static function replace_placeholders( string $template, array $input ): string {

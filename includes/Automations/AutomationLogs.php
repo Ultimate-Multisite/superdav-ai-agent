@@ -22,7 +22,7 @@ class AutomationLogs {
 	/**
 	 * Create a log entry.
 	 *
-	 * @param array $data Log data.
+	 * @param array<string, mixed> $data Log data.
 	 * @return int|false Inserted ID or false.
 	 */
 	public static function create( array $data ) {
@@ -56,7 +56,7 @@ class AutomationLogs {
 	 * @param int $automation_id Automation ID.
 	 * @param int $limit         Max results.
 	 * @param int $offset        Offset for pagination.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function list_for_automation( int $automation_id, int $limit = 20, int $offset = 0 ): array {
 		global $wpdb;
@@ -79,7 +79,7 @@ class AutomationLogs {
 	 * List recent logs across all automations.
 	 *
 	 * @param int $limit Max results.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function list_recent( int $limit = 50 ): array {
 		global $wpdb;
@@ -100,7 +100,7 @@ class AutomationLogs {
 	 * Get a single log entry.
 	 *
 	 * @param int $id Log ID.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
@@ -171,7 +171,7 @@ class AutomationLogs {
 	 * Decode a database row.
 	 *
 	 * @param object $row Database row.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	private static function decode_row( object $row ): array {
 		return [

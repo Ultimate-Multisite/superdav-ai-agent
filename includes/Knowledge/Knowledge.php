@@ -266,9 +266,9 @@ class Knowledge {
 	/**
 	 * Search the knowledge base.
 	 *
-	 * @param string $query   Search query.
-	 * @param array  $options Optional: collection_id, collection (slug), limit.
-	 * @return array Search results.
+	 * @param string               $query   Search query.
+	 * @param array<string, mixed> $options Optional: collection_id, collection (slug), limit.
+	 * @return list<array<string, mixed>> Search results.
 	 */
 	public static function search( string $query, array $options = [] ): array {
 		$collection_id = $options['collection_id'] ?? null;

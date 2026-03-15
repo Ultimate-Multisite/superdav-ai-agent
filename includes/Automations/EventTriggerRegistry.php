@@ -14,7 +14,7 @@ class EventTriggerRegistry {
 	/**
 	 * Get all available triggers grouped by category.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_all(): array {
 		$triggers = array_merge(
@@ -34,7 +34,7 @@ class EventTriggerRegistry {
 	/**
 	 * Get triggers grouped by category for the UI.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function get_grouped(): array {
 		$all     = self::get_all();
@@ -58,7 +58,7 @@ class EventTriggerRegistry {
 	 * Get a trigger definition by hook name.
 	 *
 	 * @param string $hook_name WordPress hook name.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get( string $hook_name ): ?array {
 		foreach ( self::get_all() as $trigger ) {
@@ -72,7 +72,7 @@ class EventTriggerRegistry {
 	/**
 	 * WordPress core triggers.
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	private static function get_wordpress_triggers(): array {
 		return [
@@ -261,7 +261,7 @@ class EventTriggerRegistry {
 	/**
 	 * WooCommerce triggers.
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	private static function get_woocommerce_triggers(): array {
 		if ( ! class_exists( 'WooCommerce' ) ) {
@@ -352,7 +352,7 @@ class EventTriggerRegistry {
 	/**
 	 * Form plugin triggers.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	private static function get_form_triggers(): array {
 		$triggers = [];

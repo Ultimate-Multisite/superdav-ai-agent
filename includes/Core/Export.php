@@ -18,7 +18,7 @@ class Export {
 	 *
 	 * @param object $session Database session row.
 	 * @param string $format  'json' or 'markdown'.
-	 * @return array Export data with 'content' and 'filename' keys.
+	 * @return array<string, mixed> Export data with 'content' and 'filename' keys.
 	 */
 	public static function export( object $session, string $format = 'json' ): array {
 		if ( 'markdown' === $format ) {
@@ -32,7 +32,7 @@ class Export {
 	 * Export a session as JSON.
 	 *
 	 * @param object $session Database session row.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function export_json( object $session ): array {
 		$messages   = json_decode( $session->messages, true ) ?: [];
@@ -65,7 +65,7 @@ class Export {
 	 * Export a session as Markdown.
 	 *
 	 * @param object $session Database session row.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public static function export_markdown( object $session ): array {
 		$messages = json_decode( $session->messages, true ) ?: [];
@@ -127,8 +127,8 @@ class Export {
 	/**
 	 * Import a session from JSON data.
 	 *
-	 * @param array $data    Import data (gratis-ai-agent-v1 format).
-	 * @param int   $user_id WordPress user ID.
+	 * @param array<string, mixed> $data    Import data (gratis-ai-agent-v1 format).
+	 * @param int                  $user_id WordPress user ID.
 	 * @return int|WP_Error Session ID on success, WP_Error on failure.
 	 */
 	public static function import_json( array $data, int $user_id ) {

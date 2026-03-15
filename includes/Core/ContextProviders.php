@@ -17,7 +17,7 @@ class ContextProviders {
 	/**
 	 * Registered providers: name => ['callback' => callable, 'priority' => int].
 	 *
-	 * @var array
+	 * @var array<string, array{callback: callable, priority: int}>
 	 */
 	private static array $providers = [];
 
@@ -45,8 +45,8 @@ class ContextProviders {
 	/**
 	 * Gather context from all registered providers.
 	 *
-	 * @param array $page_context Page context from the widget JS (URL, admin page, post ID, etc.).
-	 * @return array Keyed array of context sections.
+	 * @param array<string, mixed> $page_context Page context from the widget JS (URL, admin page, post ID, etc.).
+	 * @return array<string, mixed> Keyed array of context sections.
 	 */
 	public static function gather( array $page_context = [] ): array {
 		self::ensure_initialized();
@@ -79,7 +79,7 @@ class ContextProviders {
 	/**
 	 * Format gathered context for inclusion in a system prompt.
 	 *
-	 * @param array $context The gathered context data.
+	 * @param array<string, mixed> $context The gathered context data.
 	 * @return string Markdown-formatted context string.
 	 */
 	public static function format_for_prompt( array $context ): string {
@@ -155,8 +155,8 @@ class ContextProviders {
 	/**
 	 * Provide page context from the widget.
 	 *
-	 * @param array $page_context Raw page context from JS.
-	 * @return array
+	 * @param array<string, mixed> $page_context Raw page context from JS.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_page_context( array $page_context ): array {
 		$data = [];
@@ -179,8 +179,8 @@ class ContextProviders {
 	/**
 	 * Provide current user context.
 	 *
-	 * @param array $page_context Unused.
-	 * @return array
+	 * @param array<string, mixed> $page_context Unused.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_user_context( array $page_context ): array {
 		$user = wp_get_current_user();
@@ -200,8 +200,8 @@ class ContextProviders {
 	/**
 	 * Provide site context.
 	 *
-	 * @param array $page_context Unused.
-	 * @return array
+	 * @param array<string, mixed> $page_context Unused.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_site_context( array $page_context ): array {
 		global $wp_version;
@@ -227,8 +227,8 @@ class ContextProviders {
 	/**
 	 * Provide post context if on a post edit screen.
 	 *
-	 * @param array $page_context Page context from widget.
-	 * @return array
+	 * @param array<string, mixed> $page_context Page context from widget.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_post_context( array $page_context ): array {
 		$post_id = $page_context['post_id'] ?? 0;
@@ -267,8 +267,8 @@ class ContextProviders {
 	/**
 	 * Provide SEO context — active SEO plugin, sitemap URL, permalink structure.
 	 *
-	 * @param array $page_context Page context from widget.
-	 * @return array
+	 * @param array<string, mixed> $page_context Page context from widget.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_seo_context( array $page_context ): array {
 		$data = [];
@@ -333,8 +333,8 @@ class ContextProviders {
 	/**
 	 * Provide block editor context — theme type, registered blocks, patterns.
 	 *
-	 * @param array $page_context Unused.
-	 * @return array
+	 * @param array<string, mixed> $page_context Unused.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_block_editor_context( array $page_context ): array {
 		$data = [];
@@ -363,8 +363,8 @@ class ContextProviders {
 	/**
 	 * Provide system context.
 	 *
-	 * @param array $page_context Unused.
-	 * @return array
+	 * @param array<string, mixed> $page_context Unused.
+	 * @return array<string, mixed>
 	 */
 	public static function provide_system_context( array $page_context ): array {
 		global $wpdb;

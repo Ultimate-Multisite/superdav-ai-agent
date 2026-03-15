@@ -441,8 +441,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-read ability.
 	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with path.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_read_file( array $input ) {
 		$path      = $input['path'] ?? '';
@@ -477,8 +477,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-write ability.
 	 *
-	 * @param array $input Input with path and content.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with path and content.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_write_file( array $input ) {
 		$path    = $input['path'] ?? '';
@@ -534,8 +534,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-edit ability.
 	 *
-	 * @param array $input Input with path and edits array.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with path and edits array.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_edit_file( array $input ) {
 		$path  = $input['path'] ?? '';
@@ -643,8 +643,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-delete ability.
 	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with path.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_delete_file( array $input ) {
 		$path      = $input['path'] ?? '';
@@ -683,8 +683,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-list ability.
 	 *
-	 * @param array $input Input with path.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with path.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_list_directory( array $input ) {
 		$path      = $input['path'] ?? '';
@@ -727,8 +727,8 @@ class FileAbilities {
 	/**
 	 * Handle the file-search ability.
 	 *
-	 * @param array $input Input with pattern.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with pattern.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_search_files( array $input ) {
 		$pattern      = $input['pattern'] ?? '';
@@ -758,8 +758,8 @@ class FileAbilities {
 	/**
 	 * Handle the content-search ability.
 	 *
-	 * @param array $input Input with needle, optional directory and file_pattern.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with needle, optional directory and file_pattern.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_search_content( array $input ) {
 		$needle       = $input['needle'] ?? '';
@@ -793,11 +793,11 @@ class FileAbilities {
 	/**
 	 * Recursively search file contents.
 	 *
-	 * @param string $dir          Directory to search.
-	 * @param string $needle       Text to find.
-	 * @param string $pattern      File glob pattern.
-	 * @param array  $results      Results accumulator (passed by reference).
-	 * @param int    $limit        Maximum results.
+	 * @param string                     $dir     Directory to search.
+	 * @param string                     $needle  Text to find.
+	 * @param string                     $pattern File glob pattern.
+	 * @param list<array<string, mixed>> $results Results accumulator (passed by reference).
+	 * @param int                        $limit   Maximum results.
 	 */
 	private static function search_content_recursive( string $dir, string $needle, string $pattern, array &$results, int $limit = 50 ): void {
 		if ( count( $results ) >= $limit || ! is_dir( $dir ) ) {

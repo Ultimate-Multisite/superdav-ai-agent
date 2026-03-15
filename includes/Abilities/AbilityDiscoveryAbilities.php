@@ -236,8 +236,8 @@ class AbilityDiscoveryAbilities {
 	/**
 	 * Handle list_abilities execution.
 	 *
-	 * @param array $args Arguments (category).
-	 * @return array|WP_Error Result or error.
+	 * @param array<string, mixed> $args Arguments (category).
+	 * @return array<string, mixed>|WP_Error Result or error.
 	 */
 	public static function handle_list_abilities( array $args ): array|WP_Error {
 		$category = $args['category'] ?? '';
@@ -280,8 +280,8 @@ class AbilityDiscoveryAbilities {
 	/**
 	 * Handle get_ability execution.
 	 *
-	 * @param array $args Arguments (ability).
-	 * @return array|WP_Error Result or error.
+	 * @param array<string, mixed> $args Arguments (ability).
+	 * @return array<string, mixed>|WP_Error Result or error.
 	 */
 	public static function handle_get_ability( array $args ): array|WP_Error {
 		$ability_id = $args['ability'] ?? '';
@@ -328,8 +328,8 @@ class AbilityDiscoveryAbilities {
 	/**
 	 * Handle execute_ability execution.
 	 *
-	 * @param array $args Arguments (ability, arguments).
-	 * @return array|WP_Error Result or error.
+	 * @param array<string, mixed> $args Arguments (ability, arguments).
+	 * @return array<string, mixed>|WP_Error Result or error.
 	 */
 	public static function handle_execute_ability( array $args ): array|WP_Error {
 		$ability_id   = $args['ability'] ?? '';

@@ -1568,9 +1568,9 @@ class RestController {
 	/**
 	 * Resume a paused job after confirmation or rejection.
 	 *
-	 * @param string $job_id Job identifier.
-	 * @param array  $job    Job transient data.
-	 * @param string $action 'confirm' or 'reject'.
+	 * @param string               $job_id Job identifier.
+	 * @param array<string, mixed> $job    Job transient data.
+	 * @param string               $action 'confirm' or 'reject'.
 	 * @return WP_REST_Response
 	 */
 	private static function resume_job( string $job_id, array $job, string $action ): WP_REST_Response {
@@ -2868,6 +2868,7 @@ class RestController {
 	 * Handle POST /memory — create a memory.
 	 *
 	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_create_memory( WP_REST_Request $request ) {
 		$category = $request->get_param( 'category' );
@@ -2893,6 +2894,7 @@ class RestController {
 	 * Handle PATCH /memory/{id} — update a memory.
 	 *
 	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_update_memory( WP_REST_Request $request ) {
 		$id   = absint( $request->get_param( 'id' ) );
@@ -2924,6 +2926,7 @@ class RestController {
 	 * Handle DELETE /memory/{id} — delete a memory.
 	 *
 	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public static function handle_delete_memory( WP_REST_Request $request ) {
 		$id      = absint( $request->get_param( 'id' ) );

@@ -77,8 +77,8 @@ class DatabaseAbilities {
 	/**
 	 * Handle the db-query ability.
 	 *
-	 * @param array $input Input with sql.
-	 * @return array|WP_Error
+	 * @param array<string, mixed> $input Input with sql.
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public static function handle_db_query( array $input ) {
 		global $wpdb;

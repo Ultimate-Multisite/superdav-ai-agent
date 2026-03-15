@@ -19,7 +19,7 @@ class ToolProfiles {
 	/**
 	 * Get all profiles (built-in + custom).
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list(): array {
 		$custom  = get_option( self::OPTION_NAME, [] );
@@ -41,7 +41,7 @@ class ToolProfiles {
 	 * Get a single profile by slug.
 	 *
 	 * @param string $slug Profile slug.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get( string $slug ): ?array {
 		$all = self::list();
@@ -56,7 +56,7 @@ class ToolProfiles {
 	/**
 	 * Create or update a custom profile.
 	 *
-	 * @param array $data Profile data: slug, name, description, tool_names.
+	 * @param array<string, mixed> $data Profile data: slug, name, description, tool_names.
 	 * @return bool
 	 */
 	public static function save( array $data ): bool {
@@ -172,7 +172,7 @@ class ToolProfiles {
 	 * every ability name. The tool_names use prefix patterns that are
 	 * expanded at filter time.
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	private static function get_builtins(): array {
 		return [

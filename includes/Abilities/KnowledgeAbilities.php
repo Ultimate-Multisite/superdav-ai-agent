@@ -63,8 +63,8 @@ class KnowledgeAbilities {
 	/**
 	 * Handle the knowledge-search ability call.
 	 *
-	 * @param array $input Input with query and optional collection.
-	 * @return array|\WP_Error Result or WP_Error on failure.
+	 * @param array<string, mixed> $input Input with query and optional collection.
+	 * @return array<string, mixed>|\WP_Error Result or WP_Error on failure.
 	 */
 	public static function handle_knowledge_search( array $input ): array|\WP_Error {
 		$query = $input['query'] ?? '';

@@ -36,7 +36,7 @@ class CustomTools {
 	 * List all custom tools.
 	 *
 	 * @param bool $enabled_only Only return enabled tools.
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;
@@ -54,7 +54,7 @@ class CustomTools {
 	 * Get a single tool by ID.
 	 *
 	 * @param int $id Tool ID.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
@@ -71,7 +71,7 @@ class CustomTools {
 	 * Get a tool by slug.
 	 *
 	 * @param string $slug Tool slug.
-	 * @return array|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function get_by_slug( string $slug ): ?array {
 		global $wpdb;
@@ -87,7 +87,7 @@ class CustomTools {
 	/**
 	 * Create a new custom tool.
 	 *
-	 * @param array $data Tool data.
+	 * @param array<string, mixed> $data Tool data.
 	 * @return int|false Inserted ID or false.
 	 */
 	public static function create( array $data ) {
@@ -123,8 +123,8 @@ class CustomTools {
 	/**
 	 * Update an existing tool.
 	 *
-	 * @param int   $id   Tool ID.
-	 * @param array $data Fields to update.
+	 * @param int                  $id   Tool ID.
+	 * @param array<string, mixed> $data Fields to update.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
@@ -214,8 +214,8 @@ class CustomTools {
 	/**
 	 * Validate tool data for creation.
 	 *
-	 * @param array $data Tool data.
-	 * @return array|\WP_Error Validated data or error.
+	 * @param array<string, mixed> $data Tool data.
+	 * @return array<string, mixed>|\WP_Error Validated data or error.
 	 */
 	public static function validate( array $data ) {
 		if ( empty( $data['name'] ) ) {
@@ -383,7 +383,7 @@ class CustomTools {
 	 * Decode a database row into an array with parsed JSON.
 	 *
 	 * @param object $row Database row.
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	private static function decode_row( object $row ): array {
 		return [

@@ -33,8 +33,8 @@ class AutomationRunner {
 	/**
 	 * Add custom cron schedules.
 	 *
-	 * @param array $schedules Existing schedules.
-	 * @return array
+	 * @param array<string, mixed> $schedules Existing schedules.
+	 * @return array<string, mixed>
 	 */
 	public static function add_cron_schedules( array $schedules ): array {
 		if ( ! isset( $schedules['weekly'] ) ) {
@@ -76,7 +76,7 @@ class AutomationRunner {
 	 * Run an automation (fired by WP Cron or manually).
 	 *
 	 * @param int $automation_id Automation ID.
-	 * @return array|null Run result or null if automation not found/disabled.
+	 * @return array<string, mixed>|null Run result or null if automation not found/disabled.
 	 */
 	public static function run( int $automation_id ): ?array {
 		$automation = Automations::get( $automation_id );

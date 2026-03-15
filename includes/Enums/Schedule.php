@@ -2,12 +2,12 @@
 /**
  * Automation schedule enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
 declare(strict_types=1);
 
-namespace AiAgent\Enums;
+namespace GratisAiAgent\Enums;
 
 /**
  * Valid schedule intervals for automated tasks.

@@ -2,13 +2,13 @@
 /**
  * Test case for Memory class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Models;
+namespace GratisAiAgent\Tests\Models;
 
-use AiAgent\Models\Memory;
+use GratisAiAgent\Models\Memory;
 use WP_UnitTestCase;
 
 /**
@@ -29,7 +29,7 @@ class MemoryTest extends WP_UnitTestCase {
 	 */
 	public function test_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_memories';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_memories';
 		$this->assertSame( $expected, Memory::table_name() );
 	}
 

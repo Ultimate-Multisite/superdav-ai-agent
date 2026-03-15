@@ -1,12 +1,12 @@
-# AI Agent
+# Gratis AI Agent
 
-[![Tests](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/tests.yml)
-[![Code Quality](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/code-quality.yml/badge.svg)](https://github.com/Ultimate-Multisite/ai-agent/actions/workflows/code-quality.yml)
+[![Tests](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/tests.yml)
+[![Code Quality](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/code-quality.yml/badge.svg)](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/code-quality.yml)
 [![PHP 8.2+](https://img.shields.io/badge/php-%3E%3D%208.2-blue.svg)](https://www.php.net/)
 [![WordPress 6.9+](https://img.shields.io/badge/WordPress-%3E%3D%206.9-blue.svg)](https://wordpress.org/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 
-[Try in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint.json) | [Documentation](https://github.com/Ultimate-Multisite/ai-agent/wiki)
+[Try in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/playground/blueprint.json) | [Documentation](https://github.com/Ultimate-Multisite/gratis-ai-agent/wiki)
 
 An agentic AI assistant that lives inside your WordPress dashboard. It can chat, remember context across sessions, call WordPress tools autonomously, run scheduled tasks, react to WordPress events, and manage your site — all powered by the AI provider of your choice.
 
@@ -151,7 +151,7 @@ The AI automatically receives relevant context about the current page:
 
 ## Installation
 
-1. Upload the `ai-agent` folder to `/wp-content/plugins/`
+1. Upload the `gratis-ai-agent` folder to `/wp-content/plugins/`
 2. Activate through the Plugins screen
 3. Configure an AI provider in **Settings > AI Credentials** (this is part of WordPress core's Connectors API)
 4. Go to **Tools > AI Agent Settings** to select your default provider and model
@@ -179,8 +179,8 @@ All settings live under **Tools > AI Agent Settings** with these tabs:
 ## Architecture
 
 ```
-ai-agent/
-├── ai-agent.php                    # Bootstrap, requires, hooks
+gratis-ai-agent/
+├── gratis-ai-agent.php                    # Bootstrap, requires, hooks
 ├── includes/
 │   ├── class-agent-loop.php        # Core agentic loop (plan → tool call → iterate)
 │   ├── class-rest-controller.php   # REST API (async job pattern)
@@ -214,9 +214,9 @@ ai-agent/
 
 The agent uses an **async job + polling** pattern to handle long-running inference:
 
-1. `POST /ai-agent/v1/run` — Starts a background job, returns `job_id`
-2. `GET /ai-agent/v1/job/{id}` — Poll until `status: completed` (or `awaiting_confirmation` for tool approval)
-3. `POST /ai-agent/v1/job/{id}/confirm` or `/reject` — Handle tool confirmations
+1. `POST /gratis-ai-agent/v1/run` — Starts a background job, returns `job_id`
+2. `GET /gratis-ai-agent/v1/job/{id}` — Poll until `status: completed` (or `awaiting_confirmation` for tool approval)
+3. `POST /gratis-ai-agent/v1/job/{id}/confirm` or `/reject` — Handle tool confirmations
 
 This avoids HTTP timeout issues with multi-step agentic loops that can take 30+ seconds.
 
@@ -246,7 +246,7 @@ The agent discovers and uses any registered ability automatically.
 **Add context providers:**
 
 ```php
-add_filter( 'ai_agent_context_providers', function( $providers ) {
+add_filter( 'gratis_ai_agent_context_providers', function( $providers ) {
     $providers[] = [
         'label'    => 'My Plugin Context',
         'priority' => 10,
@@ -284,8 +284,8 @@ The plugin builds three entry points: `admin-page`, `floating-widget`, and `sett
 
 Test the plugin instantly in your browser without any local setup:
 
-- **Latest release**: [Open in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint.json)
-- **Development branch**: [Open dev version](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/ai-agent/main/playground/blueprint-dev.json)
+- **Latest release**: [Open in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/playground/blueprint.json)
+- **Development branch**: [Open dev version](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/playground/blueprint-dev.json)
 
 ## License
 

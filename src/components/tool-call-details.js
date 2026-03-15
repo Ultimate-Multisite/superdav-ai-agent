@@ -9,24 +9,24 @@ export default function ToolCallDetails( { toolCalls } ) {
 	}
 
 	return (
-		<div className="ai-agent-tool-calls">
+		<div className="gratis-ai-agent-tool-calls">
 			<details>
 				<summary>
 					{ toolCalls.length }{ ' ' }
 					{ toolCalls.length === 1
-						? __( 'tool call executed', 'ai-agent' )
-						: __( 'tool calls executed', 'ai-agent' ) }
+						? __( 'tool call executed', 'gratis-ai-agent' )
+						: __( 'tool calls executed', 'gratis-ai-agent' ) }
 				</summary>
-				<div className="ai-agent-tool-list">
+				<div className="gratis-ai-agent-tool-list">
 					{ toolCalls.map( ( entry, i ) => (
 						<div
 							key={ i }
-							className={ `ai-agent-tool-entry ai-agent-tool-${ entry.type }` }
+							className={ `gratis-ai-agent-tool-entry gratis-ai-agent-tool-${ entry.type }` }
 						>
 							{ entry.type === 'call' ? (
 								<>
-									<span className="ai-agent-tool-label">
-										{ __( 'Call:', 'ai-agent' ) }
+									<span className="gratis-ai-agent-tool-label">
+										{ __( 'Call:', 'gratis-ai-agent' ) }
 									</span>{ ' ' }
 									<code>{ entry.name }</code>
 									<pre>
@@ -39,8 +39,8 @@ export default function ToolCallDetails( { toolCalls } ) {
 								</>
 							) : (
 								<>
-									<span className="ai-agent-tool-label">
-										{ __( 'Result:', 'ai-agent' ) }
+									<span className="gratis-ai-agent-tool-label">
+										{ __( 'Result:', 'gratis-ai-agent' ) }
 									</span>{ ' ' }
 									<code>{ entry.name }</code>
 									<pre>

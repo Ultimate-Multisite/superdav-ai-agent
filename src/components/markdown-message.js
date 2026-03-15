@@ -46,7 +46,7 @@ const components = {
 	},
 	table( { children, ...props } ) {
 		return (
-			<div className="ai-agent-table-wrap">
+			<div className="gratis-ai-agent-table-wrap">
 				<table { ...props }>{ children }</table>
 			</div>
 		);

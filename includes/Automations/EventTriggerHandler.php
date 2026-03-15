@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Event Trigger Handler — hooks into WordPress, resolves placeholders, fires Agent_Loop.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Automations;
+namespace GratisAiAgent\Automations;
 
-use AiAgent\Core\AgentLoop;
-use AiAgent\Core\PlaceholderResolver;
-use AiAgent\Core\Settings;
+use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\PlaceholderResolver;
+use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -118,9 +118,9 @@ class EventTriggerHandler {
 			];
 
 			// Use a transient to pass data to the cron callback.
-			$run_key = 'ai_agent_event_run_' . wp_generate_uuid4();
+			$run_key = 'gratis_ai_agent_event_run_' . wp_generate_uuid4();
 			set_transient( $run_key, $run_data, HOUR_IN_SECONDS );
-			wp_schedule_single_event( time(), 'ai_agent_run_event_automation', [ $run_key ] );
+			wp_schedule_single_event( time(), 'gratis_ai_agent_run_event_automation', [ $run_key ] );
 
 			// Spawn the cron immediately.
 			spawn_cron();
@@ -194,7 +194,7 @@ class EventTriggerHandler {
 		 * @param string $hook_name The hook that triggered it.
 		 * @param bool   $is_error  Whether the run failed.
 		 */
-		do_action( 'ai_agent_event_automation_complete', $event_id, $hook_name, $is_error );
+		do_action( 'gratis_ai_agent_event_automation_complete', $event_id, $hook_name, $is_error );
 
 		self::$executing = false;
 	}

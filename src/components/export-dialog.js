@@ -44,17 +44,17 @@ export default function ExportDialog( { sessionId, onClose } ) {
 	}, [ sessionId, format, exportSession, onClose ] );
 
 	return (
-		<div className="ai-agent-shortcuts-overlay">
-			<div className="ai-agent-export-dialog" ref={ dialogRef }>
-				<div className="ai-agent-export-header">
-					<h3>{ __( 'Export Conversation', 'ai-agent' ) }</h3>
+		<div className="gratis-ai-agent-shortcuts-overlay">
+			<div className="gratis-ai-agent-export-dialog" ref={ dialogRef }>
+				<div className="gratis-ai-agent-export-header">
+					<h3>{ __( 'Export Conversation', 'gratis-ai-agent' ) }</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
 				</div>
-				<div className="ai-agent-export-body">
+				<div className="gratis-ai-agent-export-body">
 					{ /* eslint-disable jsx-a11y/label-has-associated-control */ }
-					<label className="ai-agent-export-option">
+					<label className="gratis-ai-agent-export-option">
 						<input
 							type="radio"
 							name="format"
@@ -67,12 +67,12 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							<p>
 								{ __(
 									'Full conversation data. Can be imported back.',
-									'ai-agent'
+									'gratis-ai-agent'
 								) }
 							</p>
 						</div>
 					</label>
-					<label className="ai-agent-export-option">
+					<label className="gratis-ai-agent-export-option">
 						<input
 							type="radio"
 							name="format"
@@ -85,27 +85,27 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							<p>
 								{ __(
 									'Human-readable format. Good for sharing.',
-									'ai-agent'
+									'gratis-ai-agent'
 								) }
 							</p>
 						</div>
 					</label>
 					{ /* eslint-enable jsx-a11y/label-has-associated-control */ }
 				</div>
-				<div className="ai-agent-export-footer">
+				<div className="gratis-ai-agent-export-footer">
 					<button
 						type="button"
 						className="button"
 						onClick={ onClose }
 					>
-						{ __( 'Cancel', 'ai-agent' ) }
+						{ __( 'Cancel', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ handleExport }
 					>
-						{ __( 'Download', 'ai-agent' ) }
+						{ __( 'Download', 'gratis-ai-agent' ) }
 					</button>
 				</div>
 			</div>

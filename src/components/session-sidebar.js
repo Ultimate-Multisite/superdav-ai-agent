@@ -22,7 +22,7 @@ function relativeTime( dateStr ) {
 	const diff = Math.floor( ( now - date ) / 1000 );
 
 	if ( diff < 60 ) {
-		return __( 'just now', 'ai-agent' );
+		return __( 'just now', 'gratis-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -44,7 +44,7 @@ function SessionItem( { session, isActive } ) {
 
 	return (
 		<div
-			className={ `ai-agent-session-item ${
+			className={ `gratis-ai-agent-session-item ${
 				isActive ? 'is-active' : ''
 			} ${ isPinned ? 'is-pinned' : '' }` }
 			onClick={ () => openSession( parseInt( session.id, 10 ) ) }
@@ -56,32 +56,32 @@ function SessionItem( { session, isActive } ) {
 			role="button"
 			tabIndex={ 0 }
 		>
-			<div className="ai-agent-session-title">
+			<div className="gratis-ai-agent-session-title">
 				{ isPinned && (
 					<span
-						className="ai-agent-pin-icon"
-						title={ __( 'Pinned', 'ai-agent' ) }
+						className="gratis-ai-agent-pin-icon"
+						title={ __( 'Pinned', 'gratis-ai-agent' ) }
 					>
 						&#128204;
 					</span>
 				) }
-				{ session.title || __( 'Untitled', 'ai-agent' ) }
+				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
 			</div>
-			<div className="ai-agent-session-meta">
+			<div className="gratis-ai-agent-session-meta">
 				{ session.folder && (
-					<span className="ai-agent-session-folder-badge">
+					<span className="gratis-ai-agent-session-folder-badge">
 						{ session.folder }
 					</span>
 				) }
 				{ relativeTime( session.updated_at ) }
 			</div>
 			<button
-				className="ai-agent-session-more"
+				className="gratis-ai-agent-session-more"
 				onClick={ ( e ) => {
 					e.stopPropagation();
 					setShowMenu( ! showMenu );
 				} }
-				title={ __( 'More', 'ai-agent' ) }
+				title={ __( 'More', 'gratis-ai-agent' ) }
 				type="button"
 			>
 				&#8943;
@@ -164,7 +164,9 @@ export default function SessionSidebar() {
 					importSession( data );
 				} catch {
 					// eslint-disable-next-line no-alert
-					window.alert( __( 'Invalid JSON file.', 'ai-agent' ) );
+					window.alert(
+						__( 'Invalid JSON file.', 'gratis-ai-agent' )
+					);
 				}
 			};
 			reader.readAsText( file );
@@ -174,29 +176,29 @@ export default function SessionSidebar() {
 	);
 
 	const filterTabs = [
-		{ key: 'active', label: __( 'Active', 'ai-agent' ) },
-		{ key: 'archived', label: __( 'Archived', 'ai-agent' ) },
-		{ key: 'trash', label: __( 'Trash', 'ai-agent' ) },
+		{ key: 'active', label: __( 'Active', 'gratis-ai-agent' ) },
+		{ key: 'archived', label: __( 'Archived', 'gratis-ai-agent' ) },
+		{ key: 'trash', label: __( 'Trash', 'gratis-ai-agent' ) },
 	];
 
 	return (
-		<div className="ai-agent-sidebar">
-			<div className="ai-agent-sidebar-header">
-				<div className="ai-agent-sidebar-actions">
+		<div className="gratis-ai-agent-sidebar">
+			<div className="gratis-ai-agent-sidebar-header">
+				<div className="gratis-ai-agent-sidebar-actions">
 					<Button
 						variant="primary"
 						icon={ plus }
 						onClick={ clearCurrentSession }
-						className="ai-agent-new-chat-btn"
+						className="gratis-ai-agent-new-chat-btn"
 					>
-						{ __( 'New Chat', 'ai-agent' ) }
+						{ __( 'New Chat', 'gratis-ai-agent' ) }
 					</Button>
 					<Button
 						variant="tertiary"
 						icon={ upload }
 						onClick={ () => fileInputRef.current?.click() }
-						className="ai-agent-import-btn"
-						label={ __( 'Import', 'ai-agent' ) }
+						className="gratis-ai-agent-import-btn"
+						label={ __( 'Import', 'gratis-ai-agent' ) }
 					/>
 					<input
 						ref={ fileInputRef }
@@ -208,17 +210,20 @@ export default function SessionSidebar() {
 				</div>
 				<input
 					type="text"
-					className="ai-agent-sidebar-search"
-					placeholder={ __( 'Search conversations…', 'ai-agent' ) }
+					className="gratis-ai-agent-sidebar-search"
+					placeholder={ __(
+						'Search conversations…',
+						'gratis-ai-agent'
+					) }
 					onChange={ handleSearchChange }
 				/>
 			</div>
-			<div className="ai-agent-sidebar-filters">
+			<div className="gratis-ai-agent-sidebar-filters">
 				{ filterTabs.map( ( tab ) => (
 					<button
 						key={ tab.key }
 						type="button"
-						className={ `ai-agent-filter-tab ${
+						className={ `gratis-ai-agent-filter-tab ${
 							sessionFilter === tab.key ? 'is-active' : ''
 						}` }
 						onClick={ () => {
@@ -231,21 +236,21 @@ export default function SessionSidebar() {
 				) ) }
 			</div>
 			{ folders.length > 0 && sessionFilter === 'active' && (
-				<div className="ai-agent-sidebar-folders">
+				<div className="gratis-ai-agent-sidebar-folders">
 					<button
 						type="button"
-						className={ `ai-agent-folder-tab ${
+						className={ `gratis-ai-agent-folder-tab ${
 							! sessionFolder ? 'is-active' : ''
 						}` }
 						onClick={ () => setSessionFolder( '' ) }
 					>
-						{ __( 'All', 'ai-agent' ) }
+						{ __( 'All', 'gratis-ai-agent' ) }
 					</button>
 					{ folders.map( ( folder ) => (
 						<button
 							key={ folder }
 							type="button"
-							className={ `ai-agent-folder-tab ${
+							className={ `gratis-ai-agent-folder-tab ${
 								sessionFolder === folder ? 'is-active' : ''
 							}` }
 							onClick={ () => setSessionFolder( folder ) }
@@ -255,20 +260,26 @@ export default function SessionSidebar() {
 					) ) }
 				</div>
 			) }
-			<div className="ai-agent-session-list">
+			<div className="gratis-ai-agent-session-list">
 				{ sessions.length === 0 && (
-					<div className="ai-agent-session-empty">
+					<div className="gratis-ai-agent-session-empty">
 						{ ( () => {
 							if ( sessionFilter === 'trash' ) {
-								return __( 'Trash is empty', 'ai-agent' );
+								return __(
+									'Trash is empty',
+									'gratis-ai-agent'
+								);
 							}
 							if ( sessionFilter === 'archived' ) {
 								return __(
 									'No archived conversations',
-									'ai-agent'
+									'gratis-ai-agent'
 								);
 							}
-							return __( 'No conversations yet', 'ai-agent' );
+							return __(
+								'No conversations yet',
+								'gratis-ai-agent'
+							);
 						} )() }
 					</div>
 				) }

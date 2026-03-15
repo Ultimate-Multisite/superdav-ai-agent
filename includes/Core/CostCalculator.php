@@ -4,10 +4,10 @@ declare(strict_types=1);
 /**
  * Cost calculation for AI model usage.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
 class CostCalculator {
 

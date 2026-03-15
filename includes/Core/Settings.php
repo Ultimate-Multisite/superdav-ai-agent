@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Plugin settings management.
  *
- * Stores all AI Agent settings in a single WordPress option and provides
- * a React-based settings page under Tools > AI Agent Settings.
+ * Stores all Gratis AI Agent settings in a single WordPress option and provides
+ * a React-based settings page under Tools > Gratis AI Agent Settings.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,18 +21,18 @@ class Settings {
 	/**
 	 * Option name in the wp_options table.
 	 */
-	const OPTION_NAME = 'ai_agent_settings';
+	const OPTION_NAME = 'gratis_ai_agent_settings';
 
 	/**
 	 * Separate option name for the Claude Max OAuth token (stored apart from
 	 * general settings so it can be given stricter access control).
 	 */
-	const CLAUDE_MAX_TOKEN_OPTION = 'ai_agent_claude_max_token';
+	const CLAUDE_MAX_TOKEN_OPTION = 'gratis_ai_agent_claude_max_token';
 
 	/**
 	 * Settings page slug.
 	 */
-	const PAGE_SLUG = 'ai-agent-settings';
+	const PAGE_SLUG = 'gratis-ai-agent-settings';
 
 	/**
 	 * Default settings.
@@ -134,8 +134,8 @@ class Settings {
 	 */
 	public static function register(): void {
 		$hook = add_management_page(
-			__( 'AI Agent Settings', 'ai-agent' ),
-			__( 'AI Agent Settings', 'ai-agent' ),
+			__( 'Gratis AI Agent Settings', 'gratis-ai-agent' ),
+			__( 'Gratis AI Agent Settings', 'gratis-ai-agent' ),
 			'manage_options',
 			self::PAGE_SLUG,
 			[ __CLASS__, 'render' ]
@@ -156,7 +156,7 @@ class Settings {
 			return;
 		}
 
-		$asset_file = AI_AGENT_DIR . '/build/settings-page.asset.php';
+		$asset_file = GRATIS_AI_AGENT_DIR . '/build/settings-page.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;
@@ -165,15 +165,15 @@ class Settings {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'ai-agent-settings-page',
-			AI_AGENT_URL . 'build/style-settings-page.css',
+			'gratis-ai-agent-settings-page',
+			GRATIS_AI_AGENT_URL . 'build/style-settings-page.css',
 			[ 'wp-components' ],
 			$asset['version']
 		);
 
 		wp_enqueue_script(
-			'ai-agent-settings-page',
-			AI_AGENT_URL . 'build/settings-page.js',
+			'gratis-ai-agent-settings-page',
+			GRATIS_AI_AGENT_URL . 'build/settings-page.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
@@ -186,8 +186,8 @@ class Settings {
 	public static function render(): void {
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'AI Agent Settings', 'ai-agent' ); ?></h1>
-			<div id="ai-agent-settings-root"></div>
+			<h1><?php esc_html_e( 'Gratis AI Agent Settings', 'gratis-ai-agent' ); ?></h1>
+			<div id="gratis-ai-agent-settings-root"></div>
 		</div>
 		<?php
 	}

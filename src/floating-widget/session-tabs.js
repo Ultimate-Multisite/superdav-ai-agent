@@ -30,7 +30,7 @@ export default function SessionTabs() {
 
 	const truncateTitle = ( title, maxLen = 20 ) => {
 		if ( ! title ) {
-			return __( 'Untitled', 'ai-agent' );
+			return __( 'Untitled', 'gratis-ai-agent' );
 		}
 		return title.length > maxLen
 			? title.substring( 0, maxLen ) + '...'
@@ -38,18 +38,20 @@ export default function SessionTabs() {
 	};
 
 	return (
-		<div className="ai-agent-session-tabs">
+		<div className="gratis-ai-agent-session-tabs">
 			{ recentSessions.map( ( session ) => {
 				const id = parseInt( session.id, 10 );
 				const isActive = currentSessionId === id;
 				return (
 					<button
 						key={ session.id }
-						className={ `ai-agent-tab-item ${
+						className={ `gratis-ai-agent-tab-item ${
 							isActive ? 'is-active' : ''
 						}` }
 						onClick={ () => openSession( id ) }
-						title={ session.title || __( 'Untitled', 'ai-agent' ) }
+						title={
+							session.title || __( 'Untitled', 'gratis-ai-agent' )
+						}
 						type="button"
 					>
 						{ truncateTitle( session.title ) }
@@ -59,9 +61,9 @@ export default function SessionTabs() {
 			<Button
 				icon={ plus }
 				size="small"
-				label={ __( 'New Chat', 'ai-agent' ) }
+				label={ __( 'New Chat', 'gratis-ai-agent' ) }
 				onClick={ clearCurrentSession }
-				className="ai-agent-tab-new"
+				className="gratis-ai-agent-tab-new"
 			/>
 		</div>
 	);

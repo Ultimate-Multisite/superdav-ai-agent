@@ -6,10 +6,10 @@ declare(strict_types=1);
  *
  * Provides plugin/theme listing, plugin installation, and PHP execution.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 use WP_Error;
 
@@ -35,11 +35,11 @@ class WordPressAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/get-plugins',
+			'gratis-ai-agent/get-plugins',
 			[
-				'label'               => __( 'List Plugins', 'ai-agent' ),
-				'description'         => __( 'List all installed WordPress plugins with their status (active/inactive).', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'List Plugins', 'gratis-ai-agent' ),
+				'description'         => __( 'List all installed WordPress plugins with their status (active/inactive).', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
@@ -67,11 +67,11 @@ class WordPressAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/get-themes',
+			'gratis-ai-agent/get-themes',
 			[
-				'label'               => __( 'List Themes', 'ai-agent' ),
-				'description'         => __( 'List all installed WordPress themes with their status.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'List Themes', 'gratis-ai-agent' ),
+				'description'         => __( 'List all installed WordPress themes with their status.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
@@ -99,11 +99,11 @@ class WordPressAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/install-plugin',
+			'gratis-ai-agent/install-plugin',
 			[
-				'label'               => __( 'Install Plugin', 'ai-agent' ),
-				'description'         => __( 'Install a plugin from the WordPress.org plugin directory by slug. Optionally activate after installation.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Install Plugin', 'gratis-ai-agent' ),
+				'description'         => __( 'Install a plugin from the WordPress.org plugin directory by slug. Optionally activate after installation.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -141,11 +141,11 @@ class WordPressAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/run-php',
+			'gratis-ai-agent/run-php',
 			[
-				'label'               => __( 'Run PHP', 'ai-agent' ),
-				'description'         => __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Run PHP', 'gratis-ai-agent' ),
+				'description'         => __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -248,7 +248,7 @@ class WordPressAbilities {
 		$activate = (bool) ( $input['activate'] ?? false );
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'ai_agent_empty_slug', __( 'Plugin slug is required.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_slug', __( 'Plugin slug is required.', 'gratis-ai-agent' ) );
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -315,7 +315,7 @@ class WordPressAbilities {
 			if ( is_wp_error( $errors ) && $errors->has_errors() ) {
 				return $errors;
 			}
-			return new WP_Error( 'ai_agent_install_failed', __( 'Installation failed for unknown reason.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_install_failed', __( 'Installation failed for unknown reason.', 'gratis-ai-agent' ) );
 		}
 
 		$plugin_file = $upgrader->plugin_info();
@@ -356,7 +356,7 @@ class WordPressAbilities {
 		$code = $input['code'] ?? '';
 
 		if ( empty( $code ) ) {
-			return new WP_Error( 'ai_agent_empty_code', __( 'PHP code is required.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_code', __( 'PHP code is required.', 'gratis-ai-agent' ) );
 		}
 
 		ob_start();
@@ -373,7 +373,7 @@ class WordPressAbilities {
 		$output = ob_get_clean();
 
 		if ( null !== $error ) {
-			return new WP_Error( 'ai_agent_php_error', sprintf( 'PHP error: %s', $error ) );
+			return new WP_Error( 'gratis_ai_agent_php_error', sprintf( 'PHP error: %s', $error ) );
 		}
 
 		return [

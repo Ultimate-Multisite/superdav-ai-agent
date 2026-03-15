@@ -2,13 +2,13 @@
 /**
  * Test case for HttpMethod enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Enums;
+namespace GratisAiAgent\Tests\Enums;
 
-use AiAgent\Enums\HttpMethod;
+use GratisAiAgent\Enums\HttpMethod;
 use WP_UnitTestCase;
 
 /**

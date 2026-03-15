@@ -27,35 +27,43 @@ export default function ToolConfirmationDialog( {
 	}
 
 	return (
-		<div className="ai-agent-shortcuts-overlay">
-			<div className="ai-agent-tool-confirm-dialog" ref={ dialogRef }>
-				<div className="ai-agent-tool-confirm-header">
-					<h3>{ __( 'Tool Confirmation Required', 'ai-agent' ) }</h3>
+		<div className="gratis-ai-agent-shortcuts-overlay">
+			<div
+				className="gratis-ai-agent-tool-confirm-dialog"
+				ref={ dialogRef }
+			>
+				<div className="gratis-ai-agent-tool-confirm-header">
+					<h3>
+						{ __(
+							'Tool Confirmation Required',
+							'gratis-ai-agent'
+						) }
+					</h3>
 				</div>
-				<div className="ai-agent-tool-confirm-body">
-					<p className="ai-agent-tool-confirm-desc">
+				<div className="gratis-ai-agent-tool-confirm-body">
+					<p className="gratis-ai-agent-tool-confirm-desc">
 						{ __(
 							'The AI wants to use the following tools:',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</p>
 					{ confirmation.tools.map( ( tool ) => (
 						<div
 							key={ tool.id }
-							className="ai-agent-tool-confirm-item"
+							className="gratis-ai-agent-tool-confirm-item"
 						>
-							<div className="ai-agent-tool-confirm-name">
+							<div className="gratis-ai-agent-tool-confirm-name">
 								{ tool.name }
 							</div>
 							{ tool.args && (
-								<pre className="ai-agent-tool-confirm-args">
+								<pre className="gratis-ai-agent-tool-confirm-args">
 									{ JSON.stringify( tool.args, null, 2 ) }
 								</pre>
 							) }
 						</div>
 					) ) }
 					{ /* eslint-disable-next-line jsx-a11y/label-has-associated-control */ }
-					<label className="ai-agent-tool-confirm-always">
+					<label className="gratis-ai-agent-tool-confirm-always">
 						<input
 							type="checkbox"
 							checked={ alwaysAllow }
@@ -65,24 +73,24 @@ export default function ToolConfirmationDialog( {
 						/>
 						{ __(
 							'Always allow these tools (change permission to Auto)',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</label>
 				</div>
-				<div className="ai-agent-tool-confirm-footer">
+				<div className="gratis-ai-agent-tool-confirm-footer">
 					<button
 						type="button"
 						className="button"
 						onClick={ onReject }
 					>
-						{ __( 'Deny', 'ai-agent' ) }
+						{ __( 'Deny', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ () => onConfirm( alwaysAllow ) }
 					>
-						{ __( 'Allow', 'ai-agent' ) }
+						{ __( 'Allow', 'gratis-ai-agent' ) }
 					</button>
 				</div>
 			</div>

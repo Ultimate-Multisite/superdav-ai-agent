@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Gathers structured context from various WordPress sources for
  * injection into the agent's system prompt.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
 class ContextProviders {
 

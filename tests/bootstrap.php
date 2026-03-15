@@ -2,7 +2,7 @@
 /**
  * PHPUnit bootstrap file.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
 // Load standard Composer autoloader (not Jetpack) - required for PSR interfaces used by compat layer.
@@ -42,11 +42,11 @@ require_once "{$_tests_dir}/includes/functions.php";
  * Manually load the plugin being tested.
  */
 function _manually_load_plugin() {
-	require dirname(__DIR__) . '/ai-agent.php';
+	require dirname(__DIR__) . '/gratis-ai-agent.php';
 
 	// Install database tables (normally done on activation).
 	// Database::install() includes KnowledgeDatabase schema.
-	AiAgent\Core\Database::install();
+	GratisAiAgent\Core\Database::install();
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');

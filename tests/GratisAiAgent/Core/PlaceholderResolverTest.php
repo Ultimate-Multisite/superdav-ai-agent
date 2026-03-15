@@ -2,13 +2,13 @@
 /**
  * Test case for PlaceholderResolver class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Core;
+namespace GratisAiAgent\Tests\Core;
 
-use AiAgent\Core\PlaceholderResolver;
+use GratisAiAgent\Core\PlaceholderResolver;
 use WP_UnitTestCase;
 
 /**
@@ -21,7 +21,7 @@ class PlaceholderResolverTest extends WP_UnitTestCase {
 	 */
 	public function test_resolve_simple_placeholder() {
 		// Create a mock trigger registration.
-		add_filter( 'ai_agent_event_triggers', function ( $triggers ) {
+		add_filter( 'gratis_ai_agent_event_triggers', function ( $triggers ) {
 			$triggers['test_hook'] = [
 				'args' => [ 'name', 'value' ],
 			];

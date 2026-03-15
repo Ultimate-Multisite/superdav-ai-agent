@@ -2,8 +2,8 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: AI Agent 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ai-agent\n"
+"Project-Id-Version: Gratis AI Agent 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/gratis-ai-agent\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -12,37 +12,37 @@ msgstr ""
 "POT-Creation-Date: 2026-03-04T20:31:33+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: ai-agent\n"
+"X-Domain: gratis-ai-agent\n"
 
 #. Plugin Name of the plugin
-#: ai-agent.php
-#: ai-agent.php:74
+#: gratis-ai-agent.php
+#: gratis-ai-agent.php:74
 #: includes/class-admin-page.php:25
 #: includes/class-admin-page.php:26
 #: includes/class-admin-page.php:77
 #: includes/class-admin-page.php:86
 #: build/floating-widget.js:1
 #: src/floating-widget/floating-panel.js:56
-msgid "AI Agent"
+msgid "Gratis AI Agent"
 msgstr ""
 
 #. Plugin URI of the plugin
-#: ai-agent.php
+#: gratis-ai-agent.php
 msgid "https://developer.wordpress.org/"
 msgstr ""
 
 #. Description of the plugin
-#: ai-agent.php
+#: gratis-ai-agent.php
 msgid "Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously."
 msgstr ""
 
 #. Author of the plugin
-#: ai-agent.php
+#: gratis-ai-agent.php
 msgid "Dave"
 msgstr ""
 
-#: ai-agent.php:75
-msgid "AI Agent memory and skill abilities."
+#: gratis-ai-agent.php:75
+msgid "Gratis AI Agent memory and skill abilities."
 msgstr ""
 
 #: includes/class-admin-page.php:79
@@ -583,7 +583,7 @@ msgid "Other"
 msgstr ""
 
 #: includes/class-export.php:136
-msgid "Invalid import format. Expected ai-agent-v1."
+msgid "Invalid import format. Expected gratis-ai-agent-v1."
 msgstr ""
 
 #: includes/class-export.php:144
@@ -821,7 +821,7 @@ msgstr ""
 #: includes/class-settings.php:135
 #: includes/class-settings.php:136
 #: includes/class-settings.php:187
-msgid "AI Agent Settings"
+msgid "Gratis AI Agent Settings"
 msgstr ""
 
 #: includes/class-skill-abilities.php:32
@@ -1409,12 +1409,12 @@ msgstr ""
 
 #: build/admin-page.js:1
 #: src/components/onboarding-wizard.js:59
-msgid "Welcome to AI Agent"
+msgid "Welcome to Gratis AI Agent"
 msgstr ""
 
 #: build/admin-page.js:1
 #: src/components/onboarding-wizard.js:63
-msgid "AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools)."
+msgid "Gratis AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools)."
 msgstr ""
 
 #: build/admin-page.js:1
@@ -1464,12 +1464,12 @@ msgstr ""
 
 #: build/admin-page.js:1
 #: src/components/onboarding-wizard.js:167
-msgid "You're all set! The AI Agent is ready to help you manage your WordPress site."
+msgid "You're all set! The Gratis AI Agent is ready to help you manage your WordPress site."
 msgstr ""
 
 #: build/admin-page.js:1
 #: src/components/onboarding-wizard.js:173
-msgid "You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > AI Agent."
+msgid "You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > Gratis AI Agent."
 msgstr ""
 
 #: build/admin-page.js:1
@@ -1529,7 +1529,7 @@ msgstr ""
 
 #: build/floating-widget.js:1
 #: src/floating-widget/floating-button.js:21
-msgid "Open AI Agent"
+msgid "Open Gratis AI Agent"
 msgstr ""
 
 #: build/floating-widget.js:1
@@ -2647,7 +2647,7 @@ msgid "Download"
 msgstr ""
 
 #: src/components/import-dialog.js:41
-msgid "Invalid format. Expected ai-agent-v1."
+msgid "Invalid format. Expected gratis-ai-agent-v1."
 msgstr ""
 
 #: src/components/import-dialog.js:79

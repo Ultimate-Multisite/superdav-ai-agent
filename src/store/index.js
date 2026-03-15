@@ -4,7 +4,20 @@
 import { createReduxStore, register } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 
-const STORE_NAME = 'ai-agent';
+const STORE_NAME = 'gratis-ai-agent';
+
+// Migrate localStorage keys from old "aiAgent" prefix to "gratisAiAgent".
+[ 'Provider', 'Model', 'DebugMode' ].forEach( ( key ) => {
+	const oldKey = `aiAgent${ key }`;
+	const newKey = `gratisAiAgent${ key }`;
+	if (
+		localStorage.getItem( oldKey ) !== null &&
+		localStorage.getItem( newKey ) === null
+	) {
+		localStorage.setItem( newKey, localStorage.getItem( oldKey ) );
+		localStorage.removeItem( oldKey );
+	}
+} );
 
 /**
  * Known model context windows (tokens).
@@ -26,8 +39,8 @@ const DEFAULT_STATE = {
 	currentSessionToolCalls: [],
 	sending: false,
 	currentJobId: null,
-	selectedProviderId: localStorage.getItem( 'aiAgentProvider' ) || '',
-	selectedModelId: localStorage.getItem( 'aiAgentModel' ) || '',
+	selectedProviderId: localStorage.getItem( 'gratisAiAgentProvider' ) || '',
+	selectedModelId: localStorage.getItem( 'gratisAiAgentModel' ) || '',
 	floatingOpen: false,
 	floatingMinimized: false,
 	pageContext: '',
@@ -58,7 +71,7 @@ const DEFAULT_STATE = {
 	pendingConfirmation: null,
 
 	// Debug mode
-	debugMode: localStorage.getItem( 'aiAgentDebugMode' ) === 'true',
+	debugMode: localStorage.getItem( 'gratisAiAgentDebugMode' ) === 'true',
 	sendTimestamp: 0,
 };
 
@@ -87,11 +100,11 @@ const actions = {
 		return { type: 'SET_CURRENT_JOB_ID', jobId };
 	},
 	setSelectedProvider( providerId ) {
-		localStorage.setItem( 'aiAgentProvider', providerId );
+		localStorage.setItem( 'gratisAiAgentProvider', providerId );
 		return { type: 'SET_SELECTED_PROVIDER', providerId };
 	},
 	setSelectedModel( modelId ) {
-		localStorage.setItem( 'aiAgentModel', modelId );
+		localStorage.setItem( 'gratisAiAgentModel', modelId );
 		return { type: 'SET_SELECTED_MODEL', modelId };
 	},
 	setFloatingOpen( open ) {
@@ -140,7 +153,10 @@ const actions = {
 		return { type: 'TRUNCATE_MESSAGES_TO', index };
 	},
 	setDebugMode( enabled ) {
-		localStorage.setItem( 'aiAgentDebugMode', enabled ? 'true' : 'false' );
+		localStorage.setItem(
+			'gratisAiAgentDebugMode',
+			enabled ? 'true' : 'false'
+		);
 		return { type: 'SET_DEBUG_MODE', enabled };
 	},
 	setSendTimestamp( ts ) {
@@ -153,12 +169,12 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const providers = await apiFetch( {
-					path: '/ai-agent/v1/providers',
+					path: '/gratis-ai-agent/v1/providers',
 				} );
 				dispatch.setProviders( providers );
 
 				// Auto-select first provider if none saved or saved one is unavailable.
-				const saved = localStorage.getItem( 'aiAgentProvider' );
+				const saved = localStorage.getItem( 'gratisAiAgentProvider' );
 				if (
 					( ! saved ||
 						! providers.find( ( p ) => p.id === saved ) ) &&
@@ -198,7 +214,8 @@ const actions = {
 				}
 
 				const qs = params.toString();
-				const path = '/ai-agent/v1/sessions' + ( qs ? '?' + qs : '' );
+				const path =
+					'/gratis-ai-agent/v1/sessions' + ( qs ? '?' + qs : '' );
 
 				const sessions = await apiFetch( { path } );
 				dispatch.setSessions( sessions );
@@ -212,7 +229,7 @@ const actions = {
 		return async ( { dispatch, select } ) => {
 			try {
 				const session = await apiFetch( {
-					path: `/ai-agent/v1/sessions/${ sessionId }`,
+					path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				} );
 				dispatch.setCurrentSession(
 					session.id,
@@ -245,7 +262,7 @@ const actions = {
 		return async ( { dispatch, select } ) => {
 			try {
 				await apiFetch( {
-					path: `/ai-agent/v1/sessions/${ sessionId }`,
+					path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 					method: 'DELETE',
 				} );
 				if ( select.getCurrentSessionId() === sessionId ) {
@@ -261,7 +278,7 @@ const actions = {
 	pinSession( sessionId, pinned ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { pinned },
 			} );
@@ -272,7 +289,7 @@ const actions = {
 	archiveSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'archived' },
 			} );
@@ -286,7 +303,7 @@ const actions = {
 	trashSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'trash' },
 			} );
@@ -300,7 +317,7 @@ const actions = {
 	restoreSession( sessionId ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'active' },
 			} );
@@ -311,7 +328,7 @@ const actions = {
 	moveSessionToFolder( sessionId, folder ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { folder },
 			} );
@@ -323,7 +340,7 @@ const actions = {
 	renameSession( sessionId, title ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { title },
 			} );
@@ -335,7 +352,7 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const folders = await apiFetch( {
-					path: '/ai-agent/v1/sessions/folders',
+					path: '/gratis-ai-agent/v1/sessions/folders',
 				} );
 				dispatch.setFolders( folders );
 			} catch {
@@ -347,7 +364,7 @@ const actions = {
 	exportSession( sessionId, format = 'json' ) {
 		return async () => {
 			const result = await apiFetch( {
-				path: `/ai-agent/v1/sessions/${ sessionId }/export?format=${ format }`,
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/export?format=${ format }`,
 			} );
 			const content =
 				format === 'json'
@@ -368,7 +385,7 @@ const actions = {
 	importSession( data ) {
 		return async ( { dispatch } ) => {
 			const session = await apiFetch( {
-				path: '/ai-agent/v1/sessions/import',
+				path: '/gratis-ai-agent/v1/sessions/import',
 				method: 'POST',
 				data,
 			} );
@@ -420,7 +437,7 @@ const actions = {
 			dispatch.setPendingConfirmation( null );
 			try {
 				await apiFetch( {
-					path: `/ai-agent/v1/job/${ jobId }/confirm`,
+					path: `/gratis-ai-agent/v1/job/${ jobId }/confirm`,
 					method: 'POST',
 					data: { always_allow: alwaysAllow },
 				} );
@@ -447,7 +464,7 @@ const actions = {
 			dispatch.setPendingConfirmation( null );
 			try {
 				await apiFetch( {
-					path: `/ai-agent/v1/job/${ jobId }/reject`,
+					path: `/gratis-ai-agent/v1/job/${ jobId }/reject`,
 					method: 'POST',
 				} );
 				dispatch.pollJob( jobId );
@@ -484,7 +501,7 @@ const actions = {
 			if ( ! sessionId ) {
 				try {
 					const session = await apiFetch( {
-						path: '/ai-agent/v1/sessions',
+						path: '/gratis-ai-agent/v1/sessions',
 						method: 'POST',
 						data: {
 							provider_id: select.getSelectedProviderId(),
@@ -529,7 +546,7 @@ const actions = {
 
 			try {
 				const result = await apiFetch( {
-					path: '/ai-agent/v1/run',
+					path: '/gratis-ai-agent/v1/run',
 					method: 'POST',
 					data: body,
 				} );
@@ -580,7 +597,7 @@ const actions = {
 
 				try {
 					const result = await apiFetch( {
-						path: `/ai-agent/v1/job/${ jobId }`,
+						path: `/gratis-ai-agent/v1/job/${ jobId }`,
 					} );
 
 					if ( result.status === 'processing' ) {
@@ -706,7 +723,7 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const settings = await apiFetch( {
-					path: '/ai-agent/v1/settings',
+					path: '/gratis-ai-agent/v1/settings',
 				} );
 				dispatch.setSettings( settings );
 			} catch {
@@ -719,7 +736,7 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const settings = await apiFetch( {
-					path: '/ai-agent/v1/settings',
+					path: '/gratis-ai-agent/v1/settings',
 					method: 'POST',
 					data,
 				} );
@@ -737,7 +754,7 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const memories = await apiFetch( {
-					path: '/ai-agent/v1/memory',
+					path: '/gratis-ai-agent/v1/memory',
 				} );
 				dispatch.setMemories( memories );
 			} catch {
@@ -749,7 +766,7 @@ const actions = {
 	createMemory( category, content ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: '/ai-agent/v1/memory',
+				path: '/gratis-ai-agent/v1/memory',
 				method: 'POST',
 				data: { category, content },
 			} );
@@ -760,7 +777,7 @@ const actions = {
 	updateMemory( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/memory/${ id }`,
+				path: `/gratis-ai-agent/v1/memory/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -771,7 +788,7 @@ const actions = {
 	deleteMemory( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/memory/${ id }`,
+				path: `/gratis-ai-agent/v1/memory/${ id }`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchMemories();
@@ -784,7 +801,7 @@ const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const skills = await apiFetch( {
-					path: '/ai-agent/v1/skills',
+					path: '/gratis-ai-agent/v1/skills',
 				} );
 				dispatch.setSkills( skills );
 			} catch {
@@ -796,7 +813,7 @@ const actions = {
 	createSkill( data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: '/ai-agent/v1/skills',
+				path: '/gratis-ai-agent/v1/skills',
 				method: 'POST',
 				data,
 			} );
@@ -807,7 +824,7 @@ const actions = {
 	updateSkill( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/skills/${ id }`,
+				path: `/gratis-ai-agent/v1/skills/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -818,7 +835,7 @@ const actions = {
 	deleteSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/skills/${ id }`,
+				path: `/gratis-ai-agent/v1/skills/${ id }`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchSkills();
@@ -828,7 +845,7 @@ const actions = {
 	resetSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/ai-agent/v1/skills/${ id }/reset`,
+				path: `/gratis-ai-agent/v1/skills/${ id }/reset`,
 				method: 'POST',
 			} );
 			dispatch.fetchSkills();
@@ -860,7 +877,7 @@ const actions = {
 			// Create a new session.
 			try {
 				const session = await apiFetch( {
-					path: '/ai-agent/v1/sessions',
+					path: '/gratis-ai-agent/v1/sessions',
 					method: 'POST',
 					data: {
 						title: 'Compacted conversation',

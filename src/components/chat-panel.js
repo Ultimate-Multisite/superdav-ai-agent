@@ -26,13 +26,15 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 
 	return (
 		<div
-			className={ `ai-agent-chat-panel ${ compact ? 'is-compact' : '' }` }
+			className={ `gratis-ai-agent-chat-panel ${
+				compact ? 'is-compact' : ''
+			}` }
 		>
-			<div className="ai-agent-header">
+			<div className="gratis-ai-agent-header">
 				<ProviderSelector compact={ compact } />
 				{ debugMode && (
-					<span className="ai-agent-debug-badge">
-						{ __( 'DEBUG', 'ai-agent' ) }
+					<span className="gratis-ai-agent-debug-badge">
+						{ __( 'DEBUG', 'gratis-ai-agent' ) }
 					</span>
 				) }
 			</div>

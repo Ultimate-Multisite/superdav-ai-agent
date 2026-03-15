@@ -4,10 +4,10 @@ declare(strict_types=1);
 /**
  * Marketing and competitive analysis abilities for the AI agent.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -31,11 +31,11 @@ class MarketingAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/fetch-url',
+			'gratis-ai-agent/fetch-url',
 			[
-				'label'               => __( 'Fetch URL', 'ai-agent' ),
-				'description'         => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Fetch URL', 'gratis-ai-agent' ),
+				'description'         => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -54,11 +54,11 @@ class MarketingAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/analyze-headers',
+			'gratis-ai-agent/analyze-headers',
 			[
-				'label'               => __( 'Analyze HTTP Headers', 'ai-agent' ),
-				'description'         => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
+				'description'         => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

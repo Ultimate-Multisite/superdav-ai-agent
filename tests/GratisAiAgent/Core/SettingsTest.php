@@ -2,13 +2,13 @@
 /**
  * Test case for Settings class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Core;
+namespace GratisAiAgent\Tests\Core;
 
-use AiAgent\Core\Settings;
+use GratisAiAgent\Core\Settings;
 use WP_UnitTestCase;
 
 /**
@@ -149,14 +149,14 @@ class SettingsTest extends WP_UnitTestCase {
 	 * Test PAGE_SLUG constant.
 	 */
 	public function test_page_slug_constant() {
-		$this->assertSame( 'ai-agent-settings', Settings::PAGE_SLUG );
+		$this->assertSame( 'gratis-ai-agent-settings', Settings::PAGE_SLUG );
 	}
 
 	/**
 	 * Test OPTION_NAME constant.
 	 */
 	public function test_option_name_constant() {
-		$this->assertSame( 'ai_agent_settings', Settings::OPTION_NAME );
+		$this->assertSame( 'gratis_ai_agent_settings', Settings::OPTION_NAME );
 	}
 
 	/**

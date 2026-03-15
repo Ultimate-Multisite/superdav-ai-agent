@@ -2,12 +2,12 @@
 /**
  * HTTP method enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
 declare(strict_types=1);
 
-namespace AiAgent\Enums;
+namespace GratisAiAgent\Enums;
 
 /**
  * Valid HTTP methods for custom HTTP tools.

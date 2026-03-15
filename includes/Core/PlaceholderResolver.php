@@ -4,12 +4,12 @@ declare(strict_types=1);
 /**
  * Placeholder Resolver — resolves {{post.title}}, {{user.email}}, etc. from hook arguments.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
-use AiAgent\Automations\EventTriggerRegistry;
+use GratisAiAgent\Automations\EventTriggerRegistry;
 
 class PlaceholderResolver {
 

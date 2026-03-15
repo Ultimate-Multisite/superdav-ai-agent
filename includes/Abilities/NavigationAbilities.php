@@ -6,10 +6,10 @@ declare(strict_types=1);
  *
  * Provides URL navigation and page HTML inspection.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 use WP_Error;
 
@@ -35,11 +35,11 @@ class NavigationAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/navigate',
+			'gratis-ai-agent/navigate',
 			[
-				'label'               => __( 'Navigate', 'ai-agent' ),
-				'description'         => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Navigate', 'gratis-ai-agent' ),
+				'description'         => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -72,11 +72,11 @@ class NavigationAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/get-page-html',
+			'gratis-ai-agent/get-page-html',
 			[
-				'label'               => __( 'Get Page HTML', 'ai-agent' ),
-				'description'         => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Get Page HTML', 'gratis-ai-agent' ),
+				'description'         => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -125,7 +125,7 @@ class NavigationAbilities {
 		$home_url = home_url();
 
 		if ( empty( $url ) ) {
-			return new WP_Error( 'ai_agent_empty_url', __( 'URL is required.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_url', __( 'URL is required.', 'gratis-ai-agent' ) );
 		}
 
 		$validated_url = null;
@@ -137,10 +137,10 @@ class NavigationAbilities {
 			$validated_url = $url;
 		} else {
 			return new WP_Error(
-				'ai_agent_invalid_url',
+				'gratis_ai_agent_invalid_url',
 				sprintf(
 					/* translators: %s: home URL */
-					__( 'Invalid URL: must be within the WordPress site (start with "%s" or be a relative path).', 'ai-agent' ),
+					__( 'Invalid URL: must be within the WordPress site (start with "%s" or be a relative path).', 'gratis-ai-agent' ),
 					$home_url
 				)
 			);
@@ -149,8 +149,8 @@ class NavigationAbilities {
 		// Block ThickBox/iframe URLs.
 		if ( strpos( $validated_url, 'TB_iframe=true' ) !== false ) {
 			return new WP_Error(
-				'ai_agent_iframe_url',
-				__( 'Cannot navigate to modal/iframe URLs. Navigate to the main page instead.', 'ai-agent' )
+				'gratis_ai_agent_iframe_url',
+				__( 'Cannot navigate to modal/iframe URLs. Navigate to the main page instead.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -176,7 +176,7 @@ class NavigationAbilities {
 		$max_length = (int) ( $input['max_length'] ?? 5000 );
 
 		if ( empty( $selector ) ) {
-			return new WP_Error( 'ai_agent_empty_selector', __( 'CSS selector is required.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_selector', __( 'CSS selector is required.', 'gratis-ai-agent' ) );
 		}
 
 		// This ability returns a client-side action instruction.

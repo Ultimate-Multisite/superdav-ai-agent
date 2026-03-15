@@ -6,10 +6,10 @@ declare(strict_types=1);
  *
  * Handles execution of HTTP, ACTION, and CLI tool types.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Tools;
+namespace GratisAiAgent\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,7 +37,7 @@ class CustomToolExecutor {
 		$tools = CustomTools::list( true );
 
 		foreach ( $tools as $tool ) {
-			$ability_name = 'ai-agent-custom/' . $tool['slug'];
+			$ability_name = 'gratis-ai-agent-custom/' . $tool['slug'];
 
 			wp_register_ability(
 				$ability_name,
@@ -45,10 +45,10 @@ class CustomToolExecutor {
 					'label'               => $tool['name'],
 					'description'         => $tool['description'] ?: sprintf(
 						/* translators: %s: tool type */
-						__( 'Custom %s tool', 'ai-agent' ),
+						__( 'Custom %s tool', 'gratis-ai-agent' ),
 						strtoupper( $tool['type'] )
 					),
-					'category'            => 'ai-agent',
+					'category'            => 'gratis-ai-agent',
 					'input_schema'        => ! empty( $tool['input_schema'] ) ? $tool['input_schema'] : [
 						'type'       => 'object',
 						'properties' => new \stdClass(),

@@ -2,13 +2,13 @@
 /**
  * Test case for Schedule enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Enums;
+namespace GratisAiAgent\Tests\Enums;
 
-use AiAgent\Enums\Schedule;
+use GratisAiAgent\Enums\Schedule;
 use WP_UnitTestCase;
 
 /**

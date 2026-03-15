@@ -2,13 +2,13 @@
 /**
  * Test case for MemoryCategory enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Enums;
+namespace GratisAiAgent\Tests\Enums;
 
-use AiAgent\Enums\MemoryCategory;
+use GratisAiAgent\Enums\MemoryCategory;
 use WP_UnitTestCase;
 
 /**

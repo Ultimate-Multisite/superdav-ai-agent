@@ -2,13 +2,13 @@
 /**
  * Test case for CostCalculator class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Core;
+namespace GratisAiAgent\Tests\Core;
 
-use AiAgent\Core\CostCalculator;
+use GratisAiAgent\Core\CostCalculator;
 use WP_UnitTestCase;
 
 /**

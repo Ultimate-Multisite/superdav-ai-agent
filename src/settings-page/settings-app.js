@@ -51,7 +51,7 @@ export default function SettingsApp() {
 		fetchSettings();
 		fetchProviders();
 		// Fetch abilities list.
-		apiFetch( { path: '/ai-agent/v1/abilities' } )
+		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
 	}, [ fetchSettings, fetchProviders ] );
@@ -73,12 +73,12 @@ export default function SettingsApp() {
 			await saveSettings( local );
 			setNotice( {
 				status: 'success',
-				message: __( 'Settings saved.', 'ai-agent' ),
+				message: __( 'Settings saved.', 'gratis-ai-agent' ),
 			} );
 		} catch {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to save settings.', 'ai-agent' ),
+				message: __( 'Failed to save settings.', 'gratis-ai-agent' ),
 			} );
 		}
 		setSaving( false );
@@ -86,7 +86,7 @@ export default function SettingsApp() {
 
 	if ( ! settingsLoaded || ! local ) {
 		return (
-			<div className="ai-agent-settings-loading">
+			<div className="gratis-ai-agent-settings-loading">
 				<Spinner />
 			</div>
 		);
@@ -94,7 +94,7 @@ export default function SettingsApp() {
 
 	// Build provider/model options.
 	const providerOptions = [
-		{ label: __( '(default)', 'ai-agent' ), value: '' },
+		{ label: __( '(default)', 'gratis-ai-agent' ), value: '' },
 		...providers.map( ( p ) => ( { label: p.name, value: p.id } ) ),
 	];
 
@@ -102,7 +102,7 @@ export default function SettingsApp() {
 		( p ) => p.id === local.default_provider
 	);
 	const modelOptions = [
-		{ label: __( '(default)', 'ai-agent' ), value: '' },
+		{ label: __( '(default)', 'gratis-ai-agent' ), value: '' },
 		...( selectedProvider?.models || [] ).map( ( m ) => ( {
 			label: m.name || m.id,
 			value: m.id,
@@ -112,68 +112,68 @@ export default function SettingsApp() {
 	const tabs = [
 		{
 			name: 'general',
-			title: __( 'General', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'General', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'system-prompt',
-			title: __( 'System Prompt', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'System Prompt', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'memory',
-			title: __( 'Memory', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Memory', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'skills',
-			title: __( 'Skills', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Skills', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'knowledge',
-			title: __( 'Knowledge', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Knowledge', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'custom-tools',
-			title: __( 'Custom Tools', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Custom Tools', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'tool-profiles',
-			title: __( 'Tool Profiles', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Tool Profiles', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'automations',
-			title: __( 'Automations', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Automations', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'events',
-			title: __( 'Events', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Events', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'abilities',
-			title: __( 'Abilities', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Abilities', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'usage',
-			title: __( 'Usage', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Usage', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
 			name: 'advanced',
-			title: __( 'Advanced', 'ai-agent' ),
-			className: 'ai-agent-settings-tab',
+			title: __( 'Advanced', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
 		},
 	];
 
 	return (
-		<div className="ai-agent-settings">
+		<div className="gratis-ai-agent-settings">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -188,11 +188,11 @@ export default function SettingsApp() {
 					switch ( tab.name ) {
 						case 'general':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<SelectControl
 										label={ __(
 											'Default Provider',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={ local.default_provider }
 										options={ providerOptions }
@@ -204,7 +204,7 @@ export default function SettingsApp() {
 									<SelectControl
 										label={ __(
 											'Default Model',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={ local.default_model }
 										options={ modelOptions }
@@ -216,7 +216,7 @@ export default function SettingsApp() {
 									<TextControl
 										label={ __(
 											'Max Iterations',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										type="number"
 										min={ 1 }
@@ -230,14 +230,14 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'Maximum tool-call iterations per request.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
 									<TextareaControl
 										label={ __(
 											'Greeting Message',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={ local.greeting_message }
 										onChange={ ( v ) =>
@@ -249,7 +249,7 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'Shown in the chat before the first message. Leave empty for the default above.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										rows={ 2 }
 									/>
@@ -258,11 +258,11 @@ export default function SettingsApp() {
 
 						case 'system-prompt':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<TextareaControl
 										label={ __(
 											'Custom System Prompt',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={ local.system_prompt }
 										onChange={ ( v ) =>
@@ -275,7 +275,7 @@ export default function SettingsApp() {
 										rows={ 12 }
 										help={ __(
 											'Leave empty to use the built-in default shown above. Memories are appended automatically.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 									/>
 								</div>
@@ -283,11 +283,11 @@ export default function SettingsApp() {
 
 						case 'memory':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<ToggleControl
 										label={ __(
 											'Auto-Memory',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										checked={ local.auto_memory }
 										onChange={ ( v ) =>
@@ -295,7 +295,7 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'When enabled, the AI can proactively save and recall memories.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
@@ -305,18 +305,18 @@ export default function SettingsApp() {
 
 						case 'skills':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<SkillManager />
 								</div>
 							);
 
 						case 'knowledge':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<ToggleControl
 										label={ __(
 											'Enable Knowledge Base',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										checked={ local.knowledge_enabled }
 										onChange={ ( v ) =>
@@ -327,14 +327,14 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'When enabled, the AI can search indexed documents and posts for relevant context.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
 									<ToggleControl
 										label={ __(
 											'Auto-Index on Post Save',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										checked={ local.knowledge_auto_index }
 										onChange={ ( v ) =>
@@ -345,7 +345,7 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'Automatically index posts when they are published or updated.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
@@ -355,46 +355,46 @@ export default function SettingsApp() {
 
 						case 'custom-tools':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<CustomToolsManager />
 								</div>
 							);
 
 						case 'tool-profiles':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<ToolProfilesManager />
 								</div>
 							);
 
 						case 'automations':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<AutomationsManager />
 								</div>
 							);
 
 						case 'events':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<EventsManager />
 								</div>
 							);
 
 						case 'abilities':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<p className="description">
 										{ __(
 											'Control how each tool behaves. "Auto" runs without asking, "Confirm" pauses to ask before running, "Disabled" prevents the tool from being used.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 									</p>
 									{ abilities.length === 0 && (
 										<p>
 											{ __(
 												'No abilities registered.',
-												'ai-agent'
+												'gratis-ai-agent'
 											) }
 										</p>
 									) }
@@ -418,21 +418,21 @@ export default function SettingsApp() {
 													{
 														label: __(
 															'Auto (always allow)',
-															'ai-agent'
+															'gratis-ai-agent'
 														),
 														value: 'auto',
 													},
 													{
 														label: __(
 															'Confirm (ask before use)',
-															'ai-agent'
+															'gratis-ai-agent'
 														),
 														value: 'confirm',
 													},
 													{
 														label: __(
 															'Disabled',
-															'ai-agent'
+															'gratis-ai-agent'
 														),
 														value: 'disabled',
 													},
@@ -465,18 +465,18 @@ export default function SettingsApp() {
 
 						case 'usage':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<UsageDashboard />
 								</div>
 							);
 
 						case 'advanced':
 							return (
-								<div className="ai-agent-settings-section">
+								<div className="gratis-ai-agent-settings-section">
 									<RangeControl
 										label={ __(
 											'Temperature',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={ local.temperature }
 										onChange={ ( v ) =>
@@ -487,13 +487,13 @@ export default function SettingsApp() {
 										step={ 0.1 }
 										help={ __(
 											'Higher = more creative, lower = more deterministic.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 									/>
 									<TextControl
 										label={ __(
 											'Max Output Tokens',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										type="number"
 										min={ 256 }
@@ -510,7 +510,7 @@ export default function SettingsApp() {
 									<TextControl
 										label={ __(
 											'Default Context Window',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										type="number"
 										min={ 4096 }
@@ -524,14 +524,14 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'Used as fallback when model context size is unknown.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
 									<SelectControl
 										label={ __(
 											'Tool Discovery Mode',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										value={
 											local.tool_discovery_mode || 'auto'
@@ -540,21 +540,21 @@ export default function SettingsApp() {
 											{
 												label: __(
 													'Auto (enable when tools exceed threshold)',
-													'ai-agent'
+													'gratis-ai-agent'
 												),
 												value: 'auto',
 											},
 											{
 												label: __(
 													'Always (always use discovery)',
-													'ai-agent'
+													'gratis-ai-agent'
 												),
 												value: 'always',
 											},
 											{
 												label: __(
 													'Never (load all tools directly)',
-													'ai-agent'
+													'gratis-ai-agent'
 												),
 												value: 'never',
 											},
@@ -567,7 +567,7 @@ export default function SettingsApp() {
 										}
 										help={ __(
 											'When active, only priority tools are loaded directly. Other tools are discoverable via meta-tools, saving tokens.',
-											'ai-agent'
+											'gratis-ai-agent'
 										) }
 										__nextHasNoMarginBottom
 									/>
@@ -576,7 +576,7 @@ export default function SettingsApp() {
 										<TextControl
 											label={ __(
 												'Discovery Threshold',
-												'ai-agent'
+												'gratis-ai-agent'
 											) }
 											type="number"
 											min={ 5 }
@@ -593,7 +593,7 @@ export default function SettingsApp() {
 											}
 											help={ __(
 												'Enable discovery mode when total registered tools exceed this number.',
-												'ai-agent'
+												'gratis-ai-agent'
 											) }
 											__nextHasNoMarginBottom
 										/>
@@ -606,14 +606,14 @@ export default function SettingsApp() {
 					}
 				} }
 			</TabPanel>
-			<div className="ai-agent-settings-actions">
+			<div className="gratis-ai-agent-settings-actions">
 				<Button
 					variant="primary"
 					onClick={ handleSave }
 					isBusy={ saving }
 					disabled={ saving }
 				>
-					{ __( 'Save Settings', 'ai-agent' ) }
+					{ __( 'Save Settings', 'gratis-ai-agent' ) }
 				</Button>
 			</div>
 		</div>

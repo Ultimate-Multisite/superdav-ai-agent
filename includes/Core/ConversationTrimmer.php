@@ -8,10 +8,10 @@ declare(strict_types=1);
  * Never cuts mid-tool-cycle (assistant tool call + tool response are kept together).
  * Always trims before a user message boundary.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
 

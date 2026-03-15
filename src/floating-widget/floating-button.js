@@ -16,9 +16,9 @@ export default function FloatingButton() {
 
 	return (
 		<Button
-			className="ai-agent-fab"
+			className="gratis-ai-agent-fab"
 			onClick={ () => setFloatingOpen( true ) }
-			label={ __( 'Open AI Agent', 'ai-agent' ) }
+			label={ __( 'Open Gratis AI Agent', 'gratis-ai-agent' ) }
 		>
 			<Icon icon={ comment } size={ 24 } />
 		</Button>

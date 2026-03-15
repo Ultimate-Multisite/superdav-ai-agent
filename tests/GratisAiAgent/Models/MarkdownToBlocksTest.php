@@ -2,13 +2,13 @@
 /**
  * Test case for MarkdownToBlocks class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Models;
+namespace GratisAiAgent\Tests\Models;
 
-use AiAgent\Models\MarkdownToBlocks;
+use GratisAiAgent\Models\MarkdownToBlocks;
 use WP_UnitTestCase;
 
 /**

@@ -2,14 +2,14 @@
 /**
  * Test case for ConversationTrimmer class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Core;
+namespace GratisAiAgent\Tests\Core;
 
-use AiAgent\Core\ConversationTrimmer;
-use AiAgent\Core\Settings;
+use GratisAiAgent\Core\ConversationTrimmer;
+use GratisAiAgent\Core\Settings;
 use WordPress\AiClient\Messages\DTO\UserMessage;
 use WordPress\AiClient\Messages\DTO\AssistantMessage;
 use WordPress\AiClient\Messages\DTO\MessagePart;
@@ -34,7 +34,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 		}
 
 		// Reset settings before each test.
-		delete_option( 'ai_agent_settings' );
+		delete_option( 'gratis_ai_agent_settings' );
 	}
 
 	/**

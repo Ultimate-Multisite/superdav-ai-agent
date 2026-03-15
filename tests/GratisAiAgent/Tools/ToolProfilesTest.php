@@ -2,13 +2,13 @@
 /**
  * Test case for ToolProfiles class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Tools;
+namespace GratisAiAgent\Tests\Tools;
 
-use AiAgent\Tools\ToolProfiles;
+use GratisAiAgent\Tools\ToolProfiles;
 use WP_UnitTestCase;
 
 /**

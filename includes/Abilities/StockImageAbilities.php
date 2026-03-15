@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Provides a simple keyword-based image import tool that avoids the complexity
  * of the WP-CLI media/import schema (porcelain typing, redirect URLs, etc.).
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -34,11 +34,11 @@ class StockImageAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/import-stock-image',
+			'gratis-ai-agent/import-stock-image',
 			[
-				'label'               => __( 'Import Stock Image', 'ai-agent' ),
-				'description'         => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Import Stock Image', 'gratis-ai-agent' ),
+				'description'         => __( 'Import a stock image into the media library by keyword. Returns attachment ID and URL. Use site_url to target a subsite.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

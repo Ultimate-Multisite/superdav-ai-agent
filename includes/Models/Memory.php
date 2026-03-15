@@ -4,10 +4,10 @@ declare(strict_types=1);
 /**
  * Memory system — persistent storage for agent knowledge.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Models;
+namespace GratisAiAgent\Models;
 
 class Memory {
 
@@ -21,7 +21,7 @@ class Memory {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_memories';
+		return $wpdb->prefix . 'gratis_ai_agent_memories';
 	}
 
 	/**

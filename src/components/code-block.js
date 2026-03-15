@@ -22,19 +22,21 @@ export default function CodeBlock( { language, children } ) {
 	}, [ code ] );
 
 	return (
-		<div className="ai-agent-code-block">
-			<div className="ai-agent-code-header">
+		<div className="gratis-ai-agent-code-block">
+			<div className="gratis-ai-agent-code-header">
 				{ language && (
-					<span className="ai-agent-code-language">{ language }</span>
+					<span className="gratis-ai-agent-code-language">
+						{ language }
+					</span>
 				) }
 				<button
-					className="ai-agent-code-copy"
+					className="gratis-ai-agent-code-copy"
 					onClick={ handleCopy }
 					type="button"
 				>
 					{ copied
-						? __( 'Copied!', 'ai-agent' )
-						: __( 'Copy', 'ai-agent' ) }
+						? __( 'Copied!', 'gratis-ai-agent' )
+						: __( 'Copy', 'gratis-ai-agent' ) }
 				</button>
 			</div>
 			<SyntaxHighlighter

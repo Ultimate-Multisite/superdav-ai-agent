@@ -44,40 +44,40 @@ jobs:
 
       - name: Create plugin directory
         run: |
-          mkdir -p build/ai-agent
+          mkdir -p build/gratis-ai-agent
           
           # Copy PHP files
-          cp ai-agent.php build/ai-agent/
-          cp -r includes build/ai-agent/
-          cp -r compat build/ai-agent/
+          cp gratis-ai-agent.php build/gratis-ai-agent/
+          cp -r includes build/gratis-ai-agent/
+          cp -r compat build/gratis-ai-agent/
           
           # Copy built assets
-          cp -r build/*.js build/*.css build/*.asset.php build/ai-agent/build/ 2>/dev/null || true
-          mkdir -p build/ai-agent/build
-          cp -r build/*.js build/*.css build/*.asset.php build/ai-agent/build/ 2>/dev/null || true
+          cp -r build/*.js build/*.css build/*.asset.php build/gratis-ai-agent/build/ 2>/dev/null || true
+          mkdir -p build/gratis-ai-agent/build
+          cp -r build/*.js build/*.css build/*.asset.php build/gratis-ai-agent/build/ 2>/dev/null || true
           
           # Copy other assets
-          cp -r assets build/ai-agent/ 2>/dev/null || true
-          cp -r languages build/ai-agent/ 2>/dev/null || true
+          cp -r assets build/gratis-ai-agent/ 2>/dev/null || true
+          cp -r languages build/gratis-ai-agent/ 2>/dev/null || true
           
           # Copy vendor (production only)
-          cp -r vendor build/ai-agent/
+          cp -r vendor build/gratis-ai-agent/
           
           # Copy documentation
-          cp README.md build/ai-agent/
-          cp readme.txt build/ai-agent/
-          cp LICENSE build/ai-agent/
+          cp README.md build/gratis-ai-agent/
+          cp readme.txt build/gratis-ai-agent/
+          cp LICENSE build/gratis-ai-agent/
 
       - name: Create ZIP file
         run: |
           cd build
-          zip -r ../ai-agent-${{ steps.version.outputs.VERSION }}.zip ai-agent -x "*.DS_Store" -x "*.git*"
+          zip -r ../gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip gratis-ai-agent -x "*.DS_Store" -x "*.git*"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ai-agent-${{ steps.version.outputs.VERSION }}.zip
-          name: AI Agent v${{ steps.version.outputs.VERSION }}
+          files: gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip
+          name: Gratis AI Agent v${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true

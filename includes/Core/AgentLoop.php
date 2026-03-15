@@ -7,16 +7,16 @@ declare(strict_types=1);
  * Sends a prompt, checks for tool calls, executes them,
  * feeds results back, and repeats until the model is done.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
-use AiAgent\Knowledge\Knowledge;
-use AiAgent\Models\Memory;
-use AiAgent\Models\Skill;
-use AiAgent\Tools\ToolDiscovery;
-use AiAgent\Tools\ToolProfiles;
+use GratisAiAgent\Knowledge\Knowledge;
+use GratisAiAgent\Models\Memory;
+use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Tools\ToolDiscovery;
+use GratisAiAgent\Tools\ToolProfiles;
 use WP_AI_Client_Ability_Function_Resolver;
 use WP_Error;
 use WordPress\AiClient\Messages\DTO\Message;
@@ -116,8 +116,8 @@ class AgentLoop {
 	public function run() {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
-				'ai_agent_missing_client',
-				__( 'The AI Client SDK is not available. Please check the compatibility layer.', 'ai-agent' )
+				'gratis_ai_agent_missing_client',
+				__( 'The AI Client SDK is not available. Please check the compatibility layer.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -140,8 +140,8 @@ class AgentLoop {
 	public function resume_after_confirmation( bool $confirmed, int $remaining_iterations ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
-				'ai_agent_missing_client',
-				__( 'wp_ai_client_prompt() is not available.', 'ai-agent' )
+				'gratis_ai_agent_missing_client',
+				__( 'wp_ai_client_prompt() is not available.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -244,10 +244,10 @@ class AgentLoop {
 
 		// Exhausted iterations — return what we have so callers can inspect the log.
 		return new WP_Error(
-			'ai_agent_max_iterations',
+			'gratis_ai_agent_max_iterations',
 			sprintf(
 				/* translators: %d: max iterations */
-				__( 'Agent reached the maximum of %d iterations without completing.', 'ai-agent' ),
+				__( 'Agent reached the maximum of %d iterations without completing.', 'gratis-ai-agent' ),
 				$this->max_iterations
 			),
 			[
@@ -289,10 +289,10 @@ class AgentLoop {
 					return $this->send_prompt_direct();
 				}
 				return new WP_Error(
-					'ai_agent_provider_unavailable',
+					'gratis_ai_agent_provider_unavailable',
 					sprintf(
 						/* translators: %s: provider ID */
-						__( 'Provider "%s" is not available. Please select a different provider in the chat header.', 'ai-agent' ),
+						__( 'Provider "%s" is not available. Please select a different provider in the chat header.', 'gratis-ai-agent' ),
 						$provider_id
 					)
 				);
@@ -339,7 +339,7 @@ class AgentLoop {
 	private function send_prompt_direct() {
 		$endpoint_url = rtrim( (string) get_option( 'openai_compat_endpoint_url', '' ), '/' );
 		if ( empty( $endpoint_url ) ) {
-			return new WP_Error( 'ai_agent_no_endpoint', __( 'OpenAI-compatible endpoint URL is not configured.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_no_endpoint', __( 'OpenAI-compatible endpoint URL is not configured.', 'gratis-ai-agent' ) );
 		}
 
 		// Resolve model for the OpenAI-compatible endpoint.
@@ -363,7 +363,7 @@ class AgentLoop {
 		 * @param int   $max_tools Maximum number of tools to include.
 		 * @param array $abilities The full list of resolved abilities.
 		 */
-		$max_tools = (int) apply_filters( 'ai_agent_max_tools', 64, $abilities );
+		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
 		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
 			$abilities = array_slice( $abilities, 0, $max_tools );
 		}
@@ -587,7 +587,7 @@ class AgentLoop {
 
 		if ( $code !== 200 ) {
 				$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
-			return new WP_Error( 'ai_agent_proxy_error', $msg );
+			return new WP_Error( 'gratis_ai_agent_proxy_error', $msg );
 		}
 
 		$text = $data['choices'][0]['message']['content'] ?? '';
@@ -789,8 +789,8 @@ class AgentLoop {
 			if ( $call ) {
 				$fn_name = $call->getName();
 
-				// The function call name uses the wpab__ format (e.g. wpab__ai-agent__memory-save)
-				// while tool_permissions uses ability name format (e.g. ai-agent/memory-save).
+				// The function call name uses the wpab__ format (e.g. wpab__gratis-ai-agent__memory-save)
+				// while tool_permissions uses ability name format (e.g. gratis-ai-agent/memory-save).
 				// Convert function name to ability name for the lookup.
 				$ability_name = $fn_name;
 				if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
@@ -1001,10 +1001,10 @@ class AgentLoop {
 		if ( $auto_memory ) {
 			$base .= "\n\n## Memory Instructions\n"
 				. "You have access to persistent memory tools. Use them proactively:\n"
-				. "- Use **ai-agent/memory-save** to remember important information the user tells you (preferences, site details, workflows).\n"
-				. "- Use **ai-agent/memory-list** to recall what you've previously stored.\n"
-				. "- Use **ai-agent/memory-delete** to remove outdated memories.\n"
-				. "- Use **ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
+				. "- Use **gratis-ai-agent/memory-save** to remember important information the user tells you (preferences, site details, workflows).\n"
+				. "- Use **gratis-ai-agent/memory-list** to recall what you've previously stored.\n"
+				. "- Use **gratis-ai-agent/memory-delete** to remove outdated memories.\n"
+				. "- Use **gratis-ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
 				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
 		}
 
@@ -1088,7 +1088,7 @@ class AgentLoop {
 			. "- **Create a subsite:** Use `site/create` (or `wpcli/site/create`), then target it with `--url=<subsite_url>` in subsequent WP-CLI commands.\n"
 			. "- **Target a subsite:** Pass `url` (the site URL) on any WP-CLI command to target a specific subsite. The URL carries over — once you pass `url` on any command, subsequent commands will automatically target the same site without needing to pass it again.\n"
 			. "- **Create pages with content:** Use `post/create` with `--post_type=page --post_status=publish --post_content='<html content>'`.\n"
-			. "- **Import images:** Use `ai-agent/import-stock-image` with a keyword and optional site_url. Returns attachment_id and url.\n"
+			. "- **Import images:** Use `gratis-ai-agent/import-stock-image` with a keyword and optional site_url. Returns attachment_id and url.\n"
 			. "- **Set a homepage:** Use `option/update` to set `show_on_front=page` and `page_on_front=<page_id>` with `--url=<site>`.\n"
 			. "- **Get IDs from create commands:** Add `--porcelain` (as boolean true, not a string) to WP-CLI commands to return just the ID.\n\n"
 			. "## Tips\n"

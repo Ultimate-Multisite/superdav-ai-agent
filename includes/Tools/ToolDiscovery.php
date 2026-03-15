@@ -8,12 +8,12 @@ declare(strict_types=1);
  * discover and run any registered ability on demand, reducing the number
  * of tools loaded per request from ~64 to ~11 priority tools.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Tools;
+namespace GratisAiAgent\Tools;
 
-use AiAgent\Core\Settings;
+use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,7 +26,7 @@ class ToolDiscovery {
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_PRIORITY_CATEGORIES = [ 'ai-agent', 'site', 'user' ];
+	private const DEFAULT_PRIORITY_CATEGORIES = [ 'gratis-ai-agent', 'site', 'user' ];
 
 	/**
 	 * Default priority tool names — loaded directly even if their category
@@ -66,11 +66,11 @@ class ToolDiscovery {
 		}
 
 		wp_register_ability(
-			'ai-agent/list-tools',
+			'gratis-ai-agent/list-tools',
 			[
-				'label'               => __( 'List Tools', 'ai-agent' ),
-				'description'         => __( 'Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'List Tools', 'gratis-ai-agent' ),
+				'description'         => __( 'Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -102,11 +102,11 @@ class ToolDiscovery {
 		);
 
 		wp_register_ability(
-			'ai-agent/execute-tool',
+			'gratis-ai-agent/execute-tool',
 			[
-				'label'               => __( 'Execute Tool', 'ai-agent' ),
-				'description'         => __( 'Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Execute Tool', 'gratis-ai-agent' ),
+				'description'         => __( 'Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -382,7 +382,7 @@ class ToolDiscovery {
 		 *
 		 * @param string[] $categories Default priority category slugs.
 		 */
-		return apply_filters( 'ai_agent_priority_categories', self::DEFAULT_PRIORITY_CATEGORIES );
+		return apply_filters( 'gratis_ai_agent_priority_categories', self::DEFAULT_PRIORITY_CATEGORIES );
 	}
 
 	/**
@@ -396,7 +396,7 @@ class ToolDiscovery {
 		 *
 		 * @param string[] $tools Default priority tool names.
 		 */
-		return apply_filters( 'ai_agent_priority_tools', self::DEFAULT_PRIORITY_TOOLS );
+		return apply_filters( 'gratis_ai_agent_priority_tools', self::DEFAULT_PRIORITY_TOOLS );
 	}
 
 	/**
@@ -446,7 +446,7 @@ class ToolDiscovery {
 		$lines   = [];
 		$lines[] = '## Tool Discovery';
 		$lines[] = 'Your most-used tools (site management, content creation, media) are loaded directly — use them without discovery.';
-		$lines[] = sprintf( '%d additional tools are available via `ai-agent/list-tools` (search by name or category) and `ai-agent/execute-tool`.', $total );
+		$lines[] = sprintf( '%d additional tools are available via `gratis-ai-agent/list-tools` (search by name or category) and `gratis-ai-agent/execute-tool`.', $total );
 		$lines[] = 'Only use discovery if you need a tool not already in your loaded set.';
 
 		return implode( "\n", $lines );

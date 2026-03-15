@@ -9,10 +9,10 @@ declare(strict_types=1);
  *  - ACTION: Calls do_action() with arguments (integrates with any WP plugin).
  *  - CLI:    Runs WP-CLI commands with argument schema.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Tools;
+namespace GratisAiAgent\Tools;
 
 class CustomTools {
 
@@ -29,7 +29,7 @@ class CustomTools {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_custom_tools';
+		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
 	}
 
 	/**
@@ -219,11 +219,11 @@ class CustomTools {
 	 */
 	public static function validate( array $data ) {
 		if ( empty( $data['name'] ) ) {
-			return new \WP_Error( 'missing_name', __( 'Tool name is required.', 'ai-agent' ) );
+			return new \WP_Error( 'missing_name', __( 'Tool name is required.', 'gratis-ai-agent' ) );
 		}
 
 		if ( empty( $data['type'] ) || ! in_array( $data['type'], self::VALID_TYPES, true ) ) {
-			return new \WP_Error( 'invalid_type', __( 'Tool type must be http, action, or cli.', 'ai-agent' ) );
+			return new \WP_Error( 'invalid_type', __( 'Tool type must be http, action, or cli.', 'gratis-ai-agent' ) );
 		}
 
 		// Auto-generate slug from name if not provided.
@@ -241,23 +241,23 @@ class CustomTools {
 		switch ( $data['type'] ) {
 			case self::TYPE_HTTP:
 				if ( empty( $config['url'] ) ) {
-					return new \WP_Error( 'missing_url', __( 'HTTP tools require a URL.', 'ai-agent' ) );
+					return new \WP_Error( 'missing_url', __( 'HTTP tools require a URL.', 'gratis-ai-agent' ) );
 				}
 				if ( ! empty( $config['method'] ) && ! in_array( strtoupper( $config['method'] ), self::VALID_HTTP_METHODS, true ) ) {
-					return new \WP_Error( 'invalid_method', __( 'Invalid HTTP method.', 'ai-agent' ) );
+					return new \WP_Error( 'invalid_method', __( 'Invalid HTTP method.', 'gratis-ai-agent' ) );
 				}
 				$config['method'] = strtoupper( $config['method'] ?? 'GET' );
 				break;
 
 			case self::TYPE_ACTION:
 				if ( empty( $config['hook_name'] ) ) {
-					return new \WP_Error( 'missing_hook', __( 'Action tools require a hook_name.', 'ai-agent' ) );
+					return new \WP_Error( 'missing_hook', __( 'Action tools require a hook_name.', 'gratis-ai-agent' ) );
 				}
 				break;
 
 			case self::TYPE_CLI:
 				if ( empty( $config['command'] ) ) {
-					return new \WP_Error( 'missing_command', __( 'CLI tools require a command template.', 'ai-agent' ) );
+					return new \WP_Error( 'missing_command', __( 'CLI tools require a command template.', 'gratis-ai-agent' ) );
 				}
 				break;
 		}
@@ -271,7 +271,7 @@ class CustomTools {
 	 * Seed example tools on first install.
 	 */
 	public static function seed_examples(): void {
-		if ( get_option( 'ai_agent_custom_tools_seeded' ) ) {
+		if ( get_option( 'gratis_ai_agent_custom_tools_seeded' ) ) {
 			return;
 		}
 
@@ -376,7 +376,7 @@ class CustomTools {
 			self::create( $example );
 		}
 
-		update_option( 'ai_agent_custom_tools_seeded', true );
+		update_option( 'gratis_ai_agent_custom_tools_seeded', true );
 	}
 
 	/**

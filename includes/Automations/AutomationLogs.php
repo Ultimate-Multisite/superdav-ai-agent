@@ -4,10 +4,10 @@ declare(strict_types=1);
 /**
  * Automation Logs — execution history for scheduled and event-driven automations.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Automations;
+namespace GratisAiAgent\Automations;
 
 class AutomationLogs {
 
@@ -16,7 +16,7 @@ class AutomationLogs {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_automation_logs';
+		return $wpdb->prefix . 'gratis_ai_agent_automation_logs';
 	}
 
 	/**

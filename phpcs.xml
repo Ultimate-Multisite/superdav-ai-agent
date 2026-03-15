@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="AI Agent Coding Standards">
-    <description>PHP_CodeSniffer ruleset for AI Agent WordPress plugin.</description>
+<ruleset name="Gratis AI Agent Coding Standards">
+    <description>PHP_CodeSniffer ruleset for Gratis AI Agent WordPress plugin.</description>
 
     <!-- Scan these files -->
     <file>.</file>
@@ -24,7 +24,7 @@
     <config name="minimum_supported_wp_version" value="6.7"/>
 
     <!-- Text domain -->
-    <config name="text_domain" value="ai-agent"/>
+    <config name="text_domain" value="gratis-ai-agent"/>
 
     <!-- Use WordPress Coding Standards -->
     <rule ref="WordPress">
@@ -100,7 +100,7 @@
     <rule ref="WordPress.WP.I18n">
         <properties>
             <property name="text_domain" type="array">
-                <element value="ai-agent"/>
+                <element value="gratis-ai-agent"/>
             </property>
         </properties>
     </rule>

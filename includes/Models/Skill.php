@@ -4,10 +4,10 @@ declare(strict_types=1);
 /**
  * Skill model — on-demand instruction guides for the AI agent.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Models;
+namespace GratisAiAgent\Models;
 
 class Skill {
 
@@ -16,7 +16,7 @@ class Skill {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_skills';
+		return $wpdb->prefix . 'gratis_ai_agent_skills';
 	}
 
 	/**
@@ -245,7 +245,7 @@ class Skill {
 
 		return "## Available Skills\n"
 			. "You have access to specialized skill guides. When a user's request matches a skill topic,\n"
-			. "use the ai-agent/skill-load tool to load the full instructions before proceeding.\n\n"
+			. "use the gratis-ai-agent/skill-load tool to load the full instructions before proceeding.\n\n"
 			. "Available skills:\n"
 			. implode( "\n", $lines );
 	}
@@ -654,8 +654,8 @@ MD;
 Use this skill for SEO audits, keyword optimization, meta tag management, and technical SEO checks.
 
 ## Available Tools
-- `ai-agent/seo-audit-url` — Fetch any URL and analyze its SEO elements (title, meta description, headings, images, OG tags, structured data)
-- `ai-agent/seo-analyze-content` — Analyze a specific post's SEO quality (keyword density, title length, heading structure, links, readability)
+- `gratis-ai-agent/seo-audit-url` — Fetch any URL and analyze its SEO elements (title, meta description, headings, images, OG tags, structured data)
+- `gratis-ai-agent/seo-analyze-content` — Analyze a specific post's SEO quality (keyword density, title length, heading structure, links, readability)
 
 ## Key WP-CLI Commands for SEO
 
@@ -695,20 +695,20 @@ Use this skill for SEO audits, keyword optimization, meta tag management, and te
 ## Common Workflows
 
 ### Audit a page
-1. Use `ai-agent/seo-audit-url` with the page URL
+1. Use `gratis-ai-agent/seo-audit-url` with the page URL
 2. Review the issues list for quick wins
 3. Check title length, meta description, heading structure
 4. Verify Open Graph tags are set for social sharing
 
 ### Optimize existing content for a keyword
-1. Use `ai-agent/seo-analyze-content` with the post ID and focus keyword
+1. Use `gratis-ai-agent/seo-analyze-content` with the post ID and focus keyword
 2. Check keyword density and placement
 3. Review heading structure for keyword inclusion
 4. Ensure meta description includes the keyword
 5. Add internal links to related content
 
 ### Check technical SEO across the site
-1. Audit the homepage with `ai-agent/seo-audit-url`
+1. Audit the homepage with `gratis-ai-agent/seo-audit-url`
 2. Check top pages for missing meta descriptions
 3. Verify sitemap accessibility
 4. Confirm canonical URLs are correct
@@ -728,9 +728,9 @@ MD;
 Use this skill for content strategy planning, editorial workflows, content audits, and content repurposing.
 
 ## Available Tools
-- `ai-agent/content-analyze` — Analyze content strategy across posts (frequency, word counts, categories, gaps)
-- `ai-agent/content-performance-report` — Generate content performance summaries for a time period
-- `ai-agent/import-stock-image` — Import stock images for content
+- `gratis-ai-agent/content-analyze` — Analyze content strategy across posts (frequency, word counts, categories, gaps)
+- `gratis-ai-agent/content-performance-report` — Generate content performance summaries for a time period
+- `gratis-ai-agent/import-stock-image` — Import stock images for content
 
 ## Content Strategy Patterns
 
@@ -738,7 +738,7 @@ Use this skill for content strategy planning, editorial workflows, content audit
 - Identify a pillar topic (broad, high-volume keyword)
 - Create cluster content (specific, long-tail subtopics)
 - Interlink cluster posts back to the pillar page
-- Use `ai-agent/content-analyze` to identify category distribution and gaps
+- Use `gratis-ai-agent/content-analyze` to identify category distribution and gaps
 
 ### Content Gaps
 - Run content analysis to find categories with few posts
@@ -788,8 +788,8 @@ Use this skill for analyzing competitor websites, discovering their tech stack, 
 **Note:** This skill is opt-in because it fetches external URLs. Enable it when you need competitive intelligence.
 
 ## Available Tools
-- `ai-agent/fetch-url` — Fetch any URL and return headers, head content, title, meta description, generator tag
-- `ai-agent/analyze-headers` — Analyze HTTP security and performance headers, detect CDN usage
+- `gratis-ai-agent/fetch-url` — Fetch any URL and return headers, head content, title, meta description, generator tag
+- `gratis-ai-agent/analyze-headers` — Analyze HTTP security and performance headers, detect CDN usage
 
 ## What to Look For
 
@@ -814,16 +814,16 @@ Use this skill for analyzing competitor websites, discovering their tech stack, 
 ## Workflow
 
 ### Analyze a competitor
-1. Fetch their homepage with `ai-agent/fetch-url`
+1. Fetch their homepage with `gratis-ai-agent/fetch-url`
 2. Note the generator, server, and CDN from headers
 3. Analyze their title and meta description quality
-4. Check security headers with `ai-agent/analyze-headers`
+4. Check security headers with `gratis-ai-agent/analyze-headers`
 5. Compare findings with your own site
 
 ### Content Gap Analysis
 1. Fetch competitor's key pages to see their content focus
 2. Note topics and keywords they target
-3. Compare with your own content using `ai-agent/content-analyze`
+3. Compare with your own content using `gratis-ai-agent/content-analyze`
 4. Identify topics they cover that you don't
 
 ## Ethical Guidelines
@@ -848,8 +848,8 @@ MD;
 Use this skill for generating content reports, tracking publishing activity, measuring site growth, and understanding content performance.
 
 ## Available Tools
-- `ai-agent/content-performance-report` — Content publishing summary with period comparisons
-- `ai-agent/content-analyze` — Content health and strategy metrics
+- `gratis-ai-agent/content-performance-report` — Content publishing summary with period comparisons
+- `gratis-ai-agent/content-analyze` — Content health and strategy metrics
 
 ## WP-CLI Commands for Data
 
@@ -888,14 +888,14 @@ Use this skill for generating content reports, tracking publishing activity, mea
 ## Reporting Workflows
 
 ### Weekly Content Summary
-1. Run `ai-agent/content-performance-report` with `days: 7`
+1. Run `gratis-ai-agent/content-performance-report` with `days: 7`
 2. Highlight posts published this week
 3. Note drafts pending review
 4. Compare with previous week
 
 ### Monthly Growth Report
-1. Run `ai-agent/content-performance-report` with `days: 30`
-2. Run `ai-agent/content-analyze` for content health
+1. Run `gratis-ai-agent/content-performance-report` with `days: 30`
+2. Run `gratis-ai-agent/content-analyze` for content health
 3. Report publishing velocity vs last month
 4. Identify top categories and content gaps
 5. List actionable recommendations
@@ -915,22 +915,22 @@ MD;
 Use this skill when creating content with Gutenberg blocks, converting markdown to blocks, or building custom layouts with columns, groups, buttons, and other block types.
 
 ## Available Tools
-- `ai-agent/markdown-to-blocks` — Convert markdown text to serialized Gutenberg block HTML
-- `ai-agent/list-block-types` — Browse and search registered block types
-- `ai-agent/get-block-type` — Get full metadata for a specific block type (attributes, supports, styles)
-- `ai-agent/list-block-patterns` — Browse and search registered block patterns
-- `ai-agent/list-block-templates` — List block templates in the current theme
-- `ai-agent/create-block-content` — Build block HTML from a structured block array
-- `ai-agent/parse-block-content` — Parse existing block content into a structured tree
+- `gratis-ai-agent/markdown-to-blocks` — Convert markdown text to serialized Gutenberg block HTML
+- `gratis-ai-agent/list-block-types` — Browse and search registered block types
+- `gratis-ai-agent/get-block-type` — Get full metadata for a specific block type (attributes, supports, styles)
+- `gratis-ai-agent/list-block-patterns` — Browse and search registered block patterns
+- `gratis-ai-agent/list-block-templates` — List block templates in the current theme
+- `gratis-ai-agent/create-block-content` — Build block HTML from a structured block array
+- `gratis-ai-agent/parse-block-content` — Parse existing block content into a structured tree
 
 ## Decision Guide
 
-### Use `ai-agent/markdown-to-blocks` when:
+### Use `gratis-ai-agent/markdown-to-blocks` when:
 - Creating text-heavy content (blog posts, articles, documentation)
 - The content is primarily headings, paragraphs, lists, quotes, code blocks, images, and tables
 - You want a fast, simple conversion from markdown
 
-### Use `ai-agent/create-block-content` when:
+### Use `gratis-ai-agent/create-block-content` when:
 - Building layouts that need columns, buttons, groups, or other structural blocks
 - Creating landing pages or custom page layouts
 - You need precise control over block attributes and nesting
@@ -969,19 +969,19 @@ Gutenberg blocks are stored as HTML comments in post_content:
 
 ### Create a blog post
 1. Write the content in markdown
-2. Use `ai-agent/markdown-to-blocks` to convert it
+2. Use `gratis-ai-agent/markdown-to-blocks` to convert it
 3. Use `site/create-post` with the block content
 
 ### Build a custom layout
-1. Use `ai-agent/list-block-types` to discover available blocks
-2. Use `ai-agent/get-block-type` to check attributes for specific blocks
-3. Use `ai-agent/create-block-content` to build the layout
+1. Use `gratis-ai-agent/list-block-types` to discover available blocks
+2. Use `gratis-ai-agent/get-block-type` to check attributes for specific blocks
+3. Use `gratis-ai-agent/create-block-content` to build the layout
 4. Use `site/create-page` with the block content
 
 ### Analyze existing content
-1. Use `ai-agent/parse-block-content` with a post_id
+1. Use `gratis-ai-agent/parse-block-content` with a post_id
 2. Inspect the block structure and attributes
-3. Modify and recreate with `ai-agent/create-block-content` if needed
+3. Modify and recreate with `gratis-ai-agent/create-block-content` if needed
 MD;
 	}
 
@@ -1022,8 +1022,8 @@ Reusable sections of templates:
 - `parts/sidebar.html` — Sidebar
 
 ## Available Tools
-- `ai-agent/list-block-templates` — List all templates with slugs and descriptions
-- `ai-agent/list-block-patterns` — Browse patterns for page creation and templates
+- `gratis-ai-agent/list-block-templates` — List all templates with slugs and descriptions
+- `gratis-ai-agent/list-block-patterns` — Browse patterns for page creation and templates
 
 ## WP-CLI Commands
 - `wp theme list --status=active` — Current active theme
@@ -1057,19 +1057,19 @@ Define custom page templates in theme.json:
 ## Block Patterns and FSE
 - Page creation patterns appear when creating new pages
 - Template patterns can be used in the Site Editor
-- Use `ai-agent/list-block-patterns` to discover available patterns
+- Use `gratis-ai-agent/list-block-patterns` to discover available patterns
 - Synced patterns (reusable blocks) are stored as `wp_block` post type
 
 ## Workflows
 
 ### Inspect current theme templates
-1. Use `ai-agent/list-block-templates` to see all templates
-2. Use `ai-agent/parse-block-content` to analyze template structure
+1. Use `gratis-ai-agent/list-block-templates` to see all templates
+2. Use `gratis-ai-agent/parse-block-content` to analyze template structure
 
 ### Find patterns for page building
-1. Use `ai-agent/list-block-patterns` with relevant category
+1. Use `gratis-ai-agent/list-block-patterns` with relevant category
 2. Review pattern content for suitable layouts
-3. Adapt patterns using `ai-agent/create-block-content`
+3. Adapt patterns using `gratis-ai-agent/create-block-content`
 MD;
 	}
 }

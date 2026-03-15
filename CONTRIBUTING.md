@@ -1,4 +1,4 @@
-# Contributing to AI Agent
+# Contributing to Gratis AI Agent
 
 Thank you for your interest in contributing! This guide covers everything you need to get started: local environment setup, running the test suite and linters, commit conventions, and the PR workflow.
 

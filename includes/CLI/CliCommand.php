@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * WP-CLI Command for the AI Agent.
  *
- * Provides a `wp ai-agent` command to send prompts to the AI agent
+ * Provides a `wp gratis-ai-agent` command to send prompts to the AI agent
  * directly from the terminal for development testing and debugging.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @since   1.1.0
  */
 
-namespace AiAgent\CLI;
+namespace GratisAiAgent\CLI;
 
-use AiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\AgentLoop;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,16 +26,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * ## EXAMPLES
  *
  *     # Simple prompt
- *     wp ai-agent "hello"
+ *     wp gratis-ai-agent "hello"
  *
  *     # With a specific model
- *     wp ai-agent "how many sites we got??" --model=qwen3.5
+ *     wp gratis-ai-agent "how many sites we got??" --model=qwen3.5
  *
  *     # With verbose output showing tool calls and token usage
- *     wp ai-agent "list all plugins" --verbose
+ *     wp gratis-ai-agent "list all plugins" --verbose
  *
  *     # Skip all tool usage
- *     wp ai-agent "what day is it?" --skip-tools
+ *     wp gratis-ai-agent "what day is it?" --skip-tools
  *
  * @since 1.1.0
  */
@@ -72,10 +72,10 @@ class CliCommand extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp ai-agent "how many sites we got??"
-	 *     wp ai-agent "how many sites we got??" --model=qwen3.5
-	 *     wp ai-agent "list all plugins" --max-iterations=5
-	 *     wp ai-agent "what day is it?" --skip-tools
+	 *     wp gratis-ai-agent "how many sites we got??"
+	 *     wp gratis-ai-agent "how many sites we got??" --model=qwen3.5
+	 *     wp gratis-ai-agent "list all plugins" --max-iterations=5
+	 *     wp gratis-ai-agent "what day is it?" --skip-tools
 	 *
 	 * @when after_wp_load
 	 *

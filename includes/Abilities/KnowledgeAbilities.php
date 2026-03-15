@@ -4,12 +4,12 @@ declare(strict_types=1);
 /**
  * Register knowledge-related WordPress abilities (tools) for the AI agent.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
-use AiAgent\Knowledge\Knowledge;
+use GratisAiAgent\Knowledge\Knowledge;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -33,11 +33,11 @@ class KnowledgeAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/knowledge-search',
+			'gratis-ai-agent/knowledge-search',
 			[
-				'label'               => __( 'Search Knowledge Base', 'ai-agent' ),
-				'description'         => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Search Knowledge Base', 'gratis-ai-agent' ),
+				'description'         => __( 'Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

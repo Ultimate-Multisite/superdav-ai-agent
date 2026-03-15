@@ -102,7 +102,7 @@
 
 ### Tool Permission System (P1)
 
-- [ ] t037 Add per-tool WordPress capabilities (ai_agent_tool_{name}) @dave #feature ~3h logged:2026-03-14
+- [ ] t037 Add per-tool WordPress capabilities (gratis_ai_agent_tool_{name}) @dave #feature ~3h logged:2026-03-14
 - [ ] t038 Add YOLO mode toggle (skip all confirmations) @dave #feature ~1h logged:2026-03-14
 
 ### AI SDK Alignment (P1)

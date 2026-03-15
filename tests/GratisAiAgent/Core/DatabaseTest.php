@@ -2,13 +2,13 @@
 /**
  * Test case for Database class.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Core;
+namespace GratisAiAgent\Tests\Core;
 
-use AiAgent\Core\Database;
+use GratisAiAgent\Core\Database;
 use WP_UnitTestCase;
 
 /**
@@ -21,7 +21,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_sessions';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_sessions';
 		$this->assertSame( $expected, Database::table_name() );
 	}
 
@@ -30,7 +30,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_usage_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_usage';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_usage';
 		$this->assertSame( $expected, Database::usage_table_name() );
 	}
 
@@ -39,7 +39,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_memories_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_memories';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_memories';
 		$this->assertSame( $expected, Database::memories_table_name() );
 	}
 
@@ -48,7 +48,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_skills_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_skills';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_skills';
 		$this->assertSame( $expected, Database::skills_table_name() );
 	}
 
@@ -57,7 +57,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_custom_tools_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_custom_tools';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_custom_tools';
 		$this->assertSame( $expected, Database::custom_tools_table_name() );
 	}
 
@@ -66,7 +66,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_automations_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_automations';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_automations';
 		$this->assertSame( $expected, Database::automations_table_name() );
 	}
 
@@ -75,7 +75,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_automation_logs_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_automation_logs';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_automation_logs';
 		$this->assertSame( $expected, Database::automation_logs_table_name() );
 	}
 
@@ -84,7 +84,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 */
 	public function test_event_automations_table_name() {
 		global $wpdb;
-		$expected = $wpdb->prefix . 'ai_agent_event_automations';
+		$expected = $wpdb->prefix . 'gratis_ai_agent_event_automations';
 		$this->assertSame( $expected, Database::event_automations_table_name() );
 	}
 
@@ -100,7 +100,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	 * Test DB_VERSION_OPTION constant exists.
 	 */
 	public function test_db_version_option_constant() {
-		$this->assertSame( 'ai_agent_db_version', Database::DB_VERSION_OPTION );
+		$this->assertSame( 'gratis_ai_agent_db_version', Database::DB_VERSION_OPTION );
 	}
 
 	/**

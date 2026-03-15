@@ -5,7 +5,7 @@ parameters:
 	level: 5
 	paths:
 		- includes
-		- ai-agent.php
+		- gratis-ai-agent.php
 	excludePaths:
 		- compat
 		- includes/CLI
@@ -18,7 +18,7 @@ parameters:
 		# WP_CLI is only available when running in CLI context
 		- '#Call to static method .* on an unknown class WP_CLI#'
 		# Constants defined at runtime
-		- '#Constant AI_AGENT_.* not found#'
+		- '#Constant GRATIS_AI_AGENT_.* not found#'
 		# WordPress functions that may not be stubbed
 		- '#Function _wp_connectors_get_real_api_key not found#'
 		# Compat layer classes loaded conditionally

@@ -6,12 +6,12 @@ declare(strict_types=1);
  *
  * Auto-indexes posts on save/delete and schedules batch re-indexing.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Knowledge;
+namespace GratisAiAgent\Knowledge;
 
-use AiAgent\Core\Settings;
+use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

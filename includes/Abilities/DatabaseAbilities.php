@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Provides SELECT query execution against the WordPress database.
  * Supports {prefix} placeholder for table prefix substitution.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 use WP_Error;
 
@@ -36,11 +36,11 @@ class DatabaseAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/db-query',
+			'gratis-ai-agent/db-query',
 			[
-				'label'               => __( 'Database Query', 'ai-agent' ),
-				'description'         => __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Database Query', 'gratis-ai-agent' ),
+				'description'         => __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -86,14 +86,14 @@ class DatabaseAbilities {
 		$sql = trim( $input['sql'] ?? '' );
 
 		if ( empty( $sql ) ) {
-			return new WP_Error( 'ai_agent_empty_sql', __( 'SQL query cannot be empty.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_sql', __( 'SQL query cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
 		// Only allow SELECT queries.
 		if ( stripos( $sql, 'SELECT' ) !== 0 ) {
 			return new WP_Error(
-				'ai_agent_sql_not_select',
-				__( 'Only SELECT queries are allowed. Use WordPress functions for data modification.', 'ai-agent' )
+				'gratis_ai_agent_sql_not_select',
+				__( 'Only SELECT queries are allowed. Use WordPress functions for data modification.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -104,7 +104,7 @@ class DatabaseAbilities {
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 
 		if ( $wpdb->last_error ) {
-			return new WP_Error( 'ai_agent_db_error', sprintf( 'Database error: %s', $wpdb->last_error ) );
+			return new WP_Error( 'gratis_ai_agent_db_error', sprintf( 'Database error: %s', $wpdb->last_error ) );
 		}
 
 		return [

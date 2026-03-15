@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Recursively splits text into overlapping chunks suitable for
  * FULLTEXT search and future embedding generation.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Models;
+namespace GratisAiAgent\Models;
 
 class Chunker {
 

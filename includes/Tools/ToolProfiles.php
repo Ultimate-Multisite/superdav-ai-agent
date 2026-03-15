@@ -7,14 +7,14 @@ declare(strict_types=1);
  * Profiles are stored in a single wp_option (not a DB table) since
  * the dataset is small and read-heavy.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Tools;
+namespace GratisAiAgent\Tools;
 
 class ToolProfiles {
 
-	const OPTION_NAME = 'ai_agent_tool_profiles';
+	const OPTION_NAME = 'gratis_ai_agent_tool_profiles';
 
 	/**
 	 * Get all profiles (built-in + custom).
@@ -178,8 +178,8 @@ class ToolProfiles {
 		return [
 			[
 				'slug'        => 'wp-read-only',
-				'name'        => __( 'WP Read Only', 'ai-agent' ),
-				'description' => __( 'Read-only WordPress tools. No modifications.', 'ai-agent' ),
+				'name'        => __( 'WP Read Only', 'gratis-ai-agent' ),
+				'description' => __( 'Read-only WordPress tools. No modifications.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'site/get-',
@@ -187,24 +187,24 @@ class ToolProfiles {
 						'site/search-',
 						'user/get-',
 						'user/list-',
-						'ai-agent/memory-',
-						'ai-agent/skill-',
-						'ai-agent/knowledge-',
-						'ai-agent/list-tools',
-						'ai-agent/execute-tool',
+						'gratis-ai-agent/memory-',
+						'gratis-ai-agent/skill-',
+						'gratis-ai-agent/knowledge-',
+						'gratis-ai-agent/list-tools',
+						'gratis-ai-agent/execute-tool',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'wp-full-management',
-				'name'        => __( 'WP Full Management', 'ai-agent' ),
-				'description' => __( 'All WordPress management tools.', 'ai-agent' ),
+				'name'        => __( 'WP Full Management', 'gratis-ai-agent' ),
+				'description' => __( 'All WordPress management tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'site/',
 						'user/',
-						'ai-agent/',
+						'gratis-ai-agent/',
 						'wpcli/',
 					]
 				),
@@ -212,8 +212,8 @@ class ToolProfiles {
 			],
 			[
 				'slug'        => 'content-management',
-				'name'        => __( 'Content Management', 'ai-agent' ),
-				'description' => __( 'Post, page, and media management tools.', 'ai-agent' ),
+				'name'        => __( 'Content Management', 'gratis-ai-agent' ),
+				'description' => __( 'Post, page, and media management tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'site/get-post',
@@ -232,27 +232,27 @@ class ToolProfiles {
 						'site/list-categor',
 						'site/get-tag',
 						'site/list-tag',
-						'ai-agent/',
+						'gratis-ai-agent/',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'user-management',
-				'name'        => __( 'User Management', 'ai-agent' ),
-				'description' => __( 'User and role management tools.', 'ai-agent' ),
+				'name'        => __( 'User Management', 'gratis-ai-agent' ),
+				'description' => __( 'User and role management tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'user/',
-						'ai-agent/',
+						'gratis-ai-agent/',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'maintenance',
-				'name'        => __( 'Maintenance', 'ai-agent' ),
-				'description' => __( 'Cache, updates, and site health tools.', 'ai-agent' ),
+				'name'        => __( 'Maintenance', 'gratis-ai-agent' ),
+				'description' => __( 'Cache, updates, and site health tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'site/get-option',
@@ -266,66 +266,66 @@ class ToolProfiles {
 						'site/list-theme',
 						'site/activate-theme',
 						'wpcli/',
-						'ai-agent-custom/',
-						'ai-agent/',
+						'gratis-ai-agent-custom/',
+						'gratis-ai-agent/',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'developer',
-				'name'        => __( 'Developer', 'ai-agent' ),
-				'description' => __( 'Full access including WP-CLI and custom tools.', 'ai-agent' ),
+				'name'        => __( 'Developer', 'gratis-ai-agent' ),
+				'description' => __( 'Full access including WP-CLI and custom tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
 						'site/',
 						'user/',
 						'wpcli/',
-						'ai-agent/',
-						'ai-agent-custom/',
+						'gratis-ai-agent/',
+						'gratis-ai-agent-custom/',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'marketing',
-				'name'        => __( 'Marketing & SEO', 'ai-agent' ),
-				'description' => __( 'SEO auditing, content analysis, and competitive research tools.', 'ai-agent' ),
+				'name'        => __( 'Marketing & SEO', 'gratis-ai-agent' ),
+				'description' => __( 'SEO auditing, content analysis, and competitive research tools.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
-						'ai-agent/seo-',
-						'ai-agent/content-',
-						'ai-agent/fetch-url',
-						'ai-agent/analyze-headers',
-						'ai-agent/import-stock-image',
+						'gratis-ai-agent/seo-',
+						'gratis-ai-agent/content-',
+						'gratis-ai-agent/fetch-url',
+						'gratis-ai-agent/analyze-headers',
+						'gratis-ai-agent/import-stock-image',
 						'site/get-post',
 						'site/list-post',
 						'site/create-post',
 						'site/update-post',
 						'site/get-option',
 						'site/update-option',
-						'ai-agent/memory-',
-						'ai-agent/skill-',
-						'ai-agent/knowledge-',
-						'ai-agent/list-tools',
-						'ai-agent/execute-tool',
+						'gratis-ai-agent/memory-',
+						'gratis-ai-agent/skill-',
+						'gratis-ai-agent/knowledge-',
+						'gratis-ai-agent/list-tools',
+						'gratis-ai-agent/execute-tool',
 					]
 				),
 				'is_builtin'  => true,
 			],
 			[
 				'slug'        => 'content-creator',
-				'name'        => __( 'Content Creator', 'ai-agent' ),
-				'description' => __( 'Content creation with Gutenberg blocks, media, and post management.', 'ai-agent' ),
+				'name'        => __( 'Content Creator', 'gratis-ai-agent' ),
+				'description' => __( 'Content creation with Gutenberg blocks, media, and post management.', 'gratis-ai-agent' ),
 				'tool_names'  => self::get_abilities_by_pattern(
 					[
-						'ai-agent/markdown-to-blocks',
-						'ai-agent/list-block-',
-						'ai-agent/get-block-type',
-						'ai-agent/create-block-content',
-						'ai-agent/parse-block-content',
-						'ai-agent/import-stock-image',
-						'ai-agent/content-',
+						'gratis-ai-agent/markdown-to-blocks',
+						'gratis-ai-agent/list-block-',
+						'gratis-ai-agent/get-block-type',
+						'gratis-ai-agent/create-block-content',
+						'gratis-ai-agent/parse-block-content',
+						'gratis-ai-agent/import-stock-image',
+						'gratis-ai-agent/content-',
 						'site/get-post',
 						'site/list-post',
 						'site/create-post',
@@ -339,11 +339,11 @@ class ToolProfiles {
 						'site/upload-media',
 						'site/get-categor',
 						'site/list-categor',
-						'ai-agent/memory-',
-						'ai-agent/skill-',
-						'ai-agent/knowledge-',
-						'ai-agent/list-tools',
-						'ai-agent/execute-tool',
+						'gratis-ai-agent/memory-',
+						'gratis-ai-agent/skill-',
+						'gratis-ai-agent/knowledge-',
+						'gratis-ai-agent/list-tools',
+						'gratis-ai-agent/execute-tool',
 					]
 				),
 				'is_builtin'  => true,

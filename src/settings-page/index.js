@@ -9,7 +9,7 @@ import { createRoot } from '@wordpress/element';
 import SettingsApp from './settings-app';
 import './style.css';
 
-const container = document.getElementById( 'ai-agent-settings-root' );
+const container = document.getElementById( 'gratis-ai-agent-settings-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render( <SettingsApp /> );

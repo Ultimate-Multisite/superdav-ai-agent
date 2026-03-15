@@ -1,7 +1,7 @@
 /* Floating Widget — available on all admin pages */
 
 /* FAB button */
-.ai-agent-fab {
+.gratis-ai-agent-fab {
 	position: fixed;
 	bottom: 24px;
 	right: 24px;
@@ -20,23 +20,23 @@
 	transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.ai-agent-fab:hover {
+.gratis-ai-agent-fab:hover {
 	transform: scale(1.08);
 	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 }
 
-.ai-agent-fab:active {
+.gratis-ai-agent-fab:active {
 	transform: scale(0.96);
 }
 
-.ai-agent-fab svg {
+.gratis-ai-agent-fab svg {
 	fill: currentcolor;
 }
 
 /* Floating panel */
-.ai-agent-floating-panel {
+.gratis-ai-agent-floating-panel {
 	position: fixed;
 	bottom: 24px;
 	right: 24px;
@@ -55,17 +55,17 @@
 	transition: height 0.2s, width 0.2s;
 }
 
-.ai-agent-floating-panel.is-dragging {
+.gratis-ai-agent-floating-panel.is-dragging {
 	transition: none;
 }
 
-.ai-agent-floating-panel.is-minimized {
+.gratis-ai-agent-floating-panel.is-minimized {
 	height: auto;
 	width: 280px;
 }
 
 /* Title bar */
-.ai-agent-floating-titlebar {
+.gratis-ai-agent-floating-titlebar {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -76,35 +76,35 @@
 	cursor: grab;
 }
 
-.ai-agent-floating-panel.is-dragging .ai-agent-floating-titlebar {
+.gratis-ai-agent-floating-panel.is-dragging .gratis-ai-agent-floating-titlebar {
 	cursor: grabbing;
 }
 
-.ai-agent-floating-title {
+.gratis-ai-agent-floating-title {
 	font-size: 14px;
 	font-weight: 600;
 }
 
-.ai-agent-floating-titlebar-actions {
+.gratis-ai-agent-floating-titlebar-actions {
 	display: flex;
 	gap: 2px;
 }
 
-.ai-agent-floating-titlebar-actions .components-button {
+.gratis-ai-agent-floating-titlebar-actions .components-button {
 	color: #fff;
 }
 
-.ai-agent-floating-titlebar-actions .components-button:hover {
+.gratis-ai-agent-floating-titlebar-actions .components-button:hover {
 	color: #fff;
 	background: rgba(255, 255, 255, 0.15);
 }
 
-.ai-agent-floating-titlebar-actions .components-button svg {
+.gratis-ai-agent-floating-titlebar-actions .components-button svg {
 	fill: currentcolor;
 }
 
 /* Session Tabs */
-.ai-agent-session-tabs {
+.gratis-ai-agent-session-tabs {
 	display: flex;
 	gap: 2px;
 	padding: 4px 8px;
@@ -115,7 +115,7 @@
 	align-items: center;
 }
 
-.ai-agent-tab-item {
+.gratis-ai-agent-tab-item {
 	padding: 4px 8px;
 	font-size: 11px;
 	border-radius: 3px;
@@ -127,42 +127,42 @@
 	transition: background 0.15s;
 }
 
-.ai-agent-tab-item:hover {
+.gratis-ai-agent-tab-item:hover {
 	background: #e0e0e0;
 }
 
-.ai-agent-tab-item.is-active {
+.gratis-ai-agent-tab-item.is-active {
 	background: var(--wp-admin-theme-color);
 	color: #fff;
 }
 
-.ai-agent-tab-new.components-button {
+.gratis-ai-agent-tab-new.components-button {
 	padding: 2px;
 	min-width: auto;
 	height: auto;
 }
 
 /* Chat panel inside floating panel — compact adjustments */
-.ai-agent-floating-panel .ai-agent-chat-panel {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-chat-panel {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 }
 
-.ai-agent-floating-panel .ai-agent-header {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-header {
 	padding: 6px 10px;
 }
 
-.ai-agent-floating-panel .ai-agent-provider-selector {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-provider-selector {
 	gap: 8px;
 }
 
-.ai-agent-floating-panel .ai-agent-provider-selector .components-select-control {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-provider-selector .components-select-control {
 	min-width: 120px;
 }
 
-.ai-agent-floating-panel .ai-agent-messages {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-messages {
 	padding: 12px;
 	gap: 8px;
 	flex: 1;
@@ -171,26 +171,26 @@
 	flex-direction: column;
 }
 
-.ai-agent-floating-panel .ai-agent-bubble {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-bubble {
 	font-size: 13px;
 	padding: 8px 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-input-area {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-area {
 	padding: 8px 10px;
 	position: relative;
 	flex-direction: column;
 	gap: 0;
 }
 
-.ai-agent-floating-panel .ai-agent-input {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input {
 	font-size: 13px;
 	padding: 6px 36px 6px 8px;
 	width: 100%;
 	box-sizing: border-box;
 }
 
-.ai-agent-floating-panel .ai-agent-send-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-send-btn {
 	position: absolute;
 	right: 14px;
 	bottom: 12px;
@@ -201,35 +201,37 @@
 	border-radius: 50%;
 }
 
-.ai-agent-floating-panel .ai-agent-send-btn svg {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-send-btn svg {
 	width: 18px;
 	height: 18px;
 }
 
-.ai-agent-floating-panel .ai-agent-empty-state {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-empty-state {
 	font-size: 13px;
 }
 
 /* Shared styles that both entry points need */
 
 /* Provider selector compact mode (no labels) */
-.ai-agent-provider-selector.is-compact {
+.gratis-ai-agent-provider-selector.is-compact {
 	gap: 6px;
 }
 
-.ai-agent-provider-selector.is-compact .components-base-control__label {
+.gratis-ai-agent-provider-selector.is-compact .components-base-control__label {
 	display: none;
 }
 
+
+
 /* Bubbles (needed for floating widget) */
-.ai-agent-floating-panel .ai-agent-user {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-user {
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 	align-self: flex-end;
 	border-bottom-right-radius: 2px;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant {
 	background: #f0f0f1;
 	color: #1d2327;
 	align-self: flex-start;
@@ -238,32 +240,32 @@
 }
 
 /* Markdown inside floating assistant bubbles */
-.ai-agent-floating-panel .ai-agent-assistant p {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant p {
 	margin: 0 0 0.5em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant p:last-child {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant p:last-child {
 	margin-bottom: 0;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant ul,
-.ai-agent-floating-panel .ai-agent-assistant ol {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant ul,
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant ol {
 	margin: 0.3em 0;
 	padding-left: 1.3em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant li {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant li {
 	margin-bottom: 0.15em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant code {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant code {
 	background: #e0e0e0;
 	padding: 1px 4px;
 	border-radius: 3px;
 	font-size: 0.85em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant pre {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant pre {
 	background: #1d2327;
 	color: #e0e0e0;
 	padding: 8px 10px;
@@ -274,23 +276,23 @@
 	line-height: 1.4;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant pre code {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant pre code {
 	background: none;
 	padding: 0;
 	color: inherit;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant strong {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant strong {
 	font-weight: 600;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant hr {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant hr {
 	border: none;
 	border-top: 1px solid #dcdcde;
 	margin: 0.4em 0;
 }
 
-.ai-agent-floating-panel .ai-agent-system {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-system {
 	background: #fcf0f1;
 	color: #8a2424;
 	align-self: center;
@@ -298,7 +300,7 @@
 	border: 1px solid #d63638;
 }
 
-.ai-agent-floating-panel .ai-agent-thinking {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-thinking {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -306,51 +308,51 @@
 	font-style: italic;
 }
 
-.ai-agent-floating-panel .ai-agent-thinking .components-spinner {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-thinking .components-spinner {
 	margin: 0;
 	width: 16px;
 	height: 16px;
 }
 
 /* Tool calls inside floating */
-.ai-agent-floating-panel .ai-agent-tool-calls {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls {
 	align-self: flex-start;
 	max-width: 95%;
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-calls details {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls details {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-calls summary {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls summary {
 	padding: 6px 10px;
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-entry pre {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-entry pre {
 	max-height: 120px;
 	font-size: 10px;
 }
 
 /* Context Indicator */
-.ai-agent-context-indicator {
+.gratis-ai-agent-context-indicator {
 	flex-shrink: 0;
 }
 
-.ai-agent-context-bar-track {
+.gratis-ai-agent-context-bar-track {
 	height: 3px;
 	background: #dcdcde;
 }
 
-.ai-agent-context-bar-fill {
+.gratis-ai-agent-context-bar-fill {
 	height: 100%;
 	transition: width 0.3s, background-color 0.3s;
 }
 
-.ai-agent-context-warning {
+.gratis-ai-agent-context-warning {
 	padding: 6px 12px;
 	background: #fcf0f1;
 	border-bottom: 1px solid #d63638;
@@ -362,16 +364,16 @@
 	flex-wrap: wrap;
 }
 
-.ai-agent-context-warning span {
+.gratis-ai-agent-context-warning span {
 	color: #8a2424;
 }
 
-.ai-agent-context-warning-actions {
+.gratis-ai-agent-context-warning-actions {
 	display: flex;
 	gap: 4px;
 }
 
-.ai-agent-context-warning-actions .components-button {
+.gratis-ai-agent-context-warning-actions .components-button {
 	font-size: 11px;
 	height: auto;
 	padding: 2px 8px;
@@ -380,7 +382,7 @@
 /* Responsive */
 @media (max-width: 500px) {
 
-	.ai-agent-floating-panel {
+	.gratis-ai-agent-floating-panel {
 		width: calc(100vw - 16px);
 		height: calc(100vh - 80px);
 		bottom: 8px;
@@ -388,7 +390,7 @@
 		border-radius: 4px;
 	}
 
-	.ai-agent-fab {
+	.gratis-ai-agent-fab {
 		bottom: 16px;
 		right: 16px;
 		width: 48px;
@@ -397,7 +399,7 @@
 }
 
 /* Debug mode badge */
-.ai-agent-debug-badge {
+.gratis-ai-agent-debug-badge {
 	display: inline-block;
 	background: #dba617;
 	color: #fff;
@@ -412,13 +414,13 @@
 }
 
 /* Debug panel (below assistant messages) */
-.ai-agent-debug-panel {
+.gratis-ai-agent-debug-panel {
 	align-self: flex-start;
 	max-width: 85%;
 	margin-top: 2px;
 }
 
-.ai-agent-debug-toggle {
+.gratis-ai-agent-debug-toggle {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -433,19 +435,19 @@
 	transition: color 0.15s;
 }
 
-.ai-agent-debug-toggle:hover {
+.gratis-ai-agent-debug-toggle:hover {
 	color: #787c82;
 }
 
-.ai-agent-debug-summary {
+.gratis-ai-agent-debug-summary {
 	white-space: nowrap;
 }
 
-.ai-agent-debug-caret {
+.gratis-ai-agent-debug-caret {
 	font-size: 10px;
 }
 
-.ai-agent-debug-details {
+.gratis-ai-agent-debug-details {
 	background: #f6f7f7;
 	border: 1px solid #e0e0e0;
 	border-radius: 4px;
@@ -455,7 +457,7 @@
 	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-.ai-agent-debug-row {
+.gratis-ai-agent-debug-row {
 	display: flex;
 	justify-content: space-between;
 	gap: 16px;
@@ -463,25 +465,25 @@
 	line-height: 1.5;
 }
 
-.ai-agent-debug-label {
+.gratis-ai-agent-debug-label {
 	color: #787c82;
 	white-space: nowrap;
 }
 
-.ai-agent-debug-value {
+.gratis-ai-agent-debug-value {
 	color: #1d2327;
 	font-weight: 500;
 	text-align: right;
 }
 
-.ai-agent-debug-detail {
+.gratis-ai-agent-debug-detail {
 	font-weight: 400;
 	color: #a7aaad;
 	margin-left: 4px;
 }
 
 /* Suggestion chips */
-.ai-agent-suggestion-chips {
+.gratis-ai-agent-suggestion-chips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
@@ -489,7 +491,7 @@
 	padding-left: 4px;
 }
 
-.ai-agent-suggestion-chip.components-button {
+.gratis-ai-agent-suggestion-chip.components-button {
 	font-size: 12px;
 	padding: 3px 10px;
 	border-radius: 14px;
@@ -502,7 +504,7 @@
 	transition: background 0.15s, border-color 0.15s;
 }
 
-.ai-agent-suggestion-chip.components-button:hover {
+.gratis-ai-agent-suggestion-chip.components-button:hover {
 	background: #e0e0e0;
 	border-color: #bbb;
 }

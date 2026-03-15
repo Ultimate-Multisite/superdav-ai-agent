@@ -7,28 +7,28 @@ declare(strict_types=1);
  * Uses an async job + polling pattern so that long-running LLM inference
  * does not block the browser->nginx connection.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\REST;
+namespace GratisAiAgent\REST;
 
-use AiAgent\Automations\AutomationLogs;
-use AiAgent\Automations\AutomationRunner;
-use AiAgent\Automations\Automations;
-use AiAgent\Automations\EventAutomations;
-use AiAgent\Automations\EventTriggerRegistry;
-use AiAgent\Core\AgentLoop;
-use AiAgent\Core\CostCalculator;
-use AiAgent\Core\Database;
-use AiAgent\Core\Export;
-use AiAgent\Core\Settings;
-use AiAgent\Knowledge\Knowledge;
-use AiAgent\Knowledge\KnowledgeDatabase;
-use AiAgent\Models\Memory;
-use AiAgent\Models\Skill;
-use AiAgent\Tools\CustomToolExecutor;
-use AiAgent\Tools\CustomTools;
-use AiAgent\Tools\ToolProfiles;
+use GratisAiAgent\Automations\AutomationLogs;
+use GratisAiAgent\Automations\AutomationRunner;
+use GratisAiAgent\Automations\Automations;
+use GratisAiAgent\Automations\EventAutomations;
+use GratisAiAgent\Automations\EventTriggerRegistry;
+use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\CostCalculator;
+use GratisAiAgent\Core\Database;
+use GratisAiAgent\Core\Export;
+use GratisAiAgent\Core\Settings;
+use GratisAiAgent\Knowledge\Knowledge;
+use GratisAiAgent\Knowledge\KnowledgeDatabase;
+use GratisAiAgent\Models\Memory;
+use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Tools\CustomToolExecutor;
+use GratisAiAgent\Tools\CustomTools;
+use GratisAiAgent\Tools\ToolProfiles;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -36,12 +36,12 @@ use WP_REST_Server;
 
 class RestController {
 
-	const NAMESPACE = 'ai-agent/v1';
+	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Transient prefix for job data.
 	 */
-	const JOB_PREFIX = 'ai_agent_job_';
+	const JOB_PREFIX = 'gratis_ai_agent_job_';
 
 	/**
 	 * How long job data persists (seconds).
@@ -1350,8 +1350,8 @@ class RestController {
 
 		if ( false === $job || ! is_array( $job ) ) {
 			return new WP_Error(
-				'ai_agent_job_not_found',
-				__( 'Job not found or expired.', 'ai-agent' ),
+				'gratis_ai_agent_job_not_found',
+				__( 'Job not found or expired.', 'gratis-ai-agent' ),
 				[ 'status' => 404 ]
 			);
 		}
@@ -1410,14 +1410,14 @@ class RestController {
 
 		if ( ! is_array( $job ) || 'awaiting_confirmation' !== ( $job['status'] ?? '' ) ) {
 			return new WP_Error(
-				'ai_agent_invalid_job',
-				__( 'Job not found or not awaiting confirmation.', 'ai-agent' ),
+				'gratis_ai_agent_invalid_job',
+				__( 'Job not found or not awaiting confirmation.', 'gratis-ai-agent' ),
 				[ 'status' => 404 ]
 			);
 		}
 
 		if ( ( $job['user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return new WP_Error( 'ai_agent_forbidden', __( 'Not authorized.', 'ai-agent' ), [ 'status' => 403 ] );
+			return new WP_Error( 'gratis_ai_agent_forbidden', __( 'Not authorized.', 'gratis-ai-agent' ), [ 'status' => 403 ] );
 		}
 
 		// "Always allow" — update tool_permissions to auto.
@@ -1445,14 +1445,14 @@ class RestController {
 
 		if ( ! is_array( $job ) || 'awaiting_confirmation' !== ( $job['status'] ?? '' ) ) {
 			return new WP_Error(
-				'ai_agent_invalid_job',
-				__( 'Job not found or not awaiting confirmation.', 'ai-agent' ),
+				'gratis_ai_agent_invalid_job',
+				__( 'Job not found or not awaiting confirmation.', 'gratis-ai-agent' ),
 				[ 'status' => 404 ]
 			);
 		}
 
 		if ( ( $job['user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return new WP_Error( 'ai_agent_forbidden', __( 'Not authorized.', 'ai-agent' ), [ 'status' => 403 ] );
+			return new WP_Error( 'gratis_ai_agent_forbidden', __( 'Not authorized.', 'gratis-ai-agent' ), [ 'status' => 403 ] );
 		}
 
 		return self::resume_job( $job_id, $job, 'reject' );
@@ -1551,7 +1551,7 @@ class RestController {
 				$history = AgentLoop::deserialize_history( $params['history'] );
 			} catch ( \Exception $e ) {
 				$job['status'] = 'error';
-				$job['error']  = __( 'Invalid conversation history format.', 'ai-agent' );
+				$job['error']  = __( 'Invalid conversation history format.', 'gratis-ai-agent' );
 				unset( $job['token'] );
 				set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 				return new WP_REST_Response( [ 'ok' => false ], 200 );
@@ -1589,7 +1589,7 @@ class RestController {
 				$resume_history = AgentLoop::deserialize_history( $state['history'] ?? [] );
 			} catch ( \Exception $e ) {
 				$job['status'] = 'error';
-				$job['error']  = __( 'Failed to resume conversation.', 'ai-agent' );
+				$job['error']  = __( 'Failed to resume conversation.', 'gratis-ai-agent' );
 				unset( $job['token'] );
 				set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 				return new WP_REST_Response( [ 'ok' => false ], 200 );
@@ -1880,7 +1880,7 @@ class RestController {
 				$data['folder'] = sanitize_text_field( $request->get_param( 'folder' ) ?? '' );
 				break;
 			default:
-				return new WP_Error( 'ai_agent_invalid_action', __( 'Invalid bulk action.', 'ai-agent' ), [ 'status' => 400 ] );
+				return new WP_Error( 'gratis_ai_agent_invalid_action', __( 'Invalid bulk action.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		$count = Database::bulk_update_sessions( $ids, get_current_user_id(), $data );
@@ -1911,8 +1911,8 @@ class RestController {
 
 		if ( ! $session ) {
 			return new WP_Error(
-				'ai_agent_session_not_found',
-				__( 'Session not found.', 'ai-agent' ),
+				'gratis_ai_agent_session_not_found',
+				__( 'Session not found.', 'gratis-ai-agent' ),
 				[ 'status' => 404 ]
 			);
 		}
@@ -1954,8 +1954,8 @@ class RestController {
 
 		if ( ! $session_id ) {
 			return new WP_Error(
-				'ai_agent_session_create_failed',
-				__( 'Failed to create session.', 'ai-agent' ),
+				'gratis_ai_agent_session_create_failed',
+				__( 'Failed to create session.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2004,15 +2004,15 @@ class RestController {
 		}
 
 		if ( empty( $data ) ) {
-			return new WP_Error( 'ai_agent_no_data', __( 'No fields to update.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'gratis_ai_agent_no_data', __( 'No fields to update.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		$updated = Database::update_session( $session_id, $data );
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'ai_agent_session_update_failed',
-				__( 'Failed to update session.', 'ai-agent' ),
+				'gratis_ai_agent_session_update_failed',
+				__( 'Failed to update session.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2048,8 +2048,8 @@ class RestController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'ai_agent_session_delete_failed',
-				__( 'Failed to delete session.', 'ai-agent' ),
+				'gratis_ai_agent_session_delete_failed',
+				__( 'Failed to delete session.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2101,8 +2101,8 @@ class RestController {
 		$existing = Skill::get_by_slug( $slug );
 		if ( $existing ) {
 			return new WP_Error(
-				'ai_agent_skill_slug_exists',
-				__( 'A skill with this slug already exists.', 'ai-agent' ),
+				'gratis_ai_agent_skill_slug_exists',
+				__( 'A skill with this slug already exists.', 'gratis-ai-agent' ),
 				[ 'status' => 409 ]
 			);
 		}
@@ -2120,8 +2120,8 @@ class RestController {
 
 		if ( false === $id ) {
 			return new WP_Error(
-				'ai_agent_skill_create_failed',
-				__( 'Failed to create skill.', 'ai-agent' ),
+				'gratis_ai_agent_skill_create_failed',
+				__( 'Failed to create skill.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2172,8 +2172,8 @@ class RestController {
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'ai_agent_skill_update_failed',
-				__( 'Failed to update skill.', 'ai-agent' ),
+				'gratis_ai_agent_skill_update_failed',
+				__( 'Failed to update skill.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2209,16 +2209,16 @@ class RestController {
 
 		if ( $result === 'builtin' ) {
 			return new WP_Error(
-				'ai_agent_skill_builtin_delete',
-				__( 'Built-in skills cannot be deleted. You can disable them instead.', 'ai-agent' ),
+				'gratis_ai_agent_skill_builtin_delete',
+				__( 'Built-in skills cannot be deleted. You can disable them instead.', 'gratis-ai-agent' ),
 				[ 'status' => 403 ]
 			);
 		}
 
 		if ( ! $result ) {
 			return new WP_Error(
-				'ai_agent_skill_delete_failed',
-				__( 'Failed to delete skill or skill not found.', 'ai-agent' ),
+				'gratis_ai_agent_skill_delete_failed',
+				__( 'Failed to delete skill or skill not found.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2238,8 +2238,8 @@ class RestController {
 
 		if ( ! $reset ) {
 			return new WP_Error(
-				'ai_agent_skill_reset_failed',
-				__( 'Failed to reset skill. Only built-in skills can be reset.', 'ai-agent' ),
+				'gratis_ai_agent_skill_reset_failed',
+				__( 'Failed to reset skill. Only built-in skills can be reset.', 'gratis-ai-agent' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -2274,7 +2274,7 @@ class RestController {
 		// Include built-in defaults so the UI can show them as placeholders.
 		$settings['_defaults'] = [
 			'system_prompt'    => AgentLoop::get_default_system_prompt(),
-			'greeting_message' => __( 'Send a message to start a conversation.', 'ai-agent' ),
+			'greeting_message' => __( 'Send a message to start a conversation.', 'gratis-ai-agent' ),
 		];
 
 		// Indicate whether a Claude Max token is stored without exposing the token itself.
@@ -2369,7 +2369,7 @@ class RestController {
 		$id = Memory::create( $category, $content );
 
 		if ( false === $id ) {
-			return new WP_Error( 'ai_agent_memory_create_failed', __( 'Failed to create memory.', 'ai-agent' ), [ 'status' => 500 ] );
+			return new WP_Error( 'gratis_ai_agent_memory_create_failed', __( 'Failed to create memory.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
 		}
 
 		return new WP_REST_Response(
@@ -2401,7 +2401,7 @@ class RestController {
 		$updated = Memory::update( $id, $data );
 
 		if ( ! $updated ) {
-			return new WP_Error( 'ai_agent_memory_update_failed', __( 'Failed to update memory.', 'ai-agent' ), [ 'status' => 500 ] );
+			return new WP_Error( 'gratis_ai_agent_memory_update_failed', __( 'Failed to update memory.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
 		}
 
 		return new WP_REST_Response(
@@ -2423,7 +2423,7 @@ class RestController {
 		$deleted = Memory::delete( $id );
 
 		if ( ! $deleted ) {
-			return new WP_Error( 'ai_agent_memory_delete_failed', __( 'Failed to delete memory.', 'ai-agent' ), [ 'status' => 500 ] );
+			return new WP_Error( 'gratis_ai_agent_memory_delete_failed', __( 'Failed to delete memory.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
 		}
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );
@@ -2502,8 +2502,8 @@ class RestController {
 		$existing = KnowledgeDatabase::get_collection_by_slug( $slug );
 		if ( $existing ) {
 			return new WP_Error(
-				'ai_agent_collection_exists',
-				__( 'A collection with this slug already exists.', 'ai-agent' ),
+				'gratis_ai_agent_collection_exists',
+				__( 'A collection with this slug already exists.', 'gratis-ai-agent' ),
 				[ 'status' => 409 ]
 			);
 		}
@@ -2520,8 +2520,8 @@ class RestController {
 
 		if ( ! $id ) {
 			return new WP_Error(
-				'ai_agent_collection_create_failed',
-				__( 'Failed to create collection.', 'ai-agent' ),
+				'gratis_ai_agent_collection_create_failed',
+				__( 'Failed to create collection.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2573,8 +2573,8 @@ class RestController {
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'ai_agent_collection_update_failed',
-				__( 'Failed to update collection.', 'ai-agent' ),
+				'gratis_ai_agent_collection_update_failed',
+				__( 'Failed to update collection.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2611,8 +2611,8 @@ class RestController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'ai_agent_collection_delete_failed',
-				__( 'Failed to delete collection.', 'ai-agent' ),
+				'gratis_ai_agent_collection_delete_failed',
+				__( 'Failed to delete collection.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2679,18 +2679,18 @@ class RestController {
 		$files = $request->get_file_params();
 
 		if ( empty( $files['file'] ) ) {
-			return new WP_Error( 'ai_agent_no_file', __( 'No file uploaded.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'gratis_ai_agent_no_file', __( 'No file uploaded.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		$collection_id = absint( $request->get_param( 'collection_id' ) );
 
 		if ( ! $collection_id ) {
-			return new WP_Error( 'ai_agent_no_collection', __( 'Collection ID is required.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'gratis_ai_agent_no_collection', __( 'Collection ID is required.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		$collection = KnowledgeDatabase::get_collection( $collection_id );
 		if ( ! $collection ) {
-			return new WP_Error( 'ai_agent_collection_not_found', __( 'Collection not found.', 'ai-agent' ), [ 'status' => 404 ] );
+			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found.', 'gratis-ai-agent' ), [ 'status' => 404 ] );
 		}
 
 		// Use WordPress media handling to create an attachment.
@@ -2739,8 +2739,8 @@ class RestController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'ai_agent_source_delete_failed',
-				__( 'Failed to delete source.', 'ai-agent' ),
+				'gratis_ai_agent_source_delete_failed',
+				__( 'Failed to delete source.', 'gratis-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -2831,7 +2831,7 @@ class RestController {
 		$session    = Database::get_session( $session_id );
 
 		if ( ! $session ) {
-			return new WP_Error( 'ai_agent_session_not_found', __( 'Session not found.', 'ai-agent' ), [ 'status' => 404 ] );
+			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found.', 'gratis-ai-agent' ), [ 'status' => 404 ] );
 		}
 
 		$result = Export::export( $session, $format );
@@ -2849,7 +2849,7 @@ class RestController {
 		$data = $request->get_json_params();
 
 		if ( empty( $data ) ) {
-			return new WP_Error( 'ai_agent_import_empty', __( 'No import data provided.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'gratis_ai_agent_import_empty', __( 'No import data provided.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		$session_id = Export::import_json( $data, get_current_user_id() );
@@ -2890,7 +2890,7 @@ class RestController {
 		$id   = CustomTools::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create custom tool.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'create_failed', __( 'Failed to create custom tool.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( CustomTools::get( $id ), 201 );
@@ -2904,7 +2904,7 @@ class RestController {
 		$data = $request->get_json_params();
 
 		if ( ! CustomTools::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update custom tool.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'update_failed', __( 'Failed to update custom tool.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( CustomTools::get( $id ), 200 );
@@ -2917,7 +2917,7 @@ class RestController {
 		$id = absint( $request->get_param( 'id' ) );
 
 		if ( ! CustomTools::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete custom tool.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete custom tool.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );
@@ -2932,7 +2932,7 @@ class RestController {
 		$tool  = CustomTools::get( $id );
 
 		if ( ! $tool ) {
-			return new WP_Error( 'not_found', __( 'Tool not found.', 'ai-agent' ), [ 'status' => 404 ] );
+			return new WP_Error( 'not_found', __( 'Tool not found.', 'gratis-ai-agent' ), [ 'status' => 404 ] );
 		}
 
 		$result = CustomToolExecutor::execute( $tool, $input );
@@ -2956,7 +2956,7 @@ class RestController {
 		$data = $request->get_json_params();
 
 		if ( ! ToolProfiles::save( $data ) ) {
-			return new WP_Error( 'save_failed', __( 'Failed to save tool profile.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'save_failed', __( 'Failed to save tool profile.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( ToolProfiles::get( $data['slug'] ), 200 );
@@ -2989,7 +2989,7 @@ class RestController {
 		$id   = Automations::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'create_failed', __( 'Failed to create automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( Automations::get( $id ), 201 );
@@ -3003,7 +3003,7 @@ class RestController {
 		$data = $request->get_json_params();
 
 		if ( ! Automations::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'update_failed', __( 'Failed to update automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( Automations::get( $id ), 200 );
@@ -3016,7 +3016,7 @@ class RestController {
 		$id = absint( $request->get_param( 'id' ) );
 
 		if ( ! Automations::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );
@@ -3030,7 +3030,7 @@ class RestController {
 		$result = AutomationRunner::run( $id );
 
 		if ( null === $result ) {
-			return new WP_Error( 'not_found', __( 'Automation not found.', 'ai-agent' ), [ 'status' => 404 ] );
+			return new WP_Error( 'not_found', __( 'Automation not found.', 'gratis-ai-agent' ), [ 'status' => 404 ] );
 		}
 
 		return new WP_REST_Response( $result, 200 );
@@ -3070,7 +3070,7 @@ class RestController {
 		$id   = EventAutomations::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create event automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'create_failed', __( 'Failed to create event automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( EventAutomations::get( $id ), 201 );
@@ -3084,7 +3084,7 @@ class RestController {
 		$data = $request->get_json_params();
 
 		if ( ! EventAutomations::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update event automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'update_failed', __( 'Failed to update event automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( EventAutomations::get( $id ), 200 );
@@ -3097,7 +3097,7 @@ class RestController {
 		$id = absint( $request->get_param( 'id' ) );
 
 		if ( ! EventAutomations::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete event automation.', 'ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete event automation.', 'gratis-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );

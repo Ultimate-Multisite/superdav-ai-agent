@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Enqueues a lightweight React app that renders a FAB button
  * and expandable chat panel in the bottom-right corner.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Admin;
+namespace GratisAiAgent\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -48,7 +48,7 @@ class FloatingWidget {
 			return;
 		}
 
-		$asset_file = AI_AGENT_DIR . '/build/floating-widget.asset.php';
+		$asset_file = GRATIS_AI_AGENT_DIR . '/build/floating-widget.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;
@@ -57,15 +57,15 @@ class FloatingWidget {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'ai-agent-floating-widget',
-			AI_AGENT_URL . 'build/style-floating-widget.css',
+			'gratis-ai-agent-floating-widget',
+			GRATIS_AI_AGENT_URL . 'build/style-floating-widget.css',
 			[ 'wp-components' ],
 			$asset['version']
 		);
 
 		wp_enqueue_script(
-			'ai-agent-floating-widget',
-			AI_AGENT_URL . 'build/floating-widget.js',
+			'gratis-ai-agent-floating-widget',
+			GRATIS_AI_AGENT_URL . 'build/floating-widget.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true

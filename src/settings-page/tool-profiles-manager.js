@@ -39,7 +39,7 @@ export default function ToolProfilesManager() {
 	const fetchProfiles = useCallback( async () => {
 		try {
 			const result = await apiFetch( {
-				path: '/ai-agent/v1/tool-profiles',
+				path: '/gratis-ai-agent/v1/tool-profiles',
 			} );
 			setProfiles( result );
 		} catch {
@@ -50,7 +50,7 @@ export default function ToolProfilesManager() {
 
 	useEffect( () => {
 		fetchProfiles();
-		apiFetch( { path: '/ai-agent/v1/abilities' } )
+		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
 	}, [ fetchProfiles ] );
@@ -82,13 +82,13 @@ export default function ToolProfilesManager() {
 
 			if ( editSlug ) {
 				await apiFetch( {
-					path: `/ai-agent/v1/tool-profiles/${ editSlug }`,
+					path: `/gratis-ai-agent/v1/tool-profiles/${ editSlug }`,
 					method: 'PATCH',
 					data,
 				} );
 			} else {
 				await apiFetch( {
-					path: '/ai-agent/v1/tool-profiles',
+					path: '/gratis-ai-agent/v1/tool-profiles',
 					method: 'POST',
 					data,
 				} );
@@ -97,12 +97,13 @@ export default function ToolProfilesManager() {
 			fetchProfiles();
 			setNotice( {
 				status: 'success',
-				message: __( 'Profile saved.', 'ai-agent' ),
+				message: __( 'Profile saved.', 'gratis-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Failed to save.', 'ai-agent' ),
+				message:
+					err.message || __( 'Failed to save.', 'gratis-ai-agent' ),
 			} );
 		}
 	}, [
@@ -125,9 +126,12 @@ export default function ToolProfilesManager() {
 	const handleDelete = useCallback(
 		async ( slug ) => {
 			// eslint-disable-next-line no-alert
-			if ( window.confirm( __( 'Delete this profile?', 'ai-agent' ) ) ) {
+			const confirmed = window.confirm(
+				__( 'Delete this profile?', 'gratis-ai-agent' )
+			);
+			if ( confirmed ) {
 				await apiFetch( {
-					path: `/ai-agent/v1/tool-profiles/${ slug }`,
+					path: `/gratis-ai-agent/v1/tool-profiles/${ slug }`,
 					method: 'DELETE',
 				} );
 				fetchProfiles();
@@ -143,10 +147,10 @@ export default function ToolProfilesManager() {
 			setNotice( {
 				status: 'success',
 				message: newValue
-					? __( 'Profile activated.', 'ai-agent' )
+					? __( 'Profile activated.', 'gratis-ai-agent' )
 					: __(
 							'Profile deactivated. All tools are now available.',
-							'ai-agent'
+							'gratis-ai-agent'
 					  ),
 			} );
 		},
@@ -157,19 +161,19 @@ export default function ToolProfilesManager() {
 
 	// Build active profile options for the dropdown.
 	const profileOptions = [
-		{ label: __( 'None (all tools)', 'ai-agent' ), value: '' },
+		{ label: __( 'None (all tools)', 'gratis-ai-agent' ), value: '' },
 		...profiles.map( ( p ) => ( { label: p.name, value: p.slug } ) ),
 	];
 
 	return (
-		<div className="ai-agent-tool-profiles-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-tool-profiles-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
-					<h3>{ __( 'Tool Profiles', 'ai-agent' ) }</h3>
+					<h3>{ __( 'Tool Profiles', 'gratis-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Profiles restrict which tools the AI can access. Useful for security (read-only mode) or token savings.',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</p>
 				</div>
@@ -180,7 +184,7 @@ export default function ToolProfilesManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Profile', 'ai-agent' ) }
+						{ __( 'Add Profile', 'gratis-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -196,30 +200,30 @@ export default function ToolProfilesManager() {
 			) }
 
 			<SelectControl
-				label={ __( 'Active Profile', 'ai-agent' ) }
+				label={ __( 'Active Profile', 'gratis-ai-agent' ) }
 				value={ activeProfile }
 				options={ profileOptions }
 				onChange={ handleActivate }
 				help={ __(
 					'Select a profile to restrict the AI to a specific set of tools.',
-					'ai-agent'
+					'gratis-ai-agent'
 				) }
 				__nextHasNoMarginBottom
 			/>
 
 			{ showForm && (
 				<div
-					className="ai-agent-skill-form"
+					className="gratis-ai-agent-skill-form"
 					style={ { marginTop: '16px' } }
 				>
 					<TextControl
-						label={ __( 'Name', 'ai-agent' ) }
+						label={ __( 'Name', 'gratis-ai-agent' ) }
 						value={ formName }
 						onChange={ setFormName }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'ai-agent' ) }
+						label={ __( 'Description', 'gratis-ai-agent' ) }
 						value={ formDescription }
 						onChange={ setFormDescription }
 						__nextHasNoMarginBottom
@@ -227,7 +231,7 @@ export default function ToolProfilesManager() {
 					<TextareaControl
 						label={ __(
 							'Tool Name Prefixes (one per line)',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 						value={ formToolNames }
 						onChange={ setFormToolNames }
@@ -235,11 +239,11 @@ export default function ToolProfilesManager() {
 						help={
 							__(
 								'Enter tool name prefixes, one per line. Use partial names for matching (e.g., "wp_read" matches all read tools). Available tools:',
-								'ai-agent'
+								'gratis-ai-agent'
 							) + abilities.map( ( a ) => a.name ).join( ', ' )
 						}
 					/>
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -247,68 +251,76 @@ export default function ToolProfilesManager() {
 							size="compact"
 						>
 							{ editSlug
-								? __( 'Update', 'ai-agent' )
-								: __( 'Create', 'ai-agent' ) }
+								? __( 'Update', 'gratis-ai-agent' )
+								: __( 'Create', 'gratis-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'ai-agent' ) }
+							{ __( 'Cancel', 'gratis-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
 			) }
 
 			{ ! loaded && (
-				<p className="description">{ __( 'Loading…', 'ai-agent' ) }</p>
+				<p className="description">
+					{ __( 'Loading…', 'gratis-ai-agent' ) }
+				</p>
 			) }
 
 			{ loaded && profiles.length > 0 && (
 				<div
-					className="ai-agent-skill-cards"
+					className="gratis-ai-agent-skill-cards"
 					style={ { marginTop: '16px' } }
 				>
 					{ profiles.map( ( profile ) => (
 						<div
 							key={ profile.slug }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								activeProfile === profile.slug
-									? 'ai-agent-skill-card--active'
+									? 'gratis-ai-agent-skill-card--active'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
-								<div className="ai-agent-skill-card-title">
+							<div className="gratis-ai-agent-skill-card-header">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ profile.name }</strong>
 									{ profile.is_builtin && (
-										<span className="ai-agent-skill-badge">
-											{ __( 'Built-in', 'ai-agent' ) }
+										<span className="gratis-ai-agent-skill-badge">
+											{ __(
+												'Built-in',
+												'gratis-ai-agent'
+											) }
 										</span>
 									) }
 									{ activeProfile === profile.slug && (
 										<span
-											className="ai-agent-skill-badge"
+											className="gratis-ai-agent-skill-badge"
 											style={ {
 												background: '#00a32a',
 												color: '#fff',
 											} }
 										>
-											{ __( 'Active', 'ai-agent' ) }
+											{ __(
+												'Active',
+												'gratis-ai-agent'
+											) }
 										</span>
 									) }
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ profile.description }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ ( profile.tool_names || [] ).length }{ ' ' }
-									{ __( 'tool prefixes', 'ai-agent' ) }
+									{ __( 'tool prefixes', 'gratis-ai-agent' ) }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									{ ! profile.is_builtin && (
 										<>
 											<Button
@@ -316,7 +328,7 @@ export default function ToolProfilesManager() {
 												size="small"
 												label={ __(
 													'Edit',
-													'ai-agent'
+													'gratis-ai-agent'
 												) }
 												onClick={ () =>
 													handleEdit( profile )
@@ -327,7 +339,7 @@ export default function ToolProfilesManager() {
 												size="small"
 												label={ __(
 													'Delete',
-													'ai-agent'
+													'gratis-ai-agent'
 												) }
 												isDestructive
 												onClick={ () =>

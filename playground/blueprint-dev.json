@@ -1,6 +1,6 @@
 {
   "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-  "landingPage": "/wp-admin/admin.php?page=ai-agent",
+  "landingPage": "/wp-admin/admin.php?page=gratis-ai-agent",
   "login": true,
   "preferredVersions": {
     "php": "8.2",
@@ -23,12 +23,12 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github-proxy.com/proxy/?repo=Ultimate-Multisite/ai-agent"
+        "url": "https://github-proxy.com/proxy/?repo=Ultimate-Multisite/gratis-ai-agent"
       }
     },
     {
       "step": "activatePlugin",
-      "pluginPath": "ai-agent/ai-agent.php"
+      "pluginPath": "gratis-ai-agent/gratis-ai-agent.php"
     }
   ]
 }

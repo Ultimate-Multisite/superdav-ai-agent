@@ -4,12 +4,12 @@ declare(strict_types=1);
 /**
  * Register memory-related WordPress abilities (tools) for the AI agent.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
-use AiAgent\Models\Memory;
+use GratisAiAgent\Models\Memory;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -33,11 +33,11 @@ class MemoryAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/memory-save',
+			'gratis-ai-agent/memory-save',
 			[
-				'label'               => __( 'Save Memory', 'ai-agent' ),
-				'description'         => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Save Memory', 'gratis-ai-agent' ),
+				'description'         => __( 'Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -60,11 +60,11 @@ class MemoryAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/memory-list',
+			'gratis-ai-agent/memory-list',
 			[
-				'label'               => __( 'List Memories', 'ai-agent' ),
-				'description'         => __( 'List all stored memories, grouped by category.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'List Memories', 'gratis-ai-agent' ),
+				'description'         => __( 'List all stored memories, grouped by category.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
@@ -76,11 +76,11 @@ class MemoryAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/memory-delete',
+			'gratis-ai-agent/memory-delete',
 			[
-				'label'               => __( 'Delete Memory', 'ai-agent' ),
-				'description'         => __( 'Delete a specific memory by its ID.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Delete Memory', 'gratis-ai-agent' ),
+				'description'         => __( 'Delete a specific memory by its ID.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

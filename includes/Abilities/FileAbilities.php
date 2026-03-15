@@ -9,10 +9,10 @@ declare(strict_types=1);
  *
  * Modelled after akirk/ai-assistant's file tools with WordPress Abilities API integration.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Abilities;
+namespace GratisAiAgent\Abilities;
 
 use WP_Error;
 
@@ -38,11 +38,11 @@ class FileAbilities {
 		}
 
 		wp_register_ability(
-			'ai-agent/file-read',
+			'gratis-ai-agent/file-read',
 			[
-				'label'               => __( 'Read File', 'ai-agent' ),
-				'description'         => __( 'Read the contents of a file within the wp-content directory.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Read File', 'gratis-ai-agent' ),
+				'description'         => __( 'Read the contents of a file within the wp-content directory.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -77,11 +77,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/file-write',
+			'gratis-ai-agent/file-write',
 			[
-				'label'               => __( 'Write File', 'ai-agent' ),
-				'description'         => __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Write File', 'gratis-ai-agent' ),
+				'description'         => __( 'Write or overwrite a file within wp-content. Use for creating NEW files. For modifying existing files, use ai-agent/file-edit instead.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -118,11 +118,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/file-edit',
+			'gratis-ai-agent/file-edit',
 			[
-				'label'               => __( 'Edit File', 'ai-agent' ),
-				'description'         => __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Edit File', 'gratis-ai-agent' ),
+				'description'         => __( 'Edit an existing file by applying search and replace operations. More efficient than write for targeted changes. Each edit finds a unique string and replaces it.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -173,11 +173,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/file-delete',
+			'gratis-ai-agent/file-delete',
 			[
-				'label'               => __( 'Delete File', 'ai-agent' ),
-				'description'         => __( 'Delete a file within the wp-content directory.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Delete File', 'gratis-ai-agent' ),
+				'description'         => __( 'Delete a file within the wp-content directory.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -209,11 +209,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/file-list',
+			'gratis-ai-agent/file-list',
 			[
-				'label'               => __( 'List Directory', 'ai-agent' ),
-				'description'         => __( 'List files and directories within a directory in wp-content.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'List Directory', 'gratis-ai-agent' ),
+				'description'         => __( 'List files and directories within a directory in wp-content.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -247,11 +247,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/file-search',
+			'gratis-ai-agent/file-search',
 			[
-				'label'               => __( 'Search Files', 'ai-agent' ),
-				'description'         => __( 'Search for files matching a glob pattern within wp-content.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Search Files', 'gratis-ai-agent' ),
+				'description'         => __( 'Search for files matching a glob pattern within wp-content.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -285,11 +285,11 @@ class FileAbilities {
 		);
 
 		wp_register_ability(
-			'ai-agent/content-search',
+			'gratis-ai-agent/content-search',
 			[
-				'label'               => __( 'Search Content', 'ai-agent' ),
-				'description'         => __( 'Search for text content within files in wp-content.', 'ai-agent' ),
-				'category'            => 'ai-agent',
+				'label'               => __( 'Search Content', 'gratis-ai-agent' ),
+				'description'         => __( 'Search for text content within files in wp-content.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -341,7 +341,7 @@ class FileAbilities {
 		$relative_path = ltrim( $relative_path, '/\\' );
 
 		if ( empty( $relative_path ) ) {
-			return new WP_Error( 'ai_agent_empty_path', __( 'Path cannot be empty.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_path', __( 'Path cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
 		$wp_content_path = WP_CONTENT_DIR;
@@ -362,15 +362,15 @@ class FileAbilities {
 
 		if ( false === $real_path || false === $wp_content_real ) {
 			return new WP_Error(
-				'ai_agent_path_resolve_failed',
-				__( 'Cannot resolve path.', 'ai-agent' )
+				'gratis_ai_agent_path_resolve_failed',
+				__( 'Cannot resolve path.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( strpos( $real_path, $wp_content_real ) !== 0 ) {
 			return new WP_Error(
-				'ai_agent_path_traversal',
-				__( 'Access denied: path is outside wp-content directory.', 'ai-agent' )
+				'gratis_ai_agent_path_traversal',
+				__( 'Access denied: path is outside wp-content directory.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -453,17 +453,17 @@ class FileAbilities {
 		}
 
 		if ( ! file_exists( $full_path ) ) {
-			return new WP_Error( 'ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
 		}
 
 		if ( ! is_readable( $full_path ) ) {
-			return new WP_Error( 'ai_agent_file_not_readable', sprintf( 'File not readable: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_not_readable', sprintf( 'File not readable: %s', $path ) );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local file, not remote URL.
 		$content = file_get_contents( $full_path );
 		if ( false === $content ) {
-			return new WP_Error( 'ai_agent_file_read_failed', sprintf( 'Failed to read file: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_read_failed', sprintf( 'Failed to read file: %s', $path ) );
 		}
 
 		return [
@@ -494,7 +494,7 @@ class FileAbilities {
 			$lint = self::lint_php( $content );
 			if ( ! $lint['valid'] ) {
 				return new WP_Error(
-					'ai_agent_php_syntax_error',
+					'gratis_ai_agent_php_syntax_error',
 					sprintf(
 						'PHP syntax error: %s (line %d)',
 						$lint['error'] ?? 'Unknown',
@@ -508,7 +508,7 @@ class FileAbilities {
 		$dir = dirname( $full_path );
 		if ( ! file_exists( $dir ) ) {
 			if ( ! wp_mkdir_p( $dir ) ) {
-				return new WP_Error( 'ai_agent_mkdir_failed', sprintf( 'Failed to create directory: %s', dirname( $path ) ) );
+				return new WP_Error( 'gratis_ai_agent_mkdir_failed', sprintf( 'Failed to create directory: %s', dirname( $path ) ) );
 			}
 		}
 
@@ -521,7 +521,7 @@ class FileAbilities {
 		}
 
 		if ( ! $wp_filesystem->put_contents( $full_path, $content, FS_CHMOD_FILE ) ) {
-			return new WP_Error( 'ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
 		}
 
 		return [
@@ -547,13 +547,13 @@ class FileAbilities {
 		}
 
 		if ( ! file_exists( $full_path ) ) {
-			return new WP_Error( 'ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local file.
 		$content = file_get_contents( $full_path );
 		if ( false === $content ) {
-			return new WP_Error( 'ai_agent_file_read_failed', sprintf( 'Failed to read file: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_read_failed', sprintf( 'Failed to read file: %s', $path ) );
 		}
 
 		// Normalize edits: handle single edit object.
@@ -610,7 +610,7 @@ class FileAbilities {
 				$lint = self::lint_php( $content );
 				if ( ! $lint['valid'] ) {
 					return new WP_Error(
-						'ai_agent_php_syntax_error',
+						'gratis_ai_agent_php_syntax_error',
 						sprintf(
 							'PHP syntax error after edits: %s (line %d)',
 							$lint['error'] ?? 'Unknown',
@@ -627,7 +627,7 @@ class FileAbilities {
 			}
 
 			if ( ! $wp_filesystem->put_contents( $full_path, $content, FS_CHMOD_FILE ) ) {
-				return new WP_Error( 'ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
+				return new WP_Error( 'gratis_ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
 			}
 		}
 
@@ -655,7 +655,7 @@ class FileAbilities {
 		}
 
 		if ( ! file_exists( $full_path ) ) {
-			return new WP_Error( 'ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
 		}
 
 		global $wp_filesystem;
@@ -671,7 +671,7 @@ class FileAbilities {
 		}
 
 		if ( ! $result ) {
-			return new WP_Error( 'ai_agent_file_delete_failed', sprintf( 'Failed to delete: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_file_delete_failed', sprintf( 'Failed to delete: %s', $path ) );
 		}
 
 		return [
@@ -695,7 +695,7 @@ class FileAbilities {
 		}
 
 		if ( ! file_exists( $full_path ) || ! is_dir( $full_path ) ) {
-			return new WP_Error( 'ai_agent_dir_not_found', sprintf( 'Directory not found: %s', $path ) );
+			return new WP_Error( 'gratis_ai_agent_dir_not_found', sprintf( 'Directory not found: %s', $path ) );
 		}
 
 		$entries = scandir( $full_path );
@@ -767,7 +767,7 @@ class FileAbilities {
 		$file_pattern = $input['file_pattern'] ?? '*.php';
 
 		if ( empty( $needle ) ) {
-			return new WP_Error( 'ai_agent_empty_needle', __( 'Search text cannot be empty.', 'ai-agent' ) );
+			return new WP_Error( 'gratis_ai_agent_empty_needle', __( 'Search text cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
 		$search_path = WP_CONTENT_DIR;

@@ -6,10 +6,10 @@ declare(strict_types=1);
  *
  * Renders a full-page React app (two-column layout with session sidebar).
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Admin;
+namespace GratisAiAgent\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,15 +17,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AdminPage {
 
-	const SLUG = 'ai-agent';
+	const SLUG = 'gratis-ai-agent';
 
 	/**
 	 * Register the admin menu page under Tools.
 	 */
 	public static function register(): void {
 		$hook = add_management_page(
-			__( 'AI Agent', 'ai-agent' ),
-			__( 'AI Agent', 'ai-agent' ),
+			__( 'Gratis AI Agent', 'gratis-ai-agent' ),
+			__( 'Gratis AI Agent', 'gratis-ai-agent' ),
 			'manage_options',
 			self::SLUG,
 			[ __CLASS__, 'render' ]
@@ -46,7 +46,7 @@ class AdminPage {
 			return;
 		}
 
-		$asset_file = AI_AGENT_DIR . '/build/admin-page.asset.php';
+		$asset_file = GRATIS_AI_AGENT_DIR . '/build/admin-page.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;
@@ -55,15 +55,15 @@ class AdminPage {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'ai-agent-admin-page',
-			AI_AGENT_URL . 'build/style-admin-page.css',
+			'gratis-ai-agent-admin-page',
+			GRATIS_AI_AGENT_URL . 'build/style-admin-page.css',
 			[ 'wp-components' ],
 			$asset['version']
 		);
 
 		wp_enqueue_script(
-			'ai-agent-admin-page',
-			AI_AGENT_URL . 'build/admin-page.js',
+			'gratis-ai-agent-admin-page',
+			GRATIS_AI_AGENT_URL . 'build/admin-page.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
@@ -76,18 +76,18 @@ class AdminPage {
 	public static function render(): void {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			echo '<div class="wrap">';
-			echo '<h1>' . esc_html__( 'AI Agent', 'ai-agent' ) . '</h1>';
+			echo '<h1>' . esc_html__( 'Gratis AI Agent', 'gratis-ai-agent' ) . '</h1>';
 			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'The WordPress AI Client SDK is not available. Please check the compatibility layer.', 'ai-agent' );
+			echo esc_html__( 'The WordPress AI Client SDK is not available. Please check the compatibility layer.', 'gratis-ai-agent' );
 			echo '</p></div></div>';
 			return;
 		}
 
 		?>
-		<div class="wrap ai-agent-admin-wrap">
-			<h1><?php esc_html_e( 'AI Agent', 'ai-agent' ); ?></h1>
-			<p class="description"><?php esc_html_e( 'Chat with an AI assistant that can interact with your WordPress site using registered abilities.', 'ai-agent' ); ?></p>
-			<div id="ai-agent-root"></div>
+		<div class="wrap gratis-ai-agent-admin-wrap">
+			<h1><?php esc_html_e( 'Gratis AI Agent', 'gratis-ai-agent' ); ?></h1>
+			<p class="description"><?php esc_html_e( 'Chat with an AI assistant that can interact with your WordPress site using registered abilities.', 'gratis-ai-agent' ); ?></p>
+			<div id="gratis-ai-agent-root"></div>
 		</div>
 		<?php
 	}

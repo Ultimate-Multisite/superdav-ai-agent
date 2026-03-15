@@ -28,7 +28,7 @@ export default function OnboardingWizard( { onComplete } ) {
 	);
 
 	useEffect( () => {
-		apiFetch( { path: '/ai-agent/v1/abilities' } )
+		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
 	}, [] );
@@ -52,19 +52,19 @@ export default function OnboardingWizard( { onComplete } ) {
 	const steps = [
 		// Step 0: Welcome
 		{
-			title: __( 'Welcome to AI Agent', 'ai-agent' ),
+			title: __( 'Welcome to Gratis AI Agent', 'gratis-ai-agent' ),
 			content: (
-				<div className="ai-agent-wizard-welcome">
+				<div className="gratis-ai-agent-wizard-welcome">
 					<p>
 						{ __(
-							'AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools).',
-							'ai-agent'
+							'Gratis AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools).',
+							'gratis-ai-agent'
 						) }
 					</p>
 					<p>
 						{ __(
 							"It can manage content, query data, run commands, and more — all through a natural chat interface. Let's get set up!",
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</p>
 				</div>
@@ -72,21 +72,21 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 1: Provider
 		{
-			title: __( 'Choose AI Provider', 'ai-agent' ),
+			title: __( 'Choose AI Provider', 'gratis-ai-agent' ),
 			content: (
-				<div className="ai-agent-wizard-provider">
+				<div className="gratis-ai-agent-wizard-provider">
 					{ providers.length === 0 ? (
 						<div>
 							<p>
 								{ __(
 									'No AI providers are configured yet.',
-									'ai-agent'
+									'gratis-ai-agent'
 								) }
 							</p>
 							<p>
 								{ __(
 									'Go to Settings > AI to configure a provider, then come back here.',
-									'ai-agent'
+									'gratis-ai-agent'
 								) }
 							</p>
 						</div>
@@ -95,7 +95,7 @@ export default function OnboardingWizard( { onComplete } ) {
 							<p>
 								{ __(
 									'Select which AI provider and model to use by default.',
-									'ai-agent'
+									'gratis-ai-agent'
 								) }
 							</p>
 							<ProviderSelector />
@@ -106,20 +106,20 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 2: Abilities
 		{
-			title: __( 'Configure Abilities', 'ai-agent' ),
+			title: __( 'Configure Abilities', 'gratis-ai-agent' ),
 			content: (
-				<div className="ai-agent-wizard-abilities">
+				<div className="gratis-ai-agent-wizard-abilities">
 					<p>
 						{ __(
 							'Choose which abilities the AI agent can use. You can change these later in settings.',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</p>
 					{ abilities.length === 0 && (
 						<p className="description">
 							{ __(
 								'No abilities registered yet. They will appear once plugins register them.',
-								'ai-agent'
+								'gratis-ai-agent'
 							) }
 						</p>
 					) }
@@ -156,19 +156,19 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 3: Done
 		{
-			title: __( 'All Set!', 'ai-agent' ),
+			title: __( 'All Set!', 'gratis-ai-agent' ),
 			content: (
-				<div className="ai-agent-wizard-done">
+				<div className="gratis-ai-agent-wizard-done">
 					<p>
 						{ __(
-							"You're all set! The AI Agent is ready to help you manage your WordPress site.",
-							'ai-agent'
+							"You're all set! Gratis AI Agent is ready to help you manage your WordPress site.",
+							'gratis-ai-agent'
 						) }
 					</p>
 					<p>
 						{ __(
-							'You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > AI Agent.',
-							'ai-agent'
+							'You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > Gratis AI Agent.',
+							'gratis-ai-agent'
 						) }
 					</p>
 				</div>
@@ -180,47 +180,49 @@ export default function OnboardingWizard( { onComplete } ) {
 	const isLast = step === steps.length - 1;
 
 	return (
-		<div className="ai-agent-wizard">
-			<div className="ai-agent-wizard-header">
+		<div className="gratis-ai-agent-wizard">
+			<div className="gratis-ai-agent-wizard-header">
 				<h2>{ current.title }</h2>
-				<div className="ai-agent-wizard-progress">
+				<div className="gratis-ai-agent-wizard-progress">
 					{ steps.map( ( _, i ) => (
 						<span
 							key={ i }
-							className={ `ai-agent-wizard-dot ${
+							className={ `gratis-ai-agent-wizard-dot ${
 								i === step ? 'is-active' : ''
 							} ${ i < step ? 'is-complete' : '' }` }
 						/>
 					) ) }
 				</div>
 			</div>
-			<div className="ai-agent-wizard-body">{ current.content }</div>
-			<div className="ai-agent-wizard-footer">
+			<div className="gratis-ai-agent-wizard-body">
+				{ current.content }
+			</div>
+			<div className="gratis-ai-agent-wizard-footer">
 				{ step > 0 && (
 					<Button
 						variant="tertiary"
 						onClick={ () => setStep( step - 1 ) }
 					>
-						{ __( 'Back', 'ai-agent' ) }
+						{ __( 'Back', 'gratis-ai-agent' ) }
 					</Button>
 				) }
 				<Button
 					variant="link"
 					onClick={ handleFinish }
-					className="ai-agent-wizard-skip"
+					className="gratis-ai-agent-wizard-skip"
 				>
-					{ __( 'Skip', 'ai-agent' ) }
+					{ __( 'Skip', 'gratis-ai-agent' ) }
 				</Button>
 				{ isLast ? (
 					<Button variant="primary" onClick={ handleFinish }>
-						{ __( 'Start Chatting', 'ai-agent' ) }
+						{ __( 'Start Chatting', 'gratis-ai-agent' ) }
 					</Button>
 				) : (
 					<Button
 						variant="primary"
 						onClick={ () => setStep( step + 1 ) }
 					>
-						{ __( 'Next', 'ai-agent' ) }
+						{ __( 'Next', 'gratis-ai-agent' ) }
 					</Button>
 				) }
 			</div>

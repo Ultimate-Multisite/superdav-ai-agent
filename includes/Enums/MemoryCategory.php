@@ -2,12 +2,12 @@
 /**
  * Memory category enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
 declare(strict_types=1);
 
-namespace AiAgent\Enums;
+namespace GratisAiAgent\Enums;
 
 /**
  * Valid memory categories for the AI agent's persistent memory system.

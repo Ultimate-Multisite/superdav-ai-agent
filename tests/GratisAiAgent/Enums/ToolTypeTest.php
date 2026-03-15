@@ -2,13 +2,13 @@
 /**
  * Test case for ToolType enum.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  * @subpackage Tests
  */
 
-namespace AiAgent\Tests\Enums;
+namespace GratisAiAgent\Tests\Enums;
 
-use AiAgent\Enums\ToolType;
+use GratisAiAgent\Enums\ToolType;
 use WP_UnitTestCase;
 
 /**

@@ -4,18 +4,18 @@ declare(strict_types=1);
 /**
  * Database table management for AI Agent sessions.
  *
- * @package AiAgent
+ * @package GratisAiAgent
  */
 
-namespace AiAgent\Core;
+namespace GratisAiAgent\Core;
 
-use AiAgent\Knowledge\KnowledgeDatabase;
-use AiAgent\Models\Skill;
-use AiAgent\Tools\CustomTools;
+use GratisAiAgent\Knowledge\KnowledgeDatabase;
+use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Tools\CustomTools;
 
 class Database {
 
-	const DB_VERSION_OPTION = 'ai_agent_db_version';
+	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
 	const DB_VERSION        = '8.0.0';
 
 	/**
@@ -23,7 +23,7 @@ class Database {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_sessions';
+		return $wpdb->prefix . 'gratis_ai_agent_sessions';
 	}
 
 	/**
@@ -31,7 +31,7 @@ class Database {
 	 */
 	public static function usage_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_usage';
+		return $wpdb->prefix . 'gratis_ai_agent_usage';
 	}
 
 	/**
@@ -39,7 +39,7 @@ class Database {
 	 */
 	public static function memories_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_memories';
+		return $wpdb->prefix . 'gratis_ai_agent_memories';
 	}
 
 	/**
@@ -47,7 +47,7 @@ class Database {
 	 */
 	public static function skills_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_skills';
+		return $wpdb->prefix . 'gratis_ai_agent_skills';
 	}
 
 	/**
@@ -58,7 +58,7 @@ class Database {
 	 */
 	public static function custom_tools_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_custom_tools';
+		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
 	}
 
 	/**
@@ -66,7 +66,7 @@ class Database {
 	 */
 	public static function automations_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_automations';
+		return $wpdb->prefix . 'gratis_ai_agent_automations';
 	}
 
 	/**
@@ -74,7 +74,7 @@ class Database {
 	 */
 	public static function automation_logs_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_automation_logs';
+		return $wpdb->prefix . 'gratis_ai_agent_automation_logs';
 	}
 
 	/**
@@ -82,7 +82,7 @@ class Database {
 	 */
 	public static function event_automations_table_name(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ai_agent_event_automations';
+		return $wpdb->prefix . 'gratis_ai_agent_event_automations';
 	}
 
 	/**
@@ -90,6 +90,9 @@ class Database {
 	 */
 	public static function install(): void {
 		global $wpdb;
+
+		// Migrate from old "ai_agent" naming if upgrading from pre-rename version.
+		self::maybe_migrate_from_old_names();
 
 		$installed_version = get_option( self::DB_VERSION_OPTION );
 
@@ -657,5 +660,88 @@ class Database {
 				'tool_calls' => wp_json_encode( $merged_tool_calls ),
 			]
 		);
+	}
+
+	/**
+	 * Migrate database tables, options, and cron hooks from the old "ai_agent" naming.
+	 *
+	 * This runs once on upgrade from the pre-rename plugin version. It detects old
+	 * table names and options, renames/migrates them, then sets a flag so it won't
+	 * run again.
+	 */
+	private static function maybe_migrate_from_old_names(): void {
+		// Skip if migration already completed.
+		if ( get_option( 'gratis_ai_agent_migrated_from_ai_agent' ) ) {
+			return;
+		}
+
+		// Skip if there's no old DB version option (fresh install, never had old plugin).
+		$old_db_version = get_option( 'ai_agent_db_version' );
+		if ( false === $old_db_version ) {
+			return;
+		}
+
+		global $wpdb;
+
+		// 1. Rename database tables.
+		$old_tables = [
+			'ai_agent_sessions',
+			'ai_agent_usage',
+			'ai_agent_memories',
+			'ai_agent_skills',
+			'ai_agent_custom_tools',
+			'ai_agent_automations',
+			'ai_agent_automation_logs',
+			'ai_agent_event_automations',
+			'ai_agent_knowledge_collections',
+			'ai_agent_knowledge_sources',
+			'ai_agent_knowledge_chunks',
+		];
+
+		foreach ( $old_tables as $old_suffix ) {
+			$old_name = $wpdb->prefix . $old_suffix;
+			$new_name = $wpdb->prefix . 'gratis_' . $old_suffix;
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-time migration rename.
+			$table_exists = $wpdb->get_var(
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $old_name )
+			);
+
+			if ( $table_exists ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-time migration; table names from internal constants.
+				$wpdb->query( "RENAME TABLE `{$old_name}` TO `{$new_name}`" );
+			}
+		}
+
+		// 2. Migrate options.
+		$option_map = [
+			'ai_agent_db_version'          => self::DB_VERSION_OPTION,
+			'ai_agent_settings'            => 'gratis_ai_agent_settings',
+			'ai_agent_claude_max_token'    => 'gratis_ai_agent_claude_max_token',
+			'ai_agent_tool_profiles'       => 'gratis_ai_agent_tool_profiles',
+			'ai_agent_custom_tools_seeded' => 'gratis_ai_agent_custom_tools_seeded',
+		];
+
+		foreach ( $option_map as $old_key => $new_key ) {
+			$old_value = get_option( $old_key );
+			if ( false !== $old_value ) {
+				update_option( $new_key, $old_value );
+				delete_option( $old_key );
+			}
+		}
+
+		// 3. Migrate cron hooks.
+		$old_cron_hook = 'wp_ai_agent_reindex';
+		$new_cron_hook = 'wp_gratis_ai_agent_reindex';
+		$timestamp     = wp_next_scheduled( $old_cron_hook );
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, $old_cron_hook );
+			if ( ! wp_next_scheduled( $new_cron_hook ) ) {
+				wp_schedule_event( time(), 'hourly', $new_cron_hook );
+			}
+		}
+
+		// Mark migration as complete.
+		update_option( 'gratis_ai_agent_migrated_from_ai_agent', '1' );
 	}
 }

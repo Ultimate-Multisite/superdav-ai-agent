@@ -1,4 +1,4 @@
-# AI Agent - WordPress Plugin Development Guide
+# Gratis AI Agent - WordPress Plugin Development Guide
 
 ## Build Commands
 - **Build**: `npm run build` or `npx wp-scripts build` (production)
@@ -10,7 +10,7 @@
 ## Code Style & Architecture
 
 ### PHP (PSR-4 + PHP 8.2+)
-- **Namespace**: PSR-4 namespaces under `AiAgent\` (e.g., `namespace AiAgent\Core;`)
+- **Namespace**: PSR-4 namespaces under `GratisAiAgent\` (e.g., `namespace GratisAiAgent\Core;`)
 - **Class names**: PascalCase (e.g., `AgentLoop`, `RestController`)
 - **File naming**: `{ClassName}.php` matching the class name exactly
 - **Directory structure**:
@@ -39,7 +39,7 @@
 - **Imports**: WordPress packages first, then internal dependencies
 - **File structure**: React components in `src/components/`, entry points in `src/{admin-page,floating-widget,settings-page}/`
 - **Styling**: CSS modules in same directory as component (`style.css`)
-- **i18n**: Always use `__( 'text', 'ai-agent' )` for translatable strings
+- **i18n**: Always use `__( 'text', 'gratis-ai-agent' )` for translatable strings
 - **Hooks**: Use WordPress data hooks (`useSelect`, `useDispatch`) consistently
 - **Build**: Webpack via `@wordpress/scripts` targeting 3 entry points
 
@@ -49,19 +49,19 @@
 - **Classes**: PascalCase (e.g., `AgentLoop`, `MemoryAbilities`)
 - **Components**: PascalCase (e.g., `ChatPanel`, `MessageList`)
 - **Enums**: PascalCase with PascalCase cases (e.g., `MemoryCategory::SiteInfo`)
-- **Database tables**: Prefixed with `{$wpdb->prefix}ai_agent_` (10 tables total)
-- **REST routes**: `/ai-agent/v1/{endpoint}` namespace
+- **Database tables**: Prefixed with `{$wpdb->prefix}gratis_ai_agent_` (10 tables total)
+- **REST routes**: `/gratis-ai-agent/v1/{endpoint}` namespace
 
 ### Class Mapping Reference
 | Old Name | New Location | New Class Name |
 |----------|--------------|----------------|
-| `Database` | `Core/Database.php` | `AiAgent\Core\Database` |
-| `Settings` | `Core/Settings.php` | `AiAgent\Core\Settings` |
-| `Agent_Loop` | `Core/AgentLoop.php` | `AiAgent\Core\AgentLoop` |
-| `Memory` | `Models/Memory.php` | `AiAgent\Models\Memory` |
-| `Skill` | `Models/Skill.php` | `AiAgent\Models\Skill` |
-| `Rest_Controller` | `REST/RestController.php` | `AiAgent\REST\RestController` |
-| `Memory_Abilities` | `Abilities/MemoryAbilities.php` | `AiAgent\Abilities\MemoryAbilities` |
+| `Database` | `Core/Database.php` | `GratisAiAgent\Core\Database` |
+| `Settings` | `Core/Settings.php` | `GratisAiAgent\Core\Settings` |
+| `Agent_Loop` | `Core/AgentLoop.php` | `GratisAiAgent\Core\AgentLoop` |
+| `Memory` | `Models/Memory.php` | `GratisAiAgent\Models\Memory` |
+| `Skill` | `Models/Skill.php` | `GratisAiAgent\Models\Skill` |
+| `Rest_Controller` | `REST/RestController.php` | `GratisAiAgent\REST\RestController` |
+| `Memory_Abilities` | `Abilities/MemoryAbilities.php` | `GratisAiAgent\Abilities\MemoryAbilities` |
 
 ## WordPress SDK Integration
 - Use `wp_ai_client_prompt()` for AI calls (WordPress 6.9+ AI Client SDK)

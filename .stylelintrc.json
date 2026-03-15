@@ -1,0 +1,12 @@
+{
+	"extends": "@wordpress/stylelint-config/scss",
+	"rules": {
+		"no-descending-specificity": null,
+		"font-family-no-missing-generic-family-keyword": null
+	},
+	"ignoreFiles": [
+		"build/**",
+		"node_modules/**",
+		"vendor/**"
+	]
+}

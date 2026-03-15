@@ -33,14 +33,19 @@ if ( file_exists( AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 // Load compatibility layer for WordPress < 7.0 (Abilities API + AI Client SDK).
 require_once AI_AGENT_DIR . '/compat/load.php';
 
+use AiAgent\Abilities\AbilityDiscoveryAbilities;
 use AiAgent\Abilities\BlockAbilities;
 use AiAgent\Abilities\ContentAbilities;
+use AiAgent\Abilities\DatabaseAbilities;
+use AiAgent\Abilities\FileAbilities;
 use AiAgent\Abilities\KnowledgeAbilities;
 use AiAgent\Abilities\MarketingAbilities;
 use AiAgent\Abilities\MemoryAbilities;
+use AiAgent\Abilities\NavigationAbilities;
 use AiAgent\Abilities\SeoAbilities;
 use AiAgent\Abilities\SkillAbilities;
 use AiAgent\Abilities\StockImageAbilities;
+use AiAgent\Abilities\WordPressAbilities;
 use AiAgent\Admin\AdminPage;
 use AiAgent\Admin\FloatingWidget;
 use AiAgent\Automations\AutomationRunner;
@@ -92,6 +97,9 @@ KnowledgeHooks::register();
 // Tool discovery meta-tools.
 ToolDiscovery::register();
 
+// Ability discovery meta-tools (list_abilities, get_ability, execute_ability).
+AbilityDiscoveryAbilities::register();
+
 // Stock image import ability.
 StockImageAbilities::register();
 
@@ -102,6 +110,18 @@ MarketingAbilities::register();
 
 // Block content abilities (markdown-to-blocks, block discovery, content creation).
 BlockAbilities::register();
+
+// File operation abilities (read, write, edit, delete, list, search).
+FileAbilities::register();
+
+// Database query abilities (SELECT only).
+DatabaseAbilities::register();
+
+// WordPress management abilities (plugins, themes, install, run PHP).
+WordPressAbilities::register();
+
+// Navigation abilities (navigate, get page HTML).
+NavigationAbilities::register();
 
 // Custom tool abilities (registered as WordPress Abilities).
 CustomToolExecutor::register();

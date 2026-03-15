@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a938b0824dc94d17733a37f98c5a08fa",
+    "content-hash": "ec3ced3b07cdb0961a1e0b89801bcc99",
     "packages": [
         {
             "name": "automattic/jetpack-autoloader",
@@ -736,16 +736,16 @@
         },
         {
             "name": "wordpress/php-ai-client",
-            "version": "1.2.1",
+            "version": "1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WordPress/php-ai-client.git",
-                "reference": "30a1506c39fe268d7842e53456b98f05554e3c52"
+                "reference": "211e60320eabb9e4f6af514809e6e735e241205e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/WordPress/php-ai-client/zipball/30a1506c39fe268d7842e53456b98f05554e3c52",
-                "reference": "30a1506c39fe268d7842e53456b98f05554e3c52",
+                "url": "https://api.github.com/repos/WordPress/php-ai-client/zipball/211e60320eabb9e4f6af514809e6e735e241205e",
+                "reference": "211e60320eabb9e4f6af514809e6e735e241205e",
                 "shasum": ""
             },
             "require": {
@@ -810,7 +810,7 @@
                 "issues": "https://github.com/WordPress/php-ai-client/issues",
                 "source": "https://github.com/WordPress/php-ai-client"
             },
-            "time": "2026-02-28T19:50:44+00:00"
+            "time": "2026-03-10T19:36:24+00:00"
         }
     ],
     "packages-dev": [

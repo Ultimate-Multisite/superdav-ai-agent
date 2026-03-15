@@ -12,12 +12,21 @@ require_once $plugin_dir . '/vendor/autoload.php';
 
 $_tests_dir = getenv('WP_TESTS_DIR');
 if ( ! $_tests_dir ) {
-	$_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
+	// wp-env places the test suite at /wordpress-phpunit.
+	if ( file_exists( '/wordpress-phpunit/includes/functions.php' ) ) {
+		$_tests_dir = '/wordpress-phpunit';
+	} else {
+		$_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
+	}
 }
 
 // Forward custom PHPUnit Polyfills configuration to PHPUnit bootstrap file.
+// Auto-detect from Composer vendor directory if not set via env var.
 $_phpunit_polyfills_path = getenv('WP_TESTS_PHPUNIT_POLYFILLS_PATH');
-if ( false !== $_phpunit_polyfills_path ) {
+if ( false === $_phpunit_polyfills_path ) {
+	$_phpunit_polyfills_path = $plugin_dir . '/vendor/yoast/phpunit-polyfills';
+}
+if ( is_dir( $_phpunit_polyfills_path ) ) {
 	define('WP_TESTS_PHPUNIT_POLYFILLS_PATH', $_phpunit_polyfills_path);
 }
 

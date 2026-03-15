@@ -7,7 +7,7 @@
  * @since 7.0.0
  */
 
-use WordPress\AiClientDependencies\Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * WordPress-specific PSR-14 event dispatcher for the AI Client.

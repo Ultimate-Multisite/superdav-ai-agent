@@ -4,9 +4,26 @@
 	"license": "GPL-2.0-or-later",
 	"scripts": {
 		"build": "wp-scripts build",
-		"start": "wp-scripts start"
+		"start": "wp-scripts start",
+		"lint:js": "wp-scripts lint-js src/",
+		"lint:js:fix": "wp-scripts lint-js src/ --fix",
+		"lint:css": "wp-scripts lint-style 'src/**/*.css'",
+		"lint:css:fix": "wp-scripts lint-style 'src/**/*.css' --fix",
+		"lint:php": "composer phpcs",
+		"lint:php:fix": "composer phpcbf",
+		"lint": "npm run lint:js && npm run lint:css && npm run lint:php",
+		"test:unit": "wp-scripts test-unit-js",
+		"test:e2e": "wp-scripts test-e2e",
+		"test:php": "npm run test:php:docker",
+		"test:php:docker": "docker compose -f ~/wp-env/dffbc78ef1978dc39a48a06e0f171d9b/docker-compose.yml run --rm tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/ai-agent && php vendor/bin/phpunit'",
+		"test:php:docker:testdox": "docker compose -f ~/wp-env/dffbc78ef1978dc39a48a06e0f171d9b/docker-compose.yml run --rm tests-wordpress bash -c 'cd /var/www/html/wp-content/plugins/ai-agent && php vendor/bin/phpunit --testdox'",
+		"wp-env": "wp-env",
+		"wp-env:start": "wp-env start",
+		"wp-env:stop": "wp-env stop",
+		"wp-env:clean": "wp-env clean all"
 	},
 	"devDependencies": {
+		"@wordpress/env": "^10.39.0",
 		"@wordpress/scripts": "^31.2.0"
 	},
 	"dependencies": {

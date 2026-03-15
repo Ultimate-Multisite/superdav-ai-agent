@@ -26,93 +26,6 @@ use WordPress\AiClient\Messages\DTO\UserMessage;
 use WordPress\AiClient\Messages\Enums\MessageRoleEnum;
 use WordPress\AiClient\Tools\DTO\FunctionCall;
 
-/**
- * Lightweight result wrapper for direct proxy calls.
- *
- * The main run() loop expects a result object with toMessage(), toText(), and
- * getUsage(). When we call the OpenAI-compat proxy directly via wp_remote_post()
- * instead of through the WordPress AI SDK (to avoid a fatal autoloader conflict),
- * we wrap the raw response in this class AgentLoop the loop can handle it uniformly.
- */
-class Simple_AI_Result {
-
-	/** @var string */
-	private $text;
-
-	/** @var array */
-	private $raw;
-
-	/** @var Message|null */
-	private $message = null;
-
-	public function __construct( string $text, array $raw = [] ) {
-		$this->text = $text;
-		$this->raw  = $raw;
-	}
-
-	public function toText(): string {
-		return $this->text;
-	}
-
-	public function toMessage(): Message {
-		if ( null === $this->message ) {
-			$parts = [];
-
-			// Add text part if present.
-			if ( '' !== $this->text ) {
-				$parts[] = new MessagePart( $this->text );
-			}
-
-			// Parse OpenAI-format tool_calls from the raw response.
-			$tool_calls = $this->raw['choices'][0]['message']['tool_calls'] ?? [];
-			foreach ( $tool_calls as $tc ) {
-				$fn_name = $tc['function']['name'] ?? '';
-				$fn_id   = $tc['id'] ?? $fn_name;
-				$fn_args = $tc['function']['arguments'] ?? '{}';
-
-				if ( is_string( $fn_args ) ) {
-					$fn_args = json_decode( $fn_args, true ) ?: [];
-				}
-
-				$parts[] = new MessagePart(
-					new FunctionCall( $fn_id, $fn_name, $fn_args )
-				);
-			}
-
-			// Fallback: if no parts at all, add empty text.
-			if ( empty( $parts ) ) {
-				$parts[] = new MessagePart( '' );
-			}
-
-			$this->message = new ModelMessage( $parts );
-		}
-		return $this->message;
-	}
-
-	public function getUsage() {
-		$usage = $this->raw['usage'] ?? null;
-		if ( ! is_array( $usage ) ) {
-			return null;
-		}
-		$prompt     = (int) ( $usage['prompt_tokens'] ?? 0 );
-		$completion = (int) ( $usage['completion_tokens'] ?? 0 );
-		return new class( $prompt, $completion ) {
-			private int $prompt;
-			private int $completion;
-			public function __construct( int $prompt, int $completion ) {
-				$this->prompt     = $prompt;
-				$this->completion = $completion;
-			}
-			public function getPromptTokens(): int {
-				return $this->prompt;
-			}
-			public function getCompletionTokens(): int {
-				return $this->completion;
-			}
-		};
-	}
-}
-
 class AgentLoop {
 
 	/** @var string */
@@ -421,7 +334,7 @@ class AgentLoop {
 	 * POSTs to the configured endpoint URL, and returns either a simple
 	 * result object or a WP_Error.
 	 *
-	 * @return Simple_AI_Result|WP_Error
+	 * @return SimpleAiResult|WP_Error
 	 */
 	private function send_prompt_direct() {
 		$endpoint_url = rtrim( (string) get_option( 'openai_compat_endpoint_url', '' ), '/' );
@@ -476,8 +389,13 @@ class AgentLoop {
 			if ( ! empty( $input_schema ) ) {
 				// Ensure 'properties' is an object, not an empty array.
 				// PHP's json_encode([]) produces "[]" but OpenAI requires "{}".
+				// This covers both strict [] and loose empty-array checks.
 				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
 					$input_schema['properties'] = new \stdClass();
+				}
+				// Also ensure 'required' is not an empty array (some providers reject it).
+				if ( isset( $input_schema['required'] ) && is_array( $input_schema['required'] ) && empty( $input_schema['required'] ) ) {
+					unset( $input_schema['required'] );
 				}
 				$tool['function']['parameters'] = $input_schema;
 			} else {
@@ -614,8 +532,37 @@ class AgentLoop {
 		];
 
 		if ( ! empty( $tools ) ) {
+			// Sanitize tool schemas: ensure 'properties' fields are JSON objects, not arrays.
+			// PHP's json_encode([]) produces "[]" but OpenAI requires "{}".
+			$tools = array_map( [ $this, 'sanitize_tool_schema' ], $tools );
+
+			// Also remove non-standard fields that some providers reject.
+			foreach ( $tools as &$tool_ref ) {
+				$params = &$tool_ref['function']['parameters'];
+				// Remove 'default' at the parameters level (non-standard).
+				unset( $params['default'] );
+				// Remove 'required' booleans inside individual properties (should be array at schema level).
+				if ( isset( $params['properties'] ) && is_array( $params['properties'] ) ) {
+					foreach ( $params['properties'] as &$prop_ref ) {
+						if ( is_array( $prop_ref ) && isset( $prop_ref['required'] ) && is_bool( $prop_ref['required'] ) ) {
+							unset( $prop_ref['required'] );
+						}
+					}
+					unset( $prop_ref );
+				}
+				unset( $params );
+			}
+			unset( $tool_ref );
+
 			$request_body['tools'] = $tools;
 		}
+
+		$encoded_body = wp_json_encode( $request_body );
+
+		// Final safety net: replace any remaining "properties":[] with "properties":{}
+		// in the JSON string. This catches edge cases where PHP's type juggling
+		// converts stdClass back to an empty array during serialization.
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
 
 		$response = wp_remote_post(
 			$endpoint_url . '/chat/completions',
@@ -625,7 +572,7 @@ class AgentLoop {
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
 				],
-				'body'      => wp_json_encode( $request_body ),
+				'body'      => $encoded_body,
 				'sslverify' => false,
 			]
 		);
@@ -639,13 +586,65 @@ class AgentLoop {
 		$data = json_decode( $body, true );
 
 		if ( $code !== 200 ) {
-			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
+				$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
 			return new WP_Error( 'ai_agent_proxy_error', $msg );
 		}
 
 		$text = $data['choices'][0]['message']['content'] ?? '';
 
-		return new Simple_AI_Result( $text, $data );
+		return new SimpleAiResult( $text, $data );
+	}
+
+	/**
+	 * Recursively sanitize a tool schema for OpenAI compatibility.
+	 *
+	 * Ensures that 'properties' fields are JSON objects (not arrays),
+	 * removes empty 'required' arrays, and handles nested schemas.
+	 *
+	 * @param array $tool The tool definition.
+	 * @return array The sanitized tool definition.
+	 */
+	private function sanitize_tool_schema( array $tool ): array {
+		if ( isset( $tool['function']['parameters'] ) ) {
+			$tool['function']['parameters'] = $this->sanitize_schema_properties( $tool['function']['parameters'] );
+		}
+		return $tool;
+	}
+
+	/**
+	 * Recursively fix empty arrays that should be objects in JSON schema.
+	 *
+	 * @param mixed $schema The schema or sub-schema.
+	 * @return mixed The sanitized schema.
+	 */
+	private function sanitize_schema_properties( $schema ) {
+		if ( ! is_array( $schema ) ) {
+			return $schema;
+		}
+
+		// Fix 'properties' — must be an object, not an empty array.
+		if ( array_key_exists( 'properties', $schema ) ) {
+			if ( is_array( $schema['properties'] ) && empty( $schema['properties'] ) ) {
+				$schema['properties'] = new \stdClass();
+			} elseif ( is_array( $schema['properties'] ) ) {
+				// Recurse into each property.
+				foreach ( $schema['properties'] as $key => $prop ) {
+					$schema['properties'][ $key ] = $this->sanitize_schema_properties( $prop );
+				}
+			}
+		}
+
+		// Remove empty 'required' arrays (some providers reject them).
+		if ( isset( $schema['required'] ) && is_array( $schema['required'] ) && empty( $schema['required'] ) ) {
+			unset( $schema['required'] );
+		}
+
+		// Recurse into 'items' for array types.
+		if ( isset( $schema['items'] ) && is_array( $schema['items'] ) ) {
+			$schema['items'] = $this->sanitize_schema_properties( $schema['items'] );
+		}
+
+		return $schema;
 	}
 
 	/**

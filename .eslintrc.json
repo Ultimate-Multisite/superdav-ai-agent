@@ -1,0 +1,21 @@
+{
+	"extends": "plugin:@wordpress/eslint-plugin/recommended",
+	"env": {
+		"browser": true,
+		"es2021": true
+	},
+	"globals": {
+		"wp": "readonly",
+		"jQuery": "readonly"
+	},
+	"rules": {
+		"jsdoc/require-jsdoc": "off",
+		"@wordpress/no-unsafe-wp-apis": "warn",
+		"no-console": "warn"
+	},
+	"ignorePatterns": [
+		"build/",
+		"node_modules/",
+		"vendor/"
+	]
+}

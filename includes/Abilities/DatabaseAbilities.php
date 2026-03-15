@@ -1,0 +1,116 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * Database operation abilities for the AI agent.
+ *
+ * Provides SELECT query execution against the WordPress database.
+ * Supports {prefix} placeholder for table prefix substitution.
+ *
+ * @package AiAgent
+ */
+
+namespace AiAgent\Abilities;
+
+use WP_Error;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class DatabaseAbilities {
+
+	/**
+	 * Register database abilities on init.
+	 */
+	public static function register(): void {
+		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
+	}
+
+	/**
+	 * Register database abilities.
+	 */
+	public static function register_abilities(): void {
+		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return;
+		}
+
+		wp_register_ability(
+			'ai-agent/db-query',
+			[
+				'label'               => __( 'Database Query', 'ai-agent' ),
+				'description'         => __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'ai-agent' ),
+				'category'            => 'ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'sql' => [
+							'type'        => 'string',
+							'description' => 'The SELECT SQL query to execute. Use {prefix} as placeholder for table prefix.',
+						],
+					],
+					'required'   => [ 'sql' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'query' => [ 'type' => 'string' ],
+						'rows'  => [ 'type' => 'array' ],
+						'count' => [ 'type' => 'integer' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'   => true,
+						'idempotent' => true,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_db_query' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+	}
+
+	/**
+	 * Handle the db-query ability.
+	 *
+	 * @param array $input Input with sql.
+	 * @return array|WP_Error
+	 */
+	public static function handle_db_query( array $input ) {
+		global $wpdb;
+
+		$sql = trim( $input['sql'] ?? '' );
+
+		if ( empty( $sql ) ) {
+			return new WP_Error( 'ai_agent_empty_sql', __( 'SQL query cannot be empty.', 'ai-agent' ) );
+		}
+
+		// Only allow SELECT queries.
+		if ( stripos( $sql, 'SELECT' ) !== 0 ) {
+			return new WP_Error(
+				'ai_agent_sql_not_select',
+				__( 'Only SELECT queries are allowed. Use WordPress functions for data modification.', 'ai-agent' )
+			);
+		}
+
+		// Replace {prefix} placeholder.
+		$sql = str_replace( '{prefix}', $wpdb->prefix, $sql );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- User-provided SELECT query, validated above.
+		$results = $wpdb->get_results( $sql, ARRAY_A );
+
+		if ( $wpdb->last_error ) {
+			return new WP_Error( 'ai_agent_db_error', sprintf( 'Database error: %s', $wpdb->last_error ) );
+		}
+
+		return [
+			'query' => $sql,
+			'rows'  => $results,
+			'count' => is_array( $results ) ? count( $results ) : 0,
+		];
+	}
+}

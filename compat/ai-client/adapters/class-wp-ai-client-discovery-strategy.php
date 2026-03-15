@@ -8,8 +8,8 @@
  */
 
 use WordPress\AiClient\Providers\Http\Abstracts\AbstractClientDiscoveryStrategy;
-use WordPress\AiClientDependencies\Nyholm\Psr7\Factory\Psr17Factory;
-use WordPress\AiClientDependencies\Psr\Http\Client\ClientInterface;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Client\ClientInterface;
 
 /**
  * Discovery strategy for WordPress HTTP client.

@@ -7,11 +7,11 @@
  * @since 7.0.0
  */
 
-use WordPress\AiClientDependencies\Psr\Http\Client\ClientInterface;
-use WordPress\AiClientDependencies\Psr\Http\Message\RequestInterface;
-use WordPress\AiClientDependencies\Psr\Http\Message\ResponseInterface;
-use WordPress\AiClientDependencies\Psr\Http\Message\ResponseFactoryInterface;
-use WordPress\AiClientDependencies\Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use WordPress\AiClient\Providers\Http\Contracts\ClientWithOptionsInterface;
 use WordPress\AiClient\Providers\Http\DTO\RequestOptions;
 use WordPress\AiClient\Providers\Http\Exception\NetworkException;

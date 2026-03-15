@@ -275,6 +275,19 @@ class AgentLoop {
 	private function send_prompt() {
 		$provider_id = $this->provider_id ?: 'ai-provider-for-any-openai-compatible';
 
+		// Route to direct provider implementations first (no WP SDK dependency).
+		if ( 'openai' === $provider_id ) {
+			return $this->send_prompt_openai();
+		}
+
+		if ( 'anthropic' === $provider_id ) {
+			return $this->send_prompt_anthropic();
+		}
+
+		if ( 'google' === $provider_id ) {
+			return $this->send_prompt_google();
+		}
+
 		if ( 'ai-provider-for-any-openai-compatible' === $provider_id ) {
 			return $this->send_prompt_direct();
 		}
@@ -328,6 +341,504 @@ class AgentLoop {
 	}
 
 	/**
+	 * Build an OpenAI-format messages array from the current history.
+	 *
+	 * Shared by send_prompt_direct(), send_prompt_openai(), and
+	 * send_prompt_google() (which uses Google's OpenAI-compatible endpoint).
+	 *
+	 * @return array
+	 */
+	private function build_openai_messages(): array {
+		$messages = [];
+
+		if ( ! empty( $this->system_instruction ) ) {
+			$messages[] = [
+				'role'    => 'system',
+				'content' => $this->system_instruction,
+			];
+		}
+
+		foreach ( $this->history as $msg ) {
+			/** @var \WordPress\AiClient\Messages\DTO\Message $msg */
+			$role = 'user';
+
+			try {
+				$role_enum = $msg->getRole();
+				if ( method_exists( $role_enum, 'value' ) ) {
+					$role = $role_enum->value;
+				} elseif ( method_exists( $role_enum, 'getValue' ) ) {
+					$role = $role_enum->getValue();
+				} else {
+					$role = (string) $role_enum;
+				}
+				$role = ( 'model' === $role || 'assistant' === $role ) ? 'assistant' : 'user';
+			} catch ( \Throwable $e ) {
+				$role = 'user';
+			}
+
+			try {
+				$parts          = $msg->getParts();
+				$texts          = [];
+				$msg_tool_calls = [];
+				$fn_responses   = [];
+
+				foreach ( $parts as $part ) {
+					if ( method_exists( $part, 'getText' ) ) {
+						$t = $part->getText();
+						if ( is_string( $t ) && '' !== $t ) {
+							$texts[] = $t;
+						}
+					}
+
+					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionCall() ) {
+						$fc = $part->getFunctionCall();
+						if ( $fc ) {
+							$msg_tool_calls[] = [
+								'id'       => $fc->getId() ?: ( 'call_' . wp_generate_uuid4() ),
+								'type'     => 'function',
+								'function' => [
+									'name'      => $fc->getName(),
+									'arguments' => wp_json_encode( $fc->getArgs() ?: new \stdClass() ),
+								],
+							];
+						}
+					}
+
+					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionResponse() ) {
+						$fr = $part->getFunctionResponse();
+						if ( $fr ) {
+							$fn_responses[] = [
+								'tool_call_id' => $fr->getId() ?: '',
+								'role'         => 'tool',
+								'content'      => wp_json_encode( $fr->getResponse() ),
+							];
+						}
+					}
+				}
+
+				if ( ! empty( $msg_tool_calls ) ) {
+					$assistant_msg            = [
+						'role'       => 'assistant',
+						'tool_calls' => $msg_tool_calls,
+					];
+					$text_content             = implode( '', $texts );
+					$assistant_msg['content'] = '' !== $text_content ? $text_content : null;
+					$messages[]               = $assistant_msg;
+
+					foreach ( $fn_responses as $fr_msg ) {
+						$messages[] = $fr_msg;
+					}
+				} elseif ( ! empty( $fn_responses ) ) {
+					foreach ( $fn_responses as $fr_msg ) {
+						$messages[] = $fr_msg;
+					}
+				} else {
+					$content = implode( '', $texts );
+					if ( '' !== $content ) {
+						$messages[] = [
+							'role'    => $role,
+							'content' => $content,
+						];
+					}
+				}
+			} catch ( \Throwable $e ) {
+				continue;
+			}
+		}
+
+		return $messages;
+	}
+
+	/**
+	 * Build an OpenAI-format tools array from the current resolved abilities.
+	 *
+	 * Shared by send_prompt_direct(), send_prompt_openai(), and
+	 * send_prompt_google().
+	 *
+	 * @return array
+	 */
+	private function build_openai_tools(): array {
+		$tools     = [];
+		$abilities = $this->resolve_abilities();
+
+		/** @var int $max_tools Maximum number of tools to include. */
+		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
+		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
+			$abilities = array_slice( $abilities, 0, $max_tools );
+		}
+
+		foreach ( $abilities as $ability ) {
+			$fn_name      = WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $ability->get_name() );
+			$input_schema = $ability->get_input_schema();
+			$description  = $ability->get_description();
+
+			if ( strlen( $description ) > 200 ) {
+				$description = substr( $description, 0, 197 ) . '...';
+			}
+
+			$tool = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => $fn_name,
+					'description' => $description,
+				],
+			];
+
+			if ( ! empty( $input_schema ) ) {
+				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
+					$input_schema['properties'] = new \stdClass();
+				}
+				if ( isset( $input_schema['required'] ) && is_array( $input_schema['required'] ) && empty( $input_schema['required'] ) ) {
+					unset( $input_schema['required'] );
+				}
+				$tool['function']['parameters'] = $input_schema;
+			} else {
+				$tool['function']['parameters'] = [
+					'type'       => 'object',
+					'properties' => new \stdClass(),
+				];
+			}
+
+			$tools[] = $tool;
+		}
+
+		// Sanitize and strip non-standard fields.
+		$tools = array_map( [ $this, 'sanitize_tool_schema' ], $tools );
+		foreach ( $tools as &$tool_ref ) {
+			$params = &$tool_ref['function']['parameters'];
+			unset( $params['default'] );
+			if ( isset( $params['properties'] ) && is_array( $params['properties'] ) ) {
+				foreach ( $params['properties'] as &$prop_ref ) {
+					if ( is_array( $prop_ref ) && isset( $prop_ref['required'] ) && is_bool( $prop_ref['required'] ) ) {
+						unset( $prop_ref['required'] );
+					}
+				}
+				unset( $prop_ref );
+			}
+			unset( $params );
+		}
+		unset( $tool_ref );
+
+		return $tools;
+	}
+
+	/**
+	 * Send a prompt directly to the OpenAI API.
+	 *
+	 * Uses the API key stored via Settings::set_provider_key('openai', ...).
+	 *
+	 * @return SimpleAiResult|WP_Error
+	 */
+	private function send_prompt_openai() {
+		$api_key = Settings::get_provider_key( 'openai' );
+		if ( '' === $api_key ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_openai_key',
+				__( 'OpenAI API key is not configured. Add it in Settings > Providers.', 'gratis-ai-agent' )
+			);
+		}
+
+		$model_id = $this->model_id ?: Settings::DIRECT_PROVIDERS['openai']['default_model'];
+		$messages = $this->build_openai_messages();
+		$tools    = $this->build_openai_tools();
+
+		$request_body = [
+			'model'       => $model_id,
+			'messages'    => $messages,
+			'temperature' => (float) $this->temperature,
+			'max_tokens'  => (int) $this->max_output_tokens,
+			'stream'      => false,
+		];
+
+		if ( ! empty( $tools ) ) {
+			$request_body['tools'] = $tools;
+		}
+
+		$encoded_body = wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+
+		$response = wp_remote_post(
+			'https://api.openai.com/v1/chat/completions',
+			[
+				'timeout' => 600,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $api_key,
+				],
+				'body'    => $encoded_body,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		if ( 200 !== $code ) {
+			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from OpenAI";
+			return new WP_Error( 'gratis_ai_agent_openai_error', $msg );
+		}
+
+		$text = $data['choices'][0]['message']['content'] ?? '';
+		return new SimpleAiResult( $text, $data );
+	}
+
+	/**
+	 * Send a prompt directly to the Anthropic API.
+	 *
+	 * Uses the API key stored via Settings::set_provider_key('anthropic', ...).
+	 * Anthropic uses a different message format: system is a top-level field,
+	 * and tool calls use content blocks (tool_use / tool_result).
+	 *
+	 * @return SimpleAiResult|WP_Error
+	 */
+	private function send_prompt_anthropic() {
+		$api_key = Settings::get_provider_key( 'anthropic' );
+		if ( '' === $api_key ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_anthropic_key',
+				__( 'Anthropic API key is not configured. Add it in Settings > Providers.', 'gratis-ai-agent' )
+			);
+		}
+
+		$model_id = $this->model_id ?: Settings::DIRECT_PROVIDERS['anthropic']['default_model'];
+
+		// Build Anthropic-format messages (no system role in messages array).
+		$messages = [];
+		foreach ( $this->history as $msg ) {
+			$role = 'user';
+			try {
+				$role_enum = $msg->getRole();
+				if ( method_exists( $role_enum, 'value' ) ) {
+					$role = $role_enum->value;
+				} elseif ( method_exists( $role_enum, 'getValue' ) ) {
+					$role = $role_enum->getValue();
+				} else {
+					$role = (string) $role_enum;
+				}
+				$role = ( 'model' === $role || 'assistant' === $role ) ? 'assistant' : 'user';
+			} catch ( \Throwable $e ) {
+				$role = 'user';
+			}
+
+			try {
+				$parts          = $msg->getParts();
+				$content_blocks = [];
+				$tool_results   = [];
+
+				foreach ( $parts as $part ) {
+					if ( method_exists( $part, 'getText' ) ) {
+						$t = $part->getText();
+						if ( is_string( $t ) && '' !== $t ) {
+							$content_blocks[] = [
+								'type' => 'text',
+								'text' => $t,
+							];
+						}
+					}
+
+					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionCall() ) {
+						$fc = $part->getFunctionCall();
+						if ( $fc ) {
+							$content_blocks[] = [
+								'type'  => 'tool_use',
+								'id'    => $fc->getId() ?: ( 'toolu_' . wp_generate_uuid4() ),
+								'name'  => $fc->getName(),
+								'input' => $fc->getArgs() ?: new \stdClass(),
+							];
+						}
+					}
+
+					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionResponse() ) {
+						$fr = $part->getFunctionResponse();
+						if ( $fr ) {
+							$tool_results[] = [
+								'type'        => 'tool_result',
+								'tool_use_id' => $fr->getId() ?: '',
+								'content'     => wp_json_encode( $fr->getResponse() ),
+							];
+						}
+					}
+				}
+
+				if ( ! empty( $tool_results ) ) {
+					// Tool results go in a user message.
+					$messages[] = [
+						'role'    => 'user',
+						'content' => $tool_results,
+					];
+				} elseif ( ! empty( $content_blocks ) ) {
+					$messages[] = [
+						'role'    => $role,
+						'content' => $content_blocks,
+					];
+				}
+			} catch ( \Throwable $e ) {
+				continue;
+			}
+		}
+
+		// Build Anthropic-format tools.
+		$tools     = [];
+		$abilities = $this->resolve_abilities();
+		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
+		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
+			$abilities = array_slice( $abilities, 0, $max_tools );
+		}
+
+		foreach ( $abilities as $ability ) {
+			$fn_name      = WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $ability->get_name() );
+			$input_schema = $ability->get_input_schema();
+			$description  = $ability->get_description();
+
+			if ( strlen( $description ) > 200 ) {
+				$description = substr( $description, 0, 197 ) . '...';
+			}
+
+			$schema = ! empty( $input_schema ) ? $input_schema : [
+				'type'       => 'object',
+				'properties' => new \stdClass(),
+			];
+			if ( isset( $schema['properties'] ) && $schema['properties'] === [] ) {
+				$schema['properties'] = new \stdClass();
+			}
+			if ( isset( $schema['required'] ) && is_array( $schema['required'] ) && empty( $schema['required'] ) ) {
+				unset( $schema['required'] );
+			}
+
+			$tools[] = [
+				'name'         => $fn_name,
+				'description'  => $description,
+				'input_schema' => $schema,
+			];
+		}
+
+		$request_body = [
+			'model'      => $model_id,
+			'max_tokens' => (int) $this->max_output_tokens,
+			'messages'   => $messages,
+		];
+
+		if ( ! empty( $this->system_instruction ) ) {
+			$request_body['system'] = $this->system_instruction;
+		}
+
+		if ( ! empty( $tools ) ) {
+			$request_body['tools'] = $tools;
+		}
+
+		$encoded_body = wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+
+		$response = wp_remote_post(
+			'https://api.anthropic.com/v1/messages',
+			[
+				'timeout' => 600,
+				'headers' => [
+					'Content-Type'      => 'application/json',
+					'x-api-key'         => $api_key,
+					'anthropic-version' => '2023-06-01',
+				],
+				'body'    => $encoded_body,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		if ( 200 !== $code ) {
+			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from Anthropic";
+			return new WP_Error( 'gratis_ai_agent_anthropic_error', $msg );
+		}
+
+		// Extract text from Anthropic's content blocks.
+		$text = '';
+		if ( isset( $data['content'] ) && is_array( $data['content'] ) ) {
+			foreach ( $data['content'] as $block ) {
+				if ( isset( $block['type'] ) && 'text' === $block['type'] ) {
+					$text .= $block['text'];
+				}
+			}
+		}
+
+		return new SimpleAiResult( $text, $data );
+	}
+
+	/**
+	 * Send a prompt to Google AI via its OpenAI-compatible endpoint.
+	 *
+	 * Uses the API key stored via Settings::set_provider_key('google', ...).
+	 * Google's OpenAI-compatible endpoint is at:
+	 * https://generativelanguage.googleapis.com/v1beta/openai/
+	 *
+	 * @return SimpleAiResult|WP_Error
+	 */
+	private function send_prompt_google() {
+		$api_key = Settings::get_provider_key( 'google' );
+		if ( '' === $api_key ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_google_key',
+				__( 'Google AI API key is not configured. Add it in Settings > Providers.', 'gratis-ai-agent' )
+			);
+		}
+
+		$model_id = $this->model_id ?: Settings::DIRECT_PROVIDERS['google']['default_model'];
+		$messages = $this->build_openai_messages();
+		$tools    = $this->build_openai_tools();
+
+		$request_body = [
+			'model'       => $model_id,
+			'messages'    => $messages,
+			'temperature' => (float) $this->temperature,
+			'max_tokens'  => (int) $this->max_output_tokens,
+			'stream'      => false,
+		];
+
+		if ( ! empty( $tools ) ) {
+			$request_body['tools'] = $tools;
+		}
+
+		$encoded_body = wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+
+		$response = wp_remote_post(
+			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+			[
+				'timeout' => 600,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $api_key,
+				],
+				'body'    => $encoded_body,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		if ( 200 !== $code ) {
+			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from Google AI";
+			return new WP_Error( 'gratis_ai_agent_google_error', $msg );
+		}
+
+		$text = $data['choices'][0]['message']['content'] ?? '';
+		return new SimpleAiResult( $text, $data );
+	}
+
+	/**
 	 * Send a prompt directly to the OpenAI-compatible proxy endpoint.
 	 *
 	 * Converts the current conversation history to an OpenAI messages array,
@@ -352,173 +863,8 @@ class AgentLoop {
 			$model_id = 'claude-sonnet-4';
 		}
 
-		// Resolve abilities and convert to OpenAI tools format.
-		$tools     = [];
-		$abilities = $this->resolve_abilities();
-
-		/**
-		 * Cap the number of tools sent to the model to avoid overwhelming
-		 * smaller models with hundreds of function definitions.
-		 *
-		 * @param int   $max_tools Maximum number of tools to include.
-		 * @param array $abilities The full list of resolved abilities.
-		 */
-		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
-		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
-			$abilities = array_slice( $abilities, 0, $max_tools );
-		}
-
-		foreach ( $abilities as $ability ) {
-			$fn_name      = WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $ability->get_name() );
-			$input_schema = $ability->get_input_schema();
-			$description  = $ability->get_description();
-
-			// Truncate long descriptions (e.g. WP-CLI help text) to save tokens.
-			if ( strlen( $description ) > 200 ) {
-				$description = substr( $description, 0, 197 ) . '...';
-			}
-
-			$tool = [
-				'type'     => 'function',
-				'function' => [
-					'name'        => $fn_name,
-					'description' => $description,
-				],
-			];
-
-			if ( ! empty( $input_schema ) ) {
-				// Ensure 'properties' is an object, not an empty array.
-				// PHP's json_encode([]) produces "[]" but OpenAI requires "{}".
-				// This covers both strict [] and loose empty-array checks.
-				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
-					$input_schema['properties'] = new \stdClass();
-				}
-				// Also ensure 'required' is not an empty array (some providers reject it).
-				if ( isset( $input_schema['required'] ) && is_array( $input_schema['required'] ) && empty( $input_schema['required'] ) ) {
-					unset( $input_schema['required'] );
-				}
-				$tool['function']['parameters'] = $input_schema;
-			} else {
-				$tool['function']['parameters'] = [
-					'type'       => 'object',
-					'properties' => new \stdClass(),
-				];
-			}
-
-			$tools[] = $tool;
-		}
-
-		// Build OpenAI-format messages array from history.
-		$messages = [];
-
-		if ( ! empty( $this->system_instruction ) ) {
-			$messages[] = [
-				'role'    => 'system',
-				'content' => $this->system_instruction,
-			];
-		}
-
-		foreach ( $this->history as $msg ) {
-			/** @var \WordPress\AiClient\Messages\DTO\Message $msg */
-			$role = 'user';
-
-			try {
-				$role_enum = $msg->getRole();
-				if ( method_exists( $role_enum, 'value' ) ) {
-					$role = $role_enum->value;
-				} elseif ( method_exists( $role_enum, 'getValue' ) ) {
-					$role = $role_enum->getValue();
-				} else {
-					$role = (string) $role_enum;
-				}
-				// Normalize to OpenAI roles.
-				$role = ( 'model' === $role || 'assistant' === $role ) ? 'assistant' : 'user';
-			} catch ( \Throwable $e ) {
-				$role = 'user';
-			}
-
-			try {
-				$parts          = $msg->getParts();
-				$texts          = [];
-				$msg_tool_calls = [];
-				$fn_responses   = [];
-
-				foreach ( $parts as $part ) {
-					// Text parts.
-					if ( method_exists( $part, 'getText' ) ) {
-						$t = $part->getText();
-						if ( is_string( $t ) && '' !== $t ) {
-							$texts[] = $t;
-						}
-					}
-
-					// FunctionCall parts (assistant requesting tool use).
-					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionCall() ) {
-						$fc = $part->getFunctionCall();
-						if ( $fc ) {
-							$msg_tool_calls[] = [
-								'id'       => $fc->getId() ?: ( 'call_' . wp_generate_uuid4() ),
-								'type'     => 'function',
-								'function' => [
-									'name'      => $fc->getName(),
-									'arguments' => wp_json_encode( $fc->getArgs() ?: new \stdClass() ),
-								],
-							];
-						}
-					}
-
-					// FunctionResponse parts (tool results).
-					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionResponse() ) {
-						$fr = $part->getFunctionResponse();
-						if ( $fr ) {
-							$fn_responses[] = [
-								'tool_call_id' => $fr->getId() ?: '',
-								'role'         => 'tool',
-								'content'      => wp_json_encode( $fr->getResponse() ),
-							];
-						}
-					}
-				}
-
-				// Build the message(s) for OpenAI format.
-				if ( ! empty( $msg_tool_calls ) ) {
-					// Assistant message with tool calls.
-					$assistant_msg = [
-						'role'       => 'assistant',
-						'tool_calls' => $msg_tool_calls,
-					];
-					$text_content  = implode( '', $texts );
-					if ( '' !== $text_content ) {
-						$assistant_msg['content'] = $text_content;
-					} else {
-						$assistant_msg['content'] = null;
-					}
-					$messages[] = $assistant_msg;
-
-					// Followed by tool response messages.
-					foreach ( $fn_responses as $fr_msg ) {
-						$messages[] = $fr_msg;
-					}
-				} elseif ( ! empty( $fn_responses ) ) {
-					// Standalone tool responses (shouldn't normally happen).
-					foreach ( $fn_responses as $fr_msg ) {
-						$messages[] = $fr_msg;
-					}
-				} else {
-					// Regular text message.
-					$content = implode( '', $texts );
-					if ( '' !== $content ) {
-						$messages[] = [
-							'role'    => $role,
-							'content' => $content,
-						];
-					}
-				}
-			} catch ( \Throwable $e ) {
-				// Skip malformed messages.
-				continue;
-			}
-		}
+		$messages = $this->build_openai_messages();
+		$tools    = $this->build_openai_tools();
 
 		$api_key = (string) get_option( 'openai_compat_api_key', 'no-key' );
 		$timeout = (int) get_option( 'openai_compat_timeout', 600 );
@@ -532,28 +878,6 @@ class AgentLoop {
 		];
 
 		if ( ! empty( $tools ) ) {
-			// Sanitize tool schemas: ensure 'properties' fields are JSON objects, not arrays.
-			// PHP's json_encode([]) produces "[]" but OpenAI requires "{}".
-			$tools = array_map( [ $this, 'sanitize_tool_schema' ], $tools );
-
-			// Also remove non-standard fields that some providers reject.
-			foreach ( $tools as &$tool_ref ) {
-				$params = &$tool_ref['function']['parameters'];
-				// Remove 'default' at the parameters level (non-standard).
-				unset( $params['default'] );
-				// Remove 'required' booleans inside individual properties (should be array at schema level).
-				if ( isset( $params['properties'] ) && is_array( $params['properties'] ) ) {
-					foreach ( $params['properties'] as &$prop_ref ) {
-						if ( is_array( $prop_ref ) && isset( $prop_ref['required'] ) && is_bool( $prop_ref['required'] ) ) {
-							unset( $prop_ref['required'] );
-						}
-					}
-					unset( $prop_ref );
-				}
-				unset( $params );
-			}
-			unset( $tool_ref );
-
 			$request_body['tools'] = $tools;
 		}
 
@@ -585,8 +909,8 @@ class AgentLoop {
 		$body = wp_remote_retrieve_body( $response );
 		$data = json_decode( $body, true );
 
-		if ( $code !== 200 ) {
-				$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
+		if ( 200 !== $code ) {
+			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
 			return new WP_Error( 'gratis_ai_agent_proxy_error', $msg );
 		}
 

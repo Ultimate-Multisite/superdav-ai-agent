@@ -129,7 +129,7 @@
 
 - [ ] t051 Add screen-meta integration (chat in WP admin Help/Screen Options) @dave #ui ~4h logged:2026-03-14
 - [ ] t053 Add CodeMirror integration for code display in chat @dave #ui ~2h logged:2026-03-14
-- [ ] t055 Add proper error boundaries in React components @dave #quality ~3h logged:2026-03-14
+- [x] t055 Add proper error boundaries in React components @dave #quality ~3h logged:2026-03-14 pr:#279 completed:2026-03-15
 - [x] t056 Add TypeScript types or JSDoc to JS codebase @dave #quality ~8h logged:2026-03-14 pr:#341 completed:2026-03-15
 
 ### Multi-User & Collaboration (P2)

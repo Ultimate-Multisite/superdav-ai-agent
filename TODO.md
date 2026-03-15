@@ -164,7 +164,7 @@
 
 - [ ] t057 Add CONTRIBUTING.md with dev setup, testing, and PR guidelines @dave #docs ~1h logged:2026-03-14
 - [ ] t058 Add WordPress Playground blueprint for instant demo @dave #devops ~2h logged:2026-03-14
-- [ ] t059 Update .distignore for clean plugin packaging @dave #devops ~1h logged:2026-03-14
+- [x] t059 Update .distignore for clean plugin packaging @dave #devops ~1h logged:2026-03-14 pr:#168 completed:2026-03-15
 
 ## Done
 

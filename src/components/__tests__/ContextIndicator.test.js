@@ -10,15 +10,19 @@
  * - Warning section shown only above 80%
  * - Compact and Clear buttons call correct dispatch actions
  *
- * Uses react-dom/server for snapshot/rendering tests and react-dom (legacy)
- * for interaction tests. @testing-library/react is not installed.
+ * Uses react-dom/server for snapshot/rendering tests and react-dom/client
+ * (React 18 createRoot) for interaction tests.
  */
 
 import { createElement } from '@wordpress/element';
-import { renderToStaticMarkup } from 'react-dom/server';
-import ReactDOM from 'react-dom';
+import { renderToStaticMarkup } from 'react-dom/server.node';
+import { createRoot } from 'react-dom/client';
+import { act } from 'react';
 import { useSelect, useDispatch } from '@wordpress/data';
 import ContextIndicator from '../context-indicator';
+
+// Configure React act() environment for jsdom.
+global.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Mock @wordpress/data.
 jest.mock( '@wordpress/data', () => ( {
@@ -32,14 +36,18 @@ jest.mock( '@wordpress/i18n', () => ( {
 } ) );
 
 // Mock @wordpress/components — minimal Button.
-jest.mock( '@wordpress/components', () => ( {
-	Button: ( { children, onClick, variant, size } ) =>
-		createElement(
-			'button',
-			{ onClick, 'data-variant': variant, 'data-size': size },
-			children
-		),
-} ) );
+// Use require() inside factory to avoid out-of-scope variable error.
+jest.mock( '@wordpress/components', () => {
+	const React = require( 'react' );
+	return {
+		Button: ( { children, onClick, variant, size } ) =>
+			React.createElement(
+				'button',
+				{ onClick, 'data-variant': variant, 'data-size': size },
+				children
+			),
+	};
+} );
 
 // Mock store.
 jest.mock( '../../store', () => 'ai-agent' );
@@ -54,14 +62,13 @@ function setupMocks( {
 	const clearCurrentSession = jest.fn();
 	const compactConversation = jest.fn();
 
+	const storeSelectors = {
+		getContextPercentage: () => percentage,
+		isContextWarning: () => isWarning,
+		getTokenUsage: () => tokenUsage,
+	};
 	useSelect.mockImplementation( ( selector ) =>
-		selector( {
-			'ai-agent': {
-				getContextPercentage: () => percentage,
-				isContextWarning: () => isWarning,
-				getTokenUsage: () => tokenUsage,
-			},
-		} )
+		selector( () => storeSelectors )
 	);
 
 	useDispatch.mockReturnValue( { clearCurrentSession, compactConversation } );
@@ -268,61 +275,63 @@ describe( 'ContextIndicator rendering', () => {
 
 describe( 'ContextIndicator interactions', () => {
 	let container;
+	let root;
 
 	beforeEach( () => {
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
-		// Suppress React 18 deprecation warning for legacy render.
-		jest.spyOn( console, 'error' ).mockImplementation( () => {} );
+		root = createRoot( container );
 	} );
 
 	afterEach( () => {
-		ReactDOM.unmountComponentAtNode( container );
+		act( () => {
+			root.unmount();
+		} );
 		document.body.removeChild( container );
-		console.error.mockRestore();
 	} );
 
 	test( 'Compact button calls compactConversation', () => {
 		const { compactConversation } = setupMocks( { isWarning: true } );
 
-		ReactDOM.render(
-			createElement( ContextIndicator, {} ),
-			container
-		);
+		act( () => {
+			root.render( createElement( ContextIndicator, {} ) );
+		} );
 
 		const buttons = container.querySelectorAll( 'button' );
 		const compactBtn = Array.from( buttons ).find(
 			( b ) => b.textContent === 'Compact'
 		);
 		expect( compactBtn ).toBeDefined();
-		compactBtn.click();
+		act( () => {
+			compactBtn.click();
+		} );
 		expect( compactConversation ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	test( 'New Chat button calls clearCurrentSession', () => {
 		const { clearCurrentSession } = setupMocks( { isWarning: true } );
 
-		ReactDOM.render(
-			createElement( ContextIndicator, {} ),
-			container
-		);
+		act( () => {
+			root.render( createElement( ContextIndicator, {} ) );
+		} );
 
 		const buttons = container.querySelectorAll( 'button' );
 		const newChatBtn = Array.from( buttons ).find(
 			( b ) => b.textContent === 'New Chat'
 		);
 		expect( newChatBtn ).toBeDefined();
-		newChatBtn.click();
+		act( () => {
+			newChatBtn.click();
+		} );
 		expect( clearCurrentSession ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	test( 'no buttons rendered when isWarning is false', () => {
 		setupMocks( { isWarning: false } );
 
-		ReactDOM.render(
-			createElement( ContextIndicator, {} ),
-			container
-		);
+		act( () => {
+			root.render( createElement( ContextIndicator, {} ) );
+		} );
 
 		const buttons = container.querySelectorAll( 'button' );
 		expect( buttons.length ).toBe( 0 );

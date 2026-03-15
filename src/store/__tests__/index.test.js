@@ -213,12 +213,12 @@ describe( 'actions', () => {
 	} );
 
 	test( 'setTokenUsage returns correct action', () => {
-		expect( actions.setTokenUsage( { prompt: 100, completion: 50 } ) ).toEqual(
-			{
-				type: 'SET_TOKEN_USAGE',
-				tokenUsage: { prompt: 100, completion: 50 },
-			}
-		);
+		expect(
+			actions.setTokenUsage( { prompt: 100, completion: 50 } )
+		).toEqual( {
+			type: 'SET_TOKEN_USAGE',
+			tokenUsage: { prompt: 100, completion: 50 },
+		} );
 	} );
 
 	test( 'setSessionFilter returns correct action', () => {
@@ -343,9 +343,7 @@ describe( 'reducer', () => {
 		} );
 		expect( state.currentSessionId ).toBe( 7 );
 		expect( state.currentSessionMessages ).toEqual( [ { role: 'user' } ] );
-		expect( state.currentSessionToolCalls ).toEqual( [
-			{ type: 'call' },
-		] );
+		expect( state.currentSessionToolCalls ).toEqual( [ { type: 'call' } ] );
 	} );
 
 	test( 'CLEAR_CURRENT_SESSION resets session state and token usage', () => {
@@ -582,7 +580,9 @@ describe( 'reducer', () => {
 describe( 'selectors', () => {
 	const state = {
 		...DEFAULT_STATE,
-		providers: [ { id: 'openai', name: 'OpenAI', models: [ { id: 'gpt-4o' } ] } ],
+		providers: [
+			{ id: 'openai', name: 'OpenAI', models: [ { id: 'gpt-4o' } ] },
+		],
 		providersLoaded: true,
 		sessions: [ { id: 1 } ],
 		sessionsLoaded: true,
@@ -669,9 +669,9 @@ describe( 'selectors', () => {
 
 	test( 'getSelectedProviderModels returns empty array when provider not found', () => {
 		const noProviderState = { ...state, selectedProviderId: 'unknown' };
-		expect( selectors.getSelectedProviderModels( noProviderState ) ).toEqual(
-			[]
-		);
+		expect(
+			selectors.getSelectedProviderModels( noProviderState )
+		).toEqual( [] );
 	} );
 
 	test( 'isFloatingOpen returns floatingOpen', () => {

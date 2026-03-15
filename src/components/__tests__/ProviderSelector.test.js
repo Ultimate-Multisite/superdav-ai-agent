@@ -10,13 +10,13 @@
  * - Calls setSelectedModel on model change
  * - Auto-selects first model when provider changes
  *
- * Uses react-dom/server for snapshot/rendering tests and react-dom (legacy)
- * for interaction tests. @testing-library/react is not installed.
+ * Uses react-dom/server for snapshot/rendering tests and react-dom/client
+ * (React 18 createRoot) for interaction tests.
  */
 
 import { createElement } from '@wordpress/element';
-import { renderToStaticMarkup } from 'react-dom/server';
-import ReactDOM from 'react-dom';
+import { renderToStaticMarkup } from 'react-dom/server.node';
+import { createRoot } from 'react-dom/client';
 import { useSelect, useDispatch } from '@wordpress/data';
 import ProviderSelector from '../provider-selector';
 
@@ -39,9 +39,7 @@ jest.mock( '@wordpress/components', () => {
 			React.createElement(
 				'div',
 				{ 'data-size': size },
-				label
-					? React.createElement( 'label', null, label )
-					: null,
+				label ? React.createElement( 'label', null, label ) : null,
 				React.createElement(
 					'select',
 					{
@@ -91,15 +89,14 @@ function setupMocks( {
 	const setSelectedProvider = jest.fn();
 	const setSelectedModel = jest.fn();
 
+	const storeSelectors = {
+		getProviders: () => providers,
+		getSelectedProviderId: () => selectedProviderId,
+		getSelectedModelId: () => selectedModelId,
+		getSelectedProviderModels: () => models,
+	};
 	useSelect.mockImplementation( ( selector ) =>
-		selector( {
-			'ai-agent': {
-				getProviders: () => providers,
-				getSelectedProviderId: () => selectedProviderId,
-				getSelectedModelId: () => selectedModelId,
-				getSelectedProviderModels: () => models,
-			},
-		} )
+		selector( () => storeSelectors )
 	);
 
 	useDispatch.mockReturnValue( { setSelectedProvider, setSelectedModel } );
@@ -215,18 +212,17 @@ describe( 'ProviderSelector rendering', () => {
 
 describe( 'ProviderSelector interactions', () => {
 	let container;
+	let root;
 
 	beforeEach( () => {
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
-		// Suppress React 18 deprecation warning for legacy render.
-		jest.spyOn( console, 'error' ).mockImplementation( () => {} );
+		root = createRoot( container );
 	} );
 
 	afterEach( () => {
-		ReactDOM.unmountComponentAtNode( container );
+		root.unmount();
 		document.body.removeChild( container );
-		console.error.mockRestore();
 	} );
 
 	test( 'onProviderChange calls setSelectedProvider with new provider id', () => {
@@ -290,10 +286,7 @@ describe( 'ProviderSelector interactions', () => {
 
 	test( 'setSelectedModel is callable as dispatch action', () => {
 		const { setSelectedModel } = setupMocks();
-		ReactDOM.render(
-			createElement( ProviderSelector, {} ),
-			container
-		);
+		root.render( createElement( ProviderSelector, {} ) );
 		expect( typeof setSelectedModel ).toBe( 'function' );
 	} );
 } );

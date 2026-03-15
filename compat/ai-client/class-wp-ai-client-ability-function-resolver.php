@@ -85,6 +85,14 @@ class WP_AI_Client_Ability_Function_Resolver {
 	 * executed. If the ability is not in the allowed list, an error response
 	 * with code `ability_not_allowed` is returned.
 	 *
+	 * Fires the following hooks (via GratisAiAgent\Core\AbilityHooks):
+	 * - `gratis_ai_agent_before_ability`   action  — before execution
+	 * - `gratis_ai_agent_ability_args`     filter  — modify args before execution
+	 * - `gratis_ai_agent_ability_blocked`  filter  — return true to block execution
+	 * - `gratis_ai_agent_after_ability`    action  — after execution
+	 * - `gratis_ai_agent_ability_error`    action  — when ability returns WP_Error
+	 * - `gratis_ai_agent_ability_result`   filter  — modify result after execution
+	 *
 	 * @since 7.0.0
 	 *
 	 * @param FunctionCall $call The function call to execute.
@@ -133,8 +141,35 @@ class WP_AI_Client_Ability_Function_Resolver {
 			);
 		}
 
-		$args   = $call->getArgs();
+		$raw_args = $call->getArgs();
+
+		// Fire before-hooks and allow args to be filtered.
+		if ( class_exists( 'GratisAiAgent\\Core\\AbilityHooks' ) ) {
+			// Check if the ability should be blocked.
+			if ( GratisAiAgent\Core\AbilityHooks::is_blocked( $ability_name, $raw_args, $function_id ) ) {
+				return new FunctionResponse(
+					$function_id,
+					$function_name,
+					array(
+						/* translators: %s: ability name */
+						'error' => sprintf( __( 'Ability "%s" was blocked by a hook.' ), $ability_name ),
+						'code'  => 'ability_blocked',
+					)
+				);
+			}
+
+			// Fire before action and filter args.
+			$args = GratisAiAgent\Core\AbilityHooks::before( $ability_name, $raw_args, $function_id );
+		} else {
+			$args = $raw_args;
+		}
+
 		$result = $ability->execute( ! empty( $args ) ? $args : null );
+
+		// Fire after-hooks and allow result to be filtered.
+		if ( class_exists( 'GratisAiAgent\\Core\\AbilityHooks' ) ) {
+			$result = GratisAiAgent\Core\AbilityHooks::after( $ability_name, $args, $result, $function_id );
+		}
 
 		if ( is_wp_error( $result ) ) {
 			return new FunctionResponse(

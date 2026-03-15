@@ -20,11 +20,14 @@
 		"wp-env": "wp-env",
 		"wp-env:start": "wp-env start",
 		"wp-env:stop": "wp-env stop",
-		"wp-env:clean": "wp-env clean all"
+		"wp-env:clean": "wp-env clean all",
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@wordpress/env": "^10.39.0",
-		"@wordpress/scripts": "^31.2.0"
+		"@wordpress/scripts": "^31.2.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.4.0"
 	},
 	"dependencies": {
 		"@wordpress/api-fetch": "^7.36.0",
@@ -44,5 +47,17 @@
 	"overrides": {
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1"
+	},
+	"lint-staged": {
+		"src/**/*.{js,jsx}": [
+			"wp-scripts lint-js --fix"
+		],
+		"src/**/*.css": [
+			"wp-scripts lint-style --fix"
+		],
+		"**/*.php": [
+			"composer phpcbf --",
+			"composer phpcs --"
+		]
 	}
 }

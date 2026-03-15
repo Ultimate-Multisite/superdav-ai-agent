@@ -410,4 +410,77 @@
 	border-radius: 3px;
 }
 
+/* Providers Manager */
+
+.gratis-ai-agent-providers-manager__intro {
+	margin-bottom: 16px;
+	color: #50575e;
+}
+
+.gratis-ai-agent-providers-manager__grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 280px, 1fr ) );
+	gap: 16px;
+}
+
+.gratis-ai-agent-provider-card {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.gratis-ai-agent-provider-card__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+}
+
+.gratis-ai-agent-provider-card__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.gratis-ai-agent-provider-card__badge {
+	font-size: 11px;
+	font-weight: 400;
+	padding: 2px 6px;
+	border-radius: 10px;
+}
+
+.gratis-ai-agent-provider-card__badge--configured {
+	background: #edfaef;
+	color: #00a32a;
+}
+
+.gratis-ai-agent-provider-card__docs-link {
+	font-size: 12px;
+	text-decoration: none;
+	color: #2271b1;
+}
+
+.gratis-ai-agent-provider-card__docs-link:hover {
+	text-decoration: underline;
+}
+
+.gratis-ai-agent-provider-card__description {
+	margin: 0 0 12px;
+	font-size: 13px;
+	color: #50575e;
+}
+
+.gratis-ai-agent-provider-card__key-row {
+	margin-bottom: 12px;
+}
+
+.gratis-ai-agent-provider-card__actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
 

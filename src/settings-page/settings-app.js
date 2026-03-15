@@ -21,6 +21,7 @@ import apiFetch from '@wordpress/api-fetch';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
+import ProvidersManager from './providers-manager';
 import MemoryManager from './memory-manager';
 import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
@@ -111,6 +112,11 @@ export default function SettingsApp() {
 
 	const tabs = [
 		{
+			name: 'providers',
+			title: __( 'Providers', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
 			name: 'general',
 			title: __( 'General', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
@@ -186,6 +192,16 @@ export default function SettingsApp() {
 			<TabPanel tabs={ tabs }>
 				{ ( tab ) => {
 					switch ( tab.name ) {
+						case 'providers':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									<ProvidersManager
+										providerKeys={
+											local?._provider_keys || {}
+										}
+									/>
+								</div>
+							);
 						case 'general':
 							return (
 								<div className="gratis-ai-agent-settings-section">

@@ -37,7 +37,7 @@
   - Register `wp_enqueue_scripts` hook with capability check
   - Frontend page context: current URL, post ID, template, query vars
   - Setting to enable/disable (default: enabled for admins)
-- [ ] t067 Improve floating widget UX: resizable panel, keyboard shortcut @superdav42 #ui ~4h logged:2026-03-15
+- [x] t067 Improve floating widget UX: resizable panel, keyboard shortcut @superdav42 #ui ~4h logged:2026-03-15 pr:#446 completed:2026-03-16
   - Resize handle, Cmd/Ctrl+Shift+A toggle, localStorage persistence, mobile responsiveness
 
 ### Streaming Responses (P0)

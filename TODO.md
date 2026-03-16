@@ -141,7 +141,7 @@
 ### Proactive Site Intelligence (P2)
 
 - [ ] t080 Daily site health automation: check plugins, errors, performance, security @superdav42 #feature ~6h logged:2026-03-15
-- [ ] t081 Proactive alerts: surface issues as notification badge on FAB @superdav42 #feature ~4h logged:2026-03-15
+- [x] t081 Proactive alerts: surface issues as notification badge on FAB @superdav42 #feature ~4h logged:2026-03-15 pr:#410 completed:2026-03-16
 
 ### Custom Agent Builder (P2)
 

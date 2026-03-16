@@ -68,6 +68,14 @@ class AdminPage {
 			$asset['version'],
 			true
 		);
+
+		wp_localize_script(
+			'gratis-ai-agent-admin-page',
+			'gratisAiAgentData',
+			[
+				'currentUserId' => get_current_user_id(),
+			]
+		);
 	}
 
 	/**

@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -12,7 +12,7 @@ import STORE_NAME from '../store';
 import FolderPicker from './folder-picker';
 
 /**
- * Context menu for a session item (rename, pin, folder, export, archive, trash).
+ * Context menu for a session item (rename, pin, folder, export, archive, trash, share).
  *
  * Closes when the user clicks outside the menu. Renders an inline rename
  * input or a FolderPicker when those sub-flows are active.
@@ -20,9 +20,14 @@ import FolderPicker from './folder-picker';
  * @param {Object}                     props         - Component props.
  * @param {import('../types').Session} props.session - Session data.
  * @param {Function}                   props.onClose - Called when the menu should close.
+ * @param {boolean}                    props.isOwner - Whether the current user owns this session.
  * @return {JSX.Element} The context menu element.
  */
-export default function SessionContextMenu( { session, onClose } ) {
+export default function SessionContextMenu( {
+	session,
+	onClose,
+	isOwner = true,
+} ) {
 	const [ showFolderPicker, setShowFolderPicker ] = useState( false );
 	const [ isRenaming, setIsRenaming ] = useState( false );
 	const [ renameTitle, setRenameTitle ] = useState( session.title || '' );
@@ -43,7 +48,20 @@ export default function SessionContextMenu( { session, onClose } ) {
 		renameSession,
 		moveSessionToFolder,
 		exportSession,
+		shareSession,
+		unshareSession,
 	} = useDispatch( STORE_NAME );
+
+	// Determine if this session is currently shared.
+	const isShared = useSelect(
+		( select ) => {
+			const sharedSessions = select( STORE_NAME ).getSharedSessions();
+			return sharedSessions.some(
+				( s ) => parseInt( s.id, 10 ) === parseInt( session.id, 10 )
+			);
+		},
+		[ session.id ]
+	);
 
 	const sessionId = parseInt( session.id, 10 );
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
@@ -114,12 +132,14 @@ export default function SessionContextMenu( { session, onClose } ) {
 		<div className="ai-agent-context-menu" ref={ menuRef }>
 			{ ! isTrashed && (
 				<>
-					<button
-						type="button"
-						onClick={ () => setIsRenaming( true ) }
-					>
-						{ __( 'Rename', 'ai-agent' ) }
-					</button>
+					{ isOwner && (
+						<button
+							type="button"
+							onClick={ () => setIsRenaming( true ) }
+						>
+							{ __( 'Rename', 'ai-agent' ) }
+						</button>
+					) }
 					<button
 						type="button"
 						onClick={ () => {
@@ -131,12 +151,14 @@ export default function SessionContextMenu( { session, onClose } ) {
 							? __( 'Unpin', 'ai-agent' )
 							: __( 'Pin', 'ai-agent' ) }
 					</button>
-					<button
-						type="button"
-						onClick={ () => setShowFolderPicker( true ) }
-					>
-						{ __( 'Move to Folder', 'ai-agent' ) }
-					</button>
+					{ isOwner && (
+						<button
+							type="button"
+							onClick={ () => setShowFolderPicker( true ) }
+						>
+							{ __( 'Move to Folder', 'ai-agent' ) }
+						</button>
+					) }
 					<button
 						type="button"
 						onClick={ () => {
@@ -146,10 +168,27 @@ export default function SessionContextMenu( { session, onClose } ) {
 					>
 						{ __( 'Export', 'ai-agent' ) }
 					</button>
+					{ isOwner && (
+						<button
+							type="button"
+							onClick={ () => {
+								if ( isShared ) {
+									unshareSession( sessionId );
+								} else {
+									shareSession( sessionId );
+								}
+								onClose();
+							} }
+						>
+							{ isShared
+								? __( 'Unshare', 'ai-agent' )
+								: __( 'Share with Admins', 'ai-agent' ) }
+						</button>
+					) }
 					<hr />
 				</>
 			) }
-			{ ! isArchived && ! isTrashed && (
+			{ isOwner && ! isArchived && ! isTrashed && (
 				<button
 					type="button"
 					onClick={ () => {
@@ -160,7 +199,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 					{ __( 'Archive', 'ai-agent' ) }
 				</button>
 			) }
-			{ ( isArchived || isTrashed ) && (
+			{ isOwner && ( isArchived || isTrashed ) && (
 				<button
 					type="button"
 					onClick={ () => {
@@ -171,7 +210,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 					{ __( 'Restore', 'ai-agent' ) }
 				</button>
 			) }
-			{ ! isTrashed && (
+			{ isOwner && ! isTrashed && (
 				<button
 					type="button"
 					className="ai-agent-context-menu-danger"

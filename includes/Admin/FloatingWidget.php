@@ -140,5 +140,13 @@ class FloatingWidget {
 				'greetingMessage' => (string) ( $branding['greeting_message'] ?? '' ),
 			)
 		);
+
+		wp_localize_script(
+			'gratis-ai-agent-floating-widget',
+			'gratisAiAgentData',
+			[
+				'currentUserId' => get_current_user_id(),
+			]
+		);
 	}
 }

@@ -50,24 +50,29 @@ function relativeTime( dateStr ) {
  * A single session row in the sidebar list.
  *
  * Clicking the row opens the session. The ⋯ button opens a context menu
- * with rename, pin, folder, export, archive, and trash actions.
+ * with rename, pin, folder, export, archive, trash, and share actions.
  *
  * @param {Object}  props          - Component props.
  * @param {Session} props.session  - Session data.
  * @param {boolean} props.isActive - Whether this session is currently open.
+ * @param {boolean} props.isOwner  - Whether the current user owns this session.
  * @return {JSX.Element} The session item element.
  */
-function SessionItem( { session, isActive } ) {
+function SessionItem( { session, isActive, isOwner = true } ) {
 	const [ showMenu, setShowMenu ] = useState( false );
 	const { openSession } = useDispatch( STORE_NAME );
 
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
+	const isShared =
+		parseInt( session.is_shared, 10 ) === 1 || session.is_shared === true;
 
 	return (
 		<div
 			className={ `ai-agent-session-item ${
 				isActive ? 'is-active' : ''
-			} ${ isPinned ? 'is-pinned' : '' }` }
+			} ${ isPinned ? 'is-pinned' : '' } ${
+				isShared ? 'is-shared' : ''
+			}` }
 			onClick={ () => openSession( parseInt( session.id, 10 ) ) }
 			onKeyDown={ ( e ) => {
 				if ( e.key === 'Enter' ) {
@@ -84,6 +89,14 @@ function SessionItem( { session, isActive } ) {
 						title={ __( 'Pinned', 'ai-agent' ) }
 					>
 						&#128204;
+					</span>
+				) }
+				{ isShared && (
+					<span
+						className="ai-agent-shared-icon"
+						title={ __( 'Shared with admins', 'ai-agent' ) }
+					>
+						&#128101;
 					</span>
 				) }
 				{ session.title || __( 'Untitled', 'ai-agent' ) }
@@ -111,6 +124,7 @@ function SessionItem( { session, isActive } ) {
 				<SessionContextMenu
 					session={ session }
 					onClose={ () => setShowMenu( false ) }
+					isOwner={ isOwner }
 				/>
 			) }
 		</div>
@@ -118,7 +132,6 @@ function SessionItem( { session, isActive } ) {
 }
 
 /**
- *
  * @param {string} filter
  */
 function getEmptyMessage( filter ) {
@@ -127,6 +140,9 @@ function getEmptyMessage( filter ) {
 	}
 	if ( filter === 'archived' ) {
 		return __( 'No archived conversations', 'ai-agent' );
+	}
+	if ( filter === 'shared' ) {
+		return __( 'No shared conversations', 'ai-agent' );
 	}
 	return __( 'No conversations yet', 'ai-agent' );
 }
@@ -142,20 +158,25 @@ function getEmptyMessage( filter ) {
 export default function SessionSidebar() {
 	const {
 		sessions,
+		sharedSessions,
 		currentSessionId,
 		sessionFilter,
 		sessionFolder,
 		sessionSearch,
 		folders,
+		currentUserId,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
 			sessions: store.getSessions(),
+			sharedSessions: store.getSharedSessions(),
 			currentSessionId: store.getCurrentSessionId(),
 			sessionFilter: store.getSessionFilter(),
 			sessionFolder: store.getSessionFolder(),
 			sessionSearch: store.getSessionSearch(),
 			folders: store.getFolders(),
+			// WordPress exposes the current user ID via wpApiSettings or similar.
+			currentUserId: window.gratisAiAgentData?.currentUserId || 0,
 		};
 	}, [] );
 
@@ -163,6 +184,7 @@ export default function SessionSidebar() {
 		clearCurrentSession,
 		fetchSessions,
 		fetchFolders,
+		fetchSharedSessions,
 		setSessionFilter,
 		setSessionFolder,
 		setSessionSearch,
@@ -172,14 +194,17 @@ export default function SessionSidebar() {
 	const searchTimerRef = useRef( null );
 	const fileInputRef = useRef( null );
 
-	// Fetch folders on mount.
+	// Fetch folders and shared sessions on mount.
 	useEffect( () => {
 		fetchFolders();
-	}, [ fetchFolders ] );
+		fetchSharedSessions();
+	}, [ fetchFolders, fetchSharedSessions ] );
 
-	// Refetch sessions when filter/folder changes.
+	// Refetch sessions when filter/folder changes (skip for 'shared' tab — uses separate list).
 	useEffect( () => {
-		fetchSessions();
+		if ( sessionFilter !== 'shared' ) {
+			fetchSessions();
+		}
 	}, [ sessionFilter, sessionFolder, sessionSearch, fetchSessions ] );
 
 	const handleSearchChange = useCallback(
@@ -218,9 +243,14 @@ export default function SessionSidebar() {
 
 	const filterTabs = [
 		{ key: 'active', label: __( 'Active', 'ai-agent' ) },
+		{ key: 'shared', label: __( 'Shared', 'ai-agent' ) },
 		{ key: 'archived', label: __( 'Archived', 'ai-agent' ) },
 		{ key: 'trash', label: __( 'Trash', 'ai-agent' ) },
 	];
+
+	// Determine which session list to render.
+	const isSharedTab = sessionFilter === 'shared';
+	const displaySessions = isSharedTab ? sharedSessions : sessions;
 
 	return (
 		<div className="ai-agent-sidebar">
@@ -249,12 +279,17 @@ export default function SessionSidebar() {
 						onChange={ handleImport }
 					/>
 				</div>
-				<input
-					type="text"
-					className="ai-agent-sidebar-search"
-					placeholder={ __( 'Search conversations…', 'ai-agent' ) }
-					onChange={ handleSearchChange }
-				/>
+				{ ! isSharedTab && (
+					<input
+						type="text"
+						className="ai-agent-sidebar-search"
+						placeholder={ __(
+							'Search conversations…',
+							'ai-agent'
+						) }
+						onChange={ handleSearchChange }
+					/>
+				) }
 			</div>
 			<div className="ai-agent-sidebar-filters">
 				{ filterTabs.map( ( tab ) => (
@@ -267,6 +302,9 @@ export default function SessionSidebar() {
 						onClick={ () => {
 							setSessionFilter( tab.key );
 							setSessionFolder( '' );
+							if ( tab.key === 'shared' ) {
+								fetchSharedSessions();
+							}
 						} }
 					>
 						{ tab.label }
@@ -299,17 +337,21 @@ export default function SessionSidebar() {
 				</div>
 			) }
 			<div className="ai-agent-session-list">
-				{ sessions.length === 0 && (
+				{ displaySessions.length === 0 && (
 					<div className="ai-agent-session-empty">
 						{ getEmptyMessage( sessionFilter ) }
 					</div>
 				) }
-				{ sessions.map( ( session ) => (
+				{ displaySessions.map( ( session ) => (
 					<SessionItem
 						key={ session.id }
 						session={ session }
 						isActive={
 							currentSessionId === parseInt( session.id, 10 )
+						}
+						isOwner={
+							! isSharedTab ||
+							parseInt( session.user_id, 10 ) === currentUserId
 						}
 					/>
 				) ) }

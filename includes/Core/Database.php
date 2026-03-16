@@ -132,6 +132,14 @@ class Database {
 	}
 
 	/**
+	 * Get the shared sessions table name.
+	 */
+	public static function shared_sessions_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'gratis_ai_agent_shared_sessions';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -159,6 +167,7 @@ class Database {
 		$changes_log_table            = self::changes_log_table_name();
 		$modified_files_table         = self::modified_files_table_name();
 		$agents_table                 = self::agents_table_name();
+		$shared_sessions_table        = self::shared_sessions_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -399,6 +408,16 @@ class Database {
 			PRIMARY KEY  (id),
 			UNIQUE KEY slug (slug),
 			KEY enabled (enabled)
+		) {$charset};
+
+		CREATE TABLE {$shared_sessions_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			session_id bigint(20) unsigned NOT NULL,
+			shared_by bigint(20) unsigned NOT NULL,
+			shared_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY session_id (session_id),
+			KEY shared_by (shared_by)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -1013,5 +1032,97 @@ class Database {
 		$parts     = explode( '/', $remainder, 2 );
 
 		return $parts[0] ?? '';
+	}
+
+	// ─── Shared Sessions ─────────────────────────────────────────────────────
+
+	/**
+	 * Share a session (make it visible to all admins).
+	 *
+	 * @param int $session_id Session ID to share.
+	 * @param int $shared_by  User ID of the admin sharing the session.
+	 * @return bool Whether the insert succeeded.
+	 */
+	public static function share_session( int $session_id, int $shared_by ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
+		$result = $wpdb->replace(
+			self::shared_sessions_table_name(),
+			[
+				'session_id' => $session_id,
+				'shared_by'  => $shared_by,
+				'shared_at'  => current_time( 'mysql', true ),
+			],
+			[ '%d', '%d', '%s' ]
+		);
+
+		return $result !== false;
+	}
+
+	/**
+	 * Unshare a session (remove from shared sessions).
+	 *
+	 * @param int $session_id Session ID to unshare.
+	 * @return bool Whether the delete succeeded.
+	 */
+	public static function unshare_session( int $session_id ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		$result = $wpdb->delete(
+			self::shared_sessions_table_name(),
+			[ 'session_id' => $session_id ],
+			[ '%d' ]
+		);
+
+		return $result !== false;
+	}
+
+	/**
+	 * Check whether a session is shared.
+	 *
+	 * @param int $session_id Session ID.
+	 * @return object|null Shared session row (with shared_by, shared_at) or null.
+	 */
+	public static function get_shared_session( int $session_id ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE session_id = %d',
+				self::shared_sessions_table_name(),
+				$session_id
+			)
+		);
+	}
+
+	/**
+	 * List all shared sessions (full session rows + sharing metadata).
+	 *
+	 * Returns sessions that have been shared by any admin, ordered by most recently updated.
+	 *
+	 * @return array<string, mixed> Array of session rows with is_shared=1 and shared_by fields.
+	 */
+	public static function list_shared_sessions(): array {
+		global $wpdb;
+
+		$sessions_table = self::table_name();
+		$shared_table   = self::shared_sessions_table_name();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table names from internal methods.
+		return $wpdb->get_results(
+			"SELECT s.id, s.user_id, s.title, s.provider_id, s.model_id, s.status,
+				s.pinned, s.folder, s.created_at, s.updated_at,
+				JSON_LENGTH(s.messages) AS message_count,
+				1 AS is_shared,
+				ss.shared_by, ss.shared_at
+			FROM {$sessions_table} s
+			INNER JOIN {$shared_table} ss ON ss.session_id = s.id
+			WHERE s.status = 'active'
+			ORDER BY s.updated_at DESC"
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 }

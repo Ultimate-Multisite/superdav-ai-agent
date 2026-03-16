@@ -123,6 +123,10 @@ const DEFAULT_STATE = {
 	ttsPitch: parseFloat(
 		localStorage.getItem( 'gratisAiAgentTtsPitch' ) || '1'
 	),
+
+	// Shared sessions — sessions shared with all admins (t077).
+	sharedSessions: [],
+	sharedSessionsLoaded: false,
 };
 
 const actions = {
@@ -519,6 +523,16 @@ const actions = {
 	setTtsPitch( pitch ) {
 		localStorage.setItem( 'gratisAiAgentTtsPitch', String( pitch ) );
 		return { type: 'SET_TTS_PITCH', pitch };
+	},
+
+	/**
+	 * Replace the shared sessions list.
+	 *
+	 * @param {Session[]} sessions - Shared session summaries.
+	 * @return {Object} Redux action.
+	 */
+	setSharedSessions( sessions ) {
+		return { type: 'SET_SHARED_SESSIONS', sessions };
 	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
@@ -1917,6 +1931,60 @@ const actions = {
 			}
 		};
 	},
+
+	// ─── Shared Sessions thunks ──────────────────────────────────
+
+	/**
+	 * Fetch all sessions shared with admins.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
+	fetchSharedSessions() {
+		return async ( { dispatch } ) => {
+			try {
+				const sessions = await apiFetch( {
+					path: '/gratis-ai-agent/v1/sessions/shared',
+				} );
+				dispatch.setSharedSessions( sessions );
+			} catch {
+				dispatch.setSharedSessions( [] );
+			}
+		};
+	},
+
+	/**
+	 * Share a session with all admins.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
+	shareSession( sessionId ) {
+		return async ( { dispatch } ) => {
+			await apiFetch( {
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
+				method: 'POST',
+			} );
+			dispatch.fetchSessions();
+			dispatch.fetchSharedSessions();
+		};
+	},
+
+	/**
+	 * Unshare a session (remove from shared sessions).
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
+	unshareSession( sessionId ) {
+		return async ( { dispatch } ) => {
+			await apiFetch( {
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
+				method: 'DELETE',
+			} );
+			dispatch.fetchSessions();
+			dispatch.fetchSharedSessions();
+		};
+	},
 };
 
 const selectors = {
@@ -2321,6 +2389,22 @@ const selectors = {
 	getTtsPitch( state ) {
 		return state.ttsPitch;
 	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Session[]} Sessions shared with all admins.
+	 */
+	getSharedSessions( state ) {
+		return state.sharedSessions;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether shared sessions have been fetched.
+	 */
+	getSharedSessionsLoaded( state ) {
+		return state.sharedSessionsLoaded;
+	},
 };
 
 /**
@@ -2474,6 +2558,12 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, ttsRate: action.rate };
 		case 'SET_TTS_PITCH':
 			return { ...state, ttsPitch: action.pitch };
+		case 'SET_SHARED_SESSIONS':
+			return {
+				...state,
+				sharedSessions: action.sessions,
+				sharedSessionsLoaded: true,
+			};
 		default:
 			return state;
 	}

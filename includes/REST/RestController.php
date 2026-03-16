@@ -1109,6 +1109,49 @@ class RestController {
 			]
 		);
 
+		// Shared sessions list endpoint.
+		register_rest_route(
+			self::NAMESPACE,
+			'/sessions/shared',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $instance, 'handle_list_shared_sessions' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+			]
+		);
+
+		// Share / unshare a session.
+		register_rest_route(
+			self::NAMESPACE,
+			'/sessions/(?P<id>\d+)/share',
+			[
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $instance, 'handle_share_session' ],
+					'permission_callback' => [ $instance, 'check_session_owner_permission' ],
+					'args'                => [
+						'id' => [
+							'required'          => true,
+							'type'              => 'integer',
+							'sanitize_callback' => 'absint',
+						],
+					],
+				],
+				[
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => [ $instance, 'handle_unshare_session' ],
+					'permission_callback' => [ $instance, 'check_session_owner_permission' ],
+					'args'                => [
+						'id' => [
+							'required'          => true,
+							'type'              => 'integer',
+							'sanitize_callback' => 'absint',
+						],
+					],
+				],
+			]
+		);
+
 		// Memory forget endpoint.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1992,10 +2035,52 @@ class RestController {
 	/**
 	 * Permission check for session-specific endpoints.
 	 *
-	 * Verifies chat access + session ownership.
+	 * Verifies chat access + (session ownership OR session is shared with all admins).
+	 * Destructive operations (delete, trash, archive) additionally require ownership.
 	 */
 	public function check_session_permission( WP_REST_Request $request ): bool {
 		if ( ! RolePermissions::current_user_has_chat_access() ) {
+			return false;
+		}
+
+		$session_id = absint( $request->get_param( 'id' ) );
+		$session    = $this->database->get_session( $session_id );
+
+		if ( ! $session ) {
+			return false;
+		}
+
+		$is_owner = (int) $session->user_id === get_current_user_id();
+
+		if ( $is_owner ) {
+			return true;
+		}
+
+		// Non-owners may access shared sessions (read + continue), but not delete/trash/archive.
+		$method = $request->get_method();
+		if ( 'DELETE' === $method ) {
+			return false;
+		}
+
+		// For PATCH (update), only allow title/pinned/folder changes by non-owners on shared sessions.
+		// Status changes (archive/trash) are owner-only.
+		if ( 'PATCH' === $method ) {
+			$status = $request->get_param( 'status' );
+			if ( ! empty( $status ) ) {
+				return false;
+			}
+		}
+
+		// Allow if the session is shared.
+		$shared = Database::get_shared_session( $session_id );
+		return $shared !== null;
+	}
+
+	/**
+	 * Permission check for share/unshare endpoints — owner only.
+	 */
+	public function check_session_owner_permission( WP_REST_Request $request ): bool {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
 
@@ -3071,6 +3156,59 @@ class RestController {
 	}
 
 	/**
+	 * Handle GET /sessions/shared — list all sessions shared with admins.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_list_shared_sessions(): WP_REST_Response {
+		$sessions = Database::list_shared_sessions();
+
+		return new WP_REST_Response( $sessions, 200 );
+	}
+
+	/**
+	 * Handle POST /sessions/{id}/share — share a session with all admins.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_share_session( WP_REST_Request $request ) {
+		$session_id = absint( $request->get_param( 'id' ) );
+		$success    = Database::share_session( $session_id, get_current_user_id() );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'gratis_ai_agent_share_failed',
+				__( 'Failed to share session.', 'gratis-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [ 'shared' => true ], 200 );
+	}
+
+	/**
+	 * Handle DELETE /sessions/{id}/share — unshare a session.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_unshare_session( WP_REST_Request $request ) {
+		$session_id = absint( $request->get_param( 'id' ) );
+		$success    = Database::unshare_session( $session_id );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'gratis_ai_agent_unshare_failed',
+				__( 'Failed to unshare session.', 'gratis-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [ 'shared' => false ], 200 );
+	}
+
+	/**
 	 * Handle GET /sessions/{id} — get full session with messages.
 	 *
 	 * @param WP_REST_Request $request The request object.
@@ -3088,6 +3226,9 @@ class RestController {
 			);
 		}
 
+		$shared    = Database::get_shared_session( (int) $session->id );
+		$is_shared = $shared !== null;
+
 		return new WP_REST_Response(
 			[
 				'id'          => (int) $session->id,
@@ -3100,6 +3241,8 @@ class RestController {
 					'prompt'     => (int) ( $session->prompt_tokens ?? 0 ),
 					'completion' => (int) ( $session->completion_tokens ?? 0 ),
 				],
+				'is_shared'   => $is_shared,
+				'shared_by'   => $is_shared ? (int) $shared->shared_by : null,
 				'created_at'  => $session->created_at,
 				'updated_at'  => $session->updated_at,
 			],

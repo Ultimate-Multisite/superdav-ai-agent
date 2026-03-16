@@ -1717,3 +1717,37 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 .ai-agent-action-card-btn-confirm {
 	min-width: 80px;
 }
+
+/* Chart blocks (Chart.js) */
+.ai-agent-chart-block {
+	margin: 0.75em 0;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	max-width: 100%;
+	overflow: hidden;
+}
+
+.ai-agent-chart-block canvas {
+	display: block;
+	max-width: 100%;
+	height: auto !important;
+}
+
+.ai-agent-chart-error {
+	margin: 0.5em 0;
+}
+
+.ai-agent-chart-error-msg {
+	margin: 0 0 6px;
+	font-size: 12px;
+	color: #d63638;
+}
+
+.ai-agent-chart-error-msg code {
+	font-size: 11px;
+	background: #f6f7f7;
+	padding: 1px 4px;
+	border-radius: 2px;
+}

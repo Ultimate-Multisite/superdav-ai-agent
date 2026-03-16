@@ -13,6 +13,10 @@ import remarkGfm from 'remark-gfm';
  * Internal dependencies
  */
 import CodeBlock from './code-block';
+import ChartBlock from './chart-block';
+
+/** Languages that should render as interactive Chart.js charts. */
+const CHART_LANGUAGES = new Set( [ 'chart', 'chartjs', 'chart.js' ] );
 
 /**
  * Custom renderers for ReactMarkdown.
@@ -21,6 +25,9 @@ const components = {
 	code( { inline, className, children, ...props } ) {
 		const match = /language-(\w+)/.exec( className || '' );
 		if ( ! inline && match ) {
+			if ( CHART_LANGUAGES.has( match[ 1 ].toLowerCase() ) ) {
+				return <ChartBlock>{ children }</ChartBlock>;
+			}
 			return <CodeBlock language={ match[ 1 ] }>{ children }</CodeBlock>;
 		}
 		if ( ! inline && String( children ).includes( '\n' ) ) {

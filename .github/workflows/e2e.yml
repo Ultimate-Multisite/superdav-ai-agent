@@ -73,9 +73,11 @@ jobs:
       - name: Configure plugin for E2E tests
         run: |
           # Mark onboarding complete so the main chat UI renders (not the wizard).
+          # Disable site_builder_mode so the FAB renders instead of the full-screen
+          # SiteBuilderOverlay (wp-env is a fresh install, which auto-enables it).
           # Playwright tests run against the development environment (port 8888).
           npx wp-env run cli wp option update gratis_ai_agent_settings \
-            '{"onboarding_complete":true}' --format=json
+            '{"onboarding_complete":true,"site_builder_mode":false}' --format=json
         env:
           WP_ENV_HOME: /tmp/wp-env
 

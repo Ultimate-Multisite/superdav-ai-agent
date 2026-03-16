@@ -20,8 +20,26 @@ const {
 
 test.describe( 'Floating Widget', () => {
 	test.beforeEach( async ( { page } ) => {
+		// Capture JS console errors and uncaught exceptions for CI visibility.
+		// The ErrorBoundary catches React crashes silently — this surfaces them.
+		const consoleErrors = [];
+		page.on( 'console', ( msg ) => {
+			if ( msg.type() === 'error' ) {
+				consoleErrors.push( msg.text() );
+			}
+		} );
+		page.on( 'pageerror', ( err ) => {
+			consoleErrors.push( err.message );
+		} );
+
 		await loginToWordPress( page );
 		await goToAdminDashboard( page );
+
+		// Log any JS errors so they appear in CI output even when tests fail.
+		if ( consoleErrors.length ) {
+			// eslint-disable-next-line no-console
+			console.log( 'JS errors on page:', JSON.stringify( consoleErrors ) );
+		}
 	} );
 
 	test( 'FAB button is visible on admin pages', async ( { page } ) => {

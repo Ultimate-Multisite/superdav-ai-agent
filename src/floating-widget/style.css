@@ -1023,3 +1023,55 @@
 	padding: 1px 3px;
 	border-radius: 2px;
 }
+
+/* Code blocks (CodeMirror 6) — floating panel */
+.ai-agent-floating-panel .ai-agent-code-block {
+	margin: 0.4em 0;
+	border-radius: 4px;
+	overflow: hidden;
+	border: 1px solid #3a3a3a;
+}
+
+.ai-agent-floating-panel .ai-agent-code-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 3px 10px;
+	background: #2d2d2d;
+	font-size: 11px;
+}
+
+.ai-agent-floating-panel .ai-agent-code-language {
+	color: #a0a0a0;
+	text-transform: lowercase;
+}
+
+.ai-agent-floating-panel .ai-agent-code-copy {
+	background: none;
+	border: 1px solid #555;
+	color: #ccc;
+	cursor: pointer;
+	font-size: 10px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	transition: background 0.15s, color 0.15s;
+}
+
+.ai-agent-floating-panel .ai-agent-code-copy:hover {
+	background: #555;
+	color: #fff;
+}
+
+/* CodeMirror mount container — floating panel */
+.ai-agent-floating-panel .ai-agent-code-cm .cm-editor {
+	border-radius: 0 0 4px 4px;
+}
+
+.ai-agent-floating-panel .ai-agent-code-cm .cm-editor.cm-focused {
+	outline: none;
+}
+
+/* Scale down CodeMirror font in the compact floating panel */
+.ai-agent-floating-panel .ai-agent-code-cm .cm-scroller {
+	font-size: 0.78em;
+}

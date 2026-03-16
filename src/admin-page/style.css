@@ -480,7 +480,7 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	font-size: 0.9em;
 }
 
-/* Code blocks (react-syntax-highlighter) */
+/* Code blocks (CodeMirror 6) */
 .ai-agent-code-block {
 	margin: 0.5em 0;
 	border-radius: 4px;
@@ -516,6 +516,16 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 .ai-agent-code-copy:hover {
 	background: #555;
 	color: #fff;
+}
+
+/* CodeMirror mount container */
+.ai-agent-code-cm .cm-editor {
+	border-radius: 0 0 4px 4px;
+}
+
+/* Prevent CodeMirror from adding its own focus outline inside chat bubbles */
+.ai-agent-code-cm .cm-editor.cm-focused {
+	outline: none;
 }
 
 .ai-agent-assistant pre {

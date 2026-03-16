@@ -35,6 +35,33 @@ test.describe( 'Floating Widget', () => {
 		await loginToWordPress( page );
 		await goToAdminDashboard( page );
 
+		// Diagnostic: dump page state to CI output so we can see what's
+		// actually rendered when the FAB is expected but not found.
+		const diag = await page.evaluate( () => {
+			const scripts = [ ...document.querySelectorAll( 'script[src]' ) ]
+				.map( ( s ) => s.src )
+				.filter( ( s ) => s.includes( 'gratis-ai-agent' ) );
+			const styles = [ ...document.querySelectorAll( 'link[rel="stylesheet"]' ) ]
+				.map( ( l ) => l.href )
+				.filter( ( h ) => h.includes( 'gratis-ai-agent' ) );
+			const root = document.getElementById( 'gratis-ai-agent-floating-root' );
+			const fab = document.querySelector( '.gratis-ai-agent-fab' );
+			const overlay = document.querySelector( '.ai-agent-site-builder-overlay' );
+			const errorBoundary = document.querySelector( '.ai-agent-error-boundary' );
+			return {
+				scripts,
+				styles,
+				hasRoot: !! root,
+				rootHTML: root ? root.innerHTML.substring( 0, 500 ) : null,
+				hasFab: !! fab,
+				hasOverlay: !! overlay,
+				hasErrorBoundary: !! errorBoundary,
+				url: window.location.href,
+			};
+		} );
+		// eslint-disable-next-line no-console
+		console.log( 'FLOATING-WIDGET DIAG:', JSON.stringify( diag ) );
+
 		// Log any JS errors so they appear in CI output even when tests fail.
 		if ( consoleErrors.length ) {
 			// eslint-disable-next-line no-console

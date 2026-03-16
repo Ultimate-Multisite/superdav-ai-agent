@@ -117,7 +117,7 @@
 ### White-Label & Resale (P2)
 
 - [x] t075 White-label support: custom branding, colors, greeting, agent name @superdav42 #feature ~6h logged:2026-03-15 pr:#470 completed:2026-03-16
-- [ ] t076 Resale API: proxy endpoint for managed AI with usage tracking @superdav42 #feature ~8h logged:2026-03-15
+- [x] t076 Resale API: proxy endpoint for managed AI with usage tracking @superdav42 #feature ~8h logged:2026-03-15 pr:#475 completed:2026-03-16
 
 ### Architecture & Modernization (P2)
 

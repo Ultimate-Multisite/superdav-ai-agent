@@ -15,6 +15,7 @@ import MarkdownMessage from './markdown-message';
 import MessageActions from './message-actions';
 import DebugPanel from './debug-panel';
 import ActionCard from './action-card';
+import { getBranding } from '../utils/branding';
 import useTextToSpeech from './use-text-to-speech';
 
 /**
@@ -143,6 +144,7 @@ export default function MessageList() {
 		streamingText,
 		isStreaming,
 		pendingActionCard,
+		settingsGreeting,
 		ttsEnabled,
 		ttsVoiceURI,
 		ttsRate,
@@ -156,6 +158,7 @@ export default function MessageList() {
 			streamingText: store.getStreamingText(),
 			isStreaming: store.isStreamingActive(),
 			pendingActionCard: store.getPendingActionCard(),
+			settingsGreeting: store.getSettings()?.greeting_message || '',
 			ttsEnabled: store.isTtsEnabled(),
 			ttsVoiceURI: store.getTtsVoiceURI(),
 			ttsRate: store.getTtsRate(),

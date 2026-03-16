@@ -306,6 +306,11 @@ export default function SettingsApp() {
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
+			name: 'branding',
+			title: __( 'Branding', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
 			name: 'tts',
 			title: __( 'Text-to-Speech', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
@@ -906,7 +911,17 @@ export default function SettingsApp() {
 								</div>
 							);
 
-						case 'tts':
+						case 'branding':
+						return (
+							<div className="gratis-ai-agent-settings-section">
+								<BrandingManager
+									local={ local }
+									updateField={ updateField }
+								/>
+							</div>
+						);
+
+					case 'tts':
 							return (
 								<div className="gratis-ai-agent-settings-section">
 									{ ! isTTSSupported && (

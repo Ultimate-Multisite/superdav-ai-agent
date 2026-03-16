@@ -15,6 +15,7 @@ parameters:
 		- vendor/autoload.php
 	scanFiles:
 		- compat/abilities-api/class-abstract-ability.php
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 	treatPhpDocTypesAsCertain: false
 	ignoreErrors:
 		# WP_CLI is only available when running in CLI context

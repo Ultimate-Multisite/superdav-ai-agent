@@ -17,6 +17,7 @@
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"php-stubs/woocommerce-stubs": "^3.0",
 		"phpcompatibility/phpcompatibility-wp": "^2.1",
 		"phpstan/phpstan": "^2.0",
 		"phpunit/phpunit": "^9.6 || ^10.0",

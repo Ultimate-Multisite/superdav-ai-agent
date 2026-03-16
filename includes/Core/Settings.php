@@ -164,6 +164,7 @@ class Settings {
 			'suggestion_count'         => 3,
 			'yolo_mode'                => false,
 			'site_builder_mode'        => false,
+			'show_on_frontend'         => false,
 		];
 	}
 

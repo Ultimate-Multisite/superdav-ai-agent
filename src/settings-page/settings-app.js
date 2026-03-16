@@ -32,6 +32,9 @@ import ToolProfilesManager from './tool-profiles-manager';
 import AutomationsManager from './automations-manager';
 import EventsManager from './events-manager';
 
+/**
+ *
+ */
 export default function SettingsApp() {
 	const { fetchSettings, fetchProviders, saveSettings } =
 		useDispatch( STORE_NAME );
@@ -295,6 +298,21 @@ export default function SettingsApp() {
 											</div>
 										) }
 									</div>
+									<ToggleControl
+										label={ __(
+											'Show Widget on Frontend',
+											'gratis-ai-agent'
+										) }
+										checked={ !! local.show_on_frontend }
+										onChange={ ( v ) =>
+											updateField( 'show_on_frontend', v )
+										}
+										help={ __(
+											'Display the floating chat widget on public-facing pages for logged-in administrators.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
 								</div>
 							);
 

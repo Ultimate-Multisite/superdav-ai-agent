@@ -1,0 +1,103 @@
+/* Abilities Explorer admin page styles */
+
+.gratis-ai-agent-abilities-wrap {
+	max-width: 1200px;
+}
+
+.gratis-abilities-loading {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 24px 0;
+}
+
+.gratis-abilities-explorer {
+	margin-top: 16px;
+}
+
+.gratis-abilities-toolbar {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 16px;
+	margin-bottom: 16px;
+}
+
+.gratis-abilities-count {
+	font-size: 12px;
+	color: #757575;
+	margin: 8px 0 0;
+}
+
+.gratis-abilities-grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 480px, 1fr ) );
+	gap: 12px;
+}
+
+.gratis-ability-card {
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	transition: box-shadow 0.15s ease;
+}
+
+.gratis-ability-card:hover {
+	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.1 );
+}
+
+.gratis-ability-card .components-card__header {
+	padding: 12px 16px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.gratis-ability-card .components-card__body {
+	padding: 12px 16px;
+}
+
+.gratis-ability-title {
+	font-weight: 600;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.gratis-ability-name {
+	font-size: 11px;
+	color: #757575;
+	font-family: monospace;
+	margin-top: 2px;
+}
+
+.gratis-ability-description {
+	font-size: 13px;
+	color: #1e1e1e;
+	margin: 0 0 8px;
+}
+
+.gratis-ability-meta {
+	font-size: 12px;
+	color: #757575;
+	margin-bottom: 8px;
+}
+
+.gratis-ability-params,
+.gratis-ability-required {
+	font-size: 12px;
+	color: #757575;
+}
+
+.gratis-ability-notice {
+	margin: 0 !important;
+	padding: 8px 12px !important;
+}
+
+.gratis-ability-notice a {
+	margin-left: 4px;
+}
+
+/* Responsive: single column on narrow screens */
+@media ( max-width: 782px ) {
+	.gratis-abilities-grid {
+		grid-template-columns: 1fr;
+	}
+}

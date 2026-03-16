@@ -21,6 +21,11 @@ const CHANNEL_TYPE_OPTIONS = [
 	{ label: __( 'Discord', 'ai-agent' ), value: 'discord' },
 ];
 
+/**
+ * Returns a default empty notification channel object.
+ *
+ * @return {Object} Default channel configuration.
+ */
 function emptyChannel() {
 	return { type: 'slack', webhook_url: '', enabled: true };
 }

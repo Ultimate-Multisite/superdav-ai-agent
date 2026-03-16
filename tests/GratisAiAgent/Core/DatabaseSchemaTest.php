@@ -51,6 +51,7 @@ class DatabaseSchemaTest extends WP_UnitTestCase {
 		'gratis_ai_agent_conversation_templates',
 		'gratis_ai_agent_git_tracked_files',
 		'gratis_ai_agent_changes_log',
+		'gratis_ai_agent_modified_files',
 	];
 
 	/**
@@ -215,6 +216,19 @@ class DatabaseSchemaTest extends WP_UnitTestCase {
 
 		foreach ( [ 'id', 'name', 'hook_name', 'prompt_template', 'conditions', 'enabled', 'run_count', 'last_run_at', 'created_at', 'updated_at' ] as $col ) {
 			$this->assertContains( $col, $columns, "Event automations table missing column '{$col}'." );
+		}
+	}
+
+	/**
+	 * Modified files table has the required columns.
+	 */
+	public function test_modified_files_table_has_required_columns(): void {
+		Database::install();
+
+		$columns = $this->get_column_names( Database::modified_files_table_name() );
+
+		foreach ( [ 'id', 'plugin_slug', 'file_path', 'action', 'session_id', 'user_id', 'modified_at' ] as $col ) {
+			$this->assertContains( $col, $columns, "Modified files table missing column '{$col}'." );
 		}
 	}
 

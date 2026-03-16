@@ -112,6 +112,17 @@ class Database {
 	}
 
 	/**
+	 * Get the modified files table name.
+	 *
+	 * Tracks files written or edited by the AI agent so modified plugins
+	 * can be identified and offered as downloads.
+	 */
+	public static function modified_files_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'gratis_ai_agent_modified_files';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -137,6 +148,7 @@ class Database {
 		$conversation_templates_table = self::conversation_templates_table_name();
 		$git_tracked_files_table      = self::git_tracked_files_table_name();
 		$changes_log_table            = self::changes_log_table_name();
+		$modified_files_table         = self::modified_files_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -339,6 +351,20 @@ class Database {
 			KEY object_type_id (object_type, object_id),
 			KEY reverted (reverted),
 			KEY created_at (created_at)
+		) {$charset};
+
+		CREATE TABLE {$modified_files_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			plugin_slug varchar(255) NOT NULL DEFAULT '',
+			file_path varchar(1000) NOT NULL DEFAULT '',
+			action varchar(20) NOT NULL DEFAULT 'write',
+			session_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			modified_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY plugin_slug (plugin_slug),
+			KEY session_id (session_id),
+			KEY modified_at (modified_at)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -840,5 +866,114 @@ class Database {
 
 		// Mark migration as complete.
 		update_option( 'gratis_ai_agent_migrated_from_ai_agent', '1' );
+	}
+
+	/**
+	 * Record a file modification by the AI agent.
+	 *
+	 * @param string $file_path  Relative path from wp-content (e.g. "plugins/my-plugin/file.php").
+	 * @param string $action     The action performed: 'write' or 'edit'.
+	 * @param int    $session_id Session ID (0 if not in a session).
+	 * @param int    $user_id    User ID performing the action.
+	 * @return int|false Inserted row ID or false on failure.
+	 */
+	public static function record_modified_file( string $file_path, string $action = 'write', int $session_id = 0, int $user_id = 0 ) {
+		global $wpdb;
+
+		// Extract plugin slug from path like "plugins/my-plugin/..." → "my-plugin".
+		$plugin_slug = self::extract_plugin_slug( $file_path );
+
+		// Only track files inside a plugin directory.
+		if ( '' === $plugin_slug ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table insert; caching not applicable.
+		$result = $wpdb->insert(
+			self::modified_files_table_name(),
+			[
+				'plugin_slug' => $plugin_slug,
+				'file_path'   => $file_path,
+				'action'      => $action,
+				'session_id'  => $session_id,
+				'user_id'     => $user_id,
+				'modified_at' => current_time( 'mysql', true ),
+			],
+			[ '%s', '%s', '%s', '%d', '%d', '%s' ]
+		);
+
+		return $result ? (int) $wpdb->insert_id : false;
+	}
+
+	/**
+	 * Get a list of plugins that have been modified by the AI agent.
+	 *
+	 * Returns one row per plugin slug with the modification count and
+	 * the timestamp of the most recent modification.
+	 *
+	 * @return list<object{plugin_slug: string, modification_count: int, last_modified: string}>
+	 */
+	public static function get_modified_plugins(): array {
+		global $wpdb;
+
+		$table = self::modified_files_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table name from internal method.
+		$rows = $wpdb->get_results(
+			"SELECT plugin_slug,
+			        COUNT(*) AS modification_count,
+			        MAX(modified_at) AS last_modified
+			 FROM {$table}
+			 GROUP BY plugin_slug
+			 ORDER BY last_modified DESC"
+		);
+
+		return $rows ?? [];
+	}
+
+	/**
+	 * Get all modified file records for a specific plugin slug.
+	 *
+	 * @param string $plugin_slug Plugin directory slug.
+	 * @return list<object>
+	 */
+	public static function get_modified_files_for_plugin( string $plugin_slug ): array {
+		global $wpdb;
+
+		$table = self::modified_files_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table name from internal method.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE plugin_slug = %s ORDER BY modified_at DESC",
+				$plugin_slug
+			)
+		);
+
+		return $rows ?? [];
+	}
+
+	/**
+	 * Extract the plugin slug (directory name) from a wp-content-relative path.
+	 *
+	 * E.g. "plugins/my-plugin/includes/file.php" → "my-plugin"
+	 *      "themes/my-theme/style.css"            → "" (not a plugin)
+	 *
+	 * @param string $file_path Path relative to wp-content.
+	 * @return string Plugin slug, or empty string if not inside a plugin directory.
+	 */
+	public static function extract_plugin_slug( string $file_path ): string {
+		$file_path = ltrim( $file_path, '/\\' );
+
+		// Must start with "plugins/".
+		if ( strpos( $file_path, 'plugins/' ) !== 0 ) {
+			return '';
+		}
+
+		// Strip the "plugins/" prefix and get the first path segment.
+		$remainder = substr( $file_path, strlen( 'plugins/' ) );
+		$parts     = explode( '/', $remainder, 2 );
+
+		return $parts[0] ?? '';
 	}
 }

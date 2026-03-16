@@ -49,6 +49,7 @@ use GratisAiAgent\Abilities\DatabaseAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
 use GratisAiAgent\Abilities\GitAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
+use GratisAiAgent\Abilities\PluginDownloadAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
@@ -153,6 +154,9 @@ FileAbilities::register();
 
 // Git file tracking abilities (snapshot, diff, restore, list, revert).
 GitAbilities::register();
+
+// Plugin download abilities (list modified plugins, get download URL).
+PluginDownloadAbilities::register();
 
 // Database query abilities (SELECT only).
 DatabaseAbilities::register();

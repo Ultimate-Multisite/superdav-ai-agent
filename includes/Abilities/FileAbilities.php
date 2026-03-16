@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use GratisAiAgent\Core\Database;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -517,6 +518,14 @@ class FileWriteAbility extends AbstractFileAbility {
 		// Record the modification for git change tracking.
 		do_action( 'gratis_ai_agent_after_file_write', $full_path );
 
+		// Track this modification so the plugin can be offered as a download.
+		Database::record_modified_file(
+			$path,
+			'write',
+			0,
+			(int) get_current_user_id()
+		);
+
 		return [
 			'path'   => $path,
 			'action' => $existed ? 'updated' : 'created',
@@ -695,6 +704,14 @@ class FileEditAbility extends AbstractFileAbility {
 
 			// Record the modification for git change tracking.
 			do_action( 'gratis_ai_agent_after_file_edit', $full_path );
+
+			// Track this modification so the plugin can be offered as a download.
+			Database::record_modified_file(
+				$path,
+				'edit',
+				0,
+				(int) get_current_user_id()
+			);
 		}
 
 		return [

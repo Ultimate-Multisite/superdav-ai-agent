@@ -380,4 +380,115 @@ class DatabaseTest extends WP_UnitTestCase {
 		$this->assertIsArray( $folders );
 		$this->assertContains( 'work', $folders );
 	}
+
+	// ─── Plugin download / modified files ────────────────────────────────────
+
+	/**
+	 * Test modified_files_table_name returns correct table name.
+	 */
+	public function test_modified_files_table_name() {
+		global $wpdb;
+		$expected = $wpdb->prefix . 'gratis_ai_agent_modified_files';
+		$this->assertSame( $expected, Database::modified_files_table_name() );
+	}
+
+	/**
+	 * Test extract_plugin_slug with a standard plugin path.
+	 */
+	public function test_extract_plugin_slug_standard_path() {
+		$this->assertSame(
+			'my-plugin',
+			Database::extract_plugin_slug( 'plugins/my-plugin/includes/file.php' )
+		);
+	}
+
+	/**
+	 * Test extract_plugin_slug with a root-level plugin file.
+	 */
+	public function test_extract_plugin_slug_root_file() {
+		$this->assertSame(
+			'my-plugin',
+			Database::extract_plugin_slug( 'plugins/my-plugin/my-plugin.php' )
+		);
+	}
+
+	/**
+	 * Test extract_plugin_slug with a leading slash.
+	 */
+	public function test_extract_plugin_slug_leading_slash() {
+		$this->assertSame(
+			'my-plugin',
+			Database::extract_plugin_slug( '/plugins/my-plugin/file.php' )
+		);
+	}
+
+	/**
+	 * Test extract_plugin_slug returns empty string for theme paths.
+	 */
+	public function test_extract_plugin_slug_theme_path_returns_empty() {
+		$this->assertSame(
+			'',
+			Database::extract_plugin_slug( 'themes/my-theme/style.css' )
+		);
+	}
+
+	/**
+	 * Test extract_plugin_slug returns empty string for uploads paths.
+	 */
+	public function test_extract_plugin_slug_uploads_path_returns_empty() {
+		$this->assertSame(
+			'',
+			Database::extract_plugin_slug( 'uploads/2024/01/image.jpg' )
+		);
+	}
+
+	/**
+	 * Test extract_plugin_slug returns empty string for empty input.
+	 */
+	public function test_extract_plugin_slug_empty_returns_empty() {
+		$this->assertSame( '', Database::extract_plugin_slug( '' ) );
+	}
+
+	/**
+	 * Test record_modified_file only records plugin paths.
+	 */
+	public function test_record_modified_file_ignores_non_plugin_paths() {
+		$result = Database::record_modified_file( 'themes/my-theme/style.css', 'write', 0, 1 );
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * Test record_modified_file records plugin paths.
+	 */
+	public function test_record_modified_file_records_plugin_paths() {
+		$result = Database::record_modified_file( 'plugins/my-plugin/file.php', 'write', 0, 1 );
+		$this->assertIsInt( $result );
+		$this->assertGreaterThan( 0, $result );
+	}
+
+	/**
+	 * Test get_modified_plugins returns recorded plugins.
+	 */
+	public function test_get_modified_plugins_returns_recorded_plugins() {
+		Database::record_modified_file( 'plugins/test-plugin/file.php', 'write', 0, 1 );
+		Database::record_modified_file( 'plugins/test-plugin/other.php', 'edit', 0, 1 );
+
+		$plugins = Database::get_modified_plugins();
+
+		$slugs = array_column( (array) $plugins, 'plugin_slug' );
+		$this->assertContains( 'test-plugin', $slugs );
+	}
+
+	/**
+	 * Test get_modified_files_for_plugin returns files for a specific plugin.
+	 */
+	public function test_get_modified_files_for_plugin() {
+		Database::record_modified_file( 'plugins/specific-plugin/file.php', 'write', 0, 1 );
+
+		$files = Database::get_modified_files_for_plugin( 'specific-plugin' );
+
+		$this->assertNotEmpty( $files );
+		$this->assertSame( 'specific-plugin', $files[0]->plugin_slug );
+		$this->assertSame( 'plugins/specific-plugin/file.php', $files[0]->file_path );
+	}
 }

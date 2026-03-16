@@ -12,21 +12,34 @@ import STORE_NAME from '../store';
 import ErrorBoundary from '../components/error-boundary';
 import FloatingButton from './floating-button';
 import FloatingPanel from './floating-panel';
+import SiteBuilderOverlay from './site-builder-overlay';
 import './style.css';
 
 /**
  * Root floating widget component.
  *
  * Fetches providers and sessions on mount, gathers page context, and
- * renders either the FloatingButton (when closed) or FloatingPanel (when open).
+ * renders one of three states:
+ * - SiteBuilderOverlay: full-screen overlay for fresh installs (t062)
+ * - FloatingButton: FAB when the panel is closed
+ * - FloatingPanel: draggable chat panel when open
  *
  * @return {JSX.Element} The floating widget element.
  */
 function FloatingWidget() {
-	const { fetchProviders, fetchSessions, fetchAlerts, setPageContext } =
-		useDispatch( STORE_NAME );
-	const isOpen = useSelect(
-		( select ) => select( STORE_NAME ).isFloatingOpen(),
+	const {
+		fetchProviders,
+		fetchSessions,
+		fetchAlerts,
+		setPageContext,
+		setSiteBuilderMode,
+	} = useDispatch( STORE_NAME );
+
+	const { isOpen, isSiteBuilderMode } = useSelect(
+		( select ) => ( {
+			isOpen: select( STORE_NAME ).isFloatingOpen(),
+			isSiteBuilderMode: select( STORE_NAME ).isSiteBuilderMode(),
+		} ),
 		[]
 	);
 
@@ -49,6 +62,18 @@ function FloatingWidget() {
 			setPageContext( context );
 		}
 	}, [ setPageContext ] );
+
+	// Activate site builder mode when the PHP layer signals it (t060/t062).
+	useEffect( () => {
+		if ( window.gratisAiAgentData?.site_builder_mode ) {
+			setSiteBuilderMode( true );
+		}
+	}, [ setSiteBuilderMode ] );
+
+	// Site builder full-screen overlay takes priority over normal FAB/panel.
+	if ( isSiteBuilderMode ) {
+		return <SiteBuilderOverlay />;
+	}
 
 	return (
 		<>

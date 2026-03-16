@@ -70,5 +70,22 @@ class FloatingWidget {
 			$asset['version'],
 			true
 		);
+
+		// Pass site builder mode flag to the JS layer.
+		// t060 sets the `gratis_ai_agent_site_builder_mode` option to activate
+		// the full-screen overlay on fresh installs. A filter is also provided
+		// so other code can override the value without touching the option.
+		$site_builder_mode = (bool) apply_filters(
+			'gratis_ai_agent_site_builder_mode',
+			(bool) get_option( 'gratis_ai_agent_site_builder_mode', false )
+		);
+
+		wp_localize_script(
+			'gratis-ai-agent-floating-widget',
+			'gratisAiAgentData',
+			[
+				'site_builder_mode' => $site_builder_mode,
+			]
+		);
 	}
 }

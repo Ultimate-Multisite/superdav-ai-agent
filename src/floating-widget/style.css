@@ -710,3 +710,190 @@
 .ai-agent-floating-panel .gratis-ai-agent-template-menu__grid {
 	grid-template-columns: 1fr 1fr;
 }
+
+/* ─── Site Builder Full-Screen Overlay (t062) ─────────────────────────────── */
+
+/* Backdrop — semi-transparent dark layer covering the entire admin screen */
+.ai-agent-site-builder-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	box-sizing: border-box;
+}
+
+.ai-agent-site-builder-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+/* Centered panel */
+.ai-agent-site-builder-panel {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	max-width: 720px;
+	max-height: calc(100vh - 48px);
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* Header row: title + skip button */
+.ai-agent-site-builder-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 24px 24px 16px;
+	background: var(--wp-admin-theme-color, #2271b1);
+	color: #fff;
+	flex-shrink: 0;
+}
+
+.ai-agent-site-builder-header-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.ai-agent-site-builder-title {
+	margin: 0 0 4px;
+	font-size: 20px;
+	font-weight: 700;
+	color: #fff;
+	line-height: 1.3;
+}
+
+.ai-agent-site-builder-subtitle {
+	margin: 0;
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.85);
+	line-height: 1.5;
+}
+
+/* Skip button */
+.ai-agent-site-builder-skip.components-button {
+	flex-shrink: 0;
+	color: rgba(255, 255, 255, 0.8);
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	border-radius: 4px;
+	font-size: 12px;
+	padding: 4px 12px;
+	height: auto;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.ai-agent-site-builder-skip.components-button:hover {
+	color: #fff;
+	border-color: rgba(255, 255, 255, 0.8);
+	background: rgba(255, 255, 255, 0.1);
+}
+
+/* Progress bar */
+.ai-agent-site-builder-progress {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 24px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	flex-shrink: 0;
+}
+
+.ai-agent-site-builder-progress-bar {
+	flex: 1;
+	height: 6px;
+	background: #dcdcde;
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.ai-agent-site-builder-progress-fill {
+	height: 100%;
+	background: var(--wp-admin-theme-color, #2271b1);
+	border-radius: 3px;
+	transition: width 0.4s ease;
+}
+
+.ai-agent-site-builder-progress-label {
+	flex-shrink: 0;
+	font-size: 12px;
+	color: #50575e;
+	white-space: nowrap;
+}
+
+/* Chat panel inside site builder overlay */
+.ai-agent-site-builder-chat {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.ai-agent-site-builder-chat .ai-agent-chat-panel {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.ai-agent-site-builder-chat .ai-agent-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: 20px 24px;
+	gap: 12px;
+}
+
+.ai-agent-site-builder-chat .ai-agent-bubble {
+	font-size: 14px;
+	padding: 10px 14px;
+	max-width: 80%;
+}
+
+.ai-agent-site-builder-chat .ai-agent-input-area {
+	padding: 12px 24px 16px;
+	border-top: 1px solid #dcdcde;
+}
+
+.ai-agent-site-builder-chat .ai-agent-input {
+	font-size: 14px;
+}
+
+/* Responsive — narrow screens */
+@media (max-width: 600px) {
+
+	.ai-agent-site-builder-overlay {
+		padding: 0;
+		align-items: flex-end;
+	}
+
+	.ai-agent-site-builder-panel {
+		max-width: 100%;
+		max-height: 90vh;
+		border-radius: 12px 12px 0 0;
+	}
+
+	.ai-agent-site-builder-header {
+		padding: 16px 16px 12px;
+	}
+
+	.ai-agent-site-builder-title {
+		font-size: 17px;
+	}
+
+	.ai-agent-site-builder-chat .ai-agent-messages {
+		padding: 12px 16px;
+	}
+
+	.ai-agent-site-builder-chat .ai-agent-input-area {
+		padding: 8px 16px 12px;
+	}
+}

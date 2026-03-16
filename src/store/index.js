@@ -77,15 +77,6 @@ const DEFAULT_STATE = {
 	skills: [],
 	skillsLoaded: false,
 
-	// Conversation templates
-	conversationTemplates: [],
-	conversationTemplatesLoaded: false,
-
-	// Agents
-	agents: [],
-	agentsLoaded: false,
-	selectedAgentId: null,
-
 	// Token usage (current session)
 	tokenUsage: { prompt: 0, completion: 0 },
 
@@ -106,27 +97,11 @@ const DEFAULT_STATE = {
 	// Proactive alerts — count of issues surfaced as a badge on the FAB.
 	alertCount: 0,
 
-	// Site builder mode — true when a fresh WordPress install is detected.
-	// Seeded from the PHP-injected global so the widget can open immediately
-	// without waiting for a REST round-trip.
+	// Site builder mode (t060/t062) — set by PHP via gratisAiAgentSiteBuilder.
 	siteBuilderMode: window.gratisAiAgentSiteBuilder?.siteBuilderMode ?? false,
 	isFreshInstall: window.gratisAiAgentSiteBuilder?.isFreshInstall ?? false,
 	siteBuilderStep: 0,
 	siteBuilderTotalSteps: 0,
-
-	// Text-to-speech (t084) — persisted to localStorage.
-	ttsEnabled: localStorage.getItem( 'gratisAiAgentTtsEnabled' ) === 'true',
-	ttsVoiceURI: localStorage.getItem( 'gratisAiAgentTtsVoiceURI' ) || '',
-	ttsRate: parseFloat(
-		localStorage.getItem( 'gratisAiAgentTtsRate' ) || '1'
-	),
-	ttsPitch: parseFloat(
-		localStorage.getItem( 'gratisAiAgentTtsPitch' ) || '1'
-	),
-
-	// Shared sessions — sessions shared with all admins (t077).
-	sharedSessions: [],
-	sharedSessionsLoaded: false,
 };
 
 const actions = {
@@ -257,16 +232,6 @@ const actions = {
 	},
 
 	/**
-	 * Enable or disable site builder mode.
-	 *
-	 * @param {boolean} enabled - Whether site builder mode should be active.
-	 * @return {Object} Redux action.
-	 */
-	setSiteBuilderMode( enabled ) {
-		return { type: 'SET_SITE_BUILDER_MODE', enabled };
-	},
-
-	/**
 	 * Set structured page context for the AI.
 	 *
 	 * @param {string|Object} context - Page context object or string.
@@ -323,15 +288,6 @@ const actions = {
 	 */
 	setSkills( skills ) {
 		return { type: 'SET_SKILLS', skills };
-	},
-	setConversationTemplates( templates ) {
-		return { type: 'SET_CONVERSATION_TEMPLATES', templates };
-	},
-	setAgents( agents ) {
-		return { type: 'SET_AGENTS', agents };
-	},
-	setSelectedAgentId( agentId ) {
-		return { type: 'SET_SELECTED_AGENT_ID', agentId };
 	},
 
 	/**
@@ -474,6 +430,18 @@ const actions = {
 		return { type: 'SET_ALERT_COUNT', count };
 	},
 
+	// ─── Site builder (t060/t062) ────────────────────────────────
+
+	/**
+	 * Enable or disable site builder mode.
+	 *
+	 * @param {boolean} enabled - Whether site builder mode should be active.
+	 * @return {Object} Redux action.
+	 */
+	setSiteBuilderMode( enabled ) {
+		return { type: 'SET_SITE_BUILDER_MODE', enabled };
+	},
+
 	/**
 	 * Set the current step number in the site builder progress indicator.
 	 *
@@ -492,65 +460,6 @@ const actions = {
 	 */
 	setSiteBuilderTotalSteps( total ) {
 		return { type: 'SET_SITE_BUILDER_TOTAL_STEPS', total };
-	},
-
-	// ─── Text-to-speech (t084) ───────────────────────────────────
-
-	/**
-	 * Enable or disable text-to-speech and persist the choice to localStorage.
-	 *
-	 * @param {boolean} enabled - Whether TTS should be active.
-	 * @return {Object} Redux action.
-	 */
-	setTtsEnabled( enabled ) {
-		localStorage.setItem(
-			'gratisAiAgentTtsEnabled',
-			enabled ? 'true' : 'false'
-		);
-		return { type: 'SET_TTS_ENABLED', enabled };
-	},
-
-	/**
-	 * Set the TTS voice URI and persist to localStorage.
-	 *
-	 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI value.
-	 * @return {Object} Redux action.
-	 */
-	setTtsVoiceURI( voiceURI ) {
-		localStorage.setItem( 'gratisAiAgentTtsVoiceURI', voiceURI );
-		return { type: 'SET_TTS_VOICE_URI', voiceURI };
-	},
-
-	/**
-	 * Set the TTS speech rate and persist to localStorage.
-	 *
-	 * @param {number} rate - Speech rate (0.1–10).
-	 * @return {Object} Redux action.
-	 */
-	setTtsRate( rate ) {
-		localStorage.setItem( 'gratisAiAgentTtsRate', String( rate ) );
-		return { type: 'SET_TTS_RATE', rate };
-	},
-
-	/**
-	 * Set the TTS speech pitch and persist to localStorage.
-	 *
-	 * @param {number} pitch - Speech pitch (0–2).
-	 * @return {Object} Redux action.
-	 */
-	setTtsPitch( pitch ) {
-		localStorage.setItem( 'gratisAiAgentTtsPitch', String( pitch ) );
-		return { type: 'SET_TTS_PITCH', pitch };
-	},
-
-	/**
-	 * Replace the shared sessions list.
-	 *
-	 * @param {Session[]} sessions - Shared session summaries.
-	 * @return {Object} Redux action.
-	 */
-	setSharedSessions( sessions ) {
-		return { type: 'SET_SHARED_SESSIONS', sessions };
 	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
@@ -970,18 +879,13 @@ const actions = {
 			// Lazy-create session on first message.
 			if ( ! sessionId ) {
 				try {
-					const sessionData = {
-						provider_id: select.getSelectedProviderId(),
-						model_id: select.getSelectedModelId(),
-					};
-					const agentIdForSession = select.getSelectedAgentId();
-					if ( agentIdForSession ) {
-						sessionData.agent_id = agentIdForSession;
-					}
 					const session = await apiFetch( {
-						path: '/gratis-ai-agent/v1/sessions',
+						path: '/ai-agent/v1/sessions',
 						method: 'POST',
-						data: sessionData,
+						data: {
+							provider_id: select.getSelectedProviderId(),
+							model_id: select.getSelectedModelId(),
+						},
 					} );
 					sessionId = session.id;
 					dispatch.setCurrentSession(
@@ -1009,11 +913,6 @@ const actions = {
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
 				body.page_context = pageContext;
-			}
-
-			const selectedAgentId = select.getSelectedAgentId();
-			if ( selectedAgentId ) {
-				body.agent_id = selectedAgentId;
 			}
 
 			dispatch.setSendTimestamp( Date.now() );
@@ -1355,18 +1254,13 @@ const actions = {
 			// Lazy create session on first message.
 			if ( ! sessionId ) {
 				try {
-					const sessionData = {
-						provider_id: select.getSelectedProviderId(),
-						model_id: select.getSelectedModelId(),
-					};
-					const agentIdForSession = select.getSelectedAgentId();
-					if ( agentIdForSession ) {
-						sessionData.agent_id = agentIdForSession;
-					}
 					const session = await apiFetch( {
 						path: '/gratis-ai-agent/v1/sessions',
 						method: 'POST',
-						data: sessionData,
+						data: {
+							provider_id: select.getSelectedProviderId(),
+							model_id: select.getSelectedModelId(),
+						},
 					} );
 					sessionId = session.id;
 					dispatch.setCurrentSession(
@@ -1404,12 +1298,6 @@ const actions = {
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
 				body.page_context = pageContext;
-			}
-
-			// Include selected agent if set.
-			const selectedAgentId = select.getSelectedAgentId();
-			if ( selectedAgentId ) {
-				body.agent_id = selectedAgentId;
 			}
 
 			dispatch.setSendTimestamp( Date.now() );
@@ -1802,108 +1690,6 @@ const actions = {
 		};
 	},
 
-	// ─── Conversation Templates thunks ───────────────────────────
-
-	fetchConversationTemplates( category = null ) {
-		return async ( { dispatch } ) => {
-			try {
-				const path = category
-					? `/gratis-ai-agent/v1/conversation-templates?category=${ encodeURIComponent(
-							category
-					  ) }`
-					: '/gratis-ai-agent/v1/conversation-templates';
-				const templates = await apiFetch( { path } );
-				dispatch.setConversationTemplates( templates );
-			} catch {
-				dispatch.setConversationTemplates( [] );
-			}
-		};
-	},
-
-	createConversationTemplate( data ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: '/gratis-ai-agent/v1/conversation-templates',
-				method: 'POST',
-				data,
-			} );
-			dispatch.fetchConversationTemplates();
-		};
-	},
-
-	updateConversationTemplate( id, data ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/conversation-templates/${ id }`,
-				method: 'PATCH',
-				data,
-			} );
-			dispatch.fetchConversationTemplates();
-		};
-	},
-
-	deleteConversationTemplate( id ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/conversation-templates/${ id }`,
-				method: 'DELETE',
-			} );
-			dispatch.fetchConversationTemplates();
-		};
-	},
-
-	// ─── Agents thunks ──────────────────────────────────────────
-
-	fetchAgents() {
-		return async ( { dispatch } ) => {
-			try {
-				const agents = await apiFetch( {
-					path: '/gratis-ai-agent/v1/agents',
-				} );
-				dispatch.setAgents( agents );
-			} catch {
-				dispatch.setAgents( [] );
-			}
-		};
-	},
-
-	createAgent( data ) {
-		return async ( { dispatch } ) => {
-			const agent = await apiFetch( {
-				path: '/gratis-ai-agent/v1/agents',
-				method: 'POST',
-				data,
-			} );
-			dispatch.fetchAgents();
-			return agent;
-		};
-	},
-
-	updateAgent( id, data ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/agents/${ id }`,
-				method: 'PATCH',
-				data,
-			} );
-			dispatch.fetchAgents();
-		};
-	},
-
-	deleteAgent( id ) {
-		return async ( { dispatch, select } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/agents/${ id }`,
-				method: 'DELETE',
-			} );
-			// Clear selection if the deleted agent was selected.
-			if ( select.getSelectedAgentId() === id ) {
-				dispatch.setSelectedAgentId( null );
-			}
-			dispatch.fetchAgents();
-		};
-	},
-
 	// ─── Compact thunk ───────────────────────────────────────────
 
 	/**
@@ -1956,60 +1742,6 @@ const actions = {
 			} catch {
 				// ignore
 			}
-		};
-	},
-
-	// ─── Shared Sessions thunks ──────────────────────────────────
-
-	/**
-	 * Fetch all sessions shared with admins.
-	 *
-	 * @return {Function} Redux thunk.
-	 */
-	fetchSharedSessions() {
-		return async ( { dispatch } ) => {
-			try {
-				const sessions = await apiFetch( {
-					path: '/gratis-ai-agent/v1/sessions/shared',
-				} );
-				dispatch.setSharedSessions( sessions );
-			} catch {
-				dispatch.setSharedSessions( [] );
-			}
-		};
-	},
-
-	/**
-	 * Share a session with all admins.
-	 *
-	 * @param {number} sessionId - Session identifier.
-	 * @return {Function} Redux thunk.
-	 */
-	shareSession( sessionId ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
-				method: 'POST',
-			} );
-			dispatch.fetchSessions();
-			dispatch.fetchSharedSessions();
-		};
-	},
-
-	/**
-	 * Unshare a session (remove from shared sessions).
-	 *
-	 * @param {number} sessionId - Session identifier.
-	 * @return {Function} Redux thunk.
-	 */
-	unshareSession( sessionId ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
-				method: 'DELETE',
-			} );
-			dispatch.fetchSessions();
-			dispatch.fetchSharedSessions();
 		};
 	},
 };
@@ -2132,22 +1864,6 @@ const selectors = {
 
 	/**
 	 * @param {StoreState} state
-	 * @return {boolean} Whether site builder mode is active.
-	 */
-	isSiteBuilderMode( state ) {
-		return state.siteBuilderMode;
-	},
-
-	/**
-	 * @param {StoreState} state
-	 * @return {boolean} Whether the current site is a fresh WordPress install.
-	 */
-	isFreshInstall( state ) {
-		return state.isFreshInstall;
-	},
-
-	/**
-	 * @param {StoreState} state
 	 * @return {string|Object} Structured page context for the AI.
 	 */
 	getPageContext( state ) {
@@ -2206,33 +1922,6 @@ const selectors = {
 	 */
 	getSkillsLoaded( state ) {
 		return state.skillsLoaded;
-	},
-
-	// Conversation templates
-	getConversationTemplates( state ) {
-		return state.conversationTemplates;
-	},
-	getConversationTemplatesLoaded( state ) {
-		return state.conversationTemplatesLoaded;
-	},
-
-	// Agents
-	getAgents( state ) {
-		return state.agents;
-	},
-	getAgentsLoaded( state ) {
-		return state.agentsLoaded;
-	},
-	getSelectedAgentId( state ) {
-		return state.selectedAgentId;
-	},
-	getSelectedAgent( state ) {
-		if ( ! state.selectedAgentId ) {
-			return null;
-		}
-		return (
-			state.agents.find( ( a ) => a.id === state.selectedAgentId ) || null
-		);
 	},
 
 	// Session filters
@@ -2383,54 +2072,38 @@ const selectors = {
 		return ( state.tokenUsage.prompt / contextLimit ) * 100 > 80;
 	},
 
-	// Text-to-speech (t084)
+	// ─── Site builder (t060/t062) ────────────────────────────────
 
 	/**
 	 * @param {StoreState} state
-	 * @return {boolean} Whether text-to-speech is enabled.
+	 * @return {boolean} Whether site builder mode is active.
 	 */
-	isTtsEnabled( state ) {
-		return state.ttsEnabled;
+	isSiteBuilderMode( state ) {
+		return state.siteBuilderMode ?? false;
 	},
 
 	/**
 	 * @param {StoreState} state
-	 * @return {string} Selected TTS voice URI (empty = browser default).
+	 * @return {boolean} Whether the site is a fresh install.
 	 */
-	getTtsVoiceURI( state ) {
-		return state.ttsVoiceURI;
+	isFreshInstall( state ) {
+		return state.isFreshInstall ?? false;
 	},
 
 	/**
 	 * @param {StoreState} state
-	 * @return {number} TTS speech rate.
+	 * @return {number} Current step in the site builder progress indicator.
 	 */
-	getTtsRate( state ) {
-		return state.ttsRate;
+	getSiteBuilderStep( state ) {
+		return state.siteBuilderStep ?? 0;
 	},
 
 	/**
 	 * @param {StoreState} state
-	 * @return {number} TTS speech pitch.
+	 * @return {number} Total steps in the site builder progress indicator.
 	 */
-	getTtsPitch( state ) {
-		return state.ttsPitch;
-	},
-
-	/**
-	 * @param {StoreState} state
-	 * @return {Session[]} Sessions shared with all admins.
-	 */
-	getSharedSessions( state ) {
-		return state.sharedSessions;
-	},
-
-	/**
-	 * @param {StoreState} state
-	 * @return {boolean} Whether shared sessions have been fetched.
-	 */
-	getSharedSessionsLoaded( state ) {
-		return state.sharedSessionsLoaded;
+	getSiteBuilderTotalSteps( state ) {
+		return state.siteBuilderTotalSteps ?? 0;
 	},
 };
 
@@ -2482,8 +2155,6 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, floatingOpen: action.open };
 		case 'SET_FLOATING_MINIMIZED':
 			return { ...state, floatingMinimized: action.minimized };
-		case 'SET_SITE_BUILDER_MODE':
-			return { ...state, siteBuilderMode: action.enabled };
 		case 'SET_PAGE_CONTEXT':
 			return { ...state, pageContext: action.context };
 		case 'APPEND_MESSAGE':
@@ -2520,20 +2191,6 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 				skills: action.skills,
 				skillsLoaded: true,
 			};
-		case 'SET_CONVERSATION_TEMPLATES':
-			return {
-				...state,
-				conversationTemplates: action.templates,
-				conversationTemplatesLoaded: true,
-			};
-		case 'SET_AGENTS':
-			return {
-				...state,
-				agents: action.agents,
-				agentsLoaded: true,
-			};
-		case 'SET_SELECTED_AGENT_ID':
-			return { ...state, selectedAgentId: action.agentId };
 		case 'SET_TOKEN_USAGE':
 			return { ...state, tokenUsage: action.tokenUsage };
 		case 'SET_SESSION_FILTER':
@@ -2573,24 +2230,12 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, streamAbortController: action.controller };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
+		case 'SET_SITE_BUILDER_MODE':
+			return { ...state, siteBuilderMode: action.enabled };
 		case 'SET_SITE_BUILDER_STEP':
 			return { ...state, siteBuilderStep: action.step };
 		case 'SET_SITE_BUILDER_TOTAL_STEPS':
 			return { ...state, siteBuilderTotalSteps: action.total };
-		case 'SET_TTS_ENABLED':
-			return { ...state, ttsEnabled: action.enabled };
-		case 'SET_TTS_VOICE_URI':
-			return { ...state, ttsVoiceURI: action.voiceURI };
-		case 'SET_TTS_RATE':
-			return { ...state, ttsRate: action.rate };
-		case 'SET_TTS_PITCH':
-			return { ...state, ttsPitch: action.pitch };
-		case 'SET_SHARED_SESSIONS':
-			return {
-				...state,
-				sharedSessions: action.sessions,
-				sharedSessionsLoaded: true,
-			};
 		default:
 			return state;
 	}

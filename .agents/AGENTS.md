@@ -27,6 +27,24 @@ Create `.md` files in this directory for domain-specific context:
 
 Each file is read on demand by AI assistants when relevant to the task.
 
+## Task Completion Rules
+
+**Never mark a task complete before its PR is merged.**
+
+Workers must call `task-complete-helper.sh` only after the PR is in `MERGED`
+state. The project-level wrapper at `.agents/scripts/task-complete-helper.sh`
+enforces this via `gh pr view --json state,mergedAt` and will abort if the PR
+is not yet merged.
+
+The `todo-integrity` CI check (`.github/workflows/todo-integrity.yml`) also
+validates this on every push to `TODO.md` — any completed task referencing an
+unmerged PR will fail the check.
+
+Root cause of issue #466: a worker called `task-complete-helper.sh t085 --pr 465`
+immediately after opening PR #465, before it was merged. The framework fix
+(aidevops PR #5066) adds the merge check to the framework script. The CI check
+and project-level wrapper here provide a project-level safety net.
+
 ## Security
 
 ### Prompt Injection Defense

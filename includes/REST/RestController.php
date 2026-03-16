@@ -87,6 +87,9 @@ class RestController {
 		// Webhook API endpoints.
 		WebhookController::register_routes();
 
+		// Resale API endpoints.
+		ResaleApiController::register_routes();
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/stream',

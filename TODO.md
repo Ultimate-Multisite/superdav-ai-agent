@@ -18,7 +18,7 @@
   - Agent creates pages via BlockAbilities, content via ContentAbilities, images via StockImageAbilities
   - Agent sets up nav menu, site title, tagline, basic SEO
   - Target: 5-page site from prompt in < 3 minutes
-- [ ] t062 Full-screen site builder widget mode for fresh installs @superdav42 #ui ~6h logged:2026-03-15 blocked-by:t060
+- [x] t062 Full-screen site builder widget mode for fresh installs @superdav42 #ui ~6h logged:2026-03-15 blocked-by:t060 pr:#452 completed:2026-03-16
   - Centered full-screen overlay instead of FAB; progress indicators; "Skip" option
 - [ ] t063 Smart onboarding: agent scans existing site on first activation @superdav42 #feature ~8h logged:2026-03-15
   - Background wp-cron scan: plugins, theme, post types, post count, categories, WooCommerce status

@@ -559,9 +559,13 @@ INSTRUCTION;
 	/**
 	 * Permission callback: requires edit_posts capability.
 	 *
+	 * When $input['context'] is a numeric post ID, also performs an object-level
+	 * check via current_user_can( 'edit_post', $post_id ) to prevent one author
+	 * from accessing another user's draft or private post content.
+	 *
 	 * @since 1.1.0
 	 *
-	 * @param mixed $input Input args (unused).
+	 * @param mixed $input Input args.
 	 * @return bool|\WP_Error
 	 */
 	public static function permission_edit_posts( $input ) {
@@ -571,6 +575,17 @@ INSTRUCTION;
 				__( 'You do not have permission to use AI image abilities.', 'gratis-ai-agent' )
 			);
 		}
+
+		if ( is_array( $input ) && isset( $input['context'] ) && is_numeric( $input['context'] ) ) {
+			$post_id = (int) $input['context'];
+			if ( $post_id > 0 && ! current_user_can( 'edit_post', $post_id ) ) {
+				return new WP_Error(
+					'insufficient_capabilities',
+					__( 'You do not have permission to use that post as AI image context.', 'gratis-ai-agent' )
+				);
+			}
+		}
+
 		return true;
 	}
 

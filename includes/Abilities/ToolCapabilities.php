@@ -226,6 +226,10 @@ class ToolCapabilities {
 			'gratis-ai-agent/check-performance',
 			'gratis-ai-agent/check-disk-space',
 			'gratis-ai-agent/scan-php-error-log',
+			// Google Analytics.
+			'gratis-ai-agent/ga-traffic-summary',
+			'gratis-ai-agent/ga-top-pages',
+			'gratis-ai-agent/ga-realtime',
 		];
 	}
 }

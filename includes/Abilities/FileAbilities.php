@@ -415,8 +415,9 @@ class FileReadAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];
@@ -524,7 +525,9 @@ class FileWriteAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
+				'readonly'    => false,
 				'destructive' => true,
+				'idempotent'  => false,
 			],
 			'show_in_rest' => true,
 		];
@@ -698,7 +701,9 @@ class FileEditAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
+				'readonly'    => false,
 				'destructive' => true,
+				'idempotent'  => false,
 			],
 			'show_in_rest' => true,
 		];
@@ -784,7 +789,9 @@ class FileDeleteAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
+				'readonly'    => false,
 				'destructive' => true,
+				'idempotent'  => false,
 			],
 			'show_in_rest' => true,
 		];
@@ -875,8 +882,9 @@ class FileListAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];
@@ -954,8 +962,9 @@ class FileSearchAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];
@@ -1045,8 +1054,9 @@ class ContentSearchAbility extends AbstractFileAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];

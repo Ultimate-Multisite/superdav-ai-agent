@@ -5298,7 +5298,11 @@ class RestController {
 			return new WP_Error( 'not_found', __( 'Change record not found.', 'gratis-ai-agent' ), [ 'status' => 404 ] );
 		}
 
-		ChangesLog::delete( $id );
+		$deleted = ChangesLog::delete( $id );
+
+		if ( ! $deleted ) {
+			return new WP_Error( 'delete_failed', __( 'Failed to delete change record.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
+		}
 
 		return new WP_REST_Response(
 			[

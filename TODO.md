@@ -90,7 +90,7 @@
 
 - [x] t029 Standardize error handling: return WP_Error not arrays with 'error' key @superdav42 #refactor ~4h logged:2026-03-14 pr:#269 completed:2026-03-15
 - [ ] t030 Add output_schema to all abilities @superdav42 #quality ~4h logged:2026-03-14
-- [ ] t031 Add meta.annotations (readonly, destructive, idempotent) to all abilities @superdav42 #quality ~3h logged:2026-03-14
+- [x] t031 Add meta.annotations (readonly, destructive, idempotent) to all abilities @superdav42 #quality ~3h logged:2026-03-14 pr:#438 completed:2026-03-16
 - [x] t032 Add meta.show_in_rest = true where appropriate @superdav42 #quality ~2h logged:2026-03-14 pr:#298 completed:2026-03-15
 
 ### Git Change Tracking & Undo (P1)

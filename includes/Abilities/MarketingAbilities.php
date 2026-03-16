@@ -9,49 +9,11 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
-use WP_Error;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class MarketingAbilities {
-
-	// ─── Static proxy methods (for backwards-compatible test access) ─────────
-
-	/**
-	 * Fetch a URL and return HTTP status, headers, and page metadata.
-	 *
-	 * @param array<string,mixed> $input Input args.
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_fetch_url( array $input = [] ) {
-		$ability = new FetchUrlAbility(
-			'gratis-ai-agent/fetch-url',
-			[
-				'label'       => __( 'Fetch URL', 'gratis-ai-agent' ),
-				'description' => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * Analyze HTTP security and performance headers for a URL.
-	 *
-	 * @param array<string,mixed> $input Input args.
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_analyze_headers( array $input = [] ) {
-		$ability = new AnalyzeHeadersAbility(
-			'gratis-ai-agent/analyze-headers',
-			[
-				'label'       => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
-				'description' => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
 
 	/**
 	 * Register abilities on init.
@@ -69,73 +31,87 @@ class MarketingAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/fetch-url',
+			'ai-agent/fetch-url',
 			[
-				'label'         => __( 'Fetch URL', 'gratis-ai-agent' ),
-				'description'   => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
-				'ability_class' => FetchUrlAbility::class,
+				'label'               => __( 'Fetch URL', 'gratis-ai-agent' ),
+				'description'         => __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'url' => [
+							'type'        => 'string',
+							'description' => 'The URL to fetch.',
+						],
+					],
+					'required'   => [ 'url' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'url'              => [ 'type' => 'string' ],
+						'status_code'      => [ 'type' => 'integer' ],
+						'headers'          => [ 'type' => 'object' ],
+						'title'            => [ 'type' => 'string' ],
+						'meta_description' => [ 'type' => 'string' ],
+						'generator'        => [ 'type' => 'string' ],
+						'head_content'     => [ 'type' => 'string' ],
+						'error'            => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_fetch_url' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/analyze-headers',
+			'ai-agent/analyze-headers',
 			[
-				'label'         => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
-				'description'   => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
-				'ability_class' => AnalyzeHeadersAbility::class,
+				'label'               => __( 'Analyze HTTP Headers', 'gratis-ai-agent' ),
+				'description'         => __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'url' => [
+							'type'        => 'string',
+							'description' => 'The URL to analyze headers for.',
+						],
+					],
+					'required'   => [ 'url' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'url'         => [ 'type' => 'string' ],
+						'status_code' => [ 'type' => 'integer' ],
+						'security'    => [ 'type' => 'array' ],
+						'performance' => [ 'type' => 'array' ],
+						'cdn'         => [ 'type' => 'array' ],
+						'error'       => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_analyze_headers' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
 			]
 		);
 	}
-}
 
-/**
- * Fetch URL ability.
- *
- * @since 1.0.0
- */
-class FetchUrlAbility extends AbstractAbility {
-
-	protected function label(): string {
-		return __( 'Fetch URL', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Fetch a URL and return HTTP status, headers, page title, meta description, and head content. Useful for competitive analysis and tech stack discovery.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'url' => [
-					'type'        => 'string',
-					'description' => 'The URL to fetch.',
-				],
-			],
-			'required'   => [ 'url' ],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'url'              => [ 'type' => 'string' ],
-				'status_code'      => [ 'type' => 'integer' ],
-				'headers'          => [ 'type' => 'object' ],
-				'title'            => [ 'type' => 'string' ],
-				'meta_description' => [ 'type' => 'string' ],
-				'generator'        => [ 'type' => 'string' ],
-				'head_content'     => [ 'type' => 'string' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle the fetch-url ability call.
+	 *
+	 * @param array<string,mixed> $input Input with url.
+	 * @return array<string,mixed>|\WP_Error Fetch results.
+	 */
+	public static function handle_fetch_url( array $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return new WP_Error( 'missing_param', __( 'url is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
 		$response = wp_remote_get(
@@ -148,14 +124,7 @@ class FetchUrlAbility extends AbstractAbility {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error(
-				'fetch_failed',
-				sprintf(
-					/* translators: %s: error message */
-					__( 'Failed to fetch URL: %s', 'gratis-ai-agent' ),
-					$response->get_error_message()
-				)
-			);
+			return [ 'error' => 'Failed to fetch URL: ' . $response->get_error_message() ];
 		}
 
 		$status_code = wp_remote_retrieve_response_code( $response );
@@ -210,68 +179,17 @@ class FetchUrlAbility extends AbstractAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => false,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * Analyze HTTP Headers ability.
- *
- * @since 1.0.0
- */
-class AnalyzeHeadersAbility extends AbstractAbility {
-
-	protected function label(): string {
-		return __( 'Analyze HTTP Headers', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Analyze a URL\'s HTTP security and performance headers: HSTS, CSP, X-Frame-Options, caching, CDN indicators.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'url' => [
-					'type'        => 'string',
-					'description' => 'The URL to analyze headers for.',
-				],
-			],
-			'required'   => [ 'url' ],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'url'         => [ 'type' => 'string' ],
-				'status_code' => [ 'type' => 'integer' ],
-				'security'    => [ 'type' => 'array' ],
-				'performance' => [ 'type' => 'array' ],
-				'cdn'         => [ 'type' => 'array' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle the analyze-headers ability call.
+	 *
+	 * @param array<string,mixed> $input Input with url.
+	 * @return array<string,mixed>|\WP_Error Header analysis results.
+	 */
+	public static function handle_analyze_headers( array $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return new WP_Error( 'missing_param', __( 'url is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
 		$response = wp_remote_head(
@@ -284,50 +202,37 @@ class AnalyzeHeadersAbility extends AbstractAbility {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error(
-				'fetch_failed',
-				sprintf(
-					/* translators: %s: error message */
-					__( 'Failed to fetch headers: %s', 'gratis-ai-agent' ),
-					$response->get_error_message()
-				)
-			);
+			return [ 'error' => 'Failed to fetch headers: ' . $response->get_error_message() ];
 		}
 
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$headers     = wp_remote_retrieve_headers( $response );
 
+		// Security headers.
+		$security = self::check_security_headers( $headers );
+
+		// Performance headers.
+		$performance = self::check_performance_headers( $headers );
+
+		// CDN indicators.
+		$cdn = self::detect_cdn( $headers );
+
 		return [
 			'url'         => $url,
 			'status_code' => $status_code,
-			'security'    => $this->check_security_headers( $headers ),
-			'performance' => $this->check_performance_headers( $headers ),
-			'cdn'         => $this->detect_cdn( $headers ),
-		];
-	}
-
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => false,
-			],
-			'show_in_rest' => false,
+			'security'    => $security,
+			'performance' => $performance,
+			'cdn'         => $cdn,
 		];
 	}
 
 	/**
 	 * Check security-related headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string, mixed> $headers Response headers.
-	 * @return list<array<string, mixed>> Security header analysis.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @return array<int,mixed> Security header analysis.
 	 */
-	private function check_security_headers( $headers ): array {
+	private static function check_security_headers( $headers ): array {
 		$checks = [
 			'strict-transport-security' => [
 				'label'  => 'HSTS (Strict-Transport-Security)',
@@ -372,10 +277,10 @@ class AnalyzeHeadersAbility extends AbstractAbility {
 	/**
 	 * Check performance-related headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string, mixed> $headers Response headers.
-	 * @return list<array<string, mixed>> Performance header analysis.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @return array<int,mixed> Performance header analysis.
 	 */
-	private function check_performance_headers( $headers ): array {
+	private static function check_performance_headers( $headers ): array {
 		$results = [];
 
 		$cache_control = $headers['cache-control'] ?? null;
@@ -405,10 +310,10 @@ class AnalyzeHeadersAbility extends AbstractAbility {
 	/**
 	 * Detect CDN indicators from headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string, mixed> $headers Response headers.
-	 * @return list<array<string, mixed>> CDN detection results.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @return array<int,mixed> CDN detection results.
 	 */
-	private function detect_cdn( $headers ): array {
+	private static function detect_cdn( $headers ): array {
 		$indicators = [
 			'cf-ray'       => 'Cloudflare',
 			'x-cache'      => 'CDN Cache',

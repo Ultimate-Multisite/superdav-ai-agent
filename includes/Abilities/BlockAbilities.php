@@ -13,117 +13,12 @@ declare(strict_types=1);
 namespace GratisAiAgent\Abilities;
 
 use GratisAiAgent\Models\MarkdownToBlocks;
-use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class BlockAbilities {
-
-	// ─── Static proxy methods (for backwards-compatible test access) ─────────
-
-	/**
-	 * Convert markdown to Gutenberg blocks.
-	 *
-	 * @param array<string,mixed> $input Input args (requires 'markdown' key).
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_markdown_to_blocks( array $input = [] ) {
-		$ability = new MarkdownToBlocksAbility(
-			'gratis-ai-agent/markdown-to-blocks',
-			[
-				'label'       => __( 'Markdown to Blocks', 'gratis-ai-agent' ),
-				'description' => __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * List registered block types.
-	 *
-	 * @param array<string,mixed> $input Input args (supports 'category', 'search', 'per_page', 'page').
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_list_block_types( array $input = [] ) {
-		$ability = new ListBlockTypesAbility(
-			'gratis-ai-agent/list-block-types',
-			[
-				'label'       => __( 'List Block Types', 'gratis-ai-agent' ),
-				'description' => __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * Get metadata for a specific block type.
-	 *
-	 * @param array<string,mixed> $input Input args (requires 'name' key).
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_get_block_type( array $input = [] ) {
-		$ability = new GetBlockTypeAbility(
-			'gratis-ai-agent/get-block-type',
-			[
-				'label'       => __( 'Get Block Type', 'gratis-ai-agent' ),
-				'description' => __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * List registered block patterns.
-	 *
-	 * @param array<string,mixed> $input Input args (supports 'category', 'search', 'per_page', 'full_content').
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_list_block_patterns( array $input = [] ) {
-		$ability = new ListBlockPatternsAbility(
-			'gratis-ai-agent/list-block-patterns',
-			[
-				'label'       => __( 'List Block Patterns', 'gratis-ai-agent' ),
-				'description' => __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * Build serialized Gutenberg block HTML from a structured block array.
-	 *
-	 * @param array<string,mixed> $input Input args (requires 'blocks' key).
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_create_block_content( array $input = [] ) {
-		$ability = new CreateBlockContentAbility(
-			'gratis-ai-agent/create-block-content',
-			[
-				'label'       => __( 'Create Block Content', 'gratis-ai-agent' ),
-				'description' => __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
-
-	/**
-	 * Parse existing Gutenberg block content into a structured block tree.
-	 *
-	 * @param array<string,mixed> $input Input args (requires 'post_id' or 'content').
-	 * @return array<string,mixed>|\WP_Error
-	 */
-	public static function handle_parse_block_content( array $input = [] ) {
-		$ability = new ParseBlockContentAbility(
-			'gratis-ai-agent/parse-block-content',
-			[
-				'label'       => __( 'Parse Block Content', 'gratis-ai-agent' ),
-				'description' => __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'gratis-ai-agent' ),
-			]
-		);
-		return $ability->run( $input );
-	}
 
 	/**
 	 * Register abilities on init.
@@ -141,367 +36,275 @@ class BlockAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/markdown-to-blocks',
+			'ai-agent/markdown-to-blocks',
 			[
-				'label'         => __( 'Markdown to Blocks', 'gratis-ai-agent' ),
-				'description'   => __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'gratis-ai-agent' ),
-				'ability_class' => MarkdownToBlocksAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/list-block-types',
-			[
-				'label'         => __( 'List Block Types', 'gratis-ai-agent' ),
-				'description'   => __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'gratis-ai-agent' ),
-				'ability_class' => ListBlockTypesAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/get-block-type',
-			[
-				'label'         => __( 'Get Block Type', 'gratis-ai-agent' ),
-				'description'   => __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'gratis-ai-agent' ),
-				'ability_class' => GetBlockTypeAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/list-block-patterns',
-			[
-				'label'         => __( 'List Block Patterns', 'gratis-ai-agent' ),
-				'description'   => __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'gratis-ai-agent' ),
-				'ability_class' => ListBlockPatternsAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/list-block-templates',
-			[
-				'label'         => __( 'List Block Templates', 'gratis-ai-agent' ),
-				'description'   => __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'gratis-ai-agent' ),
-				'ability_class' => ListBlockTemplatesAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/create-block-content',
-			[
-				'label'         => __( 'Create Block Content', 'gratis-ai-agent' ),
-				'description'   => __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'gratis-ai-agent' ),
-				'ability_class' => CreateBlockContentAbility::class,
-			]
-		);
-
-		wp_register_ability(
-			'gratis-ai-agent/parse-block-content',
-			[
-				'label'         => __( 'Parse Block Content', 'gratis-ai-agent' ),
-				'description'   => __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'gratis-ai-agent' ),
-				'ability_class' => ParseBlockContentAbility::class,
-			]
-		);
-	}
-}
-
-/**
- * Shared block helper methods.
- *
- * @since 1.0.0
- */
-abstract class AbstractBlockAbility extends AbstractAbility {
-
-	/**
-	 * Normalize a simplified agent-friendly block into serialize_block() format.
-	 *
-	 * @param array<string,mixed> $data Block data with blockName, attrs, content, innerBlocks.
-	 * @return array<string,mixed> Full block array for serialize_block().
-	 */
-	protected function normalize_block( array $data ): array {
-		$block_name = $data['blockName'] ?? '';
-		$attrs      = $data['attrs'] ?? [];
-		$content    = $data['content'] ?? '';
-		$inner_data = $data['innerBlocks'] ?? [];
-
-		// Recursively normalize inner blocks.
-		$inner_blocks = [];
-		foreach ( $inner_data as $child ) {
-			$inner_blocks[] = $this->normalize_block( $child );
-		}
-
-		// Generate markup based on block type.
-		switch ( $block_name ) {
-			case 'core/paragraph':
-				$html = '<p>' . $content . '</p>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/heading':
-				$level = (int) ( $attrs['level'] ?? 2 );
-				$html  = '<h' . $level . ' class="wp-block-heading">' . $content . '</h' . $level . '>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/list':
-				$ordered = ! empty( $attrs['ordered'] );
-				$tag     = $ordered ? 'ol' : 'ul';
-
-				if ( ! empty( $inner_blocks ) ) {
-					$inner_html    = '<' . $tag . '>';
-					$inner_content = [ '<' . $tag . '>' ];
-					foreach ( $inner_blocks as $item ) {
-						$inner_content[] = null;
-						$inner_html     .= $item['innerHTML'] ?? '';
-					}
-					$inner_content[] = '</' . $tag . '>';
-					$inner_html     .= '</' . $tag . '>';
-
-					return [
-						'blockName'    => $block_name,
-						'attrs'        => $attrs,
-						'innerBlocks'  => $inner_blocks,
-						'innerHTML'    => $inner_html,
-						'innerContent' => $inner_content,
-					];
-				}
-
-				return $this->build_block( $block_name, $attrs, $inner_blocks, '<' . $tag . '></' . $tag . '>' );
-
-			case 'core/list-item':
-				$html = '<li>' . $content . '</li>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/image':
-				$url  = esc_url( $attrs['url'] ?? '' );
-				$alt  = esc_attr( $attrs['alt'] ?? '' );
-				$html = '<figure class="wp-block-image"><img src="' . $url . '" alt="' . $alt . '"/></figure>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/quote':
-				$html = '<blockquote class="wp-block-quote"><p>' . $content . '</p></blockquote>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/code':
-				$escaped = esc_html( $content );
-				$html    = '<pre class="wp-block-code"><code>' . $escaped . '</code></pre>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/buttons':
-				return $this->build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-buttons' );
-
-			case 'core/button':
-				$url  = esc_url( $attrs['url'] ?? '' );
-				$text = $attrs['text'] ?? $content;
-				$html = '<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . $url . '">' . $text . '</a></div>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/columns':
-				return $this->build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-columns' );
-
-			case 'core/column':
-				return $this->build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-column' );
-
-			case 'core/group':
-				return $this->build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-group' );
-
-			case 'core/separator':
-				$html = '<hr class="wp-block-separator has-alpha-channel-opacity"/>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/spacer':
-				$height = $attrs['height'] ?? '50px';
-				$html   = '<div style="height:' . esc_attr( $height ) . '" aria-hidden="true" class="wp-block-spacer"></div>';
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-
-			case 'core/cover':
-				return $this->build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-cover' );
-
-			default:
-				// Unknown blocks: pass content as raw innerHTML.
-				$html = $content;
-				if ( ! empty( $inner_blocks ) ) {
-					return $this->build_container_raw( $block_name, $attrs, $inner_blocks, $html );
-				}
-				return $this->build_block( $block_name, $attrs, $inner_blocks, $html );
-		}
-	}
-
-	/**
-	 * Build a simple block array (no inner blocks in innerContent).
-	 *
-	 * @param string              $block_name   Block name.
-	 * @param array<string,mixed> $attrs        Block attributes.
-	 * @param array<int,mixed>    $inner_blocks Inner blocks array.
-	 * @param string              $html         Block HTML.
-	 * @return array<string,mixed> Block array.
-	 */
-	protected function build_block( string $block_name, array $attrs, array $inner_blocks, string $html ): array {
-		return [
-			'blockName'    => $block_name,
-			'attrs'        => $attrs,
-			'innerBlocks'  => $inner_blocks,
-			'innerHTML'    => $html,
-			'innerContent' => [ $html ],
-		];
-	}
-
-	/**
-	 * Build a container block with inner block placeholders in innerContent.
-	 *
-	 * @param string              $block_name   Block name.
-	 * @param array<string,mixed> $attrs        Block attributes.
-	 * @param array<int,mixed>    $inner_blocks Inner blocks array.
-	 * @param string              $tag          HTML tag.
-	 * @param string              $class        CSS class.
-	 * @return array<string,mixed> Block array.
-	 */
-	protected function build_container( string $block_name, array $attrs, array $inner_blocks, string $tag, string $class ): array {
-		$open  = '<' . $tag . ' class="' . esc_attr( $class ) . '">';
-		$close = '</' . $tag . '>';
-
-		$inner_content = [ $open ];
-		$inner_html    = $open;
-
-		foreach ( $inner_blocks as $child ) {
-			$inner_content[] = null;
-			$inner_html     .= $child['innerHTML'] ?? '';
-		}
-
-		$inner_content[] = $close;
-		$inner_html     .= $close;
-
-		return [
-			'blockName'    => $block_name,
-			'attrs'        => $attrs,
-			'innerBlocks'  => $inner_blocks,
-			'innerHTML'    => $inner_html,
-			'innerContent' => $inner_content,
-		];
-	}
-
-	/**
-	 * Build a container for unknown blocks with inner block placeholders.
-	 *
-	 * @param string              $block_name   Block name.
-	 * @param array<string,mixed> $attrs        Block attributes.
-	 * @param array<int,mixed>    $inner_blocks Inner blocks array.
-	 * @param string              $wrapper_html Wrapper HTML.
-	 * @return array<string,mixed> Block array.
-	 */
-	protected function build_container_raw( string $block_name, array $attrs, array $inner_blocks, string $wrapper_html ): array {
-		$inner_content = [];
-		$inner_html    = '';
-
-		if ( ! empty( $wrapper_html ) ) {
-			$inner_content[] = $wrapper_html;
-			$inner_html     .= $wrapper_html;
-		}
-
-		foreach ( $inner_blocks as $child ) {
-			$inner_content[] = null;
-			$inner_html     .= $child['innerHTML'] ?? '';
-		}
-
-		return [
-			'blockName'    => $block_name,
-			'attrs'        => $attrs,
-			'innerBlocks'  => $inner_blocks,
-			'innerHTML'    => $inner_html,
-			'innerContent' => $inner_content,
-		];
-	}
-
-	/**
-	 * Count inner blocks recursively.
-	 *
-	 * @param array<string,mixed> $block Block array.
-	 */
-	protected function count_inner_blocks( array $block ): int {
-		$count = 0;
-		foreach ( $block['innerBlocks'] ?? [] as $child ) {
-			++$count;
-			$count += $this->count_inner_blocks( $child );
-		}
-		return $count;
-	}
-
-	/**
-	 * Clean up parsed blocks from parse_blocks(), removing empty freeform blocks.
-	 *
-	 * @param array<int,mixed> $blocks Parsed blocks array.
-	 * @return array<int,mixed> Cleaned blocks array.
-	 */
-	protected function clean_parsed_blocks( array $blocks ): array {
-		$cleaned = [];
-
-		foreach ( $blocks as $block ) {
-			// Skip null/empty freeform blocks (whitespace between blocks).
-			if ( empty( $block['blockName'] ) ) {
-				$content = trim( $block['innerHTML'] ?? '' );
-				if ( empty( $content ) ) {
-					continue;
-				}
-			}
-
-			$result = [
-				'blockName' => $block['blockName'] ?? null,
-				'attrs'     => $block['attrs'] ?? [],
-				'innerHTML' => trim( $block['innerHTML'] ?? '' ),
-			];
-
-			if ( ! empty( $block['innerBlocks'] ) ) {
-				$result['innerBlocks'] = $this->clean_parsed_blocks( $block['innerBlocks'] );
-			}
-
-			$cleaned[] = $result;
-		}
-
-		return $cleaned;
-	}
-}
-
-/**
- * Markdown to Blocks ability.
- *
- * @since 1.0.0
- */
-class MarkdownToBlocksAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'Markdown to Blocks', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'markdown' => [
-					'type'        => 'string',
-					'description' => 'Markdown text to convert into Gutenberg blocks.',
+				'label'               => __( 'Markdown to Blocks', 'gratis-ai-agent' ),
+				'description'         => __( 'Convert markdown text into serialized Gutenberg block HTML ready for post_content. Best for text-heavy content like blog posts and articles.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'markdown' => [
+							'type'        => 'string',
+							'description' => 'Markdown text to convert into Gutenberg blocks.',
+						],
+					],
+					'required'   => [ 'markdown' ],
 				],
-			],
-			'required'   => [ 'markdown' ],
-		];
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_content' => [ 'type' => 'string' ],
+						'block_count'   => [ 'type' => 'integer' ],
+						'error'         => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_markdown_to_blocks' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/list-block-types',
+			[
+				'label'               => __( 'List Block Types', 'gratis-ai-agent' ),
+				'description'         => __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'category' => [
+							'type'        => 'string',
+							'description' => 'Filter by block category slug (e.g. "text", "media", "design").',
+						],
+						'search'   => [
+							'type'        => 'string',
+							'description' => 'Search term to filter block types by name, title, or keywords.',
+						],
+						'per_page' => [
+							'type'        => 'integer',
+							'description' => 'Results per page (default: 20).',
+						],
+						'page'     => [
+							'type'        => 'integer',
+							'description' => 'Page number (default: 1).',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_types' => [ 'type' => 'array' ],
+						'total'       => [ 'type' => 'integer' ],
+						'page'        => [ 'type' => 'integer' ],
+						'per_page'    => [ 'type' => 'integer' ],
+						'categories'  => [ 'type' => 'object' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_types' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/get-block-type',
+			[
+				'label'               => __( 'Get Block Type', 'gratis-ai-agent' ),
+				'description'         => __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'name' => [
+							'type'        => 'string',
+							'description' => 'Block type name (e.g. "core/paragraph", "core/image").',
+						],
+					],
+					'required'   => [ 'name' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'name'           => [ 'type' => 'string' ],
+						'title'          => [ 'type' => 'string' ],
+						'description'    => [ 'type' => 'string' ],
+						'category'       => [ 'type' => 'string' ],
+						'keywords'       => [ 'type' => 'array' ],
+						'attributes'     => [ 'type' => 'object' ],
+						'supports'       => [ 'type' => 'object' ],
+						'example_markup' => [ 'type' => 'string' ],
+						'error'          => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_get_block_type' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/list-block-patterns',
+			[
+				'label'               => __( 'List Block Patterns', 'gratis-ai-agent' ),
+				'description'         => __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'category'     => [
+							'type'        => 'string',
+							'description' => 'Filter by pattern category slug.',
+						],
+						'search'       => [
+							'type'        => 'string',
+							'description' => 'Search term to filter patterns by name or title.',
+						],
+						'per_page'     => [
+							'type'        => 'integer',
+							'description' => 'Results per page (default: 10).',
+						],
+						'full_content' => [
+							'type'        => 'boolean',
+							'description' => 'Return full pattern content instead of truncated (default: false).',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'patterns'   => [ 'type' => 'array' ],
+						'total'      => [ 'type' => 'integer' ],
+						'categories' => [ 'type' => 'object' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_patterns' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/list-block-templates',
+			[
+				'label'               => __( 'List Block Templates', 'gratis-ai-agent' ),
+				'description'         => __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'search' => [
+							'type'        => 'string',
+							'description' => 'Search term to filter templates.',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'templates' => [ 'type' => 'array' ],
+						'total'     => [ 'type' => 'integer' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_list_block_templates' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/create-block-content',
+			[
+				'label'               => __( 'Create Block Content', 'gratis-ai-agent' ),
+				'description'         => __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'blocks' => [
+							'type'        => 'array',
+							'description' => 'Array of block objects. Each has: blockName (string, required), attrs (object, optional), content (string, optional — inner text/HTML), innerBlocks (array, optional — nested blocks).',
+						],
+					],
+					'required'   => [ 'blocks' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'block_content' => [ 'type' => 'string' ],
+						'block_count'   => [ 'type' => 'integer' ],
+						'error'         => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_create_block_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/parse-block-content',
+			[
+				'label'               => __( 'Parse Block Content', 'gratis-ai-agent' ),
+				'description'         => __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'  => [
+							'type'        => 'integer',
+							'description' => 'Post ID to read block content from.',
+						],
+						'content'  => [
+							'type'        => 'string',
+							'description' => 'Raw block content string to parse.',
+						],
+						'site_url' => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite (e.g. "https://example.com/mysite").',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'blocks'      => [ 'type' => 'array' ],
+						'block_count' => [ 'type' => 'integer' ],
+						'error'       => [ 'type' => 'string' ],
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_parse_block_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'block_content' => [ 'type' => 'string' ],
-				'block_count'   => [ 'type' => 'integer' ],
-			],
-		];
-	}
+	// ─── Handlers ─────────────────────────────────────────────────
 
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle markdown-to-blocks conversion.
+	 *
+	 * @param array<string,mixed> $input Input with 'markdown' key.
+	 * @return array<string,mixed>|\WP_Error Result with block_content and block_count.
+	 */
+	public static function handle_markdown_to_blocks( array $input ) {
 		$markdown = $input['markdown'] ?? '';
 
 		if ( empty( $markdown ) ) {
-			return new WP_Error( 'missing_param', __( 'markdown is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_markdown', 'markdown is required.' );
 		}
 
 		$blocks        = MarkdownToBlocks::parse( $markdown );
@@ -513,74 +316,13 @@ class MarkdownToBlocksAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * List Block Types ability.
- *
- * @since 1.0.0
- */
-class ListBlockTypesAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'List Block Types', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'List registered Gutenberg block types. Filter by category or search term. Returns block names, titles, descriptions, and categories.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'category' => [
-					'type'        => 'string',
-					'description' => 'Filter by block category slug (e.g. "text", "media", "design").',
-				],
-				'search'   => [
-					'type'        => 'string',
-					'description' => 'Search term to filter block types by name, title, or keywords.',
-				],
-				'per_page' => [
-					'type'        => 'integer',
-					'description' => 'Results per page (default: 20).',
-				],
-				'page'     => [
-					'type'        => 'integer',
-					'description' => 'Page number (default: 1).',
-				],
-			],
-			'required'   => [],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'block_types' => [ 'type' => 'array' ],
-				'total'       => [ 'type' => 'integer' ],
-				'categories'  => [ 'type' => 'object' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle listing block types.
+	 *
+	 * @param array<string,mixed> $input Input with optional category, search, per_page, page.
+	 * @return array<string,mixed> Result with block_types, total, and categories.
+	 */
+	public static function handle_list_block_types( array $input ): array {
 		$registry = \WP_Block_Type_Registry::get_instance();
 		$all      = $registry->get_all_registered();
 
@@ -647,81 +389,24 @@ class ListBlockTypesAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * Get Block Type ability.
- *
- * @since 1.0.0
- */
-class GetBlockTypeAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'Get Block Type', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Get detailed metadata for a specific block type including attributes schema, supports, styles, and variations.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'name' => [
-					'type'        => 'string',
-					'description' => 'Block type name (e.g. "core/paragraph", "core/image").',
-				],
-			],
-			'required'   => [ 'name' ],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'name'        => [ 'type' => 'string' ],
-				'title'       => [ 'type' => 'string' ],
-				'description' => [ 'type' => 'string' ],
-				'attributes'  => [ 'type' => 'object' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle getting a single block type's full metadata.
+	 *
+	 * @param array<string,mixed> $input Input with 'name' key.
+	 * @return array<string,mixed>|\WP_Error Full block type metadata.
+	 */
+	public static function handle_get_block_type( array $input ) {
 		$name = $input['name'] ?? '';
 
 		if ( empty( $name ) ) {
-			return new WP_Error( 'missing_param', __( 'name is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_name', 'name is required.' );
 		}
 
 		$registry = \WP_Block_Type_Registry::get_instance();
 		$block    = $registry->get_registered( $name );
 
 		if ( ! $block ) {
-			return new WP_Error(
-				'not_found',
-				sprintf(
-					/* translators: %s: block type name */
-					__( "Block type '%s' not found.", 'gratis-ai-agent' ),
-					$name
-				)
-			);
+			return new \WP_Error( 'block_not_found', "Block type '{$name}' not found." );
 		}
 
 		$result = [
@@ -767,74 +452,13 @@ class GetBlockTypeAbility extends AbstractBlockAbility {
 		return $result;
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * List Block Patterns ability.
- *
- * @since 1.0.0
- */
-class ListBlockPatternsAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'List Block Patterns', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'List registered block patterns. Filter by category or search. Returns pattern names, titles, descriptions, and optionally full content.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'category'     => [
-					'type'        => 'string',
-					'description' => 'Filter by pattern category slug.',
-				],
-				'search'       => [
-					'type'        => 'string',
-					'description' => 'Search term to filter patterns by name or title.',
-				],
-				'per_page'     => [
-					'type'        => 'integer',
-					'description' => 'Results per page (default: 10).',
-				],
-				'full_content' => [
-					'type'        => 'boolean',
-					'description' => 'Return full pattern content instead of truncated (default: false).',
-				],
-			],
-			'required'   => [],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'patterns'   => [ 'type' => 'array' ],
-				'total'      => [ 'type' => 'integer' ],
-				'categories' => [ 'type' => 'object' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle listing block patterns.
+	 *
+	 * @param array<string,mixed> $input Input with optional category, search, per_page, full_content.
+	 * @return array<string,mixed> Result with patterns, total, and categories.
+	 */
+	public static function handle_list_block_patterns( array $input ): array {
 		$registry = \WP_Block_Patterns_Registry::get_instance();
 		$all      = $registry->get_all_registered();
 
@@ -899,61 +523,13 @@ class ListBlockPatternsAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * List Block Templates ability.
- *
- * @since 1.0.0
- */
-class ListBlockTemplatesAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'List Block Templates', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'List block templates available in the current theme. Returns template slugs, titles, and descriptions.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'search' => [
-					'type'        => 'string',
-					'description' => 'Search term to filter templates.',
-				],
-			],
-			'required'   => [],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'templates' => [ 'type' => 'array' ],
-				'total'     => [ 'type' => 'integer' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle listing block templates.
+	 *
+	 * @param array<string,mixed> $input Input with optional search.
+	 * @return array<string,mixed> Result with templates and total.
+	 */
+	public static function handle_list_block_templates( array $input ): array {
 		$search = strtolower( $input['search'] ?? '' );
 
 		$templates = get_block_templates();
@@ -985,75 +561,27 @@ class ListBlockTemplatesAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * Create Block Content ability.
- *
- * @since 1.0.0
- */
-class CreateBlockContentAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'Create Block Content', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Build serialized Gutenberg block HTML from a structured block array. Best for layouts with columns, buttons, groups, and other complex blocks. Each block needs blockName, optional attrs, content, and innerBlocks.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'blocks' => [
-					'type'        => 'array',
-					'description' => 'Array of block objects. Each has: blockName (string, required), attrs (object, optional), content (string, optional — inner text/HTML), innerBlocks (array, optional — nested blocks).',
-				],
-			],
-			'required'   => [ 'blocks' ],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'block_content' => [ 'type' => 'string' ],
-				'block_count'   => [ 'type' => 'integer' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle creating block content from a structured array.
+	 *
+	 * @param array<string,mixed> $input Input with 'blocks' array.
+	 * @return array<string,mixed>|\WP_Error Result with block_content and block_count.
+	 */
+	public static function handle_create_block_content( array $input ) {
 		$blocks = $input['blocks'] ?? [];
 
 		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
-			return new WP_Error( 'missing_param', __( 'blocks array is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_blocks', 'blocks array is required.' );
 		}
 
 		$output      = '';
 		$block_count = 0;
 
 		foreach ( $blocks as $block_data ) {
-			$normalized = $this->normalize_block( $block_data );
+			$normalized = self::normalize_block( $block_data );
 			$output    .= serialize_block( $normalized ) . "\n\n";
 			++$block_count;
-			$block_count += $this->count_inner_blocks( $normalized );
+			$block_count += self::count_inner_blocks( $normalized );
 		}
 
 		return [
@@ -1062,75 +590,19 @@ class CreateBlockContentAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
-	}
-
-	protected function meta(): array {
-		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
-		];
-	}
-}
-
-/**
- * Parse Block Content ability.
- *
- * @since 1.0.0
- */
-class ParseBlockContentAbility extends AbstractBlockAbility {
-
-	protected function label(): string {
-		return __( 'Parse Block Content', 'gratis-ai-agent' );
-	}
-
-	protected function description(): string {
-		return __( 'Parse existing Gutenberg block content into a structured block tree. Provide either a post_id to read from the database, or raw content string.', 'gratis-ai-agent' );
-	}
-
-	protected function input_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'post_id'  => [
-					'type'        => 'integer',
-					'description' => 'Post ID to read block content from.',
-				],
-				'content'  => [
-					'type'        => 'string',
-					'description' => 'Raw block content string to parse.',
-				],
-				'site_url' => [
-					'type'        => 'string',
-					'description' => 'Subsite URL for multisite (e.g. "https://example.com/mysite").',
-				],
-			],
-			'required'   => [],
-		];
-	}
-
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'blocks'      => [ 'type' => 'array' ],
-				'block_count' => [ 'type' => 'integer' ],
-			],
-		];
-	}
-
-	protected function execute_callback( $input ) {
+	/**
+	 * Handle parsing existing block content.
+	 *
+	 * @param array<string,mixed> $input Input with post_id or content, optional site_url.
+	 * @return array<string,mixed>|\WP_Error Result with blocks and block_count.
+	 */
+	public static function handle_parse_block_content( array $input ) {
 		$post_id  = (int) ( $input['post_id'] ?? 0 );
 		$content  = $input['content'] ?? '';
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id && empty( $content ) ) {
-			return new WP_Error( 'missing_param', __( 'Either post_id or content is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_input', 'Either post_id or content is required.' );
 		}
 
 		$switched = false;
@@ -1145,14 +617,7 @@ class ParseBlockContentAbility extends AbstractBlockAbility {
 				switch_to_blog( $blog_id );
 				$switched = true;
 			} elseif ( ! $blog_id ) {
-				return new WP_Error(
-					'site_not_found',
-					sprintf(
-						/* translators: %s: site URL */
-						__( 'Could not find a site matching URL: %s', 'gratis-ai-agent' ),
-						$site_url
-					)
-				);
+				return new \WP_Error( 'site_not_found', "Could not find a site matching URL: {$site_url}" );
 			}
 		}
 
@@ -1162,20 +627,13 @@ class ParseBlockContentAbility extends AbstractBlockAbility {
 				if ( $switched ) {
 					restore_current_blog();
 				}
-				return new WP_Error(
-					'not_found',
-					sprintf(
-						/* translators: %d: post ID */
-						__( 'Post %d not found.', 'gratis-ai-agent' ),
-						$post_id
-					)
-				);
+				return new \WP_Error( 'post_not_found', "Post {$post_id} not found." );
 			}
 			$content = $post->post_content;
 		}
 
 		$parsed = parse_blocks( $content );
-		$blocks = $this->clean_parsed_blocks( $parsed );
+		$blocks = self::clean_parsed_blocks( $parsed );
 
 		if ( $switched ) {
 			restore_current_blog();
@@ -1187,18 +645,252 @@ class ParseBlockContentAbility extends AbstractBlockAbility {
 		];
 	}
 
-	protected function permission_callback( $input ): bool {
-		return ToolCapabilities::current_user_can( $this->name );
+	// ─── Private helpers ──────────────────────────────────────────
+
+	/**
+	 * Normalize a simplified agent-friendly block into serialize_block() format.
+	 *
+	 * @param array<string,mixed> $data Block data with blockName, attrs, content, innerBlocks.
+	 * @return array<string,mixed> Full block array for serialize_block().
+	 */
+	private static function normalize_block( array $data ): array {
+		$block_name = $data['blockName'] ?? '';
+		$attrs      = $data['attrs'] ?? [];
+		$content    = $data['content'] ?? '';
+		$inner_data = $data['innerBlocks'] ?? [];
+
+		// Recursively normalize inner blocks.
+		$inner_blocks = [];
+		foreach ( $inner_data as $child ) {
+			$inner_blocks[] = self::normalize_block( $child );
+		}
+
+		// Generate markup based on block type.
+		switch ( $block_name ) {
+			case 'core/paragraph':
+				$html = '<p>' . $content . '</p>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/heading':
+				$level = (int) ( $attrs['level'] ?? 2 );
+				$html  = '<h' . $level . ' class="wp-block-heading">' . $content . '</h' . $level . '>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/list':
+				$ordered = ! empty( $attrs['ordered'] );
+				$tag     = $ordered ? 'ol' : 'ul';
+
+				if ( ! empty( $inner_blocks ) ) {
+					$inner_html    = '<' . $tag . '>';
+					$inner_content = [ '<' . $tag . '>' ];
+					foreach ( $inner_blocks as $item ) {
+						$inner_content[] = null;
+						$inner_html     .= $item['innerHTML'] ?? '';
+					}
+					$inner_content[] = '</' . $tag . '>';
+					$inner_html     .= '</' . $tag . '>';
+
+					return [
+						'blockName'    => $block_name,
+						'attrs'        => $attrs,
+						'innerBlocks'  => $inner_blocks,
+						'innerHTML'    => $inner_html,
+						'innerContent' => $inner_content,
+					];
+				}
+
+				return self::build_block( $block_name, $attrs, $inner_blocks, '<' . $tag . '></' . $tag . '>' );
+
+			case 'core/list-item':
+				$html = '<li>' . $content . '</li>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/image':
+				$url  = esc_url( $attrs['url'] ?? '' );
+				$alt  = esc_attr( $attrs['alt'] ?? '' );
+				$html = '<figure class="wp-block-image"><img src="' . $url . '" alt="' . $alt . '"/></figure>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/quote':
+				$html = '<blockquote class="wp-block-quote"><p>' . $content . '</p></blockquote>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/code':
+				$escaped = esc_html( $content );
+				$html    = '<pre class="wp-block-code"><code>' . $escaped . '</code></pre>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/buttons':
+				return self::build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-buttons' );
+
+			case 'core/button':
+				$url  = esc_url( $attrs['url'] ?? '' );
+				$text = $attrs['text'] ?? $content;
+				$html = '<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . $url . '">' . $text . '</a></div>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/columns':
+				return self::build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-columns' );
+
+			case 'core/column':
+				return self::build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-column' );
+
+			case 'core/group':
+				return self::build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-group' );
+
+			case 'core/separator':
+				$html = '<hr class="wp-block-separator has-alpha-channel-opacity"/>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/spacer':
+				$height = $attrs['height'] ?? '50px';
+				$html   = '<div style="height:' . esc_attr( $height ) . '" aria-hidden="true" class="wp-block-spacer"></div>';
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+
+			case 'core/cover':
+				return self::build_container( $block_name, $attrs, $inner_blocks, 'div', 'wp-block-cover' );
+
+			default:
+				// Unknown blocks: pass content as raw innerHTML.
+				$html = $content;
+				if ( ! empty( $inner_blocks ) ) {
+					return self::build_container_raw( $block_name, $attrs, $inner_blocks, $html );
+				}
+				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
+		}
 	}
 
-	protected function meta(): array {
+	/**
+	 * Build a simple block array (no inner blocks in innerContent).
+	 *
+	 * @param string              $block_name  Block name.
+	 * @param array<string,mixed> $attrs       Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $html        Inner HTML.
+	 * @return array<string,mixed> Block array.
+	 */
+	private static function build_block( string $block_name, array $attrs, array $inner_blocks, string $html ): array {
 		return [
-			'annotations'  => [
-				'readonly'    => true,
-				'destructive' => false,
-				'idempotent'  => true,
-			],
-			'show_in_rest' => false,
+			'blockName'    => $block_name,
+			'attrs'        => $attrs,
+			'innerBlocks'  => $inner_blocks,
+			'innerHTML'    => $html,
+			'innerContent' => [ $html ],
 		];
+	}
+
+	/**
+	 * Build a container block with inner block placeholders in innerContent.
+	 *
+	 * @param string              $block_name  Block name.
+	 * @param array<string,mixed> $attrs       Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $tag         HTML tag (div, section, etc.).
+	 * @param string              $class       CSS class.
+	 * @return array<string,mixed> Block array.
+	 */
+	private static function build_container( string $block_name, array $attrs, array $inner_blocks, string $tag, string $class ): array {
+		$open  = '<' . $tag . ' class="' . esc_attr( $class ) . '">';
+		$close = '</' . $tag . '>';
+
+		$inner_content = [ $open ];
+		$inner_html    = $open;
+
+		foreach ( $inner_blocks as $child ) {
+			$inner_content[] = null;
+			$inner_html     .= $child['innerHTML'] ?? '';
+		}
+
+		$inner_content[] = $close;
+		$inner_html     .= $close;
+
+		return [
+			'blockName'    => $block_name,
+			'attrs'        => $attrs,
+			'innerBlocks'  => $inner_blocks,
+			'innerHTML'    => $inner_html,
+			'innerContent' => $inner_content,
+		];
+	}
+
+	/**
+	 * Build a container for unknown blocks with inner block placeholders.
+	 *
+	 * @param string              $block_name   Block name.
+	 * @param array<string,mixed> $attrs        Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $wrapper_html Optional wrapper HTML.
+	 * @return array<string,mixed> Block array.
+	 */
+	private static function build_container_raw( string $block_name, array $attrs, array $inner_blocks, string $wrapper_html ): array {
+		$inner_content = [];
+		$inner_html    = '';
+
+		if ( ! empty( $wrapper_html ) ) {
+			$inner_content[] = $wrapper_html;
+			$inner_html     .= $wrapper_html;
+		}
+
+		foreach ( $inner_blocks as $child ) {
+			$inner_content[] = null;
+			$inner_html     .= $child['innerHTML'] ?? '';
+		}
+
+		return [
+			'blockName'    => $block_name,
+			'attrs'        => $attrs,
+			'innerBlocks'  => $inner_blocks,
+			'innerHTML'    => $inner_html,
+			'innerContent' => $inner_content,
+		];
+	}
+
+	/**
+	 * Count inner blocks recursively.
+	 *
+	 * @param array<string,mixed> $block Block array.
+	 * @return int Total inner block count.
+	 */
+	private static function count_inner_blocks( array $block ): int {
+		$count = 0;
+		foreach ( $block['innerBlocks'] ?? [] as $child ) {
+			++$count;
+			$count += self::count_inner_blocks( $child );
+		}
+		return $count;
+	}
+
+	/**
+	 * Clean up parsed blocks from parse_blocks(), removing empty freeform blocks.
+	 *
+	 * @param array<int,mixed> $blocks Parsed blocks from parse_blocks().
+	 * @return array<int,mixed> Cleaned block tree.
+	 */
+	private static function clean_parsed_blocks( array $blocks ): array {
+		$cleaned = [];
+
+		foreach ( $blocks as $block ) {
+			// Skip null/empty freeform blocks (whitespace between blocks).
+			if ( empty( $block['blockName'] ) ) {
+				$content = trim( $block['innerHTML'] ?? '' );
+				if ( empty( $content ) ) {
+					continue;
+				}
+			}
+
+			$result = [
+				'blockName' => $block['blockName'] ?? null,
+				'attrs'     => $block['attrs'] ?? [],
+				'innerHTML' => trim( $block['innerHTML'] ?? '' ),
+			];
+
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$result['innerBlocks'] = self::clean_parsed_blocks( $block['innerBlocks'] );
+			}
+
+			$cleaned[] = $result;
+		}
+
+		return $cleaned;
 	}
 }

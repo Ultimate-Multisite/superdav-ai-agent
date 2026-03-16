@@ -71,7 +71,7 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	padding: 0 8px;
 }
 
-.ai-agent-sidebar-search {
+.gratis-ai-agent-sidebar-search {
 	width: 100%;
 	padding: 6px 10px;
 	border: 1px solid #c3c4c7;
@@ -80,7 +80,7 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	box-sizing: border-box;
 }
 
-.ai-agent-sidebar-search:focus {
+.gratis-ai-agent-sidebar-search:focus {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	outline: none;
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);

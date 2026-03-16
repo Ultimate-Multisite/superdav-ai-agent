@@ -70,6 +70,15 @@ jobs:
             sleep 5
           done
 
+      - name: Configure plugin for E2E tests
+        run: |
+          # Mark onboarding complete so the main chat UI renders (not the wizard).
+          # Playwright tests run against the development environment (port 8888).
+          npx wp-env run wordpress wp-cli option update gratis_ai_agent_settings \
+            '{"onboarding_complete":true}' --format=json
+        env:
+          WP_ENV_HOME: /tmp/wp-env
+
       - name: Run Playwright E2E tests
         run: npm run test:e2e:playwright
         env:

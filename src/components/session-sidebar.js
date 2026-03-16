@@ -279,17 +279,17 @@ export default function SessionSidebar() {
 						onChange={ handleImport }
 					/>
 				</div>
-				{ ! isSharedTab && (
-					<input
-						type="text"
-						className="ai-agent-sidebar-search"
-						placeholder={ __(
-							'Search conversations…',
-							'ai-agent'
-						) }
-						onChange={ handleSearchChange }
-					/>
-				) }
+			{ ! isSharedTab && (
+				<input
+					type="text"
+					className="gratis-ai-agent-sidebar-search"
+					placeholder={ __(
+						'Search conversations…',
+						'ai-agent'
+					) }
+					onChange={ handleSearchChange }
+				/>
+			) }
 			</div>
 			<div className="ai-agent-sidebar-filters">
 				{ filterTabs.map( ( tab ) => (

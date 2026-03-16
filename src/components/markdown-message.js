@@ -14,6 +14,7 @@ import remarkGfm from 'remark-gfm';
  */
 import CodeBlock from './code-block';
 import ChartBlock from './chart-block';
+import DataTable from './data-table';
 
 /** Languages that should render as interactive Chart.js charts. */
 const CHART_LANGUAGES = new Set( [ 'chart', 'chartjs', 'chart.js' ] );
@@ -51,12 +52,16 @@ const components = {
 			</a>
 		);
 	},
-	table( { children, ...props } ) {
-		return (
-			<div className="gratis-ai-agent-table-wrap">
-				<table { ...props }>{ children }</table>
-			</div>
-		);
+	/**
+	 * Replace plain <table> with the interactive DataTable component.
+	 * DataTable handles its own scroll wrapper, so no extra div needed.
+	 *
+	 * @param {Object} props          - Renderer props from ReactMarkdown.
+	 * @param {*}      props.children - Table children (thead + tbody).
+	 * @return {JSX.Element} Interactive DataTable.
+	 */
+	table( { children } ) {
+		return <DataTable>{ children }</DataTable>;
 	},
 	// Prevent wrapping image in paragraph.
 	img( { src, alt, ...props } ) {

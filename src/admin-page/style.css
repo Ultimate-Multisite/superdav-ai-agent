@@ -537,7 +537,7 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	color: inherit;
 }
 
-/* Tables */
+/* Tables — legacy wrapper (kept for any non-DataTable usage) */
 .ai-agent-table-wrap {
 	overflow-x: auto;
 	margin: 0.5em 0;
@@ -563,6 +563,140 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 
 .ai-agent-assistant tr:nth-child(even) td {
 	background: #fafafa;
+}
+
+/* DataTable — sortable, filterable table (t072) */
+.ai-agent-data-table-wrap {
+	margin: 0.5em 0;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.ai-agent-data-table-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.ai-agent-data-table-filter {
+	position: relative;
+	flex: 1;
+}
+
+.ai-agent-data-table-filter-input {
+	width: 100%;
+	padding: 4px 28px 4px 8px;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	font-size: 12px;
+	box-sizing: border-box;
+	background: #fff;
+}
+
+.ai-agent-data-table-filter-input:focus {
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	outline: none;
+	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
+}
+
+.ai-agent-data-table-filter-clear {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	color: #787c82;
+	cursor: pointer;
+	font-size: 11px;
+	padding: 0;
+	line-height: 1;
+}
+
+.ai-agent-data-table-filter-clear:hover {
+	color: #1d2327;
+}
+
+.ai-agent-data-table-count {
+	font-size: 11px;
+	color: #787c82;
+	white-space: nowrap;
+}
+
+.ai-agent-data-table-scroll {
+	overflow-x: auto;
+}
+
+.ai-agent-data-table {
+	border-collapse: collapse;
+	width: 100%;
+	font-size: 13px;
+}
+
+.ai-agent-data-table-th {
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+	padding: 6px 10px;
+	text-align: left;
+	font-weight: 600;
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+	transition: background 0.1s;
+}
+
+.ai-agent-data-table-th:hover {
+	background: #e0e0e0;
+}
+
+.ai-agent-data-table-th.is-sorted {
+	background: #e0e6ed;
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+
+.ai-agent-data-table-th:focus {
+	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+	outline-offset: -2px;
+}
+
+.ai-agent-data-table-th-label {
+	margin-right: 4px;
+}
+
+.ai-agent-table-sort-icon {
+	font-size: 11px;
+	vertical-align: middle;
+}
+
+.ai-agent-table-sort-none {
+	color: #a7aaad;
+}
+
+.ai-agent-table-sort-active {
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+
+.ai-agent-data-table-td {
+	border: 1px solid #dcdcde;
+	padding: 6px 10px;
+	text-align: left;
+	vertical-align: top;
+}
+
+.ai-agent-data-table tr:nth-child(even) .ai-agent-data-table-td {
+	background: #fafafa;
+}
+
+.ai-agent-data-table-empty {
+	padding: 12px 10px;
+	color: #787c82;
+	font-style: italic;
+	text-align: center;
+	border: 1px solid #dcdcde;
 }
 
 /* Blockquote */

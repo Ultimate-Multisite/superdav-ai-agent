@@ -72,6 +72,9 @@ class AgentLoop {
 	/** @var array<string, string> Tool permission levels from settings. */
 	private $tool_permissions = [];
 
+	/** @var bool When true, skip all tool confirmations (YOLO mode). */
+	private $yolo_mode = false;
+
 	/** @var array<string, mixed> Page context from the widget. */
 	private $page_context = [];
 
@@ -109,8 +112,9 @@ class AgentLoop {
 
 		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
 
-		// Tool permissions and resumable state.
+		// Tool permissions, YOLO mode, and resumable state.
 		$this->tool_permissions = $settings['tool_permissions'] ?? [];
+		$this->yolo_mode        = (bool) ( $settings['yolo_mode'] ?? false );
 		$this->tool_call_log    = $options['tool_call_log'] ?? [];
 		$this->token_usage      = $options['token_usage'] ?? [
 			'prompt'     => 0,
@@ -1283,6 +1287,11 @@ class AgentLoop {
 	 * @return list<array<string, mixed>> Array of tool details needing confirmation (empty if none).
 	 */
 	private function get_tools_needing_confirmation( Message $message ): array {
+		// YOLO mode: skip all confirmations and execute immediately.
+		if ( $this->yolo_mode ) {
+			return [];
+		}
+
 		if ( empty( $this->tool_permissions ) ) {
 			return [];
 		}

@@ -1419,3 +1419,110 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	background: #e0e0e0;
 	border-color: #bbb;
 }
+
+/* Action card — inline confirmation (t074) */
+.ai-agent-message-row-action-card {
+	margin: 4px 0 8px;
+}
+
+.ai-agent-action-card {
+	background: #fff8f0;
+	border: 1px solid #f0b849;
+	border-left: 4px solid #d63638;
+	border-radius: 6px;
+	overflow: hidden;
+	max-width: 520px;
+}
+
+.ai-agent-action-card-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px 8px;
+	border-bottom: 1px solid #f0b849;
+	background: #fef8ec;
+}
+
+.ai-agent-action-card-icon {
+	font-size: 14px;
+	color: #d63638;
+	flex-shrink: 0;
+}
+
+.ai-agent-action-card-heading {
+	font-weight: 600;
+	font-size: 13px;
+	color: #d63638;
+}
+
+.ai-agent-action-card-body {
+	padding: 10px 14px;
+}
+
+.ai-agent-action-card-tool {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 8px 10px;
+	margin-bottom: 6px;
+}
+
+.ai-agent-action-card-tool:last-child {
+	margin-bottom: 0;
+}
+
+.ai-agent-action-card-tool-title {
+	font-weight: 600;
+	font-size: 13px;
+	color: #1d2327;
+	margin-bottom: 2px;
+}
+
+.ai-agent-action-card-tool-desc {
+	font-size: 12px;
+	color: #50575e;
+	margin-bottom: 4px;
+}
+
+.ai-agent-action-card-tool-args-details {
+	margin-top: 4px;
+}
+
+.ai-agent-action-card-tool-args-details summary {
+	font-size: 11px;
+	color: #787c82;
+	cursor: pointer;
+	user-select: none;
+}
+
+.ai-agent-action-card-tool-args {
+	margin: 4px 0 0;
+	padding: 6px 8px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	font-size: 11px;
+	line-height: 1.5;
+	overflow-x: auto;
+	max-height: 160px;
+	overflow-y: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.ai-agent-action-card-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 8px 14px 10px;
+	border-top: 1px solid #f0b849;
+	background: #fef8ec;
+}
+
+.ai-agent-action-card-btn-cancel {
+	min-width: 72px;
+}
+
+.ai-agent-action-card-btn-confirm {
+	min-width: 80px;
+}

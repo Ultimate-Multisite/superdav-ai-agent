@@ -270,6 +270,18 @@ export default function SettingsApp() {
 										) }
 										rows={ 2 }
 									/>
+									<ToggleControl
+										label={ __( 'YOLO Mode', 'ai-agent' ) }
+										checked={ local.yolo_mode ?? false }
+										onChange={ ( v ) =>
+											updateField( 'yolo_mode', v )
+										}
+										help={ __(
+											'Skip all action confirmations and execute immediately. Use with caution — destructive actions will not prompt for approval.',
+											'ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
 								</div>
 							);
 

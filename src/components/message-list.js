@@ -14,13 +14,14 @@ import ToolCallDetails from './tool-call-details';
 import MarkdownMessage from './markdown-message';
 import MessageActions from './message-actions';
 import DebugPanel from './debug-panel';
+import ActionCard from './action-card';
 
 /**
  * Parse suggestion chips from the end of a model response.
  * Suggestions are lines starting with `[suggestion]`.
  *
  * @param {string} text The full response text.
- * @return {{ cleanText: string, suggestions: string[] }} Object with cleaned text and extracted suggestion chips.
+ * @return {{ cleanText: string, suggestions: string[] }} Parsed text and suggestion chips.
  */
 function parseSuggestions( text ) {
 	const lines = text.split( '\n' );
@@ -100,16 +101,27 @@ function extractText( message ) {
 }
 
 export default function MessageList() {
-	const { messages, sending, debugMode } = useSelect( ( select ) => {
+	const {
+		messages,
+		sending,
+		debugMode,
+		streamingText,
+		isStreaming,
+		pendingActionCard,
+	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
 			messages: store.getCurrentSessionMessages(),
 			sending: store.isSending(),
 			debugMode: store.isDebugMode(),
+			streamingText: store.getStreamingText(),
+			isStreaming: store.isStreamingActive(),
+			pendingActionCard: store.getPendingActionCard(),
 		};
 	}, [] );
 
-	const { sendMessage } = useDispatch( STORE_NAME );
+	const { sendMessage, confirmToolCall, rejectToolCall } =
+		useDispatch( STORE_NAME );
 	const messagesRef = useRef( null );
 
 	useEffect( () => {
@@ -123,7 +135,7 @@ export default function MessageList() {
 				window.scrollTo( 0, savedY );
 			}
 		}
-	}, [ messages, sending ] );
+	}, [ messages, sending, streamingText ] );
 
 	const visibleMessages = messages.filter( ( msg ) => {
 		// Skip function-role messages (tool responses).
@@ -146,7 +158,7 @@ export default function MessageList() {
 				<div className="ai-agent-empty-state">
 					{ __(
 						'Send a message to start a conversation.',
-						'ai-agent'
+						'gratis-ai-agent'
 					) }
 				</div>
 			) }
@@ -183,10 +195,37 @@ export default function MessageList() {
 					</div>
 				);
 			} ) }
-			{ sending && (
+			{ isStreaming && streamingText && (
+				<div className="ai-agent-message-row ai-agent-message-row--streaming">
+					<div className="ai-agent-bubble ai-agent-assistant ai-agent-streaming">
+						<MarkdownMessage content={ streamingText } />
+						<span
+							className="ai-agent-streaming-cursor"
+							aria-hidden="true"
+						/>
+					</div>
+				</div>
+			) }
+			{ pendingActionCard && (
+				<div className="ai-agent-message-row ai-agent-message-row-action-card">
+					<ActionCard
+						card={ pendingActionCard }
+						onConfirm={ ( alwaysAllow ) =>
+							confirmToolCall(
+								pendingActionCard.jobId,
+								alwaysAllow
+							)
+						}
+						onCancel={ () =>
+							rejectToolCall( pendingActionCard.jobId )
+						}
+					/>
+				</div>
+			) }
+			{ sending && ! isStreaming && ! pendingActionCard && (
 				<div className="ai-agent-bubble ai-agent-assistant ai-agent-thinking">
 					<Spinner />
-					{ __( 'Thinking…', 'ai-agent' ) }
+					{ __( 'Thinking…', 'gratis-ai-agent' ) }
 				</div>
 			) }
 		</div>

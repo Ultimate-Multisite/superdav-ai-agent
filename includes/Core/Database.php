@@ -18,7 +18,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '9.0.0';
+	const DB_VERSION        = '10.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -96,6 +96,14 @@ class Database {
 	}
 
 	/**
+	 * Get the git tracked files table name.
+	 */
+	public static function git_tracked_files_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'gratis_ai_agent_git_tracked_files';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -119,6 +127,7 @@ class Database {
 		$automation_logs_table        = self::automation_logs_table_name();
 		$event_automations_table      = self::event_automations_table_name();
 		$conversation_templates_table = self::conversation_templates_table_name();
+		$git_tracked_files_table      = self::git_tracked_files_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -280,6 +289,24 @@ class Database {
 			UNIQUE KEY slug (slug),
 			KEY category (category),
 			KEY is_builtin (is_builtin)
+		) {$charset};
+
+		CREATE TABLE {$git_tracked_files_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			file_path varchar(500) NOT NULL,
+			file_type varchar(20) NOT NULL DEFAULT 'plugin',
+			package_slug varchar(255) NOT NULL DEFAULT '',
+			original_hash varchar(64) NOT NULL DEFAULT '',
+			original_content longblob NOT NULL,
+			current_hash varchar(64) NOT NULL DEFAULT '',
+			status varchar(20) NOT NULL DEFAULT 'unchanged',
+			tracked_at datetime NOT NULL,
+			modified_at datetime DEFAULT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY file_path (file_path(255)),
+			KEY package_slug (package_slug),
+			KEY file_type (file_type),
+			KEY status (status)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

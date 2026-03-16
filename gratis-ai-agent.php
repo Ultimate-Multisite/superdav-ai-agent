@@ -47,6 +47,7 @@ use GratisAiAgent\Abilities\BlockAbilities;
 use GratisAiAgent\Abilities\ContentAbilities;
 use GratisAiAgent\Abilities\DatabaseAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
+use GratisAiAgent\Abilities\GitAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
@@ -59,6 +60,7 @@ use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\AdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
 use GratisAiAgent\Automations\AutomationRunner;
+use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\Core\Database;
@@ -124,6 +126,9 @@ BlockAbilities::register();
 // File operation abilities (read, write, edit, delete, list, search).
 FileAbilities::register();
 
+// Git file tracking abilities (snapshot, diff, restore, list, revert).
+GitAbilities::register();
+
 // Database query abilities (SELECT only).
 DatabaseAbilities::register();
 
@@ -145,6 +150,9 @@ AutomationRunner::register();
 // Event-driven automation trigger handler.
 EventTriggerHandler::register();
 add_action( 'gratis_ai_agent_run_event_automation', [ EventTriggerHandler::class, 'execute_event_run' ] );
+
+// Git change tracking — snapshot files before AI modifications, enable revert.
+GitTrackerManager::register();
 
 // Floating widget on all admin pages.
 FloatingWidget::register();

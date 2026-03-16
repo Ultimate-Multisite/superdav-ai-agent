@@ -501,6 +501,9 @@ class FileWriteAbility extends AbstractFileAbility {
 
 		$existed = file_exists( $full_path );
 
+		// Snapshot the original file content before overwriting (for git change tracking).
+		do_action( 'gratis_ai_agent_before_file_write', $full_path );
+
 		global $wp_filesystem;
 		if ( empty( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -510,6 +513,9 @@ class FileWriteAbility extends AbstractFileAbility {
 		if ( ! $wp_filesystem->put_contents( $full_path, $content, FS_CHMOD_FILE ) ) {
 			return new WP_Error( 'gratis_ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
 		}
+
+		// Record the modification for git change tracking.
+		do_action( 'gratis_ai_agent_after_file_write', $full_path );
 
 		return [
 			'path'   => $path,
@@ -604,6 +610,9 @@ class FileEditAbility extends AbstractFileAbility {
 			return new WP_Error( 'gratis_ai_agent_file_not_found', sprintf( 'File not found: %s', $path ) );
 		}
 
+		// Snapshot the original file content before editing (for git change tracking).
+		do_action( 'gratis_ai_agent_before_file_edit', $full_path );
+
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local file.
 		$content = file_get_contents( $full_path );
 		if ( false === $content ) {
@@ -683,6 +692,9 @@ class FileEditAbility extends AbstractFileAbility {
 			if ( ! $wp_filesystem->put_contents( $full_path, $content, FS_CHMOD_FILE ) ) {
 				return new WP_Error( 'gratis_ai_agent_file_write_failed', sprintf( 'Failed to write file: %s', $path ) );
 			}
+
+			// Record the modification for git change tracking.
+			do_action( 'gratis_ai_agent_after_file_edit', $full_path );
 		}
 
 		return [

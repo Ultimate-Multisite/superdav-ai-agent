@@ -136,7 +136,7 @@
 
 ### Multi-User & Collaboration (P2)
 
-- [ ] t077 Shared conversations: multiple admins can view/continue same session @superdav42 #feature ~6h logged:2026-03-15
+- [ ] t077 Shared conversations: multiple admins can view/continue same session @superdav42 #feature ~6h logged:2026-03-15 ref=GH#387 pr:#474
 - [x] t078 Role-based AI permissions: restrict abilities by WordPress user role @superdav42 #feature ~4h logged:2026-03-15 pr:#462 completed:2026-03-16
 - [x] t079 Conversation templates: pre-built prompts for common tasks @superdav42 #feature ~3h logged:2026-03-15 ref=GH#389 pr:#413 pr:#413 completed:2026-03-16
 

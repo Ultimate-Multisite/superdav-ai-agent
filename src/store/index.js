@@ -2139,11 +2139,6 @@ const selectors = {
 		return state.sendTimestamp;
 	},
 
-	// YOLO mode (skip all confirmation dialogs)
-	isYoloMode( state ) {
-		return !! state.settings?.yolo_mode;
-	},
-
 	// Token usage
 
 	/**

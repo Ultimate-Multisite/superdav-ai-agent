@@ -576,7 +576,7 @@ export default function SettingsApp() {
 							</div>
 						);
 
-						case 'system-prompt':
+					case 'system-prompt':
 							return (
 								<div className="gratis-ai-agent-settings-section">
 									<TextareaControl

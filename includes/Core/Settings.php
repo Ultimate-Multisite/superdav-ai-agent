@@ -165,6 +165,7 @@ class Settings {
 			'yolo_mode'                => false,
 			'site_builder_mode'        => false,
 			'show_on_frontend'         => false,
+			'keyboard_shortcut'        => 'alt+a',
 		];
 	}
 

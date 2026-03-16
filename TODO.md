@@ -6,6 +6,8 @@
   - Rename main file, text domain, namespace, constants, REST namespace, DB tables, options, CSS classes, ability names, CLI command, build assets, config files, CI/docs
   - Add activation hook migration for existing installs (detect old option/table names and rename)
 
+- [ ] t091 Shared conversations: multiple admins can view/continue same session @superdav42 #feature ~6h logged:2026-03-16 ref=GH#387
+
 ## Backlog
 
 ### Onboarding & First-Run Experience (P0)
@@ -47,7 +49,7 @@
 
 ### AI Image Generation & Selection (P1)
 
-- [ ] t068 Add AI image generation ability (DALL-E / Stable Diffusion) @superdav42 #feature ~6h logged:2026-03-15
+- [x] t068 Add AI image generation ability (DALL-E / Stable Diffusion) @superdav42 #feature ~6h logged:2026-03-15 pr:#459 completed:2026-03-16
   - New ability: `generate-image` from text prompt; upload to media library; return attachment ID
 - [x] t069 Enhance StockImageAbilities: auto-select images during content creation @superdav42 #feature ~3h logged:2026-03-15 pr:#449 completed:2026-03-16
   - Auto-attach featured image when creating posts/pages; search by style/mood

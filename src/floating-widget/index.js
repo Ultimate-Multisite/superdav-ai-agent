@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { createRoot, useEffect, useRef } from '@wordpress/element';
+import { createRoot, useEffect, useCallback } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
@@ -12,24 +12,19 @@ import STORE_NAME from '../store';
 import ErrorBoundary from '../components/error-boundary';
 import FloatingButton from './floating-button';
 import FloatingPanel from './floating-panel';
+import SiteBuilderOverlay from './site-builder-overlay';
+import useKeyboardShortcut from './use-keyboard-shortcut';
 import './style.css';
-
-/**
- * Site builder config injected by PHP via wp_localize_script.
- *
- * @type {{ siteBuilderMode: boolean, onboardingComplete: boolean, startEndpoint: string, statusEndpoint: string, nonce: string }|undefined}
- */
-const siteBuilderConfig = window.gratisAiAgentSiteBuilder;
 
 /**
  * Root floating widget component.
  *
  * Fetches providers and sessions on mount, gathers page context, and
- * renders either the FloatingButton (when closed) or FloatingPanel (when open).
- *
- * When site builder mode is active (set by PHP), the panel opens automatically
- * and injects the opening interview greeting so the user sees the first question
- * immediately without having to type anything.
+ * renders one of three states:
+ * - SiteBuilderOverlay: full-screen overlay for fresh installs (t062)
+ * - FloatingButton: FAB when the panel is closed
+ * - FloatingPanel: draggable chat panel when open
+ * Registers a configurable keyboard shortcut (default: Alt+A) to toggle the panel.
  *
  * @return {JSX.Element} The floating widget element.
  */
@@ -39,22 +34,36 @@ function FloatingWidget() {
 		fetchSessions,
 		fetchAlerts,
 		setPageContext,
+		setSiteBuilderMode,
 		setFloatingOpen,
-		appendMessage,
-		sendMessage,
 	} = useDispatch( STORE_NAME );
 
-	const isOpen = useSelect(
-		( select ) => select( STORE_NAME ).isFloatingOpen(),
+	const { isOpen, isSiteBuilderMode, settings } = useSelect(
+		( select ) => ( {
+			isOpen: select( STORE_NAME ).isFloatingOpen(),
+			isSiteBuilderMode: select( STORE_NAME ).isSiteBuilderMode(),
+			settings: select( STORE_NAME ).getSettings(),
+		} ),
 		[]
 	);
 
-	const siteBuilderInitialized = useRef( false );
+	// Keyboard shortcut — default "alt+a", configurable via settings.
+	const shortcut = settings?.keyboard_shortcut ?? 'alt+a';
+	const togglePanel = useCallback( () => {
+		setFloatingOpen( ! isOpen );
+	}, [ setFloatingOpen, isOpen ] );
+	useKeyboardShortcut( shortcut, togglePanel );
 
 	useEffect( () => {
 		fetchProviders();
 		fetchSessions();
 	}, [ fetchProviders, fetchSessions ] );
+
+	// Fetch settings on mount so the keyboard shortcut is available.
+	const { fetchSettings } = useDispatch( STORE_NAME );
+	useEffect( () => {
+		fetchSettings();
+	}, [ fetchSettings ] );
 
 	// Fetch alerts on mount and refresh every 5 minutes.
 	useEffect( () => {
@@ -71,39 +80,17 @@ function FloatingWidget() {
 		}
 	}, [ setPageContext ] );
 
-	// Site builder mode: auto-open and inject the opening greeting.
+	// Activate site builder mode when the PHP layer signals it (t060/t062).
 	useEffect( () => {
-		if (
-			! siteBuilderConfig?.siteBuilderMode ||
-			siteBuilderConfig?.onboardingComplete ||
-			siteBuilderInitialized.current
-		) {
-			return;
+		if ( window.gratisAiAgentData?.site_builder_mode ) {
+			setSiteBuilderMode( true );
 		}
+	}, [ setSiteBuilderMode ] );
 
-		siteBuilderInitialized.current = true;
-
-		// Open the floating panel.
-		setFloatingOpen( true );
-
-		// Inject the site builder opening message as an assistant message so
-		// the user sees the first interview question immediately.
-		const greeting =
-			__(
-				"Hi! I'm your site builder assistant. I'll help you create a complete website in just a few minutes.",
-				'gratis-ai-agent'
-			) +
-			'\n\n' +
-			__(
-				"Let's start with the basics — **what is the name of your business or website?**",
-				'gratis-ai-agent'
-			);
-
-		appendMessage( {
-			role: 'model',
-			parts: [ { text: greeting } ],
-		} );
-	}, [ setFloatingOpen, appendMessage, sendMessage ] );
+	// Site builder full-screen overlay takes priority over normal FAB/panel.
+	if ( isSiteBuilderMode ) {
+		return <SiteBuilderOverlay />;
+	}
 
 	return (
 		<>

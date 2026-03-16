@@ -273,6 +273,27 @@ export default function SettingsApp() {
 										) }
 										rows={ 2 }
 									/>
+									<TextControl
+										label={ __(
+											'Keyboard Shortcut',
+											'gratis-ai-agent'
+										) }
+										value={
+											local.keyboard_shortcut ?? 'alt+a'
+										}
+										onChange={ ( v ) =>
+											updateField(
+												'keyboard_shortcut',
+												v
+											)
+										}
+										help={ __(
+											'Shortcut to open/close the floating chat widget. Use modifier keys joined by "+", e.g. "alt+a" or "ctrl+shift+k". Leave empty to disable.',
+											'gratis-ai-agent'
+										) }
+										placeholder="alt+a"
+										__nextHasNoMarginBottom
+									/>
 									<div className="ai-agent-settings-yolo-section">
 										<ToggleControl
 											label={ __(

@@ -13,13 +13,15 @@ import STORE_NAME from '../store';
 import ChatPanel from '../components/chat-panel';
 import SessionTabs from './session-tabs';
 import useDrag from './use-drag';
+import useResize from './use-resize';
 
 /**
- * Draggable floating chat panel.
+ * Draggable, resizable floating chat panel.
  *
  * Renders a title bar (drag handle + controls), session tabs, and the
- * compact ChatPanel. Supports minimize/expand and custom positioning via
- * the useDrag hook. Position is persisted to localStorage.
+ * compact ChatPanel. Supports minimize/expand, custom positioning via
+ * the useDrag hook, and resizing via the useResize hook. Both position
+ * and size are persisted to localStorage.
  *
  * @return {JSX.Element} The floating panel element.
  */
@@ -36,8 +38,9 @@ export default function FloatingPanel() {
 	);
 
 	const { position, isDragging, handleMouseDown, resetPosition } = useDrag();
+	const { size, isResizing, handleResizeMouseDown, resetSize } = useResize();
 
-	// Build inline styles for custom position.
+	// Build inline styles for custom position and size.
 	const panelStyle = {};
 	if ( position ) {
 		panelStyle.left = position.x + 'px';
@@ -45,14 +48,21 @@ export default function FloatingPanel() {
 		panelStyle.right = 'auto';
 		panelStyle.bottom = 'auto';
 	}
+	if ( size && ! isMinimized ) {
+		panelStyle.width = size.width + 'px';
+		panelStyle.height = size.height + 'px';
+	}
 
 	const classNames = [
 		'ai-agent-floating-panel',
 		isDragging ? 'is-dragging' : '',
+		isResizing ? 'is-resizing' : '',
 		isMinimized ? 'is-minimized' : '',
 	]
 		.filter( Boolean )
 		.join( ' ' );
+
+	const hasCustomState = position || size;
 
 	return (
 		<div className={ classNames } style={ panelStyle }>
@@ -73,12 +83,15 @@ export default function FloatingPanel() {
 							onClick={ clearCurrentSession }
 						/>
 					) }
-					{ position && (
+					{ hasCustomState && (
 						<Button
 							icon={ reset }
 							size="small"
-							label={ __( 'Reset Position', 'ai-agent' ) }
-							onClick={ resetPosition }
+							label={ __( 'Reset Position & Size', 'ai-agent' ) }
+							onClick={ () => {
+								resetPosition();
+								resetSize();
+							} }
 						/>
 					) }
 					<Button
@@ -103,6 +116,28 @@ export default function FloatingPanel() {
 				<>
 					<SessionTabs />
 					<ChatPanel compact />
+					{ /* Resize handles — right edge, bottom edge, corner */ }
+					<div
+						className="ai-agent-resize-handle ai-agent-resize-handle--right"
+						role="presentation"
+						onMouseDown={ ( e ) =>
+							handleResizeMouseDown( e, 'right' )
+						}
+					/>
+					<div
+						className="ai-agent-resize-handle ai-agent-resize-handle--bottom"
+						role="presentation"
+						onMouseDown={ ( e ) =>
+							handleResizeMouseDown( e, 'bottom' )
+						}
+					/>
+					<div
+						className="ai-agent-resize-handle ai-agent-resize-handle--corner"
+						role="presentation"
+						onMouseDown={ ( e ) =>
+							handleResizeMouseDown( e, 'corner' )
+						}
+					/>
 				</>
 			) }
 		</div>

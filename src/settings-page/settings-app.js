@@ -270,31 +270,31 @@ export default function SettingsApp() {
 										) }
 										rows={ 2 }
 									/>
-								<div className="ai-agent-settings-yolo-section">
-									<ToggleControl
-										label={ __(
-											'YOLO Mode',
-											'ai-agent'
-										) }
-										checked={ !! local.yolo_mode }
-										onChange={ ( v ) =>
-											updateField( 'yolo_mode', v )
-										}
-										help={ __(
-											'Skip all confirmation dialogs for tool operations. Use with caution — destructive actions will run without prompting.',
-											'ai-agent'
-										) }
-										__nextHasNoMarginBottom
-									/>
-									{ local.yolo_mode && (
-										<div className="ai-agent-yolo-warning">
-											{ __(
-												'Warning: YOLO mode is active. All tool confirmations are skipped automatically. Destructive operations will execute without asking.',
+									<div className="ai-agent-settings-yolo-section">
+										<ToggleControl
+											label={ __(
+												'YOLO Mode',
 												'ai-agent'
 											) }
-										</div>
-									) }
-								</div>
+											checked={ !! local.yolo_mode }
+											onChange={ ( v ) =>
+												updateField( 'yolo_mode', v )
+											}
+											help={ __(
+												'Skip all confirmation dialogs for tool operations. Use with caution — destructive actions will run without prompting.',
+												'ai-agent'
+											) }
+											__nextHasNoMarginBottom
+										/>
+										{ local.yolo_mode && (
+											<div className="ai-agent-yolo-warning">
+												{ __(
+													'Warning: YOLO mode is active. All tool confirmations are skipped automatically. Destructive operations will execute without asking.',
+													'ai-agent'
+												) }
+											</div>
+										) }
+									</div>
 								</div>
 							);
 

@@ -23,7 +23,7 @@ class ChangesLog {
 	 * @param array<string,mixed> $data Change data: session_id, user_id, object_type, object_id, object_title, ability_name, field_name, before_value, after_value.
 	 * @return int|false Inserted row ID or false on failure.
 	 */
-	public static function record( array $data ) {
+	public static function record( array $data ): int|false {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table; caching not applicable.

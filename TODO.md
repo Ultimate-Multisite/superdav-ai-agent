@@ -130,7 +130,7 @@
 ### Frontend/UI Improvements (P2)
 
 - [ ] t051 Add screen-meta integration (chat in WP admin Help/Screen Options) @superdav42 #ui ~4h logged:2026-03-14
-- [ ] t053 Add CodeMirror integration for code display in chat @superdav42 #ui ~2h logged:2026-03-14
+- [x] t053 Add CodeMirror integration for code display in chat @superdav42 #ui ~2h logged:2026-03-14 pr:#460 completed:2026-03-16
 - [x] t055 Add proper error boundaries in React components @superdav42 #quality ~3h logged:2026-03-14 pr:#279 completed:2026-03-15
 - [x] t056 Add TypeScript types or JSDoc to JS codebase @superdav42 #quality ~8h logged:2026-03-14 pr:#341 completed:2026-03-15
 

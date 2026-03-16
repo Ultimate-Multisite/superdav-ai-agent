@@ -57,6 +57,44 @@ class Automations {
 	}
 
 	/**
+	 * Sanitise and JSON-encode a notification_channels value.
+	 *
+	 * Accepts either a JSON string or a PHP array. Returns a JSON string
+	 * (empty array JSON on invalid input).
+	 *
+	 * @param mixed $value Raw value from request or DB.
+	 * @return string JSON-encoded array.
+	 */
+	private static function sanitize_notification_channels( $value ): string {
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( $value, true );
+			$value   = is_array( $decoded ) ? $decoded : [];
+		}
+
+		if ( ! is_array( $value ) ) {
+			return '[]';
+		}
+
+		$clean = [];
+		foreach ( $value as $channel ) {
+			if ( ! is_array( $channel ) ) {
+				continue;
+			}
+			$type = sanitize_text_field( $channel['type'] ?? '' );
+			if ( ! in_array( $type, [ 'slack', 'discord' ], true ) ) {
+				continue;
+			}
+			$clean[] = [
+				'type'        => $type,
+				'webhook_url' => esc_url_raw( $channel['webhook_url'] ?? '' ),
+				'enabled'     => ! empty( $channel['enabled'] ),
+			];
+		}
+
+		return wp_json_encode( $clean ) ?: '[]';
+	}
+
+	/**
 	 * Create a new automation.
 	 *
 	 * @param array<string, mixed> $data Automation data.
@@ -71,21 +109,22 @@ class Automations {
 		$result = $wpdb->insert(
 			self::table_name(),
 			[
-				'name'            => sanitize_text_field( $data['name'] ?? '' ),
-				'description'     => sanitize_textarea_field( $data['description'] ?? '' ),
-				'prompt'          => wp_kses_post( $data['prompt'] ?? '' ),
-				'schedule'        => sanitize_text_field( $data['schedule'] ?? 'daily' ),
-				'cron_expression' => sanitize_text_field( $data['cron_expression'] ?? '' ),
-				'tool_profile'    => sanitize_text_field( $data['tool_profile'] ?? '' ),
-				'max_iterations'  => absint( $data['max_iterations'] ?? 10 ),
-				'enabled'         => isset( $data['enabled'] ) ? (int) $data['enabled'] : 0,
-				'last_run_at'     => null,
-				'next_run_at'     => null,
-				'run_count'       => 0,
-				'created_at'      => $now,
-				'updated_at'      => $now,
+				'name'                  => sanitize_text_field( $data['name'] ?? '' ),
+				'description'           => sanitize_textarea_field( $data['description'] ?? '' ),
+				'prompt'                => wp_kses_post( $data['prompt'] ?? '' ),
+				'schedule'              => sanitize_text_field( $data['schedule'] ?? 'daily' ),
+				'cron_expression'       => sanitize_text_field( $data['cron_expression'] ?? '' ),
+				'tool_profile'          => sanitize_text_field( $data['tool_profile'] ?? '' ),
+				'max_iterations'        => absint( $data['max_iterations'] ?? 10 ),
+				'enabled'               => isset( $data['enabled'] ) ? (int) $data['enabled'] : 0,
+				'notification_channels' => self::sanitize_notification_channels( $data['notification_channels'] ?? [] ),
+				'last_run_at'           => null,
+				'next_run_at'           => null,
+				'run_count'             => 0,
+				'created_at'            => $now,
+				'updated_at'            => $now,
 			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s', '%s' ]
+			[ '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s' ]
 		);
 
 		if ( ! $result ) {
@@ -140,6 +179,11 @@ class Automations {
 		if ( isset( $data['enabled'] ) ) {
 			$update['enabled'] = (int) $data['enabled'];
 			$formats[]         = '%d';
+		}
+
+		if ( isset( $data['notification_channels'] ) ) {
+			$update['notification_channels'] = self::sanitize_notification_channels( $data['notification_channels'] );
+			$formats[]                       = '%s';
 		}
 
 		if ( empty( $update ) ) {
@@ -275,21 +319,29 @@ class Automations {
 	 * @return array<string, mixed>
 	 */
 	private static function decode_row( object $row ): array {
+		$channels_raw = $row->notification_channels ?? '';
+		$channels     = [];
+		if ( ! empty( $channels_raw ) ) {
+			$decoded  = json_decode( $channels_raw, true );
+			$channels = is_array( $decoded ) ? $decoded : [];
+		}
+
 		return [
-			'id'              => (int) $row->id,
-			'name'            => $row->name,
-			'description'     => $row->description,
-			'prompt'          => $row->prompt,
-			'schedule'        => $row->schedule,
-			'cron_expression' => $row->cron_expression,
-			'tool_profile'    => $row->tool_profile,
-			'max_iterations'  => (int) $row->max_iterations,
-			'enabled'         => (bool) $row->enabled,
-			'last_run_at'     => $row->last_run_at,
-			'next_run_at'     => $row->next_run_at,
-			'run_count'       => (int) $row->run_count,
-			'created_at'      => $row->created_at,
-			'updated_at'      => $row->updated_at,
+			'id'                    => (int) $row->id,
+			'name'                  => $row->name,
+			'description'           => $row->description,
+			'prompt'                => $row->prompt,
+			'schedule'              => $row->schedule,
+			'cron_expression'       => $row->cron_expression,
+			'tool_profile'          => $row->tool_profile,
+			'max_iterations'        => (int) $row->max_iterations,
+			'enabled'               => (bool) $row->enabled,
+			'notification_channels' => $channels,
+			'last_run_at'           => $row->last_run_at,
+			'next_run_at'           => $row->next_run_at,
+			'run_count'             => (int) $row->run_count,
+			'created_at'            => $row->created_at,
+			'updated_at'            => $row->updated_at,
 		];
 	}
 }

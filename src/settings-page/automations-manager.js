@@ -10,10 +10,20 @@ import {
 	ToggleControl,
 	Notice,
 	Spinner,
+	BaseControl,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { trash, pencil, plus } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
+
+const CHANNEL_TYPE_OPTIONS = [
+	{ label: __( 'Slack', 'ai-agent' ), value: 'slack' },
+	{ label: __( 'Discord', 'ai-agent' ), value: 'discord' },
+];
+
+function emptyChannel() {
+	return { type: 'slack', webhook_url: '', enabled: true };
+}
 
 const SCHEDULE_OPTIONS = [
 	{ label: __( 'Hourly', 'ai-agent' ), value: 'hourly' },
@@ -31,6 +41,7 @@ function emptyForm() {
 		tool_profile: '',
 		max_iterations: 10,
 		enabled: true,
+		notification_channels: [],
 	};
 }
 
@@ -46,6 +57,7 @@ export default function AutomationsManager() {
 	const [ viewLogsId, setViewLogsId ] = useState( null );
 	const [ running, setRunning ] = useState( null );
 	const [ notice, setNotice ] = useState( null );
+	const [ testingChannel, setTestingChannel ] = useState( null );
 
 	const fetchAll = useCallback( async () => {
 		try {
@@ -122,9 +134,67 @@ export default function AutomationsManager() {
 			tool_profile: auto.tool_profile || '',
 			max_iterations: auto.max_iterations || 10,
 			enabled: auto.enabled,
+			notification_channels: auto.notification_channels || [],
 		} );
 		setShowForm( true );
 	}, [] );
+
+	const addChannel = useCallback( () => {
+		setForm( ( prev ) => ( {
+			...prev,
+			notification_channels: [
+				...( prev.notification_channels || [] ),
+				emptyChannel(),
+			],
+		} ) );
+	}, [] );
+
+	const removeChannel = useCallback( ( idx ) => {
+		setForm( ( prev ) => {
+			const channels = [ ...( prev.notification_channels || [] ) ];
+			channels.splice( idx, 1 );
+			return { ...prev, notification_channels: channels };
+		} );
+	}, [] );
+
+	const updateChannel = useCallback( ( idx, key, value ) => {
+		setForm( ( prev ) => {
+			const channels = [ ...( prev.notification_channels || [] ) ];
+			channels[ idx ] = { ...channels[ idx ], [ key ]: value };
+			return { ...prev, notification_channels: channels };
+		} );
+	}, [] );
+
+	const handleTestChannel = useCallback(
+		async ( idx ) => {
+			const channel = form.notification_channels[ idx ];
+			if ( ! channel?.webhook_url ) {
+				return;
+			}
+			setTestingChannel( idx );
+			try {
+				const result = await apiFetch( {
+					path: '/ai-agent/v1/automations/test-notification',
+					method: 'POST',
+					data: {
+						type: channel.type,
+						webhook_url: channel.webhook_url,
+					},
+				} );
+				setNotice( {
+					status: result.success ? 'success' : 'error',
+					message: result.message,
+				} );
+			} catch ( err ) {
+				setNotice( {
+					status: 'error',
+					message: err.message || __( 'Test failed.', 'ai-agent' ),
+				} );
+			}
+			setTestingChannel( null );
+		},
+		[ form.notification_channels ]
+	);
 
 	const handleDelete = useCallback(
 		async ( id ) => {
@@ -203,9 +273,10 @@ export default function AutomationsManager() {
 		setForm( {
 			...emptyForm(),
 			name: tpl.name,
-			description: tpl.description,
+			description: tpl.description || '',
 			prompt: tpl.prompt,
 			schedule: tpl.schedule,
+			notification_channels: [],
 		} );
 		setShowForm( true );
 		setEditId( null );
@@ -348,6 +419,116 @@ export default function AutomationsManager() {
 						}
 						__nextHasNoMarginBottom
 					/>
+
+					<BaseControl
+						id="ai-agent-notification-channels"
+						label={ __( 'Notification Channels', 'ai-agent' ) }
+						help={ __(
+							'Send Slack or Discord messages after each run.',
+							'ai-agent'
+						) }
+						__nextHasNoMarginBottom
+					>
+						{ ( form.notification_channels || [] ).map(
+							( channel, idx ) => (
+								<div
+									key={ idx }
+									className="ai-agent-notification-channel"
+									style={ {
+										display: 'flex',
+										gap: '8px',
+										alignItems: 'flex-end',
+										marginBottom: '8px',
+										flexWrap: 'wrap',
+									} }
+								>
+									<SelectControl
+										label={
+											idx === 0
+												? __( 'Type', 'ai-agent' )
+												: undefined
+										}
+										value={ channel.type }
+										options={ CHANNEL_TYPE_OPTIONS }
+										onChange={ ( v ) =>
+											updateChannel( idx, 'type', v )
+										}
+										style={ { minWidth: '100px' } }
+										__nextHasNoMarginBottom
+									/>
+									<TextControl
+										label={
+											idx === 0
+												? __(
+														'Webhook URL',
+														'ai-agent'
+												  )
+												: undefined
+										}
+										value={ channel.webhook_url }
+										onChange={ ( v ) =>
+											updateChannel(
+												idx,
+												'webhook_url',
+												v
+											)
+										}
+										placeholder={
+											'slack' === channel.type
+												? 'https://hooks.slack.com/…'
+												: 'https://discord.com/api/webhooks/…'
+										}
+										style={ { flex: 1, minWidth: '220px' } }
+										__nextHasNoMarginBottom
+									/>
+									<ToggleControl
+										label={ __( 'On', 'ai-agent' ) }
+										checked={ channel.enabled }
+										onChange={ ( v ) =>
+											updateChannel( idx, 'enabled', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+									<Button
+										variant="secondary"
+										size="compact"
+										onClick={ () =>
+											handleTestChannel( idx )
+										}
+										disabled={
+											! channel.webhook_url ||
+											testingChannel === idx
+										}
+									>
+										{ testingChannel === idx ? (
+											<Spinner />
+										) : (
+											__( 'Test', 'ai-agent' )
+										) }
+									</Button>
+									<Button
+										icon={ trash }
+										size="compact"
+										isDestructive
+										label={ __(
+											'Remove channel',
+											'ai-agent'
+										) }
+										onClick={ () => removeChannel( idx ) }
+									/>
+								</div>
+							)
+						) }
+						<Button
+							variant="tertiary"
+							icon={ plus }
+							size="compact"
+							onClick={ addChannel }
+						>
+							{ __( 'Add Channel', 'ai-agent' ) }
+						</Button>
+					</BaseControl>
+
 					<div className="ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
@@ -401,6 +582,29 @@ export default function AutomationsManager() {
 									<span className="ai-agent-skill-badge">
 										{ auto.schedule }
 									</span>
+									{ auto.notification_channels?.filter(
+										( c ) => c.enabled
+									).length > 0 && (
+										<span
+											className="ai-agent-skill-badge"
+											title={ __(
+												'Notifications configured',
+												'ai-agent'
+											) }
+										>
+											{
+												auto.notification_channels.filter(
+													( c ) => c.enabled
+												).length
+											}{ ' ' }
+											{ __( 'notification', 'ai-agent' ) }
+											{ auto.notification_channels.filter(
+												( c ) => c.enabled
+											).length > 1
+												? 's'
+												: '' }
+										</span>
+									) }
 								</div>
 							</div>
 							<p className="ai-agent-skill-card-description">

@@ -129,6 +129,9 @@ class AutomationRunner {
 		// Update automation metadata.
 		Automations::record_run( $automation_id, $now );
 
+		// Dispatch Slack/Discord notifications (non-blocking; failures are logged, not thrown).
+		NotificationDispatcher::dispatch( $automation, $log_data );
+
 		/**
 		 * Fires after a scheduled automation completes.
 		 *

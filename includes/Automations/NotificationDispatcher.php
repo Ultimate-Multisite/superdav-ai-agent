@@ -1,0 +1,340 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * Notification Dispatcher — sends automation results to Slack and Discord webhooks.
+ *
+ * Each automation can have zero or more notification channels configured as a JSON
+ * array of objects:
+ *
+ *   [
+ *     { "type": "slack",   "webhook_url": "https://hooks.slack.com/…",   "enabled": true },
+ *     { "type": "discord", "webhook_url": "https://discord.com/api/webhooks/…", "enabled": true }
+ *   ]
+ *
+ * The dispatcher is called by AutomationRunner after every run (success or error).
+ * Channels with `enabled: false` are silently skipped.
+ *
+ * @package GratisAiAgent
+ */
+
+namespace GratisAiAgent\Automations;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class NotificationDispatcher {
+
+	/**
+	 * Dispatch notifications for a completed automation run.
+	 *
+	 * @param array<string, mixed> $automation The automation definition (from Automations::get()).
+	 * @param array<string, mixed> $log_data   The log data produced by AutomationRunner::run().
+	 */
+	public static function dispatch( array $automation, array $log_data ): void {
+		$channels = $automation['notification_channels'] ?? [];
+
+		if ( empty( $channels ) || ! is_array( $channels ) ) {
+			return;
+		}
+
+		foreach ( $channels as $channel ) {
+			if ( empty( $channel['enabled'] ) || empty( $channel['webhook_url'] ) ) {
+				continue;
+			}
+
+			$type        = sanitize_text_field( $channel['type'] ?? '' );
+			$webhook_url = esc_url_raw( $channel['webhook_url'] );
+
+			if ( empty( $webhook_url ) ) {
+				continue;
+			}
+
+			switch ( $type ) {
+				case 'slack':
+					self::post_webhook( $webhook_url, self::build_slack_payload( $automation, $log_data ) );
+					break;
+
+				case 'discord':
+					self::post_webhook( $webhook_url, self::build_discord_payload( $automation, $log_data ) );
+					break;
+
+				default:
+					// Unknown channel type — skip silently.
+					break;
+			}
+		}
+	}
+
+	/**
+	 * Send a synchronous test notification to a single channel.
+	 *
+	 * Used by the REST test endpoint so the admin can verify their webhook URL
+	 * before saving. Unlike dispatch(), this uses blocking=true so the response
+	 * code can be checked and returned.
+	 *
+	 * @param string $type        'slack' or 'discord'.
+	 * @param string $webhook_url Webhook URL to test.
+	 * @return array{success: bool, http_code: int, message: string}
+	 */
+	public static function test( string $type, string $webhook_url ): array {
+		$automation = [
+			'name'     => __( 'Test Notification', 'gratis-ai-agent' ),
+			'schedule' => 'manual',
+		];
+
+		$log_data = [
+			'status'            => 'success',
+			'reply'             => __( 'This is a test notification from Gratis AI Agent. Your webhook is configured correctly.', 'gratis-ai-agent' ),
+			'duration_ms'       => 0,
+			'prompt_tokens'     => 0,
+			'completion_tokens' => 0,
+			'error_message'     => '',
+		];
+
+		if ( 'slack' === $type ) {
+			$payload = self::build_slack_payload( $automation, $log_data );
+		} elseif ( 'discord' === $type ) {
+			$payload = self::build_discord_payload( $automation, $log_data );
+		} else {
+			return [
+				'success'   => false,
+				'http_code' => 0,
+				'message'   => __( 'Unknown channel type. Use "slack" or "discord".', 'gratis-ai-agent' ),
+			];
+		}
+
+		$body = wp_json_encode( $payload );
+		if ( false === $body ) {
+			return [
+				'success'   => false,
+				'http_code' => 0,
+				'message'   => __( 'Failed to encode payload.', 'gratis-ai-agent' ),
+			];
+		}
+
+		$response = wp_remote_post(
+			$webhook_url,
+			[
+				'timeout'     => 15,
+				'blocking'    => true,
+				'headers'     => [
+					'Content-Type' => 'application/json',
+				],
+				'body'        => $body,
+				'data_format' => 'body',
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return [
+				'success'   => false,
+				'http_code' => 0,
+				'message'   => $response->get_error_message(),
+			];
+		}
+
+		$http_code = wp_remote_retrieve_response_code( $response );
+		$success   = $http_code >= 200 && $http_code < 300;
+
+		return [
+			'success'   => $success,
+			'http_code' => (int) $http_code,
+			'message'   => $success
+				? __( 'Test notification sent successfully.', 'gratis-ai-agent' )
+				: sprintf(
+					/* translators: HTTP status code */
+					__( 'Webhook returned HTTP %d.', 'gratis-ai-agent' ),
+					$http_code
+				),
+		];
+	}
+
+	/**
+	 * Build a Slack Incoming Webhook payload.
+	 *
+	 * @param array<string, mixed> $automation Automation definition.
+	 * @param array<string, mixed> $log_data   Run log data.
+	 * @return array<string, mixed>
+	 */
+	private static function build_slack_payload( array $automation, array $log_data ): array {
+		$status     = $log_data['status'] ?? 'unknown';
+		$is_success = 'success' === $status;
+		$color      = $is_success ? '#36a64f' : '#e01e5a';
+		$icon       = $is_success ? ':white_check_mark:' : ':x:';
+
+		$reply = $log_data['reply'] ?? '';
+		if ( strlen( $reply ) > 2000 ) {
+			$reply = substr( $reply, 0, 1997 ) . '…';
+		}
+
+		$fields = [
+			[
+				'title' => __( 'Status', 'gratis-ai-agent' ),
+				'value' => ucfirst( $status ),
+				'short' => true,
+			],
+			[
+				'title' => __( 'Schedule', 'gratis-ai-agent' ),
+				'value' => $automation['schedule'] ?? '',
+				'short' => true,
+			],
+			[
+				'title' => __( 'Duration', 'gratis-ai-agent' ),
+				'value' => ( $log_data['duration_ms'] ?? 0 ) . 'ms',
+				'short' => true,
+			],
+			[
+				'title' => __( 'Tokens', 'gratis-ai-agent' ),
+				'value' => (string) ( ( $log_data['prompt_tokens'] ?? 0 ) + ( $log_data['completion_tokens'] ?? 0 ) ),
+				'short' => true,
+			],
+		];
+
+		if ( ! $is_success && ! empty( $log_data['error_message'] ) ) {
+			$fields[] = [
+				'title' => __( 'Error', 'gratis-ai-agent' ),
+				'value' => $log_data['error_message'],
+				'short' => false,
+			];
+		}
+
+		return [
+			'attachments' => [
+				[
+					'fallback'  => sprintf(
+						/* translators: 1: automation name, 2: status */
+						__( 'Automation "%1$s" completed with status: %2$s', 'gratis-ai-agent' ),
+						$automation['name'] ?? '',
+						$status
+					),
+					'color'     => $color,
+					'pretext'   => sprintf(
+						/* translators: 1: icon emoji, 2: automation name */
+						__( '%1$s Automation: *%2$s*', 'gratis-ai-agent' ),
+						$icon,
+						$automation['name'] ?? ''
+					),
+					'text'      => $reply,
+					'fields'    => $fields,
+					'footer'    => __( 'Gratis AI Agent', 'gratis-ai-agent' ),
+					'ts'        => time(),
+					'mrkdwn_in' => [ 'pretext', 'text' ],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Build a Discord Webhook payload.
+	 *
+	 * @param array<string, mixed> $automation Automation definition.
+	 * @param array<string, mixed> $log_data   Run log data.
+	 * @return array<string, mixed>
+	 */
+	private static function build_discord_payload( array $automation, array $log_data ): array {
+		$status     = $log_data['status'] ?? 'unknown';
+		$is_success = 'success' === $status;
+		$color      = $is_success ? 0x36a64f : 0xe01e5a;
+
+		$reply = $log_data['reply'] ?? '';
+		if ( strlen( $reply ) > 1024 ) {
+			$reply = substr( $reply, 0, 1021 ) . '…';
+		}
+
+		$fields = [
+			[
+				'name'   => __( 'Status', 'gratis-ai-agent' ),
+				'value'  => ucfirst( $status ),
+				'inline' => true,
+			],
+			[
+				'name'   => __( 'Schedule', 'gratis-ai-agent' ),
+				'value'  => $automation['schedule'] ?? 'N/A',
+				'inline' => true,
+			],
+			[
+				'name'   => __( 'Duration', 'gratis-ai-agent' ),
+				'value'  => ( $log_data['duration_ms'] ?? 0 ) . 'ms',
+				'inline' => true,
+			],
+			[
+				'name'   => __( 'Tokens', 'gratis-ai-agent' ),
+				'value'  => (string) ( ( $log_data['prompt_tokens'] ?? 0 ) + ( $log_data['completion_tokens'] ?? 0 ) ),
+				'inline' => true,
+			],
+		];
+
+		if ( ! $is_success && ! empty( $log_data['error_message'] ) ) {
+			$fields[] = [
+				'name'   => __( 'Error', 'gratis-ai-agent' ),
+				'value'  => substr( $log_data['error_message'], 0, 1024 ),
+				'inline' => false,
+			];
+		}
+
+		if ( ! empty( $reply ) ) {
+			$fields[] = [
+				'name'   => __( 'Response', 'gratis-ai-agent' ),
+				'value'  => $reply,
+				'inline' => false,
+			];
+		}
+
+		return [
+			'embeds' => [
+				[
+					'title'     => sprintf(
+						/* translators: automation name */
+						__( 'Automation: %s', 'gratis-ai-agent' ),
+						$automation['name'] ?? ''
+					),
+					'color'     => $color,
+					'fields'    => $fields,
+					'footer'    => [
+						'text' => __( 'Gratis AI Agent', 'gratis-ai-agent' ),
+					],
+					'timestamp' => gmdate( 'c' ),
+				],
+			],
+		];
+	}
+
+	/**
+	 * POST a JSON payload to a webhook URL using wp_remote_post (non-blocking).
+	 *
+	 * Failures are logged via error_log but do not throw — notification
+	 * failures must never interrupt the automation run itself.
+	 *
+	 * @param string               $url     Webhook URL.
+	 * @param array<string, mixed> $payload JSON-serialisable payload.
+	 */
+	private static function post_webhook( string $url, array $payload ): void {
+		$body = wp_json_encode( $payload );
+
+		if ( false === $body ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
+			error_log( 'GratisAiAgent NotificationDispatcher: failed to JSON-encode payload for ' . $url );
+			return;
+		}
+
+		$response = wp_remote_post(
+			$url,
+			[
+				'timeout'     => 10,
+				'blocking'    => false,
+				'headers'     => [
+					'Content-Type' => 'application/json',
+				],
+				'body'        => $body,
+				'data_format' => 'body',
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
+			error_log( 'GratisAiAgent NotificationDispatcher: webhook error for ' . $url . ': ' . $response->get_error_message() );
+		}
+	}
+}

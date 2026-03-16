@@ -28,7 +28,8 @@
 	"ignorePatterns": [
 		"build/",
 		"node_modules/",
-		"vendor/"
+		"vendor/",
+		"tests/"
 	],
 	"overrides": [
 		{

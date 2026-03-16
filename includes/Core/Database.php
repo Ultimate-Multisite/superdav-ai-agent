@@ -225,6 +225,7 @@ class Database {
 			tool_profile varchar(100) NOT NULL DEFAULT '',
 			max_iterations int(11) NOT NULL DEFAULT 10,
 			enabled tinyint(1) NOT NULL DEFAULT 0,
+			notification_channels longtext NOT NULL DEFAULT '',
 			last_run_at datetime DEFAULT NULL,
 			next_run_at datetime DEFAULT NULL,
 			run_count int(11) NOT NULL DEFAULT 0,

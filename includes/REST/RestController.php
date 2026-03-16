@@ -17,6 +17,7 @@ use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Automations\Automations;
 use GratisAiAgent\Automations\EventAutomations;
 use GratisAiAgent\Automations\EventTriggerRegistry;
+use GratisAiAgent\Automations\NotificationDispatcher;
 use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
@@ -1455,6 +1456,28 @@ class RestController {
 							'type'              => 'integer',
 							'sanitize_callback' => 'absint',
 						],
+					],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/automations/test-notification',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $instance, 'handle_test_notification' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+				'args'                => [
+					'type'        => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'webhook_url' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'esc_url_raw',
 					],
 				],
 			]
@@ -3972,5 +3995,22 @@ class RestController {
 			],
 			200
 		);
+	}
+
+	/**
+	 * Handle POST /automations/test-notification.
+	 *
+	 * Sends a test message to a Slack or Discord webhook and returns the result.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response
+	 */
+	public function handle_test_notification( WP_REST_Request $request ): WP_REST_Response {
+		$type        = $request->get_param( 'type' );
+		$webhook_url = $request->get_param( 'webhook_url' );
+
+		$result = NotificationDispatcher::test( $type, $webhook_url );
+
+		return new WP_REST_Response( $result, $result['success'] ? 200 : 422 );
 	}
 }

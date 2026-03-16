@@ -160,6 +160,11 @@ class ChangeLogger {
 			return;
 		}
 
+		if ( self::is_sensitive_option( $option ) ) {
+			$before = self::redact_value();
+			$after  = self::redact_value();
+		}
+
 		ChangesLog::record(
 			[
 				'session_id'   => self::$session_id,
@@ -190,6 +195,10 @@ class ChangeLogger {
 		}
 
 		$after = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+
+		if ( self::is_sensitive_option( $option ) ) {
+			$after = self::redact_value();
+		}
 
 		ChangesLog::record(
 			[
@@ -262,6 +271,12 @@ class ChangeLogger {
 				continue;
 			}
 
+			// Redact PII fields — log that the field changed without storing the value.
+			if ( 'user_email' === $field ) {
+				$before = self::redact_value();
+				$after  = self::redact_value();
+			}
+
 			ChangesLog::record(
 				[
 					'session_id'   => self::$session_id,
@@ -303,5 +318,34 @@ class ChangeLogger {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether an option name likely contains sensitive data (API keys, tokens, passwords, etc.).
+	 *
+	 * Matches common naming patterns used by WordPress core and plugins for
+	 * credential-like options to prevent secrets/PII from being stored in the
+	 * change log in plain text.
+	 *
+	 * @param string $option Option name.
+	 * @return bool
+	 */
+	private static function is_sensitive_option( string $option ): bool {
+		return (bool) preg_match(
+			'/(api[_-]?key|token|secret|password|pass|auth|client|authorization|cookie)/i',
+			$option
+		);
+	}
+
+	/**
+	 * Redact a value that should not be stored in plain text.
+	 *
+	 * Returns a constant placeholder so the change log records that a sensitive
+	 * field was modified without persisting the actual value.
+	 *
+	 * @return string
+	 */
+	private static function redact_value(): string {
+		return '[REDACTED]';
 	}
 }

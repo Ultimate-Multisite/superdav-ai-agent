@@ -181,7 +181,7 @@ class MemorySaveAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -245,7 +245,7 @@ class MemoryListAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input = null ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -318,7 +318,7 @@ class MemoryDeleteAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

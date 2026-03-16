@@ -88,7 +88,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_plugin_updates' ],
 				'permission_callback' => function () {
-					return current_user_can( 'update_plugins' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-plugin-updates' );
 				},
 			]
 		);
@@ -144,7 +144,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_scan_php_error_log' ],
 				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/scan-php-error-log' );
 				},
 			]
 		);
@@ -185,7 +185,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_disk_space' ],
 				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-disk-space' );
 				},
 			]
 		);
@@ -223,7 +223,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_security' ],
 				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-security' );
 				},
 			]
 		);
@@ -264,7 +264,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_performance' ],
 				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-performance' );
 				},
 			]
 		);
@@ -311,7 +311,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_site_health_summary' ],
 				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
+					return ToolCapabilities::current_user_can( 'gratis-ai-agent/site-health-summary' );
 				},
 			]
 		);

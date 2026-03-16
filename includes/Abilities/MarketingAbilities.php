@@ -211,7 +211,7 @@ class FetchUrlAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -307,7 +307,7 @@ class AnalyzeHeadersAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

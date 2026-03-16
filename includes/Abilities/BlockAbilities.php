@@ -514,7 +514,7 @@ class MarkdownToBlocksAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -648,7 +648,7 @@ class ListBlockTypesAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -768,7 +768,7 @@ class GetBlockTypeAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -900,7 +900,7 @@ class ListBlockPatternsAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -986,7 +986,7 @@ class ListBlockTemplatesAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -1063,7 +1063,7 @@ class CreateBlockContentAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -1188,7 +1188,7 @@ class ParseBlockContentAbility extends AbstractBlockAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

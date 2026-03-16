@@ -409,7 +409,7 @@ class FileReadAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -525,7 +525,7 @@ class FileWriteAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -707,7 +707,7 @@ class FileEditAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -795,7 +795,7 @@ class FileDeleteAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -888,7 +888,7 @@ class FileListAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -968,7 +968,7 @@ class FileSearchAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -1060,7 +1060,7 @@ class ContentSearchAbility extends AbstractFileAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

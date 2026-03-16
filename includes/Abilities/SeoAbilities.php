@@ -180,7 +180,7 @@ class SeoAuditUrlAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -433,7 +433,7 @@ class SeoAnalyzeContentAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'edit_posts' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

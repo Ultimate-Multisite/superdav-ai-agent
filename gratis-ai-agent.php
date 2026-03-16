@@ -56,6 +56,7 @@ use GratisAiAgent\Abilities\SeoAbilities;
 use GratisAiAgent\Abilities\SiteHealthAbilities;
 use GratisAiAgent\Abilities\SkillAbilities;
 use GratisAiAgent\Abilities\StockImageAbilities;
+use GratisAiAgent\Abilities\ToolCapabilities;
 use GratisAiAgent\Abilities\WooCommerceAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\AdminPage;
@@ -76,10 +77,24 @@ use GratisAiAgent\Tools\ToolDiscovery;
 register_activation_hook( __FILE__, [ Database::class, 'install' ] );
 register_activation_hook( __FILE__, [ AutomationRunner::class, 'reschedule_all' ] );
 register_activation_hook( __FILE__, [ OnboardingManager::class, 'on_activation' ] );
+register_activation_hook(
+	__FILE__,
+	function () {
+		ToolCapabilities::register_capabilities( ToolCapabilities::all_ability_ids() );
+	}
+);
 register_deactivation_hook( __FILE__, [ KnowledgeHooks::class, 'deactivate' ] );
 register_deactivation_hook( __FILE__, [ AutomationRunner::class, 'unschedule_all' ] );
 register_deactivation_hook( __FILE__, [ SiteScanner::class, 'unschedule' ] );
 add_action( 'admin_init', [ Database::class, 'install' ] );
+
+// Register per-tool capabilities on admin_init so role-management plugins can discover them.
+add_action(
+	'admin_init',
+	function () {
+		ToolCapabilities::register_capabilities( ToolCapabilities::all_ability_ids() );
+	}
+);
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
 add_action( 'admin_menu', [ AdminPage::class, 'register' ] );

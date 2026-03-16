@@ -165,7 +165,7 @@ class GitSnapshotAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -260,7 +260,7 @@ class GitDiffAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -359,7 +359,7 @@ class GitRestoreAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -439,7 +439,7 @@ class GitListAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -519,7 +519,7 @@ class GitPackageSummaryAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -603,7 +603,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

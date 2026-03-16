@@ -335,7 +335,7 @@ class ImportStockImageAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'upload_files' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

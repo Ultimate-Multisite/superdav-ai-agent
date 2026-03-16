@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use GratisAiAgent\Abilities\ToolCapabilities;
 use WP_Error;
 
 class CustomToolExecutor {
@@ -59,8 +60,8 @@ class CustomToolExecutor {
 					'execute_callback'    => function ( array $input ) use ( $tool ) {
 						return self::execute( $tool, $input );
 					},
-					'permission_callback' => function () {
-						return current_user_can( 'manage_options' );
+					'permission_callback' => function () use ( $ability_name ) {
+						return ToolCapabilities::current_user_can( $ability_name );
 					},
 				]
 			);

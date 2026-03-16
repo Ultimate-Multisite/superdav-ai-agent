@@ -200,7 +200,7 @@ class GetPluginsAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input = null ): bool {
-		return current_user_can( 'activate_plugins' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -269,7 +269,7 @@ class GetThemesAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input = null ): bool {
-		return current_user_can( 'switch_themes' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -432,7 +432,7 @@ class InstallPluginAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'install_plugins' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {
@@ -516,7 +516,7 @@ class RunPhpAbility extends AbstractAbility {
 	}
 
 	protected function permission_callback( $input ): bool {
-		return current_user_can( 'manage_options' );
+		return ToolCapabilities::current_user_can( $this->name );
 	}
 
 	protected function meta(): array {

@@ -1,0 +1,68 @@
+name: TODO Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TODO.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'TODO.md'
+  workflow_dispatch:
+
+jobs:
+  check-completed-prs:
+    name: Verify completed tasks have merged PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check completed tasks reference merged PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          FAILED=0
+
+          # Extract all completed tasks that reference a PR number.
+          # Pattern: - [x] tNNN ... pr:#NNN ...
+          while IFS= read -r line; do
+            # Extract PR number from the line
+            pr_num=$(echo "$line" | grep -oE 'pr:#([0-9]+)' | grep -oE '[0-9]+' | head -1)
+            task_id=$(echo "$line" | grep -oE '\bt[0-9]+(\.[0-9]+)?\b' | head -1)
+
+            if [[ -z "$pr_num" ]]; then
+              continue
+            fi
+
+            # Check PR merge status via gh CLI
+            pr_state=$(gh pr view "$pr_num" --repo "$REPO" --json state,mergedAt \
+              --jq '.state' 2>/dev/null || echo "NOT_FOUND")
+            pr_merged_at=$(gh pr view "$pr_num" --repo "$REPO" --json state,mergedAt \
+              --jq '.mergedAt // ""' 2>/dev/null || echo "")
+
+            if [[ "$pr_state" != "MERGED" ]] || [[ -z "$pr_merged_at" ]] || [[ "$pr_merged_at" == "null" ]]; then
+              echo "::error file=TODO.md::Task ${task_id:-unknown} is marked complete with pr:#${pr_num} but PR #${pr_num} is not merged (state: ${pr_state})"
+              FAILED=1
+            else
+              echo "OK: ${task_id:-task} pr:#${pr_num} — merged at ${pr_merged_at}"
+            fi
+          done < <(grep -E '^\s*- \[x\].*pr:#[0-9]+' TODO.md || true)
+
+          if [[ "$FAILED" -ne 0 ]]; then
+            echo ""
+            echo "One or more completed tasks reference PRs that are not yet merged."
+            echo "Run task-complete-helper.sh only after the PR is merged."
+            echo "See: https://github.com/$REPO/issues/466"
+            exit 1
+          fi
+
+          echo "All completed tasks with PR references have merged PRs."

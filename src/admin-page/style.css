@@ -1751,3 +1751,134 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	padding: 1px 4px;
 	border-radius: 2px;
 }
+
+/* Onboarding Interview (t064) */
+.gratis-ai-agent-interview {
+	max-width: 640px;
+	margin: 40px auto;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.gratis-ai-agent-interview--loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 48px 32px;
+	gap: 16px;
+	color: #757575;
+	font-size: 14px;
+}
+
+.gratis-ai-agent-interview__header {
+	padding: 24px 32px 16px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.gratis-ai-agent-interview__header h2 {
+	margin: 0 0 6px;
+	font-size: 20px;
+}
+
+.gratis-ai-agent-interview__subtitle {
+	margin: 0 0 16px;
+	color: #757575;
+	font-size: 13px;
+}
+
+.gratis-ai-agent-interview__progress {
+	display: flex;
+	gap: 8px;
+}
+
+.gratis-ai-agent-interview__dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: #dcdcde;
+	transition: background 0.2s;
+}
+
+.gratis-ai-agent-interview__dot.is-active {
+	background: var(--wp-admin-theme-color, #2271b1);
+}
+
+.gratis-ai-agent-interview__dot.is-complete {
+	background: #00a32a;
+}
+
+.gratis-ai-agent-interview__summary {
+	padding: 16px 32px 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.gratis-ai-agent-interview__summary-item {
+	background: #f6f7f7;
+	border-radius: 6px;
+	padding: 10px 14px;
+	font-size: 13px;
+}
+
+.gratis-ai-agent-interview__summary-q {
+	display: block;
+	color: #757575;
+	margin-bottom: 2px;
+}
+
+.gratis-ai-agent-interview__summary-a {
+	display: block;
+	color: #1e1e1e;
+	font-weight: 500;
+}
+
+.gratis-ai-agent-interview__question-card {
+	padding: 24px 32px;
+}
+
+.gratis-ai-agent-interview__question-label {
+	display: block;
+	font-size: 15px;
+	font-weight: 600;
+	margin-bottom: 12px;
+	line-height: 1.5;
+	color: #1e1e1e;
+}
+
+.gratis-ai-agent-interview__required {
+	color: #d63638;
+}
+
+.gratis-ai-agent-interview__optional-hint {
+	margin: 6px 0 0;
+	font-size: 12px;
+	color: #757575;
+}
+
+.gratis-ai-agent-interview__error {
+	margin: 0 32px;
+	padding: 10px 14px;
+	background: #fcf0f1;
+	border: 1px solid #d63638;
+	border-radius: 4px;
+	color: #d63638;
+	font-size: 13px;
+}
+
+.gratis-ai-agent-interview__footer {
+	padding: 16px 32px;
+	border-top: 1px solid #dcdcde;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: flex-end;
+	background: #f6f7f7;
+}
+
+.gratis-ai-agent-interview__skip {
+	margin-right: auto;
+}

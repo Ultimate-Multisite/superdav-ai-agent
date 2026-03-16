@@ -70,6 +70,7 @@ use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Core\OnboardingManager;
 use GratisAiAgent\Core\RolePermissions;
 use GratisAiAgent\Core\Settings;
@@ -194,6 +195,9 @@ GitTrackerManager::register();
 
 // Change logger — hooks into WordPress core to record AI-made changes.
 ChangeLogger::register();
+
+// Fresh install detection — registers cache-invalidation hooks.
+FreshInstallDetector::register();
 
 // Floating widget on all admin pages.
 FloatingWidget::register();

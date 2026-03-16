@@ -101,10 +101,11 @@ const DEFAULT_STATE = {
 	// Proactive alerts — count of issues surfaced as a badge on the FAB.
 	alertCount: 0,
 
-	// Site builder mode — full-screen overlay for fresh installs (t062).
-	siteBuilderMode: false,
-	siteBuilderStep: 0,
-	siteBuilderTotalSteps: 0,
+	// Site builder mode — true when a fresh WordPress install is detected.
+	// Seeded from the PHP-injected global so the widget can open immediately
+	// without waiting for a REST round-trip.
+	siteBuilderMode: window.gratisAiAgentSiteBuilder?.siteBuilderMode ?? false,
+	isFreshInstall: window.gratisAiAgentSiteBuilder?.isFreshInstall ?? false,
 };
 
 const actions = {
@@ -214,6 +215,16 @@ const actions = {
 	 */
 	setFloatingMinimized( minimized ) {
 		return { type: 'SET_FLOATING_MINIMIZED', minimized };
+	},
+
+	/**
+	 * Enable or disable site builder mode.
+	 *
+	 * @param {boolean} enabled - Whether site builder mode should be active.
+	 * @return {Object} Redux action.
+	 */
+	setSiteBuilderMode( enabled ) {
+		return { type: 'SET_SITE_BUILDER_MODE', enabled };
 	},
 
 	/**
@@ -416,36 +427,6 @@ const actions = {
 	},
 	setAlertCount( count ) {
 		return { type: 'SET_ALERT_COUNT', count };
-	},
-
-	/**
-	 * Enable or disable site builder full-screen overlay mode (t062).
-	 *
-	 * @param {boolean} active - Whether site builder mode should be active.
-	 * @return {Object} Redux action.
-	 */
-	setSiteBuilderMode( active ) {
-		return { type: 'SET_SITE_BUILDER_MODE', active };
-	},
-
-	/**
-	 * Set the current step number in the site builder progress indicator.
-	 *
-	 * @param {number} step - Current step (0-based).
-	 * @return {Object} Redux action.
-	 */
-	setSiteBuilderStep( step ) {
-		return { type: 'SET_SITE_BUILDER_STEP', step };
-	},
-
-	/**
-	 * Set the total number of steps in the site builder progress indicator.
-	 *
-	 * @param {number} total - Total step count.
-	 * @return {Object} Redux action.
-	 */
-	setSiteBuilderTotalSteps( total ) {
-		return { type: 'SET_SITE_BUILDER_TOTAL_STEPS', total };
 	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
@@ -1891,6 +1872,22 @@ const selectors = {
 
 	/**
 	 * @param {StoreState} state
+	 * @return {boolean} Whether site builder mode is active.
+	 */
+	isSiteBuilderMode( state ) {
+		return state.siteBuilderMode;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether the current site is a fresh WordPress install.
+	 */
+	isFreshInstall( state ) {
+		return state.isFreshInstall;
+	},
+
+	/**
+	 * @param {StoreState} state
 	 * @return {string|Object} Structured page context for the AI.
 	 */
 	getPageContext( state ) {
@@ -2080,30 +2077,6 @@ const selectors = {
 	},
 
 	/**
-	 * @param {StoreState} state
-	 * @return {boolean} Whether site builder full-screen overlay mode is active (t062).
-	 */
-	isSiteBuilderMode( state ) {
-		return state.siteBuilderMode;
-	},
-
-	/**
-	 * @param {StoreState} state
-	 * @return {number} Current step in the site builder progress indicator.
-	 */
-	getSiteBuilderStep( state ) {
-		return state.siteBuilderStep;
-	},
-
-	/**
-	 * @param {StoreState} state
-	 * @return {number} Total steps in the site builder progress indicator.
-	 */
-	getSiteBuilderTotalSteps( state ) {
-		return state.siteBuilderTotalSteps;
-	},
-
-	/**
 	 * Calculate the context window usage as a percentage (0–100+).
 	 *
 	 * @param {StoreState} state
@@ -2180,6 +2153,8 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, floatingOpen: action.open };
 		case 'SET_FLOATING_MINIMIZED':
 			return { ...state, floatingMinimized: action.minimized };
+		case 'SET_SITE_BUILDER_MODE':
+			return { ...state, siteBuilderMode: action.enabled };
 		case 'SET_PAGE_CONTEXT':
 			return { ...state, pageContext: action.context };
 		case 'APPEND_MESSAGE':
@@ -2261,12 +2236,6 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, streamAbortController: action.controller };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
-		case 'SET_SITE_BUILDER_MODE':
-			return { ...state, siteBuilderMode: action.active };
-		case 'SET_SITE_BUILDER_STEP':
-			return { ...state, siteBuilderStep: action.step };
-		case 'SET_SITE_BUILDER_TOTAL_STEPS':
-			return { ...state, siteBuilderTotalSteps: action.total };
 		default:
 			return state;
 	}

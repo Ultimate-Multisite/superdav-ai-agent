@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Admin;
 
+use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -107,17 +108,22 @@ class FloatingWidget {
 			true
 		);
 
-		// Pass site builder mode flag to the widget.
-		$settings = Settings::get();
+		// Detect fresh install and pass site-builder context to the widget.
+		$is_fresh     = FreshInstallDetector::isFreshInstall();
+		$site_builder = (bool) Settings::get( 'site_builder_mode' );
+
+		// Auto-enable site_builder_mode on first detection of a fresh install.
+		if ( $is_fresh && ! $site_builder ) {
+			Settings::update( [ 'site_builder_mode' => true ] );
+			$site_builder = true;
+		}
+
 		wp_localize_script(
 			'gratis-ai-agent-floating-widget',
 			'gratisAiAgentSiteBuilder',
 			[
-				'siteBuilderMode'    => ! empty( $settings['site_builder_mode'] ),
-				'onboardingComplete' => ! empty( $settings['onboarding_complete'] ),
-				'startEndpoint'      => rest_url( 'gratis-ai-agent/v1/site-builder/start' ),
-				'statusEndpoint'     => rest_url( 'gratis-ai-agent/v1/site-builder/status' ),
-				'nonce'              => wp_create_nonce( 'wp_rest' ),
+				'isFreshInstall'  => $is_fresh,
+				'siteBuilderMode' => $site_builder,
 			]
 		);
 	}

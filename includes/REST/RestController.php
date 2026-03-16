@@ -30,6 +30,7 @@ use GratisAiAgent\Models\ChangesLog;
 use GratisAiAgent\Models\ConversationTemplate;
 use GratisAiAgent\Models\Memory;
 use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Tools\CustomToolExecutor;
 use GratisAiAgent\REST\SseStreamer;
 use GratisAiAgent\REST\WebhookDatabase;
@@ -420,6 +421,19 @@ class RestController {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => [ $instance, 'handle_get_roles' ],
 					'permission_callback' => [ $instance, 'check_permission' ],
+				],
+			]
+		);
+
+		// Fresh install detection endpoint.
+		register_rest_route(
+			self::NAMESPACE,
+			'/fresh-install',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ __CLASS__, 'handle_fresh_install_status' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
 				],
 			]
 		);
@@ -3054,6 +3068,31 @@ class RestController {
 	}
 
 	// ─── Settings ────────────────────────────────────────────────────
+
+	/**
+	 * Handle GET /fresh-install — return fresh-install detection status.
+	 *
+	 * Returns a JSON object with:
+	 *   - is_fresh_install (bool)  — true when the site qualifies as a fresh install
+	 *   - has_real_posts   (bool)  — true when published posts beyond defaults exist
+	 *   - has_real_pages   (bool)  — true when published pages beyond defaults exist
+	 *   - is_default_theme (bool)  — true when the active theme is a WordPress default
+	 *   - active_theme     (string)— stylesheet slug of the active theme
+	 *   - site_builder_mode(bool)  — current value of the site_builder_mode setting
+	 */
+	public static function handle_fresh_install_status(): WP_REST_Response {
+		$status                      = FreshInstallDetector::getStatus();
+		$status['site_builder_mode'] = (bool) Settings::get( 'site_builder_mode' );
+
+		// Auto-enable site_builder_mode when a fresh install is detected and
+		// the flag has not been explicitly set by the user yet.
+		if ( $status['is_fresh_install'] && ! $status['site_builder_mode'] ) {
+			Settings::update( [ 'site_builder_mode' => true ] );
+			$status['site_builder_mode'] = true;
+		}
+
+		return new WP_REST_Response( $status, 200 );
+	}
 
 	/**
 	 * Handle GET /settings.

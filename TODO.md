@@ -13,7 +13,7 @@
 - [ ] t060 Detect fresh WordPress install and trigger site builder mode @superdav42 #feature ~3h logged:2026-03-15
   - Check post count, theme, and whether any real content exists
   - Set `site_builder_mode` flag; floating widget opens automatically in expanded mode
-- [ ] t061 Site builder conversation flow: interview user then generate full site @superdav42 #feature ~12h logged:2026-03-15 blocked-by:t060
+- [x] t061 Site builder conversation flow: interview user then generate full site @superdav42 #feature ~12h logged:2026-03-15 blocked-by:t060 pr:#455 completed:2026-03-16
   - System prompt interviews user: business name, type, goals, pages needed
   - Agent creates pages via BlockAbilities, content via ContentAbilities, images via StockImageAbilities
   - Agent sets up nav menu, site title, tagline, basic SEO

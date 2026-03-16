@@ -65,7 +65,9 @@ use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Core\OnboardingManager;
 use GratisAiAgent\Core\Settings;
+use GratisAiAgent\Core\SiteScanner;
 use GratisAiAgent\Knowledge\KnowledgeHooks;
 use GratisAiAgent\REST\RestController;
 use GratisAiAgent\Tools\CustomToolExecutor;
@@ -73,8 +75,10 @@ use GratisAiAgent\Tools\ToolDiscovery;
 
 register_activation_hook( __FILE__, [ Database::class, 'install' ] );
 register_activation_hook( __FILE__, [ AutomationRunner::class, 'reschedule_all' ] );
+register_activation_hook( __FILE__, [ OnboardingManager::class, 'on_activation' ] );
 register_deactivation_hook( __FILE__, [ KnowledgeHooks::class, 'deactivate' ] );
 register_deactivation_hook( __FILE__, [ AutomationRunner::class, 'unschedule_all' ] );
+register_deactivation_hook( __FILE__, [ SiteScanner::class, 'unschedule' ] );
 add_action( 'admin_init', [ Database::class, 'install' ] );
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
@@ -147,6 +151,9 @@ NavigationAbilities::register();
 
 // Custom tool abilities (registered as WordPress Abilities).
 CustomToolExecutor::register();
+
+// Smart onboarding — scan site on first activation.
+OnboardingManager::register();
 
 // Automation cron handler.
 AutomationRunner::register();

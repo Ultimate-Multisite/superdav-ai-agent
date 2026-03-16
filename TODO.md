@@ -156,7 +156,7 @@
 
 ### Integration Hub (P3)
 
-- [ ] t085 Google Analytics integration: traffic analysis ability @superdav42 #feature ~4h logged:2026-03-15
+- [x] t085 Google Analytics integration: traffic analysis ability @superdav42 #feature ~4h logged:2026-03-15 pr:#465 completed:2026-03-16
 - [ ] t086 Google Search Console integration: SEO insights ability @superdav42 #feature ~4h logged:2026-03-15
 - [x] t087 Slack/Discord notification forwarding for automation results @superdav42 #feature ~3h logged:2026-03-15 pr:#412 completed:2026-03-16
 - [x] t088 Webhook API: trigger AI conversations from external systems @superdav42 #feature ~4h logged:2026-03-15 pr:#409 completed:2026-03-16

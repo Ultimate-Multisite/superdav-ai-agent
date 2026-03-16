@@ -206,8 +206,9 @@
 	height: auto;
 }
 
-/* Chat panel inside floating panel — compact adjustments */
-.ai-agent-floating-panel .ai-agent-chat-panel {
+/* Chat panel inside floating panel and site-builder overlay — shared layout */
+.ai-agent-floating-panel .ai-agent-chat-panel,
+.ai-agent-site-builder-chat .ai-agent-chat-panel {
 	flex: 1;
 	min-height: 0;
 	display: flex;
@@ -928,13 +929,6 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-}
-
-.ai-agent-site-builder-chat .ai-agent-chat-panel {
-	flex: 1;
-	min-height: 0;
-	display: flex;
-	flex-direction: column;
 }
 
 .ai-agent-site-builder-chat .ai-agent-messages {

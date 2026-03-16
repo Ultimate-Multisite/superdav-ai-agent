@@ -1964,6 +1964,10 @@ class RestController {
 	 * Permission check for session-specific endpoints.
 	 *
 	 * Verifies manage_options + session ownership OR shared access.
+	 * Maps the HTTP method to the required share permission level:
+	 *   GET/HEAD  → 'view'       (read-only shares allowed)
+	 *   PATCH/POST → 'contribute' (contribute shares allowed; view-only blocked)
+	 *   DELETE    → 'contribute' (only owners and contribute-level shares; view-only blocked)
 	 */
 	public function check_session_permission( WP_REST_Request $request ): bool {
 		if ( ! RolePermissions::current_user_has_chat_access() ) {
@@ -1971,8 +1975,14 @@ class RestController {
 		}
 
 		$session_id = absint( $request->get_param( 'id' ) );
+		$method     = strtoupper( $request->get_method() );
 
-		return Database::user_can_access_session( $session_id, get_current_user_id(), 'view' );
+		$required_permission = match ( $method ) {
+			'GET', 'HEAD' => 'view',
+			default       => 'contribute',
+		};
+
+		return Database::user_can_access_session( $session_id, get_current_user_id(), $required_permission );
 	}
 
 	/**

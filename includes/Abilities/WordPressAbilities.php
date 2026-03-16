@@ -206,8 +206,9 @@ class GetPluginsAbility extends AbstractAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];
@@ -274,8 +275,9 @@ class GetThemesAbility extends AbstractAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
-				'readonly'   => true,
-				'idempotent' => true,
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];
@@ -436,7 +438,9 @@ class InstallPluginAbility extends AbstractAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
+				'readonly'    => false,
 				'destructive' => false,
+				'idempotent'  => false,
 			],
 			'show_in_rest' => true,
 		];
@@ -518,7 +522,9 @@ class RunPhpAbility extends AbstractAbility {
 	protected function meta(): array {
 		return [
 			'annotations'  => [
+				'readonly'    => false,
 				'destructive' => true,
+				'idempotent'  => false,
 			],
 			'show_in_rest' => true,
 		];

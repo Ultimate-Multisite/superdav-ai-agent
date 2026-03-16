@@ -13,14 +13,14 @@ module.exports = defineConfig( {
 	testDir: './tests/e2e',
 	testMatch: '**/*.spec.js',
 
-	/* Maximum time one test can run. */
-	timeout: 60_000,
+	/* Maximum time one test can run for. */
+	timeout: 30_000,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !! process.env.CI,
 
-	/* Retry on CI only. */
-	retries: process.env.CI ? 2 : 0,
+	/* Retry on CI only — 1 retry keeps total time bounded. */
+	retries: process.env.CI ? 1 : 0,
 
 	/* Opt out of parallel tests on CI to avoid resource contention with wp-env. */
 	workers: process.env.CI ? 1 : undefined,

@@ -150,6 +150,11 @@ class ContextProviders {
 
 		// Block editor context.
 		self::register( 'block_editor_context', [ __CLASS__, 'provide_block_editor_context' ], 35 );
+
+		// WooCommerce store context — only when WooCommerce is active.
+		if ( class_exists( 'WooCommerce' ) ) {
+			self::register( 'woocommerce_context', [ __CLASS__, 'provide_woocommerce_context' ], 40 );
+		}
 	}
 
 	/**
@@ -382,6 +387,62 @@ class ContextProviders {
 
 		if ( ! empty( $_SERVER['SERVER_SOFTWARE'] ) ) {
 			$data['Server'] = sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Provide WooCommerce store context when WooCommerce is active.
+	 *
+	 * Surfaces store type, product count, order counts, and currency so the
+	 * agent is aware it is operating in an e-commerce context and can offer
+	 * relevant assistance (product creation, order management, etc.).
+	 *
+	 * @param array<string, mixed> $page_context Unused.
+	 * @return array<string, mixed>
+	 */
+	public static function provide_woocommerce_context( array $page_context ): array {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return [];
+		}
+
+		$data = [
+			'WooCommerce Active'  => 'Yes',
+			'WooCommerce Version' => defined( 'WC_VERSION' ) ? WC_VERSION : 'unknown',
+		];
+
+		// Currency.
+		if ( function_exists( 'get_woocommerce_currency' ) ) {
+			$data['Store Currency'] = get_woocommerce_currency();
+		}
+
+		// Product counts.
+		$product_counts = wp_count_posts( 'product' );
+		if ( $product_counts ) {
+			$data['Published Products'] = (string) ( $product_counts->publish ?? 0 );
+			$draft_count                = (int) ( $product_counts->draft ?? 0 );
+			if ( $draft_count > 0 ) {
+				$data['Draft Products'] = (string) $draft_count;
+			}
+		}
+
+		// Order counts.
+		if ( function_exists( 'wc_orders_count' ) ) {
+			$processing = (int) wc_orders_count( 'processing' );
+			$pending    = (int) wc_orders_count( 'pending' );
+			if ( $processing > 0 ) {
+				$data['Processing Orders'] = (string) $processing;
+			}
+			if ( $pending > 0 ) {
+				$data['Pending Orders'] = (string) $pending;
+			}
+		}
+
+		// Shop page URL.
+		$shop_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'shop' ) : 0;
+		if ( $shop_page_id > 0 ) {
+			$data['Shop URL'] = get_permalink( $shop_page_id ) ?: '';
 		}
 
 		return $data;

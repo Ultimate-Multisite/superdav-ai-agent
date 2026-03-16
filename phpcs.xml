@@ -109,12 +109,17 @@
     <rule ref="PHPCompatibilityWP"/>
     <config name="testVersion" value="8.2-"/>
 
-    <!-- WooCommerce custom capabilities — registered by WooCommerce, not WordPress core -->
+    <!-- WooCommerce custom capabilities — registered by WooCommerce, not core WordPress.
+         These are valid capabilities used in permission_callback() checks. -->
     <rule ref="WordPress.WP.Capabilities">
         <properties>
             <property name="custom_capabilities" type="array">
                 <element value="manage_woocommerce"/>
                 <element value="view_woocommerce_reports"/>
+                <element value="edit_products"/>
+                <element value="publish_products"/>
+                <element value="read_products"/>
+                <element value="delete_products"/>
             </property>
         </properties>
     </rule>

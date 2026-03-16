@@ -285,6 +285,17 @@ class RestController {
 			]
 		);
 
+		// WooCommerce store status endpoint — returns detection result and basic stats.
+		register_rest_route(
+			self::NAMESPACE,
+			'/woocommerce/status',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $instance, 'handle_woocommerce_status' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+			]
+		);
+
 		// Settings endpoints.
 		register_rest_route(
 			self::NAMESPACE,
@@ -2291,6 +2302,61 @@ class RestController {
 		}
 
 		return new WP_REST_Response( $providers, 200 );
+	}
+
+	/**
+	 * Handle GET /woocommerce/status — detect WooCommerce and return store info.
+	 *
+	 * Returns whether WooCommerce is active, the version, product/order counts,
+	 * and currency. Used by the onboarding wizard to conditionally show the
+	 * WooCommerce step and offer AI product creation.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_woocommerce_status(): WP_REST_Response {
+		$active = class_exists( 'WooCommerce' );
+
+		if ( ! $active ) {
+			return new WP_REST_Response(
+				[
+					'active'  => false,
+					'version' => null,
+				],
+				200
+			);
+		}
+
+		// Product counts.
+		$product_counts     = wp_count_posts( 'product' );
+		$published_products = $product_counts ? (int) ( $product_counts->publish ?? 0 ) : 0;
+		$total_products     = 0;
+		if ( $product_counts ) {
+			foreach ( (array) $product_counts as $count ) {
+				$total_products += (int) $count;
+			}
+		}
+
+		// Order counts.
+		$pending_orders    = 0;
+		$processing_orders = 0;
+		if ( function_exists( 'wc_orders_count' ) ) {
+			$pending_orders    = (int) wc_orders_count( 'pending' );
+			$processing_orders = (int) wc_orders_count( 'processing' );
+		}
+
+		return new WP_REST_Response(
+			[
+				'active'             => true,
+				'version'            => defined( 'WC_VERSION' ) ? WC_VERSION : 'unknown',
+				'currency'           => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'USD',
+				'published_products' => $published_products,
+				'total_products'     => $total_products,
+				'pending_orders'     => $pending_orders,
+				'processing_orders'  => $processing_orders,
+				'shop_url'           => function_exists( 'wc_get_page_id' ) ? ( get_permalink( wc_get_page_id( 'shop' ) ) ?: '' ) : '',
+			],
+			200
+		);
 	}
 
 	/**

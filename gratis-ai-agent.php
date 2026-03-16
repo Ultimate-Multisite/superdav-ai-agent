@@ -48,6 +48,7 @@ use GratisAiAgent\Abilities\ContentAbilities;
 use GratisAiAgent\Abilities\DatabaseAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
 use GratisAiAgent\Abilities\GitAbilities;
+use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
 use GratisAiAgent\Abilities\PluginDownloadAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
@@ -146,6 +147,9 @@ StockImageAbilities::register();
 SeoAbilities::register();
 ContentAbilities::register();
 MarketingAbilities::register();
+
+// Google Analytics traffic analysis abilities.
+GoogleAnalyticsAbilities::register();
 
 // Block content abilities (markdown-to-blocks, block discovery, content creation).
 BlockAbilities::register();

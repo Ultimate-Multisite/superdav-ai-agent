@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\REST;
 
+use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
 use GratisAiAgent\Automations\AutomationLogs;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Automations\Automations;
@@ -433,6 +434,40 @@ class RestController {
 				[
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => [ __CLASS__, 'handle_fresh_install_status' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
+				],
+			]
+		);
+
+		// Google Analytics credentials endpoint.
+		register_rest_route(
+			self::NAMESPACE,
+			'/settings/google-analytics',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ __CLASS__, 'handle_get_ga_credentials' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ __CLASS__, 'handle_set_ga_credentials' ],
+					'permission_callback' => [ __CLASS__, 'check_permission' ],
+					'args'                => [
+						'property_id'          => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						],
+						'service_account_json' => [
+							'required' => true,
+							'type'     => 'string',
+						],
+					],
+				],
+				[
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => [ __CLASS__, 'handle_clear_ga_credentials' ],
 					'permission_callback' => [ __CLASS__, 'check_permission' ],
 				],
 			]
@@ -4807,5 +4842,72 @@ class RestController {
 				$zip->addFile( $file_path, $relative );
 			}
 		}
+	}
+
+	// ─── Google Analytics credential endpoints ────────────────────────────────
+
+	/**
+	 * Handle GET /settings/google-analytics — return whether credentials are configured.
+	 *
+	 * Never returns the actual credentials to avoid leaking the service account key.
+	 */
+	public static function handle_get_ga_credentials(): WP_REST_Response {
+		$creds = GoogleAnalyticsAbilities::get_credentials();
+		return new WP_REST_Response(
+			[
+				'has_credentials' => '' !== $creds['property_id'] && '' !== $creds['service_account_json'],
+				'has_property_id' => '' !== $creds['property_id'],
+				'property_id'     => $creds['property_id'],
+				'has_service_key' => '' !== $creds['service_account_json'],
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle POST /settings/google-analytics — save GA4 credentials.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public static function handle_set_ga_credentials( WP_REST_Request $request ): WP_REST_Response {
+		$property_id          = (string) $request->get_param( 'property_id' );
+		$service_account_json = (string) $request->get_param( 'service_account_json' );
+
+		// Validate property ID format (numeric string).
+		$property_id = preg_replace( '/[^0-9]/', '', $property_id );
+		if ( empty( $property_id ) ) {
+			return new WP_REST_Response( [ 'error' => __( 'property_id must be a numeric GA4 property ID.', 'gratis-ai-agent' ) ], 400 );
+		}
+
+		// Validate service account JSON structure.
+		$sa = json_decode( $service_account_json, true );
+		if ( ! is_array( $sa ) || empty( $sa['client_email'] ) || empty( $sa['private_key'] ) ) {
+			return new WP_REST_Response(
+				[ 'error' => __( 'service_account_json must be a valid Google service account JSON key containing client_email and private_key.', 'gratis-ai-agent' ) ],
+				400
+			);
+		}
+
+		$success = GoogleAnalyticsAbilities::set_credentials( $property_id, $service_account_json );
+		if ( ! $success ) {
+			return new WP_REST_Response( [ 'error' => __( 'Failed to save Google Analytics credentials.', 'gratis-ai-agent' ) ], 500 );
+		}
+
+		return new WP_REST_Response(
+			[
+				'saved'           => true,
+				'property_id'     => $property_id,
+				'has_service_key' => true,
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle DELETE /settings/google-analytics — clear GA4 credentials.
+	 */
+	public static function handle_clear_ga_credentials(): WP_REST_Response {
+		GoogleAnalyticsAbilities::clear_credentials();
+		return new WP_REST_Response( [ 'cleared' => true ], 200 );
 	}
 }

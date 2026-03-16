@@ -53,6 +53,13 @@ export default function SettingsApp() {
 	const [ notice, setNotice ] = useState( null );
 	const [ abilities, setAbilities ] = useState( [] );
 
+	// Google Analytics integration state.
+	const [ gaPropertyId, setGaPropertyId ] = useState( '' );
+	const [ gaServiceJson, setGaServiceJson ] = useState( '' );
+	const [ gaStatus, setGaStatus ] = useState( null ); // { has_credentials, property_id, has_service_key }
+	const [ gaSaving, setGaSaving ] = useState( false );
+	const [ gaNotice, setGaNotice ] = useState( null );
+
 	useEffect( () => {
 		fetchSettings();
 		fetchProviders();
@@ -60,7 +67,91 @@ export default function SettingsApp() {
 		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
+		// Fetch Google Analytics credential status.
+		apiFetch( { path: '/gratis-ai-agent/v1/settings/google-analytics' } )
+			.then( ( data ) => {
+				setGaStatus( data );
+				if ( data?.property_id ) {
+					setGaPropertyId( data.property_id );
+				}
+			} )
+			.catch( () => {} );
 	}, [ fetchSettings, fetchProviders ] );
+
+	const handleGaSave = useCallback( async () => {
+		setGaSaving( true );
+		setGaNotice( null );
+		try {
+			const result = await apiFetch( {
+				path: '/gratis-ai-agent/v1/settings/google-analytics',
+				method: 'POST',
+				data: {
+					property_id: gaPropertyId,
+					service_account_json: gaServiceJson,
+				},
+			} );
+			setGaStatus( {
+				has_credentials: true,
+				has_property_id: true,
+				property_id: result.property_id,
+				has_service_key: true,
+			} );
+			setGaServiceJson( '' ); // Clear the JSON field after saving.
+			setGaNotice( {
+				status: 'success',
+				message: __(
+					'Google Analytics credentials saved.',
+					'gratis-ai-agent'
+				),
+			} );
+		} catch ( err ) {
+			setGaNotice( {
+				status: 'error',
+				message:
+					err?.message ||
+					__(
+						'Failed to save Google Analytics credentials.',
+						'gratis-ai-agent'
+					),
+			} );
+		}
+		setGaSaving( false );
+	}, [ gaPropertyId, gaServiceJson ] );
+
+	const handleGaClear = useCallback( async () => {
+		setGaSaving( true );
+		setGaNotice( null );
+		try {
+			await apiFetch( {
+				path: '/gratis-ai-agent/v1/settings/google-analytics',
+				method: 'DELETE',
+			} );
+			setGaStatus( {
+				has_credentials: false,
+				has_property_id: false,
+				property_id: '',
+				has_service_key: false,
+			} );
+			setGaPropertyId( '' );
+			setGaServiceJson( '' );
+			setGaNotice( {
+				status: 'success',
+				message: __(
+					'Google Analytics credentials cleared.',
+					'gratis-ai-agent'
+				),
+			} );
+		} catch {
+			setGaNotice( {
+				status: 'error',
+				message: __(
+					'Failed to clear Google Analytics credentials.',
+					'gratis-ai-agent'
+				),
+			} );
+		}
+		setGaSaving( false );
+	}, [] );
 
 	useEffect( () => {
 		if ( settings && ! local ) {
@@ -179,6 +270,11 @@ export default function SettingsApp() {
 		{
 			name: 'usage',
 			title: __( 'Usage', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
+			name: 'integrations',
+			title: __( 'Integrations', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
@@ -755,6 +851,123 @@ export default function SettingsApp() {
 											__nextHasNoMarginBottom
 										/>
 									) }
+								</div>
+							);
+
+						case 'integrations':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									<h3>
+										{ __(
+											'Google Analytics 4',
+											'gratis-ai-agent'
+										) }
+									</h3>
+									<p>
+										{ __(
+											'Connect to Google Analytics 4 to enable traffic analysis in the AI chat. You need a GA4 property ID and a Google service account JSON key with the "Viewer" role on your GA4 property.',
+											'gratis-ai-agent'
+										) }
+									</p>
+									{ gaStatus?.has_credentials && (
+										<Notice
+											status="success"
+											isDismissible={ false }
+										>
+											{ __(
+												'Google Analytics is connected.',
+												'gratis-ai-agent'
+											) }{ ' ' }
+											{ gaStatus.property_id && (
+												<strong>
+													{ __(
+														'Property ID:',
+														'gratis-ai-agent'
+													) }{ ' ' }
+													{ gaStatus.property_id }
+												</strong>
+											) }
+										</Notice>
+									) }
+									{ gaNotice && (
+										<Notice
+											status={ gaNotice.status }
+											isDismissible
+											onDismiss={ () =>
+												setGaNotice( null )
+											}
+										>
+											{ gaNotice.message }
+										</Notice>
+									) }
+									<TextControl
+										label={ __(
+											'GA4 Property ID',
+											'gratis-ai-agent'
+										) }
+										value={ gaPropertyId }
+										onChange={ setGaPropertyId }
+										placeholder="123456789"
+										help={ __(
+											'Your numeric GA4 property ID. Found in Google Analytics > Admin > Property Settings.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
+									<TextareaControl
+										label={ __(
+											'Service Account JSON Key',
+											'gratis-ai-agent'
+										) }
+										value={ gaServiceJson }
+										onChange={ setGaServiceJson }
+										placeholder={ __(
+											'Paste the contents of your service account JSON key file here.',
+											'gratis-ai-agent'
+										) }
+										help={ __(
+											'Download from Google Cloud Console > IAM & Admin > Service Accounts > Keys. Grant the service account "Viewer" access in GA4 Admin > Property Access Management.',
+											'gratis-ai-agent'
+										) }
+										rows={ 6 }
+									/>
+									<div
+										style={ {
+											display: 'flex',
+											gap: '8px',
+											marginTop: '16px',
+										} }
+									>
+										<Button
+											variant="primary"
+											onClick={ handleGaSave }
+											isBusy={ gaSaving }
+											disabled={
+												gaSaving ||
+												! gaPropertyId ||
+												! gaServiceJson
+											}
+										>
+											{ __(
+												'Save GA Credentials',
+												'gratis-ai-agent'
+											) }
+										</Button>
+										{ gaStatus?.has_credentials && (
+											<Button
+												variant="secondary"
+												isDestructive
+												onClick={ handleGaClear }
+												isBusy={ gaSaving }
+												disabled={ gaSaving }
+											>
+												{ __(
+													'Disconnect',
+													'gratis-ai-agent'
+												) }
+											</Button>
+										) }
+									</div>
 								</div>
 							);
 

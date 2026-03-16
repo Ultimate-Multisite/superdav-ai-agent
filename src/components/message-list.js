@@ -16,6 +16,7 @@ import MessageActions from './message-actions';
 import DebugPanel from './debug-panel';
 import ActionCard from './action-card';
 import { getBranding } from '../utils/branding';
+import useTextToSpeech from './use-text-to-speech';
 
 /**
  * Parse suggestion chips from the end of a model response.
@@ -130,6 +131,9 @@ function extractText( message ) {
  * debug panels, suggestion chips, and the streaming text indicator.
  * Auto-scrolls to the bottom on new messages.
  *
+ * When text-to-speech is enabled, each new model response is spoken aloud
+ * automatically using the Web Speech API SpeechSynthesis interface.
+ *
  * @return {JSX.Element} The message list element.
  */
 export default function MessageList() {
@@ -141,6 +145,10 @@ export default function MessageList() {
 		isStreaming,
 		pendingActionCard,
 		settingsGreeting,
+		ttsEnabled,
+		ttsVoiceURI,
+		ttsRate,
+		ttsPitch,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -151,6 +159,10 @@ export default function MessageList() {
 			isStreaming: store.isStreamingActive(),
 			pendingActionCard: store.getPendingActionCard(),
 			settingsGreeting: store.getSettings()?.greeting_message || '',
+			ttsEnabled: store.isTtsEnabled(),
+			ttsVoiceURI: store.getTtsVoiceURI(),
+			ttsRate: store.getTtsRate(),
+			ttsPitch: store.getTtsPitch(),
 		};
 	}, [] );
 
@@ -165,6 +177,16 @@ export default function MessageList() {
 		useDispatch( STORE_NAME );
 	const messagesRef = useRef( null );
 
+	// TTS hook — configured from store state.
+	const { speak, cancel } = useTextToSpeech( {
+		voiceURI: ttsVoiceURI,
+		rate: ttsRate,
+		pitch: ttsPitch,
+	} );
+
+	// Track the index of the last message we spoke to avoid re-speaking.
+	const lastSpokenIndexRef = useRef( -1 );
+
 	useEffect( () => {
 		const el = messagesRef.current;
 		if ( el ) {
@@ -177,6 +199,45 @@ export default function MessageList() {
 			}
 		}
 	}, [ messages, sending, streamingText ] );
+
+	// Speak new model messages when TTS is enabled and a response completes.
+	// We only speak when: TTS is on, not currently streaming, not sending,
+	// and the last message is a model message we haven't spoken yet.
+	useEffect( () => {
+		if ( ! ttsEnabled || isStreaming || sending ) {
+			return;
+		}
+
+		const lastIdx = messages.length - 1;
+		if ( lastIdx < 0 ) {
+			return;
+		}
+
+		const lastMsg = messages[ lastIdx ];
+		if ( lastMsg.role !== 'model' ) {
+			return;
+		}
+
+		// Don't re-speak a message we already spoke.
+		if ( lastIdx === lastSpokenIndexRef.current ) {
+			return;
+		}
+
+		const text = extractText( lastMsg );
+		if ( ! text ) {
+			return;
+		}
+
+		lastSpokenIndexRef.current = lastIdx;
+		speak( text );
+	}, [ messages, ttsEnabled, isStreaming, sending, speak ] );
+
+	// Cancel speech when TTS is disabled mid-conversation.
+	useEffect( () => {
+		if ( ! ttsEnabled ) {
+			cancel();
+		}
+	}, [ ttsEnabled, cancel ] );
 
 	const visibleMessages = messages.filter( ( msg ) => {
 		// Skip function-role messages (tool responses).

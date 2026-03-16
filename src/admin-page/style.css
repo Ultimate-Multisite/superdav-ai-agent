@@ -1794,6 +1794,40 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	cursor: help;
 }
 
+/* TTS toggle button in chat header */
+.ai-agent-tts-btn {
+	min-width: auto;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 50%;
+	color: #787c82;
+	background: transparent;
+	border: 1px solid transparent;
+	margin-left: 4px;
+	transition: color 0.15s, background 0.15s, border-color 0.15s;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.ai-agent-tts-btn:hover {
+	color: var(--wp-admin-theme-color, #2271b1);
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	background: transparent;
+}
+
+.ai-agent-tts-btn.is-active {
+	color: var(--wp-admin-theme-color, #2271b1);
+	background: rgba(34, 113, 177, 0.1);
+	border-color: var(--wp-admin-theme-color, #2271b1);
+}
+
+.ai-agent-tts-btn svg {
+	width: 18px;
+	height: 18px;
+}
+
 /* Debug panel (below assistant messages) */
 .ai-agent-debug-panel {
 	align-self: flex-start;

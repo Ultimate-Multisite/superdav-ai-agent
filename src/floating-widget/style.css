@@ -545,6 +545,40 @@
 	cursor: help;
 }
 
+/* TTS toggle button in chat header (floating widget) */
+.ai-agent-floating-panel .ai-agent-tts-btn {
+	min-width: auto;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border-radius: 50%;
+	color: rgba(255, 255, 255, 0.7);
+	background: transparent;
+	border: 1px solid transparent;
+	margin-left: 4px;
+	transition: color 0.15s, background 0.15s, border-color 0.15s;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.ai-agent-floating-panel .ai-agent-tts-btn:hover {
+	color: #fff;
+	border-color: rgba(255, 255, 255, 0.5);
+	background: transparent;
+}
+
+.ai-agent-floating-panel .ai-agent-tts-btn.is-active {
+	color: #fff;
+	background: rgba(255, 255, 255, 0.2);
+	border-color: rgba(255, 255, 255, 0.5);
+}
+
+.ai-agent-floating-panel .ai-agent-tts-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
 /* Debug panel (below assistant messages) */
 .ai-agent-debug-panel {
 	align-self: flex-start;

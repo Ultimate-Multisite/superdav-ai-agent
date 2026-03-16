@@ -22,9 +22,7 @@ const CHANNEL_TYPE_OPTIONS = [
 ];
 
 /**
- * Returns a default empty notification channel object.
  *
- * @return {Object} Default channel configuration.
  */
 function emptyChannel() {
 	return { type: 'slack', webhook_url: '', enabled: true };

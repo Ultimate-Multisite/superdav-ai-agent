@@ -16,6 +16,10 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
+import {
+	useAvailableVoices,
+	isTTSSupported,
+} from '../components/use-text-to-speech';
 
 /**
  * Internal dependencies
@@ -39,16 +43,38 @@ import BrandingManager from './branding-manager';
  *
  */
 export default function SettingsApp() {
-	const { fetchSettings, fetchProviders, saveSettings } =
-		useDispatch( STORE_NAME );
-	const { settings, settingsLoaded, providers } = useSelect(
+	const {
+		fetchSettings,
+		fetchProviders,
+		saveSettings,
+		setTtsEnabled,
+		setTtsVoiceURI,
+		setTtsRate,
+		setTtsPitch,
+	} = useDispatch( STORE_NAME );
+	const {
+		settings,
+		settingsLoaded,
+		providers,
+		ttsEnabled,
+		ttsVoiceURI,
+		ttsRate,
+		ttsPitch,
+	} = useSelect(
 		( select ) => ( {
 			settings: select( STORE_NAME ).getSettings(),
 			settingsLoaded: select( STORE_NAME ).getSettingsLoaded(),
 			providers: select( STORE_NAME ).getProviders(),
+			ttsEnabled: select( STORE_NAME ).isTtsEnabled(),
+			ttsVoiceURI: select( STORE_NAME ).getTtsVoiceURI(),
+			ttsRate: select( STORE_NAME ).getTtsRate(),
+			ttsPitch: select( STORE_NAME ).getTtsPitch(),
 		} ),
 		[]
 	);
+
+	// Available TTS voices (loaded asynchronously in some browsers).
+	const ttsVoices = useAvailableVoices();
 
 	const [ local, setLocal ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
@@ -282,6 +308,11 @@ export default function SettingsApp() {
 		{
 			name: 'branding',
 			title: __( 'Branding', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
+			name: 'tts',
+			title: __( 'Text-to-Speech', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
@@ -887,6 +918,97 @@ export default function SettingsApp() {
 										local={ local }
 										updateField={ updateField }
 									/>
+								</div>
+							);
+
+						case 'tts':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									{ ! isTTSSupported && (
+										<p className="description">
+											{ __(
+												'Text-to-speech is not supported in this browser.',
+												'gratis-ai-agent'
+											) }
+										</p>
+									) }
+									{ isTTSSupported && (
+										<>
+											<ToggleControl
+												label={ __(
+													'Enable Text-to-Speech',
+													'gratis-ai-agent'
+												) }
+												checked={ ttsEnabled }
+												onChange={ setTtsEnabled }
+												help={ __(
+													'When enabled, AI responses are read aloud automatically. Use the speaker button in the chat header to toggle on the fly.',
+													'gratis-ai-agent'
+												) }
+												__nextHasNoMarginBottom
+											/>
+											{ ttsVoices.length > 0 && (
+												<SelectControl
+													label={ __(
+														'Voice',
+														'gratis-ai-agent'
+													) }
+													value={ ttsVoiceURI }
+													options={ [
+														{
+															label: __(
+																'(Browser default)',
+																'gratis-ai-agent'
+															),
+															value: '',
+														},
+														...ttsVoices.map(
+															( v ) => ( {
+																label: `${ v.name } (${ v.lang })`,
+																value: v.voiceURI,
+															} )
+														),
+													] }
+													onChange={ setTtsVoiceURI }
+													help={ __(
+														'Select the voice used for speech synthesis.',
+														'gratis-ai-agent'
+													) }
+													__nextHasNoMarginBottom
+												/>
+											) }
+											<RangeControl
+												label={ __(
+													'Speech Rate',
+													'gratis-ai-agent'
+												) }
+												value={ ttsRate }
+												onChange={ setTtsRate }
+												min={ 0.5 }
+												max={ 2 }
+												step={ 0.1 }
+												help={ __(
+													'Speed of speech. 1 is normal speed.',
+													'gratis-ai-agent'
+												) }
+											/>
+											<RangeControl
+												label={ __(
+													'Pitch',
+													'gratis-ai-agent'
+												) }
+												value={ ttsPitch }
+												onChange={ setTtsPitch }
+												min={ 0 }
+												max={ 2 }
+												step={ 0.1 }
+												help={ __(
+													'Pitch of speech. 1 is normal pitch.',
+													'gratis-ai-agent'
+												) }
+											/>
+										</>
+									) }
 								</div>
 							);
 

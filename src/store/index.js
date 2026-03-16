@@ -111,6 +111,18 @@ const DEFAULT_STATE = {
 	// without waiting for a REST round-trip.
 	siteBuilderMode: window.gratisAiAgentSiteBuilder?.siteBuilderMode ?? false,
 	isFreshInstall: window.gratisAiAgentSiteBuilder?.isFreshInstall ?? false,
+	siteBuilderStep: 0,
+	siteBuilderTotalSteps: 0,
+
+	// Text-to-speech (t084) — persisted to localStorage.
+	ttsEnabled: localStorage.getItem( 'gratisAiAgentTtsEnabled' ) === 'true',
+	ttsVoiceURI: localStorage.getItem( 'gratisAiAgentTtsVoiceURI' ) || '',
+	ttsRate: parseFloat(
+		localStorage.getItem( 'gratisAiAgentTtsRate' ) || '1'
+	),
+	ttsPitch: parseFloat(
+		localStorage.getItem( 'gratisAiAgentTtsPitch' ) || '1'
+	),
 };
 
 const actions = {
@@ -438,6 +450,75 @@ const actions = {
 	},
 	setAlertCount( count ) {
 		return { type: 'SET_ALERT_COUNT', count };
+	},
+
+	/**
+	 * Set the current step number in the site builder progress indicator.
+	 *
+	 * @param {number} step - Current step (0-based).
+	 * @return {Object} Redux action.
+	 */
+	setSiteBuilderStep( step ) {
+		return { type: 'SET_SITE_BUILDER_STEP', step };
+	},
+
+	/**
+	 * Set the total number of steps in the site builder progress indicator.
+	 *
+	 * @param {number} total - Total step count.
+	 * @return {Object} Redux action.
+	 */
+	setSiteBuilderTotalSteps( total ) {
+		return { type: 'SET_SITE_BUILDER_TOTAL_STEPS', total };
+	},
+
+	// ─── Text-to-speech (t084) ───────────────────────────────────
+
+	/**
+	 * Enable or disable text-to-speech and persist the choice to localStorage.
+	 *
+	 * @param {boolean} enabled - Whether TTS should be active.
+	 * @return {Object} Redux action.
+	 */
+	setTtsEnabled( enabled ) {
+		localStorage.setItem(
+			'gratisAiAgentTtsEnabled',
+			enabled ? 'true' : 'false'
+		);
+		return { type: 'SET_TTS_ENABLED', enabled };
+	},
+
+	/**
+	 * Set the TTS voice URI and persist to localStorage.
+	 *
+	 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI value.
+	 * @return {Object} Redux action.
+	 */
+	setTtsVoiceURI( voiceURI ) {
+		localStorage.setItem( 'gratisAiAgentTtsVoiceURI', voiceURI );
+		return { type: 'SET_TTS_VOICE_URI', voiceURI };
+	},
+
+	/**
+	 * Set the TTS speech rate and persist to localStorage.
+	 *
+	 * @param {number} rate - Speech rate (0.1–10).
+	 * @return {Object} Redux action.
+	 */
+	setTtsRate( rate ) {
+		localStorage.setItem( 'gratisAiAgentTtsRate', String( rate ) );
+		return { type: 'SET_TTS_RATE', rate };
+	},
+
+	/**
+	 * Set the TTS speech pitch and persist to localStorage.
+	 *
+	 * @param {number} pitch - Speech pitch (0–2).
+	 * @return {Object} Redux action.
+	 */
+	setTtsPitch( pitch ) {
+		localStorage.setItem( 'gratisAiAgentTtsPitch', String( pitch ) );
+		return { type: 'SET_TTS_PITCH', pitch };
 	},
 
 	// ─── Thunks ──────────────────────────────────────────────────
@@ -2206,6 +2287,40 @@ const selectors = {
 			128000;
 		return ( state.tokenUsage.prompt / contextLimit ) * 100 > 80;
 	},
+
+	// Text-to-speech (t084)
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether text-to-speech is enabled.
+	 */
+	isTtsEnabled( state ) {
+		return state.ttsEnabled;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} Selected TTS voice URI (empty = browser default).
+	 */
+	getTtsVoiceURI( state ) {
+		return state.ttsVoiceURI;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number} TTS speech rate.
+	 */
+	getTtsRate( state ) {
+		return state.ttsRate;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number} TTS speech pitch.
+	 */
+	getTtsPitch( state ) {
+		return state.ttsPitch;
+	},
 };
 
 /**
@@ -2347,6 +2462,18 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, streamAbortController: action.controller };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
+		case 'SET_SITE_BUILDER_STEP':
+			return { ...state, siteBuilderStep: action.step };
+		case 'SET_SITE_BUILDER_TOTAL_STEPS':
+			return { ...state, siteBuilderTotalSteps: action.total };
+		case 'SET_TTS_ENABLED':
+			return { ...state, ttsEnabled: action.enabled };
+		case 'SET_TTS_VOICE_URI':
+			return { ...state, ttsVoiceURI: action.voiceURI };
+		case 'SET_TTS_RATE':
+			return { ...state, ttsRate: action.rate };
+		case 'SET_TTS_PITCH':
+			return { ...state, ttsPitch: action.pitch };
 		default:
 			return state;
 	}

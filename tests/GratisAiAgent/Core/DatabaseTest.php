@@ -230,9 +230,11 @@ class DatabaseTest extends WP_UnitTestCase {
 		$active = Database::list_sessions( $user_id, [ 'status' => 'active' ] );
 		$trashed = Database::list_sessions( $user_id, [ 'status' => 'trash' ] );
 
-		// The trashed session should appear in trash list.
-		$trashed_ids = array_column( $trashed, 'id' );
-		$this->assertContains( (int) $session_id, array_map( 'intval', $trashed_ids ) );
+		// The trashed session should appear in trash list but NOT in active list.
+		$active_ids  = array_map( 'intval', array_column( $active, 'id' ) );
+		$trashed_ids = array_map( 'intval', array_column( $trashed, 'id' ) );
+		$this->assertNotContains( (int) $session_id, $active_ids );
+		$this->assertContains( (int) $session_id, $trashed_ids );
 	}
 
 	/**

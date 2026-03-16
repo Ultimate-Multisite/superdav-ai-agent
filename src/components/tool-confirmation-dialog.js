@@ -48,13 +48,18 @@ export default function ToolConfirmationDialog( {
 		<div className="ai-agent-shortcuts-overlay">
 			<div className="ai-agent-tool-confirm-dialog" ref={ dialogRef }>
 				<div className="ai-agent-tool-confirm-header">
-					<h3>{ __( 'Tool Confirmation Required', 'ai-agent' ) }</h3>
+					<h3>
+						{ __(
+							'Tool Confirmation Required',
+							'gratis-ai-agent'
+						) }
+					</h3>
 				</div>
 				<div className="ai-agent-tool-confirm-body">
 					<p className="ai-agent-tool-confirm-desc">
 						{ __(
 							'The AI wants to use the following tools:',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</p>
 					{ confirmation.tools.map( ( tool ) => (
@@ -86,7 +91,7 @@ export default function ToolConfirmationDialog( {
 						/>
 						{ __(
 							'Always allow these tools (change permission to Auto)',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					</label>
 				</div>
@@ -96,14 +101,14 @@ export default function ToolConfirmationDialog( {
 						className="button"
 						onClick={ onReject }
 					>
-						{ __( 'Deny', 'ai-agent' ) }
+						{ __( 'Deny', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ () => onConfirm( alwaysAllow ) }
 					>
-						{ __( 'Allow', 'ai-agent' ) }
+						{ __( 'Allow', 'gratis-ai-agent' ) }
 					</button>
 				</div>
 			</div>

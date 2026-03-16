@@ -97,10 +97,10 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 						className="ai-agent-yolo-badge"
 						title={ __(
 							'YOLO mode is active — all tool confirmations are skipped automatically.',
-							'ai-agent'
+							'gratis-ai-agent'
 						) }
 					>
-						{ __( 'YOLO', 'ai-agent' ) }
+						{ __( 'YOLO', 'gratis-ai-agent' ) }
 					</span>
 				) }
 			</div>

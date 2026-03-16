@@ -63,7 +63,7 @@
 
 - [ ] t072 Render data tables in chat responses (sortable, filterable) @dave #ui ~6h logged:2026-03-15
 - [ ] t073 Render charts in chat responses (Chart.js) @dave #ui ~4h logged:2026-03-15
-- [ ] t074 Action cards for confirmable operations @dave #ui ~4h logged:2026-03-15
+- [x] t074 Action cards for confirmable operations @dave #ui ~4h logged:2026-03-15 pr:#277 completed:2026-03-16
 
 ### Code Quality & Dev Environment (P1)
 

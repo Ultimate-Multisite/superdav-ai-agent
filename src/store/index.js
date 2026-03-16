@@ -1,7 +1,11 @@
 /**
  * WordPress dependencies
  */
-import { createReduxStore, register } from '@wordpress/data';
+import {
+	createReduxStore,
+	register,
+	select as wpSelect,
+} from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 
 /**
@@ -170,10 +174,28 @@ const actions = {
 	/**
 	 * Clear the active session (start a new chat).
 	 *
-	 * @return {Object} Redux action.
+	 * Also cancels any in-flight request so the UI returns to idle state
+	 * immediately, allowing the empty state to render without waiting for
+	 * the current job to complete or error.
+	 *
+	 * @return {Function} Redux thunk.
 	 */
 	clearCurrentSession() {
-		return { type: 'CLEAR_CURRENT_SESSION' };
+		return async ( { dispatch, select } ) => {
+			// Cancel any active SSE stream.
+			const controller = select.getStreamAbortController();
+			if ( controller ) {
+				controller.abort();
+				dispatch.setStreamAbortController( null );
+			}
+			// Stop polling / sending state so the empty state renders immediately.
+			dispatch.setCurrentJobId( null );
+			dispatch.setSending( false );
+			dispatch.setIsStreaming( false );
+			dispatch.setStreamingText( '' );
+			// Clear the session.
+			dispatch( { type: 'CLEAR_CURRENT_SESSION' } );
+		};
 	},
 
 	/**
@@ -2591,6 +2613,12 @@ const store = createReduxStore( STORE_NAME, {
 	selectors,
 } );
 
-register( store );
+// Guard against double-registration: both floating-widget.js and
+// screen-meta.js import this module. The first bundle to load registers
+// the store; subsequent bundles on the same page skip registration so
+// the existing store instance (and its state) is preserved.
+if ( ! wpSelect( STORE_NAME ) ) {
+	register( store );
+}
 
 export default STORE_NAME;

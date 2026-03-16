@@ -144,8 +144,11 @@ test.describe( 'Admin Page - Session Management', () => {
 		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
 
 		// At least one session item should appear in the sidebar.
+		// Use toBeVisible() on the first item rather than toHaveCount(1) because
+		// prior tests in the same run may have created sessions that persist in
+		// the wp-env database across tests.
 		const sessionItems = page.locator( '.ai-agent-session-item' );
-		await expect( sessionItems ).toHaveCount( 1, { timeout: 10_000 } );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
 	} );
 } );
 

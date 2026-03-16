@@ -314,6 +314,26 @@ class ToolProfiles {
 				'is_builtin'  => true,
 			],
 			[
+				'slug'        => 'site-health',
+				'name'        => __( 'Site Health', 'gratis-ai-agent' ),
+				'description' => __( 'Daily health monitoring: plugin updates, PHP errors, disk space, security, and performance checks.', 'gratis-ai-agent' ),
+				'tool_names'  => self::get_abilities_by_pattern(
+					[
+						'gratis-ai-agent/check-plugin-updates',
+						'gratis-ai-agent/scan-php-error-log',
+						'gratis-ai-agent/check-disk-space',
+						'gratis-ai-agent/check-security',
+						'gratis-ai-agent/check-performance',
+						'gratis-ai-agent/site-health-summary',
+						'gratis-ai-agent/memory-',
+						'gratis-ai-agent/skill-',
+						'gratis-ai-agent/list-tools',
+						'gratis-ai-agent/execute-tool',
+					]
+				),
+				'is_builtin'  => true,
+			],
+			[
 				'slug'        => 'content-creator',
 				'name'        => __( 'Content Creator', 'gratis-ai-agent' ),
 				'description' => __( 'Content creation with Gutenberg blocks, media, and post management.', 'gratis-ai-agent' ),

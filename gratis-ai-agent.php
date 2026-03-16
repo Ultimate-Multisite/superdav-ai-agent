@@ -52,6 +52,7 @@ use GratisAiAgent\Abilities\MarketingAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
 use GratisAiAgent\Abilities\SeoAbilities;
+use GratisAiAgent\Abilities\SiteHealthAbilities;
 use GratisAiAgent\Abilities\SkillAbilities;
 use GratisAiAgent\Abilities\StockImageAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
@@ -128,6 +129,9 @@ DatabaseAbilities::register();
 
 // WordPress management abilities (plugins, themes, install, run PHP).
 WordPressAbilities::register();
+
+// Site health abilities (plugin updates, error log, disk space, security, performance).
+SiteHealthAbilities::register();
 
 // Navigation abilities (navigate, get page HTML).
 NavigationAbilities::register();

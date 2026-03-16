@@ -223,10 +223,11 @@ class Automations {
 	public static function get_templates(): array {
 		return [
 			[
-				'name'        => __( 'Daily Site Health Report', 'gratis-ai-agent' ),
-				'description' => __( 'Run a comprehensive site health check and report findings.', 'gratis-ai-agent' ),
-				'prompt'      => "Run a site health check. Check for:\n1. WordPress and plugin updates available\n2. PHP errors in the log\n3. Disk space usage\n4. Database optimization status\n5. Security concerns\n\nProvide a brief summary of the site's health status.",
-				'schedule'    => 'daily',
+				'name'         => __( 'Daily Site Health Report', 'gratis-ai-agent' ),
+				'description'  => __( 'Run a comprehensive automated site health check covering plugins, errors, disk space, security, and performance.', 'gratis-ai-agent' ),
+				'prompt'       => "Run a full site health check using the site-health-summary tool. It will check:\n1. Plugin updates available\n2. PHP error log (last 24 hours)\n3. Disk space usage\n4. Security issues (debug mode, file editor, WP version, admin username, SSL)\n5. Performance indicators (autoloaded options, transients, object cache)\n\nAfter getting the summary, provide a concise report with:\n- Overall status (healthy / needs_attention / critical)\n- Any critical issues that need immediate action\n- Warnings to address soon\n- A brief summary of what is working well\n\nKeep the report clear and actionable.",
+				'schedule'     => 'daily',
+				'tool_profile' => 'site-health',
 			],
 			[
 				'name'        => __( 'Weekly Plugin Update Check', 'gratis-ai-agent' ),

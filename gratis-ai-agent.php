@@ -55,6 +55,7 @@ use GratisAiAgent\Abilities\SeoAbilities;
 use GratisAiAgent\Abilities\SiteHealthAbilities;
 use GratisAiAgent\Abilities\SkillAbilities;
 use GratisAiAgent\Abilities\StockImageAbilities;
+use GratisAiAgent\Abilities\WooCommerceAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\AdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
@@ -129,6 +130,9 @@ DatabaseAbilities::register();
 
 // WordPress management abilities (plugins, themes, install, run PHP).
 WordPressAbilities::register();
+
+// WooCommerce abilities (product CRUD, order queries, store stats) — only registers when WooCommerce is active.
+WooCommerceAbilities::register();
 
 // Site health abilities (plugin updates, error log, disk space, security, performance).
 SiteHealthAbilities::register();

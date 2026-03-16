@@ -109,4 +109,14 @@
     <rule ref="PHPCompatibilityWP"/>
     <config name="testVersion" value="8.2-"/>
 
+    <!-- WooCommerce custom capabilities — registered by WooCommerce, not WordPress core -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="manage_woocommerce"/>
+                <element value="view_woocommerce_reports"/>
+            </property>
+        </properties>
+    </rule>
+
 </ruleset>

@@ -75,12 +75,19 @@ class McpControllerTest extends WP_UnitTestCase {
 	/**
 	 * Set up REST server, test users, and a mock ability before each test.
 	 *
-	 * wp_register_ability() can be called directly once the Abilities registry
-	 * is initialised (which happens lazily on first access, typically triggered
-	 * by earlier tests in the suite). Using add_action( 'wp_abilities_api_init' )
-	 * is only reliable at plugin boot time — by the time set_up() runs the hook
-	 * has already fired and will never fire again, so the callback is never
-	 * invoked. Calling wp_register_ability() directly avoids this race condition.
+	 * WordPress 6.9 enforces that wp_register_ability() is called from within
+	 * the wp_abilities_api_init hook. Calling it outside the hook triggers
+	 * _doing_it_wrong() and the ability is not registered.
+	 *
+	 * The hook fires lazily on first registry access and only fires once per
+	 * request. By the time set_up() runs, earlier tests in the suite have
+	 * already triggered registry initialisation, so add_action() on that hook
+	 * adds a callback that will never fire.
+	 *
+	 * The solution used by WordPress core's own test suite (see
+	 * tests/phpunit/tests/abilities-api/wpRegisterAbility.php) is to push the
+	 * hook name onto $wp_current_filter before calling wp_register_ability().
+	 * This satisfies the hook-context check without requiring the hook to fire.
 	 */
 	public function set_up(): void {
 		parent::set_up();
@@ -94,9 +101,13 @@ class McpControllerTest extends WP_UnitTestCase {
 		$this->admin_id      = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		$this->subscriber_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
 
-		// Register the mock ability directly. wp_register_ability() works at any
-		// point after the registry is initialised — no hook indirection needed.
+		// Register the mock ability using the same pattern as WordPress core tests:
+		// push the hook name onto $wp_current_filter to satisfy the hook-context
+		// check inside wp_register_ability(), then pop it after registration.
 		if ( function_exists( 'wp_register_ability' ) ) {
+			global $wp_current_filter;
+			$wp_current_filter[] = 'wp_abilities_api_init';
+
 			wp_register_ability(
 				self::MOCK_ABILITY,
 				[
@@ -121,6 +132,8 @@ class McpControllerTest extends WP_UnitTestCase {
 					},
 				]
 			);
+
+			array_pop( $wp_current_filter );
 		}
 	}
 

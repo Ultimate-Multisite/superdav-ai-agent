@@ -10,20 +10,27 @@ import { __ } from '@wordpress/i18n';
  */
 import STORE_NAME from '../store';
 import FolderPicker from './folder-picker';
+import ShareSessionDialog from './share-session-dialog';
 
 /**
- * Context menu for a session item (rename, pin, folder, export, archive, trash).
+ * Context menu for a session item (rename, pin, folder, share, export, archive, trash).
  *
  * Closes when the user clicks outside the menu. Renders an inline rename
- * input or a FolderPicker when those sub-flows are active.
+ * input, a FolderPicker, or a ShareSessionDialog when those sub-flows are active.
  *
  * @param {Object}                     props         - Component props.
  * @param {import('../types').Session} props.session - Session data.
  * @param {Function}                   props.onClose - Called when the menu should close.
+ * @param {boolean}                    props.isOwner - Whether the current user owns this session.
  * @return {JSX.Element} The context menu element.
  */
-export default function SessionContextMenu( { session, onClose } ) {
+export default function SessionContextMenu( {
+	session,
+	onClose,
+	isOwner = true,
+} ) {
 	const [ showFolderPicker, setShowFolderPicker ] = useState( false );
+	const [ showShareDialog, setShowShareDialog ] = useState( false );
 	const [ isRenaming, setIsRenaming ] = useState( false );
 	const [ renameTitle, setRenameTitle ] = useState( session.title || '' );
 	const menuRef = useRef( null );
@@ -50,8 +57,11 @@ export default function SessionContextMenu( { session, onClose } ) {
 	const isArchived = session.status === 'archived';
 	const isTrashed = session.status === 'trash';
 
-	// Close on click outside.
+	// Close on click outside (but not when share dialog is open — it handles its own backdrop).
 	useEffect( () => {
+		if ( showShareDialog ) {
+			return;
+		}
 		const handler = ( e ) => {
 			if ( menuRef.current && ! menuRef.current.contains( e.target ) ) {
 				onClose();
@@ -59,7 +69,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 		};
 		document.addEventListener( 'mousedown', handler );
 		return () => document.removeEventListener( 'mousedown', handler );
-	}, [ onClose ] );
+	}, [ onClose, showShareDialog ] );
 
 	const handleRename = () => {
 		if ( renameTitle.trim() ) {
@@ -68,6 +78,19 @@ export default function SessionContextMenu( { session, onClose } ) {
 		setIsRenaming( false );
 		onClose();
 	};
+
+	// Share dialog renders outside the context menu (as a Modal).
+	if ( showShareDialog ) {
+		return (
+			<ShareSessionDialog
+				sessionId={ sessionId }
+				onClose={ () => {
+					setShowShareDialog( false );
+					onClose();
+				} }
+			/>
+		);
+	}
 
 	if ( isRenaming ) {
 		return (
@@ -88,7 +111,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 						} }
 					/>
 					<button type="button" onClick={ handleRename }>
-						{ __( 'Save', 'ai-agent' ) }
+						{ __( 'Save', 'gratis-ai-agent' ) }
 					</button>
 				</div>
 			</div>
@@ -112,13 +135,13 @@ export default function SessionContextMenu( { session, onClose } ) {
 
 	return (
 		<div className="ai-agent-context-menu" ref={ menuRef }>
-			{ ! isTrashed && (
+			{ ! isTrashed && isOwner && (
 				<>
 					<button
 						type="button"
 						onClick={ () => setIsRenaming( true ) }
 					>
-						{ __( 'Rename', 'ai-agent' ) }
+						{ __( 'Rename', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
@@ -128,14 +151,20 @@ export default function SessionContextMenu( { session, onClose } ) {
 						} }
 					>
 						{ isPinned
-							? __( 'Unpin', 'ai-agent' )
-							: __( 'Pin', 'ai-agent' ) }
+							? __( 'Unpin', 'gratis-ai-agent' )
+							: __( 'Pin', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						onClick={ () => setShowFolderPicker( true ) }
 					>
-						{ __( 'Move to Folder', 'ai-agent' ) }
+						{ __( 'Move to Folder', 'gratis-ai-agent' ) }
+					</button>
+					<button
+						type="button"
+						onClick={ () => setShowShareDialog( true ) }
+					>
+						{ __( 'Share', 'gratis-ai-agent' ) }
 					</button>
 					<button
 						type="button"
@@ -144,12 +173,26 @@ export default function SessionContextMenu( { session, onClose } ) {
 							onClose();
 						} }
 					>
-						{ __( 'Export', 'ai-agent' ) }
+						{ __( 'Export', 'gratis-ai-agent' ) }
 					</button>
 					<hr />
 				</>
 			) }
-			{ ! isArchived && ! isTrashed && (
+			{ ! isTrashed && ! isOwner && (
+				<>
+					<button
+						type="button"
+						onClick={ () => {
+							exportSession( sessionId, 'json' );
+							onClose();
+						} }
+					>
+						{ __( 'Export', 'gratis-ai-agent' ) }
+					</button>
+					<hr />
+				</>
+			) }
+			{ ! isArchived && ! isTrashed && isOwner && (
 				<button
 					type="button"
 					onClick={ () => {
@@ -157,10 +200,10 @@ export default function SessionContextMenu( { session, onClose } ) {
 						onClose();
 					} }
 				>
-					{ __( 'Archive', 'ai-agent' ) }
+					{ __( 'Archive', 'gratis-ai-agent' ) }
 				</button>
 			) }
-			{ ( isArchived || isTrashed ) && (
+			{ ( isArchived || isTrashed ) && isOwner && (
 				<button
 					type="button"
 					onClick={ () => {
@@ -168,10 +211,10 @@ export default function SessionContextMenu( { session, onClose } ) {
 						onClose();
 					} }
 				>
-					{ __( 'Restore', 'ai-agent' ) }
+					{ __( 'Restore', 'gratis-ai-agent' ) }
 				</button>
 			) }
-			{ ! isTrashed && (
+			{ ! isTrashed && isOwner && (
 				<button
 					type="button"
 					className="ai-agent-context-menu-danger"
@@ -180,7 +223,7 @@ export default function SessionContextMenu( { session, onClose } ) {
 						onClose();
 					} }
 				>
-					{ __( 'Move to Trash', 'ai-agent' ) }
+					{ __( 'Move to Trash', 'gratis-ai-agent' ) }
 				</button>
 			) }
 		</div>

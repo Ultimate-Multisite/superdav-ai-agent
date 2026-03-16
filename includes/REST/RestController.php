@@ -87,6 +87,9 @@ class RestController {
 		// Webhook API endpoints.
 		WebhookController::register_routes();
 
+		// Shared sessions endpoints.
+		SharedSessionsController::register_routes();
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/stream',
@@ -1960,7 +1963,7 @@ class RestController {
 	/**
 	 * Permission check for session-specific endpoints.
 	 *
-	 * Verifies chat access + session ownership.
+	 * Verifies manage_options + session ownership OR shared access.
 	 */
 	public function check_session_permission( WP_REST_Request $request ): bool {
 		if ( ! RolePermissions::current_user_has_chat_access() ) {
@@ -1968,13 +1971,8 @@ class RestController {
 		}
 
 		$session_id = absint( $request->get_param( 'id' ) );
-		$session    = $this->database->get_session( $session_id );
 
-		if ( ! $session ) {
-			return false;
-		}
-
-		return (int) $session->user_id === get_current_user_id();
+		return Database::user_can_access_session( $session_id, get_current_user_id(), 'view' );
 	}
 
 	/**

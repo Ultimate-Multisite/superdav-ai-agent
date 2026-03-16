@@ -32,7 +32,7 @@ function relativeTime( dateStr ) {
 	const diff = Math.floor( ( now - date ) / 1000 );
 
 	if ( diff < 60 ) {
-		return __( 'just now', 'ai-agent' );
+		return __( 'just now', 'gratis-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -50,14 +50,15 @@ function relativeTime( dateStr ) {
  * A single session row in the sidebar list.
  *
  * Clicking the row opens the session. The ⋯ button opens a context menu
- * with rename, pin, folder, export, archive, and trash actions.
+ * with rename, pin, folder, share, export, archive, and trash actions.
  *
  * @param {Object}  props          - Component props.
  * @param {Session} props.session  - Session data.
  * @param {boolean} props.isActive - Whether this session is currently open.
+ * @param {boolean} props.isOwner  - Whether the current user owns this session.
  * @return {JSX.Element} The session item element.
  */
-function SessionItem( { session, isActive } ) {
+function SessionItem( { session, isActive, isOwner = true } ) {
 	const [ showMenu, setShowMenu ] = useState( false );
 	const { openSession } = useDispatch( STORE_NAME );
 
@@ -67,7 +68,9 @@ function SessionItem( { session, isActive } ) {
 		<div
 			className={ `ai-agent-session-item ${
 				isActive ? 'is-active' : ''
-			} ${ isPinned ? 'is-pinned' : '' }` }
+			} ${ isPinned ? 'is-pinned' : '' } ${
+				! isOwner ? 'is-shared' : ''
+			}` }
 			onClick={ () => openSession( parseInt( session.id, 10 ) ) }
 			onKeyDown={ ( e ) => {
 				if ( e.key === 'Enter' ) {
@@ -81,17 +84,30 @@ function SessionItem( { session, isActive } ) {
 				{ isPinned && (
 					<span
 						className="ai-agent-pin-icon"
-						title={ __( 'Pinned', 'ai-agent' ) }
+						title={ __( 'Pinned', 'gratis-ai-agent' ) }
 					>
 						&#128204;
 					</span>
 				) }
-				{ session.title || __( 'Untitled', 'ai-agent' ) }
+				{ ! isOwner && (
+					<span
+						className="ai-agent-shared-icon"
+						title={ __( 'Shared with you', 'gratis-ai-agent' ) }
+					>
+						&#128101;
+					</span>
+				) }
+				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
 			</div>
 			<div className="ai-agent-session-meta">
 				{ session.folder && (
 					<span className="ai-agent-session-folder-badge">
 						{ session.folder }
+					</span>
+				) }
+				{ ! isOwner && session.shared_by_display_name && (
+					<span className="ai-agent-session-shared-by">
+						{ session.shared_by_display_name }
 					</span>
 				) }
 				{ relativeTime( session.updated_at ) }
@@ -102,7 +118,7 @@ function SessionItem( { session, isActive } ) {
 					e.stopPropagation();
 					setShowMenu( ! showMenu );
 				} }
-				title={ __( 'More', 'ai-agent' ) }
+				title={ __( 'More', 'gratis-ai-agent' ) }
 				type="button"
 			>
 				&#8943;
@@ -110,6 +126,7 @@ function SessionItem( { session, isActive } ) {
 			{ showMenu && (
 				<SessionContextMenu
 					session={ session }
+					isOwner={ isOwner }
 					onClose={ () => setShowMenu( false ) }
 				/>
 			) }
@@ -118,30 +135,33 @@ function SessionItem( { session, isActive } ) {
 }
 
 /**
+ * Get the empty-state message for a given session filter tab.
  *
- * @param {string} filter
+ * @param {string} filter - Active filter key: 'active', 'archived', or 'trash'.
+ * @return {string} Localised empty-state message.
  */
 function getEmptyMessage( filter ) {
 	if ( filter === 'trash' ) {
-		return __( 'Trash is empty', 'ai-agent' );
+		return __( 'Trash is empty', 'gratis-ai-agent' );
 	}
 	if ( filter === 'archived' ) {
-		return __( 'No archived conversations', 'ai-agent' );
+		return __( 'No archived conversations', 'gratis-ai-agent' );
 	}
-	return __( 'No conversations yet', 'ai-agent' );
+	return __( 'No conversations yet', 'gratis-ai-agent' );
 }
 
 /**
  * Session management sidebar.
  *
  * Provides search, filter tabs (Active/Archived/Trash), folder tabs,
- * a session list, and import/new-chat controls.
+ * a session list, a shared-with-me section, and import/new-chat controls.
  *
  * @return {JSX.Element} The session sidebar element.
  */
 export default function SessionSidebar() {
 	const {
 		sessions,
+		sharedSessions,
 		currentSessionId,
 		sessionFilter,
 		sessionFolder,
@@ -151,6 +171,7 @@ export default function SessionSidebar() {
 		const store = select( STORE_NAME );
 		return {
 			sessions: store.getSessions(),
+			sharedSessions: store.getSharedSessions(),
 			currentSessionId: store.getCurrentSessionId(),
 			sessionFilter: store.getSessionFilter(),
 			sessionFolder: store.getSessionFolder(),
@@ -162,6 +183,7 @@ export default function SessionSidebar() {
 	const {
 		clearCurrentSession,
 		fetchSessions,
+		fetchSharedSessions,
 		fetchFolders,
 		setSessionFilter,
 		setSessionFolder,
@@ -172,10 +194,11 @@ export default function SessionSidebar() {
 	const searchTimerRef = useRef( null );
 	const fileInputRef = useRef( null );
 
-	// Fetch folders on mount.
+	// Fetch folders and shared sessions on mount.
 	useEffect( () => {
 		fetchFolders();
-	}, [ fetchFolders ] );
+		fetchSharedSessions();
+	}, [ fetchFolders, fetchSharedSessions ] );
 
 	// Refetch sessions when filter/folder changes.
 	useEffect( () => {
@@ -207,7 +230,9 @@ export default function SessionSidebar() {
 					importSession( data );
 				} catch {
 					// eslint-disable-next-line no-alert
-					window.alert( __( 'Invalid JSON file.', 'ai-agent' ) );
+					window.alert(
+						__( 'Invalid JSON file.', 'gratis-ai-agent' )
+					);
 				}
 			};
 			reader.readAsText( file );
@@ -217,9 +242,9 @@ export default function SessionSidebar() {
 	);
 
 	const filterTabs = [
-		{ key: 'active', label: __( 'Active', 'ai-agent' ) },
-		{ key: 'archived', label: __( 'Archived', 'ai-agent' ) },
-		{ key: 'trash', label: __( 'Trash', 'ai-agent' ) },
+		{ key: 'active', label: __( 'Active', 'gratis-ai-agent' ) },
+		{ key: 'archived', label: __( 'Archived', 'gratis-ai-agent' ) },
+		{ key: 'trash', label: __( 'Trash', 'gratis-ai-agent' ) },
 	];
 
 	return (
@@ -232,14 +257,14 @@ export default function SessionSidebar() {
 						onClick={ clearCurrentSession }
 						className="ai-agent-new-chat-btn"
 					>
-						{ __( 'New Chat', 'ai-agent' ) }
+						{ __( 'New Chat', 'gratis-ai-agent' ) }
 					</Button>
 					<Button
 						variant="tertiary"
 						icon={ upload }
 						onClick={ () => fileInputRef.current?.click() }
 						className="ai-agent-import-btn"
-						label={ __( 'Import', 'ai-agent' ) }
+						label={ __( 'Import', 'gratis-ai-agent' ) }
 					/>
 					<input
 						ref={ fileInputRef }
@@ -252,7 +277,10 @@ export default function SessionSidebar() {
 				<input
 					type="text"
 					className="ai-agent-sidebar-search"
-					placeholder={ __( 'Search conversations…', 'ai-agent' ) }
+					placeholder={ __(
+						'Search conversations…',
+						'gratis-ai-agent'
+					) }
 					onChange={ handleSearchChange }
 				/>
 			</div>
@@ -282,7 +310,7 @@ export default function SessionSidebar() {
 						}` }
 						onClick={ () => setSessionFolder( '' ) }
 					>
-						{ __( 'All', 'ai-agent' ) }
+						{ __( 'All', 'gratis-ai-agent' ) }
 					</button>
 					{ folders.map( ( folder ) => (
 						<button
@@ -308,12 +336,32 @@ export default function SessionSidebar() {
 					<SessionItem
 						key={ session.id }
 						session={ session }
+						isOwner={ true }
 						isActive={
 							currentSessionId === parseInt( session.id, 10 )
 						}
 					/>
 				) ) }
 			</div>
+
+			{ /* Shared-with-me section — only shown on the Active tab */ }
+			{ sessionFilter === 'active' && sharedSessions.length > 0 && (
+				<div className="ai-agent-shared-section">
+					<div className="ai-agent-shared-section-header">
+						{ __( 'Shared with me', 'gratis-ai-agent' ) }
+					</div>
+					{ sharedSessions.map( ( session ) => (
+						<SessionItem
+							key={ `shared-${ session.id }` }
+							session={ session }
+							isOwner={ false }
+							isActive={
+								currentSessionId === parseInt( session.id, 10 )
+							}
+						/>
+					) ) }
+				</div>
+			) }
 		</div>
 	);
 }

@@ -131,6 +131,14 @@ class Database {
 	}
 
 	/**
+	 * Get the shared sessions table name.
+	 */
+	public static function shared_sessions_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'gratis_ai_agent_shared_sessions';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -158,6 +166,7 @@ class Database {
 		$changes_log_table            = self::changes_log_table_name();
 		$modified_files_table         = self::modified_files_table_name();
 		$agents_table                 = self::agents_table_name();
+		$shared_sessions_table        = self::shared_sessions_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -340,42 +349,6 @@ class Database {
 			KEY status (status)
 		) {$charset};
 
-		CREATE TABLE {$changes_log_table} (
-			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			session_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			object_type varchar(50) NOT NULL DEFAULT '',
-			object_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			object_title varchar(255) NOT NULL DEFAULT '',
-			ability_name varchar(100) NOT NULL DEFAULT '',
-			field_name varchar(100) NOT NULL DEFAULT '',
-			before_value longtext NOT NULL,
-			after_value longtext NOT NULL,
-			reverted tinyint(1) NOT NULL DEFAULT 0,
-			reverted_at datetime DEFAULT NULL,
-			created_at datetime NOT NULL,
-			PRIMARY KEY  (id),
-			KEY session_id (session_id),
-			KEY user_id (user_id),
-			KEY object_type_id (object_type, object_id),
-			KEY reverted (reverted),
-			KEY created_at (created_at)
-		) {$charset};
-
-		CREATE TABLE {$modified_files_table} (
-			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			plugin_slug varchar(255) NOT NULL DEFAULT '',
-			file_path varchar(1000) NOT NULL DEFAULT '',
-			action varchar(20) NOT NULL DEFAULT 'write',
-			session_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			modified_at datetime NOT NULL,
-			PRIMARY KEY  (id),
-			KEY plugin_slug (plugin_slug),
-			KEY session_id (session_id),
-			KEY modified_at (modified_at)
-		) {$charset};
-
 		CREATE TABLE {$agents_table} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			slug varchar(100) NOT NULL,
@@ -395,6 +368,21 @@ class Database {
 			PRIMARY KEY  (id),
 			UNIQUE KEY slug (slug),
 			KEY enabled (enabled)
+		) {$charset};
+
+		CREATE TABLE {$shared_sessions_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			session_id bigint(20) unsigned NOT NULL,
+			shared_by_user_id bigint(20) unsigned NOT NULL,
+			shared_with_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			share_token varchar(64) NOT NULL DEFAULT '',
+			permission varchar(20) NOT NULL DEFAULT 'view',
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY session_user (session_id, shared_with_user_id),
+			KEY session_id (session_id),
+			KEY shared_with_user_id (shared_with_user_id),
+			KEY share_token (share_token)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -935,6 +923,36 @@ class Database {
 		return $result ? (int) $wpdb->insert_id : false;
 	}
 
+	// ─── Shared Sessions ─────────────────────────────────────────
+
+	/**
+	 * Share a session with a specific user.
+	 *
+	 * @param int    $session_id          Session ID.
+	 * @param int    $shared_by_user_id   User ID of the owner sharing.
+	 * @param int    $shared_with_user_id User ID to share with.
+	 * @param string $permission          'view' or 'contribute'.
+	 * @return int|false Inserted row ID or false on failure.
+	 */
+	public static function share_session_with_user( int $session_id, int $shared_by_user_id, int $shared_with_user_id, string $permission = 'view' ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
+		$result = $wpdb->replace(
+			self::shared_sessions_table_name(),
+			[
+				'session_id'          => $session_id,
+				'shared_by_user_id'   => $shared_by_user_id,
+				'shared_with_user_id' => $shared_with_user_id,
+				'share_token'         => '',
+				'permission'          => $permission,
+				'created_at'          => current_time( 'mysql', true ),
+			],
+			[ '%d', '%d', '%d', '%s', '%s', '%s' ]		);
+
+		return $result ? (int) $wpdb->insert_id : false;
+	}
+
 	/**
 	 * Get a list of plugins that have been modified by the AI agent.
 	 *
@@ -1009,5 +1027,126 @@ class Database {
 		$parts     = explode( '/', $remainder, 2 );
 
 		return $parts[0] ?? '';
+	}
+
+	/**
+	 * Remove a user's access to a shared session.
+	 *
+	 * @param int $session_id          Session ID.
+	 * @param int $shared_with_user_id User ID to revoke.
+	 * @return bool
+	 */
+	public static function unshare_session_with_user( int $session_id, int $shared_with_user_id ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		$result = $wpdb->delete(
+			self::shared_sessions_table_name(),
+			[
+				'session_id'          => $session_id,
+				'shared_with_user_id' => $shared_with_user_id,
+			],
+			[ '%d', '%d' ]
+		);
+
+		return $result !== false;
+	}
+
+	/**
+	 * Get all users a session is shared with.
+	 *
+	 * @param int $session_id Session ID.
+	 * @return array<string, mixed> Array of share rows.
+	 */
+	public static function get_session_shares( int $session_id ): array {
+		global $wpdb;
+
+		$table = self::shared_sessions_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT s.*, u.display_name, u.user_email FROM %i s
+				LEFT JOIN %i u ON u.ID = s.shared_with_user_id
+				WHERE s.session_id = %d',
+				$table,
+				$wpdb->users,
+				$session_id
+			)
+		) ?: [];
+	}
+
+	/**
+	 * Check whether a user has access to a session (owner or shared).
+	 *
+	 * @param int    $session_id Session ID.
+	 * @param int    $user_id    User ID to check.
+	 * @param string $permission Required permission level ('view' or 'contribute').
+	 * @return bool
+	 */
+	public static function user_can_access_session( int $session_id, int $user_id, string $permission = 'view' ): bool {
+		$session = self::get_session( $session_id );
+		if ( ! $session ) {
+			return false;
+		}
+
+		// Owner always has full access.
+		if ( (int) $session->user_id === $user_id ) {
+			return true;
+		}
+
+		global $wpdb;
+		$table = self::shared_sessions_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		$share = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT permission FROM %i WHERE session_id = %d AND shared_with_user_id = %d',
+				$table,
+				$session_id,
+				$user_id
+			)
+		);
+
+		if ( ! $share ) {
+			return false;
+		}
+
+		if ( $permission === 'view' ) {
+			return true;
+		}
+
+		// 'contribute' requires explicit contribute permission.
+		return $share->permission === 'contribute';
+	}
+
+	/**
+	 * List sessions shared with a user (not owned by them).
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return array<string, mixed> Array of session summary objects.
+	 */
+	public static function list_shared_sessions( int $user_id ): array {
+		global $wpdb;
+
+		$sessions_table = self::table_name();
+		$shared_table   = self::shared_sessions_table_name();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table query; built from prepared fragments.
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT s.id, s.user_id, s.title, s.provider_id, s.model_id, s.status, s.pinned, s.folder,
+					s.created_at, s.updated_at, JSON_LENGTH(s.messages) AS message_count,
+					sh.permission AS shared_permission, sh.shared_by_user_id,
+					u.display_name AS shared_by_display_name
+				FROM {$sessions_table} s
+				INNER JOIN {$shared_table} sh ON sh.session_id = s.id
+				LEFT JOIN {$wpdb->users} u ON u.ID = sh.shared_by_user_id
+				WHERE sh.shared_with_user_id = %d AND s.status = 'active'
+				ORDER BY s.updated_at DESC",
+				$user_id
+			)
+		) ?: [];
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 }

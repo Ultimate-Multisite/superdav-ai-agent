@@ -47,6 +47,8 @@ const DEFAULT_STATE = {
 	providersLoaded: false,
 	sessions: [],
 	sessionsLoaded: false,
+	sharedSessions: [],
+	sharedSessionsLoaded: false,
 	currentSessionId: null,
 	currentSessionMessages: [],
 	currentSessionToolCalls: [],
@@ -132,6 +134,16 @@ const actions = {
 	 */
 	setSessions( sessions ) {
 		return { type: 'SET_SESSIONS', sessions };
+	},
+
+	/**
+	 * Replace the shared-with-me sessions list.
+	 *
+	 * @param {Session[]} sessions - Shared session summaries.
+	 * @return {Object} Redux action.
+	 */
+	setSharedSessions( sessions ) {
+		return { type: 'SET_SHARED_SESSIONS', sessions };
 	},
 
 	/**
@@ -525,6 +537,88 @@ const actions = {
 			} catch {
 				dispatch.setSessions( [] );
 			}
+		};
+	},
+
+	/**
+	 * Fetch sessions shared with the current user from the REST API.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
+	fetchSharedSessions() {
+		return async ( { dispatch } ) => {
+			try {
+				const sessions = await apiFetch( {
+					path: '/gratis-ai-agent/v1/sessions/shared',
+				} );
+				dispatch.setSharedSessions( sessions );
+			} catch {
+				dispatch.setSharedSessions( [] );
+			}
+		};
+	},
+
+	/**
+	 * Share a session with another admin user.
+	 *
+	 * @param {number} sessionId        - Session identifier.
+	 * @param {number} sharedWithUserId - Target user ID.
+	 * @param {string} [permission]     - 'view' or 'contribute'.
+	 * @return {Function} Redux thunk that resolves with updated shares array.
+	 */
+	shareSession( sessionId, sharedWithUserId, permission = 'contribute' ) {
+		return async () => {
+			return await apiFetch( {
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/shares`,
+				method: 'POST',
+				data: {
+					shared_with_user_id: sharedWithUserId,
+					permission,
+				},
+			} );
+		};
+	},
+
+	/**
+	 * Revoke a user's access to a shared session.
+	 *
+	 * @param {number} sessionId        - Session identifier.
+	 * @param {number} sharedWithUserId - User ID to revoke.
+	 * @return {Function} Redux thunk that resolves with updated shares array.
+	 */
+	unshareSession( sessionId, sharedWithUserId ) {
+		return async () => {
+			return await apiFetch( {
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/shares/${ sharedWithUserId }`,
+				method: 'DELETE',
+			} );
+		};
+	},
+
+	/**
+	 * Fetch the list of shares for a session.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @return {Function} Redux thunk that resolves with shares array.
+	 */
+	fetchSessionShares( sessionId ) {
+		return async () => {
+			return await apiFetch( {
+				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/shares`,
+			} );
+		};
+	},
+
+	/**
+	 * Fetch the list of admin users for the share picker.
+	 *
+	 * @return {Function} Redux thunk that resolves with admin users array.
+	 */
+	fetchAdminUsers() {
+		return async () => {
+			return await apiFetch( {
+				path: '/gratis-ai-agent/v1/users/admins',
+			} );
 		};
 	},
 
@@ -1873,6 +1967,22 @@ const selectors = {
 
 	/**
 	 * @param {StoreState} state
+	 * @return {Session[]} Sessions shared with the current user.
+	 */
+	getSharedSessions( state ) {
+		return state.sharedSessions;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether shared sessions have been fetched.
+	 */
+	getSharedSessionsLoaded( state ) {
+		return state.sharedSessionsLoaded;
+	},
+
+	/**
+	 * @param {StoreState} state
 	 * @return {number|null} Active session ID, or null.
 	 */
 	getCurrentSessionId( state ) {
@@ -2228,6 +2338,12 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 				...state,
 				sessions: action.sessions,
 				sessionsLoaded: true,
+			};
+		case 'SET_SHARED_SESSIONS':
+			return {
+				...state,
+				sharedSessions: action.sessions,
+				sharedSessionsLoaded: true,
 			};
 		case 'SET_CURRENT_SESSION':
 			return {

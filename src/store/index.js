@@ -1374,6 +1374,10 @@ const actions = {
 						select.getCurrentSessionMessages(),
 						[]
 					);
+					// Refresh the sidebar immediately so the new session appears
+					// even if the subsequent run job never completes (e.g. no AI
+					// provider configured in the test environment).
+					dispatch.fetchSessions();
 				} catch {
 					dispatch.appendMessage( {
 						role: 'system',

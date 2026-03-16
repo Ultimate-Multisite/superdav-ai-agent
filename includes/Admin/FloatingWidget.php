@@ -47,10 +47,9 @@ class FloatingWidget {
 			return;
 		}
 
-		// Require the AI client.
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			return;
-		}
+		// Note: wp_ai_client_prompt() availability is NOT checked here.
+		// The floating widget UI (FAB + panel) renders independently of the AI
+		// client. The REST API handles provider availability at message-send time.
 
 		self::enqueue_widget_assets();
 	}

@@ -298,13 +298,13 @@ class BlockAbilities {
 	 * Handle markdown-to-blocks conversion.
 	 *
 	 * @param array<string,mixed> $input Input with 'markdown' key.
-	 * @return array<string,mixed> Result with block_content and block_count.
+	 * @return array<string,mixed>|\WP_Error Result with block_content and block_count.
 	 */
-	public static function handle_markdown_to_blocks( array $input ): array {
+	public static function handle_markdown_to_blocks( array $input ) {
 		$markdown = $input['markdown'] ?? '';
 
 		if ( empty( $markdown ) ) {
-			return [ 'error' => 'markdown is required.' ];
+			return new \WP_Error( 'missing_markdown', 'markdown is required.' );
 		}
 
 		$blocks        = MarkdownToBlocks::parse( $markdown );
@@ -393,20 +393,20 @@ class BlockAbilities {
 	 * Handle getting a single block type's full metadata.
 	 *
 	 * @param array<string,mixed> $input Input with 'name' key.
-	 * @return array<string,mixed> Full block type metadata.
+	 * @return array<string,mixed>|\WP_Error Full block type metadata.
 	 */
-	public static function handle_get_block_type( array $input ): array {
+	public static function handle_get_block_type( array $input ) {
 		$name = $input['name'] ?? '';
 
 		if ( empty( $name ) ) {
-			return [ 'error' => 'name is required.' ];
+			return new \WP_Error( 'missing_name', 'name is required.' );
 		}
 
 		$registry = \WP_Block_Type_Registry::get_instance();
 		$block    = $registry->get_registered( $name );
 
 		if ( ! $block ) {
-			return [ 'error' => "Block type '{$name}' not found." ];
+			return new \WP_Error( 'block_not_found', "Block type '{$name}' not found." );
 		}
 
 		$result = [
@@ -565,13 +565,13 @@ class BlockAbilities {
 	 * Handle creating block content from a structured array.
 	 *
 	 * @param array<string,mixed> $input Input with 'blocks' array.
-	 * @return array<string,mixed> Result with block_content and block_count.
+	 * @return array<string,mixed>|\WP_Error Result with block_content and block_count.
 	 */
-	public static function handle_create_block_content( array $input ): array {
+	public static function handle_create_block_content( array $input ) {
 		$blocks = $input['blocks'] ?? [];
 
 		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
-			return [ 'error' => 'blocks array is required.' ];
+			return new \WP_Error( 'missing_blocks', 'blocks array is required.' );
 		}
 
 		$output      = '';
@@ -594,15 +594,15 @@ class BlockAbilities {
 	 * Handle parsing existing block content.
 	 *
 	 * @param array<string,mixed> $input Input with post_id or content, optional site_url.
-	 * @return array<string,mixed> Result with blocks and block_count.
+	 * @return array<string,mixed>|\WP_Error Result with blocks and block_count.
 	 */
-	public static function handle_parse_block_content( array $input ): array {
+	public static function handle_parse_block_content( array $input ) {
 		$post_id  = (int) ( $input['post_id'] ?? 0 );
 		$content  = $input['content'] ?? '';
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id && empty( $content ) ) {
-			return [ 'error' => 'Either post_id or content is required.' ];
+			return new \WP_Error( 'missing_input', 'Either post_id or content is required.' );
 		}
 
 		$switched = false;
@@ -617,7 +617,7 @@ class BlockAbilities {
 				switch_to_blog( $blog_id );
 				$switched = true;
 			} elseif ( ! $blog_id ) {
-				return [ 'error' => "Could not find a site matching URL: {$site_url}" ];
+				return new \WP_Error( 'site_not_found', "Could not find a site matching URL: {$site_url}" );
 			}
 		}
 
@@ -627,7 +627,7 @@ class BlockAbilities {
 				if ( $switched ) {
 					restore_current_blog();
 				}
-				return [ 'error' => "Post {$post_id} not found." ];
+				return new \WP_Error( 'post_not_found', "Post {$post_id} not found." );
 			}
 			$content = $post->post_content;
 		}
@@ -763,10 +763,10 @@ class BlockAbilities {
 	/**
 	 * Build a simple block array (no inner blocks in innerContent).
 	 *
-	 * @param string               $block_name  Block name.
-	 * @param array<string,mixed>  $attrs       Block attributes.
-	 * @param array<int,mixed>     $inner_blocks Inner blocks.
-	 * @param string               $html        Inner HTML.
+	 * @param string              $block_name  Block name.
+	 * @param array<string,mixed> $attrs       Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $html        Inner HTML.
 	 * @return array<string,mixed> Block array.
 	 */
 	private static function build_block( string $block_name, array $attrs, array $inner_blocks, string $html ): array {
@@ -782,11 +782,11 @@ class BlockAbilities {
 	/**
 	 * Build a container block with inner block placeholders in innerContent.
 	 *
-	 * @param string               $block_name  Block name.
-	 * @param array<string,mixed>  $attrs       Block attributes.
-	 * @param array<int,mixed>     $inner_blocks Inner blocks.
-	 * @param string               $tag         HTML tag (div, section, etc.).
-	 * @param string               $class       CSS class.
+	 * @param string              $block_name  Block name.
+	 * @param array<string,mixed> $attrs       Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $tag         HTML tag (div, section, etc.).
+	 * @param string              $class       CSS class.
 	 * @return array<string,mixed> Block array.
 	 */
 	private static function build_container( string $block_name, array $attrs, array $inner_blocks, string $tag, string $class ): array {
@@ -816,10 +816,10 @@ class BlockAbilities {
 	/**
 	 * Build a container for unknown blocks with inner block placeholders.
 	 *
-	 * @param string               $block_name   Block name.
-	 * @param array<string,mixed>  $attrs        Block attributes.
-	 * @param array<int,mixed>     $inner_blocks Inner blocks.
-	 * @param string               $wrapper_html Optional wrapper HTML.
+	 * @param string              $block_name   Block name.
+	 * @param array<string,mixed> $attrs        Block attributes.
+	 * @param array<int,mixed>    $inner_blocks Inner blocks.
+	 * @param string              $wrapper_html Optional wrapper HTML.
 	 * @return array<string,mixed> Block array.
 	 */
 	private static function build_container_raw( string $block_name, array $attrs, array $inner_blocks, string $wrapper_html ): array {

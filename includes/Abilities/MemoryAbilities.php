@@ -126,14 +126,14 @@ class MemoryAbilities {
 	 * Handle the memory-save ability call.
 	 *
 	 * @param array<string,mixed> $input Input with category and content.
-	 * @return array<string,mixed> Result.
+	 * @return array<string,mixed>|\WP_Error Result.
 	 */
-	public static function handle_memory_save( array $input ): array {
+	public static function handle_memory_save( array $input ) {
 		$category = $input['category'] ?? 'general';
 		$content  = $input['content'] ?? '';
 
 		if ( empty( $content ) ) {
-			return [ 'error' => 'Content is required.' ];
+			return new \WP_Error( 'missing_content', 'Content is required.' );
 		}
 
 		$id = Memory::create( $category, $content );
@@ -177,13 +177,13 @@ class MemoryAbilities {
 	 * Handle the memory-delete ability call.
 	 *
 	 * @param array<string,mixed> $input Input with id.
-	 * @return array<string,mixed> Result.
+	 * @return array<string,mixed>|\WP_Error Result.
 	 */
-	public static function handle_memory_delete( array $input ): array {
+	public static function handle_memory_delete( array $input ) {
 		$id = $input['id'] ?? 0;
 
 		if ( empty( $id ) ) {
-			return [ 'error' => 'Memory ID is required.' ];
+			return new \WP_Error( 'missing_id', 'Memory ID is required.' );
 		}
 
 		$deleted = Memory::delete( (int) $id );

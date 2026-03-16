@@ -83,16 +83,16 @@ class StockImageAbilities {
 	 * Handle the import-stock-image ability call.
 	 *
 	 * @param array<string,mixed> $input Input with keyword, optional site_url, width, height.
-	 * @return array<string,mixed> Result with attachment_id, url, alt, title or error.
+	 * @return array<string,mixed>|\WP_Error Result with attachment_id, url, alt, title or error.
 	 */
-	public static function handle_import( array $input ): array {
+	public static function handle_import( array $input ) {
 		$keyword  = sanitize_text_field( $input['keyword'] ?? '' );
 		$site_url = $input['site_url'] ?? '';
 		$width    = (int) ( $input['width'] ?? 1200 );
 		$height   = (int) ( $input['height'] ?? 800 );
 
 		if ( empty( $keyword ) ) {
-			return [ 'error' => 'keyword is required.' ];
+			return new \WP_Error( 'missing_keyword', 'keyword is required.' );
 		}
 
 		// Clamp dimensions to reasonable range.

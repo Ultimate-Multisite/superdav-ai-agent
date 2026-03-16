@@ -136,13 +136,13 @@ class SeoAbilities {
 	 * Handle the seo-audit-url ability call.
 	 *
 	 * @param array<string,mixed> $input Input with url and optional site_url.
-	 * @return array<string,mixed> Audit results.
+	 * @return array<string,mixed>|\WP_Error Audit results.
 	 */
-	public static function handle_audit_url( array $input ): array {
+	public static function handle_audit_url( array $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return [ 'error' => 'url is required.' ];
+			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
 		$response = wp_remote_get(
@@ -315,15 +315,15 @@ class SeoAbilities {
 	 * Handle the seo-analyze-content ability call.
 	 *
 	 * @param array<string,mixed> $input Input with post_id, optional focus_keyword, site_url.
-	 * @return array<string,mixed> Analysis results.
+	 * @return array<string,mixed>|\WP_Error Analysis results.
 	 */
-	public static function handle_analyze_content( array $input ): array {
+	public static function handle_analyze_content( array $input ) {
 		$post_id       = (int) ( $input['post_id'] ?? 0 );
 		$focus_keyword = sanitize_text_field( $input['focus_keyword'] ?? '' );
 		$site_url      = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return [ 'error' => 'post_id is required.' ];
+			return new \WP_Error( 'missing_post_id', 'post_id is required.' );
 		}
 
 		$switched = false;
@@ -346,7 +346,7 @@ class SeoAbilities {
 			if ( $switched ) {
 				restore_current_blog();
 			}
-			return [ 'error' => "Post {$post_id} not found." ];
+			return new \WP_Error( 'post_not_found', "Post {$post_id} not found." );
 		}
 
 		$result = self::analyze_post_seo( $post, $focus_keyword );

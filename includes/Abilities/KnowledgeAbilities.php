@@ -72,13 +72,13 @@ class KnowledgeAbilities {
 	 * Handle the knowledge-search ability call.
 	 *
 	 * @param array<string,mixed> $input Input with query and optional collection.
-	 * @return array<string,mixed> Result.
+	 * @return array<string,mixed>|\WP_Error Result.
 	 */
-	public static function handle_knowledge_search( array $input ): array {
+	public static function handle_knowledge_search( array $input ) {
 		$query = $input['query'] ?? '';
 
 		if ( empty( $query ) ) {
-			return [ 'error' => 'Search query is required.' ];
+			return new \WP_Error( 'missing_query', 'Search query is required.' );
 		}
 
 		$options = [ 'limit' => 8 ];

@@ -91,23 +91,23 @@ class SkillAbilities {
 	 * Handle the skill-load ability call.
 	 *
 	 * @param array<string,mixed> $input Input with slug.
-	 * @return array<string,mixed> Result with skill content.
+	 * @return array<string,mixed>|\WP_Error Result with skill content.
 	 */
-	public static function handle_skill_load( array $input ): array {
+	public static function handle_skill_load( array $input ) {
 		$slug = $input['slug'] ?? '';
 
 		if ( empty( $slug ) ) {
-			return [ 'error' => 'Skill slug is required.' ];
+			return new \WP_Error( 'missing_slug', 'Skill slug is required.' );
 		}
 
 		$skill = Skill::get_by_slug( $slug );
 
 		if ( ! $skill ) {
-			return [ 'error' => "Skill '$slug' not found." ];
+			return new \WP_Error( 'skill_not_found', "Skill '$slug' not found." );
 		}
 
 		if ( ! (int) $skill->enabled ) {
-			return [ 'error' => "Skill '$slug' is disabled." ];
+			return new \WP_Error( 'skill_disabled', "Skill '$slug' is disabled." );
 		}
 
 		return [

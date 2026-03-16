@@ -105,13 +105,13 @@ class MarketingAbilities {
 	 * Handle the fetch-url ability call.
 	 *
 	 * @param array<string,mixed> $input Input with url.
-	 * @return array<string,mixed> Fetch results.
+	 * @return array<string,mixed>|\WP_Error Fetch results.
 	 */
-	public static function handle_fetch_url( array $input ): array {
+	public static function handle_fetch_url( array $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return [ 'error' => 'url is required.' ];
+			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
 		$response = wp_remote_get(
@@ -183,13 +183,13 @@ class MarketingAbilities {
 	 * Handle the analyze-headers ability call.
 	 *
 	 * @param array<string,mixed> $input Input with url.
-	 * @return array<string,mixed> Header analysis results.
+	 * @return array<string,mixed>|\WP_Error Header analysis results.
 	 */
-	public static function handle_analyze_headers( array $input ): array {
+	public static function handle_analyze_headers( array $input ) {
 		$url = esc_url_raw( $input['url'] ?? '' );
 
 		if ( empty( $url ) ) {
-			return [ 'error' => 'url is required.' ];
+			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
 		$response = wp_remote_head(

@@ -37,6 +37,23 @@
 	gap: 8px;
 }
 
+/* YOLO mode section */
+.ai-agent-settings-yolo-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ai-agent-yolo-warning {
+	background: #fcf0f1;
+	border: 1px solid #cc1818;
+	border-left: 4px solid #cc1818;
+	border-radius: 2px;
+	color: #8a1a1a;
+	font-size: 13px;
+	padding: 8px 12px;
+}
+
 /* Memory Manager */
 
 .ai-agent-memory-manager {

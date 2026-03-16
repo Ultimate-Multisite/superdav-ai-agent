@@ -1,6 +1,7 @@
 /**
  * WordPress dependencies
  */
+import { useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
@@ -32,13 +33,21 @@ import ToolConfirmationDialog from './tool-confirmation-dialog';
  */
 export default function ChatPanel( { compact = false, onSlashCommand } ) {
 	const { confirmToolCall, rejectToolCall } = useDispatch( STORE_NAME );
-	const { pendingConfirmation, debugMode } = useSelect(
+	const { pendingConfirmation, debugMode, yoloMode } = useSelect(
 		( select ) => ( {
 			pendingConfirmation: select( STORE_NAME ).getPendingConfirmation(),
 			debugMode: select( STORE_NAME ).isDebugMode(),
+			yoloMode: select( STORE_NAME ).isYoloMode(),
 		} ),
 		[]
 	);
+
+	// When YOLO mode is active, auto-confirm any pending tool call immediately.
+	useEffect( () => {
+		if ( yoloMode && pendingConfirmation ) {
+			confirmToolCall( pendingConfirmation.jobId, false );
+		}
+	}, [ yoloMode, pendingConfirmation, confirmToolCall ] );
 
 	return (
 		<ErrorBoundary label={ __( 'Chat', 'gratis-ai-agent' ) }>
@@ -69,7 +78,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 						onSlashCommand={ onSlashCommand }
 					/>
 				</ErrorBoundary>
-				{ pendingConfirmation && (
+				{ pendingConfirmation && ! yoloMode && (
 					<ToolConfirmationDialog
 						confirmation={ pendingConfirmation }
 						onConfirm={ ( alwaysAllow ) =>
@@ -82,6 +91,17 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 							rejectToolCall( pendingConfirmation.jobId )
 						}
 					/>
+				) }
+				{ yoloMode && (
+					<span
+						className="ai-agent-yolo-badge"
+						title={ __(
+							'YOLO mode is active — all tool confirmations are skipped automatically.',
+							'ai-agent'
+						) }
+					>
+						{ __( 'YOLO', 'ai-agent' ) }
+					</span>
 				) }
 			</div>
 		</ErrorBoundary>

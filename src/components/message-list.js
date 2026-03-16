@@ -15,6 +15,7 @@ import MarkdownMessage from './markdown-message';
 import MessageActions from './message-actions';
 import DebugPanel from './debug-panel';
 import ActionCard from './action-card';
+import { getBranding } from '../utils/branding';
 
 /**
  * Parse suggestion chips from the end of a model response.
@@ -139,6 +140,7 @@ export default function MessageList() {
 		streamingText,
 		isStreaming,
 		pendingActionCard,
+		settingsGreeting,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -148,8 +150,16 @@ export default function MessageList() {
 			streamingText: store.getStreamingText(),
 			isStreaming: store.isStreamingActive(),
 			pendingActionCard: store.getPendingActionCard(),
+			settingsGreeting: store.getSettings()?.greeting_message || '',
 		};
 	}, [] );
+
+	// Resolve greeting: Redux store (admin page) → injected branding (floating
+	// widget) → built-in default.
+	const greeting =
+		settingsGreeting ||
+		getBranding().greetingMessage ||
+		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
 
 	const { sendMessage, confirmToolCall, rejectToolCall } =
 		useDispatch( STORE_NAME );
@@ -186,12 +196,7 @@ export default function MessageList() {
 	return (
 		<div className="ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
-				<div className="ai-agent-empty-state">
-					{ __(
-						'Send a message to start a conversation.',
-						'gratis-ai-agent'
-					) }
-				</div>
+				<div className="ai-agent-empty-state">{ greeting }</div>
 			) }
 			{ visibleMessages.map( ( msg, i ) => {
 				const rawText = extractText( msg );

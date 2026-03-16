@@ -12,6 +12,7 @@
  */
 import {
 	TextControl,
+	TextareaControl,
 	ColorPicker,
 	BaseControl,
 	Button,
@@ -20,19 +21,29 @@ import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 /**
- * Live preview of the FAB button and title bar using the current branding values.
+ * Live preview of the FAB button, title bar, and greeting using the current branding values.
  *
  * @param {Object} props
- * @param {string} props.agentName    Display name shown in the title bar.
- * @param {string} props.primaryColor Background colour for the FAB and title bar.
- * @param {string} props.textColor    Text/icon colour for the FAB and title bar.
- * @param {string} props.logoUrl      Optional logo/avatar URL shown in the FAB.
+ * @param {string} props.agentName       Display name shown in the title bar.
+ * @param {string} props.primaryColor    Background colour for the FAB and title bar.
+ * @param {string} props.textColor       Text/icon colour for the FAB and title bar.
+ * @param {string} props.logoUrl         Optional logo/avatar URL shown in the FAB.
+ * @param {string} props.greetingMessage Custom greeting shown in the empty chat state.
  * @return {JSX.Element} Preview element.
  */
-function BrandingPreview( { agentName, primaryColor, textColor, logoUrl } ) {
+function BrandingPreview( {
+	agentName,
+	primaryColor,
+	textColor,
+	logoUrl,
+	greetingMessage,
+} ) {
 	const fabBg = primaryColor || 'var(--wp-admin-theme-color, #2271b1)';
 	const fabColor = textColor || '#ffffff';
 	const displayName = agentName || __( 'AI Agent', 'gratis-ai-agent' );
+	const greeting =
+		greetingMessage ||
+		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
 
 	return (
 		<div className="gratis-ai-agent-branding-preview">
@@ -77,6 +88,10 @@ function BrandingPreview( { agentName, primaryColor, textColor, logoUrl } ) {
 					/>
 				) }
 				<span>{ displayName }</span>
+			</div>
+			{ /* Greeting preview */ }
+			<div className="gratis-ai-agent-branding-preview__greeting">
+				{ greeting }
 			</div>
 		</div>
 	);
@@ -234,11 +249,28 @@ export default function BrandingManager( { local, updateField } ) {
 				__nextHasNoMarginBottom
 			/>
 
+			{ /* Greeting message */ }
+			<TextareaControl
+				label={ __( 'Greeting Message', 'gratis-ai-agent' ) }
+				value={ local.greeting_message || '' }
+				onChange={ ( v ) => updateField( 'greeting_message', v ) }
+				placeholder={ __(
+					'Send a message to start a conversation.',
+					'gratis-ai-agent'
+				) }
+				help={ __(
+					'Text shown in the chat before the first message. Leave empty to use the default.',
+					'gratis-ai-agent'
+				) }
+				rows={ 2 }
+			/>
+
 			<BrandingPreview
 				agentName={ local.agent_name }
 				primaryColor={ local.brand_primary_color }
 				textColor={ local.brand_text_color }
 				logoUrl={ local.brand_logo_url }
+				greetingMessage={ local.greeting_message }
 			/>
 		</div>
 	);

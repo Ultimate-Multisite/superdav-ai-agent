@@ -506,3 +506,15 @@
 	flex-shrink: 0;
 }
 
+/* Greeting message preview */
+.gratis-ai-agent-branding-preview__greeting {
+	font-size: 13px;
+	color: #646970;
+	font-style: italic;
+	padding: 8px 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	max-width: 280px;
+}
+

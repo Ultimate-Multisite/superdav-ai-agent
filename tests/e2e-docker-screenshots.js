@@ -3,7 +3,7 @@ const puppeteer = require( 'puppeteer-core' );
 const BASE_URL = 'http://localhost:8888';
 const SCREENSHOT_DIR = '/screenshots';
 const CHROME_PATH =
-	'/home/pptruser/.cache/puppeteer/chrome/linux-146.0.7680.76/chrome-linux64/chrome';
+	process.env.CHROME_PATH || '/usr/bin/chromium-browser';
 
 ( async () => {
 	const browser = await puppeteer.launch( {

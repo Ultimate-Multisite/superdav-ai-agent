@@ -152,7 +152,7 @@
 ### Voice Interface (P3)
 
 - [x] t083 Push-to-talk: speech-to-text via browser Web Speech API @superdav42 #feature ~4h logged:2026-03-15 pr:#408 completed:2026-03-16
-- [ ] t084 Text-to-speech for AI responses (optional) @superdav42 #feature ~3h logged:2026-03-15
+- [x] t084 Text-to-speech for AI responses (optional) @superdav42 #feature ~3h logged:2026-03-15 pr:#469 completed:2026-03-16
 
 ### Integration Hub (P3)
 

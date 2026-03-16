@@ -61,7 +61,7 @@
 
 ### Rich Output & Artifacts (P1)
 
-- [ ] t072 Render data tables in chat responses (sortable, filterable) @superdav42 #ui ~6h logged:2026-03-15
+- [x] t072 Render data tables in chat responses (sortable, filterable) @superdav42 #ui ~6h logged:2026-03-15 pr:#439 completed:2026-03-16
 - [x] t073 Render charts in chat responses (Chart.js) @superdav42 #ui ~4h logged:2026-03-15 pr:#440 pr:#440 completed:2026-03-16
 - [x] t074 Action cards for confirmable operations @superdav42 #ui ~4h logged:2026-03-15 pr:#277 completed:2026-03-16
 

@@ -32,6 +32,7 @@ import ToolProfilesManager from './tool-profiles-manager';
 import AutomationsManager from './automations-manager';
 import EventsManager from './events-manager';
 import RolePermissionsManager from './role-permissions-manager';
+import AgentBuilder from './agent-builder';
 
 /**
  *
@@ -255,6 +256,11 @@ export default function SettingsApp() {
 		{
 			name: 'events',
 			title: __( 'Events', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
+			name: 'agents',
+			title: __( 'Agents', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
@@ -740,6 +746,20 @@ export default function SettingsApp() {
 										) }
 									>
 										<EventsManager />
+									</ErrorBoundary>
+								</div>
+							);
+
+						case 'agents':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									<ErrorBoundary
+										label={ __(
+											'Agent builder',
+											'gratis-ai-agent'
+										) }
+									>
+										<AgentBuilder />
 									</ErrorBoundary>
 								</div>
 							);

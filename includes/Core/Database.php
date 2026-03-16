@@ -18,7 +18,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '10.0.0';
+	const DB_VERSION        = '11.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -123,6 +123,14 @@ class Database {
 	}
 
 	/**
+	 * Get the agents table name.
+	 */
+	public static function agents_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'gratis_ai_agent_agents';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -149,6 +157,7 @@ class Database {
 		$git_tracked_files_table      = self::git_tracked_files_table_name();
 		$changes_log_table            = self::changes_log_table_name();
 		$modified_files_table         = self::modified_files_table_name();
+		$agents_table                 = self::agents_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -365,6 +374,27 @@ class Database {
 			KEY plugin_slug (plugin_slug),
 			KEY session_id (session_id),
 			KEY modified_at (modified_at)
+		) {$charset};
+
+		CREATE TABLE {$agents_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			slug varchar(100) NOT NULL,
+			name varchar(255) NOT NULL,
+			description text NOT NULL DEFAULT '',
+			system_prompt longtext NOT NULL DEFAULT '',
+			provider_id varchar(100) NOT NULL DEFAULT '',
+			model_id varchar(100) NOT NULL DEFAULT '',
+			tool_profile varchar(100) NOT NULL DEFAULT '',
+			temperature decimal(3,2) DEFAULT NULL,
+			max_iterations int(11) DEFAULT NULL,
+			greeting text NOT NULL DEFAULT '',
+			avatar_icon varchar(100) NOT NULL DEFAULT '',
+			enabled tinyint(1) NOT NULL DEFAULT 1,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY slug (slug),
+			KEY enabled (enabled)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

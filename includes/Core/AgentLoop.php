@@ -115,6 +115,17 @@ class AgentLoop {
 		$this->temperature       = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		$this->max_output_tokens = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
 
+		// If an agent_system_prompt is provided, inject it into settings so
+		// build_system_instruction() uses it as the base instead of the global prompt.
+		if ( ! empty( $options['agent_system_prompt'] ) ) {
+			$settings['system_prompt'] = $options['agent_system_prompt'];
+		}
+
+		// If an agent overrides the active tool profile, apply it to settings.
+		if ( ! empty( $options['active_tool_profile'] ) ) {
+			$settings['active_tool_profile'] = $options['active_tool_profile'];
+		}
+
 		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
 
 		// Tool permissions, YOLO mode, and resumable state.

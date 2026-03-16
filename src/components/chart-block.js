@@ -164,6 +164,13 @@ function ChartCanvas( { config } ) {
 	return <canvas ref={ canvasRef } />;
 }
 
+/**
+ * Chart block component — renders a Chart.js chart from a JSON code block.
+ *
+ * @param {Object} props          - Component props.
+ * @param {string} props.children - Raw JSON string for the Chart.js config.
+ * @return {JSX.Element} Rendered chart or error fallback.
+ */
 export default function ChartBlock( { children } ) {
 	const raw = String( children ).trim();
 	const { config, error } = parseChartConfig( raw );

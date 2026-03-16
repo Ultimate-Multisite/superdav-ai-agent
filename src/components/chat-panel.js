@@ -11,6 +11,7 @@ import { __ } from '@wordpress/i18n';
 import STORE_NAME from '../store';
 import ErrorBoundary from './error-boundary';
 import ProviderSelector from './provider-selector';
+import AgentSelector from './agent-selector';
 import MessageList from './message-list';
 import MessageInput from './message-input';
 import ContextIndicator from './context-indicator';
@@ -58,6 +59,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 			>
 				<div className="gratis-ai-agent-header">
 					<ProviderSelector compact={ compact } />
+					<AgentSelector compact={ compact } />
 					{ debugMode && (
 						<span className="gratis-ai-agent-debug-badge">
 							{ __( 'DEBUG', 'gratis-ai-agent' ) }

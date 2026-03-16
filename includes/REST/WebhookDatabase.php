@@ -199,14 +199,14 @@ CREATE TABLE {$logs_table} (
 	 *
 	 * Also increments the run_count and updates last_run_at on the webhook.
 	 *
-	 * @param int                  $webhook_id        Webhook ID.
-	 * @param string               $status            'success' or 'error'.
-	 * @param string               $reply             AI reply text.
+	 * @param int                        $webhook_id        Webhook ID.
+	 * @param string                     $status            'success' or 'error'.
+	 * @param string                     $reply             AI reply text.
 	 * @param list<array<string, mixed>> $tool_calls   Tool call log.
-	 * @param int                  $prompt_tokens     Prompt token count.
-	 * @param int                  $completion_tokens Completion token count.
-	 * @param int                  $duration_ms       Execution duration in milliseconds.
-	 * @param string               $error_message     Error message (empty on success).
+	 * @param int                        $prompt_tokens     Prompt token count.
+	 * @param int                        $completion_tokens Completion token count.
+	 * @param int                        $duration_ms       Execution duration in milliseconds.
+	 * @param string                     $error_message     Error message (empty on success).
 	 * @return int|false Inserted log row ID or false on failure.
 	 */
 	public static function log_execution(

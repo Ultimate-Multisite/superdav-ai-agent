@@ -1844,9 +1844,9 @@ class RestController {
 			// Log webhook execution success.
 			if ( ! empty( $job['webhook_id'] ) ) {
 				$token_usage = $result['token_usage'] ?? [
-				'prompt'     => 0,
-				'completion' => 0,
-			];
+					'prompt'     => 0,
+					'completion' => 0,
+				];
 				$duration_ms = $start_ms > 0 ? (int) round( microtime( true ) * 1000 ) - $start_ms : 0;
 				WebhookDatabase::log_execution(
 					(int) $job['webhook_id'],

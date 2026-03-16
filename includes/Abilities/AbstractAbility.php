@@ -86,4 +86,21 @@ abstract class AbstractAbility extends \GratisAiAgent_Abstract_Ability {
 			'show_in_rest' => false,
 		);
 	}
+
+	/**
+	 * Returns the configured model ID from plugin settings, or empty string if none.
+	 *
+	 * Used by AI-powered abilities to pass a model preference to wp_ai_client_prompt().
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Model ID or empty string.
+	 */
+	protected function get_configured_model(): string {
+		if ( class_exists( \GratisAiAgent\Core\Settings::class ) ) {
+			$model = \GratisAiAgent\Core\Settings::get( 'default_model' );
+			return is_string( $model ) ? $model : '';
+		}
+		return '';
+	}
 }

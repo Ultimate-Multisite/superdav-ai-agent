@@ -47,14 +47,19 @@ use GratisAiAgent\Abilities\AiImageAbilities;
 use GratisAiAgent\Abilities\BlockAbilities;
 use GratisAiAgent\Abilities\ContentAbilities;
 use GratisAiAgent\Abilities\DatabaseAbilities;
+use GratisAiAgent\Abilities\EditorialAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
+use GratisAiAgent\Abilities\ImageAbilities;
 use GratisAiAgent\Abilities\GitAbilities;
 use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
 use GratisAiAgent\Abilities\PluginDownloadAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
+use GratisAiAgent\Abilities\MediaAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
+use GratisAiAgent\Abilities\PostAbilities;
+use GratisAiAgent\Abilities\UserAbilities;
 use GratisAiAgent\Abilities\SeoAbilities;
 use GratisAiAgent\Abilities\SiteBuilderAbilities;
 use GratisAiAgent\Abilities\SiteHealthAbilities;
@@ -181,6 +186,21 @@ SiteHealthAbilities::register();
 
 // Navigation abilities (navigate, get page HTML).
 NavigationAbilities::register();
+
+// Post management abilities (get, create, update, delete posts).
+PostAbilities::register();
+
+// User management abilities (list, create, update role).
+UserAbilities::register();
+
+// Media library abilities (list, upload from URL, delete).
+MediaAbilities::register();
+
+// Editorial AI abilities (title generation, excerpt generation, summarization, block review).
+EditorialAbilities::register();
+
+// Image AI abilities (alt text generation, image prompt generation, import base64 image).
+ImageAbilities::register();
 
 // Site builder abilities (detect fresh install, manage site builder mode).
 SiteBuilderAbilities::register();

@@ -163,6 +163,7 @@ class Settings {
 			'max_history_turns'        => 20,
 			'suggestion_count'         => 3,
 			'yolo_mode'                => false,
+			'site_builder_mode'        => false,
 		];
 	}
 

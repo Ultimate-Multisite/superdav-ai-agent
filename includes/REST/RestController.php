@@ -264,6 +264,27 @@ class RestController {
 			]
 		);
 
+		// Site builder endpoints.
+		register_rest_route(
+			self::NAMESPACE,
+			'/site-builder/start',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $instance, 'handle_site_builder_start' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/site-builder/status',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $instance, 'handle_site_builder_status' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+			]
+		);
+
 		// Settings endpoints.
 		register_rest_route(
 			self::NAMESPACE,
@@ -3817,10 +3838,21 @@ class RestController {
 			];
 		}
 
+		// Check whether site builder mode is active.
+		$settings = $this->settings->get();
+		if ( ! empty( $settings['site_builder_mode'] ) ) {
+			$alerts[] = [
+				'type'    => 'site_builder_mode',
+				'message' => __( 'Site builder mode is active. Open the chat to build your site.', 'gratis-ai-agent' ),
+			];
+		}
+
 		return new WP_REST_Response(
 			[
-				'count'  => count( $alerts ),
-				'alerts' => $alerts,
+				'count'               => count( $alerts ),
+				'alerts'              => $alerts,
+				'site_builder_mode'   => ! empty( $settings['site_builder_mode'] ),
+				'onboarding_complete' => ! empty( $settings['onboarding_complete'] ),
 			],
 			200
 		);
@@ -3877,5 +3909,68 @@ class RestController {
 		}
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );
+	}
+
+	// ─── Site Builder handlers ───────────────────────────────────
+
+	/**
+	 * Handle POST /site-builder/start.
+	 *
+	 * Creates a new session with the site builder system prompt and enables
+	 * site builder mode. The floating widget will auto-open on the next page
+	 * load and inject the opening interview message.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_site_builder_start(): WP_REST_Response {
+		// Enable site builder mode in settings.
+		$this->settings->update( [ 'site_builder_mode' => true ] );
+
+		// Create a dedicated session for the site builder conversation.
+		$session_id = Database::create_session(
+			[
+				'user_id'     => get_current_user_id(),
+				'title'       => __( 'Site Builder', 'gratis-ai-agent' ),
+				'provider_id' => $this->settings->get( 'default_provider' ) ?: '',
+				'model_id'    => $this->settings->get( 'default_model' ) ?: '',
+			]
+		);
+
+		return new WP_REST_Response(
+			[
+				'started'           => true,
+				'site_builder_mode' => true,
+				'session_id'        => $session_id,
+				'system_prompt'     => AgentLoop::get_site_builder_system_prompt(),
+				'message'           => __( 'Site builder mode enabled. The widget will open automatically.', 'gratis-ai-agent' ),
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle GET /site-builder/status.
+	 *
+	 * Returns the current site builder mode status and fresh-install detection.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_site_builder_status(): WP_REST_Response {
+		$settings = $this->settings->get();
+
+		// Run fresh install detection.
+		$fresh_install = \GratisAiAgent\Abilities\SiteBuilderAbilities::check_fresh_install();
+
+		return new WP_REST_Response(
+			[
+				'site_builder_mode'   => (bool) ( $settings['site_builder_mode'] ?? false ),
+				'onboarding_complete' => (bool) ( $settings['onboarding_complete'] ?? false ),
+				'is_fresh_install'    => $fresh_install['is_fresh'],
+				'post_count'          => $fresh_install['post_count'],
+				'page_count'          => $fresh_install['page_count'],
+				'site_title'          => get_bloginfo( 'name' ),
+			],
+			200
+		);
 	}
 }

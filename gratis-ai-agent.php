@@ -53,6 +53,7 @@ use GratisAiAgent\Abilities\MarketingAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
 use GratisAiAgent\Abilities\SeoAbilities;
+use GratisAiAgent\Abilities\SiteBuilderAbilities;
 use GratisAiAgent\Abilities\SiteHealthAbilities;
 use GratisAiAgent\Abilities\SkillAbilities;
 use GratisAiAgent\Abilities\StockImageAbilities;
@@ -148,6 +149,9 @@ SiteHealthAbilities::register();
 
 // Navigation abilities (navigate, get page HTML).
 NavigationAbilities::register();
+
+// Site builder abilities (detect fresh install, manage site builder mode).
+SiteBuilderAbilities::register();
 
 // Custom tool abilities (registered as WordPress Abilities).
 CustomToolExecutor::register();

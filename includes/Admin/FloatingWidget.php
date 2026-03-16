@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Admin;
 
+use GratisAiAgent\Core\Settings;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -71,20 +73,17 @@ class FloatingWidget {
 			true
 		);
 
-		// Pass site builder mode flag to the JS layer.
-		// t060 sets the `gratis_ai_agent_site_builder_mode` option to activate
-		// the full-screen overlay on fresh installs. A filter is also provided
-		// so other code can override the value without touching the option.
-		$site_builder_mode = (bool) apply_filters(
-			'gratis_ai_agent_site_builder_mode',
-			(bool) get_option( 'gratis_ai_agent_site_builder_mode', false )
-		);
-
+		// Pass site builder mode flag to the widget.
+		$settings = Settings::get();
 		wp_localize_script(
 			'gratis-ai-agent-floating-widget',
-			'gratisAiAgentData',
+			'gratisAiAgentSiteBuilder',
 			[
-				'site_builder_mode' => $site_builder_mode,
+				'siteBuilderMode'    => ! empty( $settings['site_builder_mode'] ),
+				'onboardingComplete' => ! empty( $settings['onboarding_complete'] ),
+				'startEndpoint'      => rest_url( 'gratis-ai-agent/v1/site-builder/start' ),
+				'statusEndpoint'     => rest_url( 'gratis-ai-agent/v1/site-builder/status' ),
+				'nonce'              => wp_create_nonce( 'wp_rest' ),
 			]
 		);
 	}

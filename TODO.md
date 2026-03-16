@@ -97,12 +97,12 @@
 
 - [ ] t033 Port GitTracker class: store original files as git blobs, track changes @superdav42 #feature ~6h logged:2026-03-14
 - [ ] t034 Port GitTrackerManager: manage trackers across plugins/themes @superdav42 #feature ~3h logged:2026-03-14 blocked-by:t033
-- [ ] t035 Add Changes Admin page: view diffs, revert changes, export patches @superdav42 #feature ~8h logged:2026-03-14 blocked-by:t033,t034
+- [ ] t035 Add Changes Admin page: view diffs, revert changes, export patches @superdav42 #feature ~8h logged:2026-03-14 blocked-by:t033,t034 ref=GH#433 pr:#447
 - [ ] t036 Add plugin download links for AI-modified plugins @superdav42 #feature ~2h logged:2026-03-14 ref=GH#434 pr:#441
 
 ### Tool Permission System (P1)
 
-- [ ] t037 Add per-tool WordPress capabilities (gratis_ai_agent_tool_{name}) @superdav42 #feature ~3h logged:2026-03-14
+- [ ] t037 Add per-tool WordPress capabilities (gratis_ai_agent_tool_{name}) @superdav42 #feature ~3h logged:2026-03-14 ref=GH#435 pr:#448
 - [ ] t038 Add YOLO mode toggle (skip all confirmations) @superdav42 #feature ~1h logged:2026-03-14
 
 ### AI SDK Alignment (P1)

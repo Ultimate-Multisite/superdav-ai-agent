@@ -405,7 +405,7 @@ INSTRUCTION;
 			return new WP_Error( 'no_results', __( 'No summary was generated.', 'gratis-ai-agent' ) );
 		}
 
-		return sanitize_text_field( trim( $result ) );
+		return sanitize_textarea_field( trim( $result ) );
 	}
 
 	// ─── Block Review ────────────────────────────────────────────────────────

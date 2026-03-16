@@ -68,6 +68,7 @@ use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\OnboardingManager;
+use GratisAiAgent\Core\RolePermissions;
 use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Core\SiteScanner;
 use GratisAiAgent\Knowledge\KnowledgeHooks;

@@ -22,6 +22,7 @@ use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\Export;
+use GratisAiAgent\Core\RolePermissions;
 use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Knowledge\Knowledge;
 use GratisAiAgent\Knowledge\KnowledgeDatabase;
@@ -88,7 +89,7 @@ class RestController {
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ __CLASS__, 'handle_stream' ],
-				'permission_callback' => [ __CLASS__, 'check_permission' ],
+				'permission_callback' => [ __CLASS__, 'check_chat_permission' ],
 				'args'                => [
 					'message'            => [
 						'required'          => true,
@@ -381,6 +382,43 @@ class RestController {
 							'sanitize_callback' => 'sanitize_text_field',
 						],
 					],
+				],
+			]
+		);
+
+		// Role permissions endpoints.
+		register_rest_route(
+			self::NAMESPACE,
+			'/role-permissions',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $instance, 'handle_get_role_permissions' ],
+					'permission_callback' => [ $instance, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $instance, 'handle_update_role_permissions' ],
+					'permission_callback' => [ $instance, 'check_permission' ],
+					'args'                => [
+						'permissions' => [
+							'required' => true,
+							'type'     => 'object',
+						],
+					],
+				],
+			]
+		);
+
+		// Role permissions — available roles list.
+		register_rest_route(
+			self::NAMESPACE,
+			'/role-permissions/roles',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $instance, 'handle_get_roles' ],
+					'permission_callback' => [ $instance, 'check_permission' ],
 				],
 			]
 		);
@@ -1496,19 +1534,47 @@ class RestController {
 	}
 
 	/**
-	 * Permission check — admin only.
+	 * Permission check — admin only (for admin-only endpoints).
 	 */
 	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
 	}
 
 	/**
+	 * Permission check for chat endpoints (stream, run, process).
+	 *
+	 * Allows access based on role-based permissions configuration.
+	 * Administrators always have access.
+	 *
+	 * @return bool|WP_Error
+	 */
+	public function check_chat_permission() {
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'rest_not_logged_in',
+				__( 'You must be logged in to use the AI chat.', 'gratis-ai-agent' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		if ( ! RolePermissions::current_user_has_chat_access() ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'Your user role does not have permission to access the AI chat.', 'gratis-ai-agent' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Permission check for session-specific endpoints.
 	 *
-	 * Verifies manage_options + session ownership.
+	 * Verifies chat access + session ownership.
 	 */
 	public function check_session_permission( WP_REST_Request $request ): bool {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! RolePermissions::current_user_has_chat_access() ) {
 			return false;
 		}
 
@@ -2876,6 +2942,67 @@ class RestController {
 		$this->settings->update( $data );
 
 		return new WP_REST_Response( $this->settings->get(), 200 );
+	}
+
+
+	/**
+	 * Handle GET /role-permissions — return current role permissions config.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_get_role_permissions(): WP_REST_Response {
+		return new WP_REST_Response(
+			[
+				'permissions'    => RolePermissions::get(),
+				'always_allowed' => RolePermissions::ALWAYS_ALLOWED_ROLES,
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle POST /role-permissions — update role permissions config.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_update_role_permissions( WP_REST_Request $request ) {
+		$permissions = $request->get_param( 'permissions' );
+
+		if ( ! is_array( $permissions ) ) {
+			return new WP_Error(
+				'invalid_permissions',
+				__( 'Invalid permissions data.', 'gratis-ai-agent' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$success = RolePermissions::update( $permissions );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to save role permissions.', 'gratis-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response(
+			[
+				'permissions'    => RolePermissions::get(),
+				'always_allowed' => RolePermissions::ALWAYS_ALLOWED_ROLES,
+			],
+			200
+		);
+	}
+
+	/**
+	 * Handle GET /role-permissions/roles — return all registered WordPress roles.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_get_roles(): WP_REST_Response {
+		return new WP_REST_Response( RolePermissions::get_all_roles(), 200 );
 	}
 
 	/**

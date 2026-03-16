@@ -31,6 +31,7 @@ import CustomToolsManager from './custom-tools-manager';
 import ToolProfilesManager from './tool-profiles-manager';
 import AutomationsManager from './automations-manager';
 import EventsManager from './events-manager';
+import RolePermissionsManager from './role-permissions-manager';
 
 /**
  *
@@ -168,6 +169,11 @@ export default function SettingsApp() {
 		{
 			name: 'abilities',
 			title: __( 'Abilities', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
+			name: 'permissions',
+			title: __( 'Permissions', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
@@ -590,6 +596,20 @@ export default function SettingsApp() {
 											/>
 										);
 									} ) }
+								</div>
+							);
+
+						case 'permissions':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									<ErrorBoundary
+										label={ __(
+											'Role permissions manager',
+											'gratis-ai-agent'
+										) }
+									>
+										<RolePermissionsManager />
+									</ErrorBoundary>
 								</div>
 							);
 

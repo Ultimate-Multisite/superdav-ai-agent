@@ -18,6 +18,7 @@ use GratisAiAgent\Models\Skill;
 use GratisAiAgent\REST\SseStreamer;
 use GratisAiAgent\Tools\ToolDiscovery;
 use GratisAiAgent\Tools\ToolProfiles;
+use GratisAiAgent\Core\RolePermissions;
 use WP_AI_Client_Ability_Function_Resolver;
 use WP_Error;
 use GratisAiAgent\Core\CredentialResolver;
@@ -1361,6 +1362,18 @@ class AgentLoop {
 					}
 				);
 			}
+		}
+
+		// Apply role-based ability restrictions for the current user.
+		// Administrators are unrestricted (get_allowed_abilities_for_current_user returns null).
+		$role_allowed = RolePermissions::get_allowed_abilities_for_current_user();
+		if ( null !== $role_allowed ) {
+			$all = array_filter(
+				$all,
+				function ( $ability ) use ( $role_allowed ) {
+					return in_array( $ability->get_name(), $role_allowed, true );
+				}
+			);
 		}
 
 		if ( ! empty( $this->abilities ) ) {

@@ -187,8 +187,11 @@ class AgentLoop {
 			// The last message in history is the model's tool call message.
 			$assistant_message = end( $this->history );
 			ChangeLogger::begin( $this->session_id, 'confirmed-tool' );
-			$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
-			ChangeLogger::end();
+			try {
+				$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
+			} finally {
+				ChangeLogger::end();
+			}
 			$this->history[] = $response_message;
 			$this->log_tool_responses( $response_message );
 		} else {
@@ -287,8 +290,11 @@ class AgentLoop {
 
 			// Execute the ability calls and get the function response message.
 			ChangeLogger::begin( $this->session_id );
-			$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
-			ChangeLogger::end();
+			try {
+				$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
+			} finally {
+				ChangeLogger::end();
+			}
 			$this->history[] = $response_message;
 			$this->log_tool_responses( $response_message );
 

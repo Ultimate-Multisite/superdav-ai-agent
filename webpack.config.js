@@ -29,5 +29,10 @@ module.exports = {
 			'src/screen-meta',
 			'index.js'
 		),
+		'abilities-explorer': path.resolve(
+			process.cwd(),
+			'src/abilities-explorer',
+			'index.js'
+		),
 	},
 };

@@ -258,6 +258,17 @@ class RestController {
 			]
 		);
 
+		// Abilities Explorer endpoint — richer data for the admin explorer page.
+		register_rest_route(
+			self::NAMESPACE,
+			'/abilities/explorer',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $instance, 'handle_abilities_explorer' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
+			]
+		);
+
 		// Providers endpoint.
 		register_rest_route(
 			self::NAMESPACE,
@@ -2691,6 +2702,98 @@ class RestController {
 				'category'    => $ability->get_category(),
 			];
 		}
+
+		return new WP_REST_Response( $list, 200 );
+	}
+
+	/**
+	 * Handle the /abilities/explorer endpoint — richer ability data for the Abilities Explorer admin page.
+	 *
+	 * Returns full descriptions, input parameter counts, annotations (readonly/destructive/idempotent),
+	 * output_schema, show_in_rest, and configuration status (whether required API keys are present).
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_abilities_explorer(): WP_REST_Response {
+		if ( ! function_exists( 'wp_get_abilities' ) ) {
+			return new WP_REST_Response( [], 200 );
+		}
+
+		$abilities = wp_get_abilities();
+		$list      = [];
+
+		// Build a map of configured provider IDs for configuration status checks.
+		$configured_providers = [];
+		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
+			$key = Settings::get_provider_key( $provider_id );
+			if ( '' !== $key ) {
+				$configured_providers[] = $provider_id;
+			}
+		}
+
+		foreach ( $abilities as $ability ) {
+			$input_schema = $ability->get_input_schema();
+			$meta         = $ability->get_meta();
+			$annotations  = $meta['annotations'] ?? [];
+
+			// Count required parameters from input schema.
+			$required_params = [];
+			if ( ! empty( $input_schema['required'] ) && is_array( $input_schema['required'] ) ) {
+				$required_params = $input_schema['required'];
+			}
+
+			$param_count = 0;
+			if ( ! empty( $input_schema['properties'] ) && is_array( $input_schema['properties'] ) ) {
+				$param_count = count( $input_schema['properties'] );
+			}
+
+			// Derive configuration status from ability name/category.
+			// Abilities in the 'gratis-ai-agent' category are always available (no external API needed).
+			// Abilities that reference a specific provider in their name may need that provider configured.
+			$ability_name      = $ability->get_name();
+			$is_configured     = true;
+			$required_api_keys = [];
+
+			// Check for provider-specific abilities by name pattern.
+			foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
+				if ( str_contains( $ability_name, $provider_id ) ) {
+					$required_api_keys[] = $provider_meta['name'] . ' API Key';
+					if ( ! in_array( $provider_id, $configured_providers, true ) ) {
+						$is_configured = false;
+					}
+				}
+			}
+
+			$list[] = [
+				'name'              => $ability_name,
+				'label'             => $ability->get_label(),
+				'description'       => $ability->get_description(),
+				'category'          => $ability->get_category(),
+				'param_count'       => $param_count,
+				'required_params'   => $required_params,
+				'is_configured'     => $is_configured,
+				'required_api_keys' => $required_api_keys,
+				'annotations'       => [
+					'readonly'    => (bool) ( $annotations['readonly'] ?? false ),
+					'destructive' => (bool) ( $annotations['destructive'] ?? false ),
+					'idempotent'  => (bool) ( $annotations['idempotent'] ?? false ),
+				],
+				'output_schema'     => $ability->get_output_schema(),
+				'show_in_rest'      => (bool) ( $meta['show_in_rest'] ?? false ),
+			];
+		}
+
+		// Sort by category then label for consistent display.
+		usort(
+			$list,
+			static function ( array $a, array $b ): int {
+				$cat_cmp = strcmp( $a['category'], $b['category'] );
+				if ( 0 !== $cat_cmp ) {
+					return $cat_cmp;
+				}
+				return strcmp( $a['label'], $b['label'] );
+			}
+		);
 
 		return new WP_REST_Response( $list, 200 );
 	}

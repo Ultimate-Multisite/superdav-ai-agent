@@ -68,6 +68,7 @@ use GratisAiAgent\Abilities\StockImageAbilities;
 use GratisAiAgent\Abilities\ToolCapabilities;
 use GratisAiAgent\Abilities\WooCommerceAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
+use GratisAiAgent\Admin\AbilitiesExplorerAdminPage;
 use GratisAiAgent\Admin\AdminPage;
 use GratisAiAgent\Admin\ChangesAdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
@@ -113,6 +114,7 @@ add_action(
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
 add_action( 'admin_menu', [ AdminPage::class, 'register' ] );
 add_action( 'admin_menu', [ ChangesAdminPage::class, 'register' ] );
+add_action( 'admin_menu', [ AbilitiesExplorerAdminPage::class, 'register' ] );
 add_action( 'admin_menu', [ Settings::class, 'register' ] );
 
 // Register ability category.

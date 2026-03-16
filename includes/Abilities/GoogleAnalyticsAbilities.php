@@ -214,7 +214,14 @@ trait GaApiClient {
 
 		// Build JWT.
 		$now    = time();
-		$header = $this->base64url_encode( (string) wp_json_encode( [ 'alg' => 'RS256', 'typ' => 'JWT' ] ) );
+		$header = $this->base64url_encode(
+			(string) wp_json_encode(
+				[
+					'alg' => 'RS256',
+					'typ' => 'JWT',
+				]
+			)
+		);
 		$claim  = $this->base64url_encode(
 			(string) wp_json_encode(
 				[
@@ -270,6 +277,7 @@ trait GaApiClient {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $body ) || empty( $body['access_token'] ) ) {
 			$err = $body['error_description'] ?? $body['error'] ?? 'Unknown error';
+			// translators: %s: OAuth error message returned by Google.
 			return new WP_Error( 'ga_token_error', sprintf( __( 'Google OAuth error: %s', 'gratis-ai-agent' ), $err ) );
 		}
 
@@ -312,7 +320,8 @@ trait GaApiClient {
 
 		if ( $code >= 400 ) {
 			$msg = $data['error']['message'] ?? __( 'Unknown API error.', 'gratis-ai-agent' );
-			return new WP_Error( 'ga_api_error', sprintf( __( 'Google Analytics API error (%d): %s', 'gratis-ai-agent' ), $code, $msg ) );
+			// translators: %1$d: HTTP status code, %2$s: error message from Google Analytics API.
+			return new WP_Error( 'ga_api_error', sprintf( __( 'Google Analytics API error (%1$d): %2$s', 'gratis-ai-agent' ), $code, $msg ) );
 		}
 
 		return $data;
@@ -350,7 +359,8 @@ trait GaApiClient {
 
 		if ( $code >= 400 ) {
 			$msg = $data['error']['message'] ?? __( 'Unknown API error.', 'gratis-ai-agent' );
-			return new WP_Error( 'ga_api_error', sprintf( __( 'Google Analytics API error (%d): %s', 'gratis-ai-agent' ), $code, $msg ) );
+			// translators: %1$d: HTTP status code, %2$s: error message from Google Analytics API.
+			return new WP_Error( 'ga_api_error', sprintf( __( 'Google Analytics API error (%1$d): %2$s', 'gratis-ai-agent' ), $code, $msg ) );
 		}
 
 		return $data;
@@ -404,7 +414,7 @@ trait GaApiClient {
 	 * @return string Base64url-encoded string.
 	 */
 	private function base64url_encode( string $data ): string {
-		return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' );
+		return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Required for JWT signing per RFC 7515; not used for obfuscation.
 	}
 
 	/**
@@ -476,8 +486,14 @@ class GaTrafficSummaryAbility extends AbstractAbility {
 				'end_date'               => [ 'type' => 'string' ],
 				'sessions'               => [ 'type' => 'integer' ],
 				'pageviews'              => [ 'type' => 'integer' ],
-				'bounce_rate'            => [ 'type' => 'number', 'description' => 'Bounce rate as a percentage (0-100).' ],
-				'avg_session_duration_s' => [ 'type' => 'number', 'description' => 'Average session duration in seconds.' ],
+				'bounce_rate'            => [
+					'type'        => 'number',
+					'description' => 'Bounce rate as a percentage (0-100).',
+				],
+				'avg_session_duration_s' => [
+					'type'        => 'number',
+					'description' => 'Average session duration in seconds.',
+				],
 				'new_users'              => [ 'type' => 'integer' ],
 				'total_users'            => [ 'type' => 'integer' ],
 			],
@@ -671,8 +687,8 @@ class GaTopPagesAbility extends AbstractAbility {
 			],
 			'orderBys'   => [
 				[
-					'metric'     => [ 'metricName' => 'screenPageViews' ],
-					'desc'       => true,
+					'metric' => [ 'metricName' => 'screenPageViews' ],
+					'desc'   => true,
 				],
 			],
 			'limit'      => $limit,
@@ -757,7 +773,10 @@ class GaRealtimeAbility extends AbstractAbility {
 			'type'       => 'object',
 			'properties' => [
 				'property_id'  => [ 'type' => 'string' ],
-				'active_users' => [ 'type' => 'integer', 'description' => 'Number of active users in the last N minutes.' ],
+				'active_users' => [
+					'type'        => 'integer',
+					'description' => 'Number of active users in the last N minutes.',
+				],
 				'minutes_ago'  => [ 'type' => 'integer' ],
 				'top_pages'    => [
 					'type'  => 'array',
@@ -790,26 +809,26 @@ class GaRealtimeAbility extends AbstractAbility {
 		);
 
 		$body = [
-			'dimensions' => [
+			'dimensions'   => [
 				[ 'name' => 'pagePath' ],
 			],
-			'metrics'    => [
+			'metrics'      => [
 				[ 'name' => 'activeUsers' ],
 			],
 			'minuteRanges' => [
 				[
-					'name'              => 'last_n_minutes',
-					'startMinutesAgo'   => $minutes_ago,
-					'endMinutesAgo'     => 0,
+					'name'            => 'last_n_minutes',
+					'startMinutesAgo' => $minutes_ago,
+					'endMinutesAgo'   => 0,
 				],
 			],
-			'orderBys'   => [
+			'orderBys'     => [
 				[
 					'metric' => [ 'metricName' => 'activeUsers' ],
 					'desc'   => true,
 				],
 			],
-			'limit'      => 10,
+			'limit'        => 10,
 		];
 
 		$data = $this->ga_api_post( $endpoint, $body, $token );

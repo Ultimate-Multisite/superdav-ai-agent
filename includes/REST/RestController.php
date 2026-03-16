@@ -460,8 +460,8 @@ class RestController {
 							'sanitize_callback' => 'sanitize_text_field',
 						],
 						'service_account_json' => [
-							'required'          => true,
-							'type'              => 'string',
+							'required' => true,
+							'type'     => 'string',
 						],
 					],
 				],

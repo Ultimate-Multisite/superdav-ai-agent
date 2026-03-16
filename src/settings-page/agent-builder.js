@@ -37,6 +37,9 @@ const EMPTY_FORM = {
 	avatar_icon: '',
 };
 
+/**
+ *
+ */
 export default function AgentBuilder() {
 	const {
 		fetchAgents,
@@ -480,20 +483,20 @@ export default function AgentBuilder() {
 						__nextHasNoMarginBottom
 					/>
 
-				<TextControl
-					label={ __( 'Temperature', 'gratis-ai-agent' ) }
-					type="number"
-					min={ 0 }
-					max={ 2 }
-					step={ 0.1 }
-					value={ form.temperature }
-					onChange={ ( v ) => updateField( 'temperature', v ) }
-					help={ __(
-						'Override temperature (0–2). Leave empty to use the global default.',
-						'gratis-ai-agent'
-					) }
-					__nextHasNoMarginBottom
-				/>
+					<TextControl
+						label={ __( 'Temperature', 'gratis-ai-agent' ) }
+						type="number"
+						min={ 0 }
+						max={ 2 }
+						step={ 0.1 }
+						value={ form.temperature }
+						onChange={ ( v ) => updateField( 'temperature', v ) }
+						help={ __(
+							'Override temperature (0–2). Leave empty to use the global default.',
+							'gratis-ai-agent'
+						) }
+						__nextHasNoMarginBottom
+					/>
 
 					<TextControl
 						label={ __( 'Max Iterations', 'gratis-ai-agent' ) }

@@ -60,17 +60,17 @@ export default function AgentSelector( { compact = false } ) {
 				compact ? 'is-compact' : ''
 			}` }
 		>
-		<SelectControl
-			label={ __( 'Agent', 'gratis-ai-agent' ) }
-			hideLabelFromVision={ compact }
-			value={ selectedAgentId ? String( selectedAgentId ) : '' }
-			options={ options }
-			onChange={ ( v ) =>
-				setSelectedAgentId( v ? parseInt( v, 10 ) : null )
-			}
-			__nextHasNoMarginBottom
-			size={ compact ? 'compact' : 'default' }
-		/>
+			<SelectControl
+				label={ __( 'Agent', 'gratis-ai-agent' ) }
+				hideLabelFromVision={ compact }
+				value={ selectedAgentId ? String( selectedAgentId ) : '' }
+				options={ options }
+				onChange={ ( v ) =>
+					setSelectedAgentId( v ? parseInt( v, 10 ) : null )
+				}
+				__nextHasNoMarginBottom
+				size={ compact ? 'compact' : 'default' }
+			/>
 		</div>
 	);
 }

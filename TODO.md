@@ -156,7 +156,7 @@
 
 - [ ] t085 Google Analytics integration: traffic analysis ability @superdav42 #feature ~4h logged:2026-03-15
 - [ ] t086 Google Search Console integration: SEO insights ability @superdav42 #feature ~4h logged:2026-03-15
-- [ ] t087 Slack/Discord notification forwarding for automation results @superdav42 #feature ~3h logged:2026-03-15
+- [x] t087 Slack/Discord notification forwarding for automation results @superdav42 #feature ~3h logged:2026-03-15 pr:#412 completed:2026-03-16
 - [x] t088 Webhook API: trigger AI conversations from external systems @superdav42 #feature ~4h logged:2026-03-15 pr:#409 completed:2026-03-16
 - [x] t089 MCP server: expose abilities as MCP tools for external AI clients @superdav42 #feature ~6h logged:2026-03-15 pr:#404 completed:2026-03-15
 

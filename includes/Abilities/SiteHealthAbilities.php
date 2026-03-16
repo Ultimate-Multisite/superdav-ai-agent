@@ -730,8 +730,11 @@ class SiteHealthAbilities {
 	 */
 	private static function resolve_error_log_path(): ?string {
 		// 1. WP_DEBUG_LOG as a path string.
-		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && WP_DEBUG_LOG ) {
-			$path = WP_DEBUG_LOG;
+		// Assign to a variable first so PHPStan can narrow the type via is_string().
+		// WP_DEBUG_LOG may be true (bool) or a file-path string; we only want the string case.
+		$debug_log_value = defined( 'WP_DEBUG_LOG' ) ? WP_DEBUG_LOG : false;
+		if ( is_string( $debug_log_value ) && '' !== $debug_log_value ) {
+			$path = $debug_log_value;
 			if ( ! path_is_absolute( $path ) ) {
 				$path = ABSPATH . $path;
 			}

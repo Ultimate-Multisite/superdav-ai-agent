@@ -163,11 +163,12 @@ export default function ChangesApp() {
 
 	const handleSelectAll = useCallback(
 		( checked ) => {
-			if ( checked ) {
-				setSelectedIds( changes.map( ( c ) => c.id ) );
-			} else {
-				setSelectedIds( [] );
-			}
+			const currentPageIds = changes.map( ( change ) => change.id );
+			setSelectedIds( ( prev ) =>
+				checked
+					? [ ...new Set( [ ...prev, ...currentPageIds ] ) ]
+					: prev.filter( ( id ) => ! currentPageIds.includes( id ) )
+			);
 		},
 		[ changes ]
 	);
@@ -279,8 +280,10 @@ export default function ChangesApp() {
 	}, [ selectedIds ] );
 
 	const totalPages = Math.ceil( total / perPage );
+	const currentPageIds = changes.map( ( change ) => change.id );
 	const allSelected =
-		changes.length > 0 && selectedIds.length === changes.length;
+		currentPageIds.length > 0 &&
+		currentPageIds.every( ( id ) => selectedIds.includes( id ) );
 
 	return (
 		<div className="gratis-changes-app">

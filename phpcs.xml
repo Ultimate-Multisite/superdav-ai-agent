@@ -96,6 +96,18 @@
          permission callbacks at the framework level. -->
     <rule ref="WordPress.Security.NonceVerification"/>
 
+    <!-- Register WooCommerce custom capabilities so PHPCS doesn't warn about them.
+         manage_woocommerce and view_woocommerce_reports are registered by WooCommerce
+         itself via WP_Role->add_cap() on plugin activation. -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="manage_woocommerce"/>
+                <element value="view_woocommerce_reports"/>
+            </property>
+        </properties>
+    </rule>
+
     <!-- Verify text domain usage -->
     <rule ref="WordPress.WP.I18n">
         <properties>

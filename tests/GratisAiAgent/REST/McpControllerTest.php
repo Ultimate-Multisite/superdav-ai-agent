@@ -75,10 +75,12 @@ class McpControllerTest extends WP_UnitTestCase {
 	/**
 	 * Set up REST server, test users, and a mock ability before each test.
 	 *
-	 * The mock ability must be registered on the `wp_abilities_api_init` hook,
-	 * which fires lazily when the abilities registry is first accessed. We add
-	 * the hook here and then trigger registry initialisation by calling
-	 * `wp_get_abilities()` so the ability is available for all tests.
+	 * wp_register_ability() can be called directly once the Abilities registry
+	 * is initialised (which happens lazily on first access, typically triggered
+	 * by earlier tests in the suite). Using add_action( 'wp_abilities_api_init' )
+	 * is only reliable at plugin boot time — by the time set_up() runs the hook
+	 * has already fired and will never fire again, so the callback is never
+	 * invoked. Calling wp_register_ability() directly avoids this race condition.
 	 */
 	public function set_up(): void {
 		parent::set_up();
@@ -92,51 +94,47 @@ class McpControllerTest extends WP_UnitTestCase {
 		$this->admin_id      = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		$this->subscriber_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
 
-		// Register a mock ability on the correct hook so list_tools and call_tool
-		// have something to work with. wp_abilities_api_init fires lazily on first
-		// registry access; we trigger it by calling wp_get_abilities() below.
+		// Register the mock ability directly. wp_register_ability() works at any
+		// point after the registry is initialised — no hook indirection needed.
 		if ( function_exists( 'wp_register_ability' ) ) {
-			add_action(
-				'wp_abilities_api_init',
-				static function () {
-					wp_register_ability(
-						'test-plugin/mock-tool',
-						[
-							'label'               => 'Mock Tool',
-							'description'         => 'A mock tool for testing.',
-							'category'            => 'gratis-ai-agent',
-							'input_schema'        => [
-								'type'       => 'object',
-								'properties' => [
-									'message' => [
-										'type'        => 'string',
-										'description' => 'A test message.',
-									],
-								],
-								'required'   => [ 'message' ],
+			wp_register_ability(
+				self::MOCK_ABILITY,
+				[
+					'label'               => 'Mock Tool',
+					'description'         => 'A mock tool for testing.',
+					'category'            => 'gratis-ai-agent',
+					'input_schema'        => [
+						'type'       => 'object',
+						'properties' => [
+							'message' => [
+								'type'        => 'string',
+								'description' => 'A test message.',
 							],
-							'execute_callback'    => static function ( $args ) {
-								return [ 'echo' => $args['message'] ?? 'no-message' ];
-							},
-							'permission_callback' => static function () {
-								return current_user_can( 'manage_options' );
-							},
-						]
-					);
-				}
+						],
+						'required'   => [ 'message' ],
+					],
+					'execute_callback'    => static function ( $args ) {
+						return [ 'echo' => $args['message'] ?? 'no-message' ];
+					},
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_options' );
+					},
+				]
 			);
-
-			// Trigger registry initialisation so the hook fires now.
-			wp_get_abilities();
 		}
 	}
 
 	/**
-	 * Tear down REST server after each test.
+	 * Tear down REST server and unregister the mock ability after each test.
 	 */
 	public function tear_down(): void {
 		global $wp_rest_server;
 		$wp_rest_server = null;
+
+		// Clean up the mock ability so it does not bleed into other test classes.
+		if ( function_exists( 'wp_unregister_ability' ) ) {
+			wp_unregister_ability( self::MOCK_ABILITY );
+		}
 
 		parent::tear_down();
 	}

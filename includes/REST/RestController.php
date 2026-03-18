@@ -135,9 +135,10 @@ class RestController {
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 					'page_context'       => [
-						'required' => false,
-						'type'     => 'object',
-						'default'  => [],
+						'required'          => false,
+						'type'              => [ 'object', 'string' ],
+						'default'           => [],
+						'sanitize_callback' => [ __CLASS__, 'sanitize_page_context' ],
 					],
 					'agent_id'           => [
 						'required'          => false,
@@ -199,9 +200,10 @@ class RestController {
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 					'page_context'       => [
-						'required' => false,
-						'type'     => 'object',
-						'default'  => [],
+						'required'          => false,
+						'type'              => [ 'object', 'string' ],
+						'default'           => [],
+						'sanitize_callback' => [ __CLASS__, 'sanitize_page_context' ],
 					],
 					'agent_id'           => [
 						'required'          => false,
@@ -2002,6 +2004,28 @@ class RestController {
 	 */
 	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Sanitize the page_context parameter.
+	 *
+	 * Accepts either an object (associative array) or a string and always
+	 * returns an associative array.  The JS store may send a string when the
+	 * screen-meta entry point provides context as a pre-formatted string.
+	 *
+	 * @param mixed $value Raw parameter value.
+	 * @return array<string, mixed> Normalised page context.
+	 */
+	public static function sanitize_page_context( $value ): array {
+		if ( is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) && $value !== '' ) {
+			return [ 'summary' => sanitize_textarea_field( $value ) ];
+		}
+
+		return [];
 	}
 
 	/**

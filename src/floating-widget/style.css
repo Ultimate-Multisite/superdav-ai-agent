@@ -1011,26 +1011,101 @@
 	font-size: 14px;
 }
 
-/* Responsive — narrow screens */
-@media (max-width: 600px) {
+/* ─── Provider setup panel (shown when no providers configured) ───────────── */
+
+.ai-agent-site-builder-setup {
+	flex: 1;
+	overflow-y: auto;
+	padding: 20px 24px;
+}
+
+.ai-agent-site-builder-setup-intro {
+	margin: 0 0 16px;
+	font-size: 14px;
+	color: #50575e;
+}
+
+.ai-agent-site-builder-provider-list {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.ai-agent-site-builder-provider-row {
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	background: #f6f7f7;
+}
+
+.ai-agent-site-builder-provider-info {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.ai-agent-site-builder-provider-info strong {
+	font-size: 14px;
+}
+
+.ai-agent-site-builder-provider-docs {
+	font-size: 12px;
+	color: var(--wp-admin-theme-color, #2271b1);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.ai-agent-site-builder-provider-docs:hover {
+	text-decoration: underline;
+}
+
+.ai-agent-site-builder-provider-key-row {
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+}
+
+.ai-agent-site-builder-provider-key-row .components-text-control__input,
+.ai-agent-site-builder-provider-key-row .components-base-control {
+	flex: 1;
+	min-width: 0;
+}
+
+.ai-agent-site-builder-provider-key-row .components-base-control__label {
+	display: none;
+}
+
+.ai-agent-site-builder-provider-row .components-notice {
+	margin: 0 0 8px;
+}
+
+/* ─── Responsive — narrow screens ─────────────────────────────────────────── */
+@media (max-width: 782px) {
 
 	.ai-agent-site-builder-overlay {
 		padding: 0;
-		align-items: flex-end;
+		align-items: stretch;
 	}
 
 	.ai-agent-site-builder-panel {
 		max-width: 100%;
-		max-height: 90vh;
-		border-radius: 12px 12px 0 0;
+		max-height: 100vh;
+		height: 100vh;
+		border-radius: 0;
 	}
 
 	.ai-agent-site-builder-header {
-		padding: 16px 16px 12px;
+		padding: 14px 16px 10px;
 	}
 
 	.ai-agent-site-builder-title {
 		font-size: 17px;
+	}
+
+	.ai-agent-site-builder-subtitle {
+		font-size: 12px;
 	}
 
 	.ai-agent-site-builder-chat .ai-agent-messages {
@@ -1038,7 +1113,35 @@
 	}
 
 	.ai-agent-site-builder-chat .ai-agent-input-area {
-		padding: 8px 16px 12px;
+		padding: 8px 12px 12px;
+	}
+
+	/* Provider setup on mobile */
+	.ai-agent-site-builder-setup {
+		padding: 16px;
+	}
+
+	.ai-agent-site-builder-provider-row {
+		padding: 12px;
+	}
+
+	.ai-agent-site-builder-provider-key-row {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.ai-agent-site-builder-provider-key-row .components-button {
+		align-self: flex-end;
+	}
+
+	/* Hide provider/model selectors in compact chat header on mobile */
+	.ai-agent-site-builder-chat .ai-agent-provider-selector {
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.ai-agent-site-builder-chat .ai-agent-provider-selector .components-select-control {
+		min-width: 0;
 	}
 }
 

@@ -1012,7 +1012,11 @@ const actions = {
 
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
-				body.page_context = pageContext;
+				// Normalise to object — screen-meta may set a string.
+				body.page_context =
+					typeof pageContext === 'string'
+						? { summary: pageContext }
+						: pageContext;
 			}
 
 			const selectedAgentId = select.getSelectedAgentId();
@@ -1403,7 +1407,11 @@ const actions = {
 			// Include structured page context if available.
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
-				body.page_context = pageContext;
+				// Normalise to object — screen-meta may set a string.
+				body.page_context =
+					typeof pageContext === 'string'
+						? { summary: pageContext }
+						: pageContext;
 			}
 
 			// Include selected agent if set.

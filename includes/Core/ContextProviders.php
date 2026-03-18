@@ -166,6 +166,11 @@ class ContextProviders {
 	public static function provide_page_context( array $page_context ): array {
 		$data = [];
 
+		// String context from screen-meta (wrapped in { summary: "..." } by the JS store).
+		if ( ! empty( $page_context['summary'] ) ) {
+			$data['Page Context'] = $page_context['summary'];
+		}
+
 		if ( ! empty( $page_context['url'] ) ) {
 			$data['Current URL'] = $page_context['url'];
 		}

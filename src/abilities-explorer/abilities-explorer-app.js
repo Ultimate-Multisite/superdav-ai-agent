@@ -14,7 +14,6 @@ import {
 	SelectControl,
 	Spinner,
 	Notice,
-	Badge,
 	Card,
 	CardHeader,
 	CardBody,
@@ -27,6 +26,63 @@ import { __, sprintf } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
 /* global gratisAiAgentAbilities */
+
+/**
+ * Intent-to-style map for the custom Badge component.
+ * Mirrors the colour conventions of the WordPress Badge component
+ * without depending on it being present in the installed version.
+ */
+const BADGE_STYLES = {
+	default: {
+		background: '#f0f0f0',
+		color: '#1e1e1e',
+		border: '1px solid #c3c4c7',
+	},
+	info: {
+		background: '#e8f4fd',
+		color: '#0a4b78',
+		border: '1px solid #72aee6',
+	},
+	success: {
+		background: '#edfaef',
+		color: '#1a4a1f',
+		border: '1px solid #68de7c',
+	},
+	warning: {
+		background: '#fcf9e8',
+		color: '#4a3c00',
+		border: '1px solid #f0b849',
+	},
+	error: {
+		background: '#fce8e8',
+		color: '#4a0000',
+		border: '1px solid #f86368',
+	},
+};
+
+/**
+ * Custom inline Badge component with intent-based styling.
+ * Replaces the @wordpress/components Badge which is unavailable
+ * in older WordPress versions and causes a runtime crash.
+ *
+ * @param {Object} props
+ * @param {string} [props.intent='default'] One of: default, info, success, warning, error.
+ * @param {*}      props.children           Badge label content.
+ */
+function Badge( { intent = 'default', children } ) {
+	const style = {
+		display: 'inline-flex',
+		alignItems: 'center',
+		padding: '2px 8px',
+		borderRadius: '2px',
+		fontSize: '11px',
+		fontWeight: 600,
+		lineHeight: '20px',
+		whiteSpace: 'nowrap',
+		...( BADGE_STYLES[ intent ] || BADGE_STYLES.default ),
+	};
+	return <span style={ style }>{ children }</span>;
+}
 
 /**
  * Renders a badge only when the annotation is active.

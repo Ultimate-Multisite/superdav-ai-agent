@@ -90,13 +90,14 @@ class RestController {
 		// Resale API endpoints.
 		ResaleApiController::register_routes();
 
+		$instance = new self();
 		register_rest_route(
 			self::NAMESPACE,
 			'/stream',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ __CLASS__, 'handle_stream' ],
-				'permission_callback' => [ __CLASS__, 'check_chat_permission' ],
+				'permission_callback' => [ $instance, 'check_chat_permission' ],
 				'args'                => [
 					'message'            => [
 						'required'          => true,
@@ -149,7 +150,6 @@ class RestController {
 			]
 		);
 
-		$instance = new self();
 		register_rest_route(
 			self::NAMESPACE,
 			'/run',

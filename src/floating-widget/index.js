@@ -81,14 +81,20 @@ function FloatingWidget() {
 	}, [ setPageContext ] );
 
 	// Activate site builder mode when the PHP layer signals it (t060/t062).
+	// Only activate on the main AI Agent page — not on Changes, Abilities, or
+	// other admin pages where the overlay would block unrelated content (#511).
 	useEffect( () => {
-		if ( window.gratisAiAgentData?.site_builder_mode ) {
+		if (
+			window.gratisAiAgentSiteBuilder?.siteBuilderMode &&
+			isMainAgentPage()
+		) {
 			setSiteBuilderMode( true );
 		}
 	}, [ setSiteBuilderMode ] );
 
 	// Site builder full-screen overlay takes priority over normal FAB/panel.
-	if ( isSiteBuilderMode ) {
+	// Guard: only render on the main AI Agent page.
+	if ( isSiteBuilderMode && isMainAgentPage() ) {
 		return <SiteBuilderOverlay />;
 	}
 
@@ -98,6 +104,33 @@ function FloatingWidget() {
 			{ isOpen && <FloatingPanel /> }
 		</>
 	);
+}
+
+/**
+ * Determine whether the current admin page is the main AI Agent page.
+ *
+ * The site builder overlay must only render on the main AI Agent page
+ * (slug: `gratis-ai-agent`). On other admin pages — Changes, Abilities,
+ * Settings, or any unrelated WordPress page — the overlay must not appear
+ * even when `siteBuilderMode` is true in the store (#511).
+ *
+ * WordPress sets `window.pagenow` to the page slug for top-level menu pages
+ * (e.g. `toplevel_page_gratis-ai-agent`) and `window.adminpage` to the
+ * hook suffix. We also check the URL `page` query param as a fallback.
+ *
+ * @return {boolean} True only when on the main AI Agent admin page.
+ */
+function isMainAgentPage() {
+	const MAIN_PAGE_SLUG = 'gratis-ai-agent';
+
+	// WordPress sets pagenow to `toplevel_page_{slug}` for top-level menu pages.
+	if ( window.pagenow ) {
+		return window.pagenow === 'toplevel_page_' + MAIN_PAGE_SLUG;
+	}
+
+	// Fallback: check the URL `page` query parameter.
+	const urlParams = new URLSearchParams( window.location.search );
+	return urlParams.get( 'page' ) === MAIN_PAGE_SLUG;
 }
 
 /**

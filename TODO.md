@@ -38,7 +38,7 @@
   - On Changes and Abilities pages, the overlay covers the actual page content
   - Fix: only render the site builder overlay on the main AI Agent page, or check the current admin page before rendering
 
-- [ ] t096 Add proper error handling for chat stream failures @superdav42 #bug ~2h
+- [x] t096 Add proper error handling for chat stream failures @superdav42 #bug ~2h pr:#517 completed:2026-03-18
   - When the stream endpoint returns a fatal PHP error (or any non-200 response), the frontend shows "Thinking..." indefinitely
   - No timeout mechanism exists — users wait forever with no feedback
   - Fix: add a configurable timeout (e.g., 120s), detect non-SSE responses, show error messages to the user

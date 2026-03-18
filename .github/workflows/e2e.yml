@@ -12,6 +12,9 @@ jobs:
     name: Playwright E2E (WP ${{ matrix.wp }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # WP trunk may fail due to PSR namespace conflicts between our compat
+    # layer and core's native AI Client SDK (see tests.yml for details).
+    continue-on-error: ${{ matrix.wp == 'trunk' }}
 
     strategy:
       fail-fast: false

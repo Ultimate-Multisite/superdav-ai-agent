@@ -11,6 +11,10 @@ jobs:
   phpunit:
     name: PHPUnit (WP ${{ matrix.wp }})
     runs-on: ubuntu-latest
+    # WP trunk may fail due to PSR namespace conflicts between our compat
+    # layer and core's native AI Client SDK. This is expected until WP 7.0
+    # stabilizes its API and we can align our Composer dependencies.
+    continue-on-error: ${{ matrix.wp == 'trunk' }}
 
     strategy:
       fail-fast: false

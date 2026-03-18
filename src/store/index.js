@@ -7,6 +7,7 @@ import {
 	select as wpSelect,
 } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 
 /**
  * @typedef {import('../types').StoreState} StoreState
@@ -106,6 +107,13 @@ const DEFAULT_STATE = {
 	// Streaming state — token buffer for the in-progress assistant message.
 	streamingText: '',
 	isStreaming: false,
+
+	// Stream error state — true when the last stream attempt failed.
+	// Used to show a "Try again" button in the message list.
+	streamError: false,
+
+	// Last user message text — stored so retryLastMessage can resend it.
+	lastUserMessage: '',
 
 	// Proactive alerts — count of issues surfaced as a badge on the FAB.
 	alertCount: 0,
@@ -476,6 +484,26 @@ const actions = {
 	},
 	setAlertCount( count ) {
 		return { type: 'SET_ALERT_COUNT', count };
+	},
+
+	/**
+	 * Set or clear the stream error flag.
+	 *
+	 * @param {boolean} error - Whether the last stream attempt failed.
+	 * @return {Object} Redux action.
+	 */
+	setStreamError( error ) {
+		return { type: 'SET_STREAM_ERROR', error };
+	},
+
+	/**
+	 * Store the last user message text for retry purposes.
+	 *
+	 * @param {string} message - The user message text.
+	 * @return {Object} Redux action.
+	 */
+	setLastUserMessage( message ) {
+		return { type: 'SET_LAST_USER_MESSAGE', message };
 	},
 
 	/**
@@ -950,6 +978,29 @@ const actions = {
 	},
 
 	/**
+	 * Retry the last failed stream by removing the error message and
+	 * resending the last user message via streamMessage.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
+	retryLastMessage() {
+		return async ( { dispatch, select } ) => {
+			const lastMessage = select.getLastUserMessage();
+			if ( ! lastMessage ) {
+				return;
+			}
+			// Remove the error system message appended on failure.
+			dispatch.removeLastMessage();
+			// Remove the user message that was appended before the failure.
+			dispatch.removeLastMessage();
+			// Clear the error flag.
+			dispatch.setStreamError( false );
+			// Resend.
+			dispatch.streamMessage( lastMessage );
+		};
+	},
+
+	/**
 	 * Send a message and stream the response token-by-token via SSE.
 	 *
 	 * Uses the Fetch API with a ReadableStream reader to consume the
@@ -962,6 +1013,8 @@ const actions = {
 			dispatch.setSending( true );
 			dispatch.setIsStreaming( false );
 			dispatch.setStreamingText( '' );
+			dispatch.setStreamError( false );
+			dispatch.setLastUserMessage( message );
 
 			// Append user message immediately.
 			dispatch.appendMessage( {
@@ -1034,6 +1087,12 @@ const actions = {
 			const abortController = new AbortController();
 			dispatch.setStreamAbortController( abortController );
 
+			// 120-second timeout: abort the stream if no completion within limit.
+			const STREAM_TIMEOUT_MS = 120000;
+			let timeoutId = setTimeout( () => {
+				abortController.abort( 'timeout' );
+			}, STREAM_TIMEOUT_MS );
+
 			let response;
 			try {
 				response = await fetch( streamUrl, {
@@ -1046,7 +1105,25 @@ const actions = {
 					signal: abortController.signal,
 				} );
 			} catch ( err ) {
+				clearTimeout( timeoutId );
 				if ( err.name === 'AbortError' ) {
+					const isTimeout =
+						err.message === 'timeout' ||
+						String( abortController.signal?.reason ) === 'timeout';
+					if ( isTimeout ) {
+						dispatch.appendMessage( {
+							role: 'system',
+							parts: [
+								{
+									text: __(
+										'Error: The request timed out after 120 seconds. The server may be overloaded. Please try again.',
+										'gratis-ai-agent'
+									),
+								},
+							],
+						} );
+						dispatch.setStreamError( true );
+					}
 					dispatch.setSending( false );
 					dispatch.setIsStreaming( false );
 					dispatch.setStreamingText( '' );
@@ -1057,26 +1134,63 @@ const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `Error: ${
-								err.message || 'Failed to connect to stream'
+							text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
+								err.message ||
+								__(
+									'Failed to connect to stream',
+									'gratis-ai-agent'
+								)
 							}`,
 						},
 					],
 				} );
+				dispatch.setStreamError( true );
 				dispatch.setSending( false );
 				dispatch.setStreamAbortController( null );
 				return;
 			}
 
 			if ( ! response.ok ) {
+				clearTimeout( timeoutId );
+				// Detect non-SSE responses (e.g. PHP fatal error HTML pages).
+				const contentType =
+					response.headers.get( 'Content-Type' ) || '';
+				const isHtml = contentType.includes( 'text/html' );
+				const errorText = isHtml
+					? __(
+							'Error: The server returned an unexpected response (possibly a PHP error). Check your server logs.',
+							'gratis-ai-agent'
+					  )
+					: `${ __( 'Error: HTTP', 'gratis-ai-agent' ) } ${
+							response.status
+					  } ${ __( 'from stream endpoint', 'gratis-ai-agent' ) }`;
+				dispatch.appendMessage( {
+					role: 'system',
+					parts: [ { text: errorText } ],
+				} );
+				dispatch.setStreamError( true );
+				dispatch.setSending( false );
+				dispatch.setStreamAbortController( null );
+				return;
+			}
+
+			// Verify the response is actually an SSE stream before reading.
+			const responseContentType =
+				response.headers.get( 'Content-Type' ) || '';
+			if ( ! responseContentType.includes( 'text/event-stream' ) ) {
+				clearTimeout( timeoutId );
 				dispatch.appendMessage( {
 					role: 'system',
 					parts: [
 						{
-							text: `Error: HTTP ${ response.status } from stream endpoint`,
+							text: __(
+								'Error: The server did not return a streaming response. This may indicate a PHP error or misconfiguration.',
+								'gratis-ai-agent'
+							),
 						},
 					],
 				} );
+				dispatch.setStreamError( true );
 				dispatch.setSending( false );
 				dispatch.setStreamAbortController( null );
 				return;
@@ -1096,8 +1210,14 @@ const actions = {
 				while ( true ) {
 					const { done, value } = await reader.read();
 					if ( done ) {
+						clearTimeout( timeoutId );
 						break;
 					}
+					// Reset timeout on each received chunk — stream is alive.
+					clearTimeout( timeoutId );
+					timeoutId = setTimeout( () => {
+						abortController.abort( 'timeout' );
+					}, STREAM_TIMEOUT_MS );
 
 					buffer += decoder.decode( value, { stream: true } );
 
@@ -1155,19 +1275,27 @@ const actions = {
 								break;
 
 							case 'error':
+								clearTimeout( timeoutId );
 								dispatch.setIsStreaming( false );
 								dispatch.setStreamingText( '' );
 								dispatch.appendMessage( {
 									role: 'system',
 									parts: [
 										{
-											text: `Error: ${
+											text: `${ __(
+												'Error:',
+												'gratis-ai-agent'
+											) } ${
 												payload.message ||
-												'Unknown error'
+												__(
+													'Unknown error',
+													'gratis-ai-agent'
+												)
 											}`,
 										},
 									],
 								} );
+								dispatch.setStreamError( true );
 								dispatch.setSending( false );
 								dispatch.setStreamAbortController( null );
 								return;
@@ -1175,17 +1303,38 @@ const actions = {
 					}
 				}
 			} catch ( err ) {
-				if ( err.name !== 'AbortError' ) {
+				clearTimeout( timeoutId );
+				if ( err.name === 'AbortError' ) {
+					const isTimeout =
+						err.message === 'timeout' ||
+						String( abortController.signal?.reason ) === 'timeout';
+					if ( isTimeout ) {
+						dispatch.appendMessage( {
+							role: 'system',
+							parts: [
+								{
+									text: __(
+										'Error: The response timed out after 120 seconds. Please try again.',
+										'gratis-ai-agent'
+									),
+								},
+							],
+						} );
+						dispatch.setStreamError( true );
+					}
+				} else {
 					dispatch.appendMessage( {
 						role: 'system',
 						parts: [
 							{
-								text: `Error: ${
-									err.message || 'Stream read error'
+								text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
+									err.message ||
+									__( 'Stream read error', 'gratis-ai-agent' )
 								}`,
 							},
 						],
 					} );
+					dispatch.setStreamError( true );
 				}
 				dispatch.setIsStreaming( false );
 				dispatch.setStreamingText( '' );
@@ -1197,6 +1346,7 @@ const actions = {
 			dispatch.setIsStreaming( false );
 			dispatch.setStreamingText( '' );
 			dispatch.setStreamAbortController( null );
+			dispatch.setStreamError( false );
 
 			// Handle tool confirmation pause.
 			if ( pendingConfirmationData ) {
@@ -2370,6 +2520,22 @@ const selectors = {
 		return state.streamAbortController || null;
 	},
 
+	/**
+	 * @param {StoreState} state
+	 * @return {boolean} Whether the last stream attempt failed with an error.
+	 */
+	hasStreamError( state ) {
+		return state.streamError;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {string} The last user message text (for retry).
+	 */
+	getLastUserMessage( state ) {
+		return state.lastUserMessage;
+	},
+
 	getAlertCount( state ) {
 		return state.alertCount;
 	},
@@ -2590,6 +2756,10 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, isStreaming: action.streaming };
 		case 'SET_STREAM_ABORT_CONTROLLER':
 			return { ...state, streamAbortController: action.controller };
+		case 'SET_STREAM_ERROR':
+			return { ...state, streamError: action.error };
+		case 'SET_LAST_USER_MESSAGE':
+			return { ...state, lastUserMessage: action.message };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
 		case 'SET_SITE_BUILDER_STEP':

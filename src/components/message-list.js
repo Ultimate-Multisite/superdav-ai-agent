@@ -149,6 +149,7 @@ export default function MessageList() {
 		ttsVoiceURI,
 		ttsRate,
 		ttsPitch,
+		streamError,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -163,6 +164,7 @@ export default function MessageList() {
 			ttsVoiceURI: store.getTtsVoiceURI(),
 			ttsRate: store.getTtsRate(),
 			ttsPitch: store.getTtsPitch(),
+			streamError: store.hasStreamError(),
 		};
 	}, [] );
 
@@ -173,7 +175,7 @@ export default function MessageList() {
 		getBranding().greetingMessage ||
 		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
 
-	const { sendMessage, confirmToolCall, rejectToolCall } =
+	const { sendMessage, confirmToolCall, rejectToolCall, retryLastMessage } =
 		useDispatch( STORE_NAME );
 	const messagesRef = useRef( null );
 
@@ -273,6 +275,12 @@ export default function MessageList() {
 				const isLastModel =
 					isModel && ! sending && i === visibleMessages.length - 1;
 
+				const isLastSystemError =
+					msg.role === 'system' &&
+					streamError &&
+					! sending &&
+					i === visibleMessages.length - 1;
+
 				return (
 					<div key={ i } className="ai-agent-message-row">
 						{ msg.toolCalls?.length > 0 && (
@@ -288,6 +296,17 @@ export default function MessageList() {
 								suggestions={ suggestions }
 								onSelect={ sendMessage }
 							/>
+						) }
+						{ isLastSystemError && (
+							<div className="ai-agent-retry-row">
+								<Button
+									variant="secondary"
+									className="ai-agent-retry-btn"
+									onClick={ retryLastMessage }
+								>
+									{ __( 'Try again', 'gratis-ai-agent' ) }
+								</Button>
+							</div>
 						) }
 					</div>
 				);

@@ -14,6 +14,7 @@ declare(strict_types=1);
  *  - WordPress 7.0 Connectors API (read-only, delegated to WP functions)
  *
  * @package GratisAiAgent\Core
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

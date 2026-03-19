@@ -10,6 +10,7 @@ declare(strict_types=1);
  * title, tagline, SEO) in a single guided conversation.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

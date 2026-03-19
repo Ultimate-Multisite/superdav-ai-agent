@@ -12,6 +12,7 @@ declare(strict_types=1);
  *  - Performance indicators (autoloaded options, transients, object cache)
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

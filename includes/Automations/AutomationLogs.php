@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Automation Logs — execution history for scheduled and event-driven automations.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Automations;

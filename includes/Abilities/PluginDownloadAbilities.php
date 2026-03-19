@@ -8,6 +8,7 @@ declare(strict_types=1);
  * download links so admins can retrieve modified plugin zips.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

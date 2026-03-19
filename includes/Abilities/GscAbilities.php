@@ -16,6 +16,7 @@ declare(strict_types=1);
  *   POST https://searchconsole.googleapis.com/webmasters/v3/sites/{siteUrl}/searchAnalytics/query
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

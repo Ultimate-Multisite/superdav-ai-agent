@@ -9,6 +9,7 @@ declare(strict_types=1);
  *   - {prefix}gratis_ai_agent_webhook_logs  — per-execution audit log
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

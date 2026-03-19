@@ -17,6 +17,7 @@ declare(strict_types=1);
  * capability name per tool.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

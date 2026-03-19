@@ -35,6 +35,7 @@
  * as normal).
  *
  * @package GratisAiAgent\Tests
+ * @license GPL-2.0-or-later
  */
 
 namespace Psr\SimpleCache;

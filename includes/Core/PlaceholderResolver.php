@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Placeholder Resolver — resolves {{post.title}}, {{user.email}}, etc. from hook arguments.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

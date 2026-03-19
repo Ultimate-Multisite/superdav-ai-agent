@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Memory system — persistent storage for agent knowledge.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Models;

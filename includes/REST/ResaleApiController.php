@@ -25,6 +25,7 @@ declare(strict_types=1);
  * and returns the response to the caller.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

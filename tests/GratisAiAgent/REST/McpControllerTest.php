@@ -19,6 +19,7 @@ declare(strict_types=1);
  *
  * @package GratisAiAgent
  * @subpackage Tests\REST
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tests\REST;

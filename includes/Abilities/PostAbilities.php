@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Ported from the WordPress/ai experiments plugin pattern.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

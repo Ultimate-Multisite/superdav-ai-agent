@@ -22,6 +22,7 @@ declare(strict_types=1);
  * }
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

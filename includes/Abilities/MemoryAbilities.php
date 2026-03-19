@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Register memory-related WordPress abilities (tools) for the AI agent.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

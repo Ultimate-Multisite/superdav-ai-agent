@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Marketing and competitive analysis abilities for the AI agent.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

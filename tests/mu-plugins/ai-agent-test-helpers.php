@@ -6,6 +6,7 @@
  * Provides debugging aids and test fixtures.
  *
  * @package AiAgent
+ * @license GPL-2.0-or-later
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

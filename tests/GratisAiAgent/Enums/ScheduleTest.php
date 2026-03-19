@@ -4,6 +4,7 @@
  *
  * @package GratisAiAgent
  * @subpackage Tests
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tests\Enums;

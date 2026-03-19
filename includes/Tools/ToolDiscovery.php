@@ -9,6 +9,7 @@ declare(strict_types=1);
  * of tools loaded per request from ~64 to ~11 priority tools.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tools;

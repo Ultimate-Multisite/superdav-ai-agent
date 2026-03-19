@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Returns a client-side action instruction to query DOM elements by CSS selector.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

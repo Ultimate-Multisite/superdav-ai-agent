@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Provides static CRUD methods and FULLTEXT search.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Knowledge;

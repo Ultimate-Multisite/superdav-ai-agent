@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Handles execution of HTTP, ACTION, and CLI tool types.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tools;

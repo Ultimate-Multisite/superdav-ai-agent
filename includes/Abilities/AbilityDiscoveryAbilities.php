@@ -8,6 +8,7 @@ declare(strict_types=1);
  * These abilities provide introspection capabilities for the Abilities API.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

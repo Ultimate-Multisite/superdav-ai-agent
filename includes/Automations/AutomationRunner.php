@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Automation Runner — cron handler that fires Agent_Loop for scheduled automations.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Automations;

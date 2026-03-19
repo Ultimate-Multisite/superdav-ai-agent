@@ -8,6 +8,7 @@ declare(strict_types=1);
  * status, required API keys, and meta flags (readonly, destructive).
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Admin;

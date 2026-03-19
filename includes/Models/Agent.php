@@ -11,6 +11,7 @@ declare(strict_types=1);
  * - temperature / max_iterations: per-agent inference settings
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Models;

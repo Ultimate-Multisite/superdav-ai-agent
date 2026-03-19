@@ -8,6 +8,7 @@ declare(strict_types=1);
  * and can export changes as patch files.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Admin;

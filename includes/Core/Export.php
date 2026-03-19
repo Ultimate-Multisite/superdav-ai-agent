@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Export/Import functionality for AI Agent sessions.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

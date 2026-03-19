@@ -13,6 +13,7 @@ declare(strict_types=1);
  * the site owner can track consumption per client.
  *
  * @package GratisAiAgent\REST
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

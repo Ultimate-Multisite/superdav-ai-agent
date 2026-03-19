@@ -8,6 +8,7 @@ declare(strict_types=1);
  * injection into the agent's system prompt.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

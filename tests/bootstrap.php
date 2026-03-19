@@ -3,6 +3,7 @@
  * PHPUnit bootstrap file.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 // Load standard Composer autoloader (not Jetpack) - required for PSR interfaces used by compat layer.

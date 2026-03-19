@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Renders a full-page React app (two-column layout with session sidebar).
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Admin;

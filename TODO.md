@@ -2,6 +2,10 @@
 
 ## Ready
 
+- [ ] t131 Raise PHPStan level from 9 to 10 (max) and fix new errors @superdav42 #quality ~3h ref=GH#605
+  - Continue quality ladder: t010 (5→6), t110 (6→7), t125 (7→8), t130 (8→9), now 9→10
+  - Level 10 is maximum: dead code detection, impossible type checks, strictest mixed narrowing
+
 - [x] t129 Add o3, o4-mini, and claude-sonnet-4-6 to model selector @superdav42 #enhancement ~1h ref=GH#601 pr:#603 completed:2026-03-19
   - o3 and o4-mini already in CostCalculator but missing from Settings; claude-sonnet-4-6/opus-4-6 missing from both
   - Update Settings.php model arrays + CostCalculator.php pricing; update Anthropic default_model to claude-sonnet-4-6

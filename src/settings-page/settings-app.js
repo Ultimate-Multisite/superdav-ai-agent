@@ -80,6 +80,10 @@ export default function SettingsApp() {
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
 	const [ abilities, setAbilities ] = useState( [] );
+	const [ activeTab, setActiveTab ] = useState( 'providers' );
+
+	// Tabs that manage their own save actions — hide the global Save Settings button.
+	const SELF_SAVING_TABS = [ 'permissions', 'integrations' ];
 
 	// Google Analytics integration state.
 	const [ gaPropertyId, setGaPropertyId ] = useState( '' );
@@ -338,7 +342,7 @@ export default function SettingsApp() {
 					{ notice.message }
 				</Notice>
 			) }
-			<TabPanel tabs={ tabs }>
+			<TabPanel tabs={ tabs } onSelect={ setActiveTab }>
 				{ ( tab ) => {
 					switch ( tab.name ) {
 						case 'providers':
@@ -1264,16 +1268,18 @@ export default function SettingsApp() {
 					}
 				} }
 			</TabPanel>
-			<div className="gratis-ai-agent-settings-actions">
-				<Button
-					variant="primary"
-					onClick={ handleSave }
-					isBusy={ saving }
-					disabled={ saving }
-				>
-					{ __( 'Save Settings', 'gratis-ai-agent' ) }
-				</Button>
-			</div>
+			{ ! SELF_SAVING_TABS.includes( activeTab ) && (
+				<div className="gratis-ai-agent-settings-actions">
+					<Button
+						variant="primary"
+						onClick={ handleSave }
+						isBusy={ saving }
+						disabled={ saving }
+					>
+						{ __( 'Save Settings', 'gratis-ai-agent' ) }
+					</Button>
+				</div>
+			) }
 		</div>
 	);
 }

@@ -2,6 +2,11 @@
 
 ## Ready
 
+- [ ] t120 Fix readme.txt PHP requirement: update 7.4 to 8.2 to match plugin header and CI @superdav42 #bug ~0.5h ref=GH#581
+  - readme.txt says "Requires PHP: 7.4" but plugin header says PHP 8.2 and CI runs PHP 8.2
+  - t109 was incorrectly linked to PR #560 (image upload) — the actual fix was never applied
+  - Fix: update readme.txt "Requires PHP: 7.4" → "Requires PHP: 8.2"
+
 - [x] t109 Fix readme.txt PHP requirement: update 7.4 to 8.2 to match plugin header and CI @superdav42 #bug ~0.5h ref=GH#550 pr:#560 completed:2026-03-19
   - readme.txt says "Requires PHP: 7.4" but plugin header says PHP 8.2 and CI runs PHP 8.2
   - Codebase uses PHP 8.1 enums (ToolType, MemoryCategory, Schedule, HttpMethod) — 7.4 is impossible

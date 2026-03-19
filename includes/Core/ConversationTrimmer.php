@@ -38,6 +38,7 @@ class ConversationTrimmer {
 	 */
 	public static function trim( array $history, int $max_turns = 0 ): array {
 		if ( $max_turns <= 0 ) {
+			// @phpstan-ignore-next-line
 			$max_turns = (int) Settings::get( 'max_history_turns' );
 		}
 

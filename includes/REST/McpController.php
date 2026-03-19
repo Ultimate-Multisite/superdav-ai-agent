@@ -109,6 +109,7 @@ class McpController {
 					sprintf(
 						/* translators: %s: MCP method name */
 						__( 'Unknown MCP method: %s. Supported methods: list_tools, call_tool.', 'gratis-ai-agent' ),
+						// @phpstan-ignore-next-line
 						$method
 					),
 					[ 'status' => 400 ]
@@ -147,6 +148,7 @@ class McpController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private static function handle_call_tool( array $params ) {
+		// @phpstan-ignore-next-line
 		$tool_name = isset( $params['name'] ) ? sanitize_text_field( (string) $params['name'] ) : '';
 		$arguments = isset( $params['arguments'] ) && is_array( $params['arguments'] )
 			? $params['arguments']

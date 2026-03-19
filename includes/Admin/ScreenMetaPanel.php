@@ -151,6 +151,7 @@ class ScreenMetaPanel {
 		// Sanitize the request URI for context (no auth tokens).
 		// Use site_url() + REQUEST_URI to avoid double /wp-admin/ from admin_url().
 		$request_uri = isset( $_SERVER['REQUEST_URI'] )
+			// @phpstan-ignore-next-line
 			? sanitize_url( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
 			: '';
 

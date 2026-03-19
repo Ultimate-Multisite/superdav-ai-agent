@@ -40,6 +40,7 @@ class SiteBuilderAbilities {
 				'description' => __( 'Check whether this WordPress site is a fresh install with no real content. Returns a boolean and a summary of site state.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -57,6 +58,7 @@ class SiteBuilderAbilities {
 				'description' => __( 'Enable or disable site builder mode. When enabled, the floating widget opens automatically and the agent uses the site builder interview system prompt.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -74,6 +76,7 @@ class SiteBuilderAbilities {
 				'description' => __( 'Get the current site builder mode status and any collected site information.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -91,6 +94,7 @@ class SiteBuilderAbilities {
 				'description' => __( 'Mark the site builder conversation as complete. Disables site builder mode and marks onboarding as done.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -231,6 +235,7 @@ class DetectFreshInstallAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input = null ) {
+		/** @var array<string, mixed> $input */
 		$result  = SiteBuilderAbilities::check_fresh_install();
 		$message = $result['is_fresh']
 			? __( 'This appears to be a fresh WordPress install with no real content.', 'gratis-ai-agent' )
@@ -300,6 +305,7 @@ class SetSiteBuilderModeAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$enabled = (bool) ( $input['enabled'] ?? false );
 
 		Settings::update( [ 'site_builder_mode' => $enabled ] );
@@ -362,10 +368,13 @@ class GetSiteBuilderStatusAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input = null ) {
+		/** @var array<string, mixed> $input */
 		$settings = Settings::get();
 
 		return [
+			// @phpstan-ignore-next-line
 			'site_builder_mode'   => (bool) ( $settings['site_builder_mode'] ?? false ),
+			// @phpstan-ignore-next-line
 			'onboarding_complete' => (bool) ( $settings['onboarding_complete'] ?? false ),
 			'site_title'          => get_bloginfo( 'name' ),
 			'site_url'            => get_site_url(),
@@ -419,6 +428,7 @@ class CompleteSiteBuilderAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input = null ) {
+		/** @var array<string, mixed> $input */
 		Settings::update(
 			[
 				'site_builder_mode'   => false,

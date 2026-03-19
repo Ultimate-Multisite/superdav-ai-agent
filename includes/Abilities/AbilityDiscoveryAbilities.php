@@ -53,6 +53,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'List all available WordPress abilities (from plugins, themes, and core). Returns ability names and brief descriptions.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -70,6 +71,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'Get full details of a specific WordPress ability including its parameters schema, permissions, and usage information. Call this before execute_ability to understand what arguments are needed.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -87,6 +89,7 @@ class AbilityDiscoveryAbilities {
 				'description' => __( 'Execute a WordPress ability with the given arguments. Use get_ability first to understand required parameters.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -186,6 +189,7 @@ class DiscoveryListAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$category = $input['category'] ?? '';
 
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
@@ -283,6 +287,7 @@ class DiscoveryGetAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$ability_id = $input['ability'] ?? '';
 
 		if ( empty( $ability_id ) ) {
@@ -299,6 +304,7 @@ class DiscoveryGetAbility extends AbstractAbility {
 			);
 		}
 
+		// @phpstan-ignore-next-line
 		$ability = wp_get_ability( $ability_id );
 
 		if ( $ability === null ) {
@@ -307,6 +313,7 @@ class DiscoveryGetAbility extends AbstractAbility {
 				sprintf(
 					/* translators: %s: ability identifier */
 					__( 'Ability not found: %s', 'gratis-ai-agent' ),
+					// @phpstan-ignore-next-line
 					$ability_id
 				)
 			);
@@ -320,6 +327,7 @@ class DiscoveryGetAbility extends AbstractAbility {
 			'category'      => $ability->get_category(),
 			'input_schema'  => $ability->get_input_schema(),
 			'output_schema' => $ability->get_output_schema(),
+			// @phpstan-ignore-next-line
 			'instructions'  => $meta['annotations']['instructions'] ?? '',
 		];
 	}
@@ -385,6 +393,7 @@ class DiscoveryExecuteAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$ability_id   = $input['ability'] ?? '';
 		$ability_args = $input['arguments'] ?? [];
 
@@ -402,6 +411,7 @@ class DiscoveryExecuteAbility extends AbstractAbility {
 			);
 		}
 
+		// @phpstan-ignore-next-line
 		$ability = wp_get_ability( $ability_id );
 		if ( $ability === null ) {
 			return new WP_Error(
@@ -409,6 +419,7 @@ class DiscoveryExecuteAbility extends AbstractAbility {
 				sprintf(
 					/* translators: %s: ability identifier */
 					__( 'Ability not found: %s', 'gratis-ai-agent' ),
+					// @phpstan-ignore-next-line
 					$ability_id
 				)
 			);

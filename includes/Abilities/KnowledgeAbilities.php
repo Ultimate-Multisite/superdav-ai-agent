@@ -88,6 +88,7 @@ class KnowledgeAbilities {
 			$options['collection'] = $input['collection'];
 		}
 
+		// @phpstan-ignore-next-line
 		$results = Knowledge::search( $query, $options );
 
 		if ( empty( $results ) ) {

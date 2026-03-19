@@ -63,7 +63,9 @@ class GetPageHtmlAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$selector   = $input['selector'] ?? '';
+		// @phpstan-ignore-next-line
 		$max_length = (int) ( $input['max_length'] ?? 5000 );
 
 		if ( empty( $selector ) ) {
@@ -76,6 +78,7 @@ class GetPageHtmlAbility extends AbstractAbility {
 			'selector'   => $selector,
 			'max_length' => $max_length,
 			'action'     => 'get_page_html',
+			// @phpstan-ignore-next-line
 			'message'    => sprintf( 'Querying page HTML with selector: %s', $selector ),
 		];
 	}

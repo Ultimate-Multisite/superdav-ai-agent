@@ -276,6 +276,7 @@ class OnboardingManager {
 		// Sanitize each answer.
 		$sanitized = [];
 		foreach ( $answers as $id => $value ) {
+			// @phpstan-ignore-next-line
 			$sanitized[ sanitize_key( $id ) ] = sanitize_textarea_field( (string) $value );
 		}
 

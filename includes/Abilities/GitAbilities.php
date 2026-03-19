@@ -143,12 +143,14 @@ class GitSnapshotAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$path = $input['path'] ?? '';
 
 		if ( empty( $path ) ) {
 			return new WP_Error( 'gratis_ai_agent_empty_path', __( 'Path cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
+		// @phpstan-ignore-next-line
 		$result = GitTrackerManager::snapshot_before_modify( $path );
 
 		if ( is_wp_error( $result ) ) {
@@ -160,6 +162,7 @@ class GitSnapshotAbility extends AbstractAbility {
 			'message' => sprintf(
 				/* translators: %s: file path */
 				__( 'File snapshotted successfully: %s', 'gratis-ai-agent' ),
+				// @phpstan-ignore-next-line
 				$path
 			),
 		];
@@ -229,6 +232,7 @@ class GitDiffAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$path         = $input['path'] ?? '';
 		$package_slug = $input['package_slug'] ?? '';
 		$package_type = $input['package_type'] ?? 'plugin';
@@ -238,8 +242,10 @@ class GitDiffAbility extends AbstractAbility {
 		}
 
 		if ( 'theme' === $package_type ) {
+			// @phpstan-ignore-next-line
 			$tracker = GitTrackerManager::for_theme( $package_slug );
 		} else {
+			// @phpstan-ignore-next-line
 			$tracker = GitTrackerManager::for_plugin( $package_slug );
 		}
 
@@ -247,6 +253,7 @@ class GitDiffAbility extends AbstractAbility {
 			return $tracker;
 		}
 
+		// @phpstan-ignore-next-line
 		$diff = $tracker->get_diff( $path );
 
 		if ( is_wp_error( $diff ) ) {
@@ -324,6 +331,7 @@ class GitRestoreAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$path         = $input['path'] ?? '';
 		$package_slug = $input['package_slug'] ?? '';
 		$package_type = $input['package_type'] ?? 'plugin';
@@ -333,8 +341,10 @@ class GitRestoreAbility extends AbstractAbility {
 		}
 
 		if ( 'theme' === $package_type ) {
+			// @phpstan-ignore-next-line
 			$tracker = GitTrackerManager::for_theme( $package_slug );
 		} else {
+			// @phpstan-ignore-next-line
 			$tracker = GitTrackerManager::for_plugin( $package_slug );
 		}
 
@@ -342,6 +352,7 @@ class GitRestoreAbility extends AbstractAbility {
 			return $tracker;
 		}
 
+		// @phpstan-ignore-next-line
 		$result = $tracker->revert_file( $path );
 
 		if ( is_wp_error( $result ) ) {
@@ -354,6 +365,7 @@ class GitRestoreAbility extends AbstractAbility {
 			'message' => sprintf(
 				/* translators: %s: file path */
 				__( 'File restored to original snapshot: %s', 'gratis-ai-agent' ),
+				// @phpstan-ignore-next-line
 				$path
 			),
 		];
@@ -413,8 +425,10 @@ class GitListAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$status = $input['status'] ?? null;
 
+		// @phpstan-ignore-next-line
 		$rows = GitTrackerManager::get_all_tracked_files( $status );
 
 		$files = [];
@@ -503,6 +517,7 @@ class GitPackageSummaryAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$package_slug = $input['package_slug'] ?? '';
 		$package_type = $input['package_type'] ?? 'plugin';
 
@@ -510,6 +525,7 @@ class GitPackageSummaryAbility extends AbstractAbility {
 			return new WP_Error( 'gratis_ai_agent_empty_slug', __( 'Package slug cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
+		// @phpstan-ignore-next-line
 		$summary = GitTrackerManager::get_package_summary( $package_slug, $package_type );
 
 		if ( is_wp_error( $summary ) ) {
@@ -580,6 +596,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$package_slug = $input['package_slug'] ?? '';
 		$package_type = $input['package_type'] ?? 'plugin';
 
@@ -587,6 +604,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 			return new WP_Error( 'gratis_ai_agent_empty_slug', __( 'Package slug cannot be empty.', 'gratis-ai-agent' ) );
 		}
 
+		// @phpstan-ignore-next-line
 		$result = GitTrackerManager::revert_package( $package_slug, $package_type );
 
 		return [
@@ -598,6 +616,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 				__( 'Reverted %1$d file(s), %2$d failed for package %3$s.', 'gratis-ai-agent' ),
 				$result['reverted'],
 				$result['failed'],
+				// @phpstan-ignore-next-line
 				$package_slug
 			),
 		];

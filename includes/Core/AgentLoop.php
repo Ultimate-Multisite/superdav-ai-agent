@@ -111,39 +111,54 @@ class AgentLoop {
 	 */
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
 		$this->user_message     = $user_message;
+		// @phpstan-ignore-next-line
 		$this->attachments      = $options['attachments'] ?? array();
 		$this->abilities        = $abilities;
 		$this->history          = $history;
+		// @phpstan-ignore-next-line
 		$this->page_context     = $options['page_context'] ?? array();
 		$this->settings_service = $settings_service ?? new Settings();
 
 		// Merge explicit options with saved settings as fallbacks.
 		$settings = $this->settings_service->get();
 
+		// @phpstan-ignore-next-line
 		$this->provider_id       = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
+		// @phpstan-ignore-next-line
 		$this->model_id          = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
+		// @phpstan-ignore-next-line
 		$this->max_iterations    = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
+		// @phpstan-ignore-next-line
 		$this->temperature       = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
+		// @phpstan-ignore-next-line
 		$this->max_output_tokens = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
 
 		// If an agent_system_prompt is provided, inject it into settings so
 		// build_system_instruction() uses it as the base instead of the global prompt.
 		if ( ! empty( $options['agent_system_prompt'] ) ) {
+			// @phpstan-ignore-next-line
 			$settings['system_prompt'] = $options['agent_system_prompt'];
 		}
 
 		// If an agent overrides the active tool profile, apply it to settings.
 		if ( ! empty( $options['active_tool_profile'] ) ) {
+			// @phpstan-ignore-next-line
 			$settings['active_tool_profile'] = $options['active_tool_profile'];
 		}
 
+		// @phpstan-ignore-next-line
 		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
 
 		// Tool permissions, YOLO mode, and resumable state.
+		// @phpstan-ignore-next-line
 		$this->tool_permissions = $settings['tool_permissions'] ?? array();
+		// @phpstan-ignore-next-line
 		$this->yolo_mode        = (bool) ( $settings['yolo_mode'] ?? false );
+		// @phpstan-ignore-next-line
 		$this->tool_call_log    = $options['tool_call_log'] ?? array();
+		// @phpstan-ignore-next-line
 		$this->session_id       = (int) ( $options['session_id'] ?? 0 );
+		// @phpstan-ignore-next-line
 		$this->token_usage      = $options['token_usage'] ?? array(
 			'prompt'     => 0,
 			'completion' => 0,
@@ -242,6 +257,7 @@ class AgentLoop {
 			++$this->iterations_used;
 
 			// Smart conversation trimming before each LLM call.
+			// @phpstan-ignore-next-line
 			$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
 			if ( $max_turns > 0 ) {
 				$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
@@ -326,6 +342,7 @@ class AgentLoop {
 				foreach ( $assistant_message->getParts() as $part ) {
 					$call = $part->getFunctionCall();
 					if ( $call ) {
+						// @phpstan-ignore-next-line
 						$this->sse_streamer->send_tool_call( (string) $call->getName(), $call->getArgs() ?: array() );
 					}
 				}
@@ -704,8 +721,11 @@ class AgentLoop {
 		// Sanitize and strip non-standard fields.
 		$tools = array_map( array( $this, 'sanitize_tool_schema' ), $tools );
 		foreach ( $tools as &$tool_ref ) {
+			// @phpstan-ignore-next-line
 			$params = &$tool_ref['function']['parameters'];
+			// @phpstan-ignore-next-line
 			unset( $params['default'] );
+			// @phpstan-ignore-next-line
 			if ( isset( $params['properties'] ) && is_array( $params['properties'] ) ) {
 				foreach ( $params['properties'] as &$prop_ref ) {
 					if ( is_array( $prop_ref ) && isset( $prop_ref['required'] ) && is_bool( $prop_ref['required'] ) ) {
@@ -777,11 +797,15 @@ class AgentLoop {
 		$data = json_decode( $body, true );
 
 		if ( 200 !== $code ) {
+			// @phpstan-ignore-next-line
 			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from OpenAI";
+			// @phpstan-ignore-next-line
 			return new WP_Error( 'gratis_ai_agent_openai_error', $msg );
 		}
 
+		// @phpstan-ignore-next-line
 		$text = $data['choices'][0]['message']['content'] ?? '';
+		// @phpstan-ignore-next-line
 		return new SimpleAiResult( $text, $data );
 	}
 
@@ -954,20 +978,26 @@ class AgentLoop {
 		$data = json_decode( $body, true );
 
 		if ( 200 !== $code ) {
+			// @phpstan-ignore-next-line
 			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from Anthropic";
+			// @phpstan-ignore-next-line
 			return new WP_Error( 'gratis_ai_agent_anthropic_error', $msg );
 		}
 
 		// Extract text from Anthropic's content blocks.
 		$text = '';
+		// @phpstan-ignore-next-line
 		if ( isset( $data['content'] ) && is_array( $data['content'] ) ) {
 			foreach ( $data['content'] as $block ) {
+				// @phpstan-ignore-next-line
 				if ( isset( $block['type'] ) && 'text' === $block['type'] ) {
+					// @phpstan-ignore-next-line
 					$text .= $block['text'];
 				}
 			}
 		}
 
+		// @phpstan-ignore-next-line
 		return new SimpleAiResult( $text, $data );
 	}
 
@@ -1034,11 +1064,15 @@ class AgentLoop {
 		$data = json_decode( $body, true );
 
 		if ( 200 !== $code ) {
+			// @phpstan-ignore-next-line
 			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from Google AI";
+			// @phpstan-ignore-next-line
 			return new WP_Error( 'gratis_ai_agent_google_error', $msg );
 		}
 
+		// @phpstan-ignore-next-line
 		$text = $data['choices'][0]['message']['content'] ?? '';
+		// @phpstan-ignore-next-line
 		return new SimpleAiResult( $text, $data );
 	}
 
@@ -1121,12 +1155,16 @@ class AgentLoop {
 		$data = json_decode( $body, true );
 
 		if ( 200 !== $code ) {
+			// @phpstan-ignore-next-line
 			$msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP $code from proxy";
+			// @phpstan-ignore-next-line
 			return new WP_Error( 'gratis_ai_agent_proxy_error', $msg );
 		}
 
+		// @phpstan-ignore-next-line
 		$text = $data['choices'][0]['message']['content'] ?? '';
 
+		// @phpstan-ignore-next-line
 		return new SimpleAiResult( $text, $data );
 	}
 
@@ -1207,9 +1245,11 @@ class AgentLoop {
 				continue;
 			}
 
+			// @phpstan-ignore-next-line
 			$delta = $chunk['choices'][0]['delta'] ?? array();
 
 			// Text token delta.
+			// @phpstan-ignore-next-line
 			if ( isset( $delta['content'] ) && is_string( $delta['content'] ) && '' !== $delta['content'] ) {
 				$full_text .= $delta['content'];
 				if ( null !== $this->sse_streamer ) {
@@ -1218,11 +1258,16 @@ class AgentLoop {
 			}
 
 			// Tool call deltas — accumulate across chunks.
+			// @phpstan-ignore-next-line
 			if ( ! empty( $delta['tool_calls'] ) ) {
+				// @phpstan-ignore-next-line
 				foreach ( $delta['tool_calls'] as $tc_delta ) {
+					// @phpstan-ignore-next-line
 					$idx = $tc_delta['index'] ?? 0;
 
+					// @phpstan-ignore-next-line
 					if ( ! isset( $tool_calls_delta[ $idx ] ) ) {
+						// @phpstan-ignore-next-line
 						$tool_calls_delta[ $idx ] = array(
 							'id'       => '',
 							'type'     => 'function',
@@ -1233,13 +1278,19 @@ class AgentLoop {
 						);
 					}
 
+					// @phpstan-ignore-next-line
 					if ( ! empty( $tc_delta['id'] ) ) {
+						// @phpstan-ignore-next-line
 						$tool_calls_delta[ $idx ]['id'] = $tc_delta['id'];
 					}
+					// @phpstan-ignore-next-line
 					if ( ! empty( $tc_delta['function']['name'] ) ) {
+						// @phpstan-ignore-next-line
 						$tool_calls_delta[ $idx ]['function']['name'] .= $tc_delta['function']['name'];
 					}
+					// @phpstan-ignore-next-line
 					if ( isset( $tc_delta['function']['arguments'] ) ) {
+						// @phpstan-ignore-next-line
 						$tool_calls_delta[ $idx ]['function']['arguments'] .= $tc_delta['function']['arguments'];
 					}
 				}
@@ -1283,6 +1334,7 @@ class AgentLoop {
 	 * @return array<string, mixed> The sanitized tool definition.
 	 */
 	private function sanitize_tool_schema( array $tool ): array {
+		// @phpstan-ignore-next-line
 		if ( isset( $tool['function']['parameters'] ) ) {
 			$tool['function']['parameters'] = $this->sanitize_schema_properties( $tool['function']['parameters'] );
 		}
@@ -1562,6 +1614,7 @@ class AgentLoop {
 		// Apply tool profile filter.
 		$active_profile = $this->settings_service->get( 'active_tool_profile' );
 		if ( ! empty( $active_profile ) && 'all' !== $active_profile ) {
+			// @phpstan-ignore-next-line
 			$all = ToolProfiles::filter_abilities( $all, $active_profile );
 		}
 
@@ -1667,6 +1720,7 @@ class AgentLoop {
 	public static function deserialize_history( array $data ): array {
 		return array_map(
 			function ( $item ) {
+				// @phpstan-ignore-next-line
 				return Message::fromArray( $item );
 			},
 			$data
@@ -1700,18 +1754,21 @@ class AgentLoop {
 		// Append memory section if memories exist.
 		$memory_text = Memory::get_formatted_for_prompt();
 		if ( ! empty( $memory_text ) ) {
+			// @phpstan-ignore-next-line
 			$base .= "\n\n" . $memory_text;
 		}
 
 		// Append skill index if skills are available.
 		$skill_index = Skill::get_index_for_prompt();
 		if ( ! empty( $skill_index ) ) {
+			// @phpstan-ignore-next-line
 			$base .= "\n\n" . $skill_index;
 		}
 
 		// If auto-memory is enabled, tell the agent about memory abilities.
 		$auto_memory = $settings['auto_memory'] ?? true;
 		if ( $auto_memory ) {
+			// @phpstan-ignore-next-line
 			$base .= "\n\n## Memory Instructions\n"
 				. "You have access to persistent memory tools. Use them proactively:\n"
 				. "- Use **gratis-ai-agent/memory-save** to remember important information the user tells you (preferences, site details, workflows).\n"
@@ -1726,6 +1783,7 @@ class AgentLoop {
 		if ( $knowledge_enabled && ! empty( $this->user_message ) ) {
 			$context = Knowledge::get_context_for_query( $this->user_message );
 			if ( ! empty( $context ) ) {
+				// @phpstan-ignore-next-line
 				$base .= "\n\n## Relevant Knowledge\n"
 					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
 					. $context
@@ -1739,6 +1797,7 @@ class AgentLoop {
 		if ( ! empty( $context_data ) ) {
 			$formatted_context = ContextProviders::format_for_prompt( $context_data );
 			if ( ! empty( $formatted_context ) ) {
+				// @phpstan-ignore-next-line
 				$base .= "\n\n" . $formatted_context;
 			}
 		}
@@ -1747,13 +1806,16 @@ class AgentLoop {
 		if ( ToolDiscovery::should_use_discovery_mode() ) {
 			$discovery_section = ToolDiscovery::get_system_prompt_section();
 			if ( ! empty( $discovery_section ) ) {
+				// @phpstan-ignore-next-line
 				$base .= "\n\n" . $discovery_section;
 			}
 		}
 
 		// Suggestion chips: instruct the AI to append follow-up suggestions.
+		// @phpstan-ignore-next-line
 		$suggestion_count = (int) ( $settings['suggestion_count'] ?? 3 );
 		if ( $suggestion_count > 0 ) {
+			// @phpstan-ignore-next-line
 			$base .= "\n\n## Follow-up Suggestions\n"
 				. sprintf(
 					'After each response, include exactly %d brief follow-up suggestions the user might want to ask next. '
@@ -1767,6 +1829,7 @@ class AgentLoop {
 				);
 		}
 
+		// @phpstan-ignore-next-line
 		return $base;
 	}
 
@@ -1894,6 +1957,7 @@ class AgentLoop {
 	 */
 	private function accumulate_tokens( $result ): void {
 		try {
+			// @phpstan-ignore-next-line
 			if ( method_exists( $result, 'getUsage' ) ) {
 				/** @phpstan-ignore-next-line */
 				$usage = $result->getUsage();

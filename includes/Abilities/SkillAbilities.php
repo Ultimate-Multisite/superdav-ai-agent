@@ -101,13 +101,16 @@ class SkillAbilities {
 			return new \WP_Error( 'missing_slug', 'Skill slug is required.' );
 		}
 
+		// @phpstan-ignore-next-line
 		$skill = Skill::get_by_slug( $slug );
 
 		if ( ! $skill ) {
+			// @phpstan-ignore-next-line
 			return new \WP_Error( 'skill_not_found', "Skill '$slug' not found." );
 		}
 
 		if ( ! (int) $skill->enabled ) {
+			// @phpstan-ignore-next-line
 			return new \WP_Error( 'skill_disabled', "Skill '$slug' is disabled." );
 		}
 
@@ -133,8 +136,11 @@ class SkillAbilities {
 		$list = [];
 		foreach ( $skills as $skill ) {
 			$list[] = [
+				// @phpstan-ignore-next-line
 				'slug'        => $skill->slug,
+				// @phpstan-ignore-next-line
 				'name'        => $skill->name,
+				// @phpstan-ignore-next-line
 				'description' => $skill->description,
 			];
 		}

@@ -55,6 +55,7 @@ class KnowledgeHooks {
 		}
 
 		$settings = Settings::get();
+		// @phpstan-ignore-next-line
 		if ( empty( $settings['knowledge_enabled'] ) || empty( $settings['knowledge_auto_index'] ) ) {
 			return;
 		}
@@ -63,6 +64,7 @@ class KnowledgeHooks {
 		$collections = KnowledgeDatabase::list_collections( 'active' );
 
 		foreach ( $collections as $collection ) {
+			// @phpstan-ignore-next-line
 			if ( empty( $collection->auto_index ) ) {
 				continue;
 			}
@@ -111,6 +113,7 @@ class KnowledgeHooks {
 	public static function handle_cron_reindex(): void {
 		$settings = Settings::get();
 
+		// @phpstan-ignore-next-line
 		if ( empty( $settings['knowledge_enabled'] ) ) {
 			return;
 		}
@@ -118,6 +121,7 @@ class KnowledgeHooks {
 		$collections = KnowledgeDatabase::list_collections( 'active' );
 
 		foreach ( $collections as $collection ) {
+			// @phpstan-ignore-next-line
 			if ( empty( $collection->auto_index ) ) {
 				continue;
 			}

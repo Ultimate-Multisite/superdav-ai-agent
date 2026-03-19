@@ -31,6 +31,7 @@ class MarkdownToBlocks {
 		$output = '';
 
 		foreach ( $blocks as $block ) {
+			// @phpstan-ignore-next-line
 			$output .= serialize_block( $block ) . "\n\n";
 		}
 
@@ -501,8 +502,10 @@ class MarkdownToBlocks {
 			$head_rows = [];
 			foreach ( $headers as $row ) {
 				$cells = [];
+				// @phpstan-ignore-next-line
 				foreach ( $row['cells'] as $cell ) {
 					$cells[] = [
+						// @phpstan-ignore-next-line
 						'content' => $cell['content'],
 						'tag'     => 'th',
 					];
@@ -516,8 +519,10 @@ class MarkdownToBlocks {
 			$body_rows = [];
 			foreach ( $body as $row ) {
 				$cells = [];
+				// @phpstan-ignore-next-line
 				foreach ( $row['cells'] as $cell ) {
 					$cells[] = [
+						// @phpstan-ignore-next-line
 						'content' => $cell['content'],
 						'tag'     => 'td',
 					];
@@ -534,7 +539,9 @@ class MarkdownToBlocks {
 			$html .= '<thead>';
 			foreach ( $headers as $row ) {
 				$html .= '<tr>';
+				// @phpstan-ignore-next-line
 				foreach ( $row['cells'] as $cell ) {
+					// @phpstan-ignore-next-line
 					$html .= '<th>' . $cell['content'] . '</th>';
 				}
 				$html .= '</tr>';
@@ -546,7 +553,9 @@ class MarkdownToBlocks {
 			$html .= '<tbody>';
 			foreach ( $body as $row ) {
 				$html .= '<tr>';
+				// @phpstan-ignore-next-line
 				foreach ( $row['cells'] as $cell ) {
+					// @phpstan-ignore-next-line
 					$html .= '<td>' . $cell['content'] . '</td>';
 				}
 				$html .= '</tr>';

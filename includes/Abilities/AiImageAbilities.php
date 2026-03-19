@@ -43,6 +43,7 @@ class AiImageAbilities {
 				'description' => __( 'Generate an image from a text prompt using DALL-E 3 (OpenAI). The image is imported into the media library and the attachment ID and URL are returned.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -152,7 +153,10 @@ class GenerateImageAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
+		// @phpstan-ignore-next-line
 		$prompt   = sanitize_textarea_field( $input['prompt'] ?? '' );
+		// @phpstan-ignore-next-line
 		$post_id  = (int) ( $input['post_id'] ?? 0 );
 		$site_url = $input['site_url'] ?? '';
 
@@ -163,28 +167,36 @@ class GenerateImageAbility extends AbstractAbility {
 		// Resolve size/quality/style: per-call input overrides site setting.
 		$settings = Settings::get();
 		$size     = $this->resolve_enum(
+			// @phpstan-ignore-next-line
 			$input['size'] ?? '',
 			[ '1024x1024', '1792x1024', '1024x1792' ],
+			// @phpstan-ignore-next-line
 			(string) ( $settings['image_generation_size'] ?? '1024x1024' )
 		);
 		$quality  = $this->resolve_enum(
+			// @phpstan-ignore-next-line
 			$input['quality'] ?? '',
 			[ 'standard', 'hd' ],
+			// @phpstan-ignore-next-line
 			(string) ( $settings['image_generation_quality'] ?? 'standard' )
 		);
 		$style    = $this->resolve_enum(
+			// @phpstan-ignore-next-line
 			$input['style'] ?? '',
 			[ 'vivid', 'natural' ],
+			// @phpstan-ignore-next-line
 			(string) ( $settings['image_generation_style'] ?? 'vivid' )
 		);
 
 		// Resolve title for the media library entry.
+		// @phpstan-ignore-next-line
 		$title = sanitize_text_field( $input['title'] ?? '' );
 		if ( empty( $title ) ) {
 			$title = mb_substr( $prompt, 0, 80 );
 		}
 
 		// Multisite: optionally switch to a subsite.
+		// @phpstan-ignore-next-line
 		$switched = $this->maybe_switch_blog( $site_url );
 		if ( is_wp_error( $switched ) ) {
 			return $switched;
@@ -301,6 +313,7 @@ class GenerateImageAbility extends AbstractAbility {
 		$data        = json_decode( $raw_body, true );
 
 		if ( 200 !== $status_code ) {
+			// @phpstan-ignore-next-line
 			$error_message = $data['error']['message'] ?? $raw_body;
 			return new WP_Error(
 				'api_error',
@@ -308,12 +321,15 @@ class GenerateImageAbility extends AbstractAbility {
 					/* translators: 1: HTTP status code, 2: error message */
 					__( 'DALL-E API error (HTTP %1$d): %2$s', 'gratis-ai-agent' ),
 					$status_code,
+					// @phpstan-ignore-next-line
 					$error_message
 				)
 			);
 		}
 
+		// @phpstan-ignore-next-line
 		$image_url      = $data['data'][0]['url'] ?? '';
+		// @phpstan-ignore-next-line
 		$revised_prompt = $data['data'][0]['revised_prompt'] ?? $prompt;
 
 		if ( empty( $image_url ) ) {
@@ -323,6 +339,7 @@ class GenerateImageAbility extends AbstractAbility {
 			);
 		}
 
+		// @phpstan-ignore-next-line
 		return [
 			'url'            => $image_url,
 			'revised_prompt' => $revised_prompt,

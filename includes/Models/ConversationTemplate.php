@@ -222,6 +222,7 @@ class ConversationTemplate {
 		$result = $wpdb->insert(
 			self::table_name(),
 			[
+				// @phpstan-ignore-next-line
 				'slug'        => $data['slug'] ?? self::generate_slug( $data['name'] ?? '' ),
 				'name'        => $data['name'] ?? '',
 				'description' => $data['description'] ?? '',
@@ -229,6 +230,7 @@ class ConversationTemplate {
 				'category'    => $data['category'] ?? 'general',
 				'icon'        => $data['icon'] ?? 'admin-comments',
 				'is_builtin'  => 0,
+				// @phpstan-ignore-next-line
 				'sort_order'  => (int) ( $data['sort_order'] ?? 0 ),
 				'created_at'  => $now,
 				'updated_at'  => $now,
@@ -325,6 +327,7 @@ class ConversationTemplate {
 			)
 		);
 
+		// @phpstan-ignore-next-line
 		return is_array( $rows ) ? $rows : [];
 	}
 

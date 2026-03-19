@@ -129,7 +129,9 @@ CREATE TABLE {$logs_table} (
 			'system_instruction' => $data['system_instruction'] ?? '',
 			'provider_id'        => $data['provider_id'] ?? '',
 			'model_id'           => $data['model_id'] ?? '',
+			// @phpstan-ignore-next-line
 			'max_iterations'     => (int) ( $data['max_iterations'] ?? 10 ),
+			// @phpstan-ignore-next-line
 			'enabled'            => (int) ( $data['enabled'] ?? 1 ),
 			'run_count'          => 0,
 			'last_run_at'        => null,

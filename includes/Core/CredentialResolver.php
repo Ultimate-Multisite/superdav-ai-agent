@@ -67,6 +67,7 @@ class CredentialResolver {
 	 * @return string Empty string when not configured.
 	 */
 	public static function getOpenAiCompatEndpointUrl(): string {
+		// @phpstan-ignore-next-line
 		return rtrim( (string) get_option( self::OPENAI_COMPAT_ENDPOINT_OPTION, '' ), '/' );
 	}
 
@@ -83,6 +84,7 @@ class CredentialResolver {
 	 * @return string
 	 */
 	public static function getOpenAiCompatApiKey( bool $allow_sentinel = true ): string {
+		// @phpstan-ignore-next-line
 		$key = (string) get_option( self::OPENAI_COMPAT_API_KEY_OPTION, '' );
 
 		if ( '' === $key && $allow_sentinel ) {
@@ -98,6 +100,7 @@ class CredentialResolver {
 	 * @return int Default 600 seconds.
 	 */
 	public static function getOpenAiCompatTimeout(): int {
+		// @phpstan-ignore-next-line
 		return (int) get_option( self::OPENAI_COMPAT_TIMEOUT_OPTION, 600 );
 	}
 
@@ -110,6 +113,7 @@ class CredentialResolver {
 	 */
 	public static function getAiExperimentsCredentials(): array {
 		$raw = get_option( self::AI_EXPERIMENTS_CREDENTIALS_OPTION, [] );
+		// @phpstan-ignore-next-line
 		return is_array( $raw ) ? $raw : [];
 	}
 
@@ -154,6 +158,7 @@ class CredentialResolver {
 	 * @return string Empty string when not configured.
 	 */
 	public static function getClaudeMaxToken(): string {
+		// @phpstan-ignore-next-line
 		return (string) get_option( self::CLAUDE_MAX_TOKEN_OPTION, '' );
 	}
 

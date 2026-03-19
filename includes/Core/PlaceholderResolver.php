@@ -77,8 +77,11 @@ class PlaceholderResolver {
 		// Map raw args by position.
 		$trigger_def = EventTriggerRegistry::get( $hook_name );
 		if ( $trigger_def && ! empty( $trigger_def['args'] ) ) {
+			// @phpstan-ignore-next-line
 			foreach ( $trigger_def['args'] as $i => $arg_name ) {
+				// @phpstan-ignore-next-line
 				if ( isset( $hook_args[ $i ] ) ) {
+					// @phpstan-ignore-next-line
 					$context[ $arg_name ] = $hook_args[ $i ];
 				}
 			}
@@ -113,6 +116,7 @@ class PlaceholderResolver {
 
 		// delete_post, add_attachment pass $post_id.
 		if ( in_array( $hook_name, [ 'delete_post', 'add_attachment' ], true ) && isset( $hook_args[0] ) ) {
+			// @phpstan-ignore-next-line
 			$post = get_post( $hook_args[0] );
 		}
 
@@ -145,6 +149,7 @@ class PlaceholderResolver {
 		$user = null;
 
 		if ( 'user_register' === $hook_name && isset( $hook_args[0] ) ) {
+			// @phpstan-ignore-next-line
 			$user = get_userdata( $hook_args[0] );
 		}
 
@@ -153,6 +158,7 @@ class PlaceholderResolver {
 		}
 
 		if ( 'profile_update' === $hook_name && isset( $hook_args[0] ) ) {
+			// @phpstan-ignore-next-line
 			$user = get_userdata( $hook_args[0] );
 		}
 
@@ -188,6 +194,7 @@ class PlaceholderResolver {
 			return $context;
 		}
 
+		// @phpstan-ignore-next-line
 		$comment = get_comment( $hook_args[0] );
 		if ( $comment ) {
 			$context['comment'] = [

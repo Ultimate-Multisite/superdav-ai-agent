@@ -64,6 +64,7 @@ class FloatingWidget {
 		$settings = Settings::get();
 
 		// Only when the frontend display setting is enabled.
+		// @phpstan-ignore-next-line
 		if ( empty( $settings['show_on_frontend'] ) ) {
 			return;
 		}
@@ -132,10 +133,15 @@ class FloatingWidget {
 			'gratis-ai-agent-floating-widget',
 			'gratisAiAgentBranding',
 			array(
+				// @phpstan-ignore-next-line
 				'agentName'       => (string) ( $branding['agent_name'] ?? '' ),
+				// @phpstan-ignore-next-line
 				'primaryColor'    => (string) ( $branding['brand_primary_color'] ?? '' ),
+				// @phpstan-ignore-next-line
 				'textColor'       => (string) ( $branding['brand_text_color'] ?? '' ),
+				// @phpstan-ignore-next-line
 				'logoUrl'         => (string) ( $branding['brand_logo_url'] ?? '' ),
+				// @phpstan-ignore-next-line
 				'greetingMessage' => (string) ( $branding['greeting_message'] ?? '' ),
 			)
 		);

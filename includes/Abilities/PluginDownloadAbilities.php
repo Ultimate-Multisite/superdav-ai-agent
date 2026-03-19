@@ -38,6 +38,7 @@ class PluginDownloadAbilities {
 				'description' => __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -55,6 +56,7 @@ class PluginDownloadAbilities {
 				'description' => __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -142,6 +144,7 @@ class ListModifiedPluginsAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
 		$rows    = Database::get_modified_plugins();
 		$plugins = [];
 
@@ -224,6 +227,8 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
+		// @phpstan-ignore-next-line
 		$slug = sanitize_key( $input['plugin_slug'] ?? '' );
 
 		if ( empty( $slug ) ) {

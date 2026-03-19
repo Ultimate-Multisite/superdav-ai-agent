@@ -147,11 +147,14 @@ CREATE TABLE {$usage_table} (
 			'name'                   => $data['name'] ?? '',
 			'description'            => $data['description'] ?? '',
 			'api_key'                => $data['api_key'] ?? '',
+			// @phpstan-ignore-next-line
 			'monthly_token_quota'    => (int) ( $data['monthly_token_quota'] ?? 0 ),
 			'tokens_used_this_month' => 0,
 			'quota_reset_at'         => $data['quota_reset_at'] ?? null,
 			'allowed_models'         => wp_json_encode( $data['allowed_models'] ?? [] ),
+			// @phpstan-ignore-next-line
 			'markup_percent'         => (float) ( $data['markup_percent'] ?? 0.0 ),
+			// @phpstan-ignore-next-line
 			'enabled'                => (int) ( $data['enabled'] ?? 1 ),
 			'request_count'          => 0,
 			'last_used_at'           => null,

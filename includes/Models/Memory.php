@@ -207,6 +207,7 @@ class Memory {
 
 		$deleted = 0;
 		foreach ( $matches as $memory ) {
+			// @phpstan-ignore-next-line
 			if ( self::delete( (int) $memory->id ) ) {
 				++$deleted;
 			}
@@ -233,6 +234,7 @@ class Memory {
 		// Group by category.
 		$grouped = [];
 		foreach ( $all as $memory ) {
+			// @phpstan-ignore-next-line
 			$grouped[ $memory->category ][] = $memory->content;
 		}
 

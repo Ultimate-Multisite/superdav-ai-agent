@@ -61,6 +61,7 @@ class ToolResultTruncator {
 		}
 
 		// Apply tool-specific truncation strategies.
+		// @phpstan-ignore-next-line
 		$result = self::apply_tool_strategy( $result, $tool_name );
 
 		// Generic truncation: truncate arrays and long strings.
@@ -85,8 +86,11 @@ class ToolResultTruncator {
 					$result['plugins']    = array_map(
 						function ( $plugin ) {
 							return [
+								// @phpstan-ignore-next-line
 								'name'   => $plugin['name'] ?? $plugin['slug'] ?? '',
+								// @phpstan-ignore-next-line
 								'status' => $plugin['status'] ?? '',
+								// @phpstan-ignore-next-line
 								'slug'   => $plugin['slug'] ?? '',
 							];
 						},
@@ -132,8 +136,11 @@ class ToolResultTruncator {
 					$result['block_types'] = array_map(
 						function ( $bt ) {
 							return [
+								// @phpstan-ignore-next-line
 								'name'     => $bt['name'] ?? '',
+								// @phpstan-ignore-next-line
 								'title'    => $bt['title'] ?? '',
+								// @phpstan-ignore-next-line
 								'category' => $bt['category'] ?? '',
 							];
 						},

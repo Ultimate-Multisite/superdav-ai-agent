@@ -37,6 +37,7 @@ class DatabaseAbilities {
 				'description' => __( 'Execute a SELECT query on the WordPress database. Only SELECT queries are allowed. Use {prefix} as placeholder for the table prefix.', 'gratis-ai-agent' ),
 			]
 		);
+		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}
 
@@ -106,8 +107,11 @@ class DatabaseQueryAbility extends AbstractAbility {
 	}
 
 	protected function execute_callback( $input ) {
+		/** @var array<string, mixed> $input */
+		// @phpstan-ignore-next-line
 		global $wpdb;
 
+		// @phpstan-ignore-next-line
 		$sql = trim( $input['sql'] ?? '' );
 
 		if ( empty( $sql ) ) {

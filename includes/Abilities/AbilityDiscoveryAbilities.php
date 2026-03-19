@@ -27,9 +27,13 @@ class AbilityDiscoveryAbilities {
 
 	/**
 	 * Register ability discovery abilities on init.
+	 *
+	 * Priority 999 ensures all other abilities are registered first, so
+	 * should_use_discovery_mode() sees the complete ability count when deciding
+	 * whether to register the discovery meta-tools.
 	 */
 	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
+		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ], 999 );
 	}
 
 	// ─── Static proxy methods (for backwards-compatible test access) ─────────

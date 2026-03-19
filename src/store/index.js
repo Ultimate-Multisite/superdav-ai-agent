@@ -1065,9 +1065,11 @@ const actions = {
 	 * Uses the Fetch API with a ReadableStream reader to consume the
 	 * text/event-stream response from POST /gratis-ai-agent/v1/stream.
 	 *
-	 * @param {string} message The user message to send.
+	 * @param {string} message     The user message to send.
+	 * @param {Array}  attachments Optional array of attachment objects with
+	 *                             { name, type, dataUrl, isImage } shape.
 	 */
-	streamMessage( message ) {
+	streamMessage( message, attachments = [] ) {
 		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
 			dispatch.setIsStreaming( false );
@@ -1075,10 +1077,21 @@ const actions = {
 			dispatch.setStreamError( false );
 			dispatch.setLastUserMessage( message );
 
-			// Append user message immediately.
+			// Build message parts — text first, then image attachments.
+			const parts = [];
+			if ( message ) {
+				parts.push( { text: message } );
+			}
+			const imageAttachments = attachments.filter( ( a ) => a.isImage );
+			imageAttachments.forEach( ( att ) => {
+				parts.push( { image_url: att.dataUrl, image_name: att.name } );
+			} );
+
+			// Append user message immediately (with attachment previews).
 			dispatch.appendMessage( {
 				role: 'user',
-				parts: [ { text: message } ],
+				parts: parts.length ? parts : [ { text: '' } ],
+				attachments: imageAttachments,
 			} );
 
 			let sessionId = select.getCurrentSessionId();
@@ -1121,6 +1134,16 @@ const actions = {
 				provider_id: select.getSelectedProviderId(),
 				model_id: select.getSelectedModelId(),
 			};
+
+			// Include image attachments as base64 data URLs for vision models.
+			if ( attachments?.length ) {
+				body.attachments = attachments.map( ( att ) => ( {
+					name: att.name,
+					type: att.type,
+					data_url: att.dataUrl,
+					is_image: att.isImage,
+				} ) );
+			}
 
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
@@ -1281,11 +1304,11 @@ const actions = {
 					buffer += decoder.decode( value, { stream: true } );
 
 					// Process complete SSE messages (terminated by \n\n).
-					const parts = buffer.split( '\n\n' );
+					const sseChunks = buffer.split( '\n\n' );
 					// Keep the last (possibly incomplete) chunk in the buffer.
-					buffer = parts.pop() || '';
+					buffer = sseChunks.pop() || '';
 
-					for ( const part of parts ) {
+					for ( const part of sseChunks ) {
 						const lines = part.split( '\n' );
 						let eventName = 'message';
 						let dataLine = '';
@@ -1581,17 +1604,42 @@ const actions = {
 	 * Send a message via the polling (non-streaming) endpoint.
 	 * Creates a session lazily on the first message.
 	 *
-	 * @param {string} message - User message text.
+	 * Routes to streamMessage when streaming is available (Fetch + ReadableStream).
+	 * Falls back to the polling /run endpoint when streaming is unavailable.
+	 *
+	 * @param {string} message     - User message text.
+	 * @param {Array}  attachments - Optional array of attachment objects with
+	 *                             { name, type, dataUrl, isImage } shape.
 	 * @return {Function} Redux thunk.
 	 */
-	sendMessage( message ) {
+	sendMessage( message, attachments = [] ) {
 		return async ( { dispatch, select } ) => {
+			// Prefer streaming when the browser supports it.
+			if (
+				typeof fetch !== 'undefined' &&
+				typeof ReadableStream !== 'undefined'
+			) {
+				dispatch.streamMessage( message, attachments );
+				return;
+			}
+
 			dispatch.setSending( true );
+
+			// Build message parts — text first, then image attachments.
+			const parts = [];
+			if ( message ) {
+				parts.push( { text: message } );
+			}
+			const imageAttachments = attachments.filter( ( a ) => a.isImage );
+			imageAttachments.forEach( ( att ) => {
+				parts.push( { image_url: att.dataUrl, image_name: att.name } );
+			} );
 
 			// Append user message to UI immediately.
 			dispatch.appendMessage( {
 				role: 'user',
-				parts: [ { text: message } ],
+				parts: parts.length ? parts : [ { text: '' } ],
+				attachments: imageAttachments,
 			} );
 
 			let sessionId = select.getCurrentSessionId();
@@ -1639,6 +1687,16 @@ const actions = {
 				provider_id: select.getSelectedProviderId(),
 				model_id: select.getSelectedModelId(),
 			};
+
+			// Include image attachments as base64 data URLs for vision models.
+			if ( attachments?.length ) {
+				body.attachments = attachments.map( ( att ) => ( {
+					name: att.name,
+					type: att.type,
+					data_url: att.dataUrl,
+					is_image: att.isImage,
+				} ) );
+			}
 
 			// Include structured page context if available.
 			const pageContext = select.getPageContext();

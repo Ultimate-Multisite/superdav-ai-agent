@@ -55,7 +55,7 @@ class AgentLoop {
 	private $model_id;
 
 	/** @var list<array<string, mixed>> Logged tool call activity. */
-	private $tool_call_log = [];
+	private $tool_call_log = array();
 
 	/** @var float */
 	private $temperature;
@@ -67,19 +67,19 @@ class AgentLoop {
 	private $iterations_used = 0;
 
 	/** @var array<string, int> Token usage accumulator. */
-	private $token_usage = [
+	private $token_usage = array(
 		'prompt'     => 0,
 		'completion' => 0,
-	];
+	);
 
 	/** @var array<string, string> Tool permission levels from settings. */
-	private $tool_permissions = [];
+	private $tool_permissions = array();
 
 	/** @var bool When true, skip all tool confirmations (YOLO mode). */
 	private $yolo_mode = false;
 
 	/** @var array<string, mixed> Page context from the widget. */
-	private $page_context = [];
+	private $page_context = array();
 
 	/** @var WP_AI_Client_Ability_Function_Resolver|null */
 	private $ability_resolver = null;
@@ -94,17 +94,26 @@ class AgentLoop {
 	private int $session_id = 0;
 
 	/**
+	 * Image attachments for the current user message.
+	 * Each entry: [ 'name' => string, 'type' => string, 'data_url' => string, 'is_image' => bool ]
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $attachments = array();
+
+	/**
 	 * @param string               $user_message     The user's prompt.
 	 * @param string[]             $abilities         Ability names to enable (empty = all).
 	 * @param Message[]            $history           Prior messages for multi-turn.
-	 * @param array<string, mixed> $options           Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
+	 * @param array<string, mixed> $options           Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context, attachments.
 	 * @param Settings|null        $settings_service  Injected Settings service (uses static Settings::get() when null).
 	 */
-	public function __construct( string $user_message, array $abilities = [], array $history = [], array $options = [], ?Settings $settings_service = null ) {
+	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
 		$this->user_message     = $user_message;
+		$this->attachments      = $options['attachments'] ?? array();
 		$this->abilities        = $abilities;
 		$this->history          = $history;
-		$this->page_context     = $options['page_context'] ?? [];
+		$this->page_context     = $options['page_context'] ?? array();
 		$this->settings_service = $settings_service ?? new Settings();
 
 		// Merge explicit options with saved settings as fallbacks.
@@ -130,14 +139,14 @@ class AgentLoop {
 		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
 
 		// Tool permissions, YOLO mode, and resumable state.
-		$this->tool_permissions = $settings['tool_permissions'] ?? [];
+		$this->tool_permissions = $settings['tool_permissions'] ?? array();
 		$this->yolo_mode        = (bool) ( $settings['yolo_mode'] ?? false );
-		$this->tool_call_log    = $options['tool_call_log'] ?? [];
+		$this->tool_call_log    = $options['tool_call_log'] ?? array();
 		$this->session_id       = (int) ( $options['session_id'] ?? 0 );
-		$this->token_usage      = $options['token_usage'] ?? [
+		$this->token_usage      = $options['token_usage'] ?? array(
 			'prompt'     => 0,
 			'completion' => 0,
-		];
+		);
 
 		// Optional SSE streamer for token-by-token output.
 		if ( isset( $options['sse_streamer'] ) && $options['sse_streamer'] instanceof SseStreamer ) {
@@ -168,7 +177,7 @@ class AgentLoop {
 		self::ensure_provider_credentials_static();
 
 		// Append the new user message to history.
-		$this->history[] = new UserMessage( [ new MessagePart( $this->user_message ) ] );
+		$this->history[] = new UserMessage( array( new MessagePart( $this->user_message ) ) );
 
 		return $this->run_loop( $this->max_iterations );
 	}
@@ -207,11 +216,11 @@ class AgentLoop {
 			// Remove the model's tool call message and tell the model the call was rejected.
 			array_pop( $this->history );
 			$this->history[] = new UserMessage(
-				[
+				array(
 					new MessagePart(
 						'The user declined the requested tool calls. Please respond directly without using those tools.'
 					),
-				]
+				)
 			);
 		}
 
@@ -296,14 +305,14 @@ class AgentLoop {
 					}
 				}
 
-				return [
+				return array(
 					'reply'           => $reply,
 					'history'         => $this->serialize_history(),
 					'tool_calls'      => $this->tool_call_log,
 					'token_usage'     => $this->token_usage,
 					'iterations_used' => $this->iterations_used,
 					'model_id'        => $this->model_id,
-				];
+				);
 			}
 
 			$last_was_tool_call = true;
@@ -316,7 +325,7 @@ class AgentLoop {
 				foreach ( $assistant_message->getParts() as $part ) {
 					$call = $part->getFunctionCall();
 					if ( $call ) {
-						$this->sse_streamer->send_tool_call( $call->getName(), $call->getArgs() ?: [] );
+						$this->sse_streamer->send_tool_call( $call->getName(), $call->getArgs() ?: array() );
 					}
 				}
 			}
@@ -324,7 +333,7 @@ class AgentLoop {
 			$confirm_needed = $this->get_tools_needing_confirmation( $assistant_message );
 
 			if ( ! empty( $confirm_needed ) ) {
-				return [
+				return array(
 					'awaiting_confirmation' => true,
 					'pending_tools'         => $confirm_needed,
 					'history'               => $this->serialize_history(),
@@ -333,7 +342,7 @@ class AgentLoop {
 					'iterations_remaining'  => $iterations,
 					'iterations_used'       => $this->iterations_used,
 					'model_id'              => $this->model_id,
-				];
+				);
 			}
 
 			// Execute the ability calls and get the function response message.
@@ -408,13 +417,13 @@ class AgentLoop {
 				__( 'Agent reached the maximum of %d iterations without completing.', 'gratis-ai-agent' ),
 				$this->max_iterations
 			),
-			[
+			array(
 				'tool_calls'      => $this->tool_call_log,
 				'token_usage'     => $this->token_usage,
 				'iterations_used' => $this->iterations_used,
 				'model_id'        => $this->model_id,
 				'history'         => $this->serialize_history(),
-			]
+			)
 		);
 	}
 
@@ -508,13 +517,13 @@ class AgentLoop {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_messages(): array {
-		$messages = [];
+		$messages = array();
 
 		if ( ! empty( $this->system_instruction ) ) {
-			$messages[] = [
+			$messages[] = array(
 				'role'    => 'system',
 				'content' => $this->system_instruction,
-			];
+			);
 		}
 
 		foreach ( $this->history as $msg ) {
@@ -537,9 +546,9 @@ class AgentLoop {
 
 			try {
 				$parts          = $msg->getParts();
-				$texts          = [];
-				$msg_tool_calls = [];
-				$fn_responses   = [];
+				$texts          = array();
+				$msg_tool_calls = array();
+				$fn_responses   = array();
 
 				foreach ( $parts as $part ) {
 					if ( method_exists( $part, 'getText' ) ) {
@@ -552,34 +561,34 @@ class AgentLoop {
 					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionCall() ) {
 						$fc = $part->getFunctionCall();
 						if ( $fc ) {
-							$msg_tool_calls[] = [
+							$msg_tool_calls[] = array(
 								'id'       => $fc->getId() ?: ( 'call_' . wp_generate_uuid4() ),
 								'type'     => 'function',
-								'function' => [
+								'function' => array(
 									'name'      => $fc->getName(),
 									'arguments' => wp_json_encode( $fc->getArgs() ?: new \stdClass() ),
-								],
-							];
+								),
+							);
 						}
 					}
 
 					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionResponse() ) {
 						$fr = $part->getFunctionResponse();
 						if ( $fr ) {
-							$fn_responses[] = [
+							$fn_responses[] = array(
 								'tool_call_id' => $fr->getId() ?: '',
 								'role'         => 'tool',
 								'content'      => wp_json_encode( $fr->getResponse() ),
-							];
+							);
 						}
 					}
 				}
 
 				if ( ! empty( $msg_tool_calls ) ) {
-					$assistant_msg            = [
+					$assistant_msg            = array(
 						'role'       => 'assistant',
 						'tool_calls' => $msg_tool_calls,
-					];
+					);
 					$text_content             = implode( '', $texts );
 					$assistant_msg['content'] = '' !== $text_content ? $text_content : null;
 					$messages[]               = $assistant_msg;
@@ -594,14 +603,44 @@ class AgentLoop {
 				} else {
 					$content = implode( '', $texts );
 					if ( '' !== $content ) {
-						$messages[] = [
+						$messages[] = array(
 							'role'    => $role,
 							'content' => $content,
-						];
+						);
 					}
 				}
 			} catch ( \Throwable $e ) {
 				continue;
+			}
+		}
+
+		// Inject image attachments into the last user message for vision models.
+		// The last message in history is always the current user turn (appended in run()).
+		if ( ! empty( $this->attachments ) ) {
+			$last_idx = count( $messages ) - 1;
+			for ( $i = $last_idx; $i >= 0; $i-- ) {
+				if ( isset( $messages[ $i ]['role'] ) && 'user' === $messages[ $i ]['role'] ) {
+					$text_content = $messages[ $i ]['content'];
+					$parts        = array();
+					if ( is_string( $text_content ) && '' !== $text_content ) {
+						$parts[] = array(
+							'type' => 'text',
+							'text' => $text_content,
+						);
+					}
+					foreach ( $this->attachments as $att ) {
+						if ( ! empty( $att['is_image'] ) && ! empty( $att['data_url'] ) ) {
+							$parts[] = array(
+								'type'      => 'image_url',
+								'image_url' => array( 'url' => $att['data_url'] ),
+							);
+						}
+					}
+					if ( ! empty( $parts ) ) {
+						$messages[ $i ]['content'] = $parts;
+					}
+					break;
+				}
 			}
 		}
 
@@ -617,7 +656,7 @@ class AgentLoop {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_openai_tools(): array {
-		$tools     = [];
+		$tools     = array();
 		$abilities = $this->resolve_abilities();
 
 		/** @var int $max_tools Maximum number of tools to include. */
@@ -635,16 +674,16 @@ class AgentLoop {
 				$description = substr( $description, 0, 197 ) . '...';
 			}
 
-			$tool = [
+			$tool = array(
 				'type'     => 'function',
-				'function' => [
+				'function' => array(
 					'name'        => $fn_name,
 					'description' => $description,
-				],
-			];
+				),
+			);
 
 			if ( ! empty( $input_schema ) ) {
-				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
+				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === array() ) {
 					$input_schema['properties'] = new \stdClass();
 				}
 				if ( isset( $input_schema['required'] ) && is_array( $input_schema['required'] ) && empty( $input_schema['required'] ) ) {
@@ -652,17 +691,17 @@ class AgentLoop {
 				}
 				$tool['function']['parameters'] = $input_schema;
 			} else {
-				$tool['function']['parameters'] = [
+				$tool['function']['parameters'] = array(
 					'type'       => 'object',
 					'properties' => new \stdClass(),
-				];
+				);
 			}
 
 			$tools[] = $tool;
 		}
 
 		// Sanitize and strip non-standard fields.
-		$tools = array_map( [ $this, 'sanitize_tool_schema' ], $tools );
+		$tools = array_map( array( $this, 'sanitize_tool_schema' ), $tools );
 		foreach ( $tools as &$tool_ref ) {
 			$params = &$tool_ref['function']['parameters'];
 			unset( $params['default'] );
@@ -701,13 +740,13 @@ class AgentLoop {
 		$messages = $this->build_openai_messages();
 		$tools    = $this->build_openai_tools();
 
-		$request_body = [
+		$request_body = array(
 			'model'       => $model_id,
 			'messages'    => $messages,
 			'temperature' => (float) $this->temperature,
 			'max_tokens'  => (int) $this->max_output_tokens,
 			'stream'      => false,
-		];
+		);
 
 		if ( ! empty( $tools ) ) {
 			$request_body['tools'] = $tools;
@@ -718,14 +757,14 @@ class AgentLoop {
 
 		$response = wp_remote_post(
 			'https://api.openai.com/v1/chat/completions',
-			[
+			array(
 				'timeout' => 600,
-				'headers' => [
+				'headers' => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
-				],
+				),
 				'body'    => $encoded_body,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -766,7 +805,7 @@ class AgentLoop {
 		$model_id = $this->model_id ?: Settings::DIRECT_PROVIDERS['anthropic']['default_model'];
 
 		// Build Anthropic-format messages (no system role in messages array).
-		$messages = [];
+		$messages = array();
 		foreach ( $this->history as $msg ) {
 			$role = 'user';
 			try {
@@ -785,55 +824,55 @@ class AgentLoop {
 
 			try {
 				$parts          = $msg->getParts();
-				$content_blocks = [];
-				$tool_results   = [];
+				$content_blocks = array();
+				$tool_results   = array();
 
 				foreach ( $parts as $part ) {
 					if ( method_exists( $part, 'getText' ) ) {
 						$t = $part->getText();
 						if ( is_string( $t ) && '' !== $t ) {
-							$content_blocks[] = [
+							$content_blocks[] = array(
 								'type' => 'text',
 								'text' => $t,
-							];
+							);
 						}
 					}
 
 					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionCall() ) {
 						$fc = $part->getFunctionCall();
 						if ( $fc ) {
-							$content_blocks[] = [
+							$content_blocks[] = array(
 								'type'  => 'tool_use',
 								'id'    => $fc->getId() ?: ( 'toolu_' . wp_generate_uuid4() ),
 								'name'  => $fc->getName(),
 								'input' => $fc->getArgs() ?: new \stdClass(),
-							];
+							);
 						}
 					}
 
 					if ( method_exists( $part, 'getType' ) && $part->getType()->isFunctionResponse() ) {
 						$fr = $part->getFunctionResponse();
 						if ( $fr ) {
-							$tool_results[] = [
+							$tool_results[] = array(
 								'type'        => 'tool_result',
 								'tool_use_id' => $fr->getId() ?: '',
 								'content'     => wp_json_encode( $fr->getResponse() ),
-							];
+							);
 						}
 					}
 				}
 
 				if ( ! empty( $tool_results ) ) {
 					// Tool results go in a user message.
-					$messages[] = [
+					$messages[] = array(
 						'role'    => 'user',
 						'content' => $tool_results,
-					];
+					);
 				} elseif ( ! empty( $content_blocks ) ) {
-					$messages[] = [
+					$messages[] = array(
 						'role'    => $role,
 						'content' => $content_blocks,
-					];
+					);
 				}
 			} catch ( \Throwable $e ) {
 				continue;
@@ -841,7 +880,7 @@ class AgentLoop {
 		}
 
 		// Build Anthropic-format tools.
-		$tools     = [];
+		$tools     = array();
 		$abilities = $this->resolve_abilities();
 		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
 		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
@@ -857,29 +896,29 @@ class AgentLoop {
 				$description = substr( $description, 0, 197 ) . '...';
 			}
 
-			$schema = ! empty( $input_schema ) ? $input_schema : [
+			$schema = ! empty( $input_schema ) ? $input_schema : array(
 				'type'       => 'object',
 				'properties' => new \stdClass(),
-			];
-			if ( isset( $schema['properties'] ) && $schema['properties'] === [] ) {
+			);
+			if ( isset( $schema['properties'] ) && $schema['properties'] === array() ) {
 				$schema['properties'] = new \stdClass();
 			}
 			if ( isset( $schema['required'] ) && is_array( $schema['required'] ) && empty( $schema['required'] ) ) {
 				unset( $schema['required'] );
 			}
 
-			$tools[] = [
+			$tools[] = array(
 				'name'         => $fn_name,
 				'description'  => $description,
 				'input_schema' => $schema,
-			];
+			);
 		}
 
-		$request_body = [
+		$request_body = array(
 			'model'      => $model_id,
 			'max_tokens' => (int) $this->max_output_tokens,
 			'messages'   => $messages,
-		];
+		);
 
 		if ( ! empty( $this->system_instruction ) ) {
 			$request_body['system'] = $this->system_instruction;
@@ -894,15 +933,15 @@ class AgentLoop {
 
 		$response = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
-			[
+			array(
 				'timeout' => 600,
-				'headers' => [
+				'headers' => array(
 					'Content-Type'      => 'application/json',
 					'x-api-key'         => $api_key,
 					'anthropic-version' => '2023-06-01',
-				],
+				),
 				'body'    => $encoded_body,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -953,13 +992,13 @@ class AgentLoop {
 		$messages = $this->build_openai_messages();
 		$tools    = $this->build_openai_tools();
 
-		$request_body = [
+		$request_body = array(
 			'model'       => $model_id,
 			'messages'    => $messages,
 			'temperature' => (float) $this->temperature,
 			'max_tokens'  => (int) $this->max_output_tokens,
 			'stream'      => false,
-		];
+		);
 
 		if ( ! empty( $tools ) ) {
 			$request_body['tools'] = $tools;
@@ -970,14 +1009,14 @@ class AgentLoop {
 
 		$response = wp_remote_post(
 			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-			[
+			array(
 				'timeout' => 600,
-				'headers' => [
+				'headers' => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
-				],
+				),
 				'body'    => $encoded_body,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -1030,13 +1069,13 @@ class AgentLoop {
 
 		$use_streaming = null !== $this->sse_streamer;
 
-		$request_body = [
+		$request_body = array(
 			'model'       => $model_id,
 			'messages'    => $messages,
 			'temperature' => (float) $this->temperature,
 			'max_tokens'  => (int) $this->max_output_tokens,
 			'stream'      => $use_streaming,
-		];
+		);
 
 		if ( ! empty( $tools ) ) {
 			$request_body['tools'] = $tools;
@@ -1056,15 +1095,15 @@ class AgentLoop {
 
 		$response = wp_remote_post(
 			$endpoint_url . '/chat/completions',
-			[
+			array(
 				'timeout'   => $timeout,
-				'headers'   => [
+				'headers'   => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
-				],
+				),
 				'body'      => $encoded_body,
 				'sslverify' => false,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -1102,26 +1141,26 @@ class AgentLoop {
 		$url = $endpoint_url . '/chat/completions';
 
 		$context = stream_context_create(
-			[
-				'http' => [
+			array(
+				'http' => array(
 					'method'        => 'POST',
 					'header'        => implode(
 						"\r\n",
-						[
+						array(
 							'Content-Type: application/json',
 							'Authorization: Bearer ' . ( $api_key ?: 'no-key' ),
 							'Accept: text/event-stream',
-						]
+						)
 					),
 					'content'       => $encoded_body,
 					'timeout'       => $timeout,
 					'ignore_errors' => true,
-				],
-				'ssl'  => [
+				),
+				'ssl'  => array(
 					'verify_peer'      => false,
 					'verify_peer_name' => false,
-				],
-			]
+				),
+			)
 		);
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming HTTP requires fopen
@@ -1132,7 +1171,7 @@ class AgentLoop {
 		}
 
 		$full_text        = '';
-		$tool_calls_delta = [];
+		$tool_calls_delta = array();
 
 		// phpcs:ignore WordPress.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- standard stream-reading pattern
 		while ( ! feof( $stream ) ) {
@@ -1162,7 +1201,7 @@ class AgentLoop {
 				continue;
 			}
 
-			$delta = $chunk['choices'][0]['delta'] ?? [];
+			$delta = $chunk['choices'][0]['delta'] ?? array();
 
 			// Text token delta.
 			if ( isset( $delta['content'] ) && is_string( $delta['content'] ) && '' !== $delta['content'] ) {
@@ -1178,14 +1217,14 @@ class AgentLoop {
 					$idx = $tc_delta['index'] ?? 0;
 
 					if ( ! isset( $tool_calls_delta[ $idx ] ) ) {
-						$tool_calls_delta[ $idx ] = [
+						$tool_calls_delta[ $idx ] = array(
 							'id'       => '',
 							'type'     => 'function',
-							'function' => [
+							'function' => array(
 								'name'      => '',
 								'arguments' => '',
-							],
-						];
+							),
+						);
 					}
 
 					if ( ! empty( $tc_delta['id'] ) ) {
@@ -1205,20 +1244,20 @@ class AgentLoop {
 		fclose( $stream );
 
 		// Build a synthetic full-response array for SimpleAiResult.
-		$synthetic_data = [
-			'choices' => [
-				[
-					'message' => [
+		$synthetic_data = array(
+			'choices' => array(
+				array(
+					'message' => array(
 						'role'    => 'assistant',
 						'content' => $full_text,
-					],
-				],
-			],
-		];
+					),
+				),
+			),
+		);
 
 		// Attach assembled tool calls if any.
 		if ( ! empty( $tool_calls_delta ) ) {
-			$assembled = [];
+			$assembled = array();
 			foreach ( $tool_calls_delta as $tc ) {
 				$assembled[] = $tc;
 			}
@@ -1409,14 +1448,14 @@ class AgentLoop {
 	private function get_tools_needing_confirmation( Message $message ): array {
 		// YOLO mode: skip all confirmations and execute immediately.
 		if ( $this->yolo_mode ) {
-			return [];
+			return array();
 		}
 
 		if ( empty( $this->tool_permissions ) ) {
-			return [];
+			return array();
 		}
 
-		$confirm = [];
+		$confirm = array();
 
 		foreach ( $message->getParts() as $part ) {
 			$call = $part->getFunctionCall();
@@ -1434,11 +1473,11 @@ class AgentLoop {
 				$permission = $this->tool_permissions[ $ability_name ] ?? 'auto';
 
 				if ( 'confirm' === $permission ) {
-					$confirm[] = [
+					$confirm[] = array(
 						'id'   => $call->getId(),
 						'name' => $fn_name,
 						'args' => $call->getArgs(),
-					];
+					);
 				}
 			}
 		}
@@ -1456,7 +1495,7 @@ class AgentLoop {
 	 */
 	private function resolve_abilities(): array {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return [];
+			return array();
 		}
 
 		$all = wp_get_abilities();
@@ -1505,7 +1544,7 @@ class AgentLoop {
 		}
 
 		if ( ! empty( $this->abilities ) ) {
-			$resolved = [];
+			$resolved = array();
 			foreach ( $this->abilities as $name ) {
 				if ( isset( $all[ $name ] ) ) {
 					$resolved[] = $all[ $name ];
@@ -1572,12 +1611,12 @@ class AgentLoop {
 		foreach ( $message->getParts() as $part ) {
 			$call = $part->getFunctionCall();
 			if ( $call ) {
-				$this->tool_call_log[] = [
+				$this->tool_call_log[] = array(
 					'type' => 'call',
 					'id'   => $call->getId(),
 					'name' => $call->getName(),
 					'args' => $call->getArgs(),
-				];
+				);
 			}
 		}
 	}
@@ -1589,12 +1628,12 @@ class AgentLoop {
 		foreach ( $message->getParts() as $part ) {
 			$response = $part->getFunctionResponse();
 			if ( $response ) {
-				$this->tool_call_log[] = [
+				$this->tool_call_log[] = array(
 					'type'     => 'response',
 					'id'       => $response->getId(),
 					'name'     => $response->getName(),
 					'response' => $response->getResponse(),
-				];
+				);
 			}
 		}
 	}
@@ -1875,7 +1914,7 @@ class AgentLoop {
 	 * @return Message A new message with truncated results.
 	 */
 	private static function truncate_tool_results( Message $message ): Message {
-		$new_parts = [];
+		$new_parts = array();
 		$modified  = false;
 
 		foreach ( $message->getParts() as $part ) {

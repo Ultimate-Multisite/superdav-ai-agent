@@ -86,10 +86,53 @@ const MOCK_TEMPLATES = [
 // ---------------------------------------------------------------------------
 
 /**
+ * Minimal settings object returned by the /settings endpoint.
+ *
+ * The SettingsApp component blocks rendering until settingsLoaded is true,
+ * which requires a successful response from /gratis-ai-agent/v1/settings.
+ * Without this mock the page stays in a loading spinner and all tab content
+ * (including the automations and events managers) is never rendered.
+ */
+const MOCK_SETTINGS = {
+	default_provider: '',
+	default_model: '',
+	max_iterations: 10,
+	greeting_message: '',
+	keyboard_shortcut: 'alt+a',
+	yolo_mode: false,
+	show_on_frontend: false,
+	show_token_costs: true,
+	auto_memory: false,
+	knowledge_enabled: false,
+	knowledge_auto_index: false,
+	system_prompt: '',
+	temperature: 0.7,
+	max_output_tokens: 4096,
+	context_window_default: 128000,
+	tool_discovery_mode: 'auto',
+	tool_discovery_threshold: 20,
+	budget_daily_cap: 0,
+	budget_monthly_cap: 0,
+	budget_warning_threshold: 80,
+	budget_exceeded_action: 'pause',
+	image_generation_size: '1024x1024',
+	image_generation_quality: 'standard',
+	image_generation_style: 'vivid',
+	tool_permissions: {},
+	_defaults: {},
+	_provider_keys: {},
+};
+
+/**
  * Install REST API mocks for the automations endpoints.
  *
  * Intercepts all /wp-json/gratis-ai-agent/v1/* requests and returns
  * controlled JSON responses so tests run without a live WordPress back-end.
+ *
+ * Critically, this also mocks the /settings, /providers, /abilities, and
+ * /settings/google-analytics endpoints that SettingsApp fetches on mount.
+ * Without these mocks the settings page stays in a loading spinner and the
+ * tab content (AutomationsManager, EventsManager) is never rendered.
  *
  * @param {import('@playwright/test').Page} page         - Playwright page.
  * @param {object}                          [overrides]  - Per-endpoint overrides.
@@ -115,6 +158,57 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 	await page.route( '**/wp-json/gratis-ai-agent/v1/**', async ( route ) => {
 		const url = route.request().url();
 		const method = route.request().method();
+
+		// ----------------------------------------------------------------
+		// Settings-page bootstrap endpoints.
+		// SettingsApp calls these on mount; without responses it stays in
+		// a loading spinner and never renders the tab content.
+		// ----------------------------------------------------------------
+
+		// Google Analytics credential status (fetched in useEffect).
+		if ( url.includes( '/settings/google-analytics' ) ) {
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( {
+					has_credentials: false,
+					has_property_id: false,
+					property_id: '',
+					has_service_key: false,
+				} ),
+			} );
+		}
+
+		// Settings — must respond before SettingsApp renders tab content.
+		if ( url.match( /\/settings$/ ) ) {
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( MOCK_SETTINGS ),
+			} );
+		}
+
+		// Providers list.
+		if ( url.match( /\/providers$/ ) ) {
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [] ),
+			} );
+		}
+
+		// Abilities list.
+		if ( url.match( /\/abilities$/ ) ) {
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [] ),
+			} );
+		}
+
+		// ----------------------------------------------------------------
+		// Automations-specific endpoints.
+		// ----------------------------------------------------------------
 
 		// Alerts endpoint — used by the FAB badge.
 		if ( url.includes( '/alerts' ) ) {
@@ -228,13 +322,17 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 			} );
 		}
 
-		// Fall through — let other endpoints (sessions, providers, etc.) pass.
+		// Fall through — let other endpoints (sessions, nonces, etc.) pass.
 		return route.continue();
 	} );
 }
 
 /**
  * Navigate to the Settings page and activate the Automations tab.
+ *
+ * Waits for the AutomationsManager container to be visible rather than
+ * relying solely on networkidle, which can resolve before React finishes
+ * rendering the tab content.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
@@ -243,11 +341,18 @@ async function goToAutomationsTab( page ) {
 	await page.waitForLoadState( 'networkidle' );
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
-	await page.waitForLoadState( 'networkidle' );
+	// Wait for the manager container to confirm the tab content has rendered.
+	await page
+		.locator( '.ai-agent-automations-manager' )
+		.waitFor( { state: 'visible', timeout: 15_000 } );
 }
 
 /**
  * Navigate to the Settings page and activate the Events tab.
+ *
+ * Waits for the EventsManager container to be visible rather than
+ * relying solely on networkidle, which can resolve before React finishes
+ * rendering the tab content.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
@@ -256,7 +361,10 @@ async function goToEventsTab( page ) {
 	await page.waitForLoadState( 'networkidle' );
 	const tab = page.getByRole( 'tab', { name: /events/i } );
 	await tab.click();
-	await page.waitForLoadState( 'networkidle' );
+	// Wait for the manager container to confirm the tab content has rendered.
+	await page
+		.locator( '.ai-agent-events-manager' )
+		.waitFor( { state: 'visible', timeout: 15_000 } );
 }
 
 // ---------------------------------------------------------------------------
@@ -807,7 +915,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		await expect(
-			page.locator( 'text=No event automations configured yet.' )
+			page.getByText( 'No event automations configured yet.' )
 		).toBeVisible();
 	} );
 

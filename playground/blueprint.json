@@ -28,7 +28,7 @@
     },
     {
       "step": "activatePlugin",
-      "pluginPath": "ai-agent/ai-agent.php"
+      "pluginPath": "ai-agent/gratis-ai-agent.php"
     }
   ]
 }

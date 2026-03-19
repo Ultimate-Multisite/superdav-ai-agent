@@ -47,7 +47,7 @@ jobs:
           mkdir -p build/ai-agent
           
           # Copy PHP files
-          cp ai-agent.php build/ai-agent/
+          cp gratis-ai-agent.php build/ai-agent/
           cp -r includes build/ai-agent/
           cp -r compat build/ai-agent/
           

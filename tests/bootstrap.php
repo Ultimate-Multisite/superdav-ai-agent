@@ -42,7 +42,7 @@ require_once "{$_tests_dir}/includes/functions.php";
  * Manually load the plugin being tested.
  */
 function _manually_load_plugin() {
-	require dirname(__DIR__) . '/ai-agent.php';
+	require dirname(__DIR__) . '/gratis-ai-agent.php';
 
 	// Install database tables (normally done on activation).
 	// Database::install() includes KnowledgeDatabase schema.

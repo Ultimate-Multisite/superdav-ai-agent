@@ -29,20 +29,29 @@ const {
  * @param {string}                          generatedTitle - Title to inject.
  */
 async function interceptWithGeneratedTitle( page, generatedTitle ) {
+	// The store POSTs to {wpApiSettings.root}gratis-ai-agent/v1/stream.
+	// In wp-env this resolves to http://localhost:8888/wp-json/gratis-ai-agent/v1/stream.
+	// The session_id is in the POST body JSON (not the URL), so we parse it from
+	// the request body to inject it into the synthetic done event.
 	await page.route(
-		/\/gratis-ai-agent\/v1\/sessions\/\d+\/run/,
+		/gratis-ai-agent\/v1\/stream/,
 		async ( route ) => {
-			const sessionIdMatch = route
-				.request()
-				.url()
-				.match( /\/sessions\/(\d+)\/run/ );
-			const sessionId = sessionIdMatch
-				? parseInt( sessionIdMatch[ 1 ], 10 )
-				: 1;
+			// Extract session_id from the POST body so the store's
+			// updateSessionTitle() call targets the correct session.
+			let sessionId = 1;
+			try {
+				const postBody = route.request().postDataJSON();
+				if ( postBody?.session_id ) {
+					sessionId = postBody.session_id;
+				}
+			} catch {
+				// postDataJSON() throws if body is not valid JSON; fall back to 1.
+			}
 
 			// Minimal SSE stream: one token chunk + done with generated_title.
 			// The store dispatches on `eventName` parsed from the `event:` line,
 			// not from a `type` field inside the JSON payload.
+			// Each SSE message is separated by a blank line (\n\n).
 			const sseBody = [
 				'event: token',
 				`data: ${ JSON.stringify( {

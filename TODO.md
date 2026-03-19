@@ -7,7 +7,7 @@
   - Codebase uses PHP 8.1 enums (ToolType, MemoryCategory, Schedule, HttpMethod) — 7.4 is impossible
   - Fix: update readme.txt "Requires PHP: 7.4" → "Requires PHP: 8.2"
 
-- [ ] t110 Raise PHPStan level from 6 to 7 and fix new errors @superdav42 #quality ~3h ref=GH#6
+- [x] t110 Raise PHPStan level from 6 to 7 and fix new errors @superdav42 #quality ~3h ref=GH#6 pr:#559 completed:2026-03-19
   - Current level: 6 (set in t010). Level 7 adds stricter type inference and union type checks.
   - Run `vendor/bin/phpstan analyse --level=7` to see new errors, then fix them
   - Update phpstan.neon level from 6 to 7

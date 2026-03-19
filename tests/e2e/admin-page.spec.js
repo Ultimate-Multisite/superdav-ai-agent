@@ -13,7 +13,6 @@ const {
 	goToAgentPage,
 	getMessageInput,
 	getSendButton,
-	getStopButton,
 	getChatPanel,
 	getMessageList,
 } = require( './utils/wp-admin' );
@@ -108,15 +107,15 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Test message' );
 		await input.press( 'Enter' );
 
-		// Wait for input to clear (message submitted synchronously).
-		await expect( input ).toHaveValue( '' );
-
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). New Chat works regardless of sending state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear in the message list.
+		// The message is appended synchronously before any async work, so this
+		// is a reliable signal that the message was submitted — regardless of
+		// whether the AI provider is configured or how fast the stream responds.
+		// We avoid waiting for .ai-agent-stop-btn because on WP trunk the stream
+		// endpoint may return an error immediately (no provider configured in CI),
+		// causing sending=false before Playwright can assert toBeVisible().
+		const messageRows = page.locator( '.ai-agent-message-row' );
+		await expect( messageRows.first() ).toBeVisible( { timeout: 10_000 } );
 
 		// Click new chat.
 		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
@@ -134,21 +133,22 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Create a session' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created via POST /sessions (which happens before
-		// the background job is spawned). The session list is refreshed after
-		// session creation, so the sidebar item should appear shortly after.
-		// We do NOT wait for the send button to reappear because the background
-		// job may not complete in CI (no AI provider configured).
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted and the session creation flow has started. The session
+		// is created via POST /sessions before the background job is spawned,
+		// and the session list is refreshed after creation.
+		// We avoid waiting for .ai-agent-stop-btn because on WP trunk the stream
+		// endpoint may return an error immediately (no provider configured in CI),
+		// causing sending=false before Playwright can assert toBeVisible().
+		const messageRows = page.locator( '.ai-agent-message-row' );
+		await expect( messageRows.first() ).toBeVisible( { timeout: 10_000 } );
 
 		// At least one session item should appear in the sidebar.
 		// Use toBeVisible() on the first item rather than toHaveCount(1) because
 		// prior tests in the same run may have created sessions that persist in
 		// the wp-env database across tests.
 		const sessionItems = page.locator( '.ai-agent-session-item' );
-		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
 
@@ -163,13 +163,13 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		await input.fill( 'Some text' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the message was submitted. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). The Ctrl+N shortcut works regardless of sending
-		// state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted. We avoid waiting for .ai-agent-stop-btn because on WP
+		// trunk the stream endpoint may return an error immediately (no provider
+		// configured in CI), causing sending=false before Playwright can assert
+		// toBeVisible(). The Ctrl+N shortcut works regardless of sending state.
+		const messageRows = page.locator( '.ai-agent-message-row' );
+		await expect( messageRows.first() ).toBeVisible( { timeout: 10_000 } );
 
 		// Trigger new chat shortcut.
 		await page.keyboard.press( 'ControlOrMeta+n' );

@@ -14,7 +14,7 @@
 - [ ] t122 Add E2E tests for image/file upload in chat (t109 feature) @superdav42 #testing ~3h ref=GH#584
   - PR #560 added upload but no E2E tests — paperclip button, drag-drop, thumbnail preview, remove button
 
-- [ ] t123 Fix ShellCheck violations in .agents/scripts/ and bin/ @superdav42 #quality ~1h ref=GH#585
+- [x] t123 Fix ShellCheck violations in .agents/scripts/ and bin/ @superdav42 #quality ~1h ref=GH#585 pr:#588 completed:2026-03-19
   - 1 error (SC2148 missing shebang in husky.sh), 6 warnings (SC2015, SC1091, SC2086, SC2046, SC2001)
 
 - [x] t109 Fix readme.txt PHP requirement: update 7.4 to 8.2 to match plugin header and CI @superdav42 #bug ~0.5h ref=GH#550 pr:#560 completed:2026-03-19

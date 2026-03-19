@@ -2,6 +2,22 @@
 
 ## Ready
 
+- [ ] t136 Add JS bundle size budget and performance benchmarks @superdav42 #ci ~2h ref=GH#611
+  - Plugin has grown with Chart.js, CodeMirror 6, highlight.js — no size budget means silent bloat
+  - Add size-limit to package.json; budget: main bundle < 400KB gzipped; add CI step to code-quality.yml
+
+- [ ] t135 Add E2E tests for Changes page (diff/revert/export) @superdav42 #testing ~2h ref=GH#610
+  - Changes page (diff view, revert, export patch) has zero E2E coverage — destructive feature, high regression risk
+
+- [ ] t134 Add E2E tests for automations system (t080/t081) @superdav42 #testing ~3h ref=GH#609
+  - Event-triggered and scheduled automations have zero E2E coverage — silent regression risk for scheduled AI tasks
+
+- [ ] t133 Add E2E tests for agent builder UI (t082) @superdav42 #testing ~3h ref=GH#608
+  - Agent builder (create/edit/delete custom agents) shipped in t082 with no E2E coverage
+
+- [ ] t132 Add E2E tests for shared conversations feature (t091) @superdav42 #testing ~3h ref=GH#607
+  - Shared conversations (view/contribute permissions, revocation) shipped in t091 with no E2E coverage
+
 - [x] t131 Raise PHPStan level from 9 to 10 (max) and fix new errors @superdav42 #quality ~3h ref=GH#605 pr:#606 completed:2026-03-19
   - Continue quality ladder: t010 (5→6), t110 (6→7), t125 (7→8), t130 (8→9), now 9→10
   - Level 10 is maximum: dead code detection, impossible type checks, strictest mixed narrowing

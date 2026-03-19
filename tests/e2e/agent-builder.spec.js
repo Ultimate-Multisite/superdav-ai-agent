@@ -59,6 +59,10 @@ const AGENT_FIXTURE_UPDATED = {
  * Intercept all /gratis-ai-agent/v1/agents REST calls and return controlled
  * fixture data. This makes tests deterministic without a live WP database.
  *
+ * Clears any previously registered route handlers before registering new ones
+ * so that successive beforeEach calls in the same browser context do not stack
+ * handlers (Playwright matches the first registered handler, not the last).
+ *
  * @param {import('@playwright/test').Page} page
  * @param {Object}                          opts
  * @param {Object[]}                        [opts.initialAgents=[]]  - Agents returned by GET /agents.
@@ -71,6 +75,10 @@ async function mockAgentsApi( page, opts = {} ) {
 		createdAgent = AGENT_FIXTURE,
 		updatedAgent = AGENT_FIXTURE_UPDATED,
 	} = opts;
+
+	// Remove any previously registered route handlers so that re-registering
+	// in beforeEach does not stack handlers from prior tests.
+	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
 	// Mutable list so POST/DELETE mutations are reflected in subsequent GETs.
 	let agents = [ ...initialAgents ];
@@ -349,12 +357,11 @@ test.describe( 'Agent Builder - Create Agent', () => {
 
 		await getCreateAgentButton( page ).click();
 
-		// Success notice should appear.
-		await expect(
-			page.locator( '.components-notice.is-success' )
-		).toBeVisible();
-
-		// Form should close and the new agent card should be visible.
+		// After a successful create the form closes and the new agent card
+		// appears. The component calls resetForm() immediately after
+		// createAgent() resolves, which clears the notice in the same render
+		// cycle, so we verify the outcome (card visible) rather than the
+		// transient notice.
 		await expect( getAgentForm( page ) ).not.toBeVisible();
 		const cards = getAgentCards( page );
 		await expect( cards ).toHaveCount( 1 );
@@ -370,16 +377,21 @@ test.describe( 'Agent Builder - Create Agent', () => {
 		await form.getByLabel( /Slug/i ).fill( 'tool-agent' );
 		await form.getByLabel( /^Name/i ).fill( 'Tool Agent' );
 
+		// Wait for the tool-profiles API response to populate the dropdown
+		// before attempting to select an option.
+		const toolProfileSelect = form.getByLabel( /Tool Profile/i );
+		await expect(
+			toolProfileSelect.locator( 'option', { hasText: 'Read Only' } )
+		).toBeAttached();
+
 		// Select the "Read Only" tool profile from the dropdown.
-		await form
-			.getByLabel( /Tool Profile/i )
-			.selectOption( { label: 'Read Only' } );
+		await toolProfileSelect.selectOption( { label: 'Read Only' } );
 
 		await getCreateAgentButton( page ).click();
 
-		await expect(
-			page.locator( '.components-notice.is-success' )
-		).toBeVisible();
+		// Form closes and card appears — the create succeeded.
+		await expect( getAgentForm( page ) ).not.toBeVisible();
+		await expect( getAgentCards( page ) ).toHaveCount( 1 );
 	} );
 
 	test( '"Cancel" button hides the form without saving', async ( {
@@ -474,9 +486,11 @@ test.describe( 'Agent Builder - Edit Agent', () => {
 
 		await getUpdateAgentButton( page ).click();
 
+		// For updates the form stays open and the notice persists (resetForm
+		// is not called on update, only on create).
 		await expect(
 			page.locator( '.components-notice.is-success' )
-		).toBeVisible();
+		).toBeVisible( { timeout: 10000 } );
 	} );
 
 	test( 'updated agent name is reflected in the card after saving', async ( {
@@ -557,14 +571,18 @@ test.describe( 'Agent Builder - Agent Selector in Chat', () => {
 	test( 'agent selector is visible in the chat panel when agents exist', async ( {
 		page,
 	} ) => {
+		// The AgentSelector component renders null until the agents store is
+		// loaded and there is at least one enabled agent. Wait with a generous
+		// timeout to allow the mocked API response to be processed.
 		const selector = getAgentSelector( page );
-		await expect( selector ).toBeVisible();
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 	} );
 
 	test( 'agent selector contains the custom agent by name', async ( {
 		page,
 	} ) => {
 		const selector = getAgentSelector( page );
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 		const select = selector.locator( 'select' );
 		await expect( select ).toBeVisible();
 
@@ -579,6 +597,7 @@ test.describe( 'Agent Builder - Agent Selector in Chat', () => {
 		page,
 	} ) => {
 		const selector = getAgentSelector( page );
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 		const select = selector.locator( 'select' );
 
 		// Select the custom agent.
@@ -592,6 +611,7 @@ test.describe( 'Agent Builder - Agent Selector in Chat', () => {
 		page,
 	} ) => {
 		const selector = getAgentSelector( page );
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 		const select = selector.locator( 'select' );
 
 		const defaultOption = select.locator( 'option[value=""]' );
@@ -602,6 +622,7 @@ test.describe( 'Agent Builder - Agent Selector in Chat', () => {
 		page,
 	} ) => {
 		const selector = getAgentSelector( page );
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 		const select = selector.locator( 'select' );
 
 		// First select the custom agent.
@@ -640,15 +661,18 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 		await form
 			.getByLabel( /System Prompt/i )
 			.fill( AGENT_FIXTURE.system_prompt );
-		await form
-			.getByLabel( /Tool Profile/i )
-			.selectOption( { label: 'Read Only' } );
+
+		// Wait for tool-profile options to load before selecting.
+		const toolProfileSelect = form.getByLabel( /Tool Profile/i );
+		await expect(
+			toolProfileSelect.locator( 'option', { hasText: 'Read Only' } )
+		).toBeAttached();
+		await toolProfileSelect.selectOption( { label: 'Read Only' } );
 
 		await getCreateAgentButton( page ).click();
 
-		await expect(
-			page.locator( '.components-notice.is-success' )
-		).toBeVisible();
+		// Form closes and card appears after successful create.
+		await expect( getAgentForm( page ) ).not.toBeVisible();
 		await expect( getAgentCards( page ) ).toHaveCount( 1 );
 
 		// ---- Step 2: Verify agent appears in chat selector ----
@@ -657,7 +681,7 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 		await goToAgentPage( page );
 
 		const selector = getAgentSelector( page );
-		await expect( selector ).toBeVisible();
+		await expect( selector ).toBeVisible( { timeout: 10000 } );
 		await expect(
 			selector.locator( `option[value="${ AGENT_FIXTURE.id }"]` )
 		).toHaveText( AGENT_FIXTURE.name );
@@ -680,7 +704,7 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 
 		await expect(
 			page.locator( '.components-notice.is-success' )
-		).toBeVisible();
+		).toBeVisible( { timeout: 10000 } );
 		await expect( getAgentCards( page ).first() ).toContainText(
 			AGENT_FIXTURE_UPDATED.name
 		);

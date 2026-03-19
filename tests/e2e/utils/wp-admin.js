@@ -127,6 +127,29 @@ function getChatPanel( page ) {
 	return page.locator( '.gratis-ai-agent-chat-panel' );
 }
 
+/**
+ * Wait for a user message to appear in the chat after sending.
+ *
+ * This is more reliable than waiting for the stop button because the user
+ * message row is appended synchronously (before any async REST calls), so it
+ * persists regardless of whether the backend job succeeds or fails quickly.
+ *
+ * On WP trunk the /v1/run endpoint may return an error response faster than
+ * on WP 6.9, causing sending=false (and the stop button to disappear) before
+ * the 10 s timeout. The message row does not disappear on error, making it a
+ * stable signal that the message was submitted.
+ *
+ * @param {import('@playwright/test').Page} page    - Playwright page object.
+ * @param {number}                          timeout - Max wait in ms (default 5 000).
+ * @return {Promise<void>}
+ */
+async function waitForMessageSubmitted( page, timeout = 5_000 ) {
+	await page
+		.locator( '.ai-agent-message-row' )
+		.first()
+		.waitFor( { state: 'visible', timeout } );
+}
+
 module.exports = {
 	loginToWordPress,
 	goToAgentPage,
@@ -139,4 +162,5 @@ module.exports = {
 	getMessageList,
 	getMessageRows,
 	getChatPanel,
+	waitForMessageSubmitted,
 };

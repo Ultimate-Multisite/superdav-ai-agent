@@ -13,8 +13,10 @@ const {
 	goToAgentPage,
 	getMessageInput,
 	getSendButton,
+	getStopButton,
 	getChatPanel,
 	getMessageList,
+	waitForMessageSubmitted,
 } = require( './utils/wp-admin' );
 
 test.describe( 'Admin Page - Chat UI', () => {
@@ -107,14 +109,12 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Test message' );
 		await input.press( 'Enter' );
 
-		// Wait for the user message bubble to appear in the message list.
-		// This is synchronous — the store appends the user message to the UI
-		// before any async REST calls, so it appears regardless of WP version
-		// or API availability. We use this instead of waiting for the stop
-		// button, which depends on sending=true persisting long enough to
-		// render — unreliable on WP trunk where REST calls may resolve faster.
-		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
-		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted and appended to the chat. The message row is added
+		// synchronously before any async REST calls, so it is a stable signal
+		// on all WP versions (including trunk where the stop button may
+		// disappear quickly if the backend returns an error fast).
+		await waitForMessageSubmitted( page );
 
 		// Click new chat.
 		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
@@ -132,22 +132,20 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Create a session' );
 		await input.press( 'Enter' );
 
-		// Wait for the user message bubble to appear — this is synchronous and
-		// confirms the message was submitted to the UI. The store appends the
-		// user message before any async REST calls, so this is reliable across
-		// all WP versions. We use this instead of waiting for the stop button,
-		// which depends on sending=true persisting long enough to render and is
-		// unreliable on WP trunk where REST calls may resolve faster.
-		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
-		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted. The session is created via POST /sessions before the
+		// background job is spawned, and the session list is refreshed after
+		// session creation. Using the message row (appended synchronously) is
+		// more reliable than the stop button, which may disappear quickly on
+		// WP trunk if the backend returns an error response fast.
+		await waitForMessageSubmitted( page );
 
 		// At least one session item should appear in the sidebar.
-		// POST /sessions is called after the user message is appended, so the
-		// session item may take a moment to appear. Use toBeVisible() on the
-		// first item rather than toHaveCount(1) because prior tests in the same
-		// run may have created sessions that persist in the wp-env database.
+		// Use toBeVisible() on the first item rather than toHaveCount(1) because
+		// prior tests in the same run may have created sessions that persist in
+		// the wp-env database across tests.
 		const sessionItems = page.locator( '.ai-agent-session-item' );
-		await expect( sessionItems.first() ).toBeVisible( { timeout: 15_000 } );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
 	} );
 } );
 
@@ -162,14 +160,12 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		await input.fill( 'Some text' );
 		await input.press( 'Enter' );
 
-		// Wait for the user message bubble to appear — this is synchronous and
-		// confirms the message was submitted to the UI. The store appends the
-		// user message before any async REST calls, so this is reliable across
-		// all WP versions. We use this instead of waiting for the stop button,
-		// which depends on sending=true persisting long enough to render and is
-		// unreliable on WP trunk where REST calls may resolve faster.
-		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
-		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted. The message row is appended synchronously before any
+		// async REST calls, making it a stable signal on all WP versions. The
+		// stop button is transient and may disappear quickly on WP trunk if the
+		// backend returns an error response fast (no AI provider in CI).
+		await waitForMessageSubmitted( page );
 
 		// Trigger new chat shortcut.
 		await page.keyboard.press( 'ControlOrMeta+n' );

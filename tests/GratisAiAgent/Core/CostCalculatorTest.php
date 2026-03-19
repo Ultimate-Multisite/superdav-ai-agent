@@ -215,4 +215,54 @@ class CostCalculatorTest extends WP_UnitTestCase {
 		$this->assertSame( 0.075, $pricing[0] );
 		$this->assertSame( 0.30, $pricing[1] );
 	}
+
+	/**
+	 * Test Gemini 2.5 Flash pricing ($0.30/1M input, $2.50/1M output via OpenRouter).
+	 */
+	public function test_calculate_cost_gemini_2_5_flash() {
+		// 1M input at $0.30 + 1M output at $2.50 = $2.80
+		$cost = CostCalculator::calculate_cost( 'google/gemini-2.5-flash-preview', 1_000_000, 1_000_000 );
+		$this->assertSame( 2.8, $cost );
+	}
+
+	/**
+	 * Test Gemini 2.5 Flash Lite pricing ($0.10/1M input, $0.40/1M output via OpenRouter).
+	 */
+	public function test_calculate_cost_gemini_2_5_flash_lite() {
+		// 1M input at $0.10 + 1M output at $0.40 = $0.50
+		$cost = CostCalculator::calculate_cost( 'google/gemini-2.5-flash-lite-preview', 1_000_000, 1_000_000 );
+		$this->assertSame( 0.5, $cost );
+	}
+
+	/**
+	 * Test Gemini 2.5 Flash pricing values.
+	 */
+	public function test_get_pricing_gemini_2_5_flash() {
+		$pricing = CostCalculator::get_pricing( 'google/gemini-2.5-flash-preview' );
+
+		$this->assertIsArray( $pricing );
+		$this->assertSame( 0.30, $pricing[0] );
+		$this->assertSame( 2.50, $pricing[1] );
+	}
+
+	/**
+	 * Test Gemini 2.5 Flash Lite pricing values.
+	 */
+	public function test_get_pricing_gemini_2_5_flash_lite() {
+		$pricing = CostCalculator::get_pricing( 'google/gemini-2.5-flash-lite-preview' );
+
+		$this->assertIsArray( $pricing );
+		$this->assertSame( 0.10, $pricing[0] );
+		$this->assertSame( 0.40, $pricing[1] );
+	}
+
+	/**
+	 * Test get_all_pricing includes Gemini 2.5 Flash models.
+	 */
+	public function test_get_all_pricing_includes_gemini_2_5_flash_models() {
+		$all = CostCalculator::get_all_pricing();
+
+		$this->assertArrayHasKey( 'google/gemini-2.5-flash-preview', $all );
+		$this->assertArrayHasKey( 'google/gemini-2.5-flash-lite-preview', $all );
+	}
 }

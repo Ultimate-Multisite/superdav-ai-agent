@@ -990,6 +990,11 @@ class AgentLoop {
 		}
 
 		$model_id = $this->model_id ?: Settings::DIRECT_PROVIDERS['google']['default_model'];
+		// Google's API rejects model IDs with the 'google/' OpenRouter prefix.
+		// Strip it so 'google/gemini-2.5-flash-preview' becomes 'gemini-2.5-flash-preview'.
+		if ( str_starts_with( $model_id, 'google/' ) ) {
+			$model_id = substr( $model_id, strlen( 'google/' ) );
+		}
 		$messages = $this->build_openai_messages();
 		$tools    = $this->build_openai_tools();
 

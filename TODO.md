@@ -2,6 +2,23 @@
 
 ## Ready
 
+- [ ] t106 Update default model to GPT-4.1-nano and add GPT-4.1 model family to selector @superdav42 #feature ~2h ref=GH#539
+  - Update Settings::DIRECT_PROVIDERS openai default_model from gpt-4o to gpt-4.1-nano
+  - Add GPT-4.1-nano, GPT-4.1-mini, GPT-4.1 to OpenAI model list in Settings
+  - CostCalculator already has pricing — no changes needed there
+  - Existing installs with gpt-4o configured must not be affected (setting persists)
+
+- [ ] t107 Fix persistent ShellCheck violations in .agents/scripts/ and bin/ @superdav42 #quality ~1h ref=GH#540
+  - shared-constants.sh: SC2015 (A && B || C) x3
+  - issue-sync-lib.sh, issue-sync-helper.sh: SC1091 (use shellcheck -x), SC2015
+  - bin/install-wp-tests.sh: SC2086, SC2046 x2
+  - .husky/_/husky.sh: SC2148 (add shebang)
+
+- [ ] t108 Add tiered model pricing display to Settings UI @superdav42 #ui ~3h ref=GH#541
+  - Show pricing hints next to each model (e.g. GPT-4.1-nano — $0.10/M input, best value)
+  - Group models by provider and tier (Budget / Standard / Premium)
+  - Estimated cost per session based on average token usage
+
 - [x] t090 Rename plugin to "Gratis AI Agent" with slug "gratis-ai-agent" for WP.org guidelines @superdav42 #chore ~4h logged:2026-03-15 pr:#194 completed:2026-03-15
   - Rename main file, text domain, namespace, constants, REST namespace, DB tables, options, CSS classes, ability names, CLI command, build assets, config files, CI/docs
   - Add activation hook migration for existing installs (detect old option/table names and rename)

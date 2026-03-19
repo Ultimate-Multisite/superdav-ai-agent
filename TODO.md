@@ -2,6 +2,16 @@
 
 ## Ready
 
+- [ ] t124 Prepare plugin for WordPress.org submission (review checklist) @superdav42 #devops ~4h ref=GH#591
+  - Run wp plugin check, audit sanitization/nonces/capabilities, add GPL headers, create screenshots, submit via SVN
+
+- [ ] t125 Raise PHPStan level from 7 to 8 and fix new errors @superdav42 #quality ~3h ref=GH#592
+  - Continue quality ladder: t010 (5→6), t110 (6→7), now 7→8. Level 8 adds stricter generics/template type checks.
+
+- [ ] t126 Add Claude 3.5 Haiku and Gemini 2.0 Flash to model selector @superdav42 #feature ~2h ref=GH#593
+  - claude-3-5-haiku-20241022 ($0.80/1M), gemini-2.0-flash ($0.10/1M), gemini-2.0-flash-lite ($0.075/1M)
+  - Update CostCalculator pricing and Settings UI tier grouping
+
 - [x] t120 Fix readme.txt PHP requirement: update 7.4 to 8.2 to match plugin header and CI @superdav42 #bug ~0.5h ref=GH#581 pr:#582 completed:2026-03-19
   - readme.txt says "Requires PHP: 7.4" but plugin header says PHP 8.2 and CI runs PHP 8.2
   - t109 was incorrectly linked to PR #560 (image upload) — the actual fix was never applied

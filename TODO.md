@@ -11,7 +11,7 @@
   - Plugin at v1.1.0 but 100+ PRs merged since — streaming, image upload, spending limits, mobile UX, a11y, etc.
   - Update CHANGELOG.md [Unreleased] → [1.2.0], bump Version in gratis-ai-agent.php, update readme.txt Stable tag
 
-- [ ] t122 Add E2E tests for image/file upload in chat (t109 feature) @superdav42 #testing ~3h ref=GH#584
+- [x] t122 Add E2E tests for image/file upload in chat (t109 feature) @superdav42 #testing ~3h ref=GH#584 pr:#587 completed:2026-03-19
   - PR #560 added upload but no E2E tests — paperclip button, drag-drop, thumbnail preview, remove button
 
 - [x] t123 Fix ShellCheck violations in .agents/scripts/ and bin/ @superdav42 #quality ~1h ref=GH#585 pr:#588 completed:2026-03-19

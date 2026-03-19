@@ -317,6 +317,9 @@ class ResaleApiController {
 				ResaleApiDatabase::reset_monthly_quota( (int) $client->id );
 				// Re-fetch to get updated counters.
 				$client = ResaleApiDatabase::get_client_by_key( $api_key );
+				if ( ! $client ) {
+					return new WP_Error( 'resale_api_unauthorized', __( 'Invalid API key.', 'gratis-ai-agent' ), [ 'status' => 401 ] );
+				}
 			}
 
 			$used = (int) ( $client->tokens_used_this_month ?? 0 );
@@ -636,7 +639,12 @@ class ResaleApiController {
 			);
 		}
 
-		$client                = ResaleApiDatabase::get_client( $id );
+		$client = ResaleApiDatabase::get_client( $id );
+
+		if ( ! $client ) {
+			return new WP_Error( 'resale_api_not_found', __( 'Client not found after update.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
+		}
+
 		$response              = $this->sanitize_client_for_response( $client );
 		$response['proxy_url'] = rest_url( self::NAMESPACE . '/resale/proxy' );
 

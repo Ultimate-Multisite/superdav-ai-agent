@@ -325,7 +325,7 @@ class AgentLoop {
 				foreach ( $assistant_message->getParts() as $part ) {
 					$call = $part->getFunctionCall();
 					if ( $call ) {
-						$this->sse_streamer->send_tool_call( $call->getName(), $call->getArgs() ?: array() );
+						$this->sse_streamer->send_tool_call( (string) $call->getName(), $call->getArgs() ?: array() );
 					}
 				}
 			}
@@ -1460,7 +1460,7 @@ class AgentLoop {
 		foreach ( $message->getParts() as $part ) {
 			$call = $part->getFunctionCall();
 			if ( $call ) {
-				$fn_name = $call->getName();
+				$fn_name = (string) $call->getName();
 
 				// The function call name uses the wpab__ format (e.g. wpab__gratis-ai-agent__memory-save)
 				// while tool_permissions uses ability name format (e.g. gratis-ai-agent/memory-save).
@@ -1925,7 +1925,7 @@ class AgentLoop {
 			}
 
 			$original_result = $fr->getResponse();
-			$tool_name       = $fr->getName();
+			$tool_name       = (string) $fr->getName();
 			$ability_name    = $tool_name;
 			if ( str_starts_with( $tool_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $tool_name );
@@ -1937,8 +1937,8 @@ class AgentLoop {
 				$modified    = true;
 				$new_parts[] = new MessagePart(
 					new \WordPress\AiClient\Tools\DTO\FunctionResponse(
-						$fr->getId(),
-						$fr->getName(),
+						(string) $fr->getId(),
+						(string) $fr->getName(),
 						$truncated
 					)
 				);

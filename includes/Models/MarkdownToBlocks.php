@@ -241,21 +241,21 @@ class MarkdownToBlocks {
 	 */
 	public static function parse_inline( string $text ): string {
 		// Inline code (must be first to prevent inner formatting).
-		$text = preg_replace( '/`([^`]+)`/', '<code>$1</code>', $text );
+		$text = (string) preg_replace( '/`([^`]+)`/', '<code>$1</code>', $text );
 
 		// Bold.
-		$text = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text );
-		$text = preg_replace( '/__(.+?)__/', '<strong>$1</strong>', $text );
+		$text = (string) preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text );
+		$text = (string) preg_replace( '/__(.+?)__/', '<strong>$1</strong>', $text );
 
 		// Italic.
-		$text = preg_replace( '/\*(.+?)\*/', '<em>$1</em>', $text );
-		$text = preg_replace( '/_(.+?)_/', '<em>$1</em>', $text );
+		$text = (string) preg_replace( '/\*(.+?)\*/', '<em>$1</em>', $text );
+		$text = (string) preg_replace( '/_(.+?)_/', '<em>$1</em>', $text );
 
 		// Images (inline).
-		$text = preg_replace( '/!\[([^\]]*)\]\(([^)]+)\)/', '<img src="$2" alt="$1"/>', $text );
+		$text = (string) preg_replace( '/!\[([^\]]*)\]\(([^)]+)\)/', '<img src="$2" alt="$1"/>', $text );
 
 		// Links.
-		$text = preg_replace( '/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', $text );
+		$text = (string) preg_replace( '/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', $text );
 
 		return $text;
 	}

@@ -238,10 +238,10 @@ class DocumentParser {
 		$text = str_replace( [ "\r\n", "\r" ], "\n", $text );
 
 		// Collapse excessive blank lines to double newline.
-		$text = preg_replace( '/\n{3,}/', "\n\n", $text );
+		$text = (string) preg_replace( '/\n{3,}/', "\n\n", $text );
 
 		// Remove null bytes and other control characters (keep newlines/tabs).
-		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $text );
+		$text = (string) preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $text );
 
 		return trim( $text );
 	}

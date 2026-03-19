@@ -533,7 +533,7 @@ class KnowledgeDatabase {
 		$words         = preg_split( '/\s+/', trim( $query ) );
 		$boolean_terms = [];
 		foreach ( $words ?: [] as $word ) {
-			$word = preg_replace( '/[^\w]/', '', $word );
+			$word = (string) preg_replace( '/[^\w]/', '', $word );
 			if ( strlen( $word ) > 1 ) {
 				$boolean_terms[] = '+' . $word . '*';
 			}

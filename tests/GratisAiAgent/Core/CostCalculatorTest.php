@@ -143,4 +143,75 @@ class CostCalculatorTest extends WP_UnitTestCase {
 		$cost = CostCalculator::calculate_cost( 'claude-haiku-4', 1_000_000, 1_000_000 );
 		$this->assertSame( 4.8, $cost );
 	}
+
+	/**
+	 * Test Claude 3.5 Haiku pricing (budget Anthropic model).
+	 */
+	public function test_calculate_cost_claude_3_5_haiku() {
+		// 1M input at $0.80 + 1M output at $4.00 = $4.80
+		$cost = CostCalculator::calculate_cost( 'claude-3-5-haiku-20241022', 1_000_000, 1_000_000 );
+		$this->assertSame( 4.8, $cost );
+	}
+
+	/**
+	 * Test Gemini 2.0 Flash pricing (budget Google model).
+	 */
+	public function test_calculate_cost_gemini_2_0_flash() {
+		// 1M input at $0.10 + 1M output at $0.40 = $0.50
+		$cost = CostCalculator::calculate_cost( 'gemini-2.0-flash', 1_000_000, 1_000_000 );
+		$this->assertSame( 0.5, $cost );
+	}
+
+	/**
+	 * Test Gemini 2.0 Flash Lite pricing (cheapest Google model).
+	 */
+	public function test_calculate_cost_gemini_2_0_flash_lite() {
+		// 1M input at $0.075 + 1M output at $0.30 = $0.375
+		$cost = CostCalculator::calculate_cost( 'gemini-2.0-flash-lite', 1_000_000, 1_000_000 );
+		$this->assertSame( 0.375, $cost );
+	}
+
+	/**
+	 * Test get_all_pricing includes new models.
+	 */
+	public function test_get_all_pricing_includes_new_models() {
+		$all = CostCalculator::get_all_pricing();
+
+		$this->assertArrayHasKey( 'claude-3-5-haiku-20241022', $all );
+		$this->assertArrayHasKey( 'gemini-2.0-flash', $all );
+		$this->assertArrayHasKey( 'gemini-2.0-flash-lite', $all );
+	}
+
+	/**
+	 * Test Claude 3.5 Haiku pricing values.
+	 */
+	public function test_get_pricing_claude_3_5_haiku() {
+		$pricing = CostCalculator::get_pricing( 'claude-3-5-haiku-20241022' );
+
+		$this->assertIsArray( $pricing );
+		$this->assertSame( 0.80, $pricing[0] );
+		$this->assertSame( 4.00, $pricing[1] );
+	}
+
+	/**
+	 * Test Gemini 2.0 Flash pricing values.
+	 */
+	public function test_get_pricing_gemini_2_0_flash() {
+		$pricing = CostCalculator::get_pricing( 'gemini-2.0-flash' );
+
+		$this->assertIsArray( $pricing );
+		$this->assertSame( 0.10, $pricing[0] );
+		$this->assertSame( 0.40, $pricing[1] );
+	}
+
+	/**
+	 * Test Gemini 2.0 Flash Lite pricing values.
+	 */
+	public function test_get_pricing_gemini_2_0_flash_lite() {
+		$pricing = CostCalculator::get_pricing( 'gemini-2.0-flash-lite' );
+
+		$this->assertIsArray( $pricing );
+		$this->assertSame( 0.075, $pricing[0] );
+		$this->assertSame( 0.30, $pricing[1] );
+	}
 }

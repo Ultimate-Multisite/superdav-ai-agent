@@ -26,6 +26,7 @@ const PRICING = {
 	'claude-haiku-4': [ 0.8, 4.0 ],
 	'claude-sonnet-4': [ 3.0, 15.0 ],
 	'claude-opus-4': [ 15.0, 75.0 ],
+	'claude-3-5-haiku-20241022': [ 0.8, 4.0 ],
 	// GPT-4o models.
 	'gpt-4o-mini': [ 0.15, 0.6 ],
 	'gpt-4o': [ 2.5, 10.0 ],
@@ -37,6 +38,12 @@ const PRICING = {
 	'o3-mini': [ 1.1, 4.4 ],
 	'o4-mini': [ 1.1, 4.4 ],
 	o3: [ 10.0, 40.0 ],
+	// Gemini models.
+	'gemini-2.0-flash': [ 0.1, 0.4 ],
+	'gemini-2.0-flash-lite': [ 0.075, 0.3 ],
+	'gemini-2.5-pro-preview-05-06': [ 1.25, 10.0 ],
+	'gemini-1.5-pro': [ 1.25, 5.0 ],
+	'gemini-1.5-flash': [ 0.075, 0.3 ],
 };
 
 /**
@@ -78,6 +85,12 @@ const MODEL_CATALOG = [
 		provider: 'anthropic',
 		name: 'Claude Haiku 4',
 		note: __( 'fastest', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'claude-3-5-haiku-20241022',
+		provider: 'anthropic',
+		name: 'Claude 3.5 Haiku',
+		note: __( 'budget', 'gratis-ai-agent' ),
 	},
 	{
 		id: 'claude-sonnet-4',
@@ -141,6 +154,37 @@ const MODEL_CATALOG = [
 		provider: 'openai',
 		name: 'o3',
 		note: __( 'advanced reasoning', 'gratis-ai-agent' ),
+	},
+	// Google Gemini
+	{
+		id: 'gemini-2.0-flash-lite',
+		provider: 'google',
+		name: 'Gemini 2.0 Flash Lite',
+		note: __( 'best value', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'gemini-2.0-flash',
+		provider: 'google',
+		name: 'Gemini 2.0 Flash',
+		note: __( 'fast & affordable', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'gemini-1.5-flash',
+		provider: 'google',
+		name: 'Gemini 1.5 Flash',
+		note: __( 'affordable', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'gemini-1.5-pro',
+		provider: 'google',
+		name: 'Gemini 1.5 Pro',
+		note: __( 'high quality', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'gemini-2.5-pro-preview-05-06',
+		provider: 'google',
+		name: 'Gemini 2.5 Pro',
+		note: __( 'most capable', 'gratis-ai-agent' ),
 	},
 ];
 

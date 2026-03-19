@@ -108,6 +108,10 @@ class Settings {
 					'name' => 'Claude Haiku 3.5',
 				],
 				[
+					'id'   => 'claude-3-5-haiku-20241022',
+					'name' => 'Claude 3.5 Haiku',
+				],
+				[
 					'id'   => 'claude-opus-4-20250514',
 					'name' => 'Claude Opus 4',
 				],

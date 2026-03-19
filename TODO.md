@@ -19,7 +19,7 @@
   - Affected workflows: tests.yml, e2e.yml, code-quality.yml, release.yml, issue-sync.yml, todo-integrity.yml
   - Also add FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true env var to opt in early
 
-- [ ] t112 Add E2E tests for auto-title sessions and abilities search/filter @superdav42 #testing ~3h ref=GH#551
+- [x] t112 Add E2E tests for auto-title sessions and abilities search/filter @superdav42 #testing ~3h ref=GH#551 pr:#553 completed:2026-03-19
   - t099 (auto-title) and t098 (abilities search) shipped without E2E coverage
   - Add to chat-interactions.spec.js: verify session gets auto-titled after first AI response
   - Add to admin-page.spec.js: verify abilities search filters the list, categories collapse/expand

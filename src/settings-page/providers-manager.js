@@ -29,7 +29,7 @@ const PROVIDERS = [
 		name: 'OpenAI',
 		description: __(
 			'Access GPT-4o, o1, and other OpenAI models. Get your API key at platform.openai.com.',
-			'ai-agent'
+			'gratis-ai-agent'
 		),
 		keyPlaceholder: 'sk-...',
 		docsUrl: 'https://platform.openai.com/api-keys',
@@ -39,7 +39,7 @@ const PROVIDERS = [
 		name: 'Anthropic',
 		description: __(
 			'Access Claude Sonnet, Opus, and Haiku models. Get your API key at console.anthropic.com.',
-			'ai-agent'
+			'gratis-ai-agent'
 		),
 		keyPlaceholder: 'sk-ant-...',
 		docsUrl: 'https://console.anthropic.com/settings/keys',
@@ -49,7 +49,7 @@ const PROVIDERS = [
 		name: 'Google AI',
 		description: __(
 			'Access Gemini 2.0 Flash, 2.5 Pro, and other Google models. Get your API key at aistudio.google.com.',
-			'ai-agent'
+			'gratis-ai-agent'
 		),
 		keyPlaceholder: 'AIza...',
 		docsUrl: 'https://aistudio.google.com/app/apikey',
@@ -58,6 +58,7 @@ const PROVIDERS = [
 
 /**
  * Single provider configuration card.
+ *
  * @param {Object}  root0          - Component props.
  * @param {Object}  root0.provider - Provider configuration object.
  * @param {boolean} root0.hasKey   - Whether an API key is already configured.
@@ -74,7 +75,7 @@ function ProviderCard( { provider, hasKey } ) {
 		if ( ! apiKey.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Please enter an API key.', 'ai-agent' ),
+				message: __( 'Please enter an API key.', 'gratis-ai-agent' ),
 			} );
 			return;
 		}
@@ -84,7 +85,7 @@ function ProviderCard( { provider, hasKey } ) {
 
 		try {
 			await apiFetch( {
-				path: '/ai-agent/v1/settings/provider-key',
+				path: '/gratis-ai-agent/v1/settings/provider-key',
 				method: 'POST',
 				data: { provider: provider.id, api_key: apiKey.trim() },
 			} );
@@ -93,7 +94,7 @@ function ProviderCard( { provider, hasKey } ) {
 			setApiKey( '' );
 			setNotice( {
 				status: 'success',
-				message: __( 'API key saved.', 'ai-agent' ),
+				message: __( 'API key saved.', 'gratis-ai-agent' ),
 			} );
 
 			// Refresh the providers list in the store so the chat UI updates.
@@ -102,7 +103,8 @@ function ProviderCard( { provider, hasKey } ) {
 			setNotice( {
 				status: 'error',
 				message:
-					err?.message || __( 'Failed to save API key.', 'ai-agent' ),
+					err?.message ||
+					__( 'Failed to save API key.', 'gratis-ai-agent' ),
 			} );
 		}
 
@@ -117,7 +119,7 @@ function ProviderCard( { provider, hasKey } ) {
 				status: 'error',
 				message: __(
 					'Enter an API key or save one first.',
-					'ai-agent'
+					'gratis-ai-agent'
 				),
 			} );
 			return;
@@ -128,7 +130,7 @@ function ProviderCard( { provider, hasKey } ) {
 
 		try {
 			const result = await apiFetch( {
-				path: '/ai-agent/v1/settings/provider-key/test',
+				path: '/gratis-ai-agent/v1/settings/provider-key/test',
 				method: 'POST',
 				data: {
 					provider: provider.id,
@@ -141,7 +143,10 @@ function ProviderCard( { provider, hasKey } ) {
 					status: 'success',
 					message: sprintf(
 						/* translators: %s: model name */
-						__( 'Connection successful. Model: %s', 'ai-agent' ),
+						__(
+							'Connection successful. Model: %s',
+							'gratis-ai-agent'
+						),
 						result.model || provider.id
 					),
 				} );
@@ -150,14 +155,15 @@ function ProviderCard( { provider, hasKey } ) {
 					status: 'error',
 					message:
 						result.error ||
-						__( 'Connection test failed.', 'ai-agent' ),
+						__( 'Connection test failed.', 'gratis-ai-agent' ),
 				} );
 			}
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
 				message:
-					err?.message || __( 'Connection test failed.', 'ai-agent' ),
+					err?.message ||
+					__( 'Connection test failed.', 'gratis-ai-agent' ),
 			} );
 		}
 
@@ -170,7 +176,7 @@ function ProviderCard( { provider, hasKey } ) {
 
 		try {
 			await apiFetch( {
-				path: '/ai-agent/v1/settings/provider-key',
+				path: '/gratis-ai-agent/v1/settings/provider-key',
 				method: 'POST',
 				data: { provider: provider.id, api_key: '' },
 			} );
@@ -179,7 +185,7 @@ function ProviderCard( { provider, hasKey } ) {
 			setApiKey( '' );
 			setNotice( {
 				status: 'success',
-				message: __( 'API key removed.', 'ai-agent' ),
+				message: __( 'API key removed.', 'gratis-ai-agent' ),
 			} );
 
 			fetchProviders();
@@ -188,7 +194,7 @@ function ProviderCard( { provider, hasKey } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to remove API key.', 'ai-agent' ),
+					__( 'Failed to remove API key.', 'gratis-ai-agent' ),
 			} );
 		}
 
@@ -196,14 +202,14 @@ function ProviderCard( { provider, hasKey } ) {
 	}, [ provider.id, fetchProviders ] );
 
 	return (
-		<Card className="ai-agent-provider-card">
+		<Card className="gratis-ai-agent-provider-card">
 			<CardHeader>
-				<div className="ai-agent-provider-card__header">
-					<h3 className="ai-agent-provider-card__title">
+				<div className="gratis-ai-agent-provider-card__header">
+					<h3 className="gratis-ai-agent-provider-card__title">
 						{ provider.name }
 						{ keyConfigured && (
-							<span className="ai-agent-provider-card__badge ai-agent-provider-card__badge--configured">
-								{ __( 'Configured', 'ai-agent' ) }
+							<span className="gratis-ai-agent-provider-card__badge gratis-ai-agent-provider-card__badge--configured">
+								{ __( 'Configured', 'gratis-ai-agent' ) }
 							</span>
 						) }
 					</h3>
@@ -211,14 +217,14 @@ function ProviderCard( { provider, hasKey } ) {
 						href={ provider.docsUrl }
 						target="_blank"
 						rel="noopener noreferrer"
-						className="ai-agent-provider-card__docs-link"
+						className="gratis-ai-agent-provider-card__docs-link"
 					>
-						{ __( 'Get API key', 'ai-agent' ) } ↗
+						{ __( 'Get API key', 'gratis-ai-agent' ) } ↗
 					</a>
 				</div>
 			</CardHeader>
 			<CardBody>
-				<p className="ai-agent-provider-card__description">
+				<p className="gratis-ai-agent-provider-card__description">
 					{ provider.description }
 				</p>
 
@@ -232,12 +238,12 @@ function ProviderCard( { provider, hasKey } ) {
 					</Notice>
 				) }
 
-				<div className="ai-agent-provider-card__key-row">
+				<div className="gratis-ai-agent-provider-card__key-row">
 					<TextControl
 						label={
 							keyConfigured
-								? __( 'Replace API key', 'ai-agent' )
-								: __( 'API key', 'ai-agent' )
+								? __( 'Replace API key', 'gratis-ai-agent' )
+								: __( 'API key', 'gratis-ai-agent' )
 						}
 						type="password"
 						value={ apiKey }
@@ -246,7 +252,7 @@ function ProviderCard( { provider, hasKey } ) {
 							keyConfigured
 								? __(
 										'(key saved — enter new key to replace)',
-										'ai-agent'
+										'gratis-ai-agent'
 								  )
 								: provider.keyPlaceholder
 						}
@@ -254,14 +260,18 @@ function ProviderCard( { provider, hasKey } ) {
 					/>
 				</div>
 
-				<div className="ai-agent-provider-card__actions">
+				<div className="gratis-ai-agent-provider-card__actions">
 					<Button
 						variant="primary"
 						onClick={ handleSave }
 						isBusy={ saving }
 						disabled={ saving || testing || ! apiKey.trim() }
 					>
-						{ saving ? <Spinner /> : __( 'Save Key', 'ai-agent' ) }
+						{ saving ? (
+							<Spinner />
+						) : (
+							__( 'Save Key', 'gratis-ai-agent' )
+						) }
 					</Button>
 
 					<Button
@@ -277,7 +287,7 @@ function ProviderCard( { provider, hasKey } ) {
 						{ testing ? (
 							<Spinner />
 						) : (
-							__( 'Test Connection', 'ai-agent' )
+							__( 'Test Connection', 'gratis-ai-agent' )
 						) }
 					</Button>
 
@@ -288,7 +298,7 @@ function ProviderCard( { provider, hasKey } ) {
 							onClick={ handleRemove }
 							disabled={ saving || testing }
 						>
-							{ __( 'Remove Key', 'ai-agent' ) }
+							{ __( 'Remove Key', 'gratis-ai-agent' ) }
 						</Button>
 					) }
 				</div>
@@ -305,15 +315,15 @@ function ProviderCard( { provider, hasKey } ) {
  */
 export default function ProvidersManager( { providerKeys = {} } ) {
 	return (
-		<div className="ai-agent-providers-manager">
-			<p className="ai-agent-providers-manager__intro">
+		<div className="gratis-ai-agent-providers-manager">
+			<p className="gratis-ai-agent-providers-manager__intro">
 				{ __(
 					'Configure API keys for the official AI providers. Keys are stored securely in the WordPress database and never exposed through the settings API.',
-					'ai-agent'
+					'gratis-ai-agent'
 				) }
 			</p>
 
-			<div className="ai-agent-providers-manager__grid">
+			<div className="gratis-ai-agent-providers-manager__grid">
 				{ PROVIDERS.map( ( provider ) => (
 					<ProviderCard
 						key={ provider.id }

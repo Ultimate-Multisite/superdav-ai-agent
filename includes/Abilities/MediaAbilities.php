@@ -201,10 +201,10 @@ class MediaAbilities {
 		// @phpstan-ignore-next-line
 		$mime_type = sanitize_text_field( $input['mime_type'] ?? '' );
 		// @phpstan-ignore-next-line
-		$search    = sanitize_text_field( $input['search'] ?? '' );
+		$search = sanitize_text_field( $input['search'] ?? '' );
 		// @phpstan-ignore-next-line
-		$limit     = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
-		$site_url  = $input['site_url'] ?? '';
+		$limit    = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
+		$site_url = $input['site_url'] ?? '';
 
 		$switched = false;
 
@@ -289,18 +289,18 @@ class MediaAbilities {
 	 */
 	public static function handle_upload_media_from_url( array $input ) {
 		// @phpstan-ignore-next-line
-		$url         = esc_url_raw( $input['url'] ?? '' );
+		$url = esc_url_raw( $input['url'] ?? '' );
 		// @phpstan-ignore-next-line
-		$title       = sanitize_text_field( $input['title'] ?? '' );
+		$title = sanitize_text_field( $input['title'] ?? '' );
 		// @phpstan-ignore-next-line
-		$alt_text    = sanitize_text_field( $input['alt_text'] ?? '' );
+		$alt_text = sanitize_text_field( $input['alt_text'] ?? '' );
 		// @phpstan-ignore-next-line
-		$caption     = sanitize_textarea_field( $input['caption'] ?? '' );
+		$caption = sanitize_textarea_field( $input['caption'] ?? '' );
 		// @phpstan-ignore-next-line
 		$description = sanitize_textarea_field( $input['description'] ?? '' );
 		// @phpstan-ignore-next-line
-		$post_id     = (int) ( $input['post_id'] ?? 0 );
-		$site_url    = $input['site_url'] ?? '';
+		$post_id  = (int) ( $input['post_id'] ?? 0 );
+		$site_url = $input['site_url'] ?? '';
 
 		if ( empty( $url ) ) {
 			return new WP_Error( 'ai_agent_empty_url', __( 'URL is required.', 'gratis-ai-agent' ) );

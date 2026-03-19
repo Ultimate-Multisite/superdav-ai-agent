@@ -155,7 +155,7 @@ class GenerateImageAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		// @phpstan-ignore-next-line
-		$prompt   = sanitize_textarea_field( $input['prompt'] ?? '' );
+		$prompt = sanitize_textarea_field( $input['prompt'] ?? '' );
 		// @phpstan-ignore-next-line
 		$post_id  = (int) ( $input['post_id'] ?? 0 );
 		$site_url = $input['site_url'] ?? '';
@@ -173,14 +173,14 @@ class GenerateImageAbility extends AbstractAbility {
 			// @phpstan-ignore-next-line
 			(string) ( $settings['image_generation_size'] ?? '1024x1024' )
 		);
-		$quality  = $this->resolve_enum(
+		$quality = $this->resolve_enum(
 			// @phpstan-ignore-next-line
 			$input['quality'] ?? '',
 			[ 'standard', 'hd' ],
 			// @phpstan-ignore-next-line
 			(string) ( $settings['image_generation_quality'] ?? 'standard' )
 		);
-		$style    = $this->resolve_enum(
+		$style = $this->resolve_enum(
 			// @phpstan-ignore-next-line
 			$input['style'] ?? '',
 			[ 'vivid', 'natural' ],
@@ -328,7 +328,7 @@ class GenerateImageAbility extends AbstractAbility {
 		}
 
 		// @phpstan-ignore-next-line
-		$image_url      = $data['data'][0]['url'] ?? '';
+		$image_url = $data['data'][0]['url'] ?? '';
 		// @phpstan-ignore-next-line
 		$revised_prompt = $data['data'][0]['revised_prompt'] ?? $prompt;
 

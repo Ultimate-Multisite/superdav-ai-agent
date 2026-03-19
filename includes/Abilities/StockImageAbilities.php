@@ -126,9 +126,9 @@ class StockImageAbilities {
 		$keyword  = sanitize_text_field( $input['keyword'] ?? '' );
 		$site_url = $input['site_url'] ?? '';
 		// @phpstan-ignore-next-line
-		$width    = (int) ( $input['width'] ?? 1200 );
+		$width = (int) ( $input['width'] ?? 1200 );
 		// @phpstan-ignore-next-line
-		$height   = (int) ( $input['height'] ?? 800 );
+		$height = (int) ( $input['height'] ?? 800 );
 
 		if ( empty( $keyword ) ) {
 			return new \WP_Error( 'missing_keyword', 'keyword is required.' );

@@ -753,8 +753,9 @@ INSTRUCTION;
 			$post = get_post( (int) $input['post_id'] );
 
 			if ( ! $post ) {
+				$post_id_int = is_numeric( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 				// translators: %d: Post ID.
-				$error_message = sprintf( __( 'Post with ID %d not found.', 'gratis-ai-agent' ), absint( $input['post_id'] ) );
+				$error_message = sprintf( __( 'Post with ID %d not found.', 'gratis-ai-agent' ), absint( $post_id_int ) );
 				return new WP_Error( 'post_not_found', $error_message );
 			}
 

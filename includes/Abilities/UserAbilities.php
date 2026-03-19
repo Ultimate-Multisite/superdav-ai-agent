@@ -192,11 +192,11 @@ class UserAbilities {
 	 */
 	public static function handle_list_users( array $input ): array {
 		// @phpstan-ignore-next-line
-		$role   = sanitize_text_field( $input['role'] ?? '' );
+		$role = sanitize_text_field( $input['role'] ?? '' );
 		// @phpstan-ignore-next-line
 		$search = sanitize_text_field( $input['search'] ?? '' );
 		// @phpstan-ignore-next-line
-		$limit  = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
+		$limit = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
 
 		$args = [
 			'number'  => $limit,
@@ -247,11 +247,11 @@ class UserAbilities {
 	 */
 	public static function handle_create_user( array $input ) {
 		// @phpstan-ignore-next-line
-		$username     = sanitize_user( $input['username'] ?? '' );
+		$username = sanitize_user( $input['username'] ?? '' );
 		// @phpstan-ignore-next-line
-		$email        = sanitize_email( $input['email'] ?? '' );
+		$email = sanitize_email( $input['email'] ?? '' );
 		// @phpstan-ignore-next-line
-		$role         = sanitize_text_field( $input['role'] ?? get_option( 'default_role', 'subscriber' ) );
+		$role = sanitize_text_field( $input['role'] ?? get_option( 'default_role', 'subscriber' ) );
 		// @phpstan-ignore-next-line
 		$display_name = sanitize_text_field( $input['display_name'] ?? $username );
 		$send_email   = (bool) ( $input['send_email'] ?? false );
@@ -329,11 +329,11 @@ class UserAbilities {
 	 */
 	public static function handle_update_user_role( array $input ) {
 		// @phpstan-ignore-next-line
-		$user_id    = (int) ( $input['user_id'] ?? 0 );
+		$user_id = (int) ( $input['user_id'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$user_email = sanitize_email( $input['user_email'] ?? '' );
 		// @phpstan-ignore-next-line
-		$new_role   = sanitize_text_field( $input['role'] ?? '' );
+		$new_role = sanitize_text_field( $input['role'] ?? '' );
 
 		if ( empty( $new_role ) ) {
 			return new WP_Error( 'ai_agent_empty_role', __( 'Role is required.', 'gratis-ai-agent' ) );

@@ -112,7 +112,7 @@ class CustomToolExecutor {
 	private static function execute_http( array $tool, array $input ): array|\WP_Error {
 		$config = $tool['config'];
 		// @phpstan-ignore-next-line
-		$url    = $config['url'] ?? '';
+		$url = $config['url'] ?? '';
 		// @phpstan-ignore-next-line
 		$method = strtoupper( $config['method'] ?? 'GET' );
 
@@ -188,7 +188,7 @@ class CustomToolExecutor {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function execute_action( array $tool, array $input ): array|\WP_Error {
-		$config    = $tool['config'];
+		$config = $tool['config'];
 		// @phpstan-ignore-next-line
 		$hook_name = $config['hook_name'] ?? '';
 
@@ -203,7 +203,7 @@ class CustomToolExecutor {
 		}
 
 		// Build arguments from config defaults + input.
-		$args     = [];
+		$args = [];
 		// @phpstan-ignore-next-line
 		$arg_defs = $config['args'] ?? [];
 
@@ -247,7 +247,7 @@ class CustomToolExecutor {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function execute_cli( array $tool, array $input ): array|\WP_Error {
-		$config  = $tool['config'];
+		$config = $tool['config'];
 		// @phpstan-ignore-next-line
 		$command = $config['command'] ?? '';
 

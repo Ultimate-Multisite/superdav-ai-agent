@@ -317,7 +317,7 @@ class BlockAbilities {
 		}
 
 		// @phpstan-ignore-next-line
-		$blocks        = MarkdownToBlocks::parse( $markdown );
+		$blocks = MarkdownToBlocks::parse( $markdown );
 		// @phpstan-ignore-next-line
 		$block_content = MarkdownToBlocks::convert( $markdown );
 
@@ -339,11 +339,11 @@ class BlockAbilities {
 
 		$category = $input['category'] ?? '';
 		// @phpstan-ignore-next-line
-		$search   = strtolower( $input['search'] ?? '' );
+		$search = strtolower( $input['search'] ?? '' );
 		// @phpstan-ignore-next-line
 		$per_page = max( 1, min( 100, (int) ( $input['per_page'] ?? 20 ) ) );
 		// @phpstan-ignore-next-line
-		$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
+		$page = max( 1, (int) ( $input['page'] ?? 1 ) );
 
 		// Build category overview.
 		$categories = [];
@@ -418,7 +418,7 @@ class BlockAbilities {
 
 		$registry = \WP_Block_Type_Registry::get_instance();
 		// @phpstan-ignore-next-line
-		$block    = $registry->get_registered( $name );
+		$block = $registry->get_registered( $name );
 
 		if ( ! $block ) {
 			// @phpstan-ignore-next-line
@@ -478,9 +478,9 @@ class BlockAbilities {
 		$registry = \WP_Block_Patterns_Registry::get_instance();
 		$all      = $registry->get_all_registered();
 
-		$category     = $input['category'] ?? '';
+		$category = $input['category'] ?? '';
 		// @phpstan-ignore-next-line
-		$search       = strtolower( $input['search'] ?? '' );
+		$search = strtolower( $input['search'] ?? '' );
 		// @phpstan-ignore-next-line
 		$per_page     = max( 1, min( 50, (int) ( $input['per_page'] ?? 10 ) ) );
 		$full_content = ! empty( $input['full_content'] );
@@ -600,7 +600,7 @@ class BlockAbilities {
 			// @phpstan-ignore-next-line
 			$normalized = self::normalize_block( $block_data );
 			// @phpstan-ignore-next-line
-			$output    .= serialize_block( $normalized ) . "\n\n";
+			$output .= serialize_block( $normalized ) . "\n\n";
 			++$block_count;
 			$block_count += self::count_inner_blocks( $normalized );
 		}
@@ -705,7 +705,7 @@ class BlockAbilities {
 				// @phpstan-ignore-next-line
 				$level = (int) ( $attrs['level'] ?? 2 );
 				// @phpstan-ignore-next-line
-				$html  = '<h' . $level . ' class="wp-block-heading">' . $content . '</h' . $level . '>';
+				$html = '<h' . $level . ' class="wp-block-heading">' . $content . '</h' . $level . '>';
 				// @phpstan-ignore-next-line
 				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
 
@@ -720,7 +720,7 @@ class BlockAbilities {
 					foreach ( $inner_blocks as $item ) {
 						$inner_content[] = null;
 						// @phpstan-ignore-next-line
-						$inner_html     .= $item['innerHTML'] ?? '';
+						$inner_html .= $item['innerHTML'] ?? '';
 					}
 					$inner_content[] = '</' . $tag . '>';
 					$inner_html     .= '</' . $tag . '>';
@@ -745,7 +745,7 @@ class BlockAbilities {
 
 			case 'core/image':
 				// @phpstan-ignore-next-line
-				$url  = esc_url( $attrs['url'] ?? '' );
+				$url = esc_url( $attrs['url'] ?? '' );
 				// @phpstan-ignore-next-line
 				$alt  = esc_attr( $attrs['alt'] ?? '' );
 				$html = '<figure class="wp-block-image"><img src="' . $url . '" alt="' . $alt . '"/></figure>';
@@ -771,7 +771,7 @@ class BlockAbilities {
 
 			case 'core/button':
 				// @phpstan-ignore-next-line
-				$url  = esc_url( $attrs['url'] ?? '' );
+				$url = esc_url( $attrs['url'] ?? '' );
 				// @phpstan-ignore-next-line
 				$text = $attrs['text'] ?? $content;
 				// @phpstan-ignore-next-line
@@ -800,7 +800,7 @@ class BlockAbilities {
 				// @phpstan-ignore-next-line
 				$height = $attrs['height'] ?? '50px';
 				// @phpstan-ignore-next-line
-				$html   = '<div style="height:' . esc_attr( $height ) . '" aria-hidden="true" class="wp-block-spacer"></div>';
+				$html = '<div style="height:' . esc_attr( $height ) . '" aria-hidden="true" class="wp-block-spacer"></div>';
 				// @phpstan-ignore-next-line
 				return self::build_block( $block_name, $attrs, $inner_blocks, $html );
 
@@ -859,7 +859,7 @@ class BlockAbilities {
 		foreach ( $inner_blocks as $child ) {
 			$inner_content[] = null;
 			// @phpstan-ignore-next-line
-			$inner_html     .= $child['innerHTML'] ?? '';
+			$inner_html .= $child['innerHTML'] ?? '';
 		}
 
 		$inner_content[] = $close;
@@ -895,7 +895,7 @@ class BlockAbilities {
 		foreach ( $inner_blocks as $child ) {
 			$inner_content[] = null;
 			// @phpstan-ignore-next-line
-			$inner_html     .= $child['innerHTML'] ?? '';
+			$inner_html .= $child['innerHTML'] ?? '';
 		}
 
 		return [

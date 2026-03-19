@@ -375,7 +375,7 @@ class PostAbilities {
 	 */
 	public static function handle_get_post( array $input ) {
 		// @phpstan-ignore-next-line
-		$post_id   = (int) ( $input['post_id'] ?? 0 );
+		$post_id = (int) ( $input['post_id'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$post_type = sanitize_text_field( $input['post_type'] ?? 'any' );
 
@@ -440,14 +440,14 @@ class PostAbilities {
 		$title       = sanitize_text_field( $input['title'] ?? '' );
 		$raw_content = $input['content'] ?? '';
 		// @phpstan-ignore-next-line
-		$content     = wp_kses_post( self::maybe_convert_markdown( $raw_content ) );
+		$content = wp_kses_post( self::maybe_convert_markdown( $raw_content ) );
 		// @phpstan-ignore-next-line
-		$excerpt     = sanitize_textarea_field( $input['excerpt'] ?? '' );
+		$excerpt = sanitize_textarea_field( $input['excerpt'] ?? '' );
 		// @phpstan-ignore-next-line
-		$status      = sanitize_text_field( $input['status'] ?? 'draft' );
+		$status = sanitize_text_field( $input['status'] ?? 'draft' );
 		// @phpstan-ignore-next-line
-		$post_type   = sanitize_text_field( $input['post_type'] ?? 'post' );
-		$site_url    = $input['site_url'] ?? '';
+		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
+		$site_url  = $input['site_url'] ?? '';
 
 		if ( empty( $title ) ) {
 			return new WP_Error( 'ai_agent_empty_title', __( 'Post title is required.', 'gratis-ai-agent' ) );
@@ -597,7 +597,7 @@ class PostAbilities {
 		if ( isset( $input['status'] ) ) {
 			$allowed_statuses = [ 'draft', 'publish', 'pending', 'private', 'future', 'trash' ];
 			// @phpstan-ignore-next-line
-			$new_status       = sanitize_text_field( $input['status'] );
+			$new_status = sanitize_text_field( $input['status'] );
 			if ( in_array( $new_status, $allowed_statuses, true ) ) {
 				$post_data['post_status'] = $new_status;
 			}

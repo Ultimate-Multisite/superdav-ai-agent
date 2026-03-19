@@ -212,7 +212,7 @@ class RolePermissions {
 
 			$has_restriction = true;
 			// @phpstan-ignore-next-line
-			$allowed         = array_merge( $allowed, $role_config['allowed_abilities'] );
+			$allowed = array_merge( $allowed, $role_config['allowed_abilities'] );
 		}
 
 		if ( ! $has_restriction ) {

@@ -367,7 +367,7 @@ class ResaleApiController {
 
 		foreach ( $messages as $msg ) {
 			// @phpstan-ignore-next-line
-			$role    = sanitize_text_field( (string) ( $msg['role'] ?? '' ) );
+			$role = sanitize_text_field( (string) ( $msg['role'] ?? '' ) );
 			// @phpstan-ignore-next-line
 			$content = (string) ( $msg['content'] ?? '' );
 
@@ -442,19 +442,19 @@ class ResaleApiController {
 		}
 
 		// @phpstan-ignore-next-line
-		$reply             = (string) ( $result['reply'] ?? '' );
-		$token_usage       = $result['token_usage'] ?? [
+		$reply       = (string) ( $result['reply'] ?? '' );
+		$token_usage = $result['token_usage'] ?? [
 			'prompt'     => 0,
 			'completion' => 0,
 		];
 		// @phpstan-ignore-next-line
-		$prompt_tokens     = (int) ( $token_usage['prompt'] ?? 0 );
+		$prompt_tokens = (int) ( $token_usage['prompt'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$completion_tokens = (int) ( $token_usage['completion'] ?? 0 );
 		// @phpstan-ignore-next-line
-		$model_used        = (string) ( $result['model_id'] ?? $requested_model );
+		$model_used = (string) ( $result['model_id'] ?? $requested_model );
 		// @phpstan-ignore-next-line
-		$provider_used     = (string) ( $result['provider_id'] ?? '' );
+		$provider_used = (string) ( $result['provider_id'] ?? '' );
 
 		$cost = CostCalculator::calculate_cost( $model_used, $prompt_tokens, $completion_tokens );
 
@@ -745,7 +745,7 @@ class ResaleApiController {
 		}
 
 		// @phpstan-ignore-next-line
-		$limit  = min( absint( $request->get_param( 'limit' ) ?? 20 ), 100 );
+		$limit = min( absint( $request->get_param( 'limit' ) ?? 20 ), 100 );
 		// @phpstan-ignore-next-line
 		$offset = absint( $request->get_param( 'offset' ) ?? 0 );
 
@@ -785,7 +785,7 @@ class ResaleApiController {
 		// @phpstan-ignore-next-line
 		$start_date = sanitize_text_field( (string) ( $request->get_param( 'start_date' ) ?? '' ) ) ?: null;
 		// @phpstan-ignore-next-line
-		$end_date   = sanitize_text_field( (string) ( $request->get_param( 'end_date' ) ?? '' ) ) ?: null;
+		$end_date = sanitize_text_field( (string) ( $request->get_param( 'end_date' ) ?? '' ) ) ?: null;
 
 		$summary = ResaleApiDatabase::get_usage_summary( $id, $start_date, $end_date );
 

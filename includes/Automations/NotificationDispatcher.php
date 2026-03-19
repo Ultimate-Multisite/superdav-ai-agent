@@ -47,7 +47,7 @@ class NotificationDispatcher {
 			}
 
 			// @phpstan-ignore-next-line
-			$type        = sanitize_text_field( $channel['type'] ?? '' );
+			$type = sanitize_text_field( $channel['type'] ?? '' );
 			// @phpstan-ignore-next-line
 			$webhook_url = esc_url_raw( $channel['webhook_url'] );
 

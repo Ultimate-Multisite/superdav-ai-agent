@@ -48,11 +48,11 @@ class BudgetManager {
 		$settings = Settings::get();
 
 		// @phpstan-ignore-next-line
-		$daily_cap   = (float) ( $settings['budget_daily_cap'] ?? 0 );
+		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$monthly_cap = (float) ( $settings['budget_monthly_cap'] ?? 0 );
 		// @phpstan-ignore-next-line
-		$action      = (string) ( $settings['budget_exceeded_action'] ?? 'pause' );
+		$action = (string) ( $settings['budget_exceeded_action'] ?? 'pause' );
 
 		// No caps configured — always allow.
 		if ( $daily_cap <= 0 && $monthly_cap <= 0 ) {
@@ -189,9 +189,9 @@ class BudgetManager {
 		$settings = Settings::get();
 
 		// @phpstan-ignore-next-line
-		$daily_cap        = (float) ( $settings['budget_daily_cap'] ?? 0 );
+		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );
 		// @phpstan-ignore-next-line
-		$monthly_cap      = (float) ( $settings['budget_monthly_cap'] ?? 0 );
+		$monthly_cap = (float) ( $settings['budget_monthly_cap'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$warning_pct      = (float) ( $settings['budget_warning_threshold'] ?? 80 );
 		$warning_fraction = $warning_pct / 100;
@@ -231,7 +231,7 @@ class BudgetManager {
 		$settings = Settings::get();
 
 		// @phpstan-ignore-next-line
-		$daily_cap   = (float) ( $settings['budget_daily_cap'] ?? 0 );
+		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$monthly_cap = (float) ( $settings['budget_monthly_cap'] ?? 0 );
 

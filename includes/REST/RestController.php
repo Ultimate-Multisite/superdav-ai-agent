@@ -2289,20 +2289,20 @@ class RestController {
 
 		if ( 'complete' === $job['status'] && isset( $job['result'] ) ) {
 			// @phpstan-ignore-next-line
-			$response['reply']           = $job['result']['reply'] ?? '';
+			$response['reply'] = $job['result']['reply'] ?? '';
 			// @phpstan-ignore-next-line
-			$response['history']         = $job['result']['history'] ?? array();
+			$response['history'] = $job['result']['history'] ?? array();
 			// @phpstan-ignore-next-line
-			$response['tool_calls']      = $job['result']['tool_calls'] ?? array();
+			$response['tool_calls'] = $job['result']['tool_calls'] ?? array();
 			// @phpstan-ignore-next-line
-			$response['session_id']      = $job['result']['session_id'] ?? null;
+			$response['session_id'] = $job['result']['session_id'] ?? null;
 			// @phpstan-ignore-next-line
-			$response['token_usage']     = $job['result']['token_usage'] ?? array(
+			$response['token_usage'] = $job['result']['token_usage'] ?? array(
 				'prompt'     => 0,
 				'completion' => 0,
 			);
 			// @phpstan-ignore-next-line
-			$response['model_id']        = $job['result']['model_id'] ?? ( $job['params']['model_id'] ?? '' );
+			$response['model_id'] = $job['result']['model_id'] ?? ( $job['params']['model_id'] ?? '' );
 			// @phpstan-ignore-next-line
 			$response['iterations_used'] = $job['result']['iterations_used'] ?? 0;
 
@@ -2568,23 +2568,23 @@ class RestController {
 				return new WP_REST_Response( array( 'ok' => false ), 200 );
 			}
 
-			$resume_options                  = $options;
+			$resume_options = $options;
 			// @phpstan-ignore-next-line
 			$resume_options['tool_call_log'] = $state['tool_call_log'] ?? array();
 			// @phpstan-ignore-next-line
-			$resume_options['token_usage']   = $state['token_usage'] ?? array(
+			$resume_options['token_usage'] = $state['token_usage'] ?? array(
 				'prompt'     => 0,
 				'completion' => 0,
 			);
 
-			$loop   = new AgentLoop( '', array(), $resume_history, $resume_options );
+			$loop = new AgentLoop( '', array(), $resume_history, $resume_options );
 			// @phpstan-ignore-next-line
 			$result = $loop->resume_after_confirmation( $confirmed, $state['iterations_remaining'] ?? 5 );
 		} else {
 			$abilities = $params['abilities'] ?? array();
 			// @phpstan-ignore-next-line
-			$loop      = new AgentLoop( (string) $params['message'], is_array( $abilities ) ? $abilities : array(), $history, $options );
-			$result    = $loop->run();
+			$loop   = new AgentLoop( (string) $params['message'], is_array( $abilities ) ? $abilities : array(), $history, $options );
+			$result = $loop->run();
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -2639,7 +2639,7 @@ class RestController {
 				if ( $session ) {
 					$existing_messages = json_decode( $session->messages, true ) ?: array();
 					// @phpstan-ignore-next-line
-					$existing_count    = count( $existing_messages );
+					$existing_count = count( $existing_messages );
 				}
 
 				$full_history = $result['history'] ?? array();
@@ -2665,11 +2665,11 @@ class RestController {
 				// Log to usage tracking table.
 				// Use resolved options (which include agent overrides) rather than raw params.
 				// @phpstan-ignore-next-line
-				$provider_id  = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
+				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
 				// @phpstan-ignore-next-line
-				$model_id     = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
+				$model_id = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
 				// @phpstan-ignore-next-line
-				$prompt_t     = (int) ( $token_usage['prompt'] ?? 0 );
+				$prompt_t = (int) ( $token_usage['prompt'] ?? 0 );
 				// @phpstan-ignore-next-line
 				$completion_t = (int) ( $token_usage['completion'] ?? 0 );
 
@@ -2935,8 +2935,8 @@ class RestController {
 
 		$abilities_param = $params['abilities'];
 		// @phpstan-ignore-next-line
-		$loop            = new AgentLoop( $params['message'], is_array( $abilities_param ) ? $abilities_param : array(), $history, $options );
-		$result          = $loop->run();
+		$loop   = new AgentLoop( $params['message'], is_array( $abilities_param ) ? $abilities_param : array(), $history, $options );
+		$result = $loop->run();
 
 		if ( is_wp_error( $result ) ) {
 			$streamer->send_error( $result->get_error_message(), (string) $result->get_error_code() );
@@ -2987,7 +2987,7 @@ class RestController {
 			if ( $session ) {
 				$existing_messages = json_decode( $session->messages, true ) ?: array();
 				// @phpstan-ignore-next-line
-				$existing_count    = count( $existing_messages );
+				$existing_count = count( $existing_messages );
 			}
 
 			$full_history = $result['history'] ?? array();
@@ -3012,7 +3012,7 @@ class RestController {
 			// Log usage.
 			// Use resolved options (which include agent overrides) rather than raw params.
 			// @phpstan-ignore-next-line
-			$prompt_t     = (int) ( $token_usage['prompt'] ?? 0 );
+			$prompt_t = (int) ( $token_usage['prompt'] ?? 0 );
 			// @phpstan-ignore-next-line
 			$completion_t = (int) ( $token_usage['completion'] ?? 0 );
 			if ( $prompt_t > 0 || $completion_t > 0 ) {
@@ -4159,7 +4159,7 @@ class RestController {
 		$settings['_provider_keys'] = $provider_keys;
 
 		// Indicate whether GSC credentials are configured (boolean + type only, no credential values).
-		$gsc_creds                    = Settings::get_gsc_credentials();
+		$gsc_creds = Settings::get_gsc_credentials();
 		// @phpstan-ignore-next-line
 		$settings['_gsc_credentials'] = array(
 			'configured'       => Settings::has_gsc_credentials(),
@@ -4292,8 +4292,8 @@ class RestController {
 		// @phpstan-ignore-next-line
 		$provider = (string) $request->get_param( 'provider' );
 		// @phpstan-ignore-next-line
-		$api_key  = (string) $request->get_param( 'api_key' );
-		$api_key  = trim( $api_key );
+		$api_key = (string) $request->get_param( 'api_key' );
+		$api_key = trim( $api_key );
 
 		if ( ! array_key_exists( $provider, Settings::DIRECT_PROVIDERS ) ) {
 			return new WP_REST_Response( array( 'error' => 'Unknown provider.' ), 400 );
@@ -4436,8 +4436,8 @@ class RestController {
 		// @phpstan-ignore-next-line
 		$provider = (string) $request->get_param( 'provider' );
 		// @phpstan-ignore-next-line
-		$api_key  = (string) $request->get_param( 'api_key' );
-		$api_key  = trim( $api_key );
+		$api_key = (string) $request->get_param( 'api_key' );
+		$api_key = trim( $api_key );
 
 		if ( ! array_key_exists( $provider, Settings::DIRECT_PROVIDERS ) ) {
 			return new WP_REST_Response(
@@ -5098,7 +5098,7 @@ class RestController {
 	 * @return WP_REST_Response
 	 */
 	public function handle_forget_memory( WP_REST_Request $request ): WP_REST_Response {
-		$topic   = $request->get_param( 'topic' );
+		$topic = $request->get_param( 'topic' );
 		// @phpstan-ignore-next-line
 		$deleted = Memory::forget_by_topic( $topic );
 
@@ -5508,7 +5508,7 @@ class RestController {
 	 * List conversation templates, optionally filtered by category.
 	 */
 	public function handle_list_conversation_templates( WP_REST_Request $request ): WP_REST_Response {
-		$category  = $request->get_param( 'category' );
+		$category = $request->get_param( 'category' );
 		// @phpstan-ignore-next-line
 		$templates = ConversationTemplate::get_all( $category ?: null );
 
@@ -6094,7 +6094,7 @@ class RestController {
 	 */
 	public static function handle_set_ga_credentials( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
-		$property_id          = (string) $request->get_param( 'property_id' );
+		$property_id = (string) $request->get_param( 'property_id' );
 		// @phpstan-ignore-next-line
 		$service_account_json = (string) $request->get_param( 'service_account_json' );
 
@@ -6208,7 +6208,7 @@ Assistant: %s',
 		// Determine which provider to use.
 		$effective_provider = $provider_id;
 		if ( empty( $effective_provider ) ) {
-			$settings           = Settings::get();
+			$settings = Settings::get();
 			// @phpstan-ignore-next-line
 			$effective_provider = $settings['default_provider'] ?? '';
 		}

@@ -251,7 +251,7 @@ class GscAbilities {
 		[ $start, $end ] = self::resolve_date_range( $input );
 		$site_url        = self::resolve_site_url( $input );
 		// @phpstan-ignore-next-line
-		$limit           = min( 25, max( 1, (int) ( $input['limit'] ?? 10 ) ) );
+		$limit = min( 25, max( 1, (int) ( $input['limit'] ?? 10 ) ) );
 
 		$body = [
 			'startDate'  => $start,
@@ -308,7 +308,7 @@ class GscAbilities {
 		[ $start, $end ] = self::resolve_date_range( $input );
 		$site_url        = self::resolve_site_url( $input );
 		// @phpstan-ignore-next-line
-		$limit           = min( 25, max( 1, (int) ( $input['limit'] ?? 10 ) ) );
+		$limit = min( 25, max( 1, (int) ( $input['limit'] ?? 10 ) ) );
 
 		$body = [
 			'startDate'  => $start,
@@ -676,7 +676,7 @@ class GscAbilities {
 		// @phpstan-ignore-next-line
 		$access_token = (string) $body['access_token'];
 		// @phpstan-ignore-next-line
-		$expires_in   = (int) ( $body['expires_in'] ?? 3600 );
+		$expires_in = (int) ( $body['expires_in'] ?? 3600 );
 
 		// Cache with a 5-minute safety margin.
 		set_transient( $cache_key, $access_token, max( 60, $expires_in - 300 ) );
@@ -802,7 +802,7 @@ class GscAbilities {
 
 		if ( 200 !== $code ) {
 			// @phpstan-ignore-next-line
-			$error_msg    = $response_body['error']['message'] ?? 'Unknown GSC API error';
+			$error_msg = $response_body['error']['message'] ?? 'Unknown GSC API error';
 			// @phpstan-ignore-next-line
 			$error_status = $response_body['error']['status'] ?? (string) $code;
 
@@ -876,7 +876,7 @@ class GscAbilities {
 	 */
 	private static function resolve_date_range( array $input ): array {
 		// @phpstan-ignore-next-line
-		$end   = sanitize_text_field( $input['end_date'] ?? '' );
+		$end = sanitize_text_field( $input['end_date'] ?? '' );
 		// @phpstan-ignore-next-line
 		$start = sanitize_text_field( $input['start_date'] ?? '' );
 

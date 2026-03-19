@@ -70,7 +70,7 @@ class EventTriggerHandler {
 			// @phpstan-ignore-next-line
 			$trigger_def = EventTriggerRegistry::get( $hook_name );
 			// @phpstan-ignore-next-line
-			$arg_count   = $trigger_def ? count( $trigger_def['args'] ?? [] ) : 5;
+			$arg_count = $trigger_def ? count( $trigger_def['args'] ?? [] ) : 5;
 
 			add_action(
 				// @phpstan-ignore-next-line

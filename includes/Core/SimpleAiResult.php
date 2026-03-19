@@ -74,7 +74,7 @@ class SimpleAiResult {
 				// @phpstan-ignore-next-line
 				$fn_name = $tc['function']['name'] ?? '';
 				// @phpstan-ignore-next-line
-				$fn_id   = $tc['id'] ?? $fn_name;
+				$fn_id = $tc['id'] ?? $fn_name;
 				// @phpstan-ignore-next-line
 				$fn_args = $tc['function']['arguments'] ?? '{}';
 

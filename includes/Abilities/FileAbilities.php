@@ -389,7 +389,7 @@ class FileReadAbility extends AbstractFileAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path      = $input['path'] ?? '';
+		$path = $input['path'] ?? '';
 		// @phpstan-ignore-next-line
 		$full_path = $this->resolve_path( $path );
 
@@ -665,7 +665,7 @@ class FileEditAbility extends AbstractFileAbility {
 		// @phpstan-ignore-next-line
 		foreach ( $edits as $index => $edit ) {
 			// @phpstan-ignore-next-line
-			$search  = $edit['search'] ?? '';
+			$search = $edit['search'] ?? '';
 			// @phpstan-ignore-next-line
 			$replace = $edit['replace'] ?? '';
 
@@ -817,7 +817,7 @@ class FileDeleteAbility extends AbstractFileAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path      = $input['path'] ?? '';
+		$path = $input['path'] ?? '';
 		// @phpstan-ignore-next-line
 		$full_path = $this->resolve_path( $path );
 
@@ -910,7 +910,7 @@ class FileListAbility extends AbstractFileAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path      = $input['path'] ?? '';
+		$path = $input['path'] ?? '';
 		// @phpstan-ignore-next-line
 		$full_path = $this->resolve_path( $path );
 
@@ -1006,7 +1006,7 @@ class FileSearchAbility extends AbstractFileAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$pattern      = $input['pattern'] ?? '';
+		$pattern = $input['pattern'] ?? '';
 		// @phpstan-ignore-next-line
 		$full_pattern = WP_CONTENT_DIR . '/' . ltrim( $pattern, '/' );
 

@@ -64,7 +64,7 @@ class GetPageHtmlAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$selector   = $input['selector'] ?? '';
+		$selector = $input['selector'] ?? '';
 		// @phpstan-ignore-next-line
 		$max_length = (int) ( $input['max_length'] ?? 5000 );
 

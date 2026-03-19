@@ -152,11 +152,11 @@ class OpenAIProxy {
 
 		foreach ( $abilities as $ability ) {
 			// @phpstan-ignore-next-line
-			$fn_name      = WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $ability->get_name() );
+			$fn_name = WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $ability->get_name() );
 			// @phpstan-ignore-next-line
 			$input_schema = $ability->get_input_schema();
 			// @phpstan-ignore-next-line
-			$description  = $ability->get_description();
+			$description = $ability->get_description();
 
 			// Truncate long descriptions (e.g. WP-CLI help text) to save tokens.
 			if ( strlen( $description ) > 200 ) {

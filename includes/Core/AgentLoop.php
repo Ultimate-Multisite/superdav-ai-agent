@@ -110,11 +110,11 @@ class AgentLoop {
 	 * @param Settings|null        $settings_service  Injected Settings service (uses static Settings::get() when null).
 	 */
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
-		$this->user_message     = $user_message;
+		$this->user_message = $user_message;
 		// @phpstan-ignore-next-line
-		$this->attachments      = $options['attachments'] ?? array();
-		$this->abilities        = $abilities;
-		$this->history          = $history;
+		$this->attachments = $options['attachments'] ?? array();
+		$this->abilities   = $abilities;
+		$this->history     = $history;
 		// @phpstan-ignore-next-line
 		$this->page_context     = $options['page_context'] ?? array();
 		$this->settings_service = $settings_service ?? new Settings();
@@ -123,13 +123,13 @@ class AgentLoop {
 		$settings = $this->settings_service->get();
 
 		// @phpstan-ignore-next-line
-		$this->provider_id       = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
+		$this->provider_id = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
 		// @phpstan-ignore-next-line
-		$this->model_id          = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
+		$this->model_id = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
 		// @phpstan-ignore-next-line
-		$this->max_iterations    = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
+		$this->max_iterations = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
 		// @phpstan-ignore-next-line
-		$this->temperature       = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
+		$this->temperature = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		// @phpstan-ignore-next-line
 		$this->max_output_tokens = $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? 4096 );
 
@@ -153,13 +153,13 @@ class AgentLoop {
 		// @phpstan-ignore-next-line
 		$this->tool_permissions = $settings['tool_permissions'] ?? array();
 		// @phpstan-ignore-next-line
-		$this->yolo_mode        = (bool) ( $settings['yolo_mode'] ?? false );
+		$this->yolo_mode = (bool) ( $settings['yolo_mode'] ?? false );
 		// @phpstan-ignore-next-line
-		$this->tool_call_log    = $options['tool_call_log'] ?? array();
+		$this->tool_call_log = $options['tool_call_log'] ?? array();
 		// @phpstan-ignore-next-line
-		$this->session_id       = (int) ( $options['session_id'] ?? 0 );
+		$this->session_id = (int) ( $options['session_id'] ?? 0 );
 		// @phpstan-ignore-next-line
-		$this->token_usage      = $options['token_usage'] ?? array(
+		$this->token_usage = $options['token_usage'] ?? array(
 			'prompt'     => 0,
 			'completion' => 0,
 		);

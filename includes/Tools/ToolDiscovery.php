@@ -176,7 +176,7 @@ class ToolDiscovery {
 		$query    = $input['query'] ?? '';
 		$category = $input['category'] ?? '';
 		// @phpstan-ignore-next-line
-		$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
+		$page = max( 1, (int) ( $input['page'] ?? 1 ) );
 		// @phpstan-ignore-next-line
 		$per_page = min( 50, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
 
@@ -360,7 +360,7 @@ class ToolDiscovery {
 		}
 
 		// Check tool permissions.
-		$perms      = Settings::get( 'tool_permissions' ) ?: [];
+		$perms = Settings::get( 'tool_permissions' ) ?: [];
 		// @phpstan-ignore-next-line
 		$permission = $perms[ $tool_name ] ?? 'auto';
 
@@ -605,7 +605,7 @@ class ToolDiscovery {
 				$type = implode( '|', $type );
 			}
 			// @phpstan-ignore-next-line
-			$req     = in_array( $name, $required, true ) ? ', required' : '';
+			$req = in_array( $name, $required, true ) ? ', required' : '';
 			// @phpstan-ignore-next-line
 			$parts[] = sprintf( '%s(%s%s)', $name, $type, $req );
 		}

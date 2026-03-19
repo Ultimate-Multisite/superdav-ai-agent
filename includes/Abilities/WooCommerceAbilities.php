@@ -425,8 +425,8 @@ class WooGetProductsAbility extends AbstractAbility {
 		// @phpstan-ignore-next-line
 		$per_page = min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
 		// @phpstan-ignore-next-line
-		$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
-		$status   = $input['status'] ?? 'publish';
+		$page   = max( 1, (int) ( $input['page'] ?? 1 ) );
+		$status = $input['status'] ?? 'publish';
 
 		$args = [
 			'status'   => $status,
@@ -1152,8 +1152,8 @@ class WooGetOrdersAbility extends AbstractAbility {
 		// @phpstan-ignore-next-line
 		$per_page = min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
 		// @phpstan-ignore-next-line
-		$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
-		$status   = $input['status'] ?? 'any';
+		$page   = max( 1, (int) ( $input['page'] ?? 1 ) );
+		$status = $input['status'] ?? 'any';
 
 		$args = [
 			'limit'    => $per_page,
@@ -1304,11 +1304,11 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 		$date_after  = $input['date_after'] ?? gmdate( 'Y-m-d', strtotime( '-30 days' ) );
 		$date_before = $input['date_before'] ?? gmdate( 'Y-m-d' );
 		// @phpstan-ignore-next-line
-		$top_limit   = min( 20, max( 1, (int) ( $input['top_products_limit'] ?? 5 ) ) );
+		$top_limit = min( 20, max( 1, (int) ( $input['top_products_limit'] ?? 5 ) ) );
 
 		// Validate dates.
 		// @phpstan-ignore-next-line
-		$after_ts  = strtotime( $date_after );
+		$after_ts = strtotime( $date_after );
 		// @phpstan-ignore-next-line
 		$before_ts = strtotime( $date_before );
 
@@ -1377,7 +1377,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 				'date_created' => $date_after . '...' . $date_before,
 				'return'       => 'ids',
 			];
-			$ids        = wc_get_orders( $count_args );
+			$ids = wc_get_orders( $count_args );
 			// Strip the "wc-" prefix for cleaner output.
 			$clean_status                  = ltrim( $status_key, 'wc-' );
 			$order_counts[ $clean_status ] = is_array( $ids ) ? count( $ids ) : 0;

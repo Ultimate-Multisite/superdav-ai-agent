@@ -70,14 +70,14 @@ class ToolProfiles {
 		}
 
 		// @phpstan-ignore-next-line
-		$data['slug']        = sanitize_title( $data['slug'] );
+		$data['slug'] = sanitize_title( $data['slug'] );
 		// @phpstan-ignore-next-line
-		$data['name']        = sanitize_text_field( $data['name'] );
+		$data['name'] = sanitize_text_field( $data['name'] );
 		// @phpstan-ignore-next-line
 		$data['description'] = sanitize_textarea_field( $data['description'] ?? '' );
 		// @phpstan-ignore-next-line
-		$data['tool_names']  = array_map( 'sanitize_text_field', $data['tool_names'] ?? [] );
-		$data['is_builtin']  = false;
+		$data['tool_names'] = array_map( 'sanitize_text_field', $data['tool_names'] ?? [] );
+		$data['is_builtin'] = false;
 
 		$custom = get_option( self::OPTION_NAME, [] );
 

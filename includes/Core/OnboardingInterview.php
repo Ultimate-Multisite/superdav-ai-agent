@@ -96,9 +96,9 @@ class OnboardingInterview {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_questions(): array {
-		$scan  = SiteScanner::get_status();
-		$type  = $scan['site_type'] ?? 'brochure';
-		$woo   = ! empty( $scan['woocommerce_active'] );
+		$scan = SiteScanner::get_status();
+		$type = $scan['site_type'] ?? 'brochure';
+		$woo  = ! empty( $scan['woocommerce_active'] );
 		// @phpstan-ignore-next-line
 		$count = (int) ( $scan['post_count'] ?? 0 );
 

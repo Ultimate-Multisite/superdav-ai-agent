@@ -239,9 +239,9 @@ class CustomTools {
 		}
 
 		// @phpstan-ignore-next-line
-		$data['name']        = sanitize_text_field( $data['name'] );
+		$data['name'] = sanitize_text_field( $data['name'] );
 		// @phpstan-ignore-next-line
-		$data['slug']        = sanitize_title( $data['slug'] );
+		$data['slug'] = sanitize_title( $data['slug'] );
 		// @phpstan-ignore-next-line
 		$data['description'] = sanitize_textarea_field( $data['description'] ?? '' );
 

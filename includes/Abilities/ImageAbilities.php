@@ -262,7 +262,7 @@ INSTRUCTION;
 		// @phpstan-ignore-next-line
 		$raw_content = sanitize_text_field( $input['content'] ?? '' );
 		// @phpstan-ignore-next-line
-		$style       = sanitize_text_field( $input['style'] ?? '' );
+		$style = sanitize_text_field( $input['style'] ?? '' );
 
 		// Resolve content and context.
 		$context_input = $input['context'] ?? '';
@@ -507,11 +507,11 @@ INSTRUCTION;
 		];
 
 		// @phpstan-ignore-next-line
-		$title       = sanitize_text_field( $input['title'] ?? '' );
+		$title = sanitize_text_field( $input['title'] ?? '' );
 		// @phpstan-ignore-next-line
 		$description = sanitize_text_field( $input['description'] ?? '' );
 		// @phpstan-ignore-next-line
-		$alt_text    = sanitize_text_field( $input['alt_text'] ?? '' );
+		$alt_text = sanitize_text_field( $input['alt_text'] ?? '' );
 
 		$attachment_id = media_handle_sideload(
 			$file_array,

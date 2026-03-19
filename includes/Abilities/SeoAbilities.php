@@ -337,7 +337,7 @@ class SeoAbilities {
 	 */
 	public static function handle_analyze_content( array $input ) {
 		// @phpstan-ignore-next-line
-		$post_id       = (int) ( $input['post_id'] ?? 0 );
+		$post_id = (int) ( $input['post_id'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$focus_keyword = sanitize_text_field( $input['focus_keyword'] ?? '' );
 		$site_url      = $input['site_url'] ?? '';

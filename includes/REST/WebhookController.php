@@ -478,7 +478,7 @@ class WebhookController {
 		}
 
 		// @phpstan-ignore-next-line
-		$limit  = min( absint( $request->get_param( 'limit' ) ?? 20 ), 100 );
+		$limit = min( absint( $request->get_param( 'limit' ) ?? 20 ), 100 );
 		// @phpstan-ignore-next-line
 		$offset = absint( $request->get_param( 'offset' ) ?? 0 );
 

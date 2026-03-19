@@ -828,7 +828,7 @@ class Database {
 		$existing_tool_calls = json_decode( $session->tool_calls, true ) ?: [];
 
 		// @phpstan-ignore-next-line
-		$merged_messages   = array_merge( $existing_messages, $messages );
+		$merged_messages = array_merge( $existing_messages, $messages );
 		// @phpstan-ignore-next-line
 		$merged_tool_calls = array_merge( $existing_tool_calls, $tool_calls );
 

@@ -219,7 +219,7 @@ class ContextProviders {
 	public static function provide_site_context( array $page_context ): array {
 		global $wp_version;
 
-		$theme        = wp_get_theme();
+		$theme = wp_get_theme();
 		// @phpstan-ignore-next-line
 		$plugin_count = count( get_option( 'active_plugins', [] ) );
 
@@ -326,7 +326,7 @@ class ContextProviders {
 		$post_id = $page_context['post_id'] ?? 0;
 		if ( $post_id ) {
 			// @phpstan-ignore-next-line
-			$focus_kw  = get_post_meta( (int) $post_id, '_yoast_wpseo_focuskw', true );
+			$focus_kw = get_post_meta( (int) $post_id, '_yoast_wpseo_focuskw', true );
 			// @phpstan-ignore-next-line
 			$meta_desc = get_post_meta( (int) $post_id, '_yoast_wpseo_metadesc', true );
 

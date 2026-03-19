@@ -65,13 +65,13 @@ class ChangesLog {
 	public static function list( array $filters = [] ): array {
 		global $wpdb;
 
-		$table    = Database::changes_log_table_name();
-		$where    = [];
+		$table = Database::changes_log_table_name();
+		$where = [];
 		// @phpstan-ignore-next-line
 		$per_page = max( 1, (int) ( $filters['per_page'] ?? 50 ) );
 		// @phpstan-ignore-next-line
-		$page     = max( 1, (int) ( $filters['page'] ?? 1 ) );
-		$offset   = ( $page - 1 ) * $per_page;
+		$page   = max( 1, (int) ( $filters['page'] ?? 1 ) );
+		$offset = ( $page - 1 ) * $per_page;
 
 		if ( ! empty( $filters['session_id'] ) ) {
 			$where[] = $wpdb->prepare( 'session_id = %d', $filters['session_id'] );

@@ -368,7 +368,7 @@ class Settings {
 	public static function get_default_model(): string {
 		$settings = self::get();
 		// @phpstan-ignore-next-line
-		$model    = (string) ( $settings['default_model'] ?? '' );
+		$model = (string) ( $settings['default_model'] ?? '' );
 
 		if ( '' === $model ) {
 			$builtin = defined( 'GRATIS_AI_AGENT_DEFAULT_MODEL' ) ? (string) GRATIS_AI_AGENT_DEFAULT_MODEL : 'claude-sonnet-4';
@@ -394,7 +394,7 @@ class Settings {
 		$saved    = get_option( self::OPTION_NAME, [] );
 		$defaults = self::get_defaults();
 		// @phpstan-ignore-next-line
-		$merged   = wp_parse_args( $saved, $defaults );
+		$merged = wp_parse_args( $saved, $defaults );
 
 		if ( null === $key ) {
 			return $merged;

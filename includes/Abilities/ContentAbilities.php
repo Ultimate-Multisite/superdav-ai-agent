@@ -130,8 +130,8 @@ class ContentAbilities {
 		// @phpstan-ignore-next-line
 		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
 		// @phpstan-ignore-next-line
-		$limit     = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
-		$site_url  = $input['site_url'] ?? '';
+		$limit    = min( 100, max( 1, (int) ( $input['limit'] ?? 20 ) ) );
+		$site_url = $input['site_url'] ?? '';
 
 		$switched = false;
 

@@ -384,8 +384,8 @@ class SiteHealthAbilities {
 	 */
 	public static function handle_scan_php_error_log( array $input ): array|WP_Error {
 		// @phpstan-ignore-next-line
-		$limit       = min( 200, max( 1, (int) ( $input['limit'] ?? 50 ) ) );
-		$level       = $input['level'] ?? 'all';
+		$limit = min( 200, max( 1, (int) ( $input['limit'] ?? 50 ) ) );
+		$level = $input['level'] ?? 'all';
 		// @phpstan-ignore-next-line
 		$since_hours = max( 1, (int) ( $input['since_hours'] ?? 24 ) );
 
@@ -439,7 +439,7 @@ class SiteHealthAbilities {
 		// Parse and filter entries.
 		$since_timestamp = time() - ( $since_hours * HOUR_IN_SECONDS );
 		// @phpstan-ignore-next-line
-		$entries         = self::parse_log_entries( $raw_lines, $level, $since_timestamp, $limit );
+		$entries = self::parse_log_entries( $raw_lines, $level, $since_timestamp, $limit );
 
 		return [
 			'log_path'          => $log_path,

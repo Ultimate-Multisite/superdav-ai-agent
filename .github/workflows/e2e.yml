@@ -70,11 +70,13 @@ jobs:
 
       - name: Override wp-env core version
         if: matrix.wp_env_override != ''
+        env:
+          WP_ENV_OVERRIDE: ${{ matrix.wp_env_override }}
         run: |
           node -e "
             const fs = require('fs');
             const base = JSON.parse(fs.readFileSync('.wp-env.json', 'utf8'));
-            const override = JSON.parse('${{ matrix.wp_env_override }}');
+            const override = JSON.parse(process.env.WP_ENV_OVERRIDE);
             Object.assign(base, override);
             fs.writeFileSync('.wp-env.override.json', JSON.stringify(base, null, 2));
           "

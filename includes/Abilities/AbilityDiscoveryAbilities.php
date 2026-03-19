@@ -93,6 +93,13 @@ class AbilityDiscoveryAbilities {
 			return;
 		}
 
+		// Skip registration when discovery mode is not active.
+		// When all tools are loaded directly (priority categories cover everything),
+		// these meta-tools confuse the AI into searching instead of using tools directly.
+		if ( ! \GratisAiAgent\Tools\ToolDiscovery::should_use_discovery_mode() ) {
+			return;
+		}
+
 		wp_register_ability(
 			'gratis-ai-agent/discovery-list',
 			[

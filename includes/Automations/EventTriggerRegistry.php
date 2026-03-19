@@ -40,7 +40,7 @@ class EventTriggerRegistry {
 	 * @return array<string, array<string, mixed>>
 	 */
 	public static function get_grouped(): array {
-		$all     = self::get_all();
+		$all = self::get_all();
 		/** @var array<string, array{label: string, triggers: list<array<string, mixed>>}> $grouped */
 		$grouped = [];
 

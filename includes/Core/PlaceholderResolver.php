@@ -96,7 +96,7 @@ class PlaceholderResolver {
 		$typed_context = self::enrich_comment_context( $typed_context, $hook_name, $hook_args );
 		$typed_context = self::enrich_order_context( $typed_context, $hook_name, $hook_args );
 		$typed_context = self::enrich_product_context( $typed_context, $hook_name, $hook_args );
-		$context = $typed_context;
+		$context       = $typed_context;
 
 		return $context;
 	}

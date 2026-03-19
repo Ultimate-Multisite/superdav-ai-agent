@@ -581,8 +581,8 @@ class Database {
 	 * Bulk update sessions.
 	 *
 	 * @param array<int|string, mixed> $session_ids Array of session IDs.
-	 * @param int                  $user_id     User ID for ownership check.
-	 * @param array<string, mixed> $data        Fields to update (status, pinned, folder).
+	 * @param int                      $user_id     User ID for ownership check.
+	 * @param array<string, mixed>     $data        Fields to update (status, pinned, folder).
 	 * @return int Number of rows affected.
 	 */
 	public static function bulk_update_sessions( array $session_ids, int $user_id, array $data ): int {

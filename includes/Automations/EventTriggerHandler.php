@@ -65,7 +65,7 @@ class EventTriggerHandler {
 
 			// Determine accepted arg count from trigger registry.
 			$trigger_def = EventTriggerRegistry::get( $hook_name );
-			$arg_count = $trigger_def ? count( $trigger_def['args'] ?? [] ) : 5;
+			$arg_count   = $trigger_def ? count( $trigger_def['args'] ?? [] ) : 5;
 
 			add_action(
 				$hook_name,

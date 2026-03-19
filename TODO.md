@@ -51,7 +51,7 @@
 
 #### UX Improvements (P2)
 
-- [ ] t098 Abilities settings tab: add categories/search/collapsible sections for 40+ tools @superdav42 #ui ~3h
+- [x] t098 Abilities settings tab: add categories/search/collapsible sections for 40+ tools @superdav42 #ui ~3h pr:#530 completed:2026-03-19
   - The Settings > Abilities tab shows a flat list of 40+ tools with dropdowns (Auto/Confirm/Disabled)
   - Very long page, hard to find specific tools
   - Add: grouping by category, search/filter input, collapsible category sections

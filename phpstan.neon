@@ -2,7 +2,7 @@ includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
-	level: 7
+	level: 8
 	paths:
 		- includes
 		- gratis-ai-agent.php
@@ -34,8 +34,6 @@ parameters:
 		# WP_Block_Type properties may be empty strings
 		- '#Property WP_Block_Type::.* on left side of \?\? is not nullable#'
 		- '#Property WP_Block_Template::.* on left side of \?\? is not nullable#'
-		# DOMNode vs DOMElement - getAttribute exists on DOMElement
-		- '#Call to an undefined method DOMNameSpaceNode\|DOMNode::getAttribute#'
 		# Regex match arrays - offset may not exist
 		- '#Offset 1 on array.* on left side of \?\? always exists#'
 		# empty() on variables that may be reassigned

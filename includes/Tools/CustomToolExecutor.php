@@ -282,7 +282,7 @@ class CustomToolExecutor {
 	 * @return string
 	 */
 	public static function replace_placeholders( string $template, array $input ): string {
-		return preg_replace_callback(
+		return (string) preg_replace_callback(
 			'/\{\{(\w[\w.]*)\}\}/',
 			/** @phpstan-ignore-next-line */
 			function ( $matches ) use ( $input ) {

@@ -419,7 +419,12 @@ class WebhookController {
 			);
 		}
 
-		$webhook                 = WebhookDatabase::get_webhook( $id );
+		$webhook = WebhookDatabase::get_webhook( $id );
+
+		if ( ! $webhook ) {
+			return new WP_Error( 'gratis_ai_agent_webhook_not_found', __( 'Webhook not found after update.', 'gratis-ai-agent' ), [ 'status' => 500 ] );
+		}
+
 		$response                = $this->sanitize_webhook_for_response( $webhook );
 		$response['trigger_url'] = rest_url( self::NAMESPACE . '/webhook/trigger' );
 

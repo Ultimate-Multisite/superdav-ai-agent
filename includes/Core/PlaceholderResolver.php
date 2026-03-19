@@ -27,7 +27,7 @@ class PlaceholderResolver {
 		$context = self::build_context( $hook_name, $hook_args );
 
 		// Replace {{placeholders}}.
-		return preg_replace_callback(
+		return (string) preg_replace_callback(
 			'/\{\{(\w[\w.]*)\}\}/',
 			function ( $matches ) use ( $context ) {
 				$key = $matches[1];

@@ -206,7 +206,8 @@ class SeoAbilities {
 		// Title.
 		$title_nodes = $doc->getElementsByTagName( 'title' );
 		if ( $title_nodes->length > 0 ) {
-			$title                  = trim( $title_nodes->item( 0 )->textContent );
+			$title_node             = $title_nodes->item( 0 );
+			$title                  = $title_node instanceof \DOMElement ? trim( $title_node->textContent ) : '';
 			$result['title']        = $title;
 			$result['title_length'] = mb_strlen( $title );
 
@@ -239,8 +240,9 @@ class SeoAbilities {
 
 		// Canonical.
 		$canonical_nodes     = $xpath->query( '//link[@rel="canonical"]' );
-		$result['canonical'] = ( $canonical_nodes && $canonical_nodes->length > 0 )
-			? $canonical_nodes->item( 0 )->getAttribute( 'href' )
+		$canonical_node      = ( $canonical_nodes && $canonical_nodes->length > 0 ) ? $canonical_nodes->item( 0 ) : null;
+		$result['canonical'] = ( $canonical_node instanceof \DOMElement )
+			? $canonical_node->getAttribute( 'href' )
 			: null;
 		if ( empty( $result['canonical'] ) ) {
 			$issues[] = 'Missing canonical URL.';
@@ -281,7 +283,9 @@ class SeoAbilities {
 		$og       = [];
 		$og_nodes = $xpath->query( '//meta[starts-with(@property, "og:")]' );
 		foreach ( $og_nodes ?: [] as $node ) {
-			$og[ $node->getAttribute( 'property' ) ] = $node->getAttribute( 'content' );
+			if ( $node instanceof \DOMElement ) {
+				$og[ $node->getAttribute( 'property' ) ] = $node->getAttribute( 'content' );
+			}
 		}
 		$result['open_graph'] = $og;
 		if ( empty( $og ) ) {
@@ -316,7 +320,8 @@ class SeoAbilities {
 	private static function get_meta_content( \DOMXPath $xpath, string $name ): ?string {
 		$nodes = $xpath->query( '//meta[@name="' . $name . '"]' );
 		if ( $nodes && $nodes->length > 0 ) {
-			return $nodes->item( 0 )->getAttribute( 'content' );
+			$node = $nodes->item( 0 );
+			return ( $node instanceof \DOMElement ) ? $node->getAttribute( 'content' ) : null;
 		}
 		return null;
 	}

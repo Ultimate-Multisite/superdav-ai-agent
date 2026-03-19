@@ -3472,6 +3472,10 @@ class RestController {
 
 		$session = $this->database->get_session( $session_id );
 
+		if ( ! $session ) {
+			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
+
 		return new WP_REST_Response(
 			array(
 				'id'          => (int) $session->id,
@@ -3528,6 +3532,10 @@ class RestController {
 		}
 
 		$session = $this->database->get_session( $session_id );
+
+		if ( ! $session ) {
+			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -3638,6 +3646,10 @@ class RestController {
 
 		$skill = Skill::get( $id );
 
+		if ( ! $skill ) {
+			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
+
 		return new WP_REST_Response(
 			array(
 				'id'          => (int) $skill->id,
@@ -3689,6 +3701,10 @@ class RestController {
 		}
 
 		$skill = Skill::get( $id );
+
+		if ( ! $skill ) {
+			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -3755,6 +3771,10 @@ class RestController {
 		}
 
 		$skill = Skill::get( $id );
+
+		if ( ! $skill ) {
+			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after reset.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -3869,6 +3889,11 @@ class RestController {
 		}
 
 		$agent = Agent::get( $id );
+
+		if ( ! $agent ) {
+			return new WP_Error( 'gratis_ai_agent_agent_not_found', __( 'Agent not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
+
 		return new WP_REST_Response( Agent::to_array( $agent ), 201 );
 	}
 
@@ -3913,6 +3938,11 @@ class RestController {
 		}
 
 		$agent = Agent::get( $id );
+
+		if ( ! $agent ) {
+			return new WP_Error( 'gratis_ai_agent_agent_not_found', __( 'Agent not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
+
 		return new WP_REST_Response( Agent::to_array( $agent ), 200 );
 	}
 
@@ -4595,6 +4625,10 @@ class RestController {
 
 		$collection = KnowledgeDatabase::get_collection( $id );
 
+		if ( ! $collection ) {
+			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
+
 		return new WP_REST_Response(
 			array(
 				'id'              => (int) $collection->id,
@@ -4647,6 +4681,10 @@ class RestController {
 		}
 
 		$collection = KnowledgeDatabase::get_collection( $id );
+
+		if ( ! $collection ) {
+			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -4938,6 +4976,10 @@ class RestController {
 		}
 
 		$session = $this->database->get_session( $session_id );
+
+		if ( ! $session ) {
+			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after import.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		return new WP_REST_Response(
 			array(

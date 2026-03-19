@@ -12,7 +12,7 @@
   - Run `vendor/bin/phpstan analyse --level=7` to see new errors, then fix them
   - Update phpstan.neon level from 6 to 7
 
-- [ ] t111 Update GitHub Actions to Node.js 24 compatible versions @superdav42 #ci ~1h ref=GH#24
+- [x] t111 Update GitHub Actions to Node.js 24 compatible versions @superdav42 #ci ~1h ref=GH#24 pr:#558 completed:2026-03-19
   - CI warns: "actions/cache@v4 and actions/checkout@v4 running on Node.js 20 — deprecated"
   - Node.js 24 becomes default on June 2, 2026 (~2.5 months away)
   - Update all workflow files to use latest v4 patch versions that support Node.js 24

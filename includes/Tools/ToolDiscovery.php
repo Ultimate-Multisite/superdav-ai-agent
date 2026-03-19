@@ -60,9 +60,19 @@ class ToolDiscovery {
 
 	/**
 	 * Register the list-tools and execute-tool abilities.
+	 *
+	 * Skips registration entirely when there are no discoverable tools
+	 * (i.e. all registered abilities fall within priority categories/tools),
+	 * so the AI is never offered meta-tools that would return empty results.
 	 */
 	public static function register_abilities(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return;
+		}
+
+		// Count how many tools would be discoverable (not in priority categories).
+		$discoverable_count = array_sum( self::get_discoverable_category_counts() );
+		if ( 0 === $discoverable_count ) {
 			return;
 		}
 
@@ -152,6 +162,16 @@ class ToolDiscovery {
 			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
 		}
 
+		// An empty JSON array ([]) is semantically equivalent to an empty object ({})
+		// here — both mean "no filters applied". When the AI sends [] instead of {},
+		// treat it as having no filter parameters (query='', category='', defaults apply).
+		// array_values() check: if $input is a non-empty sequential (list) array,
+		// it was likely passed incorrectly; ignore it and use defaults.
+		if ( ! empty( $input ) && array_values( $input ) === $input ) {
+			// Sequential array passed where associative object expected — treat as empty.
+			$input = [];
+		}
+
 		$query    = $input['query'] ?? '';
 		$category = $input['category'] ?? '';
 		$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
@@ -237,7 +257,7 @@ class ToolDiscovery {
 
 				// Word-level matching for multi-word queries.
 				$words = preg_split( '/[\s\-_\/]+/', $query_lower );
-				if ( count( $words ) > 1 ) {
+				if ( is_array( $words ) && count( $words ) > 1 ) {
 					$haystack = $name_lower . ' ' . $label_lower . ' ' . $desc_lower;
 					foreach ( $words as $word ) {
 						if ( '' !== $word && str_contains( $haystack, $word ) ) {
@@ -303,6 +323,14 @@ class ToolDiscovery {
 
 		if ( '' === $tool_name ) {
 			return new WP_Error( 'missing_param', __( 'tool_name is required.', 'gratis-ai-agent' ) );
+		}
+
+		// Normalize tool names that arrive in the Abilities API wire format
+		// (e.g. "wpab__gratis-ai-agent__check-security" → "gratis-ai-agent/check-security").
+		// The Abilities API encodes "/" as "__" and prefixes with "wpab__".
+		if ( str_starts_with( $tool_name, 'wpab__' ) ) {
+			$tool_name = substr( $tool_name, strlen( 'wpab__' ) );
+			$tool_name = str_replace( '__', '/', $tool_name );
 		}
 
 		if ( ! function_exists( 'wp_get_ability' ) ) {

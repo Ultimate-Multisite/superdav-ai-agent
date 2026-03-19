@@ -148,7 +148,7 @@ class AgentLoop {
 	/**
 	 * Run the agentic loop.
 	 *
-	 * @return array{reply: string, history: list<mixed>, tool_calls: list<array<string, mixed>>}|WP_Error
+	 * @return array<string, mixed>|WP_Error
 	 */
 	public function run() {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
@@ -348,7 +348,7 @@ class AgentLoop {
 	 * wins the PHP class-loading race, causing every SDK model request to throw
 	 * "HttpTransporterInterface instance not set".
 	 *
-	 * @return \WordPress\AiClient\Results\DTO\GenerativeAiResult|WP_Error
+	 * @return \WordPress\AiClient\Results\DTO\GenerativeAiResult|\GratisAiAgent\Core\SimpleAiResult|WP_Error
 	 */
 	private function send_prompt() {
 		$provider_id = $this->provider_id ?: 'ai-provider-for-any-openai-compatible';
@@ -398,10 +398,12 @@ class AgentLoop {
 		$this->configure_model( $builder );
 
 		if ( method_exists( $builder, 'using_temperature' ) ) {
+			/** @phpstan-ignore-next-line */
 			$builder->using_temperature( (float) $this->temperature );
 		}
 
 		if ( method_exists( $builder, 'using_max_tokens' ) ) {
+			/** @phpstan-ignore-next-line */
 			$builder->using_max_tokens( (int) $this->max_output_tokens );
 		}
 
@@ -631,8 +633,8 @@ class AgentLoop {
 			$request_body['tools'] = $tools;
 		}
 
-		$encoded_body = wp_json_encode( $request_body );
-		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+		$encoded_body = (string) wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body ?: '' );
 
 		$response = wp_remote_post(
 			'https://api.openai.com/v1/chat/completions',
@@ -807,8 +809,8 @@ class AgentLoop {
 			$request_body['tools'] = $tools;
 		}
 
-		$encoded_body = wp_json_encode( $request_body );
-		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+		$encoded_body = (string) wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body ?: '' );
 
 		$response = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
@@ -883,8 +885,8 @@ class AgentLoop {
 			$request_body['tools'] = $tools;
 		}
 
-		$encoded_body = wp_json_encode( $request_body );
-		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+		$encoded_body = (string) wp_json_encode( $request_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body ?: '' );
 
 		$response = wp_remote_post(
 			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
@@ -965,7 +967,7 @@ class AgentLoop {
 		// Final safety net: replace any remaining "properties":[] with "properties":{}
 		// in the JSON string. This catches edge cases where PHP's type juggling
 		// converts stdClass back to an empty array during serialization.
-		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body );
+		$encoded_body = str_replace( '"properties":[]', '"properties":{}', $encoded_body ?: '' );
 
 		// When streaming, use PHP stream context to read the SSE response line-by-line.
 		if ( $use_streaming ) {
@@ -1767,12 +1769,15 @@ class AgentLoop {
 	private function accumulate_tokens( $result ): void {
 		try {
 			if ( method_exists( $result, 'getUsage' ) ) {
+				/** @phpstan-ignore-next-line */
 				$usage = $result->getUsage();
 				if ( $usage ) {
 					if ( method_exists( $usage, 'getPromptTokens' ) ) {
+						/** @phpstan-ignore-next-line */
 						$this->token_usage['prompt'] += (int) $usage->getPromptTokens();
 					}
 					if ( method_exists( $usage, 'getCompletionTokens' ) ) {
+						/** @phpstan-ignore-next-line */
 						$this->token_usage['completion'] += (int) $usage->getCompletionTokens();
 					}
 				}

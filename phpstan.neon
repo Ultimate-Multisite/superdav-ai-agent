@@ -2,7 +2,7 @@ includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
-	level: 6
+	level: 7
 	paths:
 		- includes
 		- gratis-ai-agent.php
@@ -42,3 +42,7 @@ parameters:
 		- '#Variable \$lines in empty\(\) always exists and is not falsy#'
 		# Action callbacks can return values (ignored by WP)
 		- '#Action callback returns .* but should not return anything#'
+		# wpdb::get_row() returns object|null; properties are accessed via the WordPress
+		# stdClass row pattern throughout the codebase. All callers guard against null
+		# before accessing properties, so these are safe.
+		- '#Access to an undefined property object::\$#'

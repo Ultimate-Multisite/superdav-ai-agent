@@ -395,7 +395,7 @@ CREATE TABLE {$usage_table} (
 		global $wpdb;
 
 		$now           = current_time( 'mysql' );
-		$next_reset    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 month', strtotime( $now ) ) );
+		$next_reset    = gmdate( 'Y-m-d H:i:s', (int) strtotime( '+1 month', (int) strtotime( $now ) ) );
 		$clients_table = self::clients_table_name();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.

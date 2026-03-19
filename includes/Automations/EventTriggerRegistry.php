@@ -352,7 +352,7 @@ class EventTriggerRegistry {
 	/**
 	 * Form plugin triggers.
 	 *
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	private static function get_form_triggers(): array {
 		$triggers = [];

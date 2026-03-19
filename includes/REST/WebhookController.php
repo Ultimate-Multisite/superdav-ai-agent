@@ -673,7 +673,7 @@ class WebhookController {
 				'timeout'   => 0.01,
 				'blocking'  => false,
 				'sslverify' => false,
-				'body'      => wp_json_encode(
+				'body'      => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
@@ -825,7 +825,7 @@ class WebhookController {
 			if ( '' === $safe_key ) {
 				continue;
 			}
-			$scalar = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+			$scalar = is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
 			$result = str_replace( '{{context.' . $safe_key . '}}', $scalar, $result );
 		}
 

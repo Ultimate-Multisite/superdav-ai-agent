@@ -28,7 +28,7 @@ class DocumentParser {
 			return new WP_Error( 'file_not_found', __( 'Attachment file not found.', 'gratis-ai-agent' ) );
 		}
 
-		$mime = get_post_mime_type( $attachment_id );
+		$mime = (string) get_post_mime_type( $attachment_id );
 		return self::extract_from_file( $file, $mime );
 	}
 

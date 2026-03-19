@@ -2192,7 +2192,7 @@ class RestController {
 				'timeout'   => 0.01,
 				'blocking'  => false,
 				'sslverify' => false,
-				'body'      => wp_json_encode(
+				'body'      => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
@@ -2362,7 +2362,7 @@ class RestController {
 				'timeout'   => 0.01,
 				'blocking'  => false,
 				'sslverify' => false,
-				'body'      => wp_json_encode(
+				'body'      => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
@@ -2557,7 +2557,7 @@ class RestController {
 				$full_history = $result['history'] ?? [];
 				$appended     = array_slice( $full_history, $existing_count );
 
-				$this->database->append_to_session( $session_id, $appended, $result['tool_calls'] ?? [] );
+				$this->database->append_to_session( $session_id, array_values( $appended ), $result['tool_calls'] ?? [] );
 
 				// Persist token usage.
 				$token_usage = $result['token_usage'] ?? [];
@@ -2712,7 +2712,7 @@ class RestController {
 		$result = $loop->run();
 
 		if ( is_wp_error( $result ) ) {
-			$streamer->send_error( $result->get_error_message(), $result->get_error_code() );
+			$streamer->send_error( $result->get_error_message(), (string) $result->get_error_code() );
 			exit;
 		}
 
@@ -2761,7 +2761,7 @@ class RestController {
 			$full_history = $result['history'] ?? [];
 			$appended     = array_slice( $full_history, $existing_count );
 
-			Database::append_to_session( $session_id, $appended, $result['tool_calls'] ?? [] );
+			Database::append_to_session( $session_id, array_values( $appended ), $result['tool_calls'] ?? [] );
 
 			$token_usage = $result['token_usage'] ?? [];
 			if ( ! empty( $token_usage ) ) {
@@ -4181,7 +4181,7 @@ class RestController {
 						'x-api-key'         => $key_to_test,
 						'anthropic-version' => '2023-06-01',
 					],
-					'body'    => wp_json_encode( $test_body ),
+					'body'    => (string) wp_json_encode( $test_body ),
 				]
 			);
 		} elseif ( 'google' === $provider ) {
@@ -4203,7 +4203,7 @@ class RestController {
 						'Content-Type'  => 'application/json',
 						'Authorization' => 'Bearer ' . $key_to_test,
 					],
-					'body'    => wp_json_encode( $openai_body ),
+					'body'    => (string) wp_json_encode( $openai_body ),
 				]
 			);
 		} else {
@@ -4226,7 +4226,7 @@ class RestController {
 						'Content-Type'  => 'application/json',
 						'Authorization' => 'Bearer ' . $key_to_test,
 					],
-					'body'    => wp_json_encode( $openai_body ),
+					'body'    => (string) wp_json_encode( $openai_body ),
 				]
 			);
 		}
@@ -5868,7 +5868,7 @@ Assistant: %s',
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
 				],
-				'body'    => wp_json_encode( $request_body ),
+				'body'    => (string) wp_json_encode( $request_body ),
 			]
 		);
 
@@ -5909,7 +5909,7 @@ Assistant: %s',
 					'x-api-key'         => $api_key,
 					'anthropic-version' => '2023-06-01',
 				],
-				'body'    => wp_json_encode( $anthropic_body ),
+				'body'    => (string) wp_json_encode( $anthropic_body ),
 			]
 		);
 
@@ -5952,7 +5952,7 @@ Assistant: %s',
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
 				],
-				'body'    => wp_json_encode( $google_body ),
+				'body'    => (string) wp_json_encode( $google_body ),
 			]
 		);
 
@@ -5999,7 +5999,7 @@ Assistant: %s',
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
 				],
-				'body'      => wp_json_encode( $request_body ),
+				'body'      => (string) wp_json_encode( $request_body ),
 				'sslverify' => false,
 			]
 		);

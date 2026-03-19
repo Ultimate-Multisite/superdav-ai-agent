@@ -280,7 +280,7 @@ class GenerateImageAbility extends AbstractAbility {
 					'Authorization' => 'Bearer ' . $api_key,
 					'Content-Type'  => 'application/json',
 				],
-				'body'    => $body,
+				'body'    => (string) $body,
 			]
 		);
 
@@ -422,8 +422,8 @@ class GenerateImageAbility extends AbstractAbility {
 		}
 
 		$blog_id = get_blog_id_from_url(
-			wp_parse_url( $site_url, PHP_URL_HOST ),
-			wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+			(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+			(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 		);
 
 		if ( ! $blog_id ) {

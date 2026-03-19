@@ -482,6 +482,23 @@ export default function SettingsApp() {
 										) }
 										__nextHasNoMarginBottom
 									/>
+									<ToggleControl
+										label={ __(
+											'Show Token Costs',
+											'gratis-ai-agent'
+										) }
+										checked={
+											local.show_token_costs !== false
+										}
+										onChange={ ( v ) =>
+											updateField( 'show_token_costs', v )
+										}
+										help={ __(
+											'Display token count and estimated cost below the chat input and after each AI response.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
 									<hr />
 									<h3>
 										{ __(

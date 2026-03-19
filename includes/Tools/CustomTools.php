@@ -36,7 +36,7 @@ class CustomTools {
 	 * List all custom tools.
 	 *
 	 * @param bool $enabled_only Only return enabled tools.
-	 * @return list<array<string, mixed>>
+	 * @return array<int, array<string, mixed>>
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;
@@ -47,7 +47,7 @@ class CustomTools {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table/column names from internal methods, not user input.
 		$rows = $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY name ASC" );
 
-		return array_map( [ __CLASS__, 'decode_row' ], $rows ?: [] );
+		return array_values( array_map( [ __CLASS__, 'decode_row' ], $rows ?: [] ) );
 	}
 
 	/**

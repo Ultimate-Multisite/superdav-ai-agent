@@ -4169,7 +4169,7 @@ class RestController {
 						'x-api-key'         => $key_to_test,
 						'anthropic-version' => '2023-06-01',
 					],
-					'body'      => (string) wp_json_encode( $test_body ),
+					'body'    => (string) wp_json_encode( $test_body ),
 				]
 			);
 		} elseif ( 'google' === $provider ) {
@@ -4191,7 +4191,7 @@ class RestController {
 						'Content-Type'  => 'application/json',
 						'Authorization' => 'Bearer ' . $key_to_test,
 					],
-					'body'      => (string) wp_json_encode( $openai_body ),
+					'body'    => (string) wp_json_encode( $openai_body ),
 				]
 			);
 		} else {
@@ -4214,7 +4214,7 @@ class RestController {
 						'Content-Type'  => 'application/json',
 						'Authorization' => 'Bearer ' . $key_to_test,
 					],
-					'body'      => (string) wp_json_encode( $openai_body ),
+					'body'    => (string) wp_json_encode( $openai_body ),
 				]
 			);
 		}
@@ -5844,7 +5844,7 @@ Assistant: %s',
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
 				],
-				'body'      => (string) wp_json_encode( $request_body ),
+				'body'    => (string) wp_json_encode( $request_body ),
 			]
 		);
 
@@ -5885,7 +5885,7 @@ Assistant: %s',
 					'x-api-key'         => $api_key,
 					'anthropic-version' => '2023-06-01',
 				],
-				'body'      => (string) wp_json_encode( $anthropic_body ),
+				'body'    => (string) wp_json_encode( $anthropic_body ),
 			]
 		);
 
@@ -5928,7 +5928,7 @@ Assistant: %s',
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
 				],
-				'body'      => (string) wp_json_encode( $google_body ),
+				'body'    => (string) wp_json_encode( $google_body ),
 			]
 		);
 

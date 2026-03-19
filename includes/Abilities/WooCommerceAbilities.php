@@ -442,7 +442,13 @@ class WooGetProductsAbility extends AbstractAbility {
 		$products = [];
 
 		if ( ! $result instanceof \stdClass ) {
-			return [ 'products' => [], 'total' => 0, 'total_pages' => 0, 'page' => $page, 'per_page' => $per_page ];
+			return [
+				'products'    => [],
+				'total'       => 0,
+				'total_pages' => 0,
+				'page'        => $page,
+				'per_page'    => $per_page,
+			];
 		}
 
 		foreach ( $result->products as $product ) {
@@ -1146,7 +1152,13 @@ class WooGetOrdersAbility extends AbstractAbility {
 		$orders = [];
 
 		if ( ! $result instanceof \stdClass ) {
-			return [ 'orders' => [], 'total' => 0, 'total_pages' => 0, 'page' => $page, 'per_page' => $per_page ];
+			return [
+				'orders'      => [],
+				'total'       => 0,
+				'total_pages' => 0,
+				'page'        => $page,
+				'per_page'    => $per_page,
+			];
 		}
 
 		foreach ( $result->orders as $order ) {

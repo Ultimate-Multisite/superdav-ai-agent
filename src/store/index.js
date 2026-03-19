@@ -43,6 +43,9 @@ const STORE_NAME = 'gratis-ai-agent';
 const MODEL_CONTEXT_WINDOWS = {
 	'claude-sonnet-4-20250514': 200000,
 	'claude-opus-4-20250115': 200000,
+	'gpt-4.1': 1000000,
+	'gpt-4.1-mini': 1000000,
+	'gpt-4.1-nano': 1000000,
 	'gpt-4o': 128000,
 	'gpt-4o-mini': 128000,
 };

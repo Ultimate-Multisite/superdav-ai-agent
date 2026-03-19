@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -158,6 +158,58 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 
 == Changelog ==
 
+= 1.2.0 =
+* New: Support all three official AI providers — OpenAI, Anthropic, and Google Gemini
+* New: Image and file upload support in chat messages
+* New: Spending limits and budget caps to control AI costs
+* New: Live streaming token counter and cost display during responses
+* New: Tiered model pricing display in the Settings model selector
+* New: GPT-4.1 family models (GPT-4.1, GPT-4.1-mini, GPT-4.1-nano); GPT-4.1-nano is now the default OpenAI model
+* New: Graceful fallback when tool calls exhaust max iterations
+* New: Suggestion cards on chat empty state
+* New: Search, category grouping, and collapsible sections in the Abilities settings tab
+* New: Auto-title sessions from the first message using AI
+* New: Shared conversations — multiple admins can view and continue the same session
+* New: Text-to-speech for AI responses (optional)
+* New: White-label branding support — custom agent name, colors, and logo
+* New: Google Search Console SEO insights abilities
+* New: Google Analytics 4 traffic analysis ability
+* New: Resale API proxy endpoint with usage tracking
+* New: YOLO mode toggle to skip all confirmations
+* New: Abilities Explorer admin page
+* New: AI image generation ability (DALL-E 3)
+* New: Agent builder UI — create specialized agents with custom prompts, tools, and models
+* New: Role-based AI permissions — restrict abilities by WordPress user role
+* New: Floating widget shown on frontend for logged-in admins
+* New: Resizable floating widget panel with keyboard shortcut
+* New: WooCommerce abilities — product CRUD, order queries, and store stats
+* New: Slack and Discord notification forwarding for automation results
+* New: Sortable, filterable DataTable rendering for tabular chat responses
+* New: Chart.js chart rendering in chat responses
+* New: Per-tool WordPress capabilities (gratis_ai_agent_tool_{name})
+* New: Site builder conversation flow — interview user then generate a full site
+* New: Site builder mode triggered on fresh WordPress installs
+* New: Changes Admin page — view diffs, revert changes, and export patches
+* New: CodeMirror 6 syntax highlighting in chat code blocks
+* New: Webhook API — trigger AI conversations from external systems
+* New: Push-to-talk speech-to-text via browser Web Speech API
+* New: MCP server — expose abilities as MCP tools for external AI clients
+* New: Mobile slide-out drawer replacing stacked sidebar layout
+* New: Visible scroll affordance for settings tabs on touch devices
+* Enhancement: PHPStan level raised from 6 to 7
+* Enhancement: Improved multi-step agentic workflows
+* Enhancement: Configurable default model (replaces hardcoded fallback)
+* Enhancement: Secrets and PII redacted in change log before/after values
+* Enhancement: Stream error handling, timeout, and retry
+* Enhancement: Object-level permission check in post editing
+* Fix: Double /wp-admin/ URL in screen meta context
+* Fix: Discovery mode confusion in ToolDiscovery
+* Fix: Site builder overlay restricted to main AI Agent page
+* Fix: Non-static permission callback on /stream route
+* Fix: WP_Error return from get_the_terms() in WooCommerceAbilities
+* Fix: ShellCheck violations across all shell scripts
+* Fix: npm audit vulnerabilities (26 issues: 12 moderate, 14 high)
+
 = 1.1.0 =
 * New: Gutenberg block content generation — markdown-to-blocks converter, block discovery, and structured block creation
 * New: 7 block abilities — markdown-to-blocks, list-block-types, get-block-type, list-block-patterns, list-block-templates, create-block-content, parse-block-content
@@ -198,6 +250,9 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * WordPress 6.9 compatibility layer (bundles AI Client SDK)
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Major feature release: adds Google/Anthropic provider support, image uploads, spending limits, white-label branding, agent builder, role-based permissions, WooCommerce abilities, MCP server, and many more features. Database will upgrade automatically.
 
 = 1.1.0 =
 Adds Gutenberg block content generation, SEO/content/marketing abilities, WP-CLI command, and improved agent behavior. Database will upgrade automatically.

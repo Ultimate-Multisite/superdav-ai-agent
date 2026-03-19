@@ -11,51 +11,58 @@ $plugin_dir = dirname( __DIR__ );
 require_once $plugin_dir . '/vendor/autoload.php';
 
 /**
- * WP trunk PSR namespace compatibility shim.
+ * WP trunk PSR namespace compatibility shims.
  *
- * WP trunk's bundled php-ai-client scopes its PSR dependencies under
- * WordPress\AiClientDependencies\Psr\ (via a custom autoloader in
+ * WP trunk's bundled php-ai-client scopes its PSR and Nyholm dependencies
+ * under WordPress\AiClientDependencies\ (via a custom autoloader in
  * wp-includes/php-ai-client/autoload.php). The Composer-installed
- * wordpress/php-ai-client package uses the global Psr\ namespace.
+ * wordpress/php-ai-client package uses the global Psr\ and Nyholm\ namespaces.
  *
- * When both are present, Composer's autoloader wins the race for
- * WordPress\AiClient\Providers\Http\Contracts\ClientWithOptionsInterface
- * and registers it with global Psr\ type hints. WP trunk's adapter class
- * (class-wp-ai-client-http-client.php) then fails to implement it because
- * it uses WordPress\AiClientDependencies\Psr\ type hints — PHP fatal.
+ * When both are present, Composer's autoloader wins the race for two classes
+ * and registers them with global type hints. WP trunk's adapter classes then
+ * fail to implement/extend them because they use WordPress\AiClientDependencies\
+ * type hints — PHP fatal on every WP trunk test run.
  *
- * Fix: register a prepended autoloader that intercepts
- * ClientWithOptionsInterface and loads a shim that uses the scoped
- * WordPress\AiClientDependencies\Psr\ namespace. The shim is only loaded
- * when WP trunk's autoloader is already registered (i.e. when WP trunk is
- * the active WordPress install), so the scoped PSR types can be resolved.
+ * Affected classes:
+ *
+ * 1. WordPress\AiClient\Providers\Http\Contracts\ClientWithOptionsInterface
+ *    WP trunk's class-wp-ai-client-http-client.php implements this interface
+ *    using WordPress\AiClientDependencies\Psr\ type hints.
+ *
+ * 2. WordPress\AiClient\Providers\Http\Abstracts\AbstractClientDiscoveryStrategy
+ *    WP trunk's class-wp-ai-client-discovery-strategy.php extends this abstract
+ *    class using WordPress\AiClientDependencies\Nyholm\ and
+ *    WordPress\AiClientDependencies\Psr\ type hints.
+ *
+ * Fix: register a prepended autoloader that intercepts both classes and loads
+ * shims that use the scoped WordPress\AiClientDependencies\ namespace. Shims
+ * are only loaded when WP trunk's scoped PSR namespace is detectable
+ * (interface_exists check), so WP 6.9 tests are unaffected.
  *
  * The prepend=true flag ensures this autoloader runs before Composer's,
- * so the shim wins the race for the interface definition.
+ * so the shims win the race for the class/interface definitions.
  */
 spl_autoload_register(
 	static function ( string $class_name ) use ( $plugin_dir ): void {
-		if ( 'WordPress\\AiClient\\Providers\\Http\\Contracts\\ClientWithOptionsInterface' !== $class_name ) {
+		$shim_map = array(
+			'WordPress\\AiClient\\Providers\\Http\\Contracts\\ClientWithOptionsInterface'      => 'wp-trunk-client-with-options-interface.php',
+			'WordPress\\AiClient\\Providers\\Http\\Abstracts\\AbstractClientDiscoveryStrategy' => 'wp-trunk-abstract-client-discovery-strategy.php',
+		);
+
+		if ( ! isset( $shim_map[ $class_name ] ) ) {
 			return;
 		}
 
-		// Only activate the shim when WP trunk's scoped PSR autoloader is
-		// present. WP trunk registers its autoloader (which handles
-		// WordPress\AiClientDependencies\*) in wp-includes/php-ai-client/autoload.php,
-		// which runs before the adapter class files are loaded. By the time
-		// PHP resolves ClientWithOptionsInterface (triggered by the adapter
-		// class declaration), WP trunk's autoloader is already registered and
-		// can resolve WordPress\AiClientDependencies\Psr\Http\Message\RequestInterface.
-		//
-		// Detection: attempt to trigger WP trunk's autoloader for the scoped
-		// PSR RequestInterface. If it resolves, WP trunk is present and the
-		// shim is needed. On WP 6.9 (no WP trunk), the scoped namespace does
-		// not exist and interface_exists() returns false — fall through to Composer.
+		// Only activate shims when WP trunk's scoped PSR autoloader is present.
+		// WP trunk registers its autoloader (which handles WordPress\AiClientDependencies\*)
+		// in wp-includes/php-ai-client/autoload.php before adapter class files are loaded.
+		// On WP 6.9 (no WP trunk), the scoped namespace does not exist and
+		// interface_exists() returns false — fall through to Composer's autoloader.
 		if ( ! interface_exists( 'WordPress\\AiClientDependencies\\Psr\\Http\\Message\\RequestInterface' ) ) {
 			return;
 		}
 
-		require_once $plugin_dir . '/tests/stubs/wp-trunk-client-with-options-interface.php';
+		require_once $plugin_dir . '/tests/stubs/' . $shim_map[ $class_name ];
 	},
 	true,  // throw on error
 	true   // prepend — run before Composer's autoloader

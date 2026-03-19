@@ -144,13 +144,13 @@ class SeoAbilities {
 	 * @return array<string,mixed>|\WP_Error Audit results.
 	 */
 	public static function handle_audit_url( array $input ) {
-		$url = esc_url_raw( $input['url'] ?? '' );
+		$url = esc_url_raw( (string) ( $input['url'] ?? '' ) );
 
-		if ( empty( $url ) ) {
+		if ( empty( $url ) || ! wp_http_validate_url( $url ) ) {
 			return new \WP_Error( 'missing_url', 'url is required.' );
 		}
 
-		$response = wp_remote_get(
+		$response = wp_safe_remote_get(
 			$url,
 			[
 				'timeout'    => 15,
@@ -192,10 +192,14 @@ class SeoAbilities {
 
 		$issues = [];
 
-		libxml_use_internal_errors( true );
-		$doc = new \DOMDocument();
-		$doc->loadHTML( mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' ), LIBXML_NOERROR );
-		libxml_clear_errors();
+		$prev = libxml_use_internal_errors( true );
+		$doc  = new \DOMDocument();
+		try {
+			$doc->loadHTML( mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' ), LIBXML_NOERROR );
+		} finally {
+			libxml_clear_errors();
+			libxml_use_internal_errors( $prev );
+		}
 
 		$xpath = new \DOMXPath( $doc );
 

@@ -72,11 +72,45 @@ class StockImageAbilities {
 					],
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_import' ],
-				'permission_callback' => function () {
-					return current_user_can( 'upload_files' );
-				},
+				'permission_callback' => [ __CLASS__, 'check_permission' ],
 			]
 		);
+	}
+
+	/**
+	 * Permission callback: check upload_files on the target blog, not just the current one.
+	 *
+	 * On multisite, a user who can upload on site A but not site B must not be
+	 * allowed to import media into site B by passing its URL.
+	 *
+	 * @param array<string,mixed> $input Input with optional site_url.
+	 * @return bool Whether the current user can upload files on the target blog.
+	 */
+	public static function check_permission( array $input ): bool {
+		$site_url = (string) ( $input['site_url'] ?? '' );
+
+		if ( '' === $site_url || ! is_multisite() ) {
+			return current_user_can( 'upload_files' );
+		}
+
+		$blog_id = get_blog_id_from_url(
+			wp_parse_url( $site_url, PHP_URL_HOST ),
+			wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+		);
+
+		if ( ! $blog_id ) {
+			return false;
+		}
+
+		if ( (int) $blog_id === get_current_blog_id() ) {
+			return current_user_can( 'upload_files' );
+		}
+
+		switch_to_blog( $blog_id );
+		$allowed = current_user_can( 'upload_files' );
+		restore_current_blog();
+
+		return $allowed;
 	}
 
 	/**

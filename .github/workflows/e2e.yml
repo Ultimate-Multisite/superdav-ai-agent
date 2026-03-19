@@ -117,6 +117,12 @@ jobs:
           # even after the transient expires (belt-and-suspenders).
           npx wp-env run cli wp post create --post_title='E2E Test Post' \
             --post_status=publish --post_type=post
+
+          # Create the second admin user required by shared-conversations.spec.js.
+          # Done here (not in test.beforeAll) so WP_ENV_HOME is available and
+          # wp-env can locate its docker-compose.yml.
+          npx wp-env run cli wp user create admin2 admin2@example.com \
+            --role=administrator --user_pass=password2 --skip-email || true
         env:
           WP_ENV_HOME: /tmp/wp-env
 

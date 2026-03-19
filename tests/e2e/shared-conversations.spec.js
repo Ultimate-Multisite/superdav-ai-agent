@@ -12,8 +12,9 @@
  * -------------------
  * Playwright's `browser.newContext()` creates an isolated browser context with
  * its own cookies/storage, allowing two simultaneous admin sessions in one test
- * run. The second admin user (`admin2`) is created via `wp-env run cli` in
- * `test.beforeAll` so it exists for the lifetime of the suite.
+ * run. The second admin user (`admin2`) is provisioned by the CI workflow's
+ * "Configure plugin for E2E tests" step (e2e.yml) before tests run, so
+ * WP_ENV_HOME is available and wp-env can locate its docker-compose.yml.
  *
  * REST API interception
  * ---------------------
@@ -26,7 +27,6 @@
  */
 
 const { test, expect } = require( '@playwright/test' );
-const { execSync } = require( 'child_process' );
 const {
 	loginToWordPress,
 	goToAgentPage,
@@ -38,7 +38,6 @@ const {
 
 const SECOND_ADMIN_USER = 'admin2';
 const SECOND_ADMIN_PASS = 'password2';
-const SECOND_ADMIN_EMAIL = 'admin2@example.com';
 
 /** Fake session returned by the intercepted sessions endpoint. */
 const MOCK_SESSION = {
@@ -52,33 +51,6 @@ const MOCK_SESSION = {
 	created_at: '2026-01-01T00:00:00',
 	updated_at: '2026-01-01T00:00:00',
 };
-
-// ---------------------------------------------------------------------------
-// Suite-level setup: create the second admin user once
-// ---------------------------------------------------------------------------
-
-test.beforeAll( () => {
-	// Check whether admin2 already exists before attempting to create it.
-	// This makes the setup idempotent: safe on both fresh and re-run environments.
-	let userExists = false;
-	try {
-		execSync(
-			`npx wp-env run cli wp user get ${ SECOND_ADMIN_USER } --field=user_login`,
-			{ stdio: 'pipe' }
-		);
-		userExists = true;
-	} catch {
-		// Non-zero exit means the user does not exist yet — proceed to create.
-		userExists = false;
-	}
-
-	if ( ! userExists ) {
-		execSync(
-			`npx wp-env run cli wp user create ${ SECOND_ADMIN_USER } ${ SECOND_ADMIN_EMAIL } --role=administrator --user_pass=${ SECOND_ADMIN_PASS } --skip-email`,
-			{ stdio: 'pipe' }
-		);
-	}
-} );
 
 // ---------------------------------------------------------------------------
 // Helpers

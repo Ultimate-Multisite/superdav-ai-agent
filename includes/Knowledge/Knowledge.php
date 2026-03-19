@@ -152,7 +152,7 @@ class Knowledge {
 		}
 
 		$hash  = md5( $content );
-		$title = get_the_title( $attachment_id ) ?: basename( get_attached_file( $attachment_id ) );
+		$title = get_the_title( $attachment_id ) ?: basename( (string) get_attached_file( $attachment_id ) );
 
 		// Check for existing source.
 		$existing = KnowledgeDatabase::find_source( $collection_id, 'attachment', $attachment_id );

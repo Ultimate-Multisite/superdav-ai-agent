@@ -35,7 +35,7 @@ class PlaceholderResolver {
 				// Direct lookup.
 				if ( isset( $context[ $key ] ) ) {
 					$val = $context[ $key ];
-					return is_scalar( $val ) ? (string) $val : wp_json_encode( $val );
+					return is_scalar( $val ) ? (string) $val : (string) wp_json_encode( $val );
 				}
 
 				// Dot-notation traversal.
@@ -51,7 +51,7 @@ class PlaceholderResolver {
 							return $matches[0]; // Leave as-is.
 						}
 					}
-					return is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+					return is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
 				}
 
 				return $matches[0];
@@ -227,7 +227,7 @@ class PlaceholderResolver {
 		}
 
 		$order = wc_get_order( $hook_args[0] );
-		if ( $order ) {
+		if ( $order instanceof \WC_Order ) {
 			$context['order'] = [
 				'id'     => $order->get_id(),
 				'total'  => $order->get_total(),
@@ -255,7 +255,7 @@ class PlaceholderResolver {
 		}
 
 		$product = $hook_args[0];
-		if ( is_object( $product ) && method_exists( $product, 'get_name' ) ) {
+		if ( $product instanceof \WC_Product ) {
 			$context['product'] = [
 				'id'    => $product->get_id(),
 				'name'  => $product->get_name(),

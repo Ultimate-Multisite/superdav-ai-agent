@@ -441,6 +441,16 @@ class WooGetProductsAbility extends AbstractAbility {
 		$result   = wc_get_products( $args );
 		$products = [];
 
+		if ( ! $result instanceof \stdClass ) {
+			return [
+				'products'    => [],
+				'total'       => 0,
+				'total_pages' => 0,
+				'page'        => $page,
+				'per_page'    => $per_page,
+			];
+		}
+
 		foreach ( $result->products as $product ) {
 			$products[] = WooCommerceAbilities::serialize_product( $product );
 		}
@@ -1141,6 +1151,16 @@ class WooGetOrdersAbility extends AbstractAbility {
 		$result = wc_get_orders( $args );
 		$orders = [];
 
+		if ( ! $result instanceof \stdClass ) {
+			return [
+				'orders'      => [],
+				'total'       => 0,
+				'total_pages' => 0,
+				'page'        => $page,
+				'per_page'    => $per_page,
+			];
+		}
+
 		foreach ( $result->orders as $order ) {
 			if ( $order instanceof \WC_Order ) {
 				$orders[] = WooCommerceAbilities::serialize_order( $order );
@@ -1258,7 +1278,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 		$total_shipping = 0.0;
 		$product_sales  = [];
 
-		foreach ( $revenue_order_ids as $oid ) {
+		foreach ( is_array( $revenue_order_ids ) ? $revenue_order_ids : [] as $oid ) {
 			$order = wc_get_order( $oid );
 			if ( ! $order instanceof \WC_Order ) {
 				continue;
@@ -1302,7 +1322,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 			$ids        = wc_get_orders( $count_args );
 			// Strip the "wc-" prefix for cleaner output.
 			$clean_status                  = ltrim( $status_key, 'wc-' );
-			$order_counts[ $clean_status ] = count( $ids );
+			$order_counts[ $clean_status ] = is_array( $ids ) ? count( $ids ) : 0;
 		}
 
 		$total_orders = array_sum( $order_counts );
@@ -1319,7 +1339,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 		$unique_customers = [];
 		$guest_orders     = 0;
 
-		foreach ( $all_period_ids as $oid ) {
+		foreach ( is_array( $all_period_ids ) ? $all_period_ids : [] as $oid ) {
 			$order = wc_get_order( $oid );
 			if ( ! $order instanceof \WC_Order ) {
 				continue;

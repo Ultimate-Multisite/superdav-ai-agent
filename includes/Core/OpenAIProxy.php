@@ -370,7 +370,9 @@ class OpenAIProxy {
 	 * @return SimpleAiResult|WP_Error
 	 */
 	private function parse_response( $response ) {
+		/** @phpstan-ignore-next-line */
 		$code = wp_remote_retrieve_response_code( $response );
+		/** @phpstan-ignore-next-line */
 		$body = wp_remote_retrieve_body( $response );
 		$data = json_decode( $body, true );
 

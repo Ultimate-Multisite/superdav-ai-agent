@@ -259,9 +259,9 @@ class EventTriggerHandler {
 		if ( ! empty( $conditions['role'] ) ) {
 			$user = null;
 			if ( isset( $context['user_id'] ) ) {
-				$user = get_userdata( $context['user_id'] );
+				$user = get_userdata( (int) $context['user_id'] );
 			} elseif ( isset( $hook_args[0] ) && is_numeric( $hook_args[0] ) ) {
-				$user = get_userdata( $hook_args[0] );
+				$user = get_userdata( (int) $hook_args[0] );
 			}
 
 			if ( $user && ! in_array( $conditions['role'], $user->roles, true ) ) {

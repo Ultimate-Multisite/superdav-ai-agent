@@ -51,7 +51,7 @@ class Chunker {
 		$paragraphs = preg_split( '/\n\s*\n/', $text );
 		$segments   = [];
 
-		foreach ( $paragraphs as $para ) {
+		foreach ( $paragraphs ?: [] as $para ) {
 			$para = trim( $para );
 			if ( empty( $para ) ) {
 				continue;

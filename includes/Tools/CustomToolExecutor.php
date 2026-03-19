@@ -146,7 +146,7 @@ class CustomToolExecutor {
 		];
 
 		if ( null !== $body ) {
-			$args['body'] = $body;
+			$args['body'] = (string) $body;
 		}
 
 		$response = wp_remote_request( $url, $args );
@@ -284,12 +284,13 @@ class CustomToolExecutor {
 	public static function replace_placeholders( string $template, array $input ): string {
 		return preg_replace_callback(
 			'/\{\{(\w[\w.]*)\}\}/',
+			/** @phpstan-ignore-next-line */
 			function ( $matches ) use ( $input ) {
 				$key = $matches[1];
 
 				// Direct key lookup.
 				if ( isset( $input[ $key ] ) ) {
-					return is_scalar( $input[ $key ] ) ? (string) $input[ $key ] : wp_json_encode( $input[ $key ] );
+					return is_scalar( $input[ $key ] ) ? (string) $input[ $key ] : (string) wp_json_encode( $input[ $key ] );
 				}
 
 				// Dot-notation traversal.

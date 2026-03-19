@@ -17,6 +17,7 @@ import DebugPanel from './debug-panel';
 import ActionCard from './action-card';
 import { getBranding } from '../utils/branding';
 import useTextToSpeech from './use-text-to-speech';
+import { MessageTokenAnnotation } from './token-counter';
 
 /**
  * Parse suggestion chips from the end of a model response.
@@ -150,6 +151,7 @@ export default function MessageList() {
 		ttsRate,
 		ttsPitch,
 		streamError,
+		messageTokens,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -165,6 +167,7 @@ export default function MessageList() {
 			ttsRate: store.getTtsRate(),
 			ttsPitch: store.getTtsPitch(),
 			streamError: store.hasStreamError(),
+			messageTokens: store.getMessageTokens(),
 		};
 	}, [] );
 
@@ -241,27 +244,29 @@ export default function MessageList() {
 		}
 	}, [ ttsEnabled, cancel ] );
 
-	const visibleMessages = messages.filter( ( msg ) => {
+	// Build visible messages with their original indices for token lookup.
+	const visibleMessages = messages.reduce( ( acc, msg, originalIndex ) => {
 		// Skip function-role messages (tool responses).
 		if ( msg.role === 'function' ) {
-			return false;
+			return acc;
 		}
 		// Skip model messages that only have function calls and no text.
 		if ( msg.role === 'model' ) {
 			const text = extractText( msg );
 			if ( ! text ) {
-				return false;
+				return acc;
 			}
 		}
-		return true;
-	} );
+		acc.push( { msg, originalIndex } );
+		return acc;
+	}, [] );
 
 	return (
 		<div className="ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
 				<div className="ai-agent-empty-state">{ greeting }</div>
 			) }
-			{ visibleMessages.map( ( msg, i ) => {
+			{ visibleMessages.map( ( { msg, originalIndex }, i ) => {
 				const rawText = extractText( msg );
 				if ( ! rawText ) {
 					return null;
@@ -287,7 +292,17 @@ export default function MessageList() {
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
 						<MessageBubble role={ msg.role } text={ cleanText } />
-						<MessageActions message={ msg } index={ i } />
+						<MessageActions
+							message={ msg }
+							index={ originalIndex }
+						/>
+						{ isModel && (
+							<MessageTokenAnnotation
+								tokenData={
+									messageTokens[ originalIndex ] || null
+								}
+							/>
+						) }
 						{ debugMode && isModel && msg.debug && (
 							<DebugPanel debug={ msg.debug } />
 						) }

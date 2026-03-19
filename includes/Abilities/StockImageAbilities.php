@@ -94,8 +94,8 @@ class StockImageAbilities {
 		}
 
 		$blog_id = get_blog_id_from_url(
-			wp_parse_url( $site_url, PHP_URL_HOST ),
-			wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+			(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+			(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 		);
 
 		if ( ! $blog_id ) {
@@ -138,8 +138,8 @@ class StockImageAbilities {
 
 		if ( ! empty( $site_url ) && is_multisite() ) {
 			$blog_id = get_blog_id_from_url(
-				wp_parse_url( $site_url, PHP_URL_HOST ),
-				wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 			);
 
 			if ( $blog_id && $blog_id !== get_current_blog_id() ) {

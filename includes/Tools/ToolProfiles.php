@@ -138,7 +138,7 @@ class ToolProfiles {
 	 * @return string
 	 */
 	public static function export(): string {
-		return wp_json_encode( self::list(), JSON_PRETTY_PRINT );
+		return (string) wp_json_encode( self::list(), JSON_PRETTY_PRINT );
 	}
 
 	/**

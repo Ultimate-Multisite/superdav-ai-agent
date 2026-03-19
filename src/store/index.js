@@ -97,6 +97,13 @@ const DEFAULT_STATE = {
 	// Token usage (current session)
 	tokenUsage: { prompt: 0, completion: 0 },
 
+	// Live token counter (t111) — accumulated from done events.
+	sessionTokens: 0,
+	sessionCost: 0,
+	// Per-message token data: array of { prompt, completion, cost } indexed by
+	// message position. Populated when a done event arrives.
+	messageTokens: [],
+
 	// Pending confirmation (Batch 8)
 	pendingConfirmation: null,
 
@@ -357,6 +364,39 @@ const actions = {
 	 */
 	setTokenUsage( tokenUsage ) {
 		return { type: 'SET_TOKEN_USAGE', tokenUsage };
+	},
+
+	// ─── Live token counter (t111) ───────────────────────────────
+
+	/**
+	 * Accumulate session-level token counts and cost from a done event.
+	 *
+	 * @param {number} tokens - Total tokens for this exchange (prompt + completion).
+	 * @param {number} cost   - Estimated cost in USD for this exchange.
+	 * @return {Object} Redux action.
+	 */
+	accumulateSessionTokens( tokens, cost ) {
+		return { type: 'ACCUMULATE_SESSION_TOKENS', tokens, cost };
+	},
+
+	/**
+	 * Record per-message token data at the given message index.
+	 *
+	 * @param {number} index     - Message index in currentSessionMessages.
+	 * @param {Object} tokenData - { prompt, completion, cost } for this message.
+	 * @return {Object} Redux action.
+	 */
+	setMessageTokens( index, tokenData ) {
+		return { type: 'SET_MESSAGE_TOKENS', index, tokenData };
+	},
+
+	/**
+	 * Reset session token counters (called when a new session starts).
+	 *
+	 * @return {Object} Redux action.
+	 */
+	resetSessionTokens() {
+		return { type: 'RESET_SESSION_TOKENS' };
 	},
 
 	/**
@@ -724,6 +764,8 @@ const actions = {
 				if ( session.token_usage ) {
 					dispatch.setTokenUsage( session.token_usage );
 				}
+				// Reset live counter when switching sessions.
+				dispatch.resetSessionTokens();
 			} catch {
 				// ignore
 			}
@@ -1433,6 +1475,24 @@ const actions = {
 						current.completion +
 						( doneMetadata.token_usage.completion || 0 ),
 				} );
+
+				// Live token counter (t111).
+				const tu = doneMetadata.token_usage;
+				const totalTokens = ( tu.prompt || 0 ) + ( tu.completion || 0 );
+				const cost = doneMetadata.cost_estimate || 0;
+				dispatch.accumulateSessionTokens( totalTokens, cost );
+
+				// Record per-message token data at the index of the message
+				// we just appended (last in the list after appendMessage).
+				const msgs = select.getCurrentSessionMessages();
+				const msgIndex = msgs.length - 1;
+				if ( msgIndex >= 0 ) {
+					dispatch.setMessageTokens( msgIndex, {
+						prompt: tu.prompt || 0,
+						completion: tu.completion || 0,
+						cost,
+					} );
+				}
 			}
 
 			// Optimistically update the session title in the sidebar when the
@@ -1762,6 +1822,26 @@ const actions = {
 									current.completion +
 									( result.token_usage.completion || 0 ),
 							} );
+
+							// Live token counter (t111).
+							const tu = result.token_usage;
+							const totalTokens =
+								( tu.prompt || 0 ) + ( tu.completion || 0 );
+							const cost = result.cost_estimate || 0;
+							dispatch.accumulateSessionTokens(
+								totalTokens,
+								cost
+							);
+
+							const msgs = select.getCurrentSessionMessages();
+							const msgIndex = msgs.length - 1;
+							if ( msgIndex >= 0 ) {
+								dispatch.setMessageTokens( msgIndex, {
+									prompt: tu.prompt || 0,
+									completion: tu.completion || 0,
+									cost,
+								} );
+							}
 						}
 
 						// Optimistically update the session title in the sidebar
@@ -2136,6 +2216,7 @@ const actions = {
 				// Send the summary as the first message in the new session.
 				dispatch.setCurrentSession( session.id, [], [] );
 				dispatch.setTokenUsage( { prompt: 0, completion: 0 } );
+				dispatch.resetSessionTokens();
 				dispatch.sendMessage(
 					'Please provide a concise summary of this conversation so we can continue in a fresh context:\n\n' +
 						summaryText
@@ -2529,6 +2610,32 @@ const selectors = {
 		return state.tokenUsage;
 	},
 
+	// Live token counter (t111)
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number} Accumulated session token count (prompt + completion).
+	 */
+	getSessionTokens( state ) {
+		return state.sessionTokens;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {number} Accumulated session cost estimate in USD.
+	 */
+	getSessionCost( state ) {
+		return state.sessionCost;
+	},
+
+	/**
+	 * @param {StoreState} state
+	 * @return {Array} Per-message token data array.
+	 */
+	getMessageTokens( state ) {
+		return state.messageTokens;
+	},
+
 	// Streaming
 
 	/**
@@ -2689,6 +2796,9 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 				currentSessionMessages: [],
 				currentSessionToolCalls: [],
 				tokenUsage: { prompt: 0, completion: 0 },
+				sessionTokens: 0,
+				sessionCost: 0,
+				messageTokens: [],
 			};
 		case 'SET_SENDING':
 			return { ...state, sending: action.sending };
@@ -2756,6 +2866,24 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 			return { ...state, selectedAgentId: action.agentId };
 		case 'SET_TOKEN_USAGE':
 			return { ...state, tokenUsage: action.tokenUsage };
+		case 'ACCUMULATE_SESSION_TOKENS':
+			return {
+				...state,
+				sessionTokens: state.sessionTokens + action.tokens,
+				sessionCost: state.sessionCost + action.cost,
+			};
+		case 'SET_MESSAGE_TOKENS': {
+			const newMessageTokens = [ ...state.messageTokens ];
+			newMessageTokens[ action.index ] = action.tokenData;
+			return { ...state, messageTokens: newMessageTokens };
+		}
+		case 'RESET_SESSION_TOKENS':
+			return {
+				...state,
+				sessionTokens: 0,
+				sessionCost: 0,
+				messageTokens: [],
+			};
 		case 'SET_SESSION_FILTER':
 			return { ...state, sessionFilter: action.filter };
 		case 'SET_SESSION_FOLDER':

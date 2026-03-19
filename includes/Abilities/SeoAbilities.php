@@ -173,7 +173,7 @@ class SeoAbilities {
 			];
 		}
 
-		return self::parse_seo_elements( $url, $status_code, $body );
+		return self::parse_seo_elements( $url, (int) $status_code, $body );
 	}
 
 	/**
@@ -239,7 +239,7 @@ class SeoAbilities {
 
 		// Canonical.
 		$canonical_nodes     = $xpath->query( '//link[@rel="canonical"]' );
-		$result['canonical'] = $canonical_nodes->length > 0
+		$result['canonical'] = ( $canonical_nodes && $canonical_nodes->length > 0 )
 			? $canonical_nodes->item( 0 )->getAttribute( 'href' )
 			: null;
 		if ( empty( $result['canonical'] ) ) {
@@ -280,7 +280,7 @@ class SeoAbilities {
 		// Open Graph.
 		$og       = [];
 		$og_nodes = $xpath->query( '//meta[starts-with(@property, "og:")]' );
-		foreach ( $og_nodes as $node ) {
+		foreach ( $og_nodes ?: [] as $node ) {
 			$og[ $node->getAttribute( 'property' ) ] = $node->getAttribute( 'content' );
 		}
 		$result['open_graph'] = $og;
@@ -291,7 +291,8 @@ class SeoAbilities {
 		// Structured data (JSON-LD).
 		$jsonld       = [];
 		$script_nodes = $xpath->query( '//script[@type="application/ld+json"]' );
-		foreach ( $script_nodes as $script ) {
+		foreach ( $script_nodes ?: [] as $script ) {
+			/** @phpstan-ignore-next-line */
 			$decoded = json_decode( $script->textContent, true );
 			if ( $decoded ) {
 				$jsonld[] = $decoded['@type'] ?? 'Unknown';
@@ -314,7 +315,7 @@ class SeoAbilities {
 	 */
 	private static function get_meta_content( \DOMXPath $xpath, string $name ): ?string {
 		$nodes = $xpath->query( '//meta[@name="' . $name . '"]' );
-		if ( $nodes->length > 0 ) {
+		if ( $nodes && $nodes->length > 0 ) {
 			return $nodes->item( 0 )->getAttribute( 'content' );
 		}
 		return null;
@@ -339,8 +340,8 @@ class SeoAbilities {
 
 		if ( ! empty( $site_url ) && is_multisite() ) {
 			$blog_id = get_blog_id_from_url(
-				wp_parse_url( $site_url, PHP_URL_HOST ),
-				wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 			);
 
 			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
@@ -454,7 +455,7 @@ class SeoAbilities {
 
 		// Readability (average sentence length).
 		$sentences      = preg_split( '/[.!?]+/', $plain, -1, PREG_SPLIT_NO_EMPTY );
-		$sentence_count = count( $sentences );
+		$sentence_count = is_array( $sentences ) ? count( $sentences ) : 0;
 		if ( $sentence_count > 0 ) {
 			$avg_sentence_len              = $word_count / $sentence_count;
 			$result['avg_sentence_length'] = round( $avg_sentence_len, 1 );

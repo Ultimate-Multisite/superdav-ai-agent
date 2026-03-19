@@ -384,9 +384,11 @@ class ContextProviders {
 			'Memory Limit' => ini_get( 'memory_limit' ),
 		];
 
-		if ( ! empty( $wpdb->db_server_info ) ) {
+		if ( method_exists( $wpdb, 'db_server_info' ) ) {
+			/** @phpstan-ignore-next-line */
 			$data['MySQL Version'] = $wpdb->db_server_info();
 		} elseif ( method_exists( $wpdb, 'db_version' ) ) {
+			/** @phpstan-ignore-next-line */
 			$data['MySQL Version'] = $wpdb->db_version();
 		}
 

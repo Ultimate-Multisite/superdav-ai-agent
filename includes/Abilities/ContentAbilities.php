@@ -134,8 +134,8 @@ class ContentAbilities {
 
 		if ( ! empty( $site_url ) && is_multisite() ) {
 			$blog_id = get_blog_id_from_url(
-				wp_parse_url( $site_url, PHP_URL_HOST ),
-				wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 			);
 
 			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
@@ -277,8 +277,8 @@ class ContentAbilities {
 
 		if ( ! empty( $site_url ) && is_multisite() ) {
 			$blog_id = get_blog_id_from_url(
-				wp_parse_url( $site_url, PHP_URL_HOST ),
-				wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 			);
 
 			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
@@ -303,7 +303,7 @@ class ContentAbilities {
 	 * @return array<string,mixed> Report data.
 	 */
 	private static function generate_performance_report( int $days ): array {
-		$after_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$after_date = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 
 		// Published posts in period.
 		$published = get_posts(
@@ -381,7 +381,7 @@ class ContentAbilities {
 		}
 
 		// Previous period for comparison.
-		$prev_after     = gmdate( 'Y-m-d H:i:s', strtotime( '-' . ( $days * 2 ) . ' days' ) );
+		$prev_after     = gmdate( 'Y-m-d H:i:s', (int) strtotime( '-' . ( $days * 2 ) . ' days' ) );
 		$prev_before    = $after_date;
 		$prev_published = get_posts(
 			[

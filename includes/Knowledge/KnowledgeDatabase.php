@@ -532,7 +532,7 @@ class KnowledgeDatabase {
 		// Build boolean mode search terms: prefix each word with +.
 		$words         = preg_split( '/\s+/', trim( $query ) );
 		$boolean_terms = [];
-		foreach ( $words as $word ) {
+		foreach ( $words ?: [] as $word ) {
 			$word = preg_replace( '/[^\w]/', '', $word );
 			if ( strlen( $word ) > 1 ) {
 				$boolean_terms[] = '+' . $word . '*';

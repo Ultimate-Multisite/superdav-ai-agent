@@ -18,6 +18,7 @@ import MessageInput from './message-input';
 import ContextIndicator from './context-indicator';
 import ToolConfirmationDialog from './tool-confirmation-dialog';
 import { isTTSSupported } from './use-text-to-speech';
+import TokenCounter from './token-counter';
 
 /**
  * Speaker icon SVG for the TTS toggle button.
@@ -139,6 +140,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 						compact={ compact }
 						onSlashCommand={ onSlashCommand }
 					/>
+					<TokenCounter />
 				</ErrorBoundary>
 				{ pendingConfirmation && ! yoloMode && (
 					<ToolConfirmationDialog

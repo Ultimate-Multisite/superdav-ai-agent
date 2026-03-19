@@ -617,8 +617,8 @@ class BlockAbilities {
 
 		if ( ! empty( $site_url ) && is_multisite() ) {
 			$blog_id = get_blog_id_from_url(
-				wp_parse_url( $site_url, PHP_URL_HOST ),
-				wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/'
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
 			);
 
 			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
@@ -871,7 +871,7 @@ class BlockAbilities {
 	/**
 	 * Clean up parsed blocks from parse_blocks(), removing empty freeform blocks.
 	 *
-	 * @param array<int,mixed> $blocks Parsed blocks from parse_blocks().
+	 * @param array<int|string,mixed> $blocks Parsed blocks from parse_blocks().
 	 * @return array<int,mixed> Cleaned block tree.
 	 */
 	private static function clean_parsed_blocks( array $blocks ): array {

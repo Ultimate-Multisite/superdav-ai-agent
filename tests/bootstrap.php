@@ -66,7 +66,21 @@ spl_autoload_register(
 		// in wp-includes/php-ai-client/autoload.php before adapter class files are loaded.
 		// On WP 6.9 (no WP trunk), the scoped namespace does not exist and
 		// interface_exists() returns false — fall through to Composer's autoloader.
-		if ( ! interface_exists( 'WordPress\\AiClientDependencies\\Psr\\Http\\Message\\RequestInterface' ) ) {
+		//
+		// Detection is per-shim: each shim checks for the scoped counterpart of the
+		// interface/class it is replacing. This avoids a race condition where the
+		// generic RequestInterface guard returns false for the CacheInterface shim
+		// because WP trunk's scoped RequestInterface hasn't been loaded yet at the
+		// point AiClient::setCache() triggers autoloading of Psr\SimpleCache\CacheInterface.
+		// The second argument (false) prevents recursive autoloading during the check.
+		$scoped_guard_map = array(
+			'WordPress\\AiClient\\Providers\\Http\\Contracts\\ClientWithOptionsInterface'      => 'WordPress\\AiClientDependencies\\Psr\\Http\\Message\\RequestInterface',
+			'WordPress\\AiClient\\Providers\\Http\\Abstracts\\AbstractClientDiscoveryStrategy' => 'WordPress\\AiClientDependencies\\Psr\\Http\\Message\\RequestInterface',
+			'Psr\\SimpleCache\\CacheInterface'                                                 => 'WordPress\\AiClientDependencies\\Psr\\SimpleCache\\CacheInterface',
+		);
+
+		$guard_interface = $scoped_guard_map[ $class_name ];
+		if ( ! interface_exists( $guard_interface, false ) ) {
 			return;
 		}
 

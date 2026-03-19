@@ -111,7 +111,7 @@ The Gratis AI Agent discovers abilities at runtime from any plugin that register
 = Requirements =
 
 * WordPress 6.9 or higher
-* PHP 7.4 or higher
+* PHP 8.2 or higher
 * An AI provider connector plugin registered through the WordPress Connectors API
 * An API key from your chosen AI provider (OpenAI, Anthropic, etc.)
 

@@ -51,8 +51,20 @@ class Settings {
 	const DIRECT_PROVIDERS = [
 		'openai'    => [
 			'name'          => 'OpenAI',
-			'default_model' => 'gpt-4o',
+			'default_model' => 'gpt-4.1-nano',
 			'models'        => [
+				[
+					'id'   => 'gpt-4.1-nano',
+					'name' => 'GPT-4.1 Nano',
+				],
+				[
+					'id'   => 'gpt-4.1-mini',
+					'name' => 'GPT-4.1 Mini',
+				],
+				[
+					'id'   => 'gpt-4.1',
+					'name' => 'GPT-4.1',
+				],
 				[
 					'id'   => 'gpt-4o',
 					'name' => 'GPT-4o',

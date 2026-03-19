@@ -66,7 +66,7 @@
   - Integrations tab has both "Save GA Credentials" and "Save Settings" buttons
   - Confusing for users — consolidate into a single save action or clarify the difference
 
-- [ ] t101 Fix Integrations tab "Save GA Credentials" button red text styling @superdav42 #ui ~0.5h
+- [x] t101 Fix Integrations tab "Save GA Credentials" button red text styling @superdav42 #ui ~0.5h pr:#529 completed:2026-03-19
   - The button has red text which looks like a destructive/danger action
   - Should use standard primary/secondary button styling
 

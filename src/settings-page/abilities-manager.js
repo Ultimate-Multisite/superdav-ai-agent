@@ -8,7 +8,7 @@
 /**
  * WordPress dependencies
  */
-import { useState, useCallback, useMemo } from '@wordpress/element';
+import { useState, useEffect, useCallback, useMemo } from '@wordpress/element';
 import { SearchControl, SelectControl, Button } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 
@@ -48,6 +48,11 @@ function AbilityCategorySection( {
 	defaultOpen,
 } ) {
 	const [ open, setOpen ] = useState( defaultOpen );
+
+	// Sync open state when the parent changes defaultOpen (e.g. collapse/expand all).
+	useEffect( () => {
+		setOpen( defaultOpen );
+	}, [ defaultOpen ] );
 
 	// Count non-default (non-auto) permissions in this category.
 	const nonDefaultCount = abilities.filter( ( a ) => {

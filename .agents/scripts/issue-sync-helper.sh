@@ -30,8 +30,9 @@ _script_path="${BASH_SOURCE[0]%/*}"
 [[ "$_script_path" == "${BASH_SOURCE[0]}" ]] && _script_path="."
 SCRIPT_DIR="$(cd "$_script_path" && pwd)" || exit
 unset _script_path
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/shared-constants.sh"
-# shellcheck source=issue-sync-lib.sh
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/issue-sync-lib.sh"
 
 # =============================================================================
@@ -109,7 +110,7 @@ _gh_edit_labels() {
 	local IFS=','
 	for lbl in $labels; do [[ -n "$lbl" ]] && args+=("--${action}-label" "$lbl"); done
 	unset IFS
-	[[ ${#args[@]} -gt 0 ]] && gh issue edit "$num" --repo "$repo" "${args[@]}" 2>/dev/null || true
+	if [[ ${#args[@]} -gt 0 ]]; then gh issue edit "$num" --repo "$repo" "${args[@]}" 2>/dev/null; fi
 }
 
 gh_create_label() {
@@ -150,7 +151,7 @@ _mark_issue_done() {
 	done
 	gh_create_label "$repo" "status:done" "6F42C1" "Task is complete"
 	_gh_edit_labels "add" "$repo" "$num" "status:done"
-	[[ ${#remove_args[@]} -gt 0 ]] && gh issue edit "$num" --repo "$repo" "${remove_args[@]}" 2>/dev/null || true
+	if [[ ${#remove_args[@]} -gt 0 ]]; then gh issue edit "$num" --repo "$repo" "${remove_args[@]}" 2>/dev/null; fi
 }
 
 # =============================================================================

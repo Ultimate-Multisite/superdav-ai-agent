@@ -37,6 +37,7 @@ if [[ -z "${SCRIPT_DIR:-}" ]]; then
 	SCRIPT_DIR="$(cd "$_lib_path" && pwd)"
 	unset _lib_path
 fi
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/shared-constants.sh"
 
 # =============================================================================

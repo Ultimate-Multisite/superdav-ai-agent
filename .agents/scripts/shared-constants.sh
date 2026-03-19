@@ -1064,8 +1064,8 @@ backup_sqlite_db() {
 	# Fallback to file copy if .backup fails
 	if cp "$db_path" "$backup_file" 2>/dev/null; then
 		# Also copy WAL/SHM if present for consistency
-		[[ -f "${db_path}-wal" ]] && cp "${db_path}-wal" "${backup_file}-wal" 2>/dev/null || true
-		[[ -f "${db_path}-shm" ]] && cp "${db_path}-shm" "${backup_file}-shm" 2>/dev/null || true
+		if [[ -f "${db_path}-wal" ]]; then cp "${db_path}-wal" "${backup_file}-wal" 2>/dev/null; fi
+		if [[ -f "${db_path}-shm" ]]; then cp "${db_path}-shm" "${backup_file}-shm" 2>/dev/null; fi
 		echo "$backup_file"
 		return 0
 	fi
@@ -1180,12 +1180,12 @@ rollback_sqlite_db() {
 	fi
 
 	cp "$backup_path" "$db_path"
-	[[ -f "${backup_path}-wal" ]] && cp "${backup_path}-wal" "${db_path}-wal" 2>/dev/null || true
-	[[ -f "${backup_path}-shm" ]] && cp "${backup_path}-shm" "${db_path}-shm" 2>/dev/null || true
+	if [[ -f "${backup_path}-wal" ]]; then cp "${backup_path}-wal" "${db_path}-wal" 2>/dev/null; fi
+	if [[ -f "${backup_path}-shm" ]]; then cp "${backup_path}-shm" "${db_path}-shm" 2>/dev/null; fi
 
 	# Remove stale WAL/SHM if backup didn't have them
-	[[ ! -f "${backup_path}-wal" && -f "${db_path}-wal" ]] && rm -f "${db_path}-wal" 2>/dev/null || true
-	[[ ! -f "${backup_path}-shm" && -f "${db_path}-shm" ]] && rm -f "${db_path}-shm" 2>/dev/null || true
+	if [[ ! -f "${backup_path}-wal" && -f "${db_path}-wal" ]]; then rm -f "${db_path}-wal" 2>/dev/null; fi
+	if [[ ! -f "${backup_path}-shm" && -f "${db_path}-shm" ]]; then rm -f "${db_path}-shm" 2>/dev/null; fi
 
 	echo "[backup] Database restored from: $backup_path" >&2
 	return 0

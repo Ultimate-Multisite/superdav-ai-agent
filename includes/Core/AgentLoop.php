@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Core;
 
+use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Knowledge\Knowledge;
 use GratisAiAgent\Models\Memory;
@@ -155,6 +156,12 @@ class AgentLoop {
 				'gratis_ai_agent_missing_client',
 				__( 'The AI Client SDK is not available. Please check the compatibility layer.', 'gratis-ai-agent' )
 			);
+		}
+
+		// Check spending budget before making any API call.
+		$budget_check = BudgetManager::check_budget();
+		if ( is_wp_error( $budget_check ) ) {
+			return $budget_check;
 		}
 
 		// Ensure provider auth is available (critical for loopback requests).

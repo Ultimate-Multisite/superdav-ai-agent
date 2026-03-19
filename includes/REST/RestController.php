@@ -20,6 +20,7 @@ use GratisAiAgent\Automations\EventAutomations;
 use GratisAiAgent\Automations\EventTriggerRegistry;
 use GratisAiAgent\Automations\NotificationDispatcher;
 use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\Export;
@@ -1073,6 +1074,17 @@ class RestController {
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 				],
+			]
+		);
+
+		// Budget status endpoint.
+		register_rest_route(
+			self::NAMESPACE,
+			'/budget',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $instance, 'handle_get_budget' ],
+				'permission_callback' => [ $instance, 'check_permission' ],
 			]
 		);
 
@@ -4744,6 +4756,18 @@ class RestController {
 			],
 			200
 		);
+	}
+
+	// ─── Budget ──────────────────────────────────────────────────────
+
+	/**
+	 * Handle GET /budget — return current budget status.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response
+	 */
+	public function handle_get_budget( WP_REST_Request $request ): WP_REST_Response {
+		return rest_ensure_response( BudgetManager::get_status() );
 	}
 
 	// ─── Export / Import ─────────────────────────────────────────────

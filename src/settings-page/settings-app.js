@@ -630,6 +630,126 @@ export default function SettingsApp() {
 										) }
 										__nextHasNoMarginBottom
 									/>
+									<hr />
+									<h3>
+										{ __(
+											'Spending Limits',
+											'gratis-ai-agent'
+										) }
+									</h3>
+									<p className="description">
+										{ __(
+											'Set daily and monthly budget caps to prevent runaway API costs. Spend is estimated from the usage log.',
+											'gratis-ai-agent'
+										) }
+									</p>
+									<TextControl
+										label={ __(
+											'Daily Budget Cap (USD)',
+											'gratis-ai-agent'
+										) }
+										type="number"
+										min={ 0 }
+										step={ 0.01 }
+										value={ local.budget_daily_cap ?? '' }
+										onChange={ ( v ) =>
+											updateField(
+												'budget_daily_cap',
+												v === ''
+													? 0
+													: parseFloat( v ) || 0
+											)
+										}
+										placeholder="0.00"
+										help={ __(
+											'Maximum estimated spend per day in USD. Set to 0 for unlimited.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
+									<TextControl
+										label={ __(
+											'Monthly Budget Cap (USD)',
+											'gratis-ai-agent'
+										) }
+										type="number"
+										min={ 0 }
+										step={ 0.01 }
+										value={ local.budget_monthly_cap ?? '' }
+										onChange={ ( v ) =>
+											updateField(
+												'budget_monthly_cap',
+												v === ''
+													? 0
+													: parseFloat( v ) || 0
+											)
+										}
+										placeholder="0.00"
+										help={ __(
+											'Maximum estimated spend per month in USD. Set to 0 for unlimited.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
+									<RangeControl
+										label={ __(
+											'Warning Threshold (%)',
+											'gratis-ai-agent'
+										) }
+										value={
+											local.budget_warning_threshold ?? 80
+										}
+										onChange={ ( v ) =>
+											updateField(
+												'budget_warning_threshold',
+												v
+											)
+										}
+										min={ 50 }
+										max={ 99 }
+										step={ 1 }
+										help={ __(
+											'Show a warning banner when spend reaches this percentage of the cap.',
+											'gratis-ai-agent'
+										) }
+									/>
+									<SelectControl
+										label={ __(
+											'Action When Budget Exceeded',
+											'gratis-ai-agent'
+										) }
+										value={
+											local.budget_exceeded_action ||
+											'pause'
+										}
+										options={ [
+											{
+												label: __(
+													'Pause — block new requests',
+													'gratis-ai-agent'
+												),
+												value: 'pause',
+											},
+											{
+												label: __(
+													'Warn — show warning but allow',
+													'gratis-ai-agent'
+												),
+												value: 'warn',
+											},
+										] }
+										onChange={ ( v ) =>
+											updateField(
+												'budget_exceeded_action',
+												v
+											)
+										}
+										help={ __(
+											'"Pause" stops all new AI requests until the period resets. "Warn" shows a banner but still allows requests.',
+											'gratis-ai-agent'
+										) }
+										__nextHasNoMarginBottom
+									/>
 								</div>
 							);
 

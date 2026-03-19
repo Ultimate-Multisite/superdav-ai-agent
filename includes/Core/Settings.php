@@ -193,6 +193,11 @@ class Settings {
 			'brand_primary_color'      => '',
 			'brand_text_color'         => '',
 			'brand_logo_url'           => '',
+			// Spending limits / budget caps (t110).
+			'budget_daily_cap'         => 0.0,
+			'budget_monthly_cap'       => 0.0,
+			'budget_warning_threshold' => 80,
+			'budget_exceeded_action'   => 'pause',
 		];
 	}
 

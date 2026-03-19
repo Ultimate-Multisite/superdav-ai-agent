@@ -17,6 +17,7 @@ import MessageList from './message-list';
 import MessageInput from './message-input';
 import ContextIndicator from './context-indicator';
 import ToolConfirmationDialog from './tool-confirmation-dialog';
+import BudgetIndicator from './budget-indicator';
 import { isTTSSupported } from './use-text-to-speech';
 import TokenCounter from './token-counter';
 
@@ -100,6 +101,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 				<div className="gratis-ai-agent-header">
 					<ProviderSelector compact={ compact } />
 					<AgentSelector compact={ compact } />
+					<BudgetIndicator />
 					{ isTTSSupported && (
 						<Button
 							onClick={ handleTtsToggle }

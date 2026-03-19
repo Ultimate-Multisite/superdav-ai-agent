@@ -2,7 +2,7 @@
 
 ## Ready
 
-- [ ] t124 Prepare plugin for WordPress.org submission (review checklist) @superdav42 #devops ~4h ref=GH#591
+- [x] t124 Prepare plugin for WordPress.org submission (review checklist) @superdav42 #devops ~4h ref=GH#591 pr:#596 completed:2026-03-19
   - Run wp plugin check, audit sanitization/nonces/capabilities, add GPL headers, create screenshots, submit via SVN
 
 - [x] t125 Raise PHPStan level from 7 to 8 and fix new errors @superdav42 #quality ~3h ref=GH#592 pr:#595 completed:2026-03-19

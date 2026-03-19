@@ -61,7 +61,7 @@
   - After the first AI response, generate a short title from the conversation topic
   - Could use the AI to generate a 3-5 word title, or extract keywords from the first user message
 
-- [ ] t100 Consolidate duplicate save buttons on Permissions and Integrations tabs @superdav42 #ui ~1h
+- [x] t100 Consolidate duplicate save buttons on Permissions and Integrations tabs @superdav42 #ui ~1h pr:#527 completed:2026-03-19
   - Permissions tab has both "Save Permissions" and "Save Settings" buttons
   - Integrations tab has both "Save GA Credentials" and "Save Settings" buttons
   - Confusing for users — consolidate into a single save action or clarify the difference

@@ -58,17 +58,25 @@ const MOCK_SESSION = {
 // ---------------------------------------------------------------------------
 
 test.beforeAll( () => {
+	// Check whether admin2 already exists before attempting to create it.
+	// This makes the setup idempotent: safe on both fresh and re-run environments.
+	let userExists = false;
 	try {
+		execSync(
+			`npx wp-env run cli wp user get ${ SECOND_ADMIN_USER } --field=user_login`,
+			{ stdio: 'pipe' }
+		);
+		userExists = true;
+	} catch {
+		// Non-zero exit means the user does not exist yet — proceed to create.
+		userExists = false;
+	}
+
+	if ( ! userExists ) {
 		execSync(
 			`npx wp-env run cli wp user create ${ SECOND_ADMIN_USER } ${ SECOND_ADMIN_EMAIL } --role=administrator --user_pass=${ SECOND_ADMIN_PASS } --skip-email`,
 			{ stdio: 'pipe' }
 		);
-	} catch ( err ) {
-		// User may already exist from a previous run — that is fine.
-		const stderr = err.stderr?.toString() ?? '';
-		if ( ! stderr.includes( 'already registered' ) ) {
-			throw err;
-		}
 	}
 } );
 

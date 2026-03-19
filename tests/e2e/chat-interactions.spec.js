@@ -54,22 +54,22 @@ async function interceptWithGeneratedTitle( page, generatedTitle ) {
 	// /gratis-ai-agent/v1/sessions/123 — we must NOT intercept those.
 	// The regex matches /sessions followed by end-of-path or a query string,
 	// but not /sessions/ followed by more path segments.
+	// Intercept POST /sessions to capture the real session ID, and intercept
+	// GET /sessions (fetchSessions) to return the session with the generated title.
+	//
+	// Two separate routes are used:
+	//   1. POST /sessions — pass through to the real backend and capture the ID.
+	//   2. GET /sessions — return a fake response with the generated title.
+	//
+	// The glob '**/gratis-ai-agent/v1/sessions' matches the exact sessions list
+	// URL without query params. A second glob handles the query-string variant.
+
+	// Route 1: POST /sessions — pass through and capture session ID.
 	await page.route(
-		/gratis-ai-agent\/v1\/sessions(\?.*)?$/,
+		'**/gratis-ai-agent/v1/sessions',
 		async ( route ) => {
-			if ( route.request().method() === 'POST' ) {
-				// Let the real POST /sessions through so the session is created in
-				// the database (needed for the stream request to succeed).
-				const response = await route.fetch();
-				const body = await response.json();
-				if ( body?.id ) {
-					capturedSessionId = body.id;
-				}
-				await route.fulfill( { response } );
-			} else {
-				// GET /sessions (fetchSessions) — return a single session with the
-				// generated title so the sidebar shows the expected title after the
-				// stream completes.
+			if ( route.request().method() !== 'POST' ) {
+				// GET /sessions — return fake response with generated title.
 				await route.fulfill( {
 					status: 200,
 					headers: { 'Content-Type': 'application/json' },
@@ -83,6 +83,19 @@ async function interceptWithGeneratedTitle( page, generatedTitle ) {
 						},
 					] ),
 				} );
+				return;
+			}
+			// POST /sessions — pass through to the real backend.
+			try {
+				const response = await route.fetch();
+				const body = await response.json();
+				if ( body?.id ) {
+					capturedSessionId = body.id;
+				}
+				await route.fulfill( { response } );
+			} catch {
+				// If fetch fails, continue the request normally.
+				await route.continue();
 			}
 		}
 	);

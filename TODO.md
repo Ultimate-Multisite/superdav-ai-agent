@@ -8,7 +8,7 @@
 - [ ] t125 Raise PHPStan level from 7 to 8 and fix new errors @superdav42 #quality ~3h ref=GH#592
   - Continue quality ladder: t010 (5→6), t110 (6→7), now 7→8. Level 8 adds stricter generics/template type checks.
 
-- [ ] t126 Add Claude 3.5 Haiku and Gemini 2.0 Flash to model selector @superdav42 #feature ~2h ref=GH#593
+- [x] t126 Add Claude 3.5 Haiku and Gemini 2.0 Flash to model selector @superdav42 #feature ~2h ref=GH#593 pr:#594 completed:2026-03-19
   - claude-3-5-haiku-20241022 ($0.80/1M), gemini-2.0-flash ($0.10/1M), gemini-2.0-flash-lite ($0.075/1M)
   - Update CostCalculator pricing and Settings UI tier grouping
 

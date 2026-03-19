@@ -683,6 +683,62 @@
 	flex-shrink: 0;
 }
 
+/* ── Model pricing selector (t108) ─────────────────────────────────────── */
+
+.gratis-ai-agent-model-pricing-selector {
+	margin-bottom: 16px;
+}
+
+.gratis-ai-agent-model-pricing-selector .components-base-control {
+	margin-bottom: 4px;
+}
+
+/* Pricing hint line below the selector */
+.gratis-ai-agent-model-pricing-hint {
+	margin: 4px 0 0;
+	font-size: 12px;
+	color: #646970;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+	line-height: 1.5;
+}
+
+/* Tier badge */
+.gratis-ai-agent-model-pricing-hint__tier {
+	display: inline-block;
+	padding: 1px 7px;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.gratis-ai-agent-model-pricing-hint__tier--budget {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.gratis-ai-agent-model-pricing-hint__tier--standard {
+	background: #dbeafe;
+	color: #1e40af;
+}
+
+.gratis-ai-agent-model-pricing-hint__tier--premium {
+	background: #ede9fe;
+	color: #5b21b6;
+}
+
+.gratis-ai-agent-model-pricing-hint__prices {
+	color: #3c434a;
+}
+
+.gratis-ai-agent-model-pricing-hint__session {
+	color: #646970;
+}
+
 /* Greeting message preview */
 .gratis-ai-agent-branding-preview__greeting {
 	font-size: 13px;

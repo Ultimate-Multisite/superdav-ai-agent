@@ -9,6 +9,7 @@ import {
 	useMemo,
 } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
 /**
@@ -50,6 +51,7 @@ function AdminPageApp() {
 	const [ showOnboarding, setShowOnboarding ] = useState( false );
 	const [ showInterview, setShowInterview ] = useState( false );
 	const [ showShortcuts, setShowShortcuts ] = useState( false );
+	const [ sidebarOpen, setSidebarOpen ] = useState( false );
 
 	useEffect( () => {
 		fetchProviders();
@@ -147,9 +149,31 @@ function AdminPageApp() {
 
 	return (
 		<>
-			<div className="gratis-ai-agent-layout">
-				<SessionSidebar />
+			<div
+				className={ `gratis-ai-agent-layout${
+					sidebarOpen ? ' sidebar-is-open' : ''
+				}` }
+			>
+				{ /* Backdrop — tapping closes the drawer on mobile */ }
+				{ sidebarOpen && (
+					<div
+						className="gratis-ai-agent-sidebar-backdrop"
+						onClick={ () => setSidebarOpen( false ) }
+						aria-hidden="true"
+					/>
+				) }
+				<SessionSidebar onClose={ () => setSidebarOpen( false ) } />
 				<div className="gratis-ai-agent-main">
+					{ /* Hamburger button — visible only on mobile */ }
+					<button
+						type="button"
+						className="gratis-ai-agent-sidebar-toggle"
+						onClick={ () => setSidebarOpen( ( prev ) => ! prev ) }
+						aria-label={ __( 'Toggle sidebar', 'gratis-ai-agent' ) }
+						aria-expanded={ sidebarOpen }
+					>
+						<span aria-hidden="true">&#9776;</span>
+					</button>
 					<ChatPanel onSlashCommand={ handleSlashCommand } />
 				</div>
 			</div>

@@ -74,7 +74,7 @@
   - 18 tabs in the settings page — rightmost tabs (Integrations, Advanced) may be cut off at narrower viewports
   - Add horizontal scroll indicators or a responsive tab layout (dropdown on mobile)
 
-- [ ] t103 Frontend floating widget not rendering for logged-in admins @superdav42 #bug ~2h
+- [x] t103 Frontend floating widget not rendering for logged-in admins @superdav42 #bug ~2h pr:#526 completed:2026-03-19
   - Settings > General has "Show Widget on Frontend" toggle (currently off)
   - Even when the setting exists, the widget was not found in the DOM on the frontend
   - Verify the frontend enqueue hook fires correctly and the widget renders when enabled

@@ -13,6 +13,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 - [PR Workflow](#pr-workflow)
 - [Testing Requirements](#testing-requirements)
 - [Code Style Reference](#code-style-reference)
+- [WordPress.org Plugin Directory](#wordpressorg-plugin-directory)
 
 ---
 
@@ -464,6 +465,29 @@ export function MyComponent() {
 - One `style.css` per component, co-located with the component file
 - Use CSS custom properties for colours and spacing
 - Follow `@wordpress/stylelint-config` rules (BEM-like selectors, no IDs)
+
+---
+
+## WordPress.org Plugin Directory
+
+The plugin is distributed through the [WordPress.org plugin directory](https://wordpress.org/plugins/gratis-ai-agent/).
+Releases are published via SVN after passing the WP.org review process.
+
+For the complete submission and release workflow — including the initial review
+submission, SVN checkout, trunk deployment, and version tagging — see
+[docs/wordpress-org-submission.md](docs/wordpress-org-submission.md).
+
+### Quick reference: releasing a new version
+
+```bash
+# 1. Update Version: in gratis-ai-agent.php and Stable tag: in readme.txt
+# 2. Add changelog entry to readme.txt
+
+# 3. Deploy to WP.org SVN (requires prior SVN checkout)
+bin/deploy-wporg.sh --version X.Y.Z --username YOUR_WP_USERNAME
+```
+
+See `bin/deploy-wporg.sh --help` for all options, including `--dry-run`.
 
 ---
 

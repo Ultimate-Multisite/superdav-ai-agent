@@ -1738,6 +1738,21 @@ body.tools_page_ai-agent #wpbody-content > .updated {
 	border-top: 1px solid #dcdcde;
 }
 
+/* Large-screen bubble width — prevent bubbles from stretching too wide */
+@media (min-width: 1200px) {
+
+	.ai-agent-bubble {
+		max-width: min(90%, 900px);
+	}
+}
+
+@media (min-width: 1600px) {
+
+	.ai-agent-bubble {
+		max-width: min(92%, 1100px);
+	}
+}
+
 /* Responsive */
 @media (max-width: 900px) {
 

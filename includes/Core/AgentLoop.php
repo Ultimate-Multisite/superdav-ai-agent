@@ -271,6 +271,40 @@ class AgentLoop {
 					$reply = '';
 				}
 
+				// If the response is empty or whitespace-only after tool results,
+				// inject a follow-up user message asking the AI to summarize.
+				// This handles models that silently return an empty text turn
+				// after processing tool results instead of providing a summary.
+				// Guard: only attempt if we have at least one iteration remaining
+				// to avoid consuming the last slot and returning empty anyway.
+				if ( '' === trim( $reply ) && $iterations > 0 ) {
+					$this->history[] = new UserMessage(
+						[
+							new MessagePart(
+								__(
+									'Please summarize the tool results for the user and provide your final response.',
+									'gratis-ai-agent'
+								)
+							),
+						]
+					);
+
+					++$this->iterations_used;
+					$followup_result = $this->send_prompt();
+
+					if ( ! is_wp_error( $followup_result ) ) {
+						$followup_message = $followup_result->toMessage();
+						$this->history[]  = $followup_message;
+						$this->accumulate_tokens( $followup_result );
+
+						try {
+							$reply = $followup_result->toText();
+						} catch ( \RuntimeException $e ) {
+							$reply = '';
+						}
+					}
+				}
+
 				return array(
 					'reply'           => $reply,
 					'history'         => $this->serialize_history(),
@@ -1826,7 +1860,8 @@ class AgentLoop {
 			. "1. **Act, don't ask.** Execute the task right away. Don't ask \"shall I proceed?\" or request confirmation unless the task is destructive (deleting data, dropping tables).\n"
 			. "2. **Generate real content.** When creating pages or posts, write substantial, realistic content (3+ paragraphs). Never use placeholder text like \"Lorem ipsum\" or \"Content goes here\".\n"
 			. "3. **Use tools directly.** Call tools immediately — don't describe what you would do.\n"
-			. "4. **Call all needed tools in one response.** When a task requires multiple tools (e.g. create a post AND find an image), call them all at once.\n\n"
+			. "4. **Call all needed tools in one response.** When a task requires multiple tools (e.g. create a post AND find an image), call them all at once.\n"
+			. "5. **After receiving tool results, ALWAYS provide a text response summarizing the results for the user.** Never return an empty response after tool calls.\n\n"
 			. "## Content Creation (IMPORTANT)\n"
 			. "To create any page or blog post, use `ai-agent/create-post`. This is the ONLY tool you need.\n"
 			. "- For pages: set `post_type` to `page`.\n"

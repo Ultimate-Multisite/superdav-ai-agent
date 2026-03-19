@@ -13,7 +13,6 @@ const {
 	goToAgentPage,
 	getMessageInput,
 	getSendButton,
-	getStopButton,
 	getChatPanel,
 	getMessageList,
 } = require( './utils/wp-admin' );
@@ -108,15 +107,14 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Test message' );
 		await input.press( 'Enter' );
 
-		// Wait for input to clear (message submitted synchronously).
-		await expect( input ).toHaveValue( '' );
-
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). New Chat works regardless of sending state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message bubble to appear in the message list.
+		// This is synchronous — the store appends the user message to the UI
+		// before any async REST calls, so it appears regardless of WP version
+		// or API availability. We use this instead of waiting for the stop
+		// button, which depends on sending=true persisting long enough to
+		// render — unreliable on WP trunk where REST calls may resolve faster.
+		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
+		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
 
 		// Click new chat.
 		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
@@ -134,21 +132,22 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Create a session' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created via POST /sessions (which happens before
-		// the background job is spawned). The session list is refreshed after
-		// session creation, so the sidebar item should appear shortly after.
-		// We do NOT wait for the send button to reappear because the background
-		// job may not complete in CI (no AI provider configured).
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message bubble to appear — this is synchronous and
+		// confirms the message was submitted to the UI. The store appends the
+		// user message before any async REST calls, so this is reliable across
+		// all WP versions. We use this instead of waiting for the stop button,
+		// which depends on sending=true persisting long enough to render and is
+		// unreliable on WP trunk where REST calls may resolve faster.
+		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
+		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
 
 		// At least one session item should appear in the sidebar.
-		// Use toBeVisible() on the first item rather than toHaveCount(1) because
-		// prior tests in the same run may have created sessions that persist in
-		// the wp-env database across tests.
+		// POST /sessions is called after the user message is appended, so the
+		// session item may take a moment to appear. Use toBeVisible() on the
+		// first item rather than toHaveCount(1) because prior tests in the same
+		// run may have created sessions that persist in the wp-env database.
 		const sessionItems = page.locator( '.ai-agent-session-item' );
-		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
 
@@ -163,13 +162,14 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		await input.fill( 'Some text' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the message was submitted. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). The Ctrl+N shortcut works regardless of sending
-		// state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message bubble to appear — this is synchronous and
+		// confirms the message was submitted to the UI. The store appends the
+		// user message before any async REST calls, so this is reliable across
+		// all WP versions. We use this instead of waiting for the stop button,
+		// which depends on sending=true persisting long enough to render and is
+		// unreliable on WP trunk where REST calls may resolve faster.
+		const userBubble = page.locator( '.ai-agent-bubble.ai-agent-user' );
+		await expect( userBubble.first() ).toBeVisible( { timeout: 5_000 } );
 
 		// Trigger new chat shortcut.
 		await page.keyboard.press( 'ControlOrMeta+n' );

@@ -143,6 +143,13 @@ class WP_AI_Client_Ability_Function_Resolver {
 
 		$raw_args = $call->getArgs();
 
+		// Normalize empty array to stdClass so the WP Abilities API receives an
+		// object (as the JSON schema expects) rather than an array. AI models
+		// sometimes send [] instead of {} for tools with no required parameters.
+		if ( is_array( $raw_args ) && empty( $raw_args ) ) {
+			$raw_args = new \stdClass();
+		}
+
 		// Fire before-hooks and allow args to be filtered.
 		if ( class_exists( 'GratisAiAgent\\Core\\AbilityHooks' ) ) {
 			// Check if the ability should be blocked.

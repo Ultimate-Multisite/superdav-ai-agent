@@ -38,7 +38,9 @@ const PRICING = {
 	'o3-mini': [ 1.1, 4.4 ],
 	'o4-mini': [ 1.1, 4.4 ],
 	o3: [ 10.0, 40.0 ],
-	// Gemini models.
+	// Gemini models (OpenRouter IDs use google/ prefix).
+	'google/gemini-2.5-flash-preview': [ 0.3, 2.5 ],
+	'google/gemini-2.5-flash-lite-preview': [ 0.1, 0.4 ],
 	'gemini-2.0-flash': [ 0.1, 0.4 ],
 	'gemini-2.0-flash-lite': [ 0.075, 0.3 ],
 	'gemini-2.5-pro-preview-05-06': [ 1.25, 10.0 ],
@@ -163,10 +165,22 @@ const MODEL_CATALOG = [
 		note: __( 'best value', 'gratis-ai-agent' ),
 	},
 	{
+		id: 'google/gemini-2.5-flash-lite-preview',
+		provider: 'google',
+		name: 'Gemini 2.5 Flash Lite',
+		note: __( 'budget', 'gratis-ai-agent' ),
+	},
+	{
 		id: 'gemini-2.0-flash',
 		provider: 'google',
 		name: 'Gemini 2.0 Flash',
 		note: __( 'fast & affordable', 'gratis-ai-agent' ),
+	},
+	{
+		id: 'google/gemini-2.5-flash-preview',
+		provider: 'google',
+		name: 'Gemini 2.5 Flash',
+		note: __( 'fast & capable', 'gratis-ai-agent' ),
 	},
 	{
 		id: 'gemini-1.5-flash',

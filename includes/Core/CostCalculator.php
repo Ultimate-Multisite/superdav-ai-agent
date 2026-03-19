@@ -36,12 +36,14 @@ class CostCalculator {
 		'o3'                        => [ 10.00, 40.00 ],
 		'o3-mini'                   => [ 1.10, 4.40 ],
 		'o4-mini'                   => [ 1.10, 4.40 ],
-		// Gemini models.
-		'gemini-2.0-flash'          => [ 0.10, 0.40 ],
-		'gemini-2.0-flash-lite'     => [ 0.075, 0.30 ],
-		'gemini-2.5-pro'            => [ 1.25, 10.00 ],
-		'gemini-1.5-pro'            => [ 1.25, 5.00 ],
-		'gemini-1.5-flash'          => [ 0.075, 0.30 ],
+		// Gemini models (OpenRouter IDs use google/ prefix).
+		'google/gemini-2.5-flash-preview'      => [ 0.30, 2.50 ],
+		'google/gemini-2.5-flash-lite-preview' => [ 0.10, 0.40 ],
+		'gemini-2.0-flash'                     => [ 0.10, 0.40 ],
+		'gemini-2.0-flash-lite'                => [ 0.075, 0.30 ],
+		'gemini-2.5-pro'                       => [ 1.25, 10.00 ],
+		'gemini-1.5-pro'                       => [ 1.25, 5.00 ],
+		'gemini-1.5-flash'                     => [ 0.075, 0.30 ],
 	];
 
 	/**

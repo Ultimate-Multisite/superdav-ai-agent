@@ -135,6 +135,14 @@ class Settings {
 					'name' => 'Gemini 2.5 Pro',
 				],
 				[
+					'id'   => 'google/gemini-2.5-flash-preview',
+					'name' => 'Gemini 2.5 Flash',
+				],
+				[
+					'id'   => 'google/gemini-2.5-flash-lite-preview',
+					'name' => 'Gemini 2.5 Flash Lite',
+				],
+				[
 					'id'   => 'gemini-2.0-flash',
 					'name' => 'Gemini 2.0 Flash',
 				],

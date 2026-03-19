@@ -27,9 +27,13 @@ class AbilityDiscoveryAbilities {
 
 	/**
 	 * Register ability discovery abilities on init.
+	 *
+	 * Priority 999 ensures all other abilities are registered first, so
+	 * should_use_discovery_mode() sees the complete ability count when deciding
+	 * whether to register the discovery meta-tools.
 	 */
 	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
+		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ], 999 );
 	}
 
 	// ─── Static proxy methods (for backwards-compatible test access) ─────────
@@ -90,6 +94,13 @@ class AbilityDiscoveryAbilities {
 	 */
 	public static function register_abilities(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return;
+		}
+
+		// Skip registration when discovery mode is not active.
+		// When all tools are loaded directly (priority categories cover everything),
+		// these meta-tools confuse the AI into searching instead of using tools directly.
+		if ( ! \GratisAiAgent\Tools\ToolDiscovery::should_use_discovery_mode() ) {
 			return;
 		}
 

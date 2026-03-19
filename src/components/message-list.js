@@ -7,6 +7,63 @@ import { __ } from '@wordpress/i18n';
 import { Button, Spinner } from '@wordpress/components';
 
 /**
+ * Suggestion cards shown in the empty state welcome screen.
+ * Each card has a title, description, and the prompt text to send on click.
+ *
+ * @type {Array<{title: string, description: string, prompt: string}>}
+ */
+const SUGGESTION_CARDS = [
+	{
+		title: __( 'Check site health', 'gratis-ai-agent' ),
+		description: __(
+			'Run a full health check and surface any issues.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'Check site health', 'gratis-ai-agent' ),
+	},
+	{
+		title: __( 'List plugins', 'gratis-ai-agent' ),
+		description: __(
+			'Show all installed plugins and their status.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'List installed plugins', 'gratis-ai-agent' ),
+	},
+	{
+		title: __( 'Create a blog post', 'gratis-ai-agent' ),
+		description: __(
+			'Draft a new post with a title, content, and tags.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'Create a blog post', 'gratis-ai-agent' ),
+	},
+	{
+		title: __( 'Run security check', 'gratis-ai-agent' ),
+		description: __(
+			'Scan for vulnerabilities and security misconfigurations.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'Run a security check', 'gratis-ai-agent' ),
+	},
+	{
+		title: __( 'Analyze SEO', 'gratis-ai-agent' ),
+		description: __(
+			'Review SEO settings and suggest improvements.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'Analyze SEO', 'gratis-ai-agent' ),
+	},
+	{
+		title: __( 'Check for updates', 'gratis-ai-agent' ),
+		description: __(
+			'List available plugin, theme, and core updates.',
+			'gratis-ai-agent'
+		),
+		prompt: __( 'Check for updates', 'gratis-ai-agent' ),
+	},
+];
+
+/**
  * Internal dependencies
  */
 import STORE_NAME from '../store';
@@ -53,14 +110,49 @@ function parseSuggestions( text ) {
 }
 
 /**
+ * Renders inline image attachments for a user message.
+ *
+ * @param {Object} props             - Component props.
+ * @param {Array}  props.attachments - Array of attachment objects with dataUrl/name.
+ * @return {JSX.Element|null} The attachment images, or null when empty.
+ */
+function MessageAttachments( { attachments } ) {
+	if ( ! attachments?.length ) {
+		return null;
+	}
+
+	return (
+		<div className="ai-agent-message-attachments">
+			{ attachments.map( ( att, i ) => (
+				<a
+					key={ i }
+					href={ att.dataUrl || att.image_url }
+					target="_blank"
+					rel="noopener noreferrer"
+					className="ai-agent-message-attachment-link"
+					aria-label={ att.name || att.image_name }
+				>
+					<img
+						src={ att.dataUrl || att.image_url }
+						alt={ att.name || att.image_name || '' }
+						className="ai-agent-message-attachment-img"
+					/>
+				</a>
+			) ) }
+		</div>
+	);
+}
+
+/**
  * Renders a single message bubble with role-appropriate styling.
  *
- * @param {Object} props      - Component props.
- * @param {string} props.role - Message role: 'user', 'model', or 'system'.
- * @param {string} props.text - Rendered text content (markdown for model messages).
+ * @param {Object} props             - Component props.
+ * @param {string} props.role        - Message role: 'user', 'model', or 'system'.
+ * @param {string} props.text        - Rendered text content (markdown for model messages).
+ * @param {Array}  props.attachments - Optional image attachments for user messages.
  * @return {JSX.Element} The message bubble element.
  */
-function MessageBubble( { role, text } ) {
+function MessageBubble( { role, text, attachments } ) {
 	const classMap = {
 		user: 'ai-agent-bubble ai-agent-user',
 		model: 'ai-agent-bubble ai-agent-assistant',
@@ -71,6 +163,15 @@ function MessageBubble( { role, text } ) {
 		return (
 			<div className={ classMap.model }>
 				<MarkdownMessage content={ text } />
+			</div>
+		);
+	}
+
+	if ( role === 'user' ) {
+		return (
+			<div className={ classMap.user }>
+				<MessageAttachments attachments={ attachments } />
+				{ text }
 			</div>
 		);
 	}
@@ -105,6 +206,48 @@ function SuggestionChips( { suggestions, onSelect } ) {
 					{ suggestion }
 				</Button>
 			) ) }
+		</div>
+	);
+}
+
+/**
+ * Rich welcome screen shown when the chat has no messages yet.
+ * Displays a greeting and 6 clickable suggestion cards.
+ *
+ * @param {Object}   props          - Component props.
+ * @param {string}   props.greeting - Greeting text shown above the cards.
+ * @param {Function} props.onSelect - Called with the prompt text when a card is clicked.
+ * @return {JSX.Element} The empty state welcome element.
+ */
+function EmptyStateWelcome( { greeting, onSelect } ) {
+	return (
+		<div className="ai-agent-empty-state">
+			<div className="ai-agent-welcome">
+				<p className="ai-agent-welcome__greeting">{ greeting }</p>
+				<div className="ai-agent-welcome__grid">
+					{ SUGGESTION_CARDS.map( ( card, i ) => (
+						<button
+							key={ i }
+							type="button"
+							className="ai-agent-welcome__card"
+							onClick={ () => onSelect( card.prompt ) }
+						>
+							<span className="ai-agent-welcome__card-title">
+								{ card.title }
+							</span>
+							<span className="ai-agent-welcome__card-desc">
+								{ card.description }
+							</span>
+						</button>
+					) ) }
+				</div>
+				<p className="ai-agent-welcome__hint">
+					{ __(
+						'Or type a message below to ask anything.',
+						'gratis-ai-agent'
+					) }
+				</p>
+			</div>
 		</div>
 	);
 }
@@ -264,7 +407,10 @@ export default function MessageList() {
 	return (
 		<div className="ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
-				<div className="ai-agent-empty-state">{ greeting }</div>
+				<EmptyStateWelcome
+					greeting={ greeting }
+					onSelect={ sendMessage }
+				/>
 			) }
 			{ visibleMessages.map( ( { msg, originalIndex }, i ) => {
 				const rawText = extractText( msg );
@@ -291,7 +437,11 @@ export default function MessageList() {
 						{ msg.toolCalls?.length > 0 && (
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
-						<MessageBubble role={ msg.role } text={ cleanText } />
+						<MessageBubble
+							role={ msg.role }
+							text={ cleanText }
+							attachments={ msg.attachments }
+						/>
 						<MessageActions
 							message={ msg }
 							index={ originalIndex }

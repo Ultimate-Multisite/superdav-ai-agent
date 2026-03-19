@@ -129,12 +129,13 @@ export default function SessionContextMenu( {
 	}
 
 	return (
-		<div className="ai-agent-context-menu" ref={ menuRef }>
+		<div className="ai-agent-context-menu" ref={ menuRef } role="menu">
 			{ ! isTrashed && (
 				<>
 					{ isOwner && (
 						<button
 							type="button"
+							role="menuitem"
 							onClick={ () => setIsRenaming( true ) }
 						>
 							{ __( 'Rename', 'gratis-ai-agent' ) }
@@ -142,6 +143,7 @@ export default function SessionContextMenu( {
 					) }
 					<button
 						type="button"
+						role="menuitem"
 						onClick={ () => {
 							pinSession( sessionId, ! isPinned );
 							onClose();
@@ -154,6 +156,7 @@ export default function SessionContextMenu( {
 					{ isOwner && (
 						<button
 							type="button"
+							role="menuitem"
 							onClick={ () => setShowFolderPicker( true ) }
 						>
 							{ __( 'Move to Folder', 'gratis-ai-agent' ) }
@@ -161,6 +164,7 @@ export default function SessionContextMenu( {
 					) }
 					<button
 						type="button"
+						role="menuitem"
 						onClick={ () => {
 							exportSession( sessionId, 'json' );
 							onClose();
@@ -171,6 +175,7 @@ export default function SessionContextMenu( {
 					{ isOwner && (
 						<button
 							type="button"
+							role="menuitem"
 							onClick={ () => {
 								if ( isShared ) {
 									unshareSession( sessionId );
@@ -191,6 +196,7 @@ export default function SessionContextMenu( {
 			{ isOwner && ! isArchived && ! isTrashed && (
 				<button
 					type="button"
+					role="menuitem"
 					onClick={ () => {
 						archiveSession( sessionId );
 						onClose();
@@ -202,6 +208,7 @@ export default function SessionContextMenu( {
 			{ isOwner && ( isArchived || isTrashed ) && (
 				<button
 					type="button"
+					role="menuitem"
 					onClick={ () => {
 						restoreSession( sessionId );
 						onClose();
@@ -213,6 +220,7 @@ export default function SessionContextMenu( {
 			{ isOwner && ! isTrashed && (
 				<button
 					type="button"
+					role="menuitem"
 					className="ai-agent-context-menu-danger"
 					onClick={ () => {
 						trashSession( sessionId );

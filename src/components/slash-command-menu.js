@@ -139,15 +139,24 @@ export default function SlashCommandMenu( {
 		return null;
 	}
 
+	const activeId = filtered[ selectedIndex ]
+		? `ai-agent-slash-option-${ filtered[ selectedIndex ].action }`
+		: undefined;
+
 	return (
 		<div
 			className="ai-agent-slash-menu"
 			ref={ menuRef }
+			role="listbox"
+			aria-label={ __( 'Slash commands', 'gratis-ai-agent' ) }
+			aria-activedescendant={ activeId }
+			tabIndex={ -1 }
 			style={ position ? { bottom: position.bottom } : {} }
 		>
 			{ filtered.map( ( cmd, i ) => (
 				<div
 					key={ cmd.name }
+					id={ `ai-agent-slash-option-${ cmd.action }` }
 					role="option"
 					aria-selected={ i === selectedIndex }
 					tabIndex={ 0 }

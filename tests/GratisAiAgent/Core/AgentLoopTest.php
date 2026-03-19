@@ -576,10 +576,14 @@ class AgentLoopTest extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test run() returns WP_Error when max iterations are exhausted.
+	 * Test run() triggers the graceful fallback when max iterations are exhausted
+	 * with only tool calls. The fallback send_prompt() also returns a tool call
+	 * (no text), so toText() throws and reply is empty — but the result is still
+	 * a success array, not a WP_Error.
 	 */
 	public function test_run_exhausts_max_iterations(): void {
-		// Always return a tool call so the loop never terminates naturally.
+		// Always return a tool call so the loop never terminates naturally and
+		// the fallback summarization prompt also gets a tool-call response.
 		add_filter(
 			'pre_http_request',
 			static function ( $preempt, $args, $url ) {
@@ -629,6 +633,83 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$loop   = new AgentLoop( 'Loop forever', [], [], [ 'max_iterations' => 2 ] );
 		$result = $loop->run();
 
+		// The graceful fallback fires after the loop exhausts. The fallback
+		// send_prompt() also returns a tool call (no text), so toText() throws
+		// and reply is ''. The result is a success array, not a WP_Error.
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'reply', $result );
+		$this->assertArrayHasKey( 'tool_calls', $result );
+		$this->assertArrayHasKey( 'iterations_used', $result );
+		// 2 loop iterations + 1 fallback call = 3.
+		$this->assertSame( 3, $result['iterations_used'] );
+	}
+
+	/**
+	 * Test run() returns WP_Error when max iterations are exhausted AND the
+	 * graceful fallback send_prompt() itself fails (e.g. network error).
+	 */
+	public function test_run_exhausts_max_iterations_fallback_fails(): void {
+		// Use a counter so the first N requests return tool calls and the
+		// (N+1)th (the fallback) returns a network failure.
+		$call_count = 0;
+
+		$tool_call_body = wp_json_encode(
+			[
+				'id'      => 'chatcmpl-loop',
+				'object'  => 'chat.completion',
+				'choices' => [
+					[
+						'index'         => 0,
+						'message'       => [
+							'role'       => 'assistant',
+							'content'    => null,
+							'tool_calls' => [
+								[
+									'id'       => 'call_loop',
+									'type'     => 'function',
+									'function' => [
+										'name'      => 'wpab__gratis-ai-agent__memory-list',
+										'arguments' => '{}',
+									],
+								],
+							],
+						],
+						'finish_reason' => 'tool_calls',
+					],
+				],
+				'usage'   => [ 'prompt_tokens' => 5, 'completion_tokens' => 5, 'total_tokens' => 10 ],
+			]
+		);
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( $tool_call_body, &$call_count ) {
+				if ( false !== strpos( $url, 'fake-ai-proxy.test' ) ) {
+					++$call_count;
+					// First 2 calls: tool call responses (loop iterations).
+					// 3rd call: network failure (fallback prompt).
+					if ( $call_count <= 2 ) {
+						return [
+							'headers'  => [ 'content-type' => 'application/json' ],
+							'body'     => $tool_call_body,
+							'response' => [ 'code' => 200, 'message' => 'OK' ],
+							'cookies'  => [],
+							'filename' => '',
+						];
+					}
+					return new \WP_Error( 'http_request_failed', 'cURL error: connection refused' );
+				}
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		// Use max_iterations = 2 to keep the test fast.
+		$loop   = new AgentLoop( 'Loop forever', [], [], [ 'max_iterations' => 2 ] );
+		$result = $loop->run();
+
+		// Fallback failed → falls through to the WP_Error path.
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'gratis_ai_agent_max_iterations', $result->get_error_code() );
 
@@ -637,7 +718,8 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsArray( $data );
 		$this->assertArrayHasKey( 'tool_calls', $data );
 		$this->assertArrayHasKey( 'iterations_used', $data );
-		$this->assertSame( 2, $data['iterations_used'] );
+		// 2 loop iterations + 1 fallback attempt = 3.
+		$this->assertSame( 3, $data['iterations_used'] );
 	}
 
 	// -------------------------------------------------------------------------

@@ -18,13 +18,13 @@
 	position: relative;
 }
 
-/* Left fade indicator — visible when scrolled right */
+/* Left/right fade indicators — constrained to the tab bar row height */
 .gratis-ai-agent-tabs-scroll-wrapper::before,
 .gratis-ai-agent-tabs-scroll-wrapper::after {
 	content: "";
 	position: absolute;
 	top: 0;
-	bottom: 1px; /* sit above the border-bottom */
+	height: 36px; /* match tab bar row height, not the full wrapper */
 	width: 32px;
 	pointer-events: none;
 	z-index: 1;

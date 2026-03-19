@@ -545,6 +545,35 @@
 	cursor: help;
 }
 
+/* Budget indicator in chat header */
+.ai-agent-budget-indicator {
+	display: inline-block;
+	font-size: 10px;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: 3px;
+	margin-left: 8px;
+	vertical-align: middle;
+	line-height: 18px;
+	cursor: help;
+	white-space: nowrap;
+}
+
+.ai-agent-budget-indicator--ok {
+	background: rgba(255, 255, 255, 0.15);
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.ai-agent-budget-indicator--warning {
+	background: #dba617;
+	color: #fff;
+}
+
+.ai-agent-budget-indicator--exceeded {
+	background: #cc1818;
+	color: #fff;
+}
+
 /* TTS toggle button in chat header (floating widget) */
 .ai-agent-floating-panel .ai-agent-tts-btn {
 	min-width: auto;
@@ -844,6 +873,35 @@
 	height: 28px;
 	align-self: flex-end;
 	margin-bottom: 2px;
+}
+
+/* Floating panel: upload button */
+.ai-agent-floating-panel .ai-agent-upload-btn {
+	width: 28px;
+	height: 28px;
+	margin-bottom: 2px;
+}
+
+/* Floating panel: attachment thumbnail strip */
+.ai-agent-floating-panel .ai-agent-attachment-previews {
+	padding: 0 0 6px;
+	gap: 6px;
+}
+
+.ai-agent-floating-panel .ai-agent-attachment-thumb {
+	width: 56px;
+}
+
+.ai-agent-floating-panel .ai-agent-attachment-thumb__img,
+.ai-agent-floating-panel .ai-agent-attachment-thumb__file {
+	width: 56px;
+	height: 56px;
+}
+
+/* Floating panel: inline message images */
+.ai-agent-floating-panel .ai-agent-message-attachment-img {
+	max-width: 180px;
+	max-height: 180px;
 }
 
 /* Floating panel: template menu */

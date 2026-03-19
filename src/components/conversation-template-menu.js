@@ -31,18 +31,24 @@ const CATEGORY_LABELS = {
  * @param {Function} props.onSelect Called with the template prompt when selected.
  */
 function TemplateCard( { template, onSelect } ) {
+	const descId = template.id
+		? `gratis-ai-agent-template-desc-${ template.id }`
+		: undefined;
 	return (
 		<button
 			type="button"
 			className="gratis-ai-agent-template-card"
 			onClick={ () => onSelect( template ) }
-			title={ template.description }
+			aria-describedby={ template.description ? descId : undefined }
 		>
 			<span className="gratis-ai-agent-template-card__name">
 				{ template.name }
 			</span>
 			{ template.description && (
-				<span className="gratis-ai-agent-template-card__desc">
+				<span
+					id={ descId }
+					className="gratis-ai-agent-template-card__desc"
+				>
 					{ template.description }
 				</span>
 			) }

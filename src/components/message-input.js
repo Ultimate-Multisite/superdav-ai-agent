@@ -16,12 +16,139 @@ import SlashCommandMenu from './slash-command-menu';
 import useSpeechRecognition from './use-speech-recognition';
 import ConversationTemplateMenu from './conversation-template-menu';
 
+/** Maximum file size in bytes (10 MB). */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+/** Accepted image MIME types for vision models. */
+const ACCEPTED_IMAGE_TYPES = [
+	'image/jpeg',
+	'image/png',
+	'image/gif',
+	'image/webp',
+];
+
+/** Accepted document MIME types (text extraction fallback). */
+const ACCEPTED_DOC_TYPES = [ 'text/plain', 'text/csv', 'application/pdf' ];
+
+const ACCEPTED_TYPES = [ ...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_DOC_TYPES ];
+
 /**
- * Message input area with auto-resize, slash command menu, and send/stop controls.
+ * Read a File as a base64 data URL.
+ *
+ * @param {File} file - The file to read.
+ * @return {Promise<string>} Resolves with the data URL string.
+ */
+function readFileAsDataUrl( file ) {
+	return new Promise( ( resolve, reject ) => {
+		const reader = new FileReader();
+		reader.onload = ( e ) => resolve( e.target.result );
+		reader.onerror = () => reject( new Error( 'Failed to read file' ) );
+		reader.readAsDataURL( file );
+	} );
+}
+
+/**
+ * Validate a file against size and type constraints.
+ *
+ * @param {File} file - The file to validate.
+ * @return {string|null} Error message, or null if valid.
+ */
+function validateFile( file ) {
+	if ( file.size > MAX_FILE_SIZE ) {
+		return __( 'File exceeds 10 MB limit.', 'gratis-ai-agent' );
+	}
+	if ( ! ACCEPTED_TYPES.includes( file.type ) ) {
+		return __( 'Unsupported file type.', 'gratis-ai-agent' );
+	}
+	return null;
+}
+
+/**
+ * Paperclip icon SVG for the upload button.
+ *
+ * @return {JSX.Element} SVG element.
+ */
+function PaperclipIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			width="18"
+			height="18"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+		</svg>
+	);
+}
+
+/**
+ * Attachment thumbnail strip shown above the input when files are pending.
+ *
+ * @param {Object}   props             - Component props.
+ * @param {Array}    props.attachments - Array of attachment objects.
+ * @param {Function} props.onRemove    - Called with index to remove an attachment.
+ * @return {JSX.Element|null} The thumbnail strip, or null when empty.
+ */
+function AttachmentPreviews( { attachments, onRemove } ) {
+	if ( ! attachments.length ) {
+		return null;
+	}
+
+	return (
+		<div className="ai-agent-attachment-previews">
+			{ attachments.map( ( att, i ) => (
+				<div key={ i } className="ai-agent-attachment-thumb">
+					{ att.isImage ? (
+						<img
+							src={ att.dataUrl }
+							alt={ att.name }
+							className="ai-agent-attachment-thumb__img"
+						/>
+					) : (
+						<div className="ai-agent-attachment-thumb__file">
+							<span className="ai-agent-attachment-thumb__ext">
+								{ att.name.split( '.' ).pop().toUpperCase() }
+							</span>
+						</div>
+					) }
+					<span className="ai-agent-attachment-thumb__name">
+						{ att.name }
+					</span>
+					<button
+						type="button"
+						className="ai-agent-attachment-thumb__remove"
+						onClick={ () => onRemove( i ) }
+						aria-label={ __(
+							'Remove attachment',
+							'gratis-ai-agent'
+						) }
+					>
+						&times;
+					</button>
+				</div>
+			) ) }
+		</div>
+	);
+}
+
+/**
+ * Message input area with auto-resize, slash command menu, file upload, and send/stop controls.
  *
  * Handles the /remember and /forget slash commands locally; all other messages
  * are dispatched via streamMessage (when Fetch + ReadableStream are available)
  * or sendMessage (polling fallback).
+ *
+ * Supports image/file attachments via:
+ * - Drag-and-drop onto the input area
+ * - Clipboard paste (Ctrl+V / Cmd+V with image data)
+ * - Upload button (paperclip icon) opening a file picker
  *
  * @param {Object}   props                  - Component props.
  * @param {boolean}  [props.compact=false]  - Whether to render in compact mode.
@@ -33,7 +160,10 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 	const [ text, setText ] = useState( '' );
 	const [ showSlash, setShowSlash ] = useState( false );
 	const [ showTemplates, setShowTemplates ] = useState( false );
+	const [ attachments, setAttachments ] = useState( [] );
+	const [ isDragOver, setIsDragOver ] = useState( false );
 	const textareaRef = useRef( null );
+	const fileInputRef = useRef( null );
 	const sending = useSelect(
 		( select ) => select( STORE_NAME ).isSending(),
 		[]
@@ -89,9 +219,121 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		}
 	}, [ text ] );
 
+	/**
+	 * Process a list of File objects into attachment objects.
+	 *
+	 * @param {FileList|File[]} files - Files to process.
+	 */
+	const processFiles = useCallback(
+		async ( files ) => {
+			const fileArray = Array.from( files );
+			const newAttachments = [];
+
+			for ( const file of fileArray ) {
+				const error = validateFile( file );
+				if ( error ) {
+					if ( onSlashCommand ) {
+						onSlashCommand( 'notice', error );
+					}
+					continue;
+				}
+
+				try {
+					const dataUrl = await readFileAsDataUrl( file );
+					newAttachments.push( {
+						name: file.name,
+						type: file.type,
+						dataUrl,
+						isImage: ACCEPTED_IMAGE_TYPES.includes( file.type ),
+					} );
+				} catch {
+					if ( onSlashCommand ) {
+						onSlashCommand(
+							'notice',
+							__( 'Failed to read file.', 'gratis-ai-agent' )
+						);
+					}
+				}
+			}
+
+			if ( newAttachments.length ) {
+				setAttachments( ( prev ) => [ ...prev, ...newAttachments ] );
+			}
+		},
+		[ onSlashCommand ]
+	);
+
+	/** Remove an attachment by index. */
+	const handleRemoveAttachment = useCallback( ( index ) => {
+		setAttachments( ( prev ) => prev.filter( ( _, i ) => i !== index ) );
+	}, [] );
+
+	/** Handle file input change (upload button). */
+	const handleFileInputChange = useCallback(
+		( e ) => {
+			if ( e.target.files?.length ) {
+				processFiles( e.target.files );
+				// Reset so the same file can be re-selected.
+				e.target.value = '';
+			}
+		},
+		[ processFiles ]
+	);
+
+	/** Handle drag-over — show drop indicator. */
+	const handleDragOver = useCallback( ( e ) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setIsDragOver( true );
+	}, [] );
+
+	/** Handle drag-leave — hide drop indicator. */
+	const handleDragLeave = useCallback( ( e ) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setIsDragOver( false );
+	}, [] );
+
+	/** Handle drop event. */
+	const handleDrop = useCallback(
+		( e ) => {
+			e.preventDefault();
+			e.stopPropagation();
+			setIsDragOver( false );
+			if ( e.dataTransfer?.files?.length ) {
+				processFiles( e.dataTransfer.files );
+			}
+		},
+		[ processFiles ]
+	);
+
+	/** Handle paste event — capture image data from clipboard. */
+	const handlePaste = useCallback(
+		( e ) => {
+			const items = e.clipboardData?.items;
+			if ( ! items ) {
+				return;
+			}
+			const imageItems = Array.from( items ).filter(
+				( item ) =>
+					item.kind === 'file' && item.type.startsWith( 'image/' )
+			);
+			if ( imageItems.length ) {
+				e.preventDefault();
+				const files = imageItems
+					.map( ( item ) => item.getAsFile() )
+					.filter( Boolean );
+				if ( files.length ) {
+					processFiles( files );
+				}
+			}
+		},
+		[ processFiles ]
+	);
+
 	const handleSend = useCallback( () => {
 		const trimmed = text.trim();
-		if ( ! trimmed || sending ) {
+		if ( ( ! trimmed && ! attachments.length ) || sending ) {
 			return;
 		}
 
@@ -180,13 +422,14 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			return;
 		}
 
-		sendMessage( trimmed );
+		sendMessage( trimmed, attachments );
 		setText( '' );
+		setAttachments( [] );
 		setTimeout(
 			() => textareaRef.current?.focus( { preventScroll: true } ),
 			0
 		);
-	}, [ text, sending, sendMessage, onSlashCommand ] );
+	}, [ text, attachments, sending, sendMessage, onSlashCommand ] );
 
 	const handleSlashSelect = useCallback(
 		( cmd ) => {
@@ -290,9 +533,17 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		[ handleSend, showSlash ]
 	);
 
+	const canSend =
+		( text.trim().length > 0 || attachments.length > 0 ) && ! sending;
+
 	return (
 		<div
-			className={ `ai-agent-input-area ${ compact ? 'is-compact' : '' }` }
+			className={ `ai-agent-input-area ${ compact ? 'is-compact' : '' } ${
+				isDragOver ? 'is-drag-over' : ''
+			}` }
+			onDragOver={ handleDragOver }
+			onDragLeave={ handleDragLeave }
+			onDrop={ handleDrop }
 		>
 			{ showTemplates && (
 				<ConversationTemplateMenu
@@ -307,6 +558,15 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					onClose={ () => setShowSlash( false ) }
 				/>
 			) }
+			<AttachmentPreviews
+				attachments={ attachments }
+				onRemove={ handleRemoveAttachment }
+			/>
+			{ isDragOver && (
+				<div className="ai-agent-drop-overlay">
+					{ __( 'Drop files here', 'gratis-ai-agent' ) }
+				</div>
+			) }
 			<div className="ai-agent-input-row">
 				<Button
 					variant="tertiary"
@@ -318,6 +578,25 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				>
 					{ __( 'Templates', 'gratis-ai-agent' ) }
 				</Button>
+				{ /* Hidden file input */ }
+				<input
+					ref={ fileInputRef }
+					type="file"
+					accept={ ACCEPTED_TYPES.join( ',' ) }
+					multiple
+					className="ai-agent-file-input"
+					onChange={ handleFileInputChange }
+					aria-hidden="true"
+					tabIndex={ -1 }
+				/>
+				{ /* Upload button (paperclip) */ }
+				<Button
+					onClick={ () => fileInputRef.current?.click() }
+					className="ai-agent-upload-btn"
+					label={ __( 'Attach file', 'gratis-ai-agent' ) }
+					icon={ <PaperclipIcon /> }
+					disabled={ sending }
+				/>
 				<textarea
 					ref={ textareaRef }
 					className="ai-agent-input"
@@ -329,6 +608,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					value={ text }
 					onChange={ ( e ) => setText( e.target.value ) }
 					onKeyDown={ handleKeyDown }
+					onPaste={ handlePaste }
 					disabled={ sending }
 				/>
 				{ isSpeechSupported && ! sending && (
@@ -342,6 +622,12 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 								? __( 'Stop recording', 'gratis-ai-agent' )
 								: __( 'Start voice input', 'gratis-ai-agent' )
 						}
+						aria-label={
+							isListening
+								? __( 'Stop recording', 'gratis-ai-agent' )
+								: __( 'Voice input', 'gratis-ai-agent' )
+						}
+						aria-pressed={ isListening }
 						icon={
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -370,9 +656,10 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					<Button
 						variant="primary"
 						onClick={ handleSend }
-						disabled={ ! text.trim() }
+						disabled={ ! canSend }
 						className="ai-agent-send-btn"
-						label={ __( 'Send', 'gratis-ai-agent' ) }
+						label={ __( 'Send message', 'gratis-ai-agent' ) }
+						aria-label={ __( 'Send message', 'gratis-ai-agent' ) }
 						icon={ <Icon icon={ arrowUp } /> }
 					/>
 				) }

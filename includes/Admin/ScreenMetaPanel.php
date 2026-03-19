@@ -148,11 +148,12 @@ class ScreenMetaPanel {
 		$context['taxonomy']  = $screen->taxonomy;
 
 		// Sanitize the request URI for context (no auth tokens).
+		// Use site_url() + REQUEST_URI to avoid double /wp-admin/ from admin_url().
 		$request_uri = isset( $_SERVER['REQUEST_URI'] )
 			? sanitize_url( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
 			: '';
 
-		$context['url'] = admin_url( ltrim( $request_uri, '/' ) );
+		$context['url'] = $request_uri ? site_url( $request_uri ) : '';
 
 		// Page title from the screen's parent_title or a generic fallback.
 		$context['page_title'] = $screen->get_option( 'title' ) ?? '';

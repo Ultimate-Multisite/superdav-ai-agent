@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Automations;
 
 use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -81,6 +82,11 @@ class AutomationRunner {
 	public static function run( int $automation_id ): ?array {
 		$automation = Automations::get( $automation_id );
 		if ( ! $automation ) {
+			return null;
+		}
+
+		// Skip automation execution when the budget is exceeded.
+		if ( BudgetManager::is_exceeded() ) {
 			return null;
 		}
 

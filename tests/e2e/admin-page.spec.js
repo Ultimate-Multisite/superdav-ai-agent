@@ -17,6 +17,7 @@ const {
 	getStopButton,
 	getChatPanel,
 	getMessageList,
+	waitForMessageSubmitted,
 } = require( './utils/wp-admin' );
 
 test.describe( 'Admin Page - Chat UI', () => {
@@ -109,15 +110,12 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Test message' );
 		await input.press( 'Enter' );
 
-		// Wait for input to clear (message submitted synchronously).
-		await expect( input ).toHaveValue( '' );
-
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). New Chat works regardless of sending state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted and appended to the chat. The message row is added
+		// synchronously before any async REST calls, so it is a stable signal
+		// on all WP versions (including trunk where the stop button may
+		// disappear quickly if the backend returns an error fast).
+		await waitForMessageSubmitted( page );
 
 		// Click new chat.
 		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
@@ -135,14 +133,13 @@ test.describe( 'Admin Page - Session Management', () => {
 		await input.fill( 'Create a session' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the session was created via POST /sessions (which happens before
-		// the background job is spawned). The session list is refreshed after
-		// session creation, so the sidebar item should appear shortly after.
-		// We do NOT wait for the send button to reappear because the background
-		// job may not complete in CI (no AI provider configured).
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted. The session is created via POST /sessions before the
+		// background job is spawned, and the session list is refreshed after
+		// session creation. Using the message row (appended synchronously) is
+		// more reliable than the stop button, which may disappear quickly on
+		// WP trunk if the backend returns an error response fast.
+		await waitForMessageSubmitted( page );
 
 		// At least one session item should appear in the sidebar.
 		// Use toBeVisible() on the first item rather than toHaveCount(1) because
@@ -164,13 +161,12 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		await input.fill( 'Some text' );
 		await input.press( 'Enter' );
 
-		// Wait for the stop button to appear — this confirms sending=true and
-		// that the message was submitted. We do NOT wait for the send button to
-		// reappear because the background job may not complete in CI (no AI
-		// provider configured). The Ctrl+N shortcut works regardless of sending
-		// state.
-		const stopButton = getStopButton( page );
-		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+		// Wait for the user message row to appear — this confirms the message
+		// was submitted. The message row is appended synchronously before any
+		// async REST calls, making it a stable signal on all WP versions. The
+		// stop button is transient and may disappear quickly on WP trunk if the
+		// backend returns an error response fast (no AI provider in CI).
+		await waitForMessageSubmitted( page );
 
 		// Trigger new chat shortcut.
 		await page.keyboard.press( 'ControlOrMeta+n' );

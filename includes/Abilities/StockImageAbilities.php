@@ -71,8 +71,8 @@ class StockImageAbilities {
 						'error'         => [ 'type' => 'string' ],
 					],
 				],
-			'execute_callback'    => [ __CLASS__, 'handle_import' ],
-			'permission_callback' => [ __CLASS__, 'check_permission' ],
+				'execute_callback'    => [ __CLASS__, 'handle_import' ],
+				'permission_callback' => [ __CLASS__, 'check_permission' ],
 			]
 		);
 	}
@@ -87,7 +87,7 @@ class StockImageAbilities {
 	 * @return bool Whether the current user can upload files on the target blog.
 	 */
 	public static function check_permission( array $input ): bool {
-		$site_url = is_array( $input ) ? (string) ( $input['site_url'] ?? '' ) : '';
+		$site_url = (string) ( $input['site_url'] ?? '' );
 
 		if ( '' === $site_url || ! is_multisite() ) {
 			return current_user_can( 'upload_files' );

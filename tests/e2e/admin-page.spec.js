@@ -11,6 +11,7 @@ const { test, expect } = require( '@playwright/test' );
 const {
 	loginToWordPress,
 	goToAgentPage,
+	goToSettingsPage,
 	getMessageInput,
 	getSendButton,
 	getStopButton,
@@ -183,5 +184,342 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 
 		const searchInput = page.locator( '.gratis-ai-agent-sidebar-search' );
 		await expect( searchInput ).toBeFocused();
+	} );
+} );
+
+/**
+ * Abilities search and filter (t098)
+ *
+ * The Settings > Abilities tab renders AbilitiesManager which provides:
+ *   - A SearchControl that filters abilities by name/description.
+ *   - A SelectControl that filters by category.
+ *   - Collapsible category sections with Expand all / Collapse all buttons.
+ *   - A result count paragraph that updates as filters change.
+ *
+ * These tests navigate to the settings page, activate the Abilities tab, and
+ * verify each UI feature. The abilities list is populated from the REST API
+ * (/gratis-ai-agent/v1/abilities); we intercept it to inject a predictable
+ * fixture so tests are deterministic regardless of which abilities are
+ * registered in the wp-env instance.
+ */
+test.describe( 'Settings - Abilities Search and Filter (t098)', () => {
+	/**
+	 * Fixture abilities injected via route interception.
+	 * Two categories with two abilities each gives enough variety to test
+	 * filtering without being brittle.
+	 */
+	const FIXTURE_ABILITIES = [
+		{
+			name: 'get_post',
+			label: 'Get Post',
+			description: 'Retrieve a post by ID',
+			category: 'Content',
+		},
+		{
+			name: 'create_post',
+			label: 'Create Post',
+			description: 'Create a new post',
+			category: 'Content',
+		},
+		{
+			name: 'get_option',
+			label: 'Get Option',
+			description: 'Read a WordPress option',
+			category: 'Settings',
+		},
+		{
+			name: 'update_option',
+			label: 'Update Option',
+			description: 'Write a WordPress option',
+			category: 'Settings',
+		},
+	];
+
+	test.beforeEach( async ( { page } ) => {
+		// Intercept the abilities REST endpoint with our fixture data so tests
+		// are deterministic regardless of which abilities are registered.
+		await page.route(
+			/\/gratis-ai-agent\/v1\/abilities(\?.*)?$/,
+			async ( route ) => {
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( FIXTURE_ABILITIES ),
+				} );
+			}
+		);
+
+		await loginToWordPress( page );
+		await goToSettingsPage( page, 'abilities' );
+	} );
+
+	test( 'abilities manager renders with search and category controls', async ( {
+		page,
+	} ) => {
+		// The AbilitiesManager toolbar contains a SearchControl and a
+		// SelectControl for category filtering.
+		const manager = page.locator( '.ai-agent-abilities-manager' );
+		await expect( manager ).toBeVisible();
+
+		// SearchControl renders an <input> inside .ai-agent-abilities-search.
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+		await expect( searchInput ).toBeVisible();
+
+		// Category SelectControl renders a <select> inside .ai-agent-abilities-filters.
+		const categorySelect = page
+			.locator( '.ai-agent-abilities-filters' )
+			.locator( 'select' );
+		await expect( categorySelect ).toBeVisible();
+	} );
+
+	test( 'abilities count shows total when no filter is active', async ( {
+		page,
+	} ) => {
+		// The count paragraph shows "4 abilities" when all are visible.
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toBeVisible();
+		await expect( countEl ).toContainText( '4' );
+	} );
+
+	test( 'search input filters abilities by name', async ( { page } ) => {
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+
+		// Type "post" — should match "Get Post" and "Create Post" (2 results).
+		await searchInput.fill( 'post' );
+
+		// Count paragraph should update to "Showing 2 of 4 abilities".
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 2 of 4' );
+
+		// The Content category section should be visible (has matching abilities).
+		const contentSection = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Content' } );
+		await expect( contentSection ).toBeVisible();
+
+		// The Settings category section should not be visible (no matches).
+		const settingsSection = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Settings' } );
+		await expect( settingsSection ).not.toBeVisible();
+	} );
+
+	test( 'search input filters abilities by description', async ( {
+		page,
+	} ) => {
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+
+		// "WordPress option" matches both Settings abilities by description.
+		await searchInput.fill( 'WordPress option' );
+
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 2 of 4' );
+
+		const settingsSection = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Settings' } );
+		await expect( settingsSection ).toBeVisible();
+	} );
+
+	test( 'clearing search restores full list', async ( { page } ) => {
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+
+		await searchInput.fill( 'post' );
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 2 of 4' );
+
+		// Clear the search.
+		await searchInput.fill( '' );
+		await expect( countEl ).toContainText( '4' );
+	} );
+
+	test( 'no-results message appears when search matches nothing', async ( {
+		page,
+	} ) => {
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+
+		await searchInput.fill( 'xyzzy_nonexistent_ability' );
+
+		// AbilitiesManager renders a "No abilities match your search." paragraph.
+		const noResults = page.locator( 'text=No abilities match your search.' );
+		await expect( noResults ).toBeVisible();
+	} );
+
+	test( 'category dropdown filters to a single category', async ( {
+		page,
+	} ) => {
+		const categorySelect = page
+			.locator( '.ai-agent-abilities-filters' )
+			.locator( 'select' );
+
+		// Select "Content" category.
+		await categorySelect.selectOption( 'Content' );
+
+		// Count should show 2 of 4.
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 2 of 4' );
+
+		// Only the Content section should be visible.
+		const contentSection = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Content' } );
+		await expect( contentSection ).toBeVisible();
+
+		const settingsSection = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Settings' } );
+		await expect( settingsSection ).not.toBeVisible();
+	} );
+
+	test( 'selecting All Categories restores full list', async ( { page } ) => {
+		const categorySelect = page
+			.locator( '.ai-agent-abilities-filters' )
+			.locator( 'select' );
+
+		await categorySelect.selectOption( 'Content' );
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 2 of 4' );
+
+		// Reset to "All Categories" (value is empty string).
+		await categorySelect.selectOption( '' );
+		await expect( countEl ).toContainText( '4' );
+	} );
+
+	test( 'search and category filter combine correctly', async ( { page } ) => {
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+		const categorySelect = page
+			.locator( '.ai-agent-abilities-filters' )
+			.locator( 'select' );
+
+		// Filter to Content category, then search for "create" — 1 result.
+		await categorySelect.selectOption( 'Content' );
+		await searchInput.fill( 'create' );
+
+		const countEl = page.locator( '.ai-agent-abilities-count' );
+		await expect( countEl ).toContainText( 'Showing 1 of 4' );
+	} );
+
+	test( 'category sections are collapsible', async ( { page } ) => {
+		// The Content category header button should be visible.
+		const contentHeader = page
+			.locator( '.ai-agent-abilities-category-header' )
+			.filter( { hasText: 'Content' } );
+		await expect( contentHeader ).toBeVisible();
+
+		// Initially expanded (defaultOpen=true when allOpen=true).
+		// The category body contains the ability rows.
+		const contentBody = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Content' } )
+			.locator( '.ai-agent-abilities-category-body' );
+		await expect( contentBody ).toBeVisible();
+
+		// Click the header to collapse.
+		await contentHeader.click();
+		await expect( contentBody ).not.toBeVisible();
+
+		// Click again to expand.
+		await contentHeader.click();
+		await expect( contentBody ).toBeVisible();
+	} );
+
+	test( 'Collapse all button hides all category bodies', async ( {
+		page,
+	} ) => {
+		const collapseBtn = page.getByRole( 'button', {
+			name: /collapse all/i,
+		} );
+		await expect( collapseBtn ).toBeVisible();
+		await collapseBtn.click();
+
+		// All category bodies should be hidden.
+		const categoryBodies = page.locator(
+			'.ai-agent-abilities-category-body'
+		);
+		const count = await categoryBodies.count();
+		for ( let i = 0; i < count; i++ ) {
+			await expect( categoryBodies.nth( i ) ).not.toBeVisible();
+		}
+	} );
+
+	test( 'Expand all button shows all category bodies', async ( { page } ) => {
+		// Collapse first, then expand.
+		const collapseBtn = page.getByRole( 'button', {
+			name: /collapse all/i,
+		} );
+		await collapseBtn.click();
+
+		const expandBtn = page.getByRole( 'button', { name: /expand all/i } );
+		await expandBtn.click();
+
+		// All category bodies should be visible.
+		const categoryBodies = page.locator(
+			'.ai-agent-abilities-category-body'
+		);
+		const count = await categoryBodies.count();
+		expect( count ).toBeGreaterThan( 0 );
+		for ( let i = 0; i < count; i++ ) {
+			await expect( categoryBodies.nth( i ) ).toBeVisible();
+		}
+	} );
+
+	test( 'category sections auto-expand when search filter is active', async ( {
+		page,
+	} ) => {
+		// Collapse all first.
+		const collapseBtn = page.getByRole( 'button', {
+			name: /collapse all/i,
+		} );
+		await collapseBtn.click();
+
+		// Verify collapsed.
+		const categoryBodies = page.locator(
+			'.ai-agent-abilities-category-body'
+		);
+		const count = await categoryBodies.count();
+		for ( let i = 0; i < count; i++ ) {
+			await expect( categoryBodies.nth( i ) ).not.toBeVisible();
+		}
+
+		// Activate search — AbilitiesManager passes defaultOpen=true when
+		// isFiltering is truthy, which forces sections open.
+		const searchInput = page
+			.locator( '.ai-agent-abilities-search' )
+			.locator( 'input' );
+		await searchInput.fill( 'post' );
+
+		// The Content section body should now be visible (auto-expanded by filter).
+		const contentBody = page
+			.locator( '.ai-agent-abilities-category' )
+			.filter( { hasText: 'Content' } )
+			.locator( '.ai-agent-abilities-category-body' );
+		await expect( contentBody ).toBeVisible();
+	} );
+
+	test( 'category count badge shows number of abilities per category', async ( {
+		page,
+	} ) => {
+		// Each category header shows a count span.
+		const contentHeader = page
+			.locator( '.ai-agent-abilities-category-header' )
+			.filter( { hasText: 'Content' } );
+
+		const countBadge = contentHeader.locator(
+			'.ai-agent-abilities-category-count'
+		);
+		await expect( countBadge ).toBeVisible();
+		await expect( countBadge ).toContainText( '2' );
 	} );
 } );

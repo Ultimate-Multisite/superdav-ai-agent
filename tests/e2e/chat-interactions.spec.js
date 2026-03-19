@@ -16,6 +16,58 @@ const {
 	getStopButton,
 } = require( './utils/wp-admin' );
 
+/**
+ * Intercept the agent-run SSE endpoint and inject a `generated_title` into
+ * the done event so the auto-title optimistic-update path fires without a
+ * live AI provider.
+ *
+ * The store reads `doneMetadata.generated_title` from the final SSE `done`
+ * event and calls `dispatch.updateSessionTitle()` to update the sidebar
+ * immediately (see store/index.js lines ~1438-1443 and ~1769-1772).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string}                          generatedTitle - Title to inject.
+ */
+async function interceptWithGeneratedTitle( page, generatedTitle ) {
+	await page.route(
+		/\/gratis-ai-agent\/v1\/sessions\/\d+\/run/,
+		async ( route ) => {
+			const sessionIdMatch = route
+				.request()
+				.url()
+				.match( /\/sessions\/(\d+)\/run/ );
+			const sessionId = sessionIdMatch
+				? parseInt( sessionIdMatch[ 1 ], 10 )
+				: 1;
+
+			// Minimal SSE stream: one content chunk + done with generated_title.
+			const sseBody = [
+				`data: ${ JSON.stringify( {
+					type: 'content',
+					content: 'Hello! How can I help you?',
+				} ) }`,
+				'',
+				`data: ${ JSON.stringify( {
+					type: 'done',
+					session_id: sessionId,
+					generated_title: generatedTitle,
+				} ) }`,
+				'',
+				'',
+			].join( '\n' );
+
+			await route.fulfill( {
+				status: 200,
+				headers: {
+					'Content-Type': 'text/event-stream',
+					'Cache-Control': 'no-cache',
+				},
+				body: sseBody,
+			} );
+		}
+	);
+}
+
 test.describe( 'Chat Input Interactions', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
@@ -179,5 +231,100 @@ test.describe( 'Provider Selector', () => {
 	} ) => {
 		const providerSelector = page.locator( '.ai-agent-provider-selector' );
 		await expect( providerSelector ).toBeVisible();
+	} );
+} );
+
+/**
+ * Auto-title sessions (t099)
+ *
+ * After the first AI response the store reads `generated_title` from the SSE
+ * done event and calls `updateSessionTitle()` to optimistically update the
+ * sidebar item without a full fetchSessions round-trip.
+ *
+ * These tests intercept the run endpoint to inject a synthetic done event so
+ * the auto-title path fires in CI without a live AI provider.
+ */
+test.describe( 'Auto-Title Sessions (t099)', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToAgentPage( page );
+	} );
+
+	test( 'session title updates in sidebar after first AI response', async ( {
+		page,
+	} ) => {
+		const expectedTitle = 'My Auto-Generated Title';
+
+		// Intercept the run endpoint before sending the message.
+		await interceptWithGeneratedTitle( page, expectedTitle );
+
+		const input = getMessageInput( page );
+		await input.fill( 'Tell me about WordPress' );
+		await input.press( 'Enter' );
+
+		// Wait for the session item to appear in the sidebar.
+		const sessionItems = page.locator( '.ai-agent-session-item' );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
+
+		// The sidebar item should display the generated title (not "Untitled").
+		await expect( sessionItems.first() ).toContainText( expectedTitle, {
+			timeout: 10_000,
+		} );
+	} );
+
+	test( 'session title is not "Untitled" after auto-title fires', async ( {
+		page,
+	} ) => {
+		const expectedTitle = 'WordPress Plugin Development';
+
+		await interceptWithGeneratedTitle( page, expectedTitle );
+
+		const input = getMessageInput( page );
+		await input.fill( 'How do I build a WordPress plugin?' );
+		await input.press( 'Enter' );
+
+		const sessionItems = page.locator( '.ai-agent-session-item' );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
+
+		// The title element inside the session item should not say "Untitled".
+		const titleEl = sessionItems
+			.first()
+			.locator( '.ai-agent-session-title' );
+		await expect( titleEl ).not.toContainText( 'Untitled', {
+			timeout: 10_000,
+		} );
+		await expect( titleEl ).toContainText( expectedTitle, {
+			timeout: 10_000,
+		} );
+	} );
+
+	test( 'new session starts as Untitled before any AI response', async ( {
+		page,
+	} ) => {
+		// Do NOT intercept — just send a message and check the initial state
+		// before any done event arrives.
+		const input = getMessageInput( page );
+		await input.fill( 'Hello' );
+		await input.press( 'Enter' );
+
+		// The stop button confirms the session was created and the request is
+		// in flight. At this point no done event has arrived yet.
+		const stopButton = getStopButton( page );
+		await expect( stopButton ).toBeVisible( { timeout: 10_000 } );
+
+		// The sidebar item should exist but show "Untitled" (no title yet).
+		const sessionItems = page.locator( '.ai-agent-session-item' );
+		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
+
+		const titleEl = sessionItems
+			.first()
+			.locator( '.ai-agent-session-title' );
+		// Title is either empty or "Untitled" before the done event.
+		const titleText = await titleEl.textContent();
+		expect(
+			titleText === '' ||
+				titleText === 'Untitled' ||
+				titleText?.includes( 'Untitled' )
+		).toBe( true );
 	} );
 } );

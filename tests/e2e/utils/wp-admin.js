@@ -127,10 +127,37 @@ function getChatPanel( page ) {
 	return page.locator( '.gratis-ai-agent-chat-panel' );
 }
 
+/**
+ * Navigate to the Gratis AI Agent settings page and optionally activate a tab.
+ *
+ * The settings page is at /wp-admin/tools.php?page=gratis-ai-agent-settings.
+ * Tabs are rendered by the WordPress TabPanel component; clicking a tab button
+ * activates it. Pass `tabName` to click a specific tab after navigation.
+ *
+ * @param {import('@playwright/test').Page} page      - Playwright page object.
+ * @param {string}                          [tabName] - Optional tab name to activate (e.g. 'abilities').
+ */
+async function goToSettingsPage( page, tabName ) {
+	await page.goto( '/wp-admin/tools.php?page=gratis-ai-agent-settings' );
+	await page.waitForLoadState( 'networkidle' );
+
+	if ( tabName ) {
+		// WordPress TabPanel renders tab buttons with role="tab" and a name
+		// matching the tab title. The 'abilities' tab has title 'Abilities'.
+		const tabButton = page.getByRole( 'tab', {
+			name: new RegExp( tabName, 'i' ),
+		} );
+		await tabButton.click();
+		// Wait for the tab panel content to render.
+		await page.waitForLoadState( 'networkidle' );
+	}
+}
+
 module.exports = {
 	loginToWordPress,
 	goToAgentPage,
 	goToAdminDashboard,
+	goToSettingsPage,
 	getFloatingButton,
 	getFloatingPanel,
 	getMessageInput,

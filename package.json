@@ -25,16 +25,19 @@
 		"wp-env:start": "wp-env start",
 		"wp-env:stop": "wp-env stop",
 		"wp-env:clean": "wp-env clean all",
-		"prepare": "husky"
+		"prepare": "husky",
+		"size": "size-limit"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
+		"@size-limit/file": "^12.0.1",
 		"@wordpress/e2e-test-utils-playwright": "^1.41.0",
 		"@wordpress/env": "^10.39.0",
 		"@wordpress/scripts": "^31.6.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.4.0",
-		"react-dom": "^18.3.1"
+		"react-dom": "^18.3.1",
+		"size-limit": "^12.0.1"
 	},
 	"dependencies": {
 		"@codemirror/commands": "^6.10.3",
@@ -102,5 +105,43 @@
 			"composer phpcbf --",
 			"composer phpcs --"
 		]
-	}
+	},
+	"size-limit": [
+		{
+			"name": "admin-page (main bundle)",
+			"path": "build/admin-page.js",
+			"limit": "400 KB",
+			"gzip": true
+		},
+		{
+			"name": "floating-widget",
+			"path": "build/floating-widget.js",
+			"limit": "400 KB",
+			"gzip": true
+		},
+		{
+			"name": "screen-meta",
+			"path": "build/screen-meta.js",
+			"limit": "400 KB",
+			"gzip": true
+		},
+		{
+			"name": "settings-page",
+			"path": "build/settings-page.js",
+			"limit": "50 KB",
+			"gzip": true
+		},
+		{
+			"name": "changes-page",
+			"path": "build/changes-page.js",
+			"limit": "10 KB",
+			"gzip": true
+		},
+		{
+			"name": "abilities-explorer",
+			"path": "build/abilities-explorer.js",
+			"limit": "10 KB",
+			"gzip": true
+		}
+	]
 }

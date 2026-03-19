@@ -6,7 +6,7 @@
   - o3 and o4-mini already in CostCalculator but missing from Settings; claude-sonnet-4-6/opus-4-6 missing from both
   - Update Settings.php model arrays + CostCalculator.php pricing; update Anthropic default_model to claude-sonnet-4-6
 
-- [ ] t130 Raise PHPStan level from 8 to 9 and fix new errors @superdav42 #quality ~3h ref=GH#602
+- [x] t130 Raise PHPStan level from 8 to 9 and fix new errors @superdav42 #quality ~3h ref=GH#602 pr:#604 completed:2026-03-19
   - Continue quality ladder: t010 (5→6), t110 (6→7), t125 (7→8), now 8→9
   - Level 9 adds stricter mixed type narrowing, null handling, array shapes
 

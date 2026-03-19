@@ -157,9 +157,12 @@ function getEmptyMessage( filter ) {
  * Provides search, filter tabs (Active/Archived/Trash), folder tabs,
  * a session list, and import/new-chat controls.
  *
+ * @param {Object}   props           - Component props.
+ * @param {Function} [props.onClose] - Called when the close button is clicked
+ *                                   (used on mobile to collapse the drawer).
  * @return {JSX.Element} The session sidebar element.
  */
-export default function SessionSidebar() {
+export default function SessionSidebar( { onClose } ) {
 	const {
 		sessions,
 		sharedSessions,
@@ -284,6 +287,19 @@ export default function SessionSidebar() {
 						style={ { display: 'none' } }
 						onChange={ handleImport }
 					/>
+					{ onClose && (
+						<button
+							type="button"
+							className="ai-agent-sidebar-close-btn"
+							onClick={ onClose }
+							aria-label={ __(
+								'Close sidebar',
+								'gratis-ai-agent'
+							) }
+						>
+							&#10005;
+						</button>
+					) }
 				</div>
 				{ ! isSharedTab && (
 					<input

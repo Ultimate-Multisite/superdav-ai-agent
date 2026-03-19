@@ -1245,7 +1245,6 @@ export default function SettingsApp() {
 										{ gaStatus?.has_credentials && (
 											<Button
 												variant="secondary"
-												isDestructive
 												onClick={ handleGaClear }
 												isBusy={ gaSaving }
 												disabled={ gaSaving }

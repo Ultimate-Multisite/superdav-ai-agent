@@ -86,7 +86,7 @@
   - Plugin compat layer still uses vendored WordPress\AiClientDependencies\Psr\Http\Message\RequestInterface
   - Fix: align WP_AI_Client_HTTP_Client::sendRequestWithOptions() signature with current WP trunk interface
 
-- [ ] t105 Fix Playwright E2E (WP trunk) CI: invalid JSON in wp-env override script @superdav42 #bug ~0.5h ref=GH#536
+- [x] t105 Fix Playwright E2E (WP trunk) CI: invalid JSON in wp-env override script @superdav42 #bug ~0.5h ref=GH#536 pr:#537 completed:2026-03-19
   - CI script passes {core:WordPress/WordPress#master} (unquoted keys) to JSON.parse — not valid JSON
   - Fix: quote the key in the inline Node.js script or write JSON directly without JSON.parse
 

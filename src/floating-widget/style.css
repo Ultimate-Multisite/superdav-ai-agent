@@ -875,6 +875,35 @@
 	margin-bottom: 2px;
 }
 
+/* Floating panel: upload button */
+.ai-agent-floating-panel .ai-agent-upload-btn {
+	width: 28px;
+	height: 28px;
+	margin-bottom: 2px;
+}
+
+/* Floating panel: attachment thumbnail strip */
+.ai-agent-floating-panel .ai-agent-attachment-previews {
+	padding: 0 0 6px;
+	gap: 6px;
+}
+
+.ai-agent-floating-panel .ai-agent-attachment-thumb {
+	width: 56px;
+}
+
+.ai-agent-floating-panel .ai-agent-attachment-thumb__img,
+.ai-agent-floating-panel .ai-agent-attachment-thumb__file {
+	width: 56px;
+	height: 56px;
+}
+
+/* Floating panel: inline message images */
+.ai-agent-floating-panel .ai-agent-message-attachment-img {
+	max-width: 180px;
+	max-height: 180px;
+}
+
 /* Floating panel: template menu */
 .ai-agent-floating-panel .gratis-ai-agent-template-menu {
 	max-height: 280px;

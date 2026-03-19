@@ -53,14 +53,49 @@ function parseSuggestions( text ) {
 }
 
 /**
+ * Renders inline image attachments for a user message.
+ *
+ * @param {Object} props             - Component props.
+ * @param {Array}  props.attachments - Array of attachment objects with dataUrl/name.
+ * @return {JSX.Element|null} The attachment images, or null when empty.
+ */
+function MessageAttachments( { attachments } ) {
+	if ( ! attachments?.length ) {
+		return null;
+	}
+
+	return (
+		<div className="ai-agent-message-attachments">
+			{ attachments.map( ( att, i ) => (
+				<a
+					key={ i }
+					href={ att.dataUrl || att.image_url }
+					target="_blank"
+					rel="noopener noreferrer"
+					className="ai-agent-message-attachment-link"
+					aria-label={ att.name || att.image_name }
+				>
+					<img
+						src={ att.dataUrl || att.image_url }
+						alt={ att.name || att.image_name || '' }
+						className="ai-agent-message-attachment-img"
+					/>
+				</a>
+			) ) }
+		</div>
+	);
+}
+
+/**
  * Renders a single message bubble with role-appropriate styling.
  *
- * @param {Object} props      - Component props.
- * @param {string} props.role - Message role: 'user', 'model', or 'system'.
- * @param {string} props.text - Rendered text content (markdown for model messages).
+ * @param {Object} props             - Component props.
+ * @param {string} props.role        - Message role: 'user', 'model', or 'system'.
+ * @param {string} props.text        - Rendered text content (markdown for model messages).
+ * @param {Array}  props.attachments - Optional image attachments for user messages.
  * @return {JSX.Element} The message bubble element.
  */
-function MessageBubble( { role, text } ) {
+function MessageBubble( { role, text, attachments } ) {
 	const classMap = {
 		user: 'ai-agent-bubble ai-agent-user',
 		model: 'ai-agent-bubble ai-agent-assistant',
@@ -71,6 +106,15 @@ function MessageBubble( { role, text } ) {
 		return (
 			<div className={ classMap.model }>
 				<MarkdownMessage content={ text } />
+			</div>
+		);
+	}
+
+	if ( role === 'user' ) {
+		return (
+			<div className={ classMap.user }>
+				<MessageAttachments attachments={ attachments } />
+				{ text }
 			</div>
 		);
 	}
@@ -291,18 +335,22 @@ export default function MessageList() {
 						{ msg.toolCalls?.length > 0 && (
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
-						<MessageBubble role={ msg.role } text={ cleanText } />
-						<MessageActions
-							message={ msg }
-							index={ originalIndex }
+					<MessageBubble
+						role={ msg.role }
+						text={ cleanText }
+						attachments={ msg.attachments }
+					/>
+					<MessageActions
+						message={ msg }
+						index={ originalIndex }
+					/>
+					{ isModel && (
+						<MessageTokenAnnotation
+							tokenData={
+								messageTokens[ originalIndex ] || null
+							}
 						/>
-						{ isModel && (
-							<MessageTokenAnnotation
-								tokenData={
-									messageTokens[ originalIndex ] || null
-								}
-							/>
-						) }
+					) }
 						{ debugMode && isModel && msg.debug && (
 							<DebugPanel debug={ msg.debug } />
 						) }

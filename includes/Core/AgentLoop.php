@@ -218,6 +218,8 @@ class AgentLoop {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	private function run_loop( int $iterations ) {
+		$last_was_tool_call = false;
+
 		while ( $iterations > 0 ) {
 			--$iterations;
 			++$this->iterations_used;
@@ -244,7 +246,8 @@ class AgentLoop {
 			// Check if the model wants to call tools.
 			if ( ! $this->get_ability_resolver()->has_ability_calls( $assistant_message ) ) {
 				// No tool calls — we're done.
-				$reply = '';
+				$last_was_tool_call = false;
+				$reply              = '';
 
 				try {
 					$reply = $result->toText();
@@ -261,6 +264,8 @@ class AgentLoop {
 					'model_id'        => $this->model_id,
 				];
 			}
+
+			$last_was_tool_call = true;
 
 			// Log tool calls and check for confirmation requirement.
 			$this->log_tool_calls( $assistant_message );
@@ -310,6 +315,47 @@ class AgentLoop {
 						$this->sse_streamer->send_tool_result( $fr->getName(), $fr->getResponse() );
 					}
 				}
+			}
+		}
+
+		// Exhausted iterations. If the last AI turn was a tool call (not text),
+		// the user would see an empty response. Inject one final summarization
+		// prompt so the AI can explain what it accomplished and what failed.
+		if ( $last_was_tool_call ) {
+			$this->history[] = new UserMessage(
+				[
+					new MessagePart(
+						__(
+							'You have reached the maximum number of tool calls. Please summarize what you accomplished and what failed, and provide your final response to the user.',
+							'gratis-ai-agent'
+						)
+					),
+				]
+			);
+
+			++$this->iterations_used;
+			$fallback_result = $this->send_prompt();
+
+			if ( ! is_wp_error( $fallback_result ) ) {
+				$fallback_message = $fallback_result->toMessage();
+				$this->history[]  = $fallback_message;
+				$this->accumulate_tokens( $fallback_result );
+
+				$reply = '';
+				try {
+					$reply = $fallback_result->toText();
+				} catch ( \RuntimeException $e ) {
+					$reply = '';
+				}
+
+				return [
+					'reply'           => $reply,
+					'history'         => $this->serialize_history(),
+					'tool_calls'      => $this->tool_call_log,
+					'token_usage'     => $this->token_usage,
+					'iterations_used' => $this->iterations_used,
+					'model_id'        => $this->model_id,
+				];
 			}
 		}
 

@@ -26,6 +26,7 @@ import {
  */
 import STORE_NAME from '../store';
 import ErrorBoundary from '../components/error-boundary';
+import ModelPricingSelector from '../components/model-pricing-selector';
 import ProvidersManager from './providers-manager';
 import MemoryManager from './memory-manager';
 import SkillManager from './skill-manager';
@@ -231,13 +232,6 @@ export default function SettingsApp() {
 	const selectedProvider = providers.find(
 		( p ) => p.id === local.default_provider
 	);
-	const modelOptions = [
-		{ label: __( '(default)', 'gratis-ai-agent' ), value: '' },
-		...( selectedProvider?.models || [] ).map( ( m ) => ( {
-			label: m.name || m.id,
-			value: m.id,
-		} ) ),
-	];
 
 	const tabs = [
 		{
@@ -371,17 +365,21 @@ export default function SettingsApp() {
 										}
 										__nextHasNoMarginBottom
 									/>
-									<SelectControl
+									<ModelPricingSelector
 										label={ __(
 											'Default Model',
 											'gratis-ai-agent'
 										) }
 										value={ local.default_model }
-										options={ modelOptions }
+										models={
+											selectedProvider?.models || []
+										}
+										providerName={
+											selectedProvider?.name || ''
+										}
 										onChange={ ( v ) =>
 											updateField( 'default_model', v )
 										}
-										__nextHasNoMarginBottom
 									/>
 									<TextControl
 										label={ __(

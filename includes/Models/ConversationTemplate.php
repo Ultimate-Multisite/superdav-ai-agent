@@ -20,6 +20,7 @@ class ConversationTemplate {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_conversation_templates';
 	}
 
@@ -119,6 +120,7 @@ class ConversationTemplate {
 	 */
 	public static function seed_builtins(): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 		$now   = current_time( 'mysql' );
@@ -161,10 +163,11 @@ class ConversationTemplate {
 	 * Get all templates, optionally filtered by category.
 	 *
 	 * @param string|null $category Filter by category (null = all).
-	 * @return array<int, object>
+	 * @return list<object>|null
 	 */
-	public static function get_all( ?string $category = null ): array {
+	public static function get_all( ?string $category = null ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -196,6 +199,7 @@ class ConversationTemplate {
 	 */
 	public static function get( int $id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -215,6 +219,7 @@ class ConversationTemplate {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql' );
 
@@ -250,6 +255,7 @@ class ConversationTemplate {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [ 'name', 'description', 'prompt', 'category', 'icon', 'sort_order' ];
 		$update  = [];
@@ -290,6 +296,7 @@ class ConversationTemplate {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$template = self::get( $id );
 		if ( ! $template ) {
@@ -318,6 +325,7 @@ class ConversationTemplate {
 	 */
 	public static function get_categories(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_col(

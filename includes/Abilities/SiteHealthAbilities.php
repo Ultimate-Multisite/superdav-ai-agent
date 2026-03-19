@@ -601,6 +601,7 @@ class SiteHealthAbilities {
 	 */
 	public static function handle_check_performance( array $input ): array|WP_Error {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$recommendations = [];
 

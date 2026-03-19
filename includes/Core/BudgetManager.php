@@ -113,6 +113,7 @@ class BudgetManager {
 		}
 
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = Database::usage_table_name();
 
 		// Current UTC date.
@@ -149,6 +150,7 @@ class BudgetManager {
 		}
 
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = Database::usage_table_name();
 
 		// Current UTC year-month.

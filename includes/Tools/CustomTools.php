@@ -30,6 +30,7 @@ class CustomTools {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
 	}
 
@@ -41,6 +42,7 @@ class CustomTools {
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 		$where = $enabled_only ? 'WHERE enabled = 1' : '';
@@ -59,6 +61,7 @@ class CustomTools {
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -76,6 +79,7 @@ class CustomTools {
 	 */
 	public static function get_by_slug( string $slug ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -93,6 +97,7 @@ class CustomTools {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$data = self::validate( $data );
 		if ( is_wp_error( $data ) ) {
@@ -131,6 +136,7 @@ class CustomTools {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$existing = self::get( $id );
 		if ( ! $existing ) {
@@ -206,6 +212,7 @@ class CustomTools {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(

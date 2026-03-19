@@ -20,6 +20,7 @@ class KnowledgeDatabase {
 	 */
 	public static function collections_table(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_knowledge_collections';
 	}
 
@@ -28,6 +29,7 @@ class KnowledgeDatabase {
 	 */
 	public static function sources_table(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_knowledge_sources';
 	}
 
@@ -36,6 +38,7 @@ class KnowledgeDatabase {
 	 */
 	public static function chunks_table(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_knowledge_chunks';
 	}
 
@@ -112,6 +115,7 @@ class KnowledgeDatabase {
 	 */
 	public static function create_collection( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
@@ -144,6 +148,7 @@ class KnowledgeDatabase {
 	 */
 	public static function get_collection( int $id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -169,6 +174,7 @@ class KnowledgeDatabase {
 	 */
 	public static function get_collection_by_slug( string $slug ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -195,6 +201,7 @@ class KnowledgeDatabase {
 	 */
 	public static function update_collection( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [ 'name', 'slug', 'description', 'auto_index', 'source_config', 'status', 'chunk_count', 'last_indexed_at' ];
 		$update  = [];
@@ -244,6 +251,7 @@ class KnowledgeDatabase {
 	 */
 	public static function delete_collection( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Delete chunks first, then sources, then collection.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
@@ -260,10 +268,11 @@ class KnowledgeDatabase {
 	 * List all collections.
 	 *
 	 * @param string|null $status Optional status filter.
-	 * @return array<string, mixed>
+	 * @return list<object>|null
 	 */
-	public static function list_collections( ?string $status = null ): array {
+	public static function list_collections( ?string $status = null ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::collections_table();
 
@@ -305,6 +314,7 @@ class KnowledgeDatabase {
 	 */
 	public static function create_source( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
@@ -340,6 +350,7 @@ class KnowledgeDatabase {
 	 */
 	public static function get_source( int $id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -361,6 +372,7 @@ class KnowledgeDatabase {
 	 */
 	public static function find_source( int $collection_id, string $source_type, int $source_id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -383,6 +395,7 @@ class KnowledgeDatabase {
 	 */
 	public static function update_source( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [ 'title', 'status', 'chunk_count', 'content_hash', 'error_message' ];
 		$update  = [];
@@ -419,10 +432,11 @@ class KnowledgeDatabase {
 	 * Get all sources for a collection.
 	 *
 	 * @param int $collection_id Collection ID.
-	 * @return array<string, mixed>
+	 * @return list<object>|null
 	 */
-	public static function get_sources_for_collection( int $collection_id ): array {
+	public static function get_sources_for_collection( int $collection_id ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$results = $wpdb->get_results(
@@ -444,6 +458,7 @@ class KnowledgeDatabase {
 	 */
 	public static function delete_source( int $source_id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Get the source to update collection chunk_count later.
 		$source = self::get_source( $source_id );
@@ -473,6 +488,7 @@ class KnowledgeDatabase {
 	 */
 	public static function insert_chunks( int $collection_id, int $source_id, array $chunks ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table    = self::chunks_table();
 		$now      = current_time( 'mysql', true );
@@ -511,6 +527,7 @@ class KnowledgeDatabase {
 	 */
 	public static function delete_chunks_for_source( int $source_id ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->query(
@@ -530,10 +547,11 @@ class KnowledgeDatabase {
 	 * @param string   $query         Search query.
 	 * @param int|null $collection_id Optional collection filter.
 	 * @param int      $limit         Max results.
-	 * @return array<string, mixed> Array of chunk objects with relevance score.
+	 * @return list<object>|null Array of chunk objects with relevance score.
 	 */
-	public static function search_chunks( string $query, ?int $collection_id = null, int $limit = 10 ): array {
+	public static function search_chunks( string $query, ?int $collection_id = null, int $limit = 10 ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$chunks_table      = self::chunks_table();
 		$sources_table     = self::sources_table();
@@ -613,6 +631,7 @@ class KnowledgeDatabase {
 	 */
 	public static function get_total_chunk_count(): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return (int) $wpdb->get_var(
@@ -630,6 +649,7 @@ class KnowledgeDatabase {
 	 */
 	public static function recalculate_collection_chunk_count( int $collection_id ): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$count = (int) $wpdb->get_var(

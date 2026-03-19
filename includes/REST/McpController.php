@@ -95,6 +95,7 @@ class McpController {
 		if ( ! is_array( $params ) ) {
 			$params = [];
 		}
+		/** @var array<string, mixed> $params */
 
 		switch ( $method ) {
 			case 'list_tools':

@@ -72,6 +72,7 @@ class PlaceholderResolver {
 	 * @return array<string, mixed> Context map.
 	 */
 	private static function build_context( string $hook_name, array $hook_args ): array {
+		/** @var array<string, mixed> $context */
 		$context = [];
 
 		// Map raw args by position.
@@ -88,11 +89,14 @@ class PlaceholderResolver {
 		}
 
 		// Enrich with structured objects.
-		$context = self::enrich_post_context( $context, $hook_name, $hook_args );
-		$context = self::enrich_user_context( $context, $hook_name, $hook_args );
-		$context = self::enrich_comment_context( $context, $hook_name, $hook_args );
-		$context = self::enrich_order_context( $context, $hook_name, $hook_args );
-		$context = self::enrich_product_context( $context, $hook_name, $hook_args );
+		/** @var array<string, mixed> $typed_context */
+		$typed_context = $context;
+		$typed_context = self::enrich_post_context( $typed_context, $hook_name, $hook_args );
+		$typed_context = self::enrich_user_context( $typed_context, $hook_name, $hook_args );
+		$typed_context = self::enrich_comment_context( $typed_context, $hook_name, $hook_args );
+		$typed_context = self::enrich_order_context( $typed_context, $hook_name, $hook_args );
+		$typed_context = self::enrich_product_context( $typed_context, $hook_name, $hook_args );
+		$context = $typed_context;
 
 		return $context;
 	}

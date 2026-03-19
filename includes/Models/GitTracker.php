@@ -237,6 +237,7 @@ class GitTracker {
 		$original_content = $row->original_content;
 
 		global $wp_filesystem;
+		/** @var \WP_Filesystem_Base $wp_filesystem */
 		if ( empty( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
@@ -325,6 +326,7 @@ class GitTracker {
 	 */
 	public function get_tracked_files(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 
@@ -347,6 +349,7 @@ class GitTracker {
 	 */
 	public function get_modified_files(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 
@@ -370,6 +373,7 @@ class GitTracker {
 	 */
 	public function clear_tracking(): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 
@@ -445,6 +449,7 @@ class GitTracker {
 	 */
 	private function get_tracked_row( string $relative_path ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 
@@ -470,6 +475,7 @@ class GitTracker {
 	 */
 	private function insert_tracked_file( string $relative_path, string $original_content ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table         = Database::git_tracked_files_table_name();
 		$original_hash = hash( 'sha256', $original_content );
@@ -516,6 +522,7 @@ class GitTracker {
 	 */
 	private function update_current_hash( string $relative_path, string $current_hash, string $status = self::STATUS_MODIFIED ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 		$now   = current_time( 'mysql', true );
@@ -559,6 +566,7 @@ class GitTracker {
 	 */
 	private function update_status( string $relative_path, string $status ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 		$now   = current_time( 'mysql', true );

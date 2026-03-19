@@ -110,6 +110,7 @@ class DatabaseQueryAbility extends AbstractAbility {
 		/** @var array<string, mixed> $input */
 		// @phpstan-ignore-next-line
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// @phpstan-ignore-next-line
 		$sql = trim( $input['sql'] ?? '' );

@@ -232,7 +232,7 @@ class MarketingAbilities {
 	/**
 	 * Check security-related headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array<int,mixed> Security header analysis.
 	 */
 	private static function check_security_headers( $headers ): array {
@@ -281,7 +281,7 @@ class MarketingAbilities {
 	/**
 	 * Check performance-related headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array<int,mixed> Performance header analysis.
 	 */
 	private static function check_performance_headers( $headers ): array {
@@ -317,7 +317,7 @@ class MarketingAbilities {
 	/**
 	 * Detect CDN indicators from headers.
 	 *
-	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array<string,mixed> $headers Response headers.
+	 * @param \WpOrg\Requests\Utility\CaseInsensitiveDictionary|array $headers Response headers.
 	 * @return array<int,mixed> CDN detection results.
 	 */
 	private static function detect_cdn( $headers ): array {

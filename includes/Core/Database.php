@@ -27,6 +27,7 @@ class Database {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_sessions';
 	}
 
@@ -35,6 +36,7 @@ class Database {
 	 */
 	public static function usage_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_usage';
 	}
 
@@ -43,6 +45,7 @@ class Database {
 	 */
 	public static function memories_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_memories';
 	}
 
@@ -51,6 +54,7 @@ class Database {
 	 */
 	public static function skills_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_skills';
 	}
 
@@ -62,6 +66,7 @@ class Database {
 	 */
 	public static function custom_tools_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
 	}
 
@@ -70,6 +75,7 @@ class Database {
 	 */
 	public static function automations_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_automations';
 	}
 
@@ -78,6 +84,7 @@ class Database {
 	 */
 	public static function automation_logs_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_automation_logs';
 	}
 
@@ -86,6 +93,7 @@ class Database {
 	 */
 	public static function event_automations_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_event_automations';
 	}
 
@@ -94,6 +102,7 @@ class Database {
 	 */
 	public static function conversation_templates_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_conversation_templates';
 	}
 
@@ -102,6 +111,7 @@ class Database {
 	 */
 	public static function git_tracked_files_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_git_tracked_files';
 	}
 
@@ -110,6 +120,7 @@ class Database {
 	 */
 	public static function changes_log_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_changes_log';
 	}
 
@@ -121,6 +132,7 @@ class Database {
 	 */
 	public static function modified_files_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_modified_files';
 	}
 
@@ -129,6 +141,7 @@ class Database {
 	 */
 	public static function agents_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_agents';
 	}
 
@@ -137,6 +150,7 @@ class Database {
 	 */
 	public static function shared_sessions_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_shared_sessions';
 	}
 
@@ -145,6 +159,7 @@ class Database {
 	 */
 	public static function install(): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Migrate from old "ai_agent" naming if upgrading from pre-rename version.
 		self::maybe_migrate_from_old_names();
@@ -452,6 +467,7 @@ class Database {
 	 */
 	public static function create_session( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
@@ -481,6 +497,7 @@ class Database {
 	 */
 	public static function get_session( int $session_id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -497,10 +514,11 @@ class Database {
 	 *
 	 * @param int                  $user_id WordPress user ID.
 	 * @param array<string, mixed> $filters Optional filters: status, folder, search, pinned.
-	 * @return array<string, mixed> Array of session summary objects.
+	 * @return list<object>|null Array of session summary objects.
 	 */
-	public static function list_sessions( int $user_id, array $filters = [] ): array {
+	public static function list_sessions( int $user_id, array $filters = [] ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -539,10 +557,11 @@ class Database {
 	 * List distinct folders for a user.
 	 *
 	 * @param int $user_id WordPress user ID.
-	 * @return array<string, mixed> Array of folder name strings.
+	 * @return array Array of folder name strings.
 	 */
 	public static function list_folders( int $user_id ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -561,13 +580,14 @@ class Database {
 	/**
 	 * Bulk update sessions.
 	 *
-	 * @param array<string, mixed> $session_ids Array of session IDs.
+	 * @param array<int|string, mixed> $session_ids Array of session IDs.
 	 * @param int                  $user_id     User ID for ownership check.
 	 * @param array<string, mixed> $data        Fields to update (status, pinned, folder).
 	 * @return int Number of rows affected.
 	 */
 	public static function bulk_update_sessions( array $session_ids, int $user_id, array $data ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		if ( empty( $session_ids ) || empty( $data ) ) {
 			return 0;
@@ -608,6 +628,7 @@ class Database {
 	 */
 	public static function empty_trash( int $user_id ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
@@ -630,6 +651,7 @@ class Database {
 	 */
 	public static function log_usage( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
 		$result = $wpdb->insert(
@@ -658,6 +680,7 @@ class Database {
 	 */
 	public static function get_usage_summary( array $filters = [] ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::usage_table_name();
 		$where = [];
@@ -733,6 +756,7 @@ class Database {
 	 */
 	public static function update_session( int $session_id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$data['updated_at'] = current_time( 'mysql', true );
 
@@ -765,6 +789,7 @@ class Database {
 	 */
 	public static function delete_session( int $session_id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(
@@ -786,6 +811,7 @@ class Database {
 	 */
 	public static function update_session_tokens( int $session_id, int $prompt_tokens, int $completion_tokens ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -861,6 +887,7 @@ class Database {
 		}
 
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// 1. Rename database tables.
 		$old_tables = [
@@ -935,6 +962,7 @@ class Database {
 	 */
 	public static function record_modified_file( string $file_path, string $action = 'write', int $session_id = 0, int $user_id = 0 ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Extract plugin slug from path like "plugins/my-plugin/..." → "my-plugin".
 		$plugin_slug = self::extract_plugin_slug( $file_path );
@@ -967,10 +995,11 @@ class Database {
 	 * Returns one row per plugin slug with the modification count and
 	 * the timestamp of the most recent modification.
 	 *
-	 * @return list<object{plugin_slug: string, modification_count: int, last_modified: string}>
+	 * @return list<object>
 	 */
 	public static function get_modified_plugins(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::modified_files_table_name();
 
@@ -998,6 +1027,7 @@ class Database {
 	 */
 	public static function get_modified_files_for_plugin( string $plugin_slug ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::modified_files_table_name();
 
@@ -1048,6 +1078,7 @@ class Database {
 	 */
 	public static function share_session( int $session_id, int $shared_by ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
 		$result = $wpdb->replace(
@@ -1071,6 +1102,7 @@ class Database {
 	 */
 	public static function unshare_session( int $session_id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(
@@ -1090,6 +1122,7 @@ class Database {
 	 */
 	public static function get_shared_session( int $session_id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -1106,10 +1139,11 @@ class Database {
 	 *
 	 * Returns sessions that have been shared by any admin, ordered by most recently updated.
 	 *
-	 * @return array<string, mixed> Array of session rows with is_shared=1 and shared_by fields.
+	 * @return list<object>|null Array of session rows with is_shared=1 and shared_by fields.
 	 */
-	public static function list_shared_sessions(): array {
+	public static function list_shared_sessions(): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$sessions_table = self::table_name();
 		$shared_table   = self::shared_sessions_table_name();

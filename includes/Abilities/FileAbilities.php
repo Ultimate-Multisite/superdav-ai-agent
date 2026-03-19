@@ -524,6 +524,7 @@ class FileWriteAbility extends AbstractFileAbility {
 		do_action( 'gratis_ai_agent_before_file_write', $full_path );
 
 		global $wp_filesystem;
+		/** @var \WP_Filesystem_Base $wp_filesystem */
 		if ( empty( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
@@ -729,6 +730,7 @@ class FileEditAbility extends AbstractFileAbility {
 			}
 
 			global $wp_filesystem;
+			/** @var \WP_Filesystem_Base $wp_filesystem */
 			if ( empty( $wp_filesystem ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 				WP_Filesystem();
@@ -831,6 +833,7 @@ class FileDeleteAbility extends AbstractFileAbility {
 		}
 
 		global $wp_filesystem;
+		/** @var \WP_Filesystem_Base $wp_filesystem */
 		if ( empty( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();

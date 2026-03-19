@@ -221,6 +221,7 @@ class AgentLoop {
 			ChangeLogger::begin( $this->session_id, 'confirmed-tool' );
 			try {
 				$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
+				/** @var \WordPress\AiClient\Messages\DTO\Message $response_message */
 			} finally {
 				ChangeLogger::end();
 			}
@@ -367,6 +368,7 @@ class AgentLoop {
 			ChangeLogger::begin( $this->session_id );
 			try {
 				$response_message = $this->get_ability_resolver()->execute_abilities( $assistant_message );
+				/** @var \WordPress\AiClient\Messages\DTO\Message $response_message */
 			} finally {
 				ChangeLogger::end();
 			}
@@ -380,7 +382,7 @@ class AgentLoop {
 				foreach ( $response_message->getParts() as $part ) {
 					$fr = $part->getFunctionResponse();
 					if ( $fr ) {
-						$this->sse_streamer->send_tool_result( $fr->getName(), $fr->getResponse() );
+						$this->sse_streamer->send_tool_result( (string) $fr->getName(), $fr->getResponse() );
 					}
 				}
 			}
@@ -500,17 +502,16 @@ class AgentLoop {
 		}
 
 		$builder = wp_ai_client_prompt();
+		/** @var \WP_AI_Client_Prompt_Builder $builder */
 
 		$builder->using_system_instruction( $this->system_instruction );
 		$this->configure_model( $builder );
 
 		if ( method_exists( $builder, 'using_temperature' ) ) {
-			/** @phpstan-ignore-next-line */
 			$builder->using_temperature( (float) $this->temperature );
 		}
 
 		if ( method_exists( $builder, 'using_max_tokens' ) ) {
-			/** @phpstan-ignore-next-line */
 			$builder->using_max_tokens( (int) $this->max_output_tokens );
 		}
 
@@ -1700,7 +1701,7 @@ class AgentLoop {
 	/**
 	 * Serialize conversation history to transportable arrays.
 	 *
-	 * @return array<string, mixed>
+	 * @return array
 	 */
 	private function serialize_history(): array {
 		return array_map(

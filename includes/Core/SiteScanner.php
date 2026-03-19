@@ -73,7 +73,7 @@ class SiteScanner {
 	/**
 	 * Return the current scan status record.
 	 *
-	 * @return array<string, mixed>
+	 * @return array
 	 */
 	public static function get_status(): array {
 		$raw = get_option( self::STATUS_OPTION, [] );
@@ -123,7 +123,6 @@ class SiteScanner {
 				self::STATUS_OPTION,
 				[
 					'status'       => 'complete',
-					// @phpstan-ignore-next-line
 					'started_at'   => get_option( self::STATUS_OPTION )['started_at'] ?? current_time( 'mysql', true ),
 					'completed_at' => current_time( 'mysql', true ),
 					'site_type'    => $data['site_type'],
@@ -197,9 +196,7 @@ class SiteScanner {
 		$active  = get_option( 'active_plugins', [] );
 		$plugins = [];
 
-		// @phpstan-ignore-next-line
 		foreach ( $active as $plugin_file ) {
-			// @phpstan-ignore-next-line
 			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_file, false, false );
 			if ( ! empty( $plugin_data['Name'] ) ) {
 				$plugins[] = $plugin_data['Name'];
@@ -287,12 +284,10 @@ class SiteScanner {
 	 * @return string Site type slug.
 	 */
 	private static function detect_site_type( array $data ): string {
-		// @phpstan-ignore-next-line
 		if ( ! empty( $data['woocommerce']['active'] ) ) {
 			return 'ecommerce';
 		}
 
-		// @phpstan-ignore-next-line
 		$plugin_names = array_map( 'strtolower', $data['active_plugins'] ?? [] );
 		$plugin_str   = implode( ' ', $plugin_names );
 
@@ -333,11 +328,8 @@ class SiteScanner {
 			sprintf(
 				/* translators: 1: site name, 2: site URL, 3: tagline */
 				'Site name: %1$s. URL: %2$s. Tagline: %3$s.',
-				// @phpstan-ignore-next-line
 				$data['site_name'],
-				// @phpstan-ignore-next-line
 				$data['site_url'],
-				// @phpstan-ignore-next-line
 				$data['site_tagline'] ?: 'none'
 			)
 		);
@@ -348,9 +340,7 @@ class SiteScanner {
 			sprintf(
 				/* translators: 1: WP version, 2: language */
 				'WordPress version: %1$s. Site language: %2$s.',
-				// @phpstan-ignore-next-line
 				$data['wp_version'],
-				// @phpstan-ignore-next-line
 				$data['language']
 			)
 		);
@@ -362,21 +352,17 @@ class SiteScanner {
 			sprintf(
 				/* translators: 1: theme name, 2: theme version */
 				'Active theme: %1$s (version %2$s).',
-				// @phpstan-ignore-next-line
 				$theme['name'],
-				// @phpstan-ignore-next-line
 				$theme['version']
 			)
 		);
 
 		// Active plugins (chunked to avoid overly long memories).
 		if ( ! empty( $data['active_plugins'] ) ) {
-			// @phpstan-ignore-next-line
 			$chunks = array_chunk( $data['active_plugins'], 10 );
 			foreach ( $chunks as $chunk ) {
 				Memory::create(
 					'technical_notes',
-					// @phpstan-ignore-next-line
 					'Active plugins: ' . implode( ', ', $chunk ) . '.'
 				);
 			}
@@ -386,7 +372,6 @@ class SiteScanner {
 		if ( ! empty( $data['post_types'] ) ) {
 			Memory::create(
 				'site_info',
-				// @phpstan-ignore-next-line
 				'Registered public post types: ' . implode( ', ', $data['post_types'] ) . '.'
 			);
 		}
@@ -397,7 +382,6 @@ class SiteScanner {
 			sprintf(
 				/* translators: %d: number of published posts */
 				'Published post count: %d.',
-				// @phpstan-ignore-next-line
 				$data['post_count']
 			)
 		);
@@ -406,24 +390,19 @@ class SiteScanner {
 		if ( ! empty( $data['categories'] ) ) {
 			Memory::create(
 				'site_info',
-				// @phpstan-ignore-next-line
 				'Top-level categories: ' . implode( ', ', $data['categories'] ) . '.'
 			);
 		}
 
 		// WooCommerce.
-		// @phpstan-ignore-next-line
 		if ( ! empty( $data['woocommerce']['active'] ) ) {
 			Memory::create(
 				'site_info',
 				sprintf(
 					/* translators: 1: WC version, 2: product count, 3: currency */
 					'WooCommerce %1$s is active. Products: %2$d. Currency: %3$s.',
-					// @phpstan-ignore-next-line
 					$data['woocommerce']['version'],
-					// @phpstan-ignore-next-line
 					$data['woocommerce']['product_count'],
-					// @phpstan-ignore-next-line
 					$data['woocommerce']['currency']
 				)
 			);
@@ -435,7 +414,6 @@ class SiteScanner {
 			sprintf(
 				/* translators: %s: site type */
 				'Detected site type: %s. (Set during onboarding scan — update if incorrect.)',
-				// @phpstan-ignore-next-line
 				$data['site_type']
 			)
 		);
@@ -455,7 +433,6 @@ class SiteScanner {
 		$settings = Settings::get();
 
 		// Only seed if the knowledge base feature is enabled.
-		// @phpstan-ignore-next-line
 		if ( empty( $settings['knowledge_enabled'] ) ) {
 			return;
 		}
@@ -469,7 +446,6 @@ class SiteScanner {
 		$post_types = $data['post_types'] ?? [ 'post', 'page' ];
 
 		$posts = get_posts(
-			// @phpstan-ignore-next-line
 			[
 				'post_type'      => $post_types,
 				'post_status'    => 'publish',
@@ -495,9 +471,7 @@ class SiteScanner {
 		// Check if the seed collection already exists.
 		$collections = KnowledgeDatabase::list_collections( 'active' );
 		foreach ( $collections as $collection ) {
-			// @phpstan-ignore-next-line
 			if ( ( $collection->slug ?? '' ) === 'onboarding-site-content' ) {
-				// @phpstan-ignore-next-line
 				return (int) $collection->id;
 			}
 		}

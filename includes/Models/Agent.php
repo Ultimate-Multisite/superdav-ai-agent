@@ -23,6 +23,7 @@ class Agent {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_agents';
 	}
 
@@ -34,6 +35,7 @@ class Agent {
 	 */
 	public static function get_all( ?bool $enabled = null ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -67,6 +69,7 @@ class Agent {
 	 */
 	public static function get( int $id ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -86,6 +89,7 @@ class Agent {
 	 */
 	public static function get_by_slug( string $slug ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -105,6 +109,7 @@ class Agent {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 
@@ -153,6 +158,7 @@ class Agent {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [
 			'name',
@@ -246,6 +252,7 @@ class Agent {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(

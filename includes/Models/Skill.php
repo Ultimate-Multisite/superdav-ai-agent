@@ -17,6 +17,7 @@ class Skill {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_skills';
 	}
 
@@ -24,10 +25,11 @@ class Skill {
 	 * Get all skills, optionally filtered by enabled status.
 	 *
 	 * @param bool|null $enabled Filter by enabled status (null = all).
-	 * @return array<string, mixed>
+	 * @return list<object>|null
 	 */
-	public static function get_all( ?bool $enabled = null ): array {
+	public static function get_all( ?bool $enabled = null ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -59,6 +61,7 @@ class Skill {
 	 */
 	public static function get( int $id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -78,6 +81,7 @@ class Skill {
 	 */
 	public static function get_by_slug( string $slug ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		return $wpdb->get_row(
@@ -97,6 +101,7 @@ class Skill {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
@@ -131,6 +136,7 @@ class Skill {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [ 'name', 'description', 'content', 'enabled' ];
 		$data    = array_intersect_key( $data, array_flip( $allowed ) );
@@ -182,6 +188,7 @@ class Skill {
 	 */
 	public static function delete( int $id ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$skill = self::get( $id );
 

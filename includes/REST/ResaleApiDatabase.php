@@ -25,6 +25,7 @@ class ResaleApiDatabase {
 	 */
 	public static function clients_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_resale_clients';
 	}
 
@@ -33,6 +34,7 @@ class ResaleApiDatabase {
 	 */
 	public static function usage_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_resale_usage';
 	}
 
@@ -99,6 +101,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function list_clients(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::clients_table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY name ASC" ) ?: [];
@@ -112,6 +115,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function get_client( int $id ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::clients_table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) );
@@ -126,6 +130,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function get_client_by_key( string $api_key ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::clients_table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE api_key = %s", $api_key ) );
@@ -140,6 +145,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function create_client( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql' );
 
@@ -179,6 +185,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function update_client( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Encode allowed_models array to JSON if provided.
 		if ( isset( $data['allowed_models'] ) && is_array( $data['allowed_models'] ) ) {
@@ -212,6 +219,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function delete_client( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Delete usage logs first.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete.
@@ -254,6 +262,7 @@ CREATE TABLE {$usage_table} (
 		int $duration_ms
 	) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql' );
 
@@ -306,6 +315,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function get_usage( int $client_id, int $limit = 20, int $offset = 0 ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::usage_table_name();
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$rows = $wpdb->get_results(
@@ -328,6 +338,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function count_usage( int $client_id ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::usage_table_name();
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$count = (int) $wpdb->get_var(
@@ -346,10 +357,11 @@ CREATE TABLE {$usage_table} (
 	 * @param int         $client_id  Client ID.
 	 * @param string|null $start_date ISO date string (inclusive), e.g. '2025-01-01'.
 	 * @param string|null $end_date   ISO date string (inclusive), e.g. '2025-01-31'.
-	 * @return array<string, mixed>
+	 * @return array
 	 */
 	public static function get_usage_summary( int $client_id, ?string $start_date = null, ?string $end_date = null ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::usage_table_name();
 
 		$where  = 'WHERE client_id = %d';
@@ -397,6 +409,7 @@ CREATE TABLE {$usage_table} (
 	 */
 	public static function reset_monthly_quota( int $client_id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now           = current_time( 'mysql' );
 		$next_reset    = gmdate( 'Y-m-d H:i:s', (int) strtotime( '+1 month', (int) strtotime( $now ) ) );

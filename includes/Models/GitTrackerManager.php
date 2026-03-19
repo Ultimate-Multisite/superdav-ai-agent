@@ -198,6 +198,7 @@ class GitTrackerManager {
 	 */
 	public static function get_modified_packages(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 
@@ -234,6 +235,7 @@ class GitTrackerManager {
 	 */
 	public static function get_all_tracked_files( ?string $status = null ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::git_tracked_files_table_name();
 

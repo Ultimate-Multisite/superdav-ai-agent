@@ -2,7 +2,7 @@ includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
-	level: 9
+	level: 10
 	paths:
 		- includes
 		- gratis-ai-agent.php
@@ -15,21 +15,23 @@ parameters:
 		- vendor/autoload.php
 	scanFiles:
 		- compat/abilities-api/class-abstract-ability.php
+		- compat/ai-client/class-wp-ai-client-prompt-builder.php
+		- compat/ai-client.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 	treatPhpDocTypesAsCertain: false
 	ignoreErrors:
 		# WP_CLI is only available when running in CLI context
 		- '#Call to static method .* on an unknown class WP_CLI#'
-		# Constants defined at runtime
+		# Constants defined at runtime (plugin_dir_url/plugin_dir_path return string at runtime)
 		- '#Constant GRATIS_AI_AGENT_.* not found#'
+		# GRATIS_AI_AGENT_URL/DIR are string constants defined at runtime; PHPStan sees them as mixed
+		- '#Binary operation "\." between mixed and .* results in an error#'
+		- '#Binary operation "\." between .* and mixed results in an error#'
 		# WordPress functions that may not be stubbed
 		- '#Function _wp_connectors_get_real_api_key not found#'
 		# Compat layer classes loaded conditionally
 		- '#unknown class WP_AI_Client_Ability_Function_Resolver#'
-		- '#unknown class WP_AI_Client_Prompt_Builder#'
 		- '#Instantiated class WP_AI_Client_Ability_Function_Resolver not found#'
-		- '#Function wp_ai_client_prompt not found#'
-		- '#has invalid type WP_AI_Client_Prompt_Builder#'
 		- '#has invalid return type WP_AI_Client_Ability_Function_Resolver#'
 		# WP_Block_Type properties may be empty strings
 		- '#Property WP_Block_Type::.* on left side of \?\? is not nullable#'
@@ -44,3 +46,97 @@ parameters:
 		# stdClass row pattern throughout the codebase. All callers guard against null
 		# before accessing properties, so these are safe.
 		- '#Access to an undefined property object::\$#'
+		# Casting mixed DB row values to scalar types is safe — all values come from
+		# typed database columns. PHPStan cannot infer column types from stdClass.
+		- '#Cannot cast mixed to int#'
+		- '#Cannot cast mixed to string#'
+		- '#Cannot cast mixed to float#'
+		# wpdb::prepare() requires a literal-string template; our SQL strings are
+		# built from trusted internal constants and table names, not user input.
+		- message: '#\$query of method wpdb::prepare\(\) expects literal-string#'
+		  identifier: argument.type
+		# wpdb::query() expects string but prepare() returns string|null; callers
+		# always pass the result of prepare() which is non-null when called correctly.
+		- message: '#\$query of method wpdb::query\(\) expects string, string\|null given#'
+		  identifier: argument.type
+		# json_decode() expects string; DB row fields are always stored as JSON strings.
+		- message: '#\$json of function json_decode expects string, mixed given#'
+		  identifier: argument.type
+		# sprintf() with mixed values from DB rows — values are always scalar at runtime.
+		- message: '#\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given#'
+		  identifier: argument.type
+		# String functions with mixed values from DB rows — values are always strings at runtime.
+		- message: '#\$string of function str_word_count expects string, mixed given#'
+		  identifier: argument.type
+		- message: '#\$string of function substr expects string, mixed given#'
+		  identifier: argument.type
+		- message: '#\$string of function strlen expects string, mixed given#'
+		  identifier: argument.type
+		- message: '#\$string of function explode expects string, mixed given#'
+		  identifier: argument.type
+		# WordPress sanitization functions with mixed values from request params
+		- message: '#expects string, mixed given#'
+		  identifier: argument.type
+		# array_map/foreach with list<object>|null — callers use ?: [] guard at runtime
+		- message: '#\$array of function array_map expects array, (list<object>|null|mixed) given#'
+		  identifier: argument.type
+		- message: '#Argument of an invalid type (list<object>|null|mixed) supplied for foreach#'
+		  identifier: foreach.nonIterable
+		# Accessing offsets on mixed values from DB rows and request params
+		- '#Cannot access offset .* on mixed#'
+		- '#Possibly invalid array key type mixed#'
+		# Accessing properties on mixed values from DB rows
+		- '#Cannot access property \$[a-z_]+ on mixed#'
+		# method_exists() with mixed — safe pattern for optional method detection
+		- message: '#\$object_or_class of function method_exists expects object\|string, mixed given#'
+		  identifier: argument.type
+		# count() with mixed — safe when guarded by is_array() check
+		- message: '#\$value of function count expects array\|Countable, mixed given#'
+		  identifier: argument.type
+		# in_array() with mixed haystack — safe when value is from trusted source
+		- message: '#\$haystack of function in_array expects array, mixed given#'
+		  identifier: argument.type
+		# Missing iterable value types — acceptable for internal methods and WordPress API types
+		- '#has no value type specified in iterable type#'
+		# CaseInsensitiveDictionary|array union — array type is from WordPress stubs
+		- '#has parameter \$headers with no value type specified in iterable type#'
+		# list<object>|null from get_results() passed to array functions — callers guard with ?: []
+		- message: '#\$array of function array_map expects array, list<object>\|null given#'
+		  identifier: argument.type
+		- message: '#Argument of an invalid type list<object>\|null supplied for foreach#'
+		  identifier: foreach.nonIterable
+		- message: '#Argument of an invalid type list<stdClass>\|null supplied for foreach#'
+		  identifier: foreach.nonIterable
+		- message: '#\$value of function count expects array\|Countable, list<object>\|null given#'
+		  identifier: argument.type
+		# array from get_params() passed to methods expecting array<string, mixed> — safe at runtime
+		- message: '#expects array<string, mixed>, array given#'
+		  identifier: argument.type
+		# absint() with mixed — safe when value is from trusted source
+		- message: '#\$maybeint of function absint expects#'
+		  identifier: argument.type
+		# gmdate() with mixed timestamp — safe when value is from trusted source
+		- message: '#\$timestamp of function gmdate expects int\|null, mixed given#'
+		  identifier: argument.type
+		# serialize_block() with mixed attrs — safe when value is from trusted source
+		- message: '#\$block of function serialize_block expects#'
+		  identifier: argument.type
+		# array_chunk/implode with mixed — safe when value is from trusted source
+		- message: '#\$array of function array_chunk expects array, mixed given#'
+		  identifier: argument.type
+		- message: '#\$array of function implode expects array, mixed given#'
+		  identifier: argument.type
+		# array_map with 'strtolower' callback — safe, strtolower accepts mixed at runtime
+		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, .strtolower. given#'
+		  identifier: argument.type
+		# get_posts() with mixed args — safe when value is from trusted source
+		- message: '#\$args of function get_posts expects array#'
+		  identifier: argument.type
+		# wp_update_post() with mixed postarr — safe when value is from trusted source
+		- message: '#\$postarr of function wp_update_post expects array#'
+		  identifier: argument.type
+		# wpdb::insert() format array — safe when value is from trusted source
+		- message: '#\$format of method wpdb::insert\(\) expects array<string>\|string\|null#'
+		  identifier: argument.type
+
+

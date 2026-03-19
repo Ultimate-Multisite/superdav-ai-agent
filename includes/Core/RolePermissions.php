@@ -251,7 +251,7 @@ class RolePermissions {
 		$roles    = [];
 
 		foreach ( $wp_roles->roles as $slug => $role_data ) {
-			$roles[ $slug ] = translate_user_role( $role_data['name'] );
+			$roles[ (string) $slug ] = translate_user_role( (string) ( $role_data['name'] ?? '' ) );
 		}
 
 		return $roles;

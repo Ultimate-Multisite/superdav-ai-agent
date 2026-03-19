@@ -21,6 +21,7 @@ class WebhookDatabase {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_webhooks';
 	}
 
@@ -29,6 +30,7 @@ class WebhookDatabase {
 	 */
 	public static function logs_table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_webhook_logs';
 	}
 
@@ -91,6 +93,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function list_webhooks(): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY name ASC" ) ?: [];
@@ -104,6 +107,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function get_webhook( int $id ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) );
@@ -118,6 +122,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function create_webhook( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql' );
 
@@ -156,6 +161,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function update_webhook( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$data['updated_at'] = current_time( 'mysql' );
 
@@ -184,6 +190,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function delete_webhook( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// Delete logs first.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete.
@@ -223,6 +230,7 @@ CREATE TABLE {$logs_table} (
 		string $error_message
 	) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql' );
 
@@ -273,6 +281,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function get_logs( int $webhook_id, int $limit = 20, int $offset = 0 ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::logs_table_name();
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$rows = $wpdb->get_results(
@@ -295,6 +304,7 @@ CREATE TABLE {$logs_table} (
 	 */
 	public static function count_logs( int $webhook_id ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		$table = self::logs_table_name();
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; table name from internal method.
 		$count = (int) $wpdb->get_var(

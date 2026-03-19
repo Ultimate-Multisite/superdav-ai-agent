@@ -466,7 +466,9 @@ class WooGetProductsAbility extends AbstractAbility {
 		}
 
 		foreach ( $result->products as $product ) {
-			$products[] = WooCommerceAbilities::serialize_product( $product );
+			if ( $product instanceof \WC_Product ) {
+				$products[] = WooCommerceAbilities::serialize_product( $product );
+			}
 		}
 
 		return [

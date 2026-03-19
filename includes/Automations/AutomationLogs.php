@@ -17,6 +17,7 @@ class AutomationLogs {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_automation_logs';
 	}
 
@@ -28,6 +29,7 @@ class AutomationLogs {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
 		$result = $wpdb->insert(
@@ -66,10 +68,11 @@ class AutomationLogs {
 	 * @param int $automation_id Automation ID.
 	 * @param int $limit         Max results.
 	 * @param int $offset        Offset for pagination.
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list_for_automation( int $automation_id, int $limit = 20, int $offset = 0 ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_results(
@@ -89,10 +92,11 @@ class AutomationLogs {
 	 * List recent logs across all automations.
 	 *
 	 * @param int $limit Max results.
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list_recent( int $limit = 50 ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_results(
@@ -114,6 +118,7 @@ class AutomationLogs {
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -131,6 +136,7 @@ class AutomationLogs {
 	 */
 	public static function delete_for_automation( int $automation_id ): int {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(
@@ -149,6 +155,7 @@ class AutomationLogs {
 	 */
 	public static function prune( int $keep_per_automation = 100 ): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 

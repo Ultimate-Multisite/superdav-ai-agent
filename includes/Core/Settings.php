@@ -310,7 +310,9 @@ class Settings {
 	 */
 	public static function get_gsc_credentials(): array {
 		$creds = get_option( self::GSC_CREDENTIALS_OPTION, [] );
-		return is_array( $creds ) ? $creds : [];
+		/** @var array<string, mixed> $result */
+		$result = is_array( $creds ) ? $creds : [];
+		return $result;
 	}
 
 	/**
@@ -472,6 +474,7 @@ class Settings {
 			return;
 		}
 
+		/** @var array{dependencies: string[], version: string} $asset */
 		$asset = require $asset_file;
 
 		wp_enqueue_style(

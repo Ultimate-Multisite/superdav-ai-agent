@@ -54,6 +54,7 @@ class AbilitiesExplorerAdminPage {
 			return;
 		}
 
+		/** @var array{dependencies: string[], version: string} $asset */
 		$asset = require $asset_file;
 
 		wp_enqueue_style(

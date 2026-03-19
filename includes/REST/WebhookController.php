@@ -865,6 +865,7 @@ class WebhookController {
 		if ( is_object( $webhook ) ) {
 			$webhook = (array) $webhook;
 		}
+		/** @var array<string, mixed> $webhook */
 
 		unset( $webhook['secret'] );
 

@@ -15,7 +15,7 @@ class EventTriggerRegistry {
 	/**
 	 * Get all available triggers grouped by category.
 	 *
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function get_all(): array {
 		$triggers = array_merge(
@@ -29,31 +29,29 @@ class EventTriggerRegistry {
 		 *
 		 * @param array $triggers Array of trigger definitions.
 		 */
-		return apply_filters( 'gratis_ai_agent_event_triggers', $triggers );
+		/** @var list<array<string, mixed>> $filtered */
+		$filtered = apply_filters( 'gratis_ai_agent_event_triggers', $triggers );
+		return $filtered;
 	}
 
 	/**
 	 * Get triggers grouped by category for the UI.
 	 *
-	 * @return array<string, mixed>
+	 * @return array<string, array<string, mixed>>
 	 */
 	public static function get_grouped(): array {
 		$all     = self::get_all();
+		/** @var array<string, array{label: string, triggers: list<array<string, mixed>>}> $grouped */
 		$grouped = [];
 
 		foreach ( $all as $trigger ) {
-			// @phpstan-ignore-next-line
-			$cat = $trigger['category'] ?? 'other';
-			// @phpstan-ignore-next-line
+			$cat = (string) ( $trigger['category'] ?? 'other' );
 			if ( ! isset( $grouped[ $cat ] ) ) {
-				// @phpstan-ignore-next-line
 				$grouped[ $cat ] = [
-					// @phpstan-ignore-next-line
 					'label'    => self::get_category_label( $cat ),
 					'triggers' => [],
 				];
 			}
-			// @phpstan-ignore-next-line
 			$grouped[ $cat ]['triggers'][] = $trigger;
 		}
 
@@ -68,9 +66,7 @@ class EventTriggerRegistry {
 	 */
 	public static function get( string $hook_name ): ?array {
 		foreach ( self::get_all() as $trigger ) {
-			// @phpstan-ignore-next-line
 			if ( isset( $trigger['hook_name'] ) && $trigger['hook_name'] === $hook_name ) {
-				// @phpstan-ignore-next-line
 				return $trigger;
 			}
 		}

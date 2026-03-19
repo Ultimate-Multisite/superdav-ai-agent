@@ -388,6 +388,7 @@ class ContextProviders {
 	 */
 	public static function provide_system_context( array $page_context ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$data = [
 			'PHP Version'  => PHP_VERSION,
@@ -395,10 +396,8 @@ class ContextProviders {
 		];
 
 		if ( method_exists( $wpdb, 'db_server_info' ) ) {
-			/** @phpstan-ignore-next-line */
 			$data['MySQL Version'] = $wpdb->db_server_info();
 		} elseif ( method_exists( $wpdb, 'db_version' ) ) {
-			/** @phpstan-ignore-next-line */
 			$data['MySQL Version'] = $wpdb->db_version();
 		}
 

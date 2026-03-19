@@ -26,6 +26,7 @@ class ChangesLog {
 	 */
 	public static function record( array $data ): int|false {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table; caching not applicable.
 		$result = $wpdb->insert(
@@ -64,6 +65,7 @@ class ChangesLog {
 	 */
 	public static function list( array $filters = [] ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = Database::changes_log_table_name();
 		$where = [];
@@ -122,6 +124,7 @@ class ChangesLog {
 	 */
 	public static function get( int $id ): ?object {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; caching not applicable.
 		return $wpdb->get_row(
@@ -141,6 +144,7 @@ class ChangesLog {
 	 */
 	public static function mark_reverted( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; caching not applicable.
 		$result = $wpdb->update(
@@ -165,6 +169,7 @@ class ChangesLog {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; caching not applicable.
 		$result = $wpdb->delete(

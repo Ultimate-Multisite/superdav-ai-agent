@@ -97,7 +97,9 @@ class AbilityHooks {
 		 * @param string     $ability_name The ability name.
 		 * @param string     $call_id      The unique function call ID.
 		 */
-		return apply_filters( 'gratis_ai_agent_ability_args', $args, $ability_name, $call_id );
+		/** @var array<string, mixed>|null $filtered */
+		$filtered = apply_filters( 'gratis_ai_agent_ability_args', $args, $ability_name, $call_id );
+		return $filtered;
 	}
 
 	/**

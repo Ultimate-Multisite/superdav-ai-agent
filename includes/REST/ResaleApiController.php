@@ -828,6 +828,7 @@ class ResaleApiController {
 		if ( is_object( $client ) ) {
 			$client = (array) $client;
 		}
+		/** @var array<string, mixed> $client */
 
 		// Remove the raw API key — never expose it in list/get responses.
 		unset( $client['api_key'] );

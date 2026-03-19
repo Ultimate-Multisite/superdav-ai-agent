@@ -22,6 +22,7 @@ class Memory {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_memories';
 	}
 
@@ -29,10 +30,11 @@ class Memory {
 	 * Get all memories, optionally filtered by category.
 	 *
 	 * @param string|null $category Optional category filter.
-	 * @return array<string, mixed>
+	 * @return list<object>|null
 	 */
-	public static function get_all( ?string $category = null ): array {
+	public static function get_all( ?string $category = null ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 
@@ -60,9 +62,9 @@ class Memory {
 	 * Get memories by category.
 	 *
 	 * @param string $category Category name.
-	 * @return array<string, mixed>
+	 * @return list<object>|null
 	 */
-	public static function get_by_category( string $category ): array {
+	public static function get_by_category( string $category ): ?array {
 		return self::get_all( $category );
 	}
 
@@ -75,6 +77,7 @@ class Memory {
 	 */
 	public static function create( string $category, string $content ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		if ( ! in_array( $category, self::CATEGORIES, true ) ) {
 			$category = 'general';
@@ -105,6 +108,7 @@ class Memory {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$allowed = [ 'category', 'content' ];
 		$data    = array_intersect_key( $data, array_flip( $allowed ) );
@@ -135,6 +139,7 @@ class Memory {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->delete(
@@ -151,10 +156,11 @@ class Memory {
 	 *
 	 * @param string $query Search query.
 	 * @param int    $limit Max results.
-	 * @return array<string, mixed>
+	 * @return list<object>
 	 */
 	public static function search( string $query, int $limit = 20 ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 

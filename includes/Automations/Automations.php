@@ -19,6 +19,7 @@ class Automations {
 	 */
 	public static function table_name(): string {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_automations';
 	}
 
@@ -26,10 +27,11 @@ class Automations {
 	 * List all automations.
 	 *
 	 * @param bool $enabled_only Only return enabled automations.
-	 * @return array<string, mixed>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function list( bool $enabled_only = false ): array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$table = self::table_name();
 		$where = $enabled_only ? 'WHERE enabled = 1' : '';
@@ -48,6 +50,7 @@ class Automations {
 	 */
 	public static function get( int $id ): ?array {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
@@ -104,6 +107,7 @@ class Automations {
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$now = current_time( 'mysql', true );
 
@@ -161,6 +165,7 @@ class Automations {
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		$existing = self::get( $id );
 		if ( ! $existing ) {
@@ -237,6 +242,7 @@ class Automations {
 	 */
 	public static function delete( int $id ): bool {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		AutomationRunner::unschedule( $id );
 
@@ -261,6 +267,7 @@ class Automations {
 	 */
 	public static function record_run( int $id, string $run_time ): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$wpdb->query(

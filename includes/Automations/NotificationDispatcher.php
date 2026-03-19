@@ -16,6 +16,7 @@ declare(strict_types=1);
  * Channels with `enabled: false` are silently skipped.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Automations;

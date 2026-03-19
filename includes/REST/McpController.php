@@ -18,6 +18,7 @@ declare(strict_types=1);
  * (HTTP Basic Auth). Both are handled transparently by the WP REST API.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

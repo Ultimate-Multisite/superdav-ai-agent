@@ -17,6 +17,7 @@ declare(strict_types=1);
  *  6. Answers are stored as memories; interview marked complete.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

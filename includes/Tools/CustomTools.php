@@ -10,6 +10,7 @@ declare(strict_types=1);
  *  - CLI:    Runs WP-CLI commands with argument schema.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tools;

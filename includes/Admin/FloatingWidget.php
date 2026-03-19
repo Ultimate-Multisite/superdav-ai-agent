@@ -8,6 +8,7 @@ declare(strict_types=1);
  * and expandable chat panel in the bottom-right corner.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Admin;

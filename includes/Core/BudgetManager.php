@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Uses the existing usage table and caches aggregations via transients.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

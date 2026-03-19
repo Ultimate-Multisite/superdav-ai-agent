@@ -9,6 +9,7 @@ declare(strict_types=1);
  * changes when the flag is active.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

@@ -10,6 +10,7 @@ declare(strict_types=1);
  * with the first 50 published posts.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

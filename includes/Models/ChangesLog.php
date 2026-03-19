@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Changes log model — records AI-made content changes for audit, diff, and revert.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Models;

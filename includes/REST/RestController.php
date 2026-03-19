@@ -8,6 +8,7 @@ declare(strict_types=1);
  * does not block the browser->nginx connection.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

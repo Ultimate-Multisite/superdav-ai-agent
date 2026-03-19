@@ -9,6 +9,7 @@ declare(strict_types=1);
  * so the admin UI can poll scan status.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

@@ -18,6 +18,7 @@ declare(strict_types=1);
  * control and visibility for the AI agent.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

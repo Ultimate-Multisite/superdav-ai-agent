@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Event Trigger Registry — catalog of available WordPress hooks with metadata.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Automations;

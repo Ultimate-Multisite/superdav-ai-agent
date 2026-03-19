@@ -12,6 +12,7 @@ declare(strict_types=1);
  * automatically in expanded mode and guide the user through site setup.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

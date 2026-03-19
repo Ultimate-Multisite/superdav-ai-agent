@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Validates and returns a navigate action for a URL within the WordPress site.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

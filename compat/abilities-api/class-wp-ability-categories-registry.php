@@ -7,6 +7,7 @@
  * @package WordPress
  * @subpackage Abilities API
  * @since 6.9.0
+ * @license GPL-2.0-or-later
  */
 
 declare( strict_types = 1 );

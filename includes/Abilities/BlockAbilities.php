@@ -8,6 +8,7 @@ declare(strict_types=1);
  * and markdown-to-blocks conversion.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

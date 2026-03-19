@@ -23,6 +23,7 @@ declare(strict_types=1);
  * using the same job/process pattern as the main /run endpoint.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

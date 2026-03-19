@@ -17,6 +17,7 @@ declare(strict_types=1);
  * - Error handling returning WP_Error on failure
  *
  * @package GratisAiAgent\Core
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

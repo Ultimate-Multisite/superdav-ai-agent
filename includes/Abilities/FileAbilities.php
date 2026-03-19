@@ -10,6 +10,7 @@ declare(strict_types=1);
  * Modelled after akirk/ai-assistant's file tools with WordPress Abilities API integration.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

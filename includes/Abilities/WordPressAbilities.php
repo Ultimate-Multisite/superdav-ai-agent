@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Provides plugin/theme listing, plugin installation, and PHP execution.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

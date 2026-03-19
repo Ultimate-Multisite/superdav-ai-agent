@@ -8,6 +8,7 @@ declare(strict_types=1);
  * Supports {prefix} placeholder for table prefix substitution.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

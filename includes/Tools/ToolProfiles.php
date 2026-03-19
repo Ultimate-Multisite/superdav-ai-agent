@@ -8,6 +8,7 @@ declare(strict_types=1);
  * the dataset is small and read-heavy.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Tools;

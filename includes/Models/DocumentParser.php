@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Supports PDF (via smalot/pdfparser), DOCX, TXT, Markdown, and HTML.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Models;

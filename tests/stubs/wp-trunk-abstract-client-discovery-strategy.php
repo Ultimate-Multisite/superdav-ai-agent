@@ -27,6 +27,7 @@
  * concrete class can extend it without a signature mismatch.
  *
  * @package GratisAiAgent\Tests
+ * @license GPL-2.0-or-later
  */
 
 namespace WordPress\AiClient\Providers\Http\Abstracts;

@@ -8,6 +8,7 @@ declare(strict_types=1);
  * feeds results back, and repeats until the model is done.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

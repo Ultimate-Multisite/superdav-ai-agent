@@ -9,6 +9,7 @@
  * On WordPress 7.0+ these functions already exist and nothing is loaded.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Provides URL navigation and page HTML inspection.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

@@ -15,6 +15,7 @@ declare(strict_types=1);
  *   truncate long string values, and strip verbose metadata.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

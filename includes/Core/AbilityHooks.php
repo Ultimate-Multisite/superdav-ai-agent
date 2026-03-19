@@ -61,6 +61,7 @@ declare(strict_types=1);
  *   @param string $call_id       The unique function call ID.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

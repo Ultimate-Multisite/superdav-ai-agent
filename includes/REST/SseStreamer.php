@@ -16,6 +16,7 @@ declare(strict_types=1);
  *   $streamer->send_done( [ 'session_id' => 42 ] );
  *
  * @package GratisAiAgent\REST
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\REST;

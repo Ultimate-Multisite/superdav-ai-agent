@@ -8,6 +8,7 @@ declare(strict_types=1);
  * a React-based settings page under Tools > Gratis AI Agent Settings.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

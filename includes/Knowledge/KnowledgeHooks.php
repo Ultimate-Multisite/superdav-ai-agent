@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Auto-indexes posts on save/delete and schedules batch re-indexing.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Knowledge;

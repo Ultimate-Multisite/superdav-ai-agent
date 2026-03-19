@@ -10,6 +10,7 @@ declare(strict_types=1);
  * we wrap the raw response in this class so the loop can handle it uniformly.
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Core;

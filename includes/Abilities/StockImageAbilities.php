@@ -8,6 +8,7 @@ declare(strict_types=1);
  * of the WP-CLI media/import schema (porcelain typing, redirect URLs, etc.).
  *
  * @package GratisAiAgent
+ * @license GPL-2.0-or-later
  */
 
 namespace GratisAiAgent\Abilities;

@@ -2238,6 +2238,11 @@ class RestController {
 			$response['model_id']        = $job['result']['model_id'] ?? ( $job['params']['model_id'] ?? '' );
 			$response['iterations_used'] = $job['result']['iterations_used'] ?? 0;
 
+			// Include generated title if one was produced.
+			if ( isset( $job['result']['generated_title'] ) ) {
+				$response['generated_title'] = $job['result']['generated_title'];
+			}
+
 			// Compute cost estimate from token usage and model.
 			$model                     = $response['model_id'];
 			$tokens                    = $response['token_usage'];
@@ -2576,11 +2581,15 @@ class RestController {
 
 				// Auto-generate title from first user message if empty.
 				if ( $session && empty( $session->title ) ) {
-					$title = mb_substr( $params['message'], 0, 60 );
-					if ( mb_strlen( $params['message'] ) > 60 ) {
-						$title .= '...';
-					}
+					$reply = $result['reply'] ?? '';
+					$title = self::generate_session_title(
+						$params['message'],
+						$reply,
+						$options['provider_id'] ?? $params['provider_id'] ?? '',
+						$options['model_id'] ?? $params['model_id'] ?? ''
+					);
 					$this->database->update_session( $session_id, [ 'title' => $title ] );
+					$job['result']['generated_title'] = $title;
 				}
 			}
 
@@ -2771,12 +2780,15 @@ class RestController {
 			}
 
 			// Auto-generate title.
+			$generated_title = null;
 			if ( $session && empty( $session->title ) ) {
-				$title = mb_substr( $params['message'], 0, 60 );
-				if ( mb_strlen( $params['message'] ) > 60 ) {
-					$title .= '...';
-				}
-				Database::update_session( $session_id, [ 'title' => $title ] );
+				$generated_title = self::generate_session_title(
+					$params['message'],
+					$result['reply'] ?? '',
+					$options['provider_id'] ?? $params['provider_id'] ?? '',
+					$options['model_id'] ?? $params['model_id'] ?? ''
+				);
+				Database::update_session( $session_id, [ 'title' => $generated_title ] );
 			}
 		}
 
@@ -2786,20 +2798,24 @@ class RestController {
 		];
 		$model_id    = $result['model_id'] ?? ( $params['model_id'] ?? '' );
 
-		$streamer->send_done(
-			[
-				'session_id'      => $session_id ?: null,
-				'token_usage'     => $token_usage,
-				'model_id'        => $model_id,
-				'iterations_used' => $result['iterations_used'] ?? 0,
-				'cost_estimate'   => CostCalculator::calculate_cost(
-					$model_id,
-					(int) ( $token_usage['prompt'] ?? 0 ),
-					(int) ( $token_usage['completion'] ?? 0 )
-				),
-				'tool_calls'      => $result['tool_calls'] ?? [],
-			]
-		);
+		$done_payload = [
+			'session_id'      => $session_id ?: null,
+			'token_usage'     => $token_usage,
+			'model_id'        => $model_id,
+			'iterations_used' => $result['iterations_used'] ?? 0,
+			'cost_estimate'   => CostCalculator::calculate_cost(
+				$model_id,
+				(int) ( $token_usage['prompt'] ?? 0 ),
+				(int) ( $token_usage['completion'] ?? 0 )
+			),
+			'tool_calls'      => $result['tool_calls'] ?? [],
+		];
+
+		if ( null !== $generated_title ) {
+			$done_payload['generated_title'] = $generated_title;
+		}
+
+		$streamer->send_done( $done_payload );
 
 		exit;
 	}
@@ -5710,5 +5726,278 @@ class RestController {
 	public static function handle_clear_ga_credentials(): WP_REST_Response {
 		GoogleAnalyticsAbilities::clear_credentials();
 		return new WP_REST_Response( [ 'cleared' => true ], 200 );
+	}
+
+	// ─── Session Title Generation ─────────────────────────────────────────────
+
+	/**
+	 * Generate a short 3-5 word session title from the first user message and AI reply.
+	 *
+	 * Makes a lightweight AI call using the same provider/model as the conversation.
+	 * Falls back to a truncated version of the user message if the AI call fails.
+	 *
+	 * @param string $user_message The first user message.
+	 * @param string $ai_reply     The first AI reply.
+	 * @param string $provider_id  Provider identifier (e.g. 'openai', 'anthropic').
+	 * @param string $model_id     Model identifier.
+	 * @return string A short title (3-5 words, no quotes, no punctuation at end).
+	 */
+	public static function generate_session_title( string $user_message, string $ai_reply, string $provider_id, string $model_id ): string {
+		$fallback = self::title_fallback( $user_message );
+
+		if ( empty( $user_message ) ) {
+			return $fallback;
+		}
+
+		// Build a minimal prompt asking for a 3-5 word title.
+		$prompt_text = sprintf(
+			'Generate a short 3-5 word title for this conversation. Reply with ONLY the title — no quotes, no punctuation at the end, no explanation.
+
+User: %s
+Assistant: %s',
+			mb_substr( $user_message, 0, 500 ),
+			mb_substr( $ai_reply, 0, 500 )
+		);
+
+		$messages = [
+			[
+				'role'    => 'user',
+				'content' => $prompt_text,
+			],
+		];
+
+		$request_body = [
+			'messages'   => $messages,
+			'max_tokens' => 20,
+			'stream'     => false,
+		];
+
+		$raw_title = self::call_provider_for_title( $provider_id, $model_id, $request_body );
+
+		if ( null === $raw_title ) {
+			return $fallback;
+		}
+
+		// Sanitize: strip surrounding quotes, trim whitespace, limit length.
+		$title = trim( $raw_title, " \t\n\r\0\x0B\"'" );
+		$title = wp_strip_all_tags( $title );
+		$title = mb_substr( $title, 0, 100 );
+
+		return '' !== $title ? $title : $fallback;
+	}
+
+	/**
+	 * Make a minimal API call to the configured provider to generate a title.
+	 *
+	 * Returns the raw text response, or null on failure.
+	 *
+	 * @param string               $provider_id  Provider identifier.
+	 * @param string               $model_id     Model identifier.
+	 * @param array<string, mixed> $request_body Base request body (messages, max_tokens, stream).
+	 * @return string|null Raw response text, or null on failure.
+	 */
+	private static function call_provider_for_title( string $provider_id, string $model_id, array $request_body ): ?string {
+		// Determine which provider to use.
+		$effective_provider = $provider_id;
+		if ( empty( $effective_provider ) ) {
+			$settings           = Settings::get_settings();
+			$effective_provider = $settings['default_provider'] ?? '';
+		}
+
+		switch ( $effective_provider ) {
+			case 'openai':
+				return self::call_openai_for_title( $model_id, $request_body );
+
+			case 'anthropic':
+				return self::call_anthropic_for_title( $model_id, $request_body );
+
+			case 'google':
+				return self::call_google_for_title( $model_id, $request_body );
+
+			default:
+				// Try OpenAI-compatible proxy.
+				return self::call_openai_compat_for_title( $model_id, $request_body );
+		}
+	}
+
+	/**
+	 * Call OpenAI to generate a title.
+	 *
+	 * @param string               $model_id     Model identifier.
+	 * @param array<string, mixed> $request_body Base request body.
+	 * @return string|null
+	 */
+	private static function call_openai_for_title( string $model_id, array $request_body ): ?string {
+		$api_key = Settings::get_provider_key( 'openai' );
+		if ( '' === $api_key ) {
+			return null;
+		}
+
+		$request_body['model'] = $model_id ?: Settings::DIRECT_PROVIDERS['openai']['default_model'];
+
+		$response = wp_remote_post(
+			'https://api.openai.com/v1/chat/completions',
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $api_key,
+				],
+				'body'    => wp_json_encode( $request_body ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $data['choices'][0]['message']['content'] ?? null;
+	}
+
+	/**
+	 * Call Anthropic to generate a title.
+	 *
+	 * @param string               $model_id     Model identifier.
+	 * @param array<string, mixed> $request_body Base request body.
+	 * @return string|null
+	 */
+	private static function call_anthropic_for_title( string $model_id, array $request_body ): ?string {
+		$api_key = Settings::get_provider_key( 'anthropic' );
+		if ( '' === $api_key ) {
+			return null;
+		}
+
+		// Anthropic uses a different format.
+		$anthropic_body = [
+			'model'      => $model_id ?: Settings::DIRECT_PROVIDERS['anthropic']['default_model'],
+			'max_tokens' => 20,
+			'messages'   => $request_body['messages'],
+		];
+
+		$response = wp_remote_post(
+			'https://api.anthropic.com/v1/messages',
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Content-Type'      => 'application/json',
+					'x-api-key'         => $api_key,
+					'anthropic-version' => '2023-06-01',
+				],
+				'body'    => wp_json_encode( $anthropic_body ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $data['content'][0]['text'] ?? null;
+	}
+
+	/**
+	 * Call Google Gemini to generate a title.
+	 *
+	 * @param string               $model_id     Model identifier.
+	 * @param array<string, mixed> $request_body Base request body.
+	 * @return string|null
+	 */
+	private static function call_google_for_title( string $model_id, array $request_body ): ?string {
+		$api_key = Settings::get_provider_key( 'google' );
+		if ( '' === $api_key ) {
+			return null;
+		}
+
+		$effective_model = $model_id ?: Settings::DIRECT_PROVIDERS['google']['default_model'];
+
+		// Google uses OpenAI-compatible endpoint via their REST API.
+		$google_body = [
+			'model'      => $effective_model,
+			'max_tokens' => 20,
+			'messages'   => $request_body['messages'],
+			'stream'     => false,
+		];
+
+		$response = wp_remote_post(
+			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $api_key,
+				],
+				'body'    => wp_json_encode( $google_body ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $data['choices'][0]['message']['content'] ?? null;
+	}
+
+	/**
+	 * Call an OpenAI-compatible proxy to generate a title.
+	 *
+	 * @param string               $model_id     Model identifier.
+	 * @param array<string, mixed> $request_body Base request body.
+	 * @return string|null
+	 */
+	private static function call_openai_compat_for_title( string $model_id, array $request_body ): ?string {
+		$endpoint_url = \GratisAiAgent\Core\CredentialResolver::getOpenAiCompatEndpointUrl();
+		if ( '' === $endpoint_url ) {
+			return null;
+		}
+
+		$api_key = \GratisAiAgent\Core\CredentialResolver::getOpenAiCompatApiKey();
+
+		$effective_model = $model_id;
+		if ( empty( $effective_model ) ) {
+			if ( function_exists( 'OpenAiCompatibleConnector\\get_default_model' ) ) {
+				$effective_model = \OpenAiCompatibleConnector\get_default_model();
+			}
+			if ( empty( $effective_model ) ) {
+				$effective_model = Settings::get_default_model();
+			}
+		}
+
+		$request_body['model'] = $effective_model;
+
+		$response = wp_remote_post(
+			rtrim( $endpoint_url, '/' ) . '/chat/completions',
+			[
+				'timeout'   => 15,
+				'headers'   => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
+				],
+				'body'      => wp_json_encode( $request_body ),
+				'sslverify' => false,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $data['choices'][0]['message']['content'] ?? null;
+	}
+
+	/**
+	 * Fallback title: truncate the user message to 60 characters.
+	 *
+	 * @param string $user_message The user message.
+	 * @return string Truncated title.
+	 */
+	private static function title_fallback( string $user_message ): string {
+		$title = mb_substr( $user_message, 0, 60 );
+		if ( mb_strlen( $user_message ) > 60 ) {
+			$title .= '...';
+		}
+		return $title;
 	}
 }

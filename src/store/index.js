@@ -585,6 +585,20 @@ const actions = {
 		return { type: 'SET_SHARED_SESSIONS', sessions };
 	},
 
+	/**
+	 * Optimistically update the title of a session in the sessions list.
+	 *
+	 * Called immediately after the AI generates a title so the sidebar
+	 * reflects the new title without waiting for a full fetchSessions round-trip.
+	 *
+	 * @param {number} sessionId - Session identifier.
+	 * @param {string} title     - New session title.
+	 * @return {Object} Redux action.
+	 */
+	updateSessionTitle( sessionId, title ) {
+		return { type: 'UPDATE_SESSION_TITLE', sessionId, title };
+	},
+
 	// ─── Thunks ──────────────────────────────────────────────────
 
 	/**
@@ -1418,6 +1432,15 @@ const actions = {
 				} );
 			}
 
+			// Optimistically update the session title in the sidebar when the
+			// server generated one (first message only — title is empty before).
+			if ( doneMetadata?.generated_title && doneMetadata?.session_id ) {
+				dispatch.updateSessionTitle(
+					doneMetadata.session_id,
+					doneMetadata.generated_title
+				);
+			}
+
 			dispatch.fetchSessions();
 			dispatch.setSending( false );
 		};
@@ -1736,6 +1759,15 @@ const actions = {
 									current.completion +
 									( result.token_usage.completion || 0 ),
 							} );
+						}
+
+						// Optimistically update the session title in the sidebar
+						// when the server generated one (first message only).
+						if ( result.generated_title && result.session_id ) {
+							dispatch.updateSessionTitle(
+								result.session_id,
+								result.generated_title
+							);
 						}
 
 						dispatch.fetchSessions();
@@ -2779,6 +2811,15 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 				...state,
 				sharedSessions: action.sessions,
 				sharedSessionsLoaded: true,
+			};
+		case 'UPDATE_SESSION_TITLE':
+			return {
+				...state,
+				sessions: state.sessions.map( ( s ) =>
+					parseInt( s.id, 10 ) === action.sessionId
+						? { ...s, title: action.title }
+						: s
+				),
 			};
 		default:
 			return state;

@@ -2,7 +2,7 @@
 
 ## Ready
 
-- [ ] t106 Update default model to GPT-4.1-nano and add GPT-4.1 model family to selector @superdav42 #feature ~2h ref=GH#539
+- [x] t106 Update default model to GPT-4.1-nano and add GPT-4.1 model family to selector @superdav42 #feature ~2h ref=GH#539 pr:#542 completed:2026-03-19
   - Update Settings::DIRECT_PROVIDERS openai default_model from gpt-4o to gpt-4.1-nano
   - Add GPT-4.1-nano, GPT-4.1-mini, GPT-4.1 to OpenAI model list in Settings
   - CostCalculator already has pricing — no changes needed there

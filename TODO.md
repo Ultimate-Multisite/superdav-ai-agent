@@ -70,7 +70,7 @@
   - The button has red text which looks like a destructive/danger action
   - Should use standard primary/secondary button styling
 
-- [ ] t102 Settings tab bar overflow handling for narrow viewports @superdav42 #ui ~1h
+- [x] t102 Settings tab bar overflow handling for narrow viewports @superdav42 #ui ~1h pr:#528 completed:2026-03-19
   - 18 tabs in the settings page — rightmost tabs (Integrations, Advanced) may be cut off at narrower viewports
   - Add horizontal scroll indicators or a responsive tab layout (dropdown on mobile)
 

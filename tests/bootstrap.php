@@ -38,23 +38,23 @@ require_once $plugin_dir . '/vendor/autoload.php';
  *    WP trunk's WP_AI_Client_Cache implements the scoped version
  *    (WordPress\AiClientDependencies\Psr\SimpleCache\CacheInterface) but
  *    Composer's AiClient::setCache() expects the global Psr\SimpleCache\CacheInterface.
- *    Fix: use class_alias() to make the global name an alias for the scoped interface.
- *    This makes WP_AI_Client_Cache satisfy the global type hint because PHP's type
- *    system treats the two names as the same interface.
- *    IMPORTANT: PHP does NOT call autoloaders for parameter type checks. The alias must
- *    be set up eagerly (before wp-settings.php runs), not via an autoloader callback.
- *    See the eager class_alias block after $_tests_dir detection.
  *
- * Fix: register a prepended autoloader that intercepts the affected classes and loads
- * shims that use the scoped WordPress\AiClientDependencies\ namespace (strategy A).
+ * 4. Psr\EventDispatcher\EventDispatcherInterface (global)
+ *    WP trunk's WP_AI_Client_Event_Dispatcher implements the scoped version but
+ *    Composer's AiClient::setEventDispatcher() expects the global interface.
+ *
+ * Fix for 1-2: register a prepended autoloader that intercepts the affected classes and
+ * loads shims that use the scoped WordPress\AiClientDependencies\ namespace (strategy A).
  * Shims are only loaded when WP trunk's scoped PSR namespace is detectable
  * (interface_exists check), so WP 6.9 tests are unaffected.
  *
- * The prepend=true flag ensures this autoloader runs before Composer's,
- * so the shims win the race for the class/interface definitions.
+ * Fix for 3-4: use class_alias() to make the global names aliases for the scoped
+ * interfaces (strategy B). PHP does NOT call autoloaders for parameter type checks,
+ * so the aliases must be set up eagerly before wp-settings.php runs.
+ * See the eager class_alias block after $_tests_dir detection below.
  *
- * Strategy B (CacheInterface alias) is handled separately — see the eager
- * class_alias block after $_tests_dir detection below.
+ * The prepend=true flag ensures the strategy A autoloader runs before Composer's,
+ * so the shims win the race for the class/interface definitions.
  */
 spl_autoload_register(
 	static function ( string $class_name ) use ( $plugin_dir ): void {
@@ -102,21 +102,27 @@ if ( ! $_tests_dir ) {
 }
 
 /**
- * WP trunk CacheInterface alias — must be set up eagerly before wp-settings.php runs.
+ * WP trunk PSR interface aliases — must be set up eagerly before wp-settings.php runs.
  *
  * PHP does NOT call autoloaders for parameter type checks. When wp-settings.php calls
- * AiClient::setCache(new WP_AI_Client_Cache()), PHP checks the type hint at call time
- * without triggering autoloading. The alias must therefore be created before that call.
+ * AiClient::setCache() or AiClient::setEventDispatcher(), PHP checks the type hints at
+ * call time without triggering autoloading. The aliases must therefore be created before
+ * those calls, not via an autoloader callback.
  *
- * Strategy: load WP trunk's scoped autoloader (if present), then alias the global
- * Psr\SimpleCache\CacheInterface to the scoped one. WP trunk's autoloader is at
- * wp-includes/php-ai-client/autoload.php relative to the WP core directory.
+ * Strategy: load WP trunk's scoped autoloader (if present), then for each affected PSR
+ * interface, explicitly load the scoped version and alias the global name to it.
+ * WP trunk's autoloader is at wp-includes/php-ai-client/autoload.php relative to the
+ * WP core directory.
  *
  * The WP core directory is derived from the tests directory using the standard
  * install-wp-tests.sh convention: tests dir = {tmpdir}/wordpress-tests-lib,
  * WP core = {tmpdir}/wordpress. For wp-env, WP core is at /wordpress.
  *
  * This is a no-op on WP 6.9 (no WP trunk): the autoloader file won't exist.
+ *
+ * Affected interfaces (wp-settings.php lines 480-481):
+ *   - Psr\SimpleCache\CacheInterface        → setCache(new WP_AI_Client_Cache())
+ *   - Psr\EventDispatcher\EventDispatcherInterface → setEventDispatcher(new WP_AI_Client_Event_Dispatcher())
  */
 $_wp_core_dir = '';
 if ( '/wordpress-phpunit' === $_tests_dir ) {
@@ -130,24 +136,26 @@ if ( '/wordpress-phpunit' === $_tests_dir ) {
 $_wp_trunk_autoloader = $_wp_core_dir . '/wp-includes/php-ai-client/autoload.php';
 if ( file_exists( $_wp_trunk_autoloader ) ) {
 	require_once $_wp_trunk_autoloader;
-	// Load the scoped CacheInterface so we can alias it.
-	if ( ! interface_exists( 'WordPress\\AiClientDependencies\\Psr\\SimpleCache\\CacheInterface' ) ) {
-		$_scoped_cache_file = $_wp_core_dir . '/wp-includes/php-ai-client/third-party/Psr/SimpleCache/CacheInterface.php';
-		if ( file_exists( $_scoped_cache_file ) ) {
-			require_once $_scoped_cache_file;
+
+	// Alias map: global PSR interface name => scoped third-party file path (relative to WP core).
+	$_psr_alias_map = array(
+		'Psr\\SimpleCache\\CacheInterface'                => 'wp-includes/php-ai-client/third-party/Psr/SimpleCache/CacheInterface.php',
+		'Psr\\EventDispatcher\\EventDispatcherInterface'  => 'wp-includes/php-ai-client/third-party/Psr/EventDispatcher/EventDispatcherInterface.php',
+	);
+
+	foreach ( $_psr_alias_map as $_global_name => $_scoped_file ) {
+		$_scoped_iface = 'WordPress\\AiClientDependencies\\' . $_global_name;
+		$_scoped_path  = $_wp_core_dir . '/' . $_scoped_file;
+		if ( ! interface_exists( $_scoped_iface ) && file_exists( $_scoped_path ) ) {
+			require_once $_scoped_path;
+		}
+		if ( interface_exists( $_scoped_iface ) ) {
+			class_alias( $_scoped_iface, $_global_name );
 		}
 	}
-	if ( interface_exists( 'WordPress\\AiClientDependencies\\Psr\\SimpleCache\\CacheInterface' ) ) {
-		class_alias(
-			'WordPress\\AiClientDependencies\\Psr\\SimpleCache\\CacheInterface',
-			'Psr\\SimpleCache\\CacheInterface'
-		);
-	}
+	unset( $_psr_alias_map, $_global_name, $_scoped_file, $_scoped_iface, $_scoped_path );
 }
 unset( $_wp_core_dir, $_wp_trunk_autoloader );
-if ( isset( $_scoped_cache_file ) ) {
-	unset( $_scoped_cache_file );
-}
 
 // Forward custom PHPUnit Polyfills configuration to PHPUnit bootstrap file.
 // Auto-detect from Composer vendor directory if not set via env var.

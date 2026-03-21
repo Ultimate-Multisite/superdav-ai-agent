@@ -93,10 +93,12 @@ class McpControllerTest extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress test global.
 		global $wp_rest_server;
 		$wp_rest_server = new WP_REST_Server();
 		$this->server   = $wp_rest_server;
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Standard WordPress core hook.
 		do_action( 'rest_api_init' );
 
 		$this->admin_id      = self::factory()->user->create( [ 'role' => 'administrator' ] );
@@ -142,6 +144,7 @@ class McpControllerTest extends WP_UnitTestCase {
 	 * Tear down REST server and unregister the mock ability after each test.
 	 */
 	public function tear_down(): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress test global.
 		global $wp_rest_server;
 		$wp_rest_server = null;
 

@@ -54,6 +54,7 @@ class WP_AI_Client_Event_Dispatcher implements EventDispatcherInterface {
 		 *
 		 * @param object $event The event object.
 		 */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Hook name is prefixed with wp_ai_client_; dynamic suffix is event type.
 		do_action( "wp_ai_client_{$event_name}", $event );
 
 		return $event;

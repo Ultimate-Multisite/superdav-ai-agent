@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.9.0
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
 function wp_register_core_ability_categories(): void {
 	wp_register_ability_category(
 		'site',
@@ -44,6 +45,7 @@ function wp_register_core_ability_categories(): void {
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
 function wp_register_core_abilities(): void {
 	$category_site = 'site';
 	$category_user = 'user';

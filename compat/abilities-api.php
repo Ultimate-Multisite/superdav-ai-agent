@@ -88,6 +88,10 @@
 
 declare( strict_types = 1 );
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Registers a new ability using the Abilities API. It requires three steps:
  *
@@ -282,7 +286,7 @@ function wp_register_ability( string $name, array $args ): ?WP_Ability {
 			__FUNCTION__,
 			sprintf(
 				/* translators: 1: wp_abilities_api_init, 2: string value of the ability name. */
-				__( 'Abilities must be registered on the %1$s action. The ability %2$s was not registered.' ),
+				__( 'Abilities must be registered on the %1$s action. The ability %2$s was not registered.', 'gratis-ai-agent' ),
 				'<code>wp_abilities_api_init</code>',
 				'<code>' . esc_html( $name ) . '</code>'
 			),
@@ -471,7 +475,7 @@ function wp_register_ability_category( string $slug, array $args ): ?WP_Ability_
 			__FUNCTION__,
 			sprintf(
 				/* translators: 1: wp_abilities_api_categories_init, 2: ability category slug. */
-				__( 'Ability categories must be registered on the %1$s action. The ability category %2$s was not registered.' ),
+				__( 'Ability categories must be registered on the %1$s action. The ability category %2$s was not registered.', 'gratis-ai-agent' ),
 				'<code>wp_abilities_api_categories_init</code>',
 				'<code>' . esc_html( $slug ) . '</code>'
 			),

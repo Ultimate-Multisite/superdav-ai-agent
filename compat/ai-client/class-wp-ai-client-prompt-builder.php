@@ -220,7 +220,7 @@ class WP_AI_Client_Prompt_Builder {
 						__METHOD__,
 						sprintf(
 							/* translators: %s: string value of the ability name. */
-							__( 'The ability %s was not found.' ),
+							__( 'The ability %s was not found.', 'gratis-ai-agent' ),
 							'<code>' . esc_html( $ability_name ) . '</code>'
 						),
 						'7.0.0'
@@ -300,7 +300,7 @@ class WP_AI_Client_Prompt_Builder {
 				// For generate_* and convert_text_to_speech* methods, create a WP_Error.
 				$this->error = new WP_Error(
 					'prompt_prevented',
-					__( 'Prompt execution was prevented by a filter.' ),
+					__( 'Prompt execution was prevented by a filter.', 'gratis-ai-agent' ),
 					array(
 						'exception_class' => 'WP_AI_Client_Prompt_Prevented',
 					)
@@ -380,7 +380,7 @@ class WP_AI_Client_Prompt_Builder {
 			throw new BadMethodCallException(
 				sprintf(
 					/* translators: 1: Method name. 2: Class name. */
-					__( 'Method %1$s does not exist on %2$s.' ),
+					__( 'Method %1$s does not exist on %2$s.', 'gratis-ai-agent' ),
 					$name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					get_class( $this->builder ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)

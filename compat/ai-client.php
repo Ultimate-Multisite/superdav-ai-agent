@@ -8,6 +8,10 @@
  * @license GPL-2.0-or-later
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WordPress\AiClient\AiClient;
 
 /**

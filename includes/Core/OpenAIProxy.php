@@ -128,7 +128,7 @@ class OpenAIProxy {
 	/**
 	 * Convert resolved abilities to the OpenAI tools array format.
 	 *
-	 * Applies the ai_agent_max_tools filter to cap the number of tools sent,
+	 * Applies the gratis_ai_agent_max_tools filter to cap the number of tools sent,
 	 * sanitizes schemas for OpenAI compatibility, and removes non-standard fields.
 	 *
 	 * @return array<int, array<string, mixed>>
@@ -143,7 +143,7 @@ class OpenAIProxy {
 		 * @param int   $max_tools Maximum number of tools to include.
 		 * @param array $abilities The full list of resolved abilities.
 		 */
-		$max_tools = (int) apply_filters( 'ai_agent_max_tools', 64, $abilities );
+		$max_tools = (int) apply_filters( 'gratis_ai_agent_max_tools', 64, $abilities );
 		if ( $max_tools > 0 && count( $abilities ) > $max_tools ) {
 			$abilities = array_slice( $abilities, 0, $max_tools );
 		}

@@ -380,10 +380,10 @@ class CustomTools {
 			[
 				'name'         => 'Site Health Check',
 				'slug'         => 'site-health-check',
-				'description'  => 'Fire the site_health_check action to trigger health checks.',
+				'description'  => 'Fire the site health check action to trigger health checks.',
 				'type'         => self::TYPE_ACTION,
 				'config'       => [
-					'hook_name' => 'wp_site_health_check',
+					'hook_name' => 'gratis_ai_agent_site_health_check',
 					'args'      => [],
 				],
 				'input_schema' => [

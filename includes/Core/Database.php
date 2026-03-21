@@ -1080,7 +1080,7 @@ class Database {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write (REPLACE); caching not applicable to mutations.
 		$result = $wpdb->replace(
 			self::shared_sessions_table_name(),
 			[

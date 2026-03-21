@@ -6,9 +6,11 @@
  * @license GPL-2.0-or-later
  */
 
-declare(strict_types=1);
-
 namespace GratisAiAgent\Enums;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Valid custom tool types.

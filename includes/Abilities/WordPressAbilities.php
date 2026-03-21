@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * WordPress management abilities for the AI agent.
  *
- * Provides plugin/theme listing, plugin installation, and PHP execution.
+ * Provides plugin/theme listing, plugin installation, and whitelisted WP function calls.
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -77,17 +77,17 @@ class WordPressAbilities {
 	}
 
 	/**
-	 * Execute PHP code in the WordPress environment.
+	 * Call a whitelisted WordPress function by name with arguments.
 	 *
-	 * @param array<string,mixed> $input Input args.
+	 * @param array<string,mixed> $input Input args (function, args).
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public static function handle_run_php( array $input = [] ) {
 		$ability = new RunPhpAbility(
 			'gratis-ai-agent/run-php',
 			[
-				'label'       => __( 'Run PHP', 'gratis-ai-agent' ),
-				'description' => __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' ),
+				'label'       => __( 'Call WordPress Function', 'gratis-ai-agent' ),
+				'description' => __( 'Call a whitelisted WordPress function by name with arguments.', 'gratis-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -139,8 +139,8 @@ class WordPressAbilities {
 		wp_register_ability(
 			'gratis-ai-agent/run-php',
 			[
-				'label'         => __( 'Run PHP', 'gratis-ai-agent' ),
-				'description'   => __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' ),
+				'label'         => __( 'Call WordPress Function', 'gratis-ai-agent' ),
+				'description'   => __( 'Call a whitelisted WordPress function by name with arguments. Supports get_option, wp_insert_post, get_posts, do_shortcode, and many more.', 'gratis-ai-agent' ),
 				'ability_class' => RunPhpAbility::class,
 			]
 		);
@@ -465,30 +465,117 @@ class InstallPluginAbility extends AbstractAbility {
 }
 
 /**
- * Run PHP ability.
+ * Call a whitelisted WordPress function by name with arguments.
  *
- * @since 1.0.0
+ * Replaces the former RunPhpAbility (eval-based) with a safe, whitelisted
+ * approach that only allows calling pre-approved WordPress functions via
+ * call_user_func_array().
+ *
+ * @since 1.1.0
  */
 class RunPhpAbility extends AbstractAbility {
 
+	/**
+	 * Allowed WordPress functions that the AI agent may call.
+	 *
+	 * Only side-effect-free read functions and common write functions with
+	 * well-understood behaviour are included.  Extend via the
+	 * `gratis_ai_agent_allowed_wp_functions` filter.
+	 *
+	 * @var string[]
+	 */
+	private const ALLOWED_FUNCTIONS = [
+		// Options.
+		'get_option',
+		'update_option',
+		'delete_option',
+		// Posts / Pages.
+		'get_post',
+		'get_posts',
+		'wp_insert_post',
+		'wp_update_post',
+		'wp_delete_post',
+		'get_post_meta',
+		'update_post_meta',
+		'delete_post_meta',
+		// Terms / Taxonomies.
+		'get_terms',
+		'get_term',
+		'wp_insert_term',
+		'wp_update_term',
+		'wp_delete_term',
+		'wp_set_post_terms',
+		'wp_get_post_terms',
+		// Users.
+		'get_user_by',
+		'get_users',
+		'get_current_user_id',
+		'get_user_meta',
+		'update_user_meta',
+		// Comments.
+		'get_comments',
+		'get_comment',
+		'wp_insert_comment',
+		'wp_update_comment',
+		'wp_delete_comment',
+		// Queries.
+		'wp_count_posts',
+		'wp_count_terms',
+		'count_users',
+		// Transients.
+		'get_transient',
+		'set_transient',
+		'delete_transient',
+		// Site info.
+		'get_bloginfo',
+		'home_url',
+		'site_url',
+		'admin_url',
+		'wp_upload_dir',
+		'is_multisite',
+		// Plugins / Themes.
+		'get_plugins',
+		'is_plugin_active',
+		'wp_get_theme',
+		'wp_get_themes',
+		// Shortcodes.
+		'do_shortcode',
+		'shortcode_exists',
+		// Menus.
+		'wp_get_nav_menus',
+		'wp_get_nav_menu_items',
+		// Misc.
+		'wp_remote_get',
+		'wp_remote_post',
+		'current_time',
+		'wp_date',
+		'wp_create_nonce',
+	];
+
 	protected function label(): string {
-		return __( 'Run PHP', 'gratis-ai-agent' );
+		return __( 'Call WordPress Function', 'gratis-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Execute PHP code in the WordPress environment. Use this to call WordPress functions like wp_insert_post(), get_option(), WP_Query, etc. The code runs with full WordPress context.', 'gratis-ai-agent' );
+		return __( 'Call a whitelisted WordPress function by name with arguments. Supported functions include get_option(), wp_insert_post(), get_posts(), get_user_by(), do_shortcode(), and many more. Use the "function" parameter for the function name and "args" for an ordered array of arguments.', 'gratis-ai-agent' );
 	}
 
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
 			'properties' => [
-				'code' => [
+				'function' => [
 					'type'        => 'string',
-					'description' => 'PHP code to execute. Do not include <?php tags. The code should return a value.',
+					'description' => 'The WordPress function name to call, e.g. "get_option", "wp_insert_post".',
+				],
+				'args'     => [
+					'type'        => 'array',
+					'description' => 'Ordered array of arguments to pass to the function. Defaults to an empty array.',
+					'items'       => [],
+					'default'     => [],
 				],
 			],
-			'required'   => [ 'code' ],
+			'required'   => [ 'function' ],
 		];
 	}
 
@@ -504,10 +591,46 @@ class RunPhpAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$code = $input['code'] ?? '';
+		$function = $input['function'] ?? '';
+		$args     = $input['args'] ?? [];
 
-		if ( empty( $code ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_code', __( 'PHP code is required.', 'gratis-ai-agent' ) );
+		if ( empty( $function ) || ! is_string( $function ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_empty_function',
+				__( 'A function name is required.', 'gratis-ai-agent' )
+			);
+		}
+
+		if ( ! is_array( $args ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_invalid_args',
+				__( 'The "args" parameter must be an array.', 'gratis-ai-agent' )
+			);
+		}
+
+		// Build the runtime allowlist (static defaults + user extensions).
+		$allowed = self::get_allowed_functions();
+
+		if ( ! in_array( $function, $allowed, true ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_disallowed_function',
+				sprintf(
+					/* translators: %s: function name */
+					__( 'The function "%s" is not in the allowed list. Use the gratis_ai_agent_allowed_wp_functions filter to extend it.', 'gratis-ai-agent' ),
+					$function
+				)
+			);
+		}
+
+		if ( ! function_exists( $function ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_undefined_function',
+				sprintf(
+					/* translators: %s: function name */
+					__( 'The function "%s" does not exist in this WordPress environment.', 'gratis-ai-agent' ),
+					$function
+				)
+			);
 		}
 
 		ob_start();
@@ -515,8 +638,7 @@ class RunPhpAbility extends AbstractAbility {
 		$result = null;
 
 		try {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Intentional: AI agent PHP execution ability.
-			$result = eval( $code );
+			$result = call_user_func_array( $function, array_values( $args ) );
 		} catch ( \Throwable $e ) {
 			$error = $e->getMessage();
 		}
@@ -524,13 +646,35 @@ class RunPhpAbility extends AbstractAbility {
 		$output = ob_get_clean();
 
 		if ( null !== $error ) {
-			return new WP_Error( 'gratis_ai_agent_php_error', sprintf( 'PHP error: %s', $error ) );
+			return new WP_Error(
+				'gratis_ai_agent_php_error',
+				sprintf( 'PHP error: %s', $error )
+			);
 		}
 
 		return [
 			'result' => $result,
 			'output' => $output,
 		];
+	}
+
+	/**
+	 * Get the full list of allowed functions (built-in + filtered).
+	 *
+	 * @return string[]
+	 */
+	private static function get_allowed_functions(): array {
+		/**
+		 * Filters the list of WordPress functions the AI agent is allowed to call.
+		 *
+		 * @since 1.1.0
+		 *
+		 * @param string[] $functions List of allowed function names.
+		 */
+		$functions = apply_filters( 'gratis_ai_agent_allowed_wp_functions', self::ALLOWED_FUNCTIONS );
+
+		// Ensure the list is a flat array of strings (defensive).
+		return array_values( array_filter( (array) $functions, 'is_string' ) );
 	}
 
 	protected function permission_callback( $input ): bool {

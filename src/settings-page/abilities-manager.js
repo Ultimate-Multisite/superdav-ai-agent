@@ -39,6 +39,7 @@ const PERMISSION_OPTIONS = [
  * @param {Object}   props.toolPermissions Current tool_permissions map.
  * @param {Function} props.onPermChange    Called with (abilityName, newValue).
  * @param {boolean}  props.defaultOpen     Whether the section starts expanded.
+ * @param {boolean}  props.isFiltering     Whether a search/category filter is active.
  */
 function AbilityCategorySection( {
 	category,
@@ -46,6 +47,7 @@ function AbilityCategorySection( {
 	toolPermissions,
 	onPermChange,
 	defaultOpen,
+	isFiltering,
 } ) {
 	const [ open, setOpen ] = useState( defaultOpen );
 
@@ -53,6 +55,15 @@ function AbilityCategorySection( {
 	useEffect( () => {
 		setOpen( defaultOpen );
 	}, [ defaultOpen ] );
+
+	// Force-open the section whenever filtering becomes active so that a
+	// section manually collapsed while allOpen===true is not left hidden
+	// when the user starts a search or category filter.
+	useEffect( () => {
+		if ( isFiltering ) {
+			setOpen( true );
+		}
+	}, [ isFiltering ] );
 
 	// Count non-default (non-auto) permissions in this category.
 	const nonDefaultCount = abilities.filter( ( a ) => {
@@ -285,6 +296,7 @@ export default function AbilitiesManager( {
 						abilities={ categoryAbilities }
 						toolPermissions={ toolPermissions }
 						onPermChange={ onPermChange }
+						isFiltering={ Boolean( isFiltering ) }
 						defaultOpen={
 							isFiltering ||
 							( openOverrides[ category ] !== undefined

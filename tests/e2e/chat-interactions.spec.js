@@ -46,16 +46,21 @@ const {
 async function interceptStream( page, options = {} ) {
 	const { generatedTitle } = options;
 
+	// Shared state: the session_id from the stream POST body, captured so the
+	// sessions stub can return the same session with the generated title.
+	// For new sessions the POST body has no session_id (it is assigned by the
+	// server), so we fall back to 1 and the sessions stub uses the same value.
+	let capturedSessionId = 1;
+
 	// Intercept the stream endpoint and return a minimal SSE response.
 	// The store POSTs to {wpApiSettings.root}gratis-ai-agent/v1/stream.
 	// We return a token + done event so the store's reader loop completes
 	// and setSending(false) is called, which hides the stop button.
 	await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-		let sessionId = 1;
 		try {
 			const postBody = route.request().postDataJSON();
 			if ( postBody?.session_id ) {
-				sessionId = postBody.session_id;
+				capturedSessionId = postBody.session_id;
 			}
 		} catch {
 			// Fall back to 1 if body is not JSON.
@@ -64,7 +69,7 @@ async function interceptStream( page, options = {} ) {
 		// Build the done event payload. Include generated_title when provided
 		// so the store's SSE parsing path is exercised end-to-end.
 		const donePayload = {
-			session_id: sessionId,
+			session_id: capturedSessionId,
 			...( generatedTitle ? { generated_title: generatedTitle } : {} ),
 		};
 
@@ -90,6 +95,59 @@ async function interceptStream( page, options = {} ) {
 			body: sseBody,
 		} );
 	} );
+
+	// When a generated title is expected, also stub the fetchSessions call so
+	// the sidebar reflects the title after the stream completes.
+	//
+	// Why this is needed: for a brand-new session, updateSessionTitle() is a
+	// no-op because the session is not yet in state.sessions (it was only added
+	// via setCurrentSession, not setSessions). The title therefore comes from
+	// fetchSessions(), which GETs /gratis-ai-agent/v1/sessions and replaces
+	// state.sessions. Without this stub, fetchSessions hits the real server
+	// which returns "Untitled" (the server never ran AI — the stream was
+	// intercepted), so the sidebar never shows the generated title.
+	//
+	// The stub returns a minimal session list containing one session with the
+	// expected title. The sessions route is intercepted only once (using
+	// page.route with a handler that calls route.continue() for subsequent
+	// requests) so later fetchSessions calls (e.g. from other tests) are not
+	// affected.
+	if ( generatedTitle ) {
+		// Use a flag so the handler fulfills only once; subsequent GET requests
+		// to the sessions endpoint pass through to the real server.
+		let sessionsFulfilled = false;
+
+		await page.route(
+			/gratis-ai-agent\/v1\/sessions(?!\/)(\?.*)?$/,
+			async ( route ) => {
+				// Only intercept the first GET request (fetchSessions uses GET).
+				if ( route.request().method() !== 'GET' || sessionsFulfilled ) {
+					await route.continue();
+					return;
+				}
+
+				sessionsFulfilled = true;
+
+				const session = {
+					id: capturedSessionId,
+					title: generatedTitle,
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+					status: 'active',
+					message_count: 1,
+					provider_id: null,
+					model_id: null,
+					folder_id: null,
+				};
+
+				await route.fulfill( {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify( [ session ] ),
+				} );
+			}
+		);
+	}
 }
 
 test.describe( 'Chat Input Interactions', () => {

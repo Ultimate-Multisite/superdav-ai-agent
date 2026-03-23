@@ -30,16 +30,22 @@ const {
  * the session is not yet in state.sessions (it was only added to the store via
  * setCurrentSession, not via setSessions). The title therefore comes from step 3.
  *
- * Strategy: intercept the stream endpoint to return a minimal SSE response so
- * the stream completes quickly. After the stream completes (stop button gone),
- * use page.evaluate() to directly dispatch updateSessionTitle() to the store
- * with the correct session ID. This bypasses HTTP route matching entirely and
- * is reliable across all Playwright/WordPress configurations.
+ * When `options.generatedTitle` is provided the `done` SSE payload includes
+ * `generated_title`, exercising the full SSE parsing path in the store. This
+ * ensures regressions in stream-event handling (e.g. the store failing to read
+ * `done.generated_title`) are caught by the test rather than masked by a direct
+ * store dispatch.
  *
  * @param {import('@playwright/test').Page} page
+ * @param {Object} [options]
+ * @param {string} [options.generatedTitle] - When set, included as
+ *   `generated_title` in the SSE `done` payload so the store's SSE parsing
+ *   path is exercised end-to-end.
  * @return {Promise<void>}
  */
-async function interceptStream( page ) {
+async function interceptStream( page, options = {} ) {
+	const { generatedTitle } = options;
+
 	// Intercept the stream endpoint and return a minimal SSE response.
 	// The store POSTs to {wpApiSettings.root}gratis-ai-agent/v1/stream.
 	// We return a token + done event so the store's reader loop completes
@@ -55,6 +61,13 @@ async function interceptStream( page ) {
 			// Fall back to 1 if body is not JSON.
 		}
 
+		// Build the done event payload. Include generated_title when provided
+		// so the store's SSE parsing path is exercised end-to-end.
+		const donePayload = {
+			session_id: sessionId,
+			...( generatedTitle ? { generated_title: generatedTitle } : {} ),
+		};
+
 		// Minimal SSE stream: one token chunk + done event.
 		// The store dispatches on `eventName` parsed from the `event:` line.
 		// Each SSE message is separated by a blank line (\n\n).
@@ -63,7 +76,7 @@ async function interceptStream( page ) {
 			`data: ${ JSON.stringify( { token: 'Hello!' } ) }`,
 			'',
 			'event: done',
-			`data: ${ JSON.stringify( { session_id: sessionId } ) }`,
+			`data: ${ JSON.stringify( donePayload ) }`,
 			'',
 			'',
 		].join( '\n' );
@@ -77,64 +90,6 @@ async function interceptStream( page ) {
 			body: sseBody,
 		} );
 	} );
-}
-
-/**
- * Directly inject a generated title into the WordPress data store via
- * page.evaluate(). This simulates what the backend would do after auto-titling
- * without requiring a live AI provider or HTTP route interception.
- *
- * Polls until the current session appears in state.sessions (i.e. fetchSessions
- * has completed and the session is in the list), then dispatches
- * updateSessionTitle(). This avoids a race where the inject fires before
- * fetchSessions() has populated state.sessions with the new session.
- *
- * @param {import('@playwright/test').Page} page
- * @param {string}                          generatedTitle - Title to inject.
- */
-async function injectGeneratedTitle( page, generatedTitle ) {
-	await page.evaluate( ( title ) => {
-		return new Promise( ( resolve ) => {
-			// The store is registered under 'gratis-ai-agent'.
-			// wp.data is available globally in the WordPress admin.
-			const select = window.wp?.data?.select( 'gratis-ai-agent' );
-			const dispatch = window.wp?.data?.dispatch( 'gratis-ai-agent' );
-			if ( ! select || ! dispatch ) {
-				resolve();
-				return;
-			}
-
-			const sessionId = select.getCurrentSessionId();
-			if ( ! sessionId ) {
-				resolve();
-				return;
-			}
-
-			// Poll until the session appears in state.sessions (fetchSessions
-			// has completed). Without this, updateSessionTitle is a no-op
-			// because the session is not yet in the sessions list.
-			const maxAttempts = 50; // 50 × 100ms = 5s max
-			let attempts = 0;
-			const poll = () => {
-				attempts++;
-				const sessions = select.getSessions ? select.getSessions() : [];
-				const inList = sessions.some(
-					( s ) => parseInt( s.id, 10 ) === sessionId
-				);
-				if ( inList ) {
-					dispatch.updateSessionTitle( sessionId, title );
-					resolve();
-				} else if ( attempts >= maxAttempts ) {
-					// Session never appeared — dispatch anyway as a best-effort.
-					dispatch.updateSessionTitle( sessionId, title );
-					resolve();
-				} else {
-					setTimeout( poll, 100 );
-				}
-			};
-			poll();
-		} );
-	}, generatedTitle );
 }
 
 test.describe( 'Chat Input Interactions', () => {
@@ -309,14 +264,12 @@ test.describe( 'Provider Selector', () => {
  * After the first AI response the store reads `generated_title` from the SSE
  * done event and calls `updateSessionTitle()` to update the sidebar item.
  *
- * These tests use two mechanisms to simulate auto-titling without a live AI
- * provider:
- *   1. interceptStream() — intercepts the stream endpoint so the stream
- *      completes quickly without a real AI call.
- *   2. injectGeneratedTitle() — after the stream completes and fetchSessions()
- *      has run (session is in state.sessions), directly dispatches
- *      updateSessionTitle() via page.evaluate() to simulate what the backend
- *      would do after generating a title.
+ * These tests use interceptStream() with an optional `generatedTitle` to
+ * simulate auto-titling without a live AI provider. When `generatedTitle` is
+ * provided, the intercepted SSE `done` payload includes `generated_title`,
+ * exercising the full stream-event parsing path in the store. This ensures
+ * regressions in SSE handling are caught rather than masked by a direct store
+ * dispatch.
  */
 test.describe( 'Auto-Title Sessions (t099)', () => {
 	test.beforeEach( async ( { page } ) => {
@@ -329,8 +282,11 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 	} ) => {
 		const expectedTitle = 'My Auto-Generated Title';
 
-		// Intercept the stream endpoint so it completes quickly.
-		await interceptStream( page );
+		// Intercept the stream and include generated_title in the done payload.
+		// This exercises the full SSE parsing path: the store reads
+		// done.generated_title from the intercepted stream and calls
+		// updateSessionTitle() — no direct store dispatch is needed.
+		await interceptStream( page, { generatedTitle: expectedTitle } );
 
 		const input = getMessageInput( page );
 		await input.fill( 'Tell me about WordPress' );
@@ -343,12 +299,10 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		const activeItem = page.locator( '.ai-agent-session-item.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
 
-		// Inject the generated title directly into the store. injectGeneratedTitle
-		// polls until the current session is in state.sessions (fetchSessions has
-		// completed), then dispatches updateSessionTitle().
-		await injectGeneratedTitle( page, expectedTitle );
-
 		// The active sidebar item should now display the generated title.
+		// The title arrives via the SSE done event (generated_title field),
+		// not via a direct store dispatch, so this assertion validates the
+		// full stream-event handling path.
 		await expect( activeItem ).toContainText( expectedTitle, {
 			timeout: 5_000,
 		} );
@@ -359,7 +313,9 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 	} ) => {
 		const expectedTitle = 'WordPress Plugin Development';
 
-		await interceptStream( page );
+		// Include generated_title in the SSE done payload so the store's
+		// stream-event parsing path is exercised end-to-end.
+		await interceptStream( page, { generatedTitle: expectedTitle } );
 
 		const input = getMessageInput( page );
 		await input.fill( 'How do I build a WordPress plugin?' );
@@ -369,10 +325,8 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		const activeItem = page.locator( '.ai-agent-session-item.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
 
-		// Inject the generated title into the store.
-		await injectGeneratedTitle( page, expectedTitle );
-
 		// The title element inside the active session item should not say "Untitled".
+		// The title arrives via the SSE done event, not a direct store dispatch.
 		const titleEl = activeItem.locator( '.ai-agent-session-title' );
 		await expect( titleEl ).not.toContainText( 'Untitled', {
 			timeout: 5_000,

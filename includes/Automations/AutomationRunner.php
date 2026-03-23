@@ -164,10 +164,13 @@ class AutomationRunner {
 		$automations = Automations::list( true );
 
 		foreach ( $automations as $automation ) {
-			// @phpstan-ignore-next-line
-			self::unschedule( $automation['id'] );
-			// @phpstan-ignore-next-line
-			self::schedule( $automation['id'], $automation['schedule'] );
+			$id       = isset( $automation['id'] ) ? (int) $automation['id'] : 0;
+			$schedule = isset( $automation['schedule'] ) ? (string) $automation['schedule'] : '';
+			if ( $id <= 0 || '' === $schedule ) {
+				continue;
+			}
+			self::unschedule( $id );
+			self::schedule( $id, $schedule );
 		}
 	}
 
@@ -178,8 +181,10 @@ class AutomationRunner {
 		$automations = Automations::list();
 
 		foreach ( $automations as $automation ) {
-			// @phpstan-ignore-next-line
-			self::unschedule( $automation['id'] );
+			$id = isset( $automation['id'] ) ? (int) $automation['id'] : 0;
+			if ( $id > 0 ) {
+				self::unschedule( $id );
+			}
 		}
 	}
 }

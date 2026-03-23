@@ -212,15 +212,13 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'clicking Share with Admins calls the share endpoint', async ( {
 			page,
 		} ) => {
-			const shareRequests = [];
-			page.on( 'request', ( req ) => {
-				if (
+			// Set up the request promise BEFORE clicking so we don't miss it.
+			const shareRequestPromise = page.waitForRequest(
+				( req ) =>
 					req.url().includes( '/share' ) &&
-					req.method() === 'POST'
-				) {
-					shareRequests.push( req );
-				}
-			} );
+					req.method() === 'POST',
+				{ timeout: 5_000 }
+			);
 
 			await openFirstSessionContextMenu( page );
 
@@ -229,9 +227,8 @@ test.describe( 'Shared Conversations (t091)', () => {
 			} );
 			await shareOption.click();
 
-			// Wait for the POST to fire.
-			await page.waitForTimeout( 500 );
-			expect( shareRequests.length ).toBeGreaterThanOrEqual( 1 );
+			// Wait for the POST to actually fire (reliable vs. fixed timeout).
+			await shareRequestPromise;
 		} );
 
 		test( 'after sharing, context menu shows Unshare option', async ( {
@@ -263,29 +260,15 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'shared session shows shared badge icon in sidebar', async ( {
 			page,
 		} ) => {
-			// Intercept sessions list to return a session marked as shared.
-			await page.route(
-				/gratis-ai-agent\/v1\/sessions(\?|$)/,
-				async ( route ) => {
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( [ MOCK_SESSION ] ),
-					} );
-				}
-			);
-			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
-				async ( route ) => {
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( [ MOCK_SESSION ] ),
-					} );
-				}
-			);
-
+			// The beforeEach already intercepts sessions returning MOCK_SESSION
+			// (is_shared: true). Just reload the page so the sidebar renders
+			// with the shared session from the existing intercept.
 			await goToAgentPage( page );
+
+			// Wait for the session item to appear before checking the badge.
+			await expect(
+				page.locator( '.ai-agent-session-item' ).first()
+			).toBeVisible();
 
 			const sharedIcon = page
 				.locator( '.ai-agent-session-item.is-shared .ai-agent-shared-icon' )
@@ -307,15 +290,13 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'clicking Unshare calls the DELETE share endpoint', async ( {
 			page,
 		} ) => {
-			const deleteRequests = [];
-			page.on( 'request', ( req ) => {
-				if (
+			// Set up the request promise BEFORE clicking so we don't miss it.
+			const deleteRequestPromise = page.waitForRequest(
+				( req ) =>
 					req.url().includes( '/share' ) &&
-					req.method() === 'DELETE'
-				) {
-					deleteRequests.push( req );
-				}
-			} );
+					req.method() === 'DELETE',
+				{ timeout: 5_000 }
+			);
 
 			await openFirstSessionContextMenu( page );
 
@@ -325,13 +306,16 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await expect( unshareOption ).toBeVisible();
 			await unshareOption.click();
 
-			await page.waitForTimeout( 500 );
-			expect( deleteRequests.length ).toBeGreaterThanOrEqual( 1 );
+			// Wait for the DELETE to actually fire (reliable vs. fixed timeout).
+			await deleteRequestPromise;
 		} );
 
 		test( 'after revoking, shared sessions list is refreshed', async ( {
 			page,
 		} ) => {
+			// Remove the beforeEach route so our counting handler takes precedence.
+			await page.unroute( /gratis-ai-agent\/v1\/sessions\/shared/ );
+
 			let sharedListCallCount = 0;
 			await page.route(
 				/gratis-ai-agent\/v1\/sessions\/shared/,
@@ -357,10 +341,17 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const unshareOption = page.getByRole( 'menuitem', {
 				name: /unshare/i,
 			} );
-			await unshareOption.click();
 
-			// After unshare, the store calls fetchSharedSessions again.
-			await page.waitForTimeout( 500 );
+			// Wait for the refetch response after clicking Unshare.
+			const refetchPromise = page.waitForResponse(
+				( resp ) =>
+					resp.url().includes( '/sessions/shared' ) &&
+					resp.status() === 200,
+				{ timeout: 5_000 }
+			);
+			await unshareOption.click();
+			await refetchPromise;
+
 			expect( sharedListCallCount ).toBeGreaterThanOrEqual( 2 );
 		} );
 	} );
@@ -383,31 +374,34 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'clicking "Shared" tab fetches shared sessions', async ( {
 			page,
 		} ) => {
-			let sharedListCallCount = 0;
-			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
-				async ( route ) => {
-					sharedListCallCount++;
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( [ MOCK_SESSION ] ),
-					} );
-				}
+			// Wait for the response triggered by clicking the Shared tab.
+			// The beforeEach already loaded the page (initial fetchSharedSessions
+			// was handled by the beforeEach route). We just need to confirm that
+			// clicking the tab triggers another fetch.
+			const sharedResponsePromise = page.waitForResponse(
+				( resp ) =>
+					resp.url().includes( '/sessions/shared' ) &&
+					resp.status() === 200,
+				{ timeout: 5_000 }
 			);
 
-			await goToAgentPage( page );
 			await clickSharedTab( page );
-
-			await page.waitForTimeout( 500 );
-			// At least one call: initial mount + tab click refetch.
-			expect( sharedListCallCount ).toBeGreaterThanOrEqual( 1 );
+			await sharedResponsePromise;
 		} );
 
 		test( 'shared session appears in "Shared" tab list', async ( {
 			page,
 		} ) => {
+			// Wait for the shared sessions response before asserting the list.
+			const sharedResponsePromise = page.waitForResponse(
+				( resp ) =>
+					resp.url().includes( '/sessions/shared' ) &&
+					resp.status() === 200,
+				{ timeout: 5_000 }
+			);
+
 			await clickSharedTab( page );
+			await sharedResponsePromise;
 
 			// The shared session title should appear in the sidebar.
 			const sessionTitle = page.locator( '.ai-agent-session-item' ).filter( {
@@ -447,7 +441,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			browser,
 		} ) => {
 			// Create an isolated context for the second admin.
-			const secondContext = await browser.newContext();
+			// Pass baseURL so relative URLs in loginToWordPress/goToAgentPage work.
+			const secondContext = await browser.newContext( {
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+			} );
 			const secondPage = await secondContext.newPage();
 
 			try {
@@ -462,7 +459,16 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await interceptSessionsList( secondPage, [] );
 
 				await goToAgentPage( secondPage );
+
+				// Wait for the shared sessions response before asserting.
+				const sharedResponsePromise = secondPage.waitForResponse(
+					( resp ) =>
+						resp.url().includes( '/sessions/shared' ) &&
+						resp.status() === 200,
+					{ timeout: 5_000 }
+				);
 				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
 
 				const sessionTitle = secondPage
 					.locator( '.ai-agent-session-item' )
@@ -476,7 +482,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'second admin cannot see Share/Unshare in context menu (non-owner)', async ( {
 			browser,
 		} ) => {
-			const secondContext = await browser.newContext();
+			const secondContext = await browser.newContext( {
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+			} );
 			const secondPage = await secondContext.newPage();
 
 			try {
@@ -486,25 +494,23 @@ test.describe( 'Shared Conversations (t091)', () => {
 					SECOND_ADMIN_PASS
 				);
 
-				// Return the shared session in the main sessions list so the
-				// second admin can see it in the sidebar.
+				// Return the shared session in both lists.
 				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
 				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
 
-				// Intercept the single-session GET to mark is_shared=true and
-				// shared_by=1 (primary admin's user ID, not admin2's).
-				await secondPage.route(
-					/gratis-ai-agent\/v1\/sessions\/42(\?|$)/,
-					async ( route ) => {
-						await route.fulfill( {
-							status: 200,
-							contentType: 'application/json',
-							body: JSON.stringify( MOCK_SESSION ),
-						} );
-					}
-				);
-
 				await goToAgentPage( secondPage );
+
+				// Switch to the Shared tab so isSharedTab=true in SessionItem.
+				// When isSharedTab=true, isOwner = (session.user_id === currentUserId).
+				// MOCK_SESSION has no user_id, so isOwner=false → Share/Unshare hidden.
+				const sharedResponsePromise = secondPage.waitForResponse(
+					( resp ) =>
+						resp.url().includes( '/sessions/shared' ) &&
+						resp.status() === 200,
+					{ timeout: 5_000 }
+				);
+				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
 
 				// Open context menu for the shared session.
 				await openFirstSessionContextMenu( secondPage );
@@ -529,7 +535,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'second admin can send a message in a shared session', async ( {
 			browser,
 		} ) => {
-			const secondContext = await browser.newContext();
+			const secondContext = await browser.newContext( {
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+			} );
 			const secondPage = await secondContext.newPage();
 
 			try {
@@ -546,14 +554,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Intercept the stream so the message send completes.
 				await interceptStream( secondPage, MOCK_SESSION.id );
 
-				// Intercept the session load endpoint.
+				// Intercept the single-session GET (openSession thunk fetches
+				// /sessions/{id} to load messages and tool calls).
 				await secondPage.route(
-					/gratis-ai-agent\/v1\/sessions\/42\/messages/,
+					/gratis-ai-agent\/v1\/sessions\/42(\?|$)/,
 					async ( route ) => {
 						await route.fulfill( {
 							status: 200,
 							contentType: 'application/json',
-							body: JSON.stringify( [] ),
+							body: JSON.stringify( {
+								...MOCK_SESSION,
+								messages: [],
+								tool_calls: [],
+							} ),
 						} );
 					}
 				);
@@ -590,7 +603,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'second admin cannot delete a shared session (non-owner restriction)', async ( {
 			browser,
 		} ) => {
-			const secondContext = await browser.newContext();
+			const secondContext = await browser.newContext( {
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+			} );
 			const secondPage = await secondContext.newPage();
 
 			try {
@@ -604,6 +619,17 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
 
 				await goToAgentPage( secondPage );
+
+				// Switch to the Shared tab so isSharedTab=true → isOwner=false
+				// (MOCK_SESSION has no user_id, so non-owner restriction applies).
+				const sharedResponsePromise = secondPage.waitForResponse(
+					( resp ) =>
+						resp.url().includes( '/sessions/shared' ) &&
+						resp.status() === 200,
+					{ timeout: 5_000 }
+				);
+				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
 
 				await openFirstSessionContextMenu( secondPage );
 
@@ -622,7 +648,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'after revocation, shared session no longer appears in second admin Shared tab', async ( {
 			browser,
 		} ) => {
-			const secondContext = await browser.newContext();
+			const secondContext = await browser.newContext( {
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+			} );
 			const secondPage = await secondContext.newPage();
 
 			try {
@@ -661,8 +689,14 @@ test.describe( 'Shared Conversations (t091)', () => {
 				isRevoked = true;
 
 				// Trigger a refetch by clicking the Shared tab again.
+				const refetchPromise = secondPage.waitForResponse(
+					( resp ) =>
+						resp.url().includes( '/sessions/shared' ) &&
+						resp.status() === 200,
+					{ timeout: 5_000 }
+				);
 				await clickSharedTab( secondPage );
-				await secondPage.waitForTimeout( 500 );
+				await refetchPromise;
 
 				// Session should no longer appear.
 				await expect( sessionTitle ).toHaveCount( 0 );

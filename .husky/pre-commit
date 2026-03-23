@@ -1,2 +1,42 @@
 #!/bin/sh
-npx lint-staged
+# Pre-commit hook: lint-staged (JS+CSS+PHP) with PHP-native fallback.
+# If node_modules is missing, fall back to running phpcs/phpcbf directly
+# so PHP indentation errors are caught even without a full npm install.
+
+if command -v npx >/dev/null 2>&1 && [ -d "node_modules/.bin" ]; then
+	npx lint-staged
+else
+	# Fallback: run phpcs/phpcbf on staged PHP files without lint-staged
+	STAGED_PHP=$(git diff --cached --name-only --diff-filter=ACM | grep '\.php$' || true)
+	[ -z "$STAGED_PHP" ] && exit 0
+
+	if [ ! -x "vendor/bin/phpcs" ]; then
+		echo "pre-commit: vendor/bin/phpcs not found — run 'composer install' first."
+		exit 1
+	fi
+
+	# Detect partially staged files (unstaged changes exist for the same file)
+	PARTIALLY_STAGED=""
+	for file in $STAGED_PHP; do
+		if git diff --name-only -- "$file" | grep -q .; then
+			PARTIALLY_STAGED="$PARTIALLY_STAGED $file"
+		fi
+	done
+
+	if [ -n "$PARTIALLY_STAGED" ]; then
+		# Cannot safely auto-fix — phpcbf would modify the working copy
+		# and re-staging would include unstaged hunks. Just check.
+		echo "pre-commit: partially staged PHP files detected, skipping auto-fix:"
+		echo "$PARTIALLY_STAGED"
+		# shellcheck disable=SC2086
+		vendor/bin/phpcs $STAGED_PHP
+	else
+		# Auto-fix, re-stage, then verify
+		# shellcheck disable=SC2086
+		vendor/bin/phpcbf $STAGED_PHP 2>/dev/null || true
+		# shellcheck disable=SC2086
+		git add $STAGED_PHP
+		# shellcheck disable=SC2086
+		vendor/bin/phpcs $STAGED_PHP
+	fi
+fi

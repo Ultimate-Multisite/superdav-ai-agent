@@ -8,6 +8,10 @@
  * @license GPL-2.0-or-later
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WordPress\AiClient\AiClient;
 
 /**
@@ -30,6 +34,7 @@ use WordPress\AiClient\AiClient;
  *                                                                                                   conversations. Default null.
  * @return WP_AI_Client_Prompt_Builder The prompt builder instance.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
 function wp_ai_client_prompt( $prompt = null ) {
 	return new WP_AI_Client_Prompt_Builder( AiClient::defaultRegistry(), $prompt );
 }

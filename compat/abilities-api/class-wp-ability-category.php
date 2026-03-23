@@ -76,7 +76,7 @@ final class WP_Ability_Category {
 	public function __construct( string $slug, array $args ) {
 		if ( empty( $slug ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability category slug cannot be empty.' )
+				__( 'The ability category slug cannot be empty.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -90,7 +90,7 @@ final class WP_Ability_Category {
 					__METHOD__,
 					sprintf(
 						/* translators: %s: Property name. */
-						__( 'Property "%1$s" is not a valid property for ability category "%2$s". Please check the %3$s class for allowed properties.' ),
+						__( 'Property "%1$s" is not a valid property for ability category "%2$s". Please check the %3$s class for allowed properties.', 'gratis-ai-agent' ),
 						'<code>' . esc_html( $property_name ) . '</code>',
 						'<code>' . esc_html( $this->slug ) . '</code>',
 						'<code>' . __CLASS__ . '</code>'
@@ -129,20 +129,20 @@ final class WP_Ability_Category {
 		// Required args must be present and of the correct type.
 		if ( empty( $args['label'] ) || ! is_string( $args['label'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability category properties must contain a `label` string.' )
+				__( 'The ability category properties must contain a `label` string.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( empty( $args['description'] ) || ! is_string( $args['description'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability category properties must contain a `description` string.' )
+				__( 'The ability category properties must contain a `description` string.', 'gratis-ai-agent' )
 			);
 		}
 
 		// Optional args only need to be of the correct type if they are present.
 		if ( isset( $args['meta'] ) && ! is_array( $args['meta'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability category properties should provide a valid `meta` array.' )
+				__( 'The ability category properties should provide a valid `meta` array.', 'gratis-ai-agent' )
 			);
 		}
 

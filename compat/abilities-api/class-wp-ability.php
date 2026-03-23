@@ -176,7 +176,7 @@ class WP_Ability {
 					__METHOD__,
 					sprintf(
 						/* translators: %s: Property name. */
-						__( 'Property "%1$s" is not a valid property for ability "%2$s". Please check the %3$s class for allowed properties.' ),
+						__( 'Property "%1$s" is not a valid property for ability "%2$s". Please check the %3$s class for allowed properties.', 'gratis-ai-agent' ),
 						'<code>' . esc_html( $property_name ) . '</code>',
 						'<code>' . esc_html( $this->name ) . '</code>',
 						'<code>' . __CLASS__ . '</code>'
@@ -262,64 +262,64 @@ class WP_Ability {
 		// Required args must be present and of the correct type.
 		if ( empty( $args['label'] ) || ! is_string( $args['label'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties must contain a `label` string.' )
+				__( 'The ability properties must contain a `label` string.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( empty( $args['description'] ) || ! is_string( $args['description'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties must contain a `description` string.' )
+				__( 'The ability properties must contain a `description` string.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( empty( $args['category'] ) || ! is_string( $args['category'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties must contain a `category` string.' )
+				__( 'The ability properties must contain a `category` string.', 'gratis-ai-agent' )
 			);
 		}
 
 		// If we are not overriding `ability_class` parameter during instantiation, then we need to validate the execute_callback.
 		if ( get_class( $this ) === self::class && ( empty( $args['execute_callback'] ) || ! is_callable( $args['execute_callback'] ) ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties must contain a valid `execute_callback` function.' )
+				__( 'The ability properties must contain a valid `execute_callback` function.', 'gratis-ai-agent' )
 			);
 		}
 
 		// If we are not overriding `ability_class` parameter during instantiation, then we need to validate the permission_callback.
 		if ( get_class( $this ) === self::class && ( empty( $args['permission_callback'] ) || ! is_callable( $args['permission_callback'] ) ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties must provide a valid `permission_callback` function.' )
+				__( 'The ability properties must provide a valid `permission_callback` function.', 'gratis-ai-agent' )
 			);
 		}
 
 		// Optional args only need to be of the correct type if they are present.
 		if ( isset( $args['input_schema'] ) && ! is_array( $args['input_schema'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties should provide a valid `input_schema` definition.' )
+				__( 'The ability properties should provide a valid `input_schema` definition.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( isset( $args['output_schema'] ) && ! is_array( $args['output_schema'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties should provide a valid `output_schema` definition.' )
+				__( 'The ability properties should provide a valid `output_schema` definition.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( isset( $args['meta'] ) && ! is_array( $args['meta'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability properties should provide a valid `meta` array.' )
+				__( 'The ability properties should provide a valid `meta` array.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( isset( $args['meta']['annotations'] ) && ! is_array( $args['meta']['annotations'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability meta should provide a valid `annotations` array.' )
+				__( 'The ability meta should provide a valid `annotations` array.', 'gratis-ai-agent' )
 			);
 		}
 
 		if ( isset( $args['meta']['show_in_rest'] ) && ! is_bool( $args['meta']['show_in_rest'] ) ) {
 			throw new InvalidArgumentException(
-				__( 'The ability meta should provide a valid `show_in_rest` boolean.' )
+				__( 'The ability meta should provide a valid `show_in_rest` boolean.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -474,7 +474,7 @@ class WP_Ability {
 				'ability_missing_input_schema',
 				sprintf(
 					/* translators: %s ability name. */
-					__( 'Ability "%s" does not define an input schema required to validate the provided input.' ),
+					__( 'Ability "%s" does not define an input schema required to validate the provided input.', 'gratis-ai-agent' ),
 					esc_html( $this->name )
 				)
 			);
@@ -486,7 +486,7 @@ class WP_Ability {
 				'ability_invalid_input',
 				sprintf(
 					/* translators: %1$s ability name, %2$s error message. */
-					__( 'Ability "%1$s" has invalid input. Reason: %2$s' ),
+					__( 'Ability "%1$s" has invalid input. Reason: %2$s', 'gratis-ai-agent' ),
 					esc_html( $this->name ),
 					$valid_input->get_error_message()
 				)
@@ -532,7 +532,7 @@ class WP_Ability {
 			return new WP_Error(
 				'ability_invalid_permission_callback',
 				/* translators: %s ability name. */
-				sprintf( __( 'Ability "%s" does not have a valid permission callback.' ), esc_html( $this->name ) )
+				sprintf( __( 'Ability "%s" does not have a valid permission callback.', 'gratis-ai-agent' ), esc_html( $this->name ) )
 			);
 		}
 
@@ -552,7 +552,7 @@ class WP_Ability {
 			return new WP_Error(
 				'ability_invalid_execute_callback',
 				/* translators: %s ability name. */
-				sprintf( __( 'Ability "%s" does not have a valid execute callback.' ), esc_html( $this->name ) )
+				sprintf( __( 'Ability "%s" does not have a valid execute callback.', 'gratis-ai-agent' ), esc_html( $this->name ) )
 			);
 		}
 
@@ -579,7 +579,7 @@ class WP_Ability {
 				'ability_invalid_output',
 				sprintf(
 					/* translators: %1$s ability name, %2$s error message. */
-					__( 'Ability "%1$s" has invalid output. Reason: %2$s' ),
+					__( 'Ability "%1$s" has invalid output. Reason: %2$s', 'gratis-ai-agent' ),
 					esc_html( $this->name ),
 					$valid_output->get_error_message()
 				)
@@ -619,7 +619,7 @@ class WP_Ability {
 			return new WP_Error(
 				'ability_invalid_permissions',
 				/* translators: %s ability name. */
-				sprintf( __( 'Ability "%s" does not have necessary permission.' ), esc_html( $this->name ) )
+				sprintf( __( 'Ability "%s" does not have necessary permission.', 'gratis-ai-agent' ), esc_html( $this->name ) )
 			);
 		}
 

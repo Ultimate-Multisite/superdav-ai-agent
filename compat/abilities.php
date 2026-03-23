@@ -10,25 +10,30 @@
 
 declare( strict_types = 1 );
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Registers the core ability categories.
  *
  * @since 6.9.0
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
 function wp_register_core_ability_categories(): void {
 	wp_register_ability_category(
 		'site',
 		array(
-			'label'       => __( 'Site' ),
-			'description' => __( 'Abilities that retrieve or modify site information and settings.' ),
+			'label'       => __( 'Site', 'gratis-ai-agent' ),
+			'description' => __( 'Abilities that retrieve or modify site information and settings.', 'gratis-ai-agent' ),
 		)
 	);
 
 	wp_register_ability_category(
 		'user',
 		array(
-			'label'       => __( 'User' ),
-			'description' => __( 'Abilities that retrieve or modify user information and settings.' ),
+			'label'       => __( 'User', 'gratis-ai-agent' ),
+			'description' => __( 'Abilities that retrieve or modify user information and settings.', 'gratis-ai-agent' ),
 		)
 	);
 }
@@ -40,6 +45,7 @@ function wp_register_core_ability_categories(): void {
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
 function wp_register_core_abilities(): void {
 	$category_site = 'site';
 	$category_user = 'user';
@@ -47,35 +53,35 @@ function wp_register_core_abilities(): void {
 	$site_info_properties = array(
 		'name'        => array(
 			'type'        => 'string',
-			'description' => __( 'The site title.' ),
+			'description' => __( 'The site title.', 'gratis-ai-agent' ),
 		),
 		'description' => array(
 			'type'        => 'string',
-			'description' => __( 'The site tagline.' ),
+			'description' => __( 'The site tagline.', 'gratis-ai-agent' ),
 		),
 		'url'         => array(
 			'type'        => 'string',
-			'description' => __( 'The site home URL.' ),
+			'description' => __( 'The site home URL.', 'gratis-ai-agent' ),
 		),
 		'wpurl'       => array(
 			'type'        => 'string',
-			'description' => __( 'The WordPress installation URL.' ),
+			'description' => __( 'The WordPress installation URL.', 'gratis-ai-agent' ),
 		),
 		'admin_email' => array(
 			'type'        => 'string',
-			'description' => __( 'The site administrator email address.' ),
+			'description' => __( 'The site administrator email address.', 'gratis-ai-agent' ),
 		),
 		'charset'     => array(
 			'type'        => 'string',
-			'description' => __( 'The site character encoding.' ),
+			'description' => __( 'The site character encoding.', 'gratis-ai-agent' ),
 		),
 		'language'    => array(
 			'type'        => 'string',
-			'description' => __( 'The site language locale code.' ),
+			'description' => __( 'The site language locale code.', 'gratis-ai-agent' ),
 		),
 		'version'     => array(
 			'type'        => 'string',
-			'description' => __( 'The WordPress version.' ),
+			'description' => __( 'The WordPress version.', 'gratis-ai-agent' ),
 		),
 	);
 	$site_info_fields     = array_keys( $site_info_properties );
@@ -83,8 +89,8 @@ function wp_register_core_abilities(): void {
 	wp_register_ability(
 		'core/get-site-info',
 		array(
-			'label'               => __( 'Get Site Information' ),
-			'description'         => __( 'Returns site information configured in WordPress. By default returns all fields, or optionally a filtered subset.' ),
+			'label'               => __( 'Get Site Information', 'gratis-ai-agent' ),
+			'description'         => __( 'Returns site information configured in WordPress. By default returns all fields, or optionally a filtered subset.', 'gratis-ai-agent' ),
 			'category'            => $category_site,
 			'input_schema'        => array(
 				'type'                 => 'object',
@@ -95,7 +101,7 @@ function wp_register_core_abilities(): void {
 							'type' => 'string',
 							'enum' => $site_info_fields,
 						),
-						'description' => __( 'Optional: Limit response to specific fields. If omitted, all fields are returned.' ),
+						'description' => __( 'Optional: Limit response to specific fields. If omitted, all fields are returned.', 'gratis-ai-agent' ),
 					),
 				),
 				'additionalProperties' => false,
@@ -134,8 +140,8 @@ function wp_register_core_abilities(): void {
 	wp_register_ability(
 		'core/get-user-info',
 		array(
-			'label'               => __( 'Get User Information' ),
-			'description'         => __( 'Returns basic profile details for the current authenticated user to support personalization, auditing, and access-aware behavior.' ),
+			'label'               => __( 'Get User Information', 'gratis-ai-agent' ),
+			'description'         => __( 'Returns basic profile details for the current authenticated user to support personalization, auditing, and access-aware behavior.', 'gratis-ai-agent' ),
 			'category'            => $category_user,
 			'output_schema'       => array(
 				'type'                 => 'object',

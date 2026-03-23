@@ -49,6 +49,7 @@ phpstan.neon.dist
 
 # CI / GitHub Actions
 .github
+codecov.yml
 
 # Tests
 tests
@@ -73,6 +74,7 @@ schemas
 AGENTS.md
 
 # Documentation (not needed in plugin zip)
+docs
 README.md
 ROADMAP.md
 CONTRIBUTING.md
@@ -85,6 +87,7 @@ PLANS-AI-AGENT-MASTERPLAN.md
 TODO.md
 todo
 .task-counter
+skills-lock.json
 
 # Dev screenshots (root-level; assets/screenshots/ is kept)
 screenshots

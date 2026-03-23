@@ -130,7 +130,8 @@ class DatabaseQueryAbility extends AbstractAbility {
 		// Replace {prefix} placeholder.
 		$sql = str_replace( '{prefix}', $wpdb->prefix, $sql );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- User-provided SELECT query, validated above.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional: AI agent database ability requires dynamic queries against custom tables; results are not cacheable.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Intentional: AI agent database ability executes user-approved dynamic SELECT queries with capability checks.
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 
 		if ( $wpdb->last_error ) {

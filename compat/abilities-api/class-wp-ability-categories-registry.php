@@ -60,7 +60,7 @@ final class WP_Ability_Categories_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability category slug. */
-				sprintf( __( 'Ability category "%s" is already registered.' ), esc_html( $slug ) ),
+				sprintf( __( 'Ability category "%s" is already registered.', 'gratis-ai-agent' ), esc_html( $slug ) ),
 				'6.9.0'
 			);
 			return null;
@@ -69,7 +69,7 @@ final class WP_Ability_Categories_Registry {
 		if ( ! preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug ) ) {
 			_doing_it_wrong(
 				__METHOD__,
-				__( 'Ability category slug must contain only lowercase alphanumeric characters and dashes.' ),
+				__( 'Ability category slug must contain only lowercase alphanumeric characters and dashes.', 'gratis-ai-agent' ),
 				'6.9.0'
 			);
 			return null;
@@ -124,7 +124,7 @@ final class WP_Ability_Categories_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability category slug. */
-				sprintf( __( 'Ability category "%s" not found.' ), esc_html( $slug ) ),
+				sprintf( __( 'Ability category "%s" not found.', 'gratis-ai-agent' ), esc_html( $slug ) ),
 				'6.9.0'
 			);
 			return null;
@@ -184,7 +184,7 @@ final class WP_Ability_Categories_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability category slug. */
-				sprintf( __( 'Ability category "%s" not found.' ), esc_html( $slug ) ),
+				sprintf( __( 'Ability category "%s" not found.', 'gratis-ai-agent' ), esc_html( $slug ) ),
 				'6.9.0'
 			);
 			return null;
@@ -207,19 +207,19 @@ final class WP_Ability_Categories_Registry {
 				__METHOD__,
 				sprintf(
 					// translators: %s: init action.
-					__( 'Ability API should not be initialized before the %s action has fired.' ),
-					'<code>init</code>'
-				),
-				'6.9.0'
-			);
-			return null;
-		}
+				__( 'Ability API should not be initialized before the %s action has fired.', 'gratis-ai-agent' ),
+				'<code>init</code>'
+			),
+			'6.9.0'
+		);
+		return null;
+	}
 
-		if ( null === self::$instance ) {
-			self::$instance = new self();
+	if ( null === self::$instance ) {
+		self::$instance = new self();
 
-			/**
-			 * Fires when preparing ability categories registry.
+		/**
+		 * Fires when preparing ability categories registry.
 			 *
 			 * Ability categories should be registered on this action to ensure they're available when needed.
 			 *

@@ -202,6 +202,11 @@ class CustomToolExecutor {
 			return new WP_Error( 'invalid_hook_name', __( 'Invalid hook name.', 'gratis-ai-agent' ) );
 		}
 
+		// Ensure the hook name is prefixed to comply with WP.org plugin guidelines.
+		if ( ! str_starts_with( $hook_name, 'gratis_ai_agent_' ) ) {
+			$hook_name = 'gratis_ai_agent_' . $hook_name;
+		}
+
 		// Build arguments from config defaults + input.
 		$args = [];
 		// @phpstan-ignore-next-line
@@ -222,7 +227,7 @@ class CustomToolExecutor {
 		ob_start();
 
 		try {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Custom tool hook names are user-defined.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name is prefixed with gratis_ai_agent_ above.
 			// @phpstan-ignore-next-line
 			do_action( $hook_name, ...$args );
 			$output = ob_get_clean();

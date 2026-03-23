@@ -151,59 +151,71 @@ class WordPressAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test handle_run_php with empty code returns WP_Error.
+	 * Test handle_run_php with empty function name returns WP_Error.
+	 *
+	 * The RunPhpAbility was replaced with a whitelisted function-call approach
+	 * in commit 5440af0. It now takes 'function' + 'args' instead of 'code'.
 	 */
 	public function test_handle_run_php_empty_code() {
-		$result = WordPressAbilities::handle_run_php( [ 'code' => '' ] );
+		$result = WordPressAbilities::handle_run_php( [ 'function' => '' ] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'gratis_ai_agent_empty_code', $result->get_error_code() );
+		$this->assertSame( 'gratis_ai_agent_empty_function', $result->get_error_code() );
 	}
 
 	/**
-	 * Test handle_run_php with missing code returns WP_Error.
+	 * Test handle_run_php with missing function name returns WP_Error.
 	 */
 	public function test_handle_run_php_missing_code() {
 		$result = WordPressAbilities::handle_run_php( [] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'gratis_ai_agent_empty_function', $result->get_error_code() );
 	}
 
 	/**
-	 * Test handle_run_php executes simple expression.
+	 * Test handle_run_php calls a whitelisted function and returns result.
+	 *
+	 * Uses get_bloginfo() which is in the allowed list and always returns a
+	 * non-empty string in the test environment.
 	 */
 	public function test_handle_run_php_simple_expression() {
 		$result = WordPressAbilities::handle_run_php( [
-			'code' => 'return 1 + 1;',
+			'function' => 'get_bloginfo',
+			'args'     => [ 'name' ],
 		] );
 
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'result', $result );
 		$this->assertArrayHasKey( 'output', $result );
-		$this->assertSame( 2, $result['result'] );
 	}
 
 	/**
-	 * Test handle_run_php captures output.
+	 * Test handle_run_php returns result key in response array.
+	 *
+	 * Uses get_option() with a known option to verify the result is returned.
 	 */
 	public function test_handle_run_php_captures_output() {
 		$result = WordPressAbilities::handle_run_php( [
-			'code' => 'echo "hello world"; return null;',
+			'function' => 'get_bloginfo',
+			'args'     => [ 'version' ],
 		] );
 
 		$this->assertIsArray( $result );
-		$this->assertSame( 'hello world', $result['output'] );
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertArrayHasKey( 'output', $result );
 	}
 
 	/**
-	 * Test handle_run_php can call WordPress functions.
+	 * Test handle_run_php can call whitelisted WordPress functions.
 	 *
-	 * Uses get_bloginfo('version') which always returns a non-empty string
-	 * in the test environment (unlike get_option('siteurl') which may return false).
+	 * Uses get_bloginfo('version') which is in the allowed list and always
+	 * returns a non-empty string in the test environment.
 	 */
 	public function test_handle_run_php_wordpress_functions() {
 		$result = WordPressAbilities::handle_run_php( [
-			'code' => 'return get_bloginfo("version");',
+			'function' => 'get_bloginfo',
+			'args'     => [ 'version' ],
 		] );
 
 		$this->assertIsArray( $result );
@@ -212,23 +224,28 @@ class WordPressAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test handle_run_php with PHP error returns WP_Error.
+	 * Test handle_run_php with a disallowed function returns WP_Error.
+	 *
+	 * eval() is not in the whitelist and should be rejected.
 	 */
 	public function test_handle_run_php_php_error() {
 		$result = WordPressAbilities::handle_run_php( [
-			'code' => 'throw new \Exception("test error");',
+			'function' => 'eval',
 		] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'gratis_ai_agent_php_error', $result->get_error_code() );
+		$this->assertSame( 'gratis_ai_agent_disallowed_function', $result->get_error_code() );
 	}
 
 	/**
-	 * Test handle_run_php with syntax error returns WP_Error.
+	 * Test handle_run_php with a non-existent function returns WP_Error.
+	 *
+	 * A function name that is not in the whitelist should return
+	 * gratis_ai_agent_disallowed_function (checked before existence).
 	 */
 	public function test_handle_run_php_syntax_error() {
 		$result = WordPressAbilities::handle_run_php( [
-			'code' => 'this is not valid php !!!',
+			'function' => 'this_function_does_not_exist_xyz',
 		] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );

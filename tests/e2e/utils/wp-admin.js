@@ -128,6 +128,16 @@ function getChatPanel( page ) {
 }
 
 /**
+ * Navigate to the Gratis AI Agent Changes admin page.
+ *
+ * @param {import('@playwright/test').Page} page - Playwright page object.
+ */
+async function goToChangesPage( page ) {
+	await page.goto( '/wp-admin/tools.php?page=gratis-ai-agent-changes' );
+	await page.waitForLoadState( 'networkidle' );
+}
+
+/**
  * Navigate to the Gratis AI Agent settings page and optionally activate a tab.
  *
  * The settings page is at /wp-admin/tools.php?page=gratis-ai-agent-settings.
@@ -180,6 +190,7 @@ module.exports = {
 	loginToWordPress,
 	goToAgentPage,
 	goToAdminDashboard,
+	goToChangesPage,
 	goToSettingsPage,
 	getFloatingButton,
 	getFloatingPanel,

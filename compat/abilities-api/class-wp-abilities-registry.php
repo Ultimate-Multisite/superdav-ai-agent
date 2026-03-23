@@ -81,9 +81,10 @@ final class WP_Abilities_Registry {
 		if ( ! preg_match( '/^[a-z0-9-]+(?:\/[a-z0-9-]+){1,3}$/', $name ) ) {
 			_doing_it_wrong(
 				__METHOD__,
-				__(
-					'Ability name must contain 2 to 4 segments separated by forward slashes, e.g. "my-plugin/my-ability" or "my-plugin/resource/my-ability". It can only contain lowercase alphanumeric characters, dashes, and forward slashes.'
-				),
+			__(
+				'Ability name must contain 2 to 4 segments separated by forward slashes, e.g. "my-plugin/my-ability" or "my-plugin/resource/my-ability". It can only contain lowercase alphanumeric characters, dashes, and forward slashes.',
+				'gratis-ai-agent'
+			),
 				'6.9.0'
 			);
 			return null;
@@ -93,7 +94,7 @@ final class WP_Abilities_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability name. */
-				sprintf( __( 'Ability "%s" is already registered.' ), esc_html( $name ) ),
+				sprintf( __( 'Ability "%s" is already registered.', 'gratis-ai-agent' ), esc_html( $name ) ),
 				'6.9.0'
 			);
 			return null;
@@ -135,7 +136,7 @@ final class WP_Abilities_Registry {
 					__METHOD__,
 					sprintf(
 						/* translators: %1$s: ability category slug, %2$s: ability name */
-						__( 'Ability category "%1$s" is not registered. Please register the ability category before assigning it to ability "%2$s".' ),
+						__( 'Ability category "%1$s" is not registered. Please register the ability category before assigning it to ability "%2$s".', 'gratis-ai-agent' ),
 						esc_html( $args['category'] ),
 						esc_html( $name )
 					),
@@ -149,7 +150,7 @@ final class WP_Abilities_Registry {
 		if ( isset( $args['ability_class'] ) && ! is_a( $args['ability_class'], WP_Ability::class, true ) ) {
 			_doing_it_wrong(
 				__METHOD__,
-				__( 'The ability args should provide a valid `ability_class` that extends WP_Ability.' ),
+				__( 'The ability args should provide a valid `ability_class` that extends WP_Ability.', 'gratis-ai-agent' ),
 				'6.9.0'
 			);
 			return null;
@@ -192,7 +193,7 @@ final class WP_Abilities_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability name. */
-				sprintf( __( 'Ability "%s" not found.' ), esc_html( $name ) ),
+				sprintf( __( 'Ability "%s" not found.', 'gratis-ai-agent' ), esc_html( $name ) ),
 				'6.9.0'
 			);
 			return null;
@@ -252,7 +253,7 @@ final class WP_Abilities_Registry {
 			_doing_it_wrong(
 				__METHOD__,
 				/* translators: %s: Ability name. */
-				sprintf( __( 'Ability "%s" not found.' ), esc_html( $name ) ),
+				sprintf( __( 'Ability "%s" not found.', 'gratis-ai-agent' ), esc_html( $name ) ),
 				'6.9.0'
 			);
 			return null;
@@ -275,20 +276,20 @@ final class WP_Abilities_Registry {
 				__METHOD__,
 				sprintf(
 					// translators: %s: init action.
-					__( 'Ability API should not be initialized before the %s action has fired.' ),
-					'<code>init</code>'
-				),
-				'6.9.0'
-			);
-			return null;
-		}
+				__( 'Ability API should not be initialized before the %s action has fired.', 'gratis-ai-agent' ),
+				'<code>init</code>'
+			),
+			'6.9.0'
+		);
+		return null;
+	}
 
-		if ( null === self::$instance ) {
-			self::$instance = new self();
+	if ( null === self::$instance ) {
+		self::$instance = new self();
 
-			// Ensure ability category registry is initialized first to allow categories to be registered
-			// before abilities that depend on them.
-			WP_Ability_Categories_Registry::get_instance();
+		// Ensure ability category registry is initialized first to allow categories to be registered
+		// before abilities that depend on them.
+		WP_Ability_Categories_Registry::get_instance();
 
 			/**
 			 * Fires when preparing abilities registry.

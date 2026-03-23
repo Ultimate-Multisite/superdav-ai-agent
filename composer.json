@@ -1,5 +1,5 @@
 {
-	"name": "ultimate-multisite/gratis-ai-agent",
+	"name": "ultimate-multisite/ai-agent",
 	"description": "Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",

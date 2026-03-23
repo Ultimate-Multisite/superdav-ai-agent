@@ -2,11 +2,11 @@
 
 ## Ready
 
-- [ ] t136 Add JS bundle size budget and performance benchmarks @superdav42 #ci ~2h ref=GH#611
+- [x] t136 Add JS bundle size budget and performance benchmarks @superdav42 #ci ~2h ref=GH#611 pr:#616 completed:2026-03-19
   - Plugin has grown with Chart.js, CodeMirror 6, highlight.js — no size budget means silent bloat
   - Add size-limit to package.json; budget: main bundle < 400KB gzipped; add CI step to code-quality.yml
 
-- [ ] t135 Add E2E tests for Changes page (diff/revert/export) @superdav42 #testing ~2h ref=GH#610
+- [x] t135 Add E2E tests for Changes page (diff/revert/export) @superdav42 #testing ~2h ref=GH#610 pr:#615 completed:2026-03-19
   - Changes page (diff view, revert, export patch) has zero E2E coverage — destructive feature, high regression risk
 
 - [ ] t134 Add E2E tests for automations system (t080/t081) @superdav42 #testing ~3h ref=GH#609

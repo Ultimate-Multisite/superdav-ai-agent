@@ -79,27 +79,27 @@ class ToolResultTruncator {
 	 */
 	private static function apply_tool_strategy( array $result, string $tool_name ): array {
 		switch ( $tool_name ) {
-		// Plugin list: keep name + active status + file, drop description/version details.
-		case 'gratis-ai-agent/get-plugins':
-			if ( isset( $result['plugins'] ) && is_array( $result['plugins'] ) ) {
-				$total                = count( $result['plugins'] );
-				$result['plugins']    = array_map(
-					function ( $plugin ) {
-						return [
-							// @phpstan-ignore-next-line
-							'name'   => $plugin['name'] ?? '',
-							// @phpstan-ignore-next-line
-							'active' => $plugin['active'] ?? false,
-							// @phpstan-ignore-next-line
-							'file'   => $plugin['file'] ?? '',
-						];
-					},
-					array_slice( $result['plugins'], 0, self::MAX_ARRAY_ITEMS )
-				);
-				$result['total']      = $total;
-				$result['_truncated'] = $total > self::MAX_ARRAY_ITEMS;
-			}
-			break;
+			// Plugin list: keep name + active status + file, drop description/version details.
+			case 'gratis-ai-agent/get-plugins':
+				if ( isset( $result['plugins'] ) && is_array( $result['plugins'] ) ) {
+					$total                = count( $result['plugins'] );
+					$result['plugins']    = array_map(
+						function ( $plugin ) {
+							return [
+								// @phpstan-ignore-next-line
+								'name'   => $plugin['name'] ?? '',
+								// @phpstan-ignore-next-line
+								'active' => $plugin['active'] ?? false,
+								// @phpstan-ignore-next-line
+								'file'   => $plugin['file'] ?? '',
+							];
+						},
+						array_slice( $result['plugins'], 0, self::MAX_ARRAY_ITEMS )
+					);
+					$result['total']      = $total;
+					$result['_truncated'] = $total > self::MAX_ARRAY_ITEMS;
+				}
+				break;
 
 			// Content analysis: keep summary stats, truncate per-post details.
 			case 'ai-agent/content-analyze':

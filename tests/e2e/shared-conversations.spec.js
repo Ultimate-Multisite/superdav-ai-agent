@@ -168,14 +168,9 @@ async function interceptStream( page, sessionId = MOCK_SESSION.id ) {
 async function openFirstSessionContextMenu( page ) {
 	const sessionItem = page.locator( '.ai-agent-session-item' ).first();
 	await expect( sessionItem ).toBeVisible();
-	// Right-click or click the three-dot menu button.
-	const menuButton = sessionItem.locator( '.ai-agent-session-menu-btn' );
-	if ( await menuButton.isVisible() ) {
-		await menuButton.click();
-	} else {
-		await sessionItem.hover();
-		await sessionItem.locator( '.ai-agent-session-menu-btn' ).click();
-	}
+	// Hover to reveal the ⋯ button, then click it.
+	await sessionItem.hover();
+	await sessionItem.locator( '.ai-agent-session-more' ).click();
 }
 
 /**
@@ -437,7 +432,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await goToAgentPage( page );
 			await clickSharedTab( page );
 
-			const emptyState = page.locator( '.ai-agent-sessions-empty' );
+			const emptyState = page.locator( '.ai-agent-session-empty' );
 			await expect( emptyState ).toBeVisible();
 			await expect( emptyState ).toContainText( /no shared conversations/i );
 		} );
@@ -674,7 +669,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				// Empty state should be shown.
 				const emptyState = secondPage.locator(
-					'.ai-agent-sessions-empty'
+					'.ai-agent-session-empty'
 				);
 				await expect( emptyState ).toBeVisible();
 			} finally {

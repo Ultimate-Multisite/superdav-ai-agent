@@ -45,7 +45,10 @@ class EventTriggerRegistry {
 		$grouped = [];
 
 		foreach ( $all as $trigger ) {
-			$cat = (string) ( $trigger['category'] ?? 'other' );
+			if ( ! is_array( $trigger ) ) {
+				continue;
+			}
+			$cat = isset( $trigger['category'] ) && is_string( $trigger['category'] ) ? $trigger['category'] : 'other';
 			if ( ! isset( $grouped[ $cat ] ) ) {
 				$grouped[ $cat ] = [
 					'label'    => self::get_category_label( $cat ),
@@ -66,7 +69,7 @@ class EventTriggerRegistry {
 	 */
 	public static function get( string $hook_name ): ?array {
 		foreach ( self::get_all() as $trigger ) {
-			if ( isset( $trigger['hook_name'] ) && $trigger['hook_name'] === $hook_name ) {
+			if ( is_array( $trigger ) && isset( $trigger['hook_name'] ) && $trigger['hook_name'] === $hook_name ) {
 				return $trigger;
 			}
 		}

@@ -144,10 +144,10 @@ class GitSnapshotAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path = $input['path'] ?? '';
+		$path = $input['path'] ?? null;
 
-		if ( empty( $path ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_path', __( 'Path cannot be empty.', 'gratis-ai-agent' ) );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_path', __( 'Path must be a non-empty string.', 'gratis-ai-agent' ) );
 		}
 
 		// @phpstan-ignore-next-line
@@ -233,12 +233,20 @@ class GitDiffAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path         = $input['path'] ?? '';
-		$package_slug = $input['package_slug'] ?? '';
-		$package_type = $input['package_type'] ?? 'plugin';
+		$path         = $input['path'] ?? null;
+		$package_slug = $input['package_slug'] ?? null;
+		$package_type = $input['package_type'] ?? null;
 
-		if ( empty( $path ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_path', __( 'Path cannot be empty.', 'gratis-ai-agent' ) );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_path', __( 'Path must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_type ) || '' === $package_type ) {
+			$package_type = 'plugin';
 		}
 
 		if ( 'theme' === $package_type ) {
@@ -332,12 +340,20 @@ class GitRestoreAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$path         = $input['path'] ?? '';
-		$package_slug = $input['package_slug'] ?? '';
-		$package_type = $input['package_type'] ?? 'plugin';
+		$path         = $input['path'] ?? null;
+		$package_slug = $input['package_slug'] ?? null;
+		$package_type = $input['package_type'] ?? null;
 
-		if ( empty( $path ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_path', __( 'Path cannot be empty.', 'gratis-ai-agent' ) );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_path', __( 'Path must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_type ) || '' === $package_type ) {
+			$package_type = 'plugin';
 		}
 
 		if ( 'theme' === $package_type ) {
@@ -426,7 +442,8 @@ class GitListAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$status = $input['status'] ?? null;
+		$status_raw = $input['status'] ?? null;
+		$status     = is_string( $status_raw ) && '' !== $status_raw ? $status_raw : null;
 
 		// @phpstan-ignore-next-line
 		$rows = GitTrackerManager::get_all_tracked_files( $status );
@@ -518,11 +535,15 @@ class GitPackageSummaryAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$package_slug = $input['package_slug'] ?? '';
-		$package_type = $input['package_type'] ?? 'plugin';
+		$package_slug = $input['package_slug'] ?? null;
+		$package_type = $input['package_type'] ?? null;
 
-		if ( empty( $package_slug ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_slug', __( 'Package slug cannot be empty.', 'gratis-ai-agent' ) );
+		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_type ) || '' === $package_type ) {
+			$package_type = 'plugin';
 		}
 
 		// @phpstan-ignore-next-line
@@ -597,11 +618,15 @@ class GitRevertPackageAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
-		$package_slug = $input['package_slug'] ?? '';
-		$package_type = $input['package_type'] ?? 'plugin';
+		$package_slug = $input['package_slug'] ?? null;
+		$package_type = $input['package_type'] ?? null;
 
-		if ( empty( $package_slug ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_slug', __( 'Package slug cannot be empty.', 'gratis-ai-agent' ) );
+		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
+			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+		}
+
+		if ( ! is_string( $package_type ) || '' === $package_type ) {
+			$package_type = 'plugin';
 		}
 
 		// @phpstan-ignore-next-line

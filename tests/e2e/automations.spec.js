@@ -649,21 +649,20 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// Wait for the card to be in the DOM before accessing sub-elements.
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
-		// The ToggleControl renders an opacity:0 checkbox inside a
-		// .components-form-toggle wrapper. Clicking the wrapper (the visible
-		// toggle track/thumb) is how a real user interacts with it and
-		// reliably triggers React's onChange → handleToggle → PATCH.
-		const toggleWrapper = card
-			.locator( '.components-form-toggle' )
+		// WordPress ToggleControl renders an opacity:0 <input> that covers
+		// the entire .components-form-toggle area (position:absolute, z-index:1,
+		// width/height 100%). Clicking it with { force: true } bypasses
+		// Playwright's visibility check and fires the native click → React
+		// onChange → handleToggle → PATCH.
+		const checkbox = card
+			.locator( 'input.components-form-toggle__input' )
 			.first();
-		await expect( toggleWrapper ).toBeVisible();
 
 		// Verify the toggle starts in the checked/enabled state.
-		await expect( toggleWrapper ).toHaveClass( /is-checked/ );
+		await expect( checkbox ).toBeChecked();
 
-		// Click the visible toggle wrapper — this triggers the checkbox
-		// change via the label association and fires the PATCH.
-		await toggleWrapper.click();
+		// Click with force to bypass the opacity:0 visibility check.
+		await checkbox.click( { force: true } );
 
 		// PATCH should have been called with enabled: false.
 		await expect
@@ -672,9 +671,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		expect( patchBody ).toMatchObject( { enabled: false } );
 
 		// After fetchAll() the toggle should reflect the disabled state.
-		await expect( toggleWrapper ).not.toHaveClass( /is-checked/, {
-			timeout: 5_000,
-		} );
+		await expect( checkbox ).not.toBeChecked( { timeout: 5_000 } );
 	} );
 
 	test( 'disabled automation card has disabled CSS class', async ( {
@@ -1042,19 +1039,18 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		// Wait for the card to be in the DOM before accessing sub-elements.
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
-		// The ToggleControl renders an opacity:0 checkbox inside a
-		// .components-form-toggle wrapper. Clicking the wrapper (the visible
-		// toggle track/thumb) reliably triggers React's onChange → PATCH.
-		const toggleWrapper = card
-			.locator( '.components-form-toggle' )
+		// WordPress ToggleControl renders an opacity:0 <input> that covers
+		// the entire .components-form-toggle area. Click with { force: true }
+		// to bypass visibility check and fire React onChange → PATCH.
+		const checkbox = card
+			.locator( 'input.components-form-toggle__input' )
 			.first();
-		await expect( toggleWrapper ).toBeVisible();
 
 		// Verify the toggle starts in the checked/enabled state.
-		await expect( toggleWrapper ).toHaveClass( /is-checked/ );
+		await expect( checkbox ).toBeChecked();
 
-		// Click the visible toggle wrapper to trigger the PATCH.
-		await toggleWrapper.click();
+		// Click with force to bypass the opacity:0 visibility check.
+		await checkbox.click( { force: true } );
 
 		// PATCH should have been called with enabled: false.
 		await expect
@@ -1063,9 +1059,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		expect( patchBody ).toMatchObject( { enabled: false } );
 
 		// After fetchAll() the toggle should reflect the disabled state.
-		await expect( toggleWrapper ).not.toHaveClass( /is-checked/, {
-			timeout: 5_000,
-		} );
+		await expect( checkbox ).not.toBeChecked( { timeout: 5_000 } );
 	} );
 
 	test( 'disabled event card has disabled CSS class', async ( { page } ) => {

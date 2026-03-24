@@ -233,10 +233,12 @@ async function clickSharedTab( page ) {
 test.describe( 'Shared Conversations (t091)', () => {
 	test.describe( 'Owner — share a session', () => {
 		test.beforeEach( async ( { page } ) => {
-			await loginToWordPress( page );
+			// Register mocks BEFORE login so the floating widget's fetchSessions()
+			// call (made during the admin dashboard load after login) is intercepted.
 			await interceptSessionsList( page );
 			await interceptSharedSessionsList( page, [] );
 			await interceptShareEndpoint( page );
+			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
 
@@ -326,11 +328,13 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 	test.describe( 'Owner — revoke share', () => {
 		test.beforeEach( async ( { page } ) => {
-			await loginToWordPress( page );
+			// Register mocks BEFORE login so the floating widget's fetchSessions()
+			// call (made during the admin dashboard load after login) is intercepted.
 			// Session is already shared.
 			await interceptSessionsList( page, [ MOCK_SESSION ] );
 			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
 			await interceptShareEndpoint( page );
+			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
 
@@ -405,9 +409,11 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 	test.describe( 'Shared sessions list — "Shared" tab', () => {
 		test.beforeEach( async ( { page } ) => {
-			await loginToWordPress( page );
+			// Register mocks BEFORE login so the floating widget's fetchSessions()
+			// call (made during the admin dashboard load after login) is intercepted.
 			await interceptSessionsList( page );
 			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
+			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
 
@@ -495,15 +501,16 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const secondPage = await secondContext.newPage();
 
 			try {
+				// Register mocks BEFORE login so the floating widget's fetchSessions()
+				// call (made during the admin dashboard load after login) is intercepted.
+				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
+				await interceptSessionsList( secondPage, [] );
+
 				await loginToWordPress(
 					secondPage,
 					SECOND_ADMIN_USER,
 					SECOND_ADMIN_PASS
 				);
-
-				// Intercept shared sessions list for the second admin's page.
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSessionsList( secondPage, [] );
 
 				await goToAgentPage( secondPage );
 
@@ -537,15 +544,17 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const secondPage = await secondContext.newPage();
 
 			try {
+				// Register mocks BEFORE login so the floating widget's fetchSessions()
+				// call (made during the admin dashboard load after login) is intercepted.
+				// Return the shared session in both lists.
+				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
+				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
+
 				await loginToWordPress(
 					secondPage,
 					SECOND_ADMIN_USER,
 					SECOND_ADMIN_PASS
 				);
-
-				// Return the shared session in both lists.
-				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
 
 				await goToAgentPage( secondPage );
 
@@ -590,18 +599,20 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const secondPage = await secondContext.newPage();
 
 			try {
-				await loginToWordPress(
-					secondPage,
-					SECOND_ADMIN_USER,
-					SECOND_ADMIN_PASS
-				);
-
+				// Register mocks BEFORE login so the floating widget's fetchSessions()
+				// call (made during the admin dashboard load after login) is intercepted.
 				// Intercept sessions so the shared session is available.
 				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
 				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
 
 				// Intercept the stream so the message send completes.
 				await interceptStream( secondPage, MOCK_SESSION.id );
+
+				await loginToWordPress(
+					secondPage,
+					SECOND_ADMIN_USER,
+					SECOND_ADMIN_PASS
+				);
 
 				// Intercept the single-session GET (openSession thunk fetches
 				// /sessions/{id} to load messages and tool calls).
@@ -658,14 +669,16 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const secondPage = await secondContext.newPage();
 
 			try {
+				// Register mocks BEFORE login so the floating widget's fetchSessions()
+				// call (made during the admin dashboard load after login) is intercepted.
+				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
+				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
+
 				await loginToWordPress(
 					secondPage,
 					SECOND_ADMIN_USER,
 					SECOND_ADMIN_PASS
 				);
-
-				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
 
 				await goToAgentPage( secondPage );
 
@@ -703,16 +716,15 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const secondPage = await secondContext.newPage();
 
 			try {
-				await loginToWordPress(
-					secondPage,
-					SECOND_ADMIN_USER,
-					SECOND_ADMIN_PASS
-				);
-
+				// Register mocks BEFORE login so the floating widget's fetchSessions()
+				// call (made during the admin dashboard load after login) is intercepted.
 				// Start with the session shared.
 				let isRevoked = false;
 				await secondPage.route(
-					/gratis-ai-agent\/v1\/sessions\/shared/,
+					( url ) =>
+						decodeUrl( url ).includes(
+							'gratis-ai-agent/v1/sessions/shared'
+						),
 					async ( route ) => {
 						await route.fulfill( {
 							status: 200,
@@ -724,6 +736,12 @@ test.describe( 'Shared Conversations (t091)', () => {
 					}
 				);
 				await interceptSessionsList( secondPage, [] );
+
+				await loginToWordPress(
+					secondPage,
+					SECOND_ADMIN_USER,
+					SECOND_ADMIN_PASS
+				);
 
 				await goToAgentPage( secondPage );
 				await clickSharedTab( secondPage );

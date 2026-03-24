@@ -422,6 +422,10 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.locator( '.ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
+		// Wait for the card to be in the DOM before accessing sub-elements.
+		// The automations list is populated asynchronously after the tab renders.
+		await expect( card ).toBeVisible( { timeout: 10_000 } );
+
 		// Schedule badge (e.g. "daily").
 		const badge = card.locator( '.ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_AUTOMATION.schedule );
@@ -607,6 +611,9 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.locator( '.ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
+		// Wait for the card to be in the DOM before accessing sub-elements.
+		await expect( card ).toBeVisible( { timeout: 10_000 } );
+
 		// The ToggleControl inside the card header renders as a checkbox.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();
 		await expect( toggle ).toBeChecked(); // enabled by default.
@@ -753,6 +760,9 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		const card = page
 			.locator( '.ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
+
+		// Wait for the card to be in the DOM before accessing sub-elements.
+		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		const badge = card.locator( '.ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_EVENT.hook_name );
@@ -972,6 +982,9 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		const card = page
 			.locator( '.ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
+
+		// Wait for the card to be in the DOM before accessing sub-elements.
+		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// The ToggleControl inside the card header renders as a checkbox.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();

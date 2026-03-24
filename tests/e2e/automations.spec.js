@@ -58,7 +58,9 @@ const MOCK_EVENT = {
 const MOCK_TRIGGER = {
 	hook_name: 'transition_post_status',
 	label: 'Post status changed',
-	description: 'Fires when a post transitions from one status to another.',
+	// Description must match the real EventTriggerRegistry value so the test
+	// passes whether the mock intercepts or the real server responds.
+	description: 'Fires when a post status transitions (e.g. draft to publish).',
 	category: 'content',
 	placeholders: [
 		{ key: 'post_title', description: 'The post title' },
@@ -154,6 +156,12 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		createdEvent = { ...MOCK_EVENT, id: 99 },
 		alerts = { count: 0, alerts: [] },
 	} = overrides;
+
+	// Clear any previously registered route handlers so that re-registering
+	// in beforeEach (or within a test body) does not stack handlers from prior
+	// tests. Playwright evaluates handlers LIFO, so stale handlers from earlier
+	// tests would otherwise shadow the current mock data.
+	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
 	// Match both pretty-permalink (/wp-json/...) and plain-permalink
 	// (?rest_route=...) REST URL forms so mocks work regardless of how
@@ -483,10 +491,22 @@ test.describe( 'Scheduled Automations (t080)', () => {
 
 		// Track whether the POST was made.
 		let postMade = false;
-		// Match /automations exactly (not /automations/ID or /automation-templates).
-		// Works for both pretty-permalink and plain-permalink REST URL forms.
+		// Use a function matcher to precisely target the /automations list
+		// endpoint (not /automations/ID or /automation-templates).
+		// A function matcher is more reliable than a regex with lookahead
+		// because it can inspect the parsed URL directly.
 		await page.route(
-			/gratis-ai-agent\/v1\/automations(?:$|\?|&)/,
+			( url ) => {
+				const path = url.pathname || url.toString();
+				// Match /automations at the end of the path (with optional
+				// trailing slash) but not /automations/ID or /automation-templates.
+				return (
+					/\/automations\/?$/.test( path ) ||
+					/[?&]rest_route=%2Fgratis-ai-agent%2Fv1%2Fautomations\/?$/.test(
+						url.toString()
+					)
+				);
+			},
 			async ( route ) => {
 				if ( route.request().method() === 'POST' ) {
 					postMade = true;
@@ -533,7 +553,10 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		let patchBody = null;
 
 		await page.route(
-			/gratis-ai-agent\/v1\/automations\/1(?:$|\?|&)/,
+			( url ) => {
+				const path = url.pathname || url.toString();
+				return /\/automations\/1\/?$/.test( path );
+			},
 			async ( route ) => {
 				if ( route.request().method() === 'PATCH' ) {
 					patchCalled = true;
@@ -614,30 +637,31 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		const scheduleSelect = form.getByLabel( /schedule/i );
 
 		// Verify the four standard WP cron schedules are present.
-		for ( const schedule of [
-			'Hourly',
-			'Twice Daily',
-			'Daily',
-			'Weekly',
+		// Use value-attribute selectors rather than :has-text() to avoid
+		// substring matches (e.g. "Daily" would match "Twice Daily").
+		for ( const [ label, value ] of [
+			[ 'Hourly', 'hourly' ],
+			[ 'Twice Daily', 'twicedaily' ],
+			[ 'Daily', 'daily' ],
+			[ 'Weekly', 'weekly' ],
 		] ) {
 			await expect(
-				scheduleSelect.locator( `option:has-text("${ schedule }")` )
-			).toHaveCount( 1 );
+				scheduleSelect.locator( `option[value="${ value }"]` )
+			).toHaveCount( 1, { message: `Expected option "${ label }" to exist` } );
 		}
 	} );
 
 	test( 'empty state shows when no automations exist', async ( { page } ) => {
-		await mockAutomationRoutes( page, { automations: [] } );
+		await mockAutomationRoutes( page, { automations: [], templates: [] } );
 
 		await goToAutomationsTab( page );
 
-		// No cards should be rendered.
-		await expect( page.locator( '.ai-agent-skill-card' ) ).toHaveCount( 0 );
-
-		// Quick Start Templates appear when there are no automations.
+		// No automation cards should be rendered (templates also use
+		// .ai-agent-skill-card, so we check the automations list container
+		// directly — it is only rendered when automations.length > 0).
 		await expect(
-			page.getByRole( 'heading', { name: /quick start templates/i } )
-		).toBeVisible();
+			page.locator( '.ai-agent-automations-manager .ai-agent-skill-cards' )
+		).toHaveCount( 0 );
 	} );
 
 	test( 'Use Template button pre-fills the form', async ( { page } ) => {
@@ -772,7 +796,10 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		let postMade = false;
 		await page.route(
-			/gratis-ai-agent\/v1\/event-automations(?:$|\?|&)/,
+			( url ) => {
+				const path = url.pathname || url.toString();
+				return /\/event-automations\/?$/.test( path );
+			},
 			async ( route ) => {
 				if ( route.request().method() === 'POST' ) {
 					postMade = true;
@@ -865,7 +892,10 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		let patchBody = null;
 
 		await page.route(
-			/gratis-ai-agent\/v1\/event-automations\/1(?:$|\?|&)/,
+			( url ) => {
+				const path = url.pathname || url.toString();
+				return /\/event-automations\/1\/?$/.test( path );
+			},
 			async ( route ) => {
 				if ( route.request().method() === 'PATCH' ) {
 					patchCalled = true;

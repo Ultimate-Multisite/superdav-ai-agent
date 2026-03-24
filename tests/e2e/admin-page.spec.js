@@ -538,8 +538,21 @@ test.describe( 'Settings - Abilities Search and Filter (t098)', () => {
 		} );
 		await collapseBtn.click();
 
+		// Verify collapsed before expanding — avoids a race where expand fires
+		// before collapse has finished, making the subsequent visibility check
+		// unreliable.
+		await expect( categoryBodies.first() ).not.toBeVisible( {
+			timeout: 5_000,
+		} );
+
 		const expandBtn = page.getByRole( 'button', { name: /expand all/i } );
 		await expandBtn.click();
+
+		// Wait for the first body to be visible before counting — the expand
+		// is synchronous in React but the DOM update may lag slightly on CI.
+		await expect( categoryBodies.first() ).toBeVisible( {
+			timeout: 5_000,
+		} );
 
 		// All category bodies should be visible.
 		const count = await categoryBodies.count();

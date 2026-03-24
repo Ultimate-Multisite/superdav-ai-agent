@@ -208,26 +208,26 @@ class GitDiffAbility extends AbstractAbility {
 					'type'        => 'string',
 					'description' => 'Plugin file slug (e.g. "akismet/akismet.php") or theme slug (e.g. "twentytwentyfour").',
 				],
-				'package_type' => [
-					'type'        => 'string',
-					'enum'        => [ 'plugin', 'theme' ],
-					'description' => 'Whether the package is a plugin or theme.',
-				],
+			'package_type' => [
+				'type'        => 'string',
+				'enum'        => [ 'plugin', 'theme' ],
+				'description' => 'Whether the package is a plugin or theme. Defaults to "plugin" if omitted.',
 			],
-			'required'   => [ 'path', 'package_slug', 'package_type' ],
-		];
-	}
+		],
+		'required'   => [ 'path', 'package_slug' ],
+	];
+}
 
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'path'        => [ 'type' => 'string' ],
-				'has_changes' => [ 'type' => 'boolean' ],
-				'diff'        => [ 'type' => 'string' ],
-			],
-		];
-	}
+protected function output_schema(): array {
+	return [
+		'type'       => 'object',
+		'properties' => [
+			'path'        => [ 'type' => 'string' ],
+			'has_changes' => [ 'type' => 'boolean' ],
+			'diff'        => [ 'type' => 'string' ],
+		],
+	];
+}
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
@@ -312,26 +312,26 @@ class GitRestoreAbility extends AbstractAbility {
 					'type'        => 'string',
 					'description' => 'Plugin file slug (e.g. "akismet/akismet.php") or theme slug (e.g. "twentytwentyfour").',
 				],
-				'package_type' => [
-					'type'        => 'string',
-					'enum'        => [ 'plugin', 'theme' ],
-					'description' => 'Whether the package is a plugin or theme.',
-				],
+			'package_type' => [
+				'type'        => 'string',
+				'enum'        => [ 'plugin', 'theme' ],
+				'description' => 'Whether the package is a plugin or theme. Defaults to "plugin" if omitted.',
 			],
-			'required'   => [ 'path', 'package_slug', 'package_type' ],
-		];
-	}
+		],
+		'required'   => [ 'path', 'package_slug' ],
+	];
+}
 
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'path'    => [ 'type' => 'string' ],
-				'action'  => [ 'type' => 'string' ],
-				'message' => [ 'type' => 'string' ],
-			],
-		];
-	}
+protected function output_schema(): array {
+	return [
+		'type'       => 'object',
+		'properties' => [
+			'path'    => [ 'type' => 'string' ],
+			'action'  => [ 'type' => 'string' ],
+			'message' => [ 'type' => 'string' ],
+		],
+	];
+}
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
@@ -498,30 +498,30 @@ class GitPackageSummaryAbility extends AbstractAbility {
 					'type'        => 'string',
 					'description' => 'Plugin file slug (e.g. "akismet/akismet.php") or theme slug (e.g. "twentytwentyfour").',
 				],
-				'package_type' => [
-					'type'        => 'string',
-					'enum'        => [ 'plugin', 'theme' ],
-					'description' => 'Whether the package is a plugin or theme.',
-				],
+			'package_type' => [
+				'type'        => 'string',
+				'enum'        => [ 'plugin', 'theme' ],
+				'description' => 'Whether the package is a plugin or theme. Defaults to "plugin" if omitted.',
 			],
-			'required'   => [ 'package_slug', 'package_type' ],
-		];
-	}
+		],
+		'required'   => [ 'package_slug' ],
+	];
+}
 
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'slug'           => [ 'type' => 'string' ],
-				'type'           => [ 'type' => 'string' ],
-				'path'           => [ 'type' => 'string' ],
-				'total_tracked'  => [ 'type' => 'integer' ],
-				'modified_count' => [ 'type' => 'integer' ],
-				'by_status'      => [ 'type' => 'object' ],
-				'modified_files' => [ 'type' => 'array' ],
-			],
-		];
-	}
+protected function output_schema(): array {
+	return [
+		'type'       => 'object',
+		'properties' => [
+			'slug'           => [ 'type' => 'string' ],
+			'type'           => [ 'type' => 'string' ],
+			'path'           => [ 'type' => 'string' ],
+			'total_tracked'  => [ 'type' => 'integer' ],
+			'modified_count' => [ 'type' => 'integer' ],
+			'by_status'      => [ 'type' => 'object' ],
+			'modified_files' => [ 'type' => 'array' ],
+		],
+	];
+}
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
@@ -583,27 +583,27 @@ class GitRevertPackageAbility extends AbstractAbility {
 					'type'        => 'string',
 					'description' => 'Plugin file slug (e.g. "akismet/akismet.php") or theme slug (e.g. "twentytwentyfour").',
 				],
-				'package_type' => [
-					'type'        => 'string',
-					'enum'        => [ 'plugin', 'theme' ],
-					'description' => 'Whether the package is a plugin or theme.',
-				],
+			'package_type' => [
+				'type'        => 'string',
+				'enum'        => [ 'plugin', 'theme' ],
+				'description' => 'Whether the package is a plugin or theme. Defaults to "plugin" if omitted.',
 			],
-			'required'   => [ 'package_slug', 'package_type' ],
-		];
-	}
+		],
+		'required'   => [ 'package_slug' ],
+	];
+}
 
-	protected function output_schema(): array {
-		return [
-			'type'       => 'object',
-			'properties' => [
-				'package_slug' => [ 'type' => 'string' ],
-				'reverted'     => [ 'type' => 'integer' ],
-				'failed'       => [ 'type' => 'integer' ],
-				'message'      => [ 'type' => 'string' ],
-			],
-		];
-	}
+protected function output_schema(): array {
+	return [
+		'type'       => 'object',
+		'properties' => [
+			'package_slug' => [ 'type' => 'string' ],
+			'reverted'     => [ 'type' => 'integer' ],
+			'failed'       => [ 'type' => 'integer' ],
+			'message'      => [ 'type' => 'string' ],
+		],
+	];
+}
 
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */

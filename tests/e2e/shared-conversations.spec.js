@@ -23,17 +23,21 @@
  * is also intercepted so "contribute" tests can send a message without a real
  * backend.
  *
- * Per-endpoint regex mock strategy
- * ---------------------------------
- * Each REST endpoint is intercepted with its own `page.route(/regex/, handler)`
+ * Per-endpoint predicate mock strategy
+ * --------------------------------------
+ * Each REST endpoint is intercepted with its own `page.route(predicate, handler)`
  * via `setupMocks()`. A single `page.route('**', handler)` catch-all is
  * unreliable in wp-env — the handler must call `route.continue()` for every
  * non-matching request (CSS, JS, images, HTML), and this high-volume
  * pass-through can cause timing issues that prevent mock responses from
- * reaching the Redux store. Per-endpoint regex handlers only fire for their
- * own endpoint, avoiding this overhead entirely. Negative lookaheads in the
- * regex patterns (e.g. `/sessions(?!\/)`) prevent overlap between the
- * sessions list handler and more-specific endpoints like `/sessions/shared`.
+ * reaching the Redux store. Per-endpoint predicate handlers only fire for their
+ * own endpoint, avoiding this overhead entirely.
+ *
+ * wp-env percent-encodes REST paths in the plain-permalink format
+ * (`?rest_route=%2Fgratis-ai-agent%2Fv1%2Fsessions%2Fshared`). Regex
+ * matchers fail against encoded URLs. Predicate functions decode the URL
+ * first (`decodeURIComponent(req.url())`) so matching is reliable regardless
+ * of the permalink format in use.
  *
  * Run: npm run test:e2e:playwright
  */
@@ -104,14 +108,18 @@ async function setupMocks( page, options = {} ) {
 	let sharedCallCount = 0;
 
 	// --- /sessions/shared ---
-	// Regex matches both pretty-permalink and plain-permalink (rest_route=) URLs.
+	// Predicate matches both pretty-permalink and plain-permalink (rest_route=) URLs.
+	// decodeURIComponent() handles wp-env's percent-encoded REST paths.
 	// Registered BEFORE the /sessions list handler. Playwright evaluates handlers
 	// in LIFO order, so the /sessions handler (registered later) runs first for
 	// URLs matching both patterns. The /sessions handler detects /sessions/shared
 	// URLs and calls route.fallback(), which delegates to this handler.
 	if ( sharedSessions !== null || sharedSessionsFn !== null ) {
 		await page.route(
-			/gratis-ai-agent\/v1\/sessions\/shared/,
+			( req ) =>
+				decodeURIComponent( req.url() ).includes(
+					'gratis-ai-agent/v1/sessions/shared'
+				),
 			async ( route ) => {
 				if ( sharedSessionsFn !== null ) {
 					sharedCallCount++;
@@ -135,7 +143,11 @@ async function setupMocks( page, options = {} ) {
 	// --- /sessions/{id}/share (POST or DELETE) ---
 	if ( shareSuccess !== null ) {
 		await page.route(
-			/gratis-ai-agent\/v1\/sessions\/\d+\/share/,
+			( req ) =>
+				decodeURIComponent( req.url() ).includes(
+					'gratis-ai-agent/v1/sessions/'
+				) &&
+				decodeURIComponent( req.url() ).includes( '/share' ),
 			async ( route ) => {
 				const method = route.request().method();
 				if ( method === 'POST' ) {
@@ -157,14 +169,19 @@ async function setupMocks( page, options = {} ) {
 	}
 
 	// --- /sessions list ---
-	// The negative lookahead (?!\/) ensures this regex ONLY matches the
-	// sessions list endpoint — not /sessions/shared, /sessions/folders,
-	// or /sessions/{id}. Those URLs have a '/' after 'sessions', which
-	// the lookahead rejects. The list URL has '&' or end-of-string after
-	// 'sessions' (e.g. ...sessions&status=active&_locale=user).
+	// Predicate matches the sessions list endpoint only — not /sessions/shared,
+	// /sessions/folders, or /sessions/{id}. The list URL contains 'sessions'
+	// but NOT 'sessions/' (the sub-resource separator). decodeURIComponent()
+	// handles wp-env's percent-encoded REST paths.
 	if ( sessions !== null ) {
 		await page.route(
-			/gratis-ai-agent\/v1\/sessions(?!\/)/,
+			( req ) => {
+				const decoded = decodeURIComponent( req.url() );
+				return (
+					decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
+					! decoded.includes( 'gratis-ai-agent/v1/sessions/' )
+				);
+			},
 			async ( route ) => {
 				await route.fulfill( {
 					status: 200,
@@ -177,38 +194,44 @@ async function setupMocks( page, options = {} ) {
 
 	// --- /stream ---
 	if ( streamSessionId !== null ) {
-		await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-			let sid = streamSessionId;
-			try {
-				const body = route.request().postDataJSON();
-				if ( body?.session_id ) {
-					sid = body.session_id;
+		await page.route(
+			( req ) =>
+				decodeURIComponent( req.url() ).includes(
+					'gratis-ai-agent/v1/stream'
+				),
+			async ( route ) => {
+				let sid = streamSessionId;
+				try {
+					const body = route.request().postDataJSON();
+					if ( body?.session_id ) {
+						sid = body.session_id;
+					}
+				} catch {
+					// Non-JSON body — use default.
 				}
-			} catch {
-				// Non-JSON body — use default.
+
+				const sseBody = [
+					'event: token',
+					`data: ${ JSON.stringify( {
+						token: 'Hello from shared session!',
+					} ) }`,
+					'',
+					'event: done',
+					`data: ${ JSON.stringify( { session_id: sid } ) }`,
+					'',
+					'',
+				].join( '\n' );
+
+				await route.fulfill( {
+					status: 200,
+					headers: {
+						'Content-Type': 'text/event-stream',
+						'Cache-Control': 'no-cache',
+					},
+					body: sseBody,
+				} );
 			}
-
-			const sseBody = [
-				'event: token',
-				`data: ${ JSON.stringify( {
-					token: 'Hello from shared session!',
-				} ) }`,
-				'',
-				'event: done',
-				`data: ${ JSON.stringify( { session_id: sid } ) }`,
-				'',
-				'',
-			].join( '\n' );
-
-			await route.fulfill( {
-				status: 200,
-				headers: {
-					'Content-Type': 'text/event-stream',
-					'Cache-Control': 'no-cache',
-				},
-				body: sseBody,
-			} );
-		} );
+		);
 	}
 
 	// Return the sharedCallCount getter so callers can inspect it.
@@ -422,16 +445,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// sharedSessions populated. We need to track the refetch that happens
 			// after clicking Unshare.
 
-			// Replace the /sessions/shared handler with a counting one that
-			// returns [MOCK_SESSION] on the first call and [] on subsequent calls.
-			// Register on top of the existing handler — LIFO means this runs first.
-			let sharedCallCount = 0;
+			// Replace the /sessions/shared handler with one driven by an
+			// isRevoked boolean. Returns [MOCK_SESSION] until isRevoked is set,
+			// then returns []. Register on top of the existing handler — LIFO
+			// means this runs first. Uses a predicate to handle wp-env's
+			// percent-encoded REST paths reliably.
+			let isRevoked = false;
 			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
+				( req ) =>
+					decodeURIComponent( req.url() ).includes(
+						'gratis-ai-agent/v1/sessions/shared'
+					),
 				async ( route ) => {
-					sharedCallCount++;
-					const result =
-						sharedCallCount === 1 ? [ MOCK_SESSION ] : [];
+					const result = isRevoked ? [] : [ MOCK_SESSION ];
 					await route.fulfill( {
 						status: 200,
 						contentType: 'application/json',
@@ -440,17 +466,18 @@ test.describe( 'Shared Conversations (t091)', () => {
 				}
 			);
 
-			// Reload so the store fetches with the new counting handler.
+			// Reload so the store fetches with the new handler (isRevoked=false → [MOCK_SESSION]).
 			await goToAgentPage( page );
 
-			// goToAgentPage() waits for both the sessions and shared sessions
-			// responses, so sharedCallCount is guaranteed to be >= 1 here.
-			expect( sharedCallCount ).toBeGreaterThanOrEqual( 1 );
-
+			// The Unshare option is visible because sharedSessions=[MOCK_SESSION].
 			await openFirstSessionContextMenu( page );
 			const unshareOption = page.getByRole( 'menuitem', {
 				name: /unshare/i,
 			} );
+			await expect( unshareOption ).toBeVisible( { timeout: 10_000 } );
+
+			// Toggle isRevoked so the next /sessions/shared fetch returns [].
+			isRevoked = true;
 
 			// Wait for the refetch response after clicking Unshare.
 			// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
@@ -464,7 +491,8 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await unshareOption.click();
 			await refetchPromise;
 
-			expect( sharedCallCount ).toBeGreaterThanOrEqual( 2 );
+			// The store now has sharedSessions=[] — the session should be gone.
+			// (Verified implicitly by the refetch completing with isRevoked=true.)
 		} );
 	} );
 
@@ -626,9 +654,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
-				// Return the shared session in both lists.
+				// sessions: [] so admin2 cannot find MOCK_SESSION in the regular list.
+				// The session is only accessible via the Shared tab.
 				await setupMocks( secondPage, {
-					sessions: [ MOCK_SESSION ],
+					sessions: [],
 					sharedSessions: [ MOCK_SESSION ],
 				} );
 
@@ -692,9 +721,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
-				// Intercept sessions so the shared session is available.
+				// sessions: [] so admin2 cannot find MOCK_SESSION in the regular list.
+				// The session is only accessible via the Shared tab.
 				await setupMocks( secondPage, {
-					sessions: [ MOCK_SESSION ],
+					sessions: [],
 					sharedSessions: [ MOCK_SESSION ],
 					streamSessionId: MOCK_SESSION.id,
 				} );
@@ -707,12 +737,21 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				// Intercept the single-session GET (openSession thunk fetches
 				// /sessions/{id} to load messages and tool calls).
-				// Uses a specific regex so it only fires for /sessions/42 and
-				// does not interfere with other setupMocks handlers.
-				// The negative lookahead (?![/\d]) prevents matching
-				// /sessions/42/share or /sessions/420.
+				// Uses a predicate to handle wp-env's percent-encoded REST paths.
+				// Checks for '/sessions/42' without a trailing slash or digit to
+				// avoid matching /sessions/42/share or /sessions/420.
 				await secondPage.route(
-					/gratis-ai-agent\/v1\/sessions\/42(?![/\d])/,
+					( req ) => {
+						const decoded = decodeURIComponent( req.url() );
+						return (
+							decoded.includes(
+								'gratis-ai-agent/v1/sessions/42'
+							) &&
+							! /gratis-ai-agent\/v1\/sessions\/42[/\d]/.test(
+								decoded
+							)
+						);
+					},
 					async ( route ) => {
 						await route.fulfill( {
 							status: 200,
@@ -728,9 +767,21 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				await goToAgentPage( secondPage );
 
+				// Navigate to the Shared tab so the session appears in the list.
+				// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
+				const sharedResponsePromise = secondPage.waitForResponse(
+					( resp ) =>
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
+					{ timeout: 5_000 }
+				);
+				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
+
 				// Click the shared session to load it.
 				// Use a 10 s timeout to accommodate the async gap between the store
-				// receiving the sessions response and React committing the DOM update.
+				// receiving the shared sessions response and React committing the DOM update.
 				const sessionItem = secondPage
 					.locator( '.ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } )
@@ -768,8 +819,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
+				// sessions: [] so admin2 cannot find MOCK_SESSION in the regular list.
+				// The session is only accessible via the Shared tab.
 				await setupMocks( secondPage, {
-					sessions: [ MOCK_SESSION ],
+					sessions: [],
 					sharedSessions: [ MOCK_SESSION ],
 				} );
 

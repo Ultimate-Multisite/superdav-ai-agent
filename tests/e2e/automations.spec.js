@@ -173,14 +173,21 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 	// tests would otherwise shadow the current mock data.
 	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
-	// Use a glob pattern to match both pretty-permalink (/wp-json/...) and
-	// plain-permalink (?rest_route=...) REST URL forms so mocks work regardless
-	// of how wp-env configures WordPress permalinks.
-	// A glob pattern is more reliable than a regex for URL matching in Playwright
-	// because it avoids edge cases with URL encoding and query parameters.
-	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
-		const url = route.request().url();
+	// Use '**' to catch ALL requests, then filter by decoded URL.
+	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
+	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match — the
+	// plugin path appears in the query string, not the URL path. Decoding first
+	// and matching on the decoded string handles both pretty-permalink and
+	// plain-permalink URL formats reliably.
+	await page.route( '**', async ( route ) => {
+		const rawUrl = route.request().url();
+		const url = decodeURIComponent( rawUrl );
 		const method = route.request().method();
+
+		// Only handle requests for our plugin's REST namespace.
+		if ( ! url.includes( 'gratis-ai-agent/v1' ) ) {
+			return route.continue();
+		}
 
 		// ----------------------------------------------------------------
 		// Settings-page bootstrap endpoints.
@@ -203,7 +210,13 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		}
 
 		// Settings — must respond before SettingsApp renders tab content.
-		if ( url.match( /\/settings$/ ) ) {
+		// Use includes() rather than /\/settings$/ regex: in plain-permalink
+		// format the URL is ?rest_route=.../settings which may have additional
+		// query params appended, so a $ anchor would not match.
+		if (
+			url.includes( '/gratis-ai-agent/v1/settings' ) &&
+			! url.includes( '/settings/google-analytics' )
+		) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
@@ -212,7 +225,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		}
 
 		// Providers list.
-		if ( url.match( /\/providers$/ ) ) {
+		if ( url.includes( '/gratis-ai-agent/v1/providers' ) ) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
@@ -221,7 +234,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		}
 
 		// Abilities list.
-		if ( url.match( /\/abilities$/ ) ) {
+		if ( url.includes( '/gratis-ai-agent/v1/abilities' ) ) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
@@ -522,31 +535,38 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// Track whether the POST was made and capture the request body.
 		let postMade = false;
 		let postBody = null;
-		// Use a glob pattern to precisely target the /automations list endpoint
-		// (not /automations/ID or /automation-templates).
-		// Registered after the beforeEach mock so it takes precedence (LIFO).
-		await page.route(
-			'**/gratis-ai-agent/v1/automations',
-			async ( route ) => {
-				if ( route.request().method() === 'POST' ) {
-					postMade = true;
-					postBody = JSON.parse(
-						route.request().postData() || '{}'
-					);
-					return route.fulfill( {
-						status: 201,
-						contentType: 'application/json',
-						body: JSON.stringify( newAutomation ),
-					} );
-				}
-				// GET after creation returns the new item.
+		// Use '**' + decoded URL check to match both pretty-permalink and
+		// plain-permalink (?rest_route=...) URL formats. Registered after the
+		// beforeEach mock so it takes precedence (LIFO).
+		await page.route( '**', async ( route ) => {
+			const decodedUrl = decodeURIComponent( route.request().url() );
+			// Only handle the /automations list endpoint (not /automations/ID
+			// or /automation-templates).
+			if (
+				! decodedUrl.includes( 'gratis-ai-agent/v1/automations' ) ||
+				decodedUrl.includes( '/automation-templates' ) ||
+				/gratis-ai-agent\/v1\/automations\/\d/.test( decodedUrl )
+			) {
+				return route.continue();
+			}
+			if ( route.request().method() === 'POST' ) {
+				postMade = true;
+				postBody = JSON.parse(
+					route.request().postData() || '{}'
+				);
 				return route.fulfill( {
-					status: 200,
+					status: 201,
 					contentType: 'application/json',
-					body: JSON.stringify( [ newAutomation ] ),
+					body: JSON.stringify( newAutomation ),
 				} );
 			}
-		);
+			// GET after creation returns the new item.
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [ newAutomation ] ),
+			} );
+		} );
 
 		await goToAutomationsTab( page );
 
@@ -589,30 +609,33 @@ test.describe( 'Scheduled Automations (t080)', () => {
 
 		// After the PATCH the component calls fetchAll(); the GET must return
 		// the updated state so the card re-renders with enabled: false.
-		await page.route(
-			'**/gratis-ai-agent/v1/automations/1',
-			async ( route ) => {
-				if ( route.request().method() === 'PATCH' ) {
-					patchCalled = true;
-					patchBody = JSON.parse( route.request().postData() || '{}' );
-					return route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( { success: true } ),
-					} );
-				}
-				// GET /automations/1 — return disabled state after PATCH.
+		// Use '**' + decoded URL check to match both pretty-permalink and
+		// plain-permalink (?rest_route=...) URL formats.
+		await page.route( '**', async ( route ) => {
+			const decodedUrl = decodeURIComponent( route.request().url() );
+			if ( ! /gratis-ai-agent\/v1\/automations\/1/.test( decodedUrl ) ) {
+				return route.continue();
+			}
+			if ( route.request().method() === 'PATCH' ) {
+				patchCalled = true;
+				patchBody = JSON.parse( route.request().postData() || '{}' );
 				return route.fulfill( {
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify(
-						patchCalled
-							? { ...MOCK_AUTOMATION, enabled: false }
-							: MOCK_AUTOMATION
-					),
+					body: JSON.stringify( { success: true } ),
 				} );
 			}
-		);
+			// GET /automations/1 — return disabled state after PATCH.
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					patchCalled
+						? { ...MOCK_AUTOMATION, enabled: false }
+						: MOCK_AUTOMATION
+				),
+			} );
+		} );
 
 		await goToAutomationsTab( page );
 
@@ -844,27 +867,34 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		let postMade = false;
 		let postBody = null;
-		await page.route(
-			'**/gratis-ai-agent/v1/event-automations',
-			async ( route ) => {
-				if ( route.request().method() === 'POST' ) {
-					postMade = true;
-					postBody = JSON.parse(
-						route.request().postData() || '{}'
-					);
-					return route.fulfill( {
-						status: 201,
-						contentType: 'application/json',
-						body: JSON.stringify( newEvent ),
-					} );
-				}
+		// Use '**' + decoded URL check to match both pretty-permalink and
+		// plain-permalink (?rest_route=...) URL formats.
+		await page.route( '**', async ( route ) => {
+			const decodedUrl = decodeURIComponent( route.request().url() );
+			// Only handle the /event-automations list endpoint (not /event-automations/ID).
+			if (
+				! decodedUrl.includes( 'gratis-ai-agent/v1/event-automations' ) ||
+				/gratis-ai-agent\/v1\/event-automations\/\d/.test( decodedUrl )
+			) {
+				return route.continue();
+			}
+			if ( route.request().method() === 'POST' ) {
+				postMade = true;
+				postBody = JSON.parse(
+					route.request().postData() || '{}'
+				);
 				return route.fulfill( {
-					status: 200,
+					status: 201,
 					contentType: 'application/json',
-					body: JSON.stringify( [ newEvent ] ),
+					body: JSON.stringify( newEvent ),
 				} );
 			}
-		);
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [ newEvent ] ),
+			} );
+		} );
 
 		await goToEventsTab( page );
 
@@ -955,30 +985,35 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		// After the PATCH the component calls fetchAll(); the GET must return
 		// the updated state so the card re-renders with enabled: false.
-		await page.route(
-			'**/gratis-ai-agent/v1/event-automations/1',
-			async ( route ) => {
-				if ( route.request().method() === 'PATCH' ) {
-					patchCalled = true;
-					patchBody = JSON.parse( route.request().postData() || '{}' );
-					return route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( { success: true } ),
-					} );
-				}
-				// GET /event-automations/1 — return disabled state after PATCH.
+		// Use '**' + decoded URL check to match both pretty-permalink and
+		// plain-permalink (?rest_route=...) URL formats.
+		await page.route( '**', async ( route ) => {
+			const decodedUrl = decodeURIComponent( route.request().url() );
+			if (
+				! /gratis-ai-agent\/v1\/event-automations\/1/.test( decodedUrl )
+			) {
+				return route.continue();
+			}
+			if ( route.request().method() === 'PATCH' ) {
+				patchCalled = true;
+				patchBody = JSON.parse( route.request().postData() || '{}' );
 				return route.fulfill( {
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify(
-						patchCalled
-							? { ...MOCK_EVENT, enabled: false }
-							: MOCK_EVENT
-					),
+					body: JSON.stringify( { success: true } ),
 				} );
 			}
-		);
+			// GET /event-automations/1 — return disabled state after PATCH.
+			return route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					patchCalled
+						? { ...MOCK_EVENT, enabled: false }
+						: MOCK_EVENT
+				),
+			} );
+		} );
 
 		await goToEventsTab( page );
 

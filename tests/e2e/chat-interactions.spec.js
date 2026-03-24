@@ -79,30 +79,26 @@ async function interceptStream( page, options = {} ) {
 	let capturedSessionId = 1;
 
 	if ( generatedTitle ) {
-		// One-shot flag: fulfill only the first post-stream GET to the list endpoint.
-		let sessionsFulfilled = false;
-
 		await page.route(
 			/gratis-ai-agent\/v1\/sessions/,
 			async ( sessionsRoute ) => {
 				const url = sessionsRoute.request().url();
 				const method = sessionsRoute.request().method();
 
-				// Only intercept the first GET to the list endpoint after the
-				// stream has fired. Skip individual-session URLs (/sessions/123),
-				// non-GETs, pre-stream calls, and calls after the first intercept.
+				// Intercept all GET requests to the list endpoint after the stream
+				// has fired. Skip individual-session URLs (/sessions/123), non-GETs,
+				// and pre-stream calls. Intercepting all post-stream calls (not just
+				// the first) prevents subsequent fetchSessions() round-trips from
+				// overwriting the generated title with "Untitled" from the real server.
 				const isListEndpoint = ! /\/sessions\//.test( url );
 				if (
 					method !== 'GET' ||
 					! isListEndpoint ||
-					! streamFired ||
-					sessionsFulfilled
+					! streamFired
 				) {
 					await sessionsRoute.continue();
 					return;
 				}
-
-				sessionsFulfilled = true;
 
 				const session = {
 					id: capturedSessionId,

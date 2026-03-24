@@ -92,6 +92,18 @@ async function goToAgentPage( page ) {
 		.locator( '.ai-agent-sidebar-filters' )
 		.waitFor( { state: 'visible', timeout: 15_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before sidebar renders.
+
+	// Wait for the session list to settle: either a session item or the empty
+	// state must be visible. This bridges the async gap between the HTTP
+	// response being received and React committing the DOM update. Without this
+	// wait, tests that assert on session items or sharedSessions-dependent UI
+	// (e.g. the Unshare context menu option) may run before the store has
+	// processed the response.
+	await page
+		.locator( '.ai-agent-session-item, .ai-agent-session-empty' )
+		.first()
+		.waitFor( { state: 'visible', timeout: 10_000 } )
+		.catch( () => {} ); // Non-fatal: some tests navigate away before list renders.
 }
 
 /**

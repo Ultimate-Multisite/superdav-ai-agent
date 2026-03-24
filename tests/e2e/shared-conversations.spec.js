@@ -329,6 +329,8 @@ test.describe( 'Shared Conversations (t091)', () => {
 			} );
 
 			// Reload so the store fetches shared sessions with the new intercept.
+			// goToAgentPage() waits for both the sessions and shared sessions
+			// responses, so sharedSessions is settled before we proceed.
 			await goToAgentPage( page );
 
 			await openFirstSessionContextMenu( page );
@@ -336,7 +338,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			const unshareOption = page.getByRole( 'menuitem', {
 				name: /unshare/i,
 			} );
-			await expect( unshareOption ).toBeVisible();
+			// Use a 10 s timeout to accommodate the async gap between the store
+			// receiving the shared sessions response and React re-rendering the
+			// context menu with the Unshare option.
+			await expect( unshareOption ).toBeVisible( { timeout: 10_000 } );
 		} );
 
 		test( 'shared session shows shared badge icon in sidebar', async ( {

@@ -324,9 +324,19 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 			.waitFor( { state: 'visible', timeout: 15_000 } );
 
 		// Verify that speak() was called on the mock.
-		const calls = await page.evaluate( () => window.__ttsMockCalls );
-		const speakCalls = calls.filter( ( c ) => c.type === 'speak' );
-		expect( speakCalls.length ).toBeGreaterThanOrEqual( 1 );
+		// TTS fires asynchronously after the stream completes, so poll until
+		// the speak call appears rather than checking synchronously.
+		await expect
+			.poll(
+				async () => {
+					const calls = await page.evaluate(
+						() => window.__ttsMockCalls
+					);
+					return calls.filter( ( c ) => c.type === 'speak' ).length;
+				},
+				{ timeout: 10_000 }
+			)
+			.toBeGreaterThanOrEqual( 1 );
 	} );
 
 	test( 'speechSynthesis.speak is NOT called when TTS is disabled', async ( {

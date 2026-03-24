@@ -194,7 +194,13 @@ async function mockAgentsApi( page, opts = {} ) {
 	await page.route(
 		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/agents' ),
 		async ( route ) => {
-			const method = route.request().method();
+			// WordPress's apiFetch sends PATCH/PUT/DELETE as POST with an
+			// X-HTTP-Method-Override header (http-v1 middleware). Read the
+			// override header first so the mock dispatches correctly.
+			const rawMethod = route.request().method();
+			const overrideHeader =
+				route.request().headers()[ 'x-http-method-override' ] || '';
+			const method = overrideHeader.toUpperCase() || rawMethod;
 			// Decode the URL so that wp-env's %2F-encoded paths match correctly.
 			const decodedUrl = decodeUrl( route.request().url() );
 
@@ -226,8 +232,12 @@ async function mockAgentsApi( page, opts = {} ) {
 				return;
 			}
 
-			// POST /agents (create)
-			if ( method === 'POST' && ! decodedUrl.match( /\/agents\/\d+/ ) ) {
+			// POST /agents (create) — only when no method override is present.
+			if (
+				rawMethod === 'POST' &&
+				! overrideHeader &&
+				! decodedUrl.match( /\/agents\/\d+/ )
+			) {
 				agents = [ ...agents, createdAgent ];
 				await route.fulfill( {
 					status: 201,

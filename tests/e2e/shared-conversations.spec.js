@@ -23,22 +23,23 @@
  * is also intercepted so "contribute" tests can send a message without a real
  * backend.
  *
- * Single-handler mock strategy
- * ----------------------------
- * All route interception uses a SINGLE `page.route('**', handler)` per page
- * via `setupMocks()`. Stacking multiple `'**'` handlers with `route.continue()`
- * is unreliable — when the last-registered (LIFO) handler calls `continue()`,
- * the request may bypass remaining handlers and go directly to the network.
- * Using one consolidated handler avoids this entirely.
+ * Per-endpoint regex mock strategy
+ * ---------------------------------
+ * Each REST endpoint is intercepted with its own `page.route(/regex/, handler)`
+ * via `setupMocks()`. A single `page.route('**', handler)` catch-all is
+ * unreliable in wp-env — the handler must call `route.continue()` for every
+ * non-matching request (CSS, JS, images, HTML), and this high-volume
+ * pass-through can cause timing issues that prevent mock responses from
+ * reaching the Redux store. Per-endpoint regex handlers only fire for their
+ * own endpoint, avoiding this overhead entirely. When a broad regex (e.g.
+ * `/sessions/`) also matches a more-specific endpoint (e.g. `/sessions/shared`),
+ * the broad handler uses `route.fallback()` to delegate to the specific one.
  *
  * Run: npm run test:e2e:playwright
  */
 
 const { test, expect } = require( '@playwright/test' );
-const {
-	loginToWordPress,
-	goToAgentPage,
-} = require( './utils/wp-admin' );
+const { loginToWordPress, goToAgentPage } = require( './utils/wp-admin' );
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -86,24 +87,30 @@ function decodeUrl( url ) {
 }
 
 /**
- * Register a single consolidated route handler for all plugin REST endpoints.
+ * Register per-endpoint route handlers for all plugin REST endpoints.
  *
- * Uses ONE `page.route('**', handler)` instead of stacking multiple handlers.
- * Stacking multiple `'**'` handlers with `route.continue()` is unreliable:
- * when the last-registered (LIFO) handler calls `continue()`, the request may
- * bypass remaining handlers and go directly to the network. A single handler
- * avoids this entirely.
+ * Uses separate `page.route(/regex/, handler)` calls for each endpoint
+ * instead of a single `page.route('**', handler)` catch-all. The catch-all
+ * approach is unreliable in wp-env environments where REST routes live in
+ * query parameters (`?rest_route=...`) rather than URL paths — the `**`
+ * handler must call `route.continue()` for every non-matching request
+ * (CSS, JS, images, HTML), and this high-volume pass-through can cause
+ * timing issues that prevent mock responses from reaching the store.
+ *
+ * With per-endpoint regex handlers, each handler only fires for its own
+ * endpoint. Non-matching requests are never intercepted, so there is no
+ * `route.continue()` overhead and no risk of interference.
  *
  * Call `page.unrouteAll({ behavior: 'ignoreErrors' })` before calling this
- * function again to replace the existing handler.
+ * function again to replace the existing handlers.
  *
- * @param {import('@playwright/test').Page} page    - Playwright page object.
- * @param {Object}                          options - Mock configuration.
- * @param {Object[]|null}  options.sessions         - Sessions list (null = pass through).
- * @param {Object[]|null}  options.sharedSessions   - Shared sessions list (null = pass through).
- * @param {boolean|null}   options.shareSuccess     - Share endpoint success flag (null = pass through).
- * @param {number|null}    options.streamSessionId  - Session ID for stream mock (null = pass through).
- * @param {Function|null}  options.sharedSessionsFn - Dynamic shared sessions fn: (callCount) => sessions[].
+ * @param {import('@playwright/test').Page} page                     - Playwright page object.
+ * @param {Object}                          options                  - Mock configuration.
+ * @param {Object[]|null}                   options.sessions         - Sessions list (null = pass through).
+ * @param {Object[]|null}                   options.sharedSessions   - Shared sessions list (null = pass through).
+ * @param {boolean|null}                    options.shareSuccess     - Share endpoint success flag (null = pass through).
+ * @param {number|null}                     options.streamSessionId  - Session ID for stream mock (null = pass through).
+ * @param {Function|null}                   options.sharedSessionsFn - Dynamic shared sessions fn: (callCount) => sessions[].
  */
 async function setupMocks( page, options = {} ) {
 	const {
@@ -117,37 +124,41 @@ async function setupMocks( page, options = {} ) {
 	// Track call count for dynamic shared sessions (used by the "refreshed" test).
 	let sharedCallCount = 0;
 
-	await page.route( '**', async ( route ) => {
-		const decoded = decodeUrl( route.request().url() );
-		const method = route.request().method();
-
-		// --- /sessions/shared (must be checked before /sessions) ---
-		if ( decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ) {
-			if ( sharedSessionsFn !== null ) {
-				sharedCallCount++;
-				const result = sharedSessionsFn( sharedCallCount );
-				await route.fulfill( {
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify( result ),
-				} );
-				return;
-			}
-			if ( sharedSessions !== null ) {
+	// --- /sessions/shared ---
+	// Regex matches both pretty-permalink and plain-permalink (rest_route=) URLs.
+	// Registered BEFORE the /sessions list handler. Playwright evaluates handlers
+	// in LIFO order, so the /sessions handler (registered later) runs first for
+	// URLs matching both patterns. The /sessions handler detects /sessions/shared
+	// URLs and calls route.fallback(), which delegates to this handler.
+	if ( sharedSessions !== null || sharedSessionsFn !== null ) {
+		await page.route(
+			/gratis-ai-agent\/v1\/sessions\/shared/,
+			async ( route ) => {
+				if ( sharedSessionsFn !== null ) {
+					sharedCallCount++;
+					const result = sharedSessionsFn( sharedCallCount );
+					await route.fulfill( {
+						status: 200,
+						contentType: 'application/json',
+						body: JSON.stringify( result ),
+					} );
+					return;
+				}
 				await route.fulfill( {
 					status: 200,
 					contentType: 'application/json',
 					body: JSON.stringify( sharedSessions ),
 				} );
-				return;
 			}
-			await route.continue();
-			return;
-		}
+		);
+	}
 
-		// --- /sessions/{id}/share (POST or DELETE) ---
-		if ( /gratis-ai-agent\/v1\/sessions\/\d+\/share/.test( decoded ) ) {
-			if ( shareSuccess !== null ) {
+	// --- /sessions/{id}/share (POST or DELETE) ---
+	if ( shareSuccess !== null ) {
+		await page.route(
+			/gratis-ai-agent\/v1\/sessions\/\d+\/share/,
+			async ( route ) => {
+				const method = route.request().method();
 				if ( method === 'POST' ) {
 					await route.fulfill( {
 						status: shareSuccess ? 200 : 500,
@@ -156,81 +167,83 @@ async function setupMocks( page, options = {} ) {
 					} );
 					return;
 				}
-				if ( method === 'DELETE' ) {
-					await route.fulfill( {
-						status: shareSuccess ? 200 : 500,
-						contentType: 'application/json',
-						body: JSON.stringify( { shared: false } ),
-					} );
-					return;
-				}
-			}
-			await route.continue();
-			return;
-		}
-
-		// --- /sessions/{id} (single session GET) ---
-		if ( /gratis-ai-agent\/v1\/sessions\/\d+/.test( decoded ) ) {
-			// Pass through — individual session fetches go to the real server
-			// unless the caller registers a separate handler after setupMocks.
-			await route.continue();
-			return;
-		}
-
-		// --- /sessions list ---
-		if ( decoded.includes( 'gratis-ai-agent/v1/sessions' ) ) {
-			if ( sessions !== null ) {
+				// DELETE — also handle POST-with-override from httpV1Middleware.
 				await route.fulfill( {
-					status: 200,
+					status: shareSuccess ? 200 : 500,
 					contentType: 'application/json',
-					body: JSON.stringify( sessions ),
+					body: JSON.stringify( { shared: false } ),
 				} );
+			}
+		);
+	}
+
+	// --- /sessions list ---
+	// This regex matches any URL containing the sessions endpoint path.
+	// It also matches /sessions/shared and /sessions/{id}/share URLs.
+	// Since this handler is registered AFTER the more-specific handlers,
+	// it runs FIRST in LIFO order. It detects more-specific URLs and
+	// calls route.fallback() to delegate to the appropriate handler.
+	if ( sessions !== null ) {
+		await page.route( /gratis-ai-agent\/v1\/sessions/, async ( route ) => {
+			const decoded = decodeUrl( route.request().url() );
+
+			// Let more-specific endpoints fall back to their own handlers
+			// (registered later, so they run first in LIFO order — but if
+			// they weren't registered, this handler catches them).
+			// Use route.fallback() so the request reaches the next matching
+			// handler instead of going directly to the network.
+			if (
+				decoded.includes( '/sessions/shared' ) ||
+				decoded.includes( '/sessions/folders' ) ||
+				/\/sessions\/\d+/.test( decoded )
+			) {
+				await route.fallback();
 				return;
 			}
-			await route.continue();
-			return;
-		}
 
-		// --- /stream ---
-		if ( decoded.includes( 'gratis-ai-agent/v1/stream' ) ) {
-			if ( streamSessionId !== null ) {
-				let sid = streamSessionId;
-				try {
-					const body = route.request().postDataJSON();
-					if ( body?.session_id ) {
-						sid = body.session_id;
-					}
-				} catch {
-					// Non-JSON body — use default.
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( sessions ),
+			} );
+		} );
+	}
+
+	// --- /stream ---
+	if ( streamSessionId !== null ) {
+		await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
+			let sid = streamSessionId;
+			try {
+				const body = route.request().postDataJSON();
+				if ( body?.session_id ) {
+					sid = body.session_id;
 				}
-
-				const sseBody = [
-					'event: token',
-					`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
-					'',
-					'event: done',
-					`data: ${ JSON.stringify( { session_id: sid } ) }`,
-					'',
-					'',
-				].join( '\n' );
-
-				await route.fulfill( {
-					status: 200,
-					headers: {
-						'Content-Type': 'text/event-stream',
-						'Cache-Control': 'no-cache',
-					},
-					body: sseBody,
-				} );
-				return;
+			} catch {
+				// Non-JSON body — use default.
 			}
-			await route.continue();
-			return;
-		}
 
-		// All other requests pass through to the real server.
-		await route.continue();
-	} );
+			const sseBody = [
+				'event: token',
+				`data: ${ JSON.stringify( {
+					token: 'Hello from shared session!',
+				} ) }`,
+				'',
+				'event: done',
+				`data: ${ JSON.stringify( { session_id: sid } ) }`,
+				'',
+				'',
+			].join( '\n' );
+
+			await route.fulfill( {
+				status: 200,
+				headers: {
+					'Content-Type': 'text/event-stream',
+					'Cache-Control': 'no-cache',
+				},
+				body: sseBody,
+			} );
+		} );
+	}
 
 	// Return the sharedCallCount getter so callers can inspect it.
 	return {
@@ -375,13 +388,17 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// receiving the sessions response and React committing the DOM update.
 			await expect(
 				page.locator( '.ai-agent-session-item' ).first()
-			).toBeVisible( { timeout: 10_000 } );
+			).toBeVisible( {
+				timeout: 10_000,
+			} );
 
 			// The is-shared class and shared icon are rendered synchronously with
 			// the session item when is_shared=true. Wait up to 10 s for the icon
 			// to appear in case there is a brief re-render cycle.
 			const sharedIcon = page
-				.locator( '.ai-agent-session-item.is-shared .ai-agent-shared-icon' )
+				.locator(
+					'.ai-agent-session-item.is-shared .ai-agent-shared-icon'
+				)
 				.first();
 			await expect( sharedIcon ).toBeVisible( { timeout: 10_000 } );
 		} );
@@ -539,13 +556,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// The shared session title should appear in the sidebar.
 			// Use a 10 s timeout to accommodate the async gap between the store
 			// receiving the response and React committing the DOM update.
-			const sessionTitle = page.locator( '.ai-agent-session-item' ).filter( {
-				hasText: MOCK_SESSION.title,
+			const sessionTitle = page
+				.locator( '.ai-agent-session-item' )
+				.filter( {
+					hasText: MOCK_SESSION.title,
+				} );
+			await expect( sessionTitle.first() ).toBeVisible( {
+				timeout: 10_000,
 			} );
-			await expect( sessionTitle.first() ).toBeVisible( { timeout: 10_000 } );
 		} );
 
-		test( 'empty state shown when no shared sessions', async ( { page } ) => {
+		test( 'empty state shown when no shared sessions', async ( {
+			page,
+		} ) => {
 			// Override to return empty list for shared sessions.
 			await page.unrouteAll( { behavior: 'ignoreErrors' } );
 			await setupMocks( page, {
@@ -558,7 +581,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 			const emptyState = page.locator( '.ai-agent-session-empty' );
 			await expect( emptyState ).toBeVisible();
-			await expect( emptyState ).toContainText( /no shared conversations/i );
+			await expect( emptyState ).toContainText(
+				/no shared conversations/i
+			);
 		} );
 	} );
 
@@ -605,20 +630,22 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await clickSharedTab( secondPage );
 				await sharedResponsePromise;
 
-			const sessionTitle = secondPage
-				.locator( '.ai-agent-session-item' )
-				.filter( { hasText: MOCK_SESSION.title } );
-			// Use a 10 s timeout to accommodate the async gap between the store
-			// receiving the response and React committing the DOM update.
-			await expect( sessionTitle.first() ).toBeVisible( { timeout: 10_000 } );
-		} finally {
-			// Guard against double-close when the test times out and
-			// Playwright has already closed the context.
-			await secondContext.close().catch( () => {} );
-		}
-	} );
+				const sessionTitle = secondPage
+					.locator( '.ai-agent-session-item' )
+					.filter( { hasText: MOCK_SESSION.title } );
+				// Use a 10 s timeout to accommodate the async gap between the store
+				// receiving the response and React committing the DOM update.
+				await expect( sessionTitle.first() ).toBeVisible( {
+					timeout: 10_000,
+				} );
+			} finally {
+				// Guard against double-close when the test times out and
+				// Playwright has already closed the context.
+				await secondContext.close().catch( () => {} );
+			}
+		} );
 
-	test( 'second admin cannot see Share/Unshare in context menu (non-owner)', async ( {
+		test( 'second admin cannot see Share/Unshare in context menu (non-owner)', async ( {
 			browser,
 		} ) => {
 			const secondContext = await browser.newContext( {
@@ -643,7 +670,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				await goToAgentPage( secondPage );
 
-			// Switch to the Shared tab so isSharedTab=true in SessionItem.
+				// Switch to the Shared tab so isSharedTab=true in SessionItem.
 				// When isSharedTab=true, isOwner = (session.user_id === currentUserId).
 				// MOCK_SESSION has no user_id, so isOwner=false → Share/Unshare hidden.
 				// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
@@ -654,36 +681,36 @@ test.describe( 'Shared Conversations (t091)', () => {
 						) && resp.status() === 200,
 					{ timeout: 5_000 }
 				);
-			await clickSharedTab( secondPage );
-			await sharedResponsePromise;
+				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
 
-			// Wait for the session item to appear in the Shared tab before
-			// opening the context menu. The store update and React re-render
-			// happen asynchronously after the HTTP response is received.
-			await expect(
-				secondPage.locator( '.ai-agent-session-item' ).first()
-			).toBeVisible( { timeout: 10_000 } );
+				// Wait for the session item to appear in the Shared tab before
+				// opening the context menu. The store update and React re-render
+				// happen asynchronously after the HTTP response is received.
+				await expect(
+					secondPage.locator( '.ai-agent-session-item' ).first()
+				).toBeVisible( { timeout: 10_000 } );
 
-			// Open context menu for the shared session.
-			await openFirstSessionContextMenu( secondPage );
+				// Open context menu for the shared session.
+				await openFirstSessionContextMenu( secondPage );
 
-			// Share/Unshare should NOT be present for non-owners.
-			const shareOption = secondPage.getByRole( 'menuitem', {
-				name: /share with admins/i,
-			} );
-			const unshareOption = secondPage.getByRole( 'menuitem', {
-				name: /unshare/i,
-			} );
+				// Share/Unshare should NOT be present for non-owners.
+				const shareOption = secondPage.getByRole( 'menuitem', {
+					name: /share with admins/i,
+				} );
+				const unshareOption = secondPage.getByRole( 'menuitem', {
+					name: /unshare/i,
+				} );
 
-			await expect( shareOption ).not.toBeVisible();
-			await expect( unshareOption ).not.toBeVisible();
-		} finally {
-			await secondContext.close().catch( () => {} );
-		}
+				await expect( shareOption ).not.toBeVisible();
+				await expect( unshareOption ).not.toBeVisible();
+			} finally {
+				await secondContext.close().catch( () => {} );
+			}
+		} );
 	} );
-} );
 
-test.describe( 'Second admin — contribute permission', () => {
+	test.describe( 'Second admin — contribute permission', () => {
 		test( 'second admin can send a message in a shared session', async ( {
 			browser,
 		} ) => {
@@ -710,39 +737,36 @@ test.describe( 'Second admin — contribute permission', () => {
 
 				// Intercept the single-session GET (openSession thunk fetches
 				// /sessions/{id} to load messages and tool calls).
-				// Register AFTER setupMocks so it takes precedence (LIFO) for
-				// the specific /sessions/42 path that setupMocks passes through.
-				await secondPage.route( '**', async ( route ) => {
-					const decoded = decodeUrl( route.request().url() );
-					if (
-						! /gratis-ai-agent\/v1\/sessions\/42/.test(
-							decoded
-						)
-					) {
-						return route.continue();
+				// Uses a specific regex so it only fires for /sessions/42 and
+				// does not interfere with other setupMocks handlers.
+				// The negative lookahead (?![/\d]) prevents matching
+				// /sessions/42/share or /sessions/420.
+				await secondPage.route(
+					/gratis-ai-agent\/v1\/sessions\/42(?![/\d])/,
+					async ( route ) => {
+						await route.fulfill( {
+							status: 200,
+							contentType: 'application/json',
+							body: JSON.stringify( {
+								...MOCK_SESSION,
+								messages: [],
+								tool_calls: [],
+							} ),
+						} );
 					}
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( {
-							...MOCK_SESSION,
-							messages: [],
-							tool_calls: [],
-						} ),
-					} );
-				} );
+				);
 
-			await goToAgentPage( secondPage );
+				await goToAgentPage( secondPage );
 
-			// Click the shared session to load it.
-			// Use a 10 s timeout to accommodate the async gap between the store
-			// receiving the sessions response and React committing the DOM update.
-			const sessionItem = secondPage
-				.locator( '.ai-agent-session-item' )
-				.filter( { hasText: MOCK_SESSION.title } )
-				.first();
-			await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
-			await sessionItem.click();
+				// Click the shared session to load it.
+				// Use a 10 s timeout to accommodate the async gap between the store
+				// receiving the sessions response and React committing the DOM update.
+				const sessionItem = secondPage
+					.locator( '.ai-agent-session-item' )
+					.filter( { hasText: MOCK_SESSION.title } )
+					.first();
+				await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
+				await sessionItem.click();
 
 				// Type a message and send it.
 				const input = secondPage.locator( '.ai-agent-input' );
@@ -791,34 +815,35 @@ test.describe( 'Second admin — contribute permission', () => {
 				// (MOCK_SESSION has no user_id, so non-owner restriction applies).
 				const sharedResponsePromise = secondPage.waitForResponse(
 					( resp ) =>
-						decodeURIComponent( resp.url() ).includes( '/sessions/shared' ) &&
-						resp.status() === 200,
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
 					{ timeout: 5_000 }
 				);
-			await clickSharedTab( secondPage );
-			await sharedResponsePromise;
+				await clickSharedTab( secondPage );
+				await sharedResponsePromise;
 
-			// Wait for the session item to appear in the Shared tab before
-			// opening the context menu. The store update and React re-render
-			// happen asynchronously after the HTTP response is received.
-			await expect(
-				secondPage.locator( '.ai-agent-session-item' ).first()
-			).toBeVisible( { timeout: 10_000 } );
+				// Wait for the session item to appear in the Shared tab before
+				// opening the context menu. The store update and React re-render
+				// happen asynchronously after the HTTP response is received.
+				await expect(
+					secondPage.locator( '.ai-agent-session-item' ).first()
+				).toBeVisible( { timeout: 10_000 } );
 
-			await openFirstSessionContextMenu( secondPage );
+				await openFirstSessionContextMenu( secondPage );
 
-			// Trash/Delete option should not be visible for non-owners on shared sessions.
-			const trashOption = secondPage.getByRole( 'menuitem', {
-				name: /trash|delete/i,
-			} );
-			await expect( trashOption ).not.toBeVisible();
-		} finally {
-			await secondContext.close().catch( () => {} );
-		}
+				// Trash/Delete option should not be visible for non-owners on shared sessions.
+				const trashOption = secondPage.getByRole( 'menuitem', {
+					name: /trash|delete/i,
+				} );
+				await expect( trashOption ).not.toBeVisible();
+			} finally {
+				await secondContext.close().catch( () => {} );
+			}
+		} );
 	} );
-} );
 
-test.describe( 'Revoke share — second admin loses access', () => {
+	test.describe( 'Revoke share — second admin loses access', () => {
 		test( 'after revocation, shared session no longer appears in second admin Shared tab', async ( {
 			browser,
 		} ) => {
@@ -844,25 +869,28 @@ test.describe( 'Revoke share — second admin loses access', () => {
 					SECOND_ADMIN_PASS
 				);
 
-			await goToAgentPage( secondPage );
+				await goToAgentPage( secondPage );
 
-			// Wait for the shared sessions response triggered by clicking the tab.
-			const initialSharedResponsePromise = secondPage.waitForResponse(
-				( resp ) =>
-					decodeURIComponent( resp.url() ).includes( '/sessions/shared' ) &&
-					resp.status() === 200,
-				{ timeout: 5_000 }
-			);
-			await clickSharedTab( secondPage );
-			await initialSharedResponsePromise;
+				// Wait for the shared sessions response triggered by clicking the tab.
+				const initialSharedResponsePromise = secondPage.waitForResponse(
+					( resp ) =>
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
+					{ timeout: 5_000 }
+				);
+				await clickSharedTab( secondPage );
+				await initialSharedResponsePromise;
 
-			// Session should be visible before revocation.
-			// Use a 10 s timeout to accommodate the async gap between the store
-			// receiving the response and React committing the DOM update.
-			const sessionTitle = secondPage
-				.locator( '.ai-agent-session-item' )
-				.filter( { hasText: MOCK_SESSION.title } );
-			await expect( sessionTitle.first() ).toBeVisible( { timeout: 10_000 } );
+				// Session should be visible before revocation.
+				// Use a 10 s timeout to accommodate the async gap between the store
+				// receiving the response and React committing the DOM update.
+				const sessionTitle = secondPage
+					.locator( '.ai-agent-session-item' )
+					.filter( { hasText: MOCK_SESSION.title } );
+				await expect( sessionTitle.first() ).toBeVisible( {
+					timeout: 10_000,
+				} );
 
 				// Simulate revocation by the owner (toggle the flag and trigger a refetch).
 				isRevoked = true;
@@ -870,8 +898,9 @@ test.describe( 'Revoke share — second admin loses access', () => {
 				// Trigger a refetch by clicking the Shared tab again.
 				const refetchPromise = secondPage.waitForResponse(
 					( resp ) =>
-						decodeURIComponent( resp.url() ).includes( '/sessions/shared' ) &&
-						resp.status() === 200,
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
 					{ timeout: 5_000 }
 				);
 				await clickSharedTab( secondPage );

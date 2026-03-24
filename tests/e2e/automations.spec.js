@@ -651,16 +651,27 @@ test.describe( 'Scheduled Automations (t080)', () => {
 
 		// The ToggleControl inside the card header renders as a checkbox.
 		// The underlying <input type="checkbox"> has opacity:0 (visually hidden
-		// behind the styled track/thumb). Playwright's click() fires native
-		// pointer events but may not trigger the React onChange on opacity:0
-		// inputs in all browser/React combinations. Using evaluate(el.click())
-		// fires a programmatic click that reliably toggles the checked state
-		// and dispatches the change event that React's synthetic onChange
-		// handler processes.
+		// behind the styled track/thumb). Playwright's click() and
+		// evaluate(el.click()) may not trigger React's synthetic onChange on
+		// opacity:0 inputs. Dispatching a native 'change' event with the
+		// correct target.checked value is the most reliable way to trigger
+		// React's event delegation and call the onChange handler.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();
 		await expect( toggle ).toBeChecked(); // enabled by default.
 
-		await toggle.evaluate( ( el ) => el.click() );
+		// Dispatch a native change event — React's event delegation processes
+		// this and calls the ToggleControl's onChange handler which fires PATCH.
+		await toggle.evaluate( ( el ) => {
+			// Use the native setter to bypass React's controlled-input guard,
+			// then dispatch a bubbling change event so React's delegation picks
+			// it up and calls the onChange handler.
+			const nativeSetter = Object.getOwnPropertyDescriptor(
+				window.HTMLInputElement.prototype,
+				'checked'
+			).set;
+			nativeSetter.call( el, false );
+			el.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
 
 		// PATCH should have been called with enabled: false.
 		await expect
@@ -1038,13 +1049,19 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// The ToggleControl inside the card header renders as a checkbox.
-		// Use evaluate(el.click()) for the same reason as the scheduled
-		// automation toggle test: opacity:0 inputs need a programmatic click
-		// to reliably trigger React's synthetic onChange handler.
+		// Use the same native-setter + change-event approach as the scheduled
+		// automation toggle test to reliably trigger React's onChange handler.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();
 		await expect( toggle ).toBeChecked();
 
-		await toggle.evaluate( ( el ) => el.click() );
+		await toggle.evaluate( ( el ) => {
+			const nativeSetter = Object.getOwnPropertyDescriptor(
+				window.HTMLInputElement.prototype,
+				'checked'
+			).set;
+			nativeSetter.call( el, false );
+			el.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
 
 		// PATCH should have been called with enabled: false.
 		await expect

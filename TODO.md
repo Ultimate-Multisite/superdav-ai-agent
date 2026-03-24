@@ -12,7 +12,7 @@
 - [ ] t134 Add E2E tests for automations system (t080/t081) @superdav42 #testing ~3h ref=GH#609
   - Event-triggered and scheduled automations have zero E2E coverage — silent regression risk for scheduled AI tasks
 
-- [ ] t133 Add E2E tests for agent builder UI (t082) @superdav42 #testing ~3h ref=GH#608
+- [x] t133 Add E2E tests for agent builder UI (t082) @superdav42 #testing ~3h ref=GH#608 pr:#612 completed:2026-03-24
   - Agent builder (create/edit/delete custom agents) shipped in t082 with no E2E coverage
 
 - [ ] t132 Add E2E tests for shared conversations feature (t091) @superdav42 #testing ~3h ref=GH#607

@@ -309,6 +309,15 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'after sharing, context menu shows Unshare option', async ( {
 			page,
 		} ) => {
+			// Clear all beforeEach routes so the new handlers take precedence.
+			// Without this, the old interceptSharedSessionsList(page, []) handler
+			// fires first (LIFO) and returns an empty list, hiding the Unshare option.
+			await page.unrouteAll( { behavior: 'ignoreErrors' } );
+
+			// Re-register all needed handlers with the updated shared sessions list.
+			await interceptSessionsList( page );
+			await interceptShareEndpoint( page );
+
 			// Pre-populate shared sessions so the store considers this session shared.
 			// Use '**' to catch ALL requests, then filter by decoded URL so this
 			// works with both pretty-permalink and plain-permalink URL formats.
@@ -347,9 +356,18 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'shared session shows shared badge icon in sidebar', async ( {
 			page,
 		} ) => {
-			// The beforeEach already intercepts sessions returning MOCK_SESSION
-			// (is_shared: true). Just reload the page so the sidebar renders
-			// with the shared session from the existing intercept.
+			// Clear all beforeEach routes — on a second navigation, stale handlers
+			// from the first goToAgentPage() call no longer intercept correctly and
+			// real server responses leak through, showing "Untitled" sessions instead
+			// of the mocked MOCK_SESSION (is_shared: true).
+			await page.unrouteAll( { behavior: 'ignoreErrors' } );
+
+			// Re-register all needed handlers before the second navigation.
+			await interceptSessionsList( page );
+			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
+			await interceptShareEndpoint( page );
+
+			// Reload so the sidebar renders with the mocked shared session.
 			await goToAgentPage( page );
 
 			// Wait for the session item to appear before checking the badge.
@@ -384,6 +402,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'clicking Unshare calls the DELETE share endpoint', async ( {
 			page,
 		} ) => {
+			// Clear all beforeEach routes — on a second navigation, stale handlers
+			// no longer intercept correctly and real server responses leak through,
+			// causing the Unshare option to not appear (sharedSessions is empty).
+			await page.unrouteAll( { behavior: 'ignoreErrors' } );
+
+			// Re-register all needed handlers before the second navigation.
+			await interceptSessionsList( page, [ MOCK_SESSION ] );
+			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
+			await interceptShareEndpoint( page );
+
+			// Navigate again so the store fetches shared sessions with fresh handlers.
+			await goToAgentPage( page );
+
 			// Set up the request promise BEFORE clicking so we don't miss it.
 			// Increase timeout to 10 s — the DELETE fires after the user clicks
 			// Unshare, which itself requires the context menu to render with the

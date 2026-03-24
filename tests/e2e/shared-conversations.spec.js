@@ -57,19 +57,46 @@ const MOCK_SESSION = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Decode a Playwright URL object to its full decoded string.
+ *
+ * wp-env uses the index.php?rest_route= format (pretty permalinks disabled),
+ * so REST API paths appear URL-encoded in the URL string:
+ *   http://localhost:8888/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fsessions&status=active
+ *
+ * Playwright's page.route() regex matches against the raw (encoded) URL, so
+ * literal-slash regexes like /sessions\/shared/ never match. Using a function
+ * matcher with decodeURIComponent() normalises the URL before matching.
+ *
+ * @param {URL} url - Playwright URL object.
+ * @return {string} Fully decoded URL string.
+ */
+function decodeUrl( url ) {
+	try {
+		return decodeURIComponent( url.toString() );
+	} catch {
+		return url.toString();
+	}
+}
+
+/**
  * Intercept the REST sessions list endpoint to return a single mock session.
  *
- * The store calls /gratis-ai-agent/v1/sessions?status=active (with query
- * params), so the regex must match URLs with a query string. The negative
- * lookahead (?!\/) ensures we don't accidentally intercept /sessions/shared
- * or /sessions/{id} sub-paths.
+ * Matches /gratis-ai-agent/v1/sessions (with any query params) but NOT
+ * /sessions/shared or /sessions/{id} sub-paths.
  *
  * @param {import('@playwright/test').Page} page
  * @param {Object[]} sessions - Sessions to return (defaults to [MOCK_SESSION]).
  */
 async function interceptSessionsList( page, sessions = [ MOCK_SESSION ] ) {
 	await page.route(
-		/gratis-ai-agent\/v1\/sessions(?!\/)/,
+		( url ) => {
+			const decoded = decodeUrl( url );
+			return (
+				decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
+				! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) &&
+				! /gratis-ai-agent\/v1\/sessions\/\d/.test( decoded )
+			);
+		},
 		async ( route ) => {
 			await route.fulfill( {
 				status: 200,
@@ -88,7 +115,8 @@ async function interceptSessionsList( page, sessions = [ MOCK_SESSION ] ) {
  */
 async function interceptSharedSessionsList( page, sessions = [ MOCK_SESSION ] ) {
 	await page.route(
-		/gratis-ai-agent\/v1\/sessions\/shared/,
+		( url ) =>
+			decodeUrl( url ).includes( 'gratis-ai-agent/v1/sessions/shared' ),
 		async ( route ) => {
 			await route.fulfill( {
 				status: 200,
@@ -107,7 +135,10 @@ async function interceptSharedSessionsList( page, sessions = [ MOCK_SESSION ] ) 
  */
 async function interceptShareEndpoint( page, success = true ) {
 	await page.route(
-		/gratis-ai-agent\/v1\/sessions\/\d+\/share/,
+		( url ) =>
+			/gratis-ai-agent\/v1\/sessions\/\d+\/share/.test(
+				decodeUrl( url )
+			),
 		async ( route ) => {
 			if ( route.request().method() === 'POST' ) {
 				await route.fulfill( {
@@ -136,36 +167,39 @@ async function interceptShareEndpoint( page, success = true ) {
  * @param {number}                          sessionId
  */
 async function interceptStream( page, sessionId = MOCK_SESSION.id ) {
-	await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-		let sid = sessionId;
-		try {
-			const body = route.request().postDataJSON();
-			if ( body?.session_id ) {
-				sid = body.session_id;
+	await page.route(
+		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/stream' ),
+		async ( route ) => {
+			let sid = sessionId;
+			try {
+				const body = route.request().postDataJSON();
+				if ( body?.session_id ) {
+					sid = body.session_id;
+				}
+			} catch {
+				// Non-JSON body — use default.
 			}
-		} catch {
-			// Non-JSON body — use default.
+
+			const sseBody = [
+				'event: token',
+				`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
+				'',
+				'event: done',
+				`data: ${ JSON.stringify( { session_id: sid } ) }`,
+				'',
+				'',
+			].join( '\n' );
+
+			await route.fulfill( {
+				status: 200,
+				headers: {
+					'Content-Type': 'text/event-stream',
+					'Cache-Control': 'no-cache',
+				},
+				body: sseBody,
+			} );
 		}
-
-		const sseBody = [
-			'event: token',
-			`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
-			'',
-			'event: done',
-			`data: ${ JSON.stringify( { session_id: sid } ) }`,
-			'',
-			'',
-		].join( '\n' );
-
-		await route.fulfill( {
-			status: 200,
-			headers: {
-				'Content-Type': 'text/event-stream',
-				'Cache-Control': 'no-cache',
-			},
-			body: sseBody,
-		} );
-	} );
+	);
 }
 
 /**
@@ -221,9 +255,11 @@ test.describe( 'Shared Conversations (t091)', () => {
 			page,
 		} ) => {
 			// Set up the request promise BEFORE clicking so we don't miss it.
+			// Decode the URL before matching because wp-env uses the
+			// index.php?rest_route= format with URL-encoded slashes (%2F).
 			const shareRequestPromise = page.waitForRequest(
 				( req ) =>
-					req.url().includes( '/share' ) &&
+					decodeURIComponent( req.url() ).includes( '/share' ) &&
 					req.method() === 'POST',
 				{ timeout: 5_000 }
 			);
@@ -244,7 +280,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 		} ) => {
 			// Pre-populate shared sessions so the store considers this session shared.
 			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
+				( url ) =>
+					decodeURIComponent( url.toString() ).includes(
+						'gratis-ai-agent/v1/sessions/shared'
+					),
 				async ( route ) => {
 					await route.fulfill( {
 						status: 200,
@@ -301,7 +340,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// Set up the request promise BEFORE clicking so we don't miss it.
 			const deleteRequestPromise = page.waitForRequest(
 				( req ) =>
-					req.url().includes( '/share' ) &&
+					decodeURIComponent( req.url() ).includes( '/share' ) &&
 					req.method() === 'DELETE',
 				{ timeout: 5_000 }
 			);

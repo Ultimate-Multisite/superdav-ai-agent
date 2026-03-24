@@ -141,15 +141,15 @@ async function setupMocks( page, options = {} ) {
 	}
 
 	// --- /sessions/{id}/share (POST or DELETE) ---
+	// Predicate matches /sessions/<id>/share only — NOT /sessions/shared.
+	// The regex requires a numeric session ID before /share so that
+	// "sessions/shared" (no digits) is never matched.
 	if ( shareSuccess !== null ) {
 		await page.route(
-			( url ) => {
-				const decoded = decodeURIComponent( url.href );
-				return (
-					decoded.includes( 'gratis-ai-agent/v1/sessions/' ) &&
-					decoded.includes( '/share' )
-				);
-			},
+			( url ) =>
+				/gratis-ai-agent\/v1\/sessions\/\d+\/share/.test(
+					decodeURIComponent( url.href )
+				),
 			async ( route ) => {
 				const method = route.request().method();
 				if ( method === 'POST' ) {

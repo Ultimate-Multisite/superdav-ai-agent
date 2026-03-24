@@ -23,6 +23,14 @@
  * is also intercepted so "contribute" tests can send a message without a real
  * backend.
  *
+ * Single-handler mock strategy
+ * ----------------------------
+ * All route interception uses a SINGLE `page.route('**', handler)` per page
+ * via `setupMocks()`. Stacking multiple `'**'` handlers with `route.continue()`
+ * is unreliable — when the last-registered (LIFO) handler calls `continue()`,
+ * the request may bypass remaining handlers and go directly to the network.
+ * Using one consolidated handler avoids this entirely.
+ *
  * Run: npm run test:e2e:playwright
  */
 
@@ -78,148 +86,156 @@ function decodeUrl( url ) {
 }
 
 /**
- * Intercept the REST sessions list endpoint to return a single mock session.
+ * Register a single consolidated route handler for all plugin REST endpoints.
  *
- * Uses a glob pattern so it works with both pretty-permalink (/wp-json/...) and
- * plain-permalink (?rest_route=...) URL formats. The handler inspects the decoded
- * URL to exclude /sessions/shared and /sessions/{id} sub-paths.
+ * Uses ONE `page.route('**', handler)` instead of stacking multiple handlers.
+ * Stacking multiple `'**'` handlers with `route.continue()` is unreliable:
+ * when the last-registered (LIFO) handler calls `continue()`, the request may
+ * bypass remaining handlers and go directly to the network. A single handler
+ * avoids this entirely.
  *
- * @param {import('@playwright/test').Page} page
- * @param {Object[]} sessions - Sessions to return (defaults to [MOCK_SESSION]).
+ * Call `page.unrouteAll({ behavior: 'ignoreErrors' })` before calling this
+ * function again to replace the existing handler.
+ *
+ * @param {import('@playwright/test').Page} page    - Playwright page object.
+ * @param {Object}                          options - Mock configuration.
+ * @param {Object[]|null}  options.sessions         - Sessions list (null = pass through).
+ * @param {Object[]|null}  options.sharedSessions   - Shared sessions list (null = pass through).
+ * @param {boolean|null}   options.shareSuccess     - Share endpoint success flag (null = pass through).
+ * @param {number|null}    options.streamSessionId  - Session ID for stream mock (null = pass through).
+ * @param {Function|null}  options.sharedSessionsFn - Dynamic shared sessions fn: (callCount) => sessions[].
  */
-async function interceptSessionsList( page, sessions = [ MOCK_SESSION ] ) {
-	// Use '**' to catch ALL requests, then filter by decoded URL.
-	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
-	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match — the
-	// plugin path appears in the query string, not the URL path.
-	await page.route( '**', async ( route ) => {
-		const decoded = decodeUrl( route.request().url() );
-		// Only handle the sessions list — not /sessions/shared or /sessions/{id}.
-		if (
-			! decoded.includes( 'gratis-ai-agent/v1/sessions' ) ||
-			decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ||
-			/gratis-ai-agent\/v1\/sessions\/\d/.test( decoded )
-		) {
-			return route.continue();
-		}
-		await route.fulfill( {
-			status: 200,
-			contentType: 'application/json',
-			body: JSON.stringify( sessions ),
-		} );
-	} );
-}
+async function setupMocks( page, options = {} ) {
+	const {
+		sessions = null,
+		sharedSessions = null,
+		shareSuccess = null,
+		streamSessionId = null,
+		sharedSessionsFn = null,
+	} = options;
 
-/**
- * Intercept the shared sessions list endpoint.
- *
- * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
- * URL formats.
- *
- * @param {import('@playwright/test').Page} page
- * @param {Object[]} sessions - Shared sessions to return.
- */
-async function interceptSharedSessionsList( page, sessions = [ MOCK_SESSION ] ) {
-	// Use '**' to catch ALL requests, then filter by decoded URL.
-	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
-	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match.
-	await page.route( '**', async ( route ) => {
-		const decoded = decodeUrl( route.request().url() );
-		if ( ! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ) {
-			return route.continue();
-		}
-		await route.fulfill( {
-			status: 200,
-			contentType: 'application/json',
-			body: JSON.stringify( sessions ),
-		} );
-	} );
-}
+	// Track call count for dynamic shared sessions (used by the "refreshed" test).
+	let sharedCallCount = 0;
 
-/**
- * Intercept the share endpoint (POST /sessions/{id}/share).
- *
- * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
- * URL formats.
- *
- * @param {import('@playwright/test').Page} page
- * @param {boolean}                         success - Whether to simulate success.
- */
-async function interceptShareEndpoint( page, success = true ) {
-	// Use '**' to catch ALL requests, then filter by decoded URL.
-	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
-	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match.
 	await page.route( '**', async ( route ) => {
 		const decoded = decodeUrl( route.request().url() );
-		if ( ! /gratis-ai-agent\/v1\/sessions\/\d+\/share/.test( decoded ) ) {
-			return route.continue();
-		}
-		if ( route.request().method() === 'POST' ) {
-			await route.fulfill( {
-				status: success ? 200 : 500,
-				contentType: 'application/json',
-				body: JSON.stringify( { shared: success } ),
-			} );
-		} else if ( route.request().method() === 'DELETE' ) {
-			await route.fulfill( {
-				status: success ? 200 : 500,
-				contentType: 'application/json',
-				body: JSON.stringify( { shared: false } ),
-			} );
-		} else {
-			await route.continue();
-		}
-	} );
-}
+		const method = route.request().method();
 
-/**
- * Intercept the stream endpoint so message sending completes without a real AI
- * provider. Returns a minimal SSE response (one token + done event).
- *
- * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
- * URL formats.
- *
- * @param {import('@playwright/test').Page} page
- * @param {number}                          sessionId
- */
-async function interceptStream( page, sessionId = MOCK_SESSION.id ) {
-	// Use '**' to catch ALL requests, then filter by decoded URL.
-	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
-	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match.
-	await page.route( '**', async ( route ) => {
-		const decoded = decodeUrl( route.request().url() );
-		if ( ! decoded.includes( 'gratis-ai-agent/v1/stream' ) ) {
-			return route.continue();
-		}
-		let sid = sessionId;
-		try {
-			const body = route.request().postDataJSON();
-			if ( body?.session_id ) {
-				sid = body.session_id;
+		// --- /sessions/shared (must be checked before /sessions) ---
+		if ( decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ) {
+			if ( sharedSessionsFn !== null ) {
+				sharedCallCount++;
+				const result = sharedSessionsFn( sharedCallCount );
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( result ),
+				} );
+				return;
 			}
-		} catch {
-			// Non-JSON body — use default.
+			if ( sharedSessions !== null ) {
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( sharedSessions ),
+				} );
+				return;
+			}
+			await route.continue();
+			return;
 		}
 
-		const sseBody = [
-			'event: token',
-			`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
-			'',
-			'event: done',
-			`data: ${ JSON.stringify( { session_id: sid } ) }`,
-			'',
-			'',
-		].join( '\n' );
+		// --- /sessions/{id}/share (POST or DELETE) ---
+		if ( /gratis-ai-agent\/v1\/sessions\/\d+\/share/.test( decoded ) ) {
+			if ( shareSuccess !== null ) {
+				if ( method === 'POST' ) {
+					await route.fulfill( {
+						status: shareSuccess ? 200 : 500,
+						contentType: 'application/json',
+						body: JSON.stringify( { shared: shareSuccess } ),
+					} );
+					return;
+				}
+				if ( method === 'DELETE' ) {
+					await route.fulfill( {
+						status: shareSuccess ? 200 : 500,
+						contentType: 'application/json',
+						body: JSON.stringify( { shared: false } ),
+					} );
+					return;
+				}
+			}
+			await route.continue();
+			return;
+		}
 
-		await route.fulfill( {
-			status: 200,
-			headers: {
-				'Content-Type': 'text/event-stream',
-				'Cache-Control': 'no-cache',
-			},
-			body: sseBody,
-		} );
+		// --- /sessions/{id} (single session GET) ---
+		if ( /gratis-ai-agent\/v1\/sessions\/\d+/.test( decoded ) ) {
+			// Pass through — individual session fetches go to the real server
+			// unless the caller registers a separate handler after setupMocks.
+			await route.continue();
+			return;
+		}
+
+		// --- /sessions list ---
+		if ( decoded.includes( 'gratis-ai-agent/v1/sessions' ) ) {
+			if ( sessions !== null ) {
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( sessions ),
+				} );
+				return;
+			}
+			await route.continue();
+			return;
+		}
+
+		// --- /stream ---
+		if ( decoded.includes( 'gratis-ai-agent/v1/stream' ) ) {
+			if ( streamSessionId !== null ) {
+				let sid = streamSessionId;
+				try {
+					const body = route.request().postDataJSON();
+					if ( body?.session_id ) {
+						sid = body.session_id;
+					}
+				} catch {
+					// Non-JSON body — use default.
+				}
+
+				const sseBody = [
+					'event: token',
+					`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
+					'',
+					'event: done',
+					`data: ${ JSON.stringify( { session_id: sid } ) }`,
+					'',
+					'',
+				].join( '\n' );
+
+				await route.fulfill( {
+					status: 200,
+					headers: {
+						'Content-Type': 'text/event-stream',
+						'Cache-Control': 'no-cache',
+					},
+					body: sseBody,
+				} );
+				return;
+			}
+			await route.continue();
+			return;
+		}
+
+		// All other requests pass through to the real server.
+		await route.continue();
 	} );
+
+	// Return the sharedCallCount getter so callers can inspect it.
+	return {
+		getSharedCallCount: () => sharedCallCount,
+	};
 }
 
 /**
@@ -264,9 +280,11 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test.beforeEach( async ( { page } ) => {
 			// Register mocks BEFORE login so the floating widget's fetchSessions()
 			// call (made during the admin dashboard load after login) is intercepted.
-			await interceptSessionsList( page );
-			await interceptSharedSessionsList( page, [] );
-			await interceptShareEndpoint( page );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [],
+				shareSuccess: true,
+			} );
 			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
@@ -309,35 +327,18 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'after sharing, context menu shows Unshare option', async ( {
 			page,
 		} ) => {
-			// Clear all beforeEach routes so the new handlers take precedence.
-			// Without this, the old interceptSharedSessionsList(page, []) handler
-			// fires first (LIFO) and returns an empty list, hiding the Unshare option.
+			// Replace the beforeEach mock (sharedSessions: []) with one that
+			// returns [MOCK_SESSION] so the store considers this session shared.
+			// Use unrouteAll to remove the existing handler, then re-register
+			// with the updated configuration.
 			await page.unrouteAll( { behavior: 'ignoreErrors' } );
-
-			// Re-register all needed handlers with the updated shared sessions list.
-			await interceptSessionsList( page );
-			await interceptShareEndpoint( page );
-
-			// Pre-populate shared sessions so the store considers this session shared.
-			// Use '**' to catch ALL requests, then filter by decoded URL so this
-			// works with both pretty-permalink and plain-permalink URL formats.
-			await page.route( '**', async ( route ) => {
-				const decoded = decodeUrl( route.request().url() );
-				if (
-					! decoded.includes(
-						'gratis-ai-agent/v1/sessions/shared'
-					)
-				) {
-					return route.continue();
-				}
-				await route.fulfill( {
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify( [ MOCK_SESSION ] ),
-				} );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [ MOCK_SESSION ],
+				shareSuccess: true,
 			} );
 
-			// Reload so the store fetches shared sessions with the new intercept.
+			// Reload so the store fetches shared sessions with the new mock.
 			// goToAgentPage() waits for both the sessions and shared sessions
 			// responses, so sharedSessions is settled before we proceed.
 			await goToAgentPage( page );
@@ -356,16 +357,15 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'shared session shows shared badge icon in sidebar', async ( {
 			page,
 		} ) => {
-			// Clear all beforeEach routes — on a second navigation, stale handlers
-			// from the first goToAgentPage() call no longer intercept correctly and
-			// real server responses leak through, showing "Untitled" sessions instead
-			// of the mocked MOCK_SESSION (is_shared: true).
+			// The beforeEach mock already returns MOCK_SESSION (is_shared: true)
+			// in the sessions list. Replace the handler to ensure the second
+			// navigation uses a fresh single handler (avoids stale handler issues).
 			await page.unrouteAll( { behavior: 'ignoreErrors' } );
-
-			// Re-register all needed handlers before the second navigation.
-			await interceptSessionsList( page );
-			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
-			await interceptShareEndpoint( page );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [ MOCK_SESSION ],
+				shareSuccess: true,
+			} );
 
 			// Reload so the sidebar renders with the mocked shared session.
 			await goToAgentPage( page );
@@ -392,9 +392,11 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// Register mocks BEFORE login so the floating widget's fetchSessions()
 			// call (made during the admin dashboard load after login) is intercepted.
 			// Session is already shared.
-			await interceptSessionsList( page, [ MOCK_SESSION ] );
-			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
-			await interceptShareEndpoint( page );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [ MOCK_SESSION ],
+				shareSuccess: true,
+			} );
 			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
@@ -402,17 +404,16 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'clicking Unshare calls the DELETE share endpoint', async ( {
 			page,
 		} ) => {
-			// Clear all beforeEach routes — on a second navigation, stale handlers
-			// no longer intercept correctly and real server responses leak through,
-			// causing the Unshare option to not appear (sharedSessions is empty).
+			// Replace the beforeEach handler with a fresh one so the second
+			// navigation uses a clean single handler (avoids stale handler issues).
 			await page.unrouteAll( { behavior: 'ignoreErrors' } );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [ MOCK_SESSION ],
+				shareSuccess: true,
+			} );
 
-			// Re-register all needed handlers before the second navigation.
-			await interceptSessionsList( page, [ MOCK_SESSION ] );
-			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
-			await interceptShareEndpoint( page );
-
-			// Navigate again so the store fetches shared sessions with fresh handlers.
+			// Navigate again so the store fetches shared sessions with fresh handler.
 			await goToAgentPage( page );
 
 			// Set up the request promise BEFORE clicking so we don't miss it.
@@ -443,62 +444,21 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test( 'after revoking, shared sessions list is refreshed', async ( {
 			page,
 		} ) => {
-			// Remove ALL beforeEach routes so our counting handler takes precedence.
-			// The beforeEach routes now use '**' so we must unroute '**' to clear them.
+			// Replace the beforeEach handler with a counting handler that returns
+			// [MOCK_SESSION] on the first call and [] on subsequent calls.
 			await page.unrouteAll( { behavior: 'ignoreErrors' } );
-
-			let sharedListCallCount = 0;
-			// Use '**' to catch ALL requests, then filter by decoded URL so this
-			// works with both pretty-permalink and plain-permalink URL formats.
-			await page.route( '**', async ( route ) => {
-				const decoded = decodeUrl( route.request().url() );
-
-				// Intercept the shared sessions endpoint and count calls.
-				if ( decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ) {
-					sharedListCallCount++;
-					// After first call (initial load), return empty list to simulate revocation.
-					const sessions =
-						sharedListCallCount === 1 ? [ MOCK_SESSION ] : [];
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( sessions ),
-					} );
-					return;
-				}
-
-				// Also intercept the sessions list so session items render in the
-				// sidebar (the real server has no sessions in the CI environment).
-				if (
-					decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
-					! /gratis-ai-agent\/v1\/sessions\/\d/.test( decoded )
-				) {
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( [ MOCK_SESSION ] ),
-					} );
-					return;
-				}
-
-				// Also intercept the share endpoint so Unshare click doesn't error.
-				if ( /gratis-ai-agent\/v1\/sessions\/\d+\/share/.test( decoded ) ) {
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( { shared: false } ),
-					} );
-					return;
-				}
-
-				return route.continue();
+			const { getSharedCallCount } = await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				shareSuccess: true,
+				sharedSessionsFn: ( callCount ) =>
+					callCount === 1 ? [ MOCK_SESSION ] : [],
 			} );
 
 			await goToAgentPage( page );
 
 			// goToAgentPage() waits for both the sessions and shared sessions
-			// responses, so sharedListCallCount is guaranteed to be >= 1 here.
-			expect( sharedListCallCount ).toBeGreaterThanOrEqual( 1 );
+			// responses, so sharedCallCount is guaranteed to be >= 1 here.
+			expect( getSharedCallCount() ).toBeGreaterThanOrEqual( 1 );
 
 			await openFirstSessionContextMenu( page );
 			const unshareOption = page.getByRole( 'menuitem', {
@@ -517,7 +477,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await unshareOption.click();
 			await refetchPromise;
 
-			expect( sharedListCallCount ).toBeGreaterThanOrEqual( 2 );
+			expect( getSharedCallCount() ).toBeGreaterThanOrEqual( 2 );
 		} );
 	} );
 
@@ -525,8 +485,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 		test.beforeEach( async ( { page } ) => {
 			// Register mocks BEFORE login so the floating widget's fetchSessions()
 			// call (made during the admin dashboard load after login) is intercepted.
-			await interceptSessionsList( page );
-			await interceptSharedSessionsList( page, [ MOCK_SESSION ] );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [ MOCK_SESSION ],
+			} );
 			await loginToWordPress( page );
 			await goToAgentPage( page );
 		} );
@@ -584,21 +546,11 @@ test.describe( 'Shared Conversations (t091)', () => {
 		} );
 
 		test( 'empty state shown when no shared sessions', async ( { page } ) => {
-			// Override to return empty list.
-			// Use '**' to catch ALL requests, then filter by decoded URL so this
-			// works with both pretty-permalink and plain-permalink URL formats.
-			await page.route( '**', async ( route ) => {
-				const decoded = decodeUrl( route.request().url() );
-				if (
-					! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' )
-				) {
-					return route.continue();
-				}
-				await route.fulfill( {
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify( [] ),
-				} );
+			// Override to return empty list for shared sessions.
+			await page.unrouteAll( { behavior: 'ignoreErrors' } );
+			await setupMocks( page, {
+				sessions: [ MOCK_SESSION ],
+				sharedSessions: [],
 			} );
 
 			await goToAgentPage( page );
@@ -628,8 +580,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSessionsList( secondPage, [] );
+				await setupMocks( secondPage, {
+					sessions: [],
+					sharedSessions: [ MOCK_SESSION ],
+				} );
 
 				await loginToWordPress(
 					secondPage,
@@ -676,8 +630,10 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
 				// Return the shared session in both lists.
-				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
+				await setupMocks( secondPage, {
+					sessions: [ MOCK_SESSION ],
+					sharedSessions: [ MOCK_SESSION ],
+				} );
 
 				await loginToWordPress(
 					secondPage,
@@ -740,11 +696,11 @@ test.describe( 'Second admin — contribute permission', () => {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
 				// Intercept sessions so the shared session is available.
-				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
-
-				// Intercept the stream so the message send completes.
-				await interceptStream( secondPage, MOCK_SESSION.id );
+				await setupMocks( secondPage, {
+					sessions: [ MOCK_SESSION ],
+					sharedSessions: [ MOCK_SESSION ],
+					streamSessionId: MOCK_SESSION.id,
+				} );
 
 				await loginToWordPress(
 					secondPage,
@@ -754,8 +710,8 @@ test.describe( 'Second admin — contribute permission', () => {
 
 				// Intercept the single-session GET (openSession thunk fetches
 				// /sessions/{id} to load messages and tool calls).
-				// Use '**' to catch ALL requests, then filter by decoded URL so
-				// this works with both pretty-permalink and plain-permalink formats.
+				// Register AFTER setupMocks so it takes precedence (LIFO) for
+				// the specific /sessions/42 path that setupMocks passes through.
 				await secondPage.route( '**', async ( route ) => {
 					const decoded = decodeUrl( route.request().url() );
 					if (
@@ -818,8 +774,10 @@ test.describe( 'Second admin — contribute permission', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
-				await interceptSessionsList( secondPage, [ MOCK_SESSION ] );
-				await interceptSharedSessionsList( secondPage, [ MOCK_SESSION ] );
+				await setupMocks( secondPage, {
+					sessions: [ MOCK_SESSION ],
+					sharedSessions: [ MOCK_SESSION ],
+				} );
 
 				await loginToWordPress(
 					secondPage,
@@ -872,28 +830,13 @@ test.describe( 'Revoke share — second admin loses access', () => {
 			try {
 				// Register mocks BEFORE login so the floating widget's fetchSessions()
 				// call (made during the admin dashboard load after login) is intercepted.
-				// Start with the session shared.
+				// Start with the session shared; toggle isRevoked to simulate revocation.
 				let isRevoked = false;
-				// Use '**' to catch ALL requests, then filter by decoded URL so
-				// this works with both pretty-permalink and plain-permalink formats.
-				await secondPage.route( '**', async ( route ) => {
-					const decoded = decodeUrl( route.request().url() );
-					if (
-						! decoded.includes(
-							'gratis-ai-agent/v1/sessions/shared'
-						)
-					) {
-						return route.continue();
-					}
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify(
-							isRevoked ? [] : [ MOCK_SESSION ]
-						),
-					} );
+				await setupMocks( secondPage, {
+					sessions: [],
+					sharedSessionsFn: () =>
+						isRevoked ? [] : [ MOCK_SESSION ],
 				} );
-				await interceptSessionsList( secondPage, [] );
 
 				await loginToWordPress(
 					secondPage,

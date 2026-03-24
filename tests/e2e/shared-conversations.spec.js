@@ -205,11 +205,17 @@ async function interceptStream( page, sessionId = MOCK_SESSION.id ) {
 /**
  * Open the context menu for the first session item in the sidebar.
  *
+ * Uses a 10 s timeout for the initial visibility check to accommodate the
+ * React render cycle that follows the intercepted sessions list response.
+ * Even though goToAgentPage() waits for the sessions response, there is still
+ * a brief async gap between the store receiving the data and React committing
+ * the DOM update that produces .ai-agent-session-item nodes.
+ *
  * @param {import('@playwright/test').Page} page
  */
 async function openFirstSessionContextMenu( page ) {
 	const sessionItem = page.locator( '.ai-agent-session-item' ).first();
-	await expect( sessionItem ).toBeVisible();
+	await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
 	// Hover to reveal the ⋯ button, then click it.
 	await sessionItem.hover();
 	await sessionItem.locator( '.ai-agent-session-more' ).click();

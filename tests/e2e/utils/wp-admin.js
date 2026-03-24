@@ -30,11 +30,39 @@ async function loginToWordPress(
 /**
  * Navigate to the Gratis AI Agent admin page.
  *
+ * Waits for the sessions list REST response so that session items are rendered
+ * in the sidebar before the function returns. This prevents race conditions
+ * where tests assert on `.ai-agent-session-item` before React has had time to
+ * render the intercepted sessions response.
+ *
+ * The sessions endpoint may be intercepted (returning instantly) or real
+ * (network latency). Either way, waiting for the response — rather than just
+ * `networkidle` — guarantees the store has received its data before we proceed.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function goToAgentPage( page ) {
+	// Set up the response waiter BEFORE navigating so we don't miss the request
+	// that fires immediately after React hydrates and dispatches fetchSessions().
+	const sessionsResponsePromise = page
+		.waitForResponse(
+			( resp ) => {
+				const decoded = decodeURIComponent( resp.url() );
+				return (
+					decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
+					! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) &&
+					resp.status() === 200
+				);
+			},
+			{ timeout: 15_000 }
+		)
+		.catch( () => null ); // Non-fatal: some tests may not trigger a sessions fetch.
+
 	await page.goto( '/wp-admin/tools.php?page=gratis-ai-agent' );
-	await page.waitForLoadState( 'networkidle' );
+	await page.waitForLoadState( 'domcontentloaded' );
+
+	// Wait for the sessions response so the sidebar is populated before returning.
+	await sessionsResponsePromise;
 }
 
 /**

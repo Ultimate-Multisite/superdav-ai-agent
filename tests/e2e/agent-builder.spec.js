@@ -129,6 +129,32 @@ const AGENT_FIXTURE_UPDATED = {
 };
 
 // ---------------------------------------------------------------------------
+// URL decode helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Decode a Playwright URL object to its full decoded string.
+ *
+ * wp-env uses the index.php?rest_route= format (pretty permalinks disabled),
+ * so REST API paths appear URL-encoded in the URL string:
+ *   http://localhost:8888/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fagents
+ *
+ * Playwright's page.route() regex matches against the raw (encoded) URL, so
+ * literal-slash regexes like /gratis-ai-agent\/v1\/agents/ never match. Using
+ * a function matcher with decodeURIComponent() normalises the URL first.
+ *
+ * @param {URL} url - Playwright URL object.
+ * @return {string} Fully decoded URL string.
+ */
+function decodeUrl( url ) {
+	try {
+		return decodeURIComponent( url.toString() );
+	} catch {
+		return url.toString();
+	}
+}
+
+// ---------------------------------------------------------------------------
 // REST mock helpers
 // ---------------------------------------------------------------------------
 
@@ -144,6 +170,10 @@ const AGENT_FIXTURE_UPDATED = {
  * there are no stale route handlers to clear. Do NOT call page.unrouteAll()
  * here — it can abort in-flight requests made during the page's initial load
  * and cause fetchAgents() to fall through to the real server.
+ *
+ * Uses function matchers (not regex) for all route patterns because wp-env
+ * serves the REST API via index.php?rest_route= with URL-encoded slashes
+ * (%2F). Regex patterns with literal slashes never match encoded URLs.
  *
  * @param {import('@playwright/test').Page} page
  * @param {Object}                          opts
@@ -161,80 +191,94 @@ async function mockAgentsApi( page, opts = {} ) {
 	// Mutable list so POST/DELETE mutations are reflected in subsequent GETs.
 	let agents = [ ...initialAgents ];
 
-	await page.route( /gratis-ai-agent\/v1\/agents/, async ( route ) => {
-		const method = route.request().method();
-		const url = route.request().url();
+	await page.route(
+		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/agents' ),
+		async ( route ) => {
+			const method = route.request().method();
+			// Decode the URL so that wp-env's %2F-encoded paths match correctly.
+			const decodedUrl = decodeUrl( route.request().url() );
 
-		// DELETE /agents/:id
-		if ( method === 'DELETE' ) {
-			const idMatch = url.match( /\/agents\/(\d+)/ );
-			if ( idMatch ) {
-				const id = parseInt( idMatch[ 1 ], 10 );
-				agents = agents.filter( ( a ) => a.id !== id );
+			// DELETE /agents/:id
+			if ( method === 'DELETE' ) {
+				const idMatch = decodedUrl.match( /\/agents\/(\d+)/ );
+				if ( idMatch ) {
+					const id = parseInt( idMatch[ 1 ], 10 );
+					agents = agents.filter( ( a ) => a.id !== id );
+				}
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( { deleted: true } ),
+				} );
+				return;
 			}
+
+			// PUT /agents/:id (update)
+			if ( method === 'PUT' || method === 'PATCH' ) {
+				agents = agents.map( ( a ) =>
+					a.id === updatedAgent.id ? updatedAgent : a
+				);
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( updatedAgent ),
+				} );
+				return;
+			}
+
+			// POST /agents (create)
+			if ( method === 'POST' && ! decodedUrl.match( /\/agents\/\d+/ ) ) {
+				agents = [ ...agents, createdAgent ];
+				await route.fulfill( {
+					status: 201,
+					contentType: 'application/json',
+					body: JSON.stringify( createdAgent ),
+				} );
+				return;
+			}
+
+			// GET /agents or GET /agents/:id
 			await route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify( { deleted: true } ),
+				body: JSON.stringify( agents ),
 			} );
-			return;
 		}
-
-		// PUT /agents/:id (update)
-		if ( method === 'PUT' || method === 'PATCH' ) {
-			agents = agents.map( ( a ) =>
-				a.id === updatedAgent.id ? updatedAgent : a
-			);
-			await route.fulfill( {
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify( updatedAgent ),
-			} );
-			return;
-		}
-
-		// POST /agents (create)
-		if ( method === 'POST' && ! url.match( /\/agents\/\d+/ ) ) {
-			agents = [ ...agents, createdAgent ];
-			await route.fulfill( {
-				status: 201,
-				contentType: 'application/json',
-				body: JSON.stringify( createdAgent ),
-			} );
-			return;
-		}
-
-		// GET /agents or GET /agents/:id
-		await route.fulfill( {
-			status: 200,
-			contentType: 'application/json',
-			body: JSON.stringify( agents ),
-		} );
-	} );
+	);
 
 	// Stub tool-profiles endpoint (used by the form dropdown).
 	// Slugs must match the built-in profiles defined in ToolProfiles::get_builtins()
 	// so that selectOption() calls in tests use values that actually exist in the
 	// real implementation (avoids "did not find some options" failures in CI).
-	await page.route( /gratis-ai-agent\/v1\/tool-profiles/, async ( route ) => {
-		await route.fulfill( {
-			status: 200,
-			contentType: 'application/json',
-			body: JSON.stringify( [
-				{ slug: 'wp-read-only', name: 'WP Read Only' },
-				{ slug: 'wp-full-management', name: 'WP Full Management' },
-			] ),
-		} );
-	} );
+	// Use a function matcher so wp-env's URL-encoded paths (%2F) are decoded first.
+	await page.route(
+		( url ) =>
+			decodeUrl( url ).includes( 'gratis-ai-agent/v1/tool-profiles' ),
+		async ( route ) => {
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [
+					{ slug: 'wp-read-only', name: 'WP Read Only' },
+					{ slug: 'wp-full-management', name: 'WP Full Management' },
+				] ),
+			} );
+		}
+	);
 
 	// Stub providers endpoint (used by the provider/model dropdowns).
-	await page.route( /gratis-ai-agent\/v1\/providers/, async ( route ) => {
-		await route.fulfill( {
-			status: 200,
-			contentType: 'application/json',
-			body: JSON.stringify( [] ),
-		} );
-	} );
+	// Use a function matcher so wp-env's URL-encoded paths (%2F) are decoded first.
+	await page.route(
+		( url ) =>
+			decodeUrl( url ).includes( 'gratis-ai-agent/v1/providers' ),
+		async ( route ) => {
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [] ),
+			} );
+		}
+	);
 }
 
 // ---------------------------------------------------------------------------

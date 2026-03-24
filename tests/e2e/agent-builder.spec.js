@@ -32,17 +32,40 @@ const {
 } = require( './utils/wp-admin' );
 
 // ---------------------------------------------------------------------------
-// Global setup — delete any agents left in the database from previous runs.
-// Uses a separate browser page so the cleanup fetch calls bypass page.route
-// mock handlers (which are per-page and not yet registered at this point).
+// Per-test database cleanup helper.
+//
+// Deletes all agents from the real WordPress database before each test so
+// that agents accidentally written to the real DB (e.g. when a mock fails
+// to intercept a POST during a flaky retry) do not corrupt subsequent tests.
+//
+// Uses a fresh browser page created with browser.newPage() — this page has
+// no page.route() handlers registered, so its fetch() calls always reach
+// the real server. The cleanup page is in the browser's default context and
+// shares no route handlers with the isolated test-page contexts.
 // ---------------------------------------------------------------------------
 
-test.beforeAll( async ( { browser } ) => {
+/**
+ * Delete all agents from the real WordPress database via the REST API.
+ *
+ * Creates a temporary browser page with no route mocks so the REST calls
+ * always reach the real server. Waits for wpApiSettings to be injected by
+ * WordPress before making the calls.
+ *
+ * @param {import('@playwright/test').Browser} browser - Playwright browser.
+ */
+async function cleanupRealAgents( browser ) {
 	const cleanupPage = await browser.newPage();
 	try {
 		await loginToWordPress( cleanupPage );
 		await cleanupPage.goto( '/wp-admin/index.php' );
 		await cleanupPage.waitForLoadState( 'networkidle' );
+		// Wait for wpApiSettings to be injected by WordPress.
+		await cleanupPage
+			.waitForFunction(
+				() => window.wpApiSettings && window.wpApiSettings.root,
+				{ timeout: 10000 }
+			)
+			.catch( () => {} ); // Ignore timeout — fall back to /wp-json/.
 		await cleanupPage.evaluate( async () => {
 			const root =
 				( window.wpApiSettings && window.wpApiSettings.root ) ||
@@ -77,7 +100,7 @@ test.beforeAll( async ( { browser } ) => {
 	} finally {
 		await cleanupPage.close();
 	}
-} );
+}
 
 // ---------------------------------------------------------------------------
 // Fixtures — deterministic agent data returned by mocked REST responses.
@@ -117,9 +140,10 @@ const AGENT_FIXTURE_UPDATED = {
  * requests made during the admin dashboard load (floating widget fetchAgents)
  * are also intercepted.
  *
- * Clears any previously registered route handlers before registering new ones
- * so that successive beforeEach calls in the same browser context do not stack
- * handlers (Playwright matches the first registered handler, not the last).
+ * Each test receives a fresh Playwright page object (new browser context), so
+ * there are no stale route handlers to clear. Do NOT call page.unrouteAll()
+ * here — it can abort in-flight requests made during the page's initial load
+ * and cause fetchAgents() to fall through to the real server.
  *
  * @param {import('@playwright/test').Page} page
  * @param {Object}                          opts
@@ -133,10 +157,6 @@ async function mockAgentsApi( page, opts = {} ) {
 		createdAgent = AGENT_FIXTURE,
 		updatedAgent = AGENT_FIXTURE_UPDATED,
 	} = opts;
-
-	// Remove any previously registered route handlers so that re-registering
-	// in beforeEach does not stack handlers from prior tests.
-	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
 	// Mutable list so POST/DELETE mutations are reflected in subsequent GETs.
 	let agents = [ ...initialAgents ];
@@ -322,12 +342,31 @@ function getAgentSelector( page ) {
 }
 
 /**
- * Navigate to the Agents tab on the settings page.
+ * Navigate to the Agents tab on the settings page and wait for the
+ * AgentBuilder component to finish its initial fetchAgents() load.
+ *
+ * The AgentBuilder renders a spinner (.gratis-ai-agent-loading) while
+ * agentsLoaded is false. Waiting for the spinner to disappear ensures
+ * fetchAgents() has completed and the agent list (or empty state) is
+ * rendered before the test makes assertions.
  *
  * @param {import('@playwright/test').Page} page
  */
 async function goToAgentsTab( page ) {
 	await goToSettingsPage( page, 'agents' );
+	// Wait for the AgentBuilder container to be visible.
+	await page
+		.locator( '.gratis-ai-agent-agent-builder' )
+		.waitFor( { state: 'visible', timeout: 15000 } );
+	// Wait for the loading spinner to disappear — signals agentsLoaded=true.
+	// Use a short timeout: if the spinner never appeared (agentsLoaded was
+	// already true), this resolves immediately.
+	await page
+		.locator( '.gratis-ai-agent-loading' )
+		.waitFor( { state: 'hidden', timeout: 15000 } )
+		.catch( () => {
+			// Spinner may never appear if agentsLoaded was already true.
+		} );
 }
 
 // ---------------------------------------------------------------------------
@@ -335,10 +374,13 @@ async function goToAgentsTab( page ) {
 // ---------------------------------------------------------------------------
 
 test.describe( 'Agent Builder - Create Agent', () => {
-	test.beforeEach( async ( { page } ) => {
+	test.beforeEach( async ( { page, browser } ) => {
 		// Register mocks BEFORE login so the floating widget's fetchAgents()
 		// call (made during the admin dashboard load) is also intercepted.
 		await mockAgentsApi( page, { initialAgents: [] } );
+		// Delete any real agents left by a previous flaky run. Uses a fresh
+		// browser page with no route mocks so the calls reach the real server.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );
@@ -473,16 +515,20 @@ test.describe( 'Agent Builder - Create Agent', () => {
 } );
 
 test.describe( 'Agent Builder - Agent List', () => {
-	test.beforeEach( async ( { page } ) => {
+	test.beforeEach( async ( { page, browser } ) => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
+		// Delete any real agents left by a previous flaky run.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );
 
 	test( 'existing agents are listed as cards', async ( { page } ) => {
 		const cards = getAgentCards( page );
-		await expect( cards ).toHaveCount( 1 );
+		// goToAgentsTab() already waited for the spinner to disappear, so
+		// agentsLoaded is true. Use a short timeout as a safety net only.
+		await expect( cards ).toHaveCount( 1, { timeout: 10000 } );
 		await expect( cards.first() ).toContainText( AGENT_FIXTURE.name );
 	} );
 
@@ -502,15 +548,19 @@ test.describe( 'Agent Builder - Agent List', () => {
 		page,
 	} ) => {
 		const card = getAgentCards( page ).first();
+		// Wait for the card to be visible before checking its buttons.
+		await expect( card ).toBeVisible( { timeout: 10000 } );
 		await expect( getEditButton( card ) ).toBeVisible();
 		await expect( getDeleteButton( card ) ).toBeVisible();
 	} );
 } );
 
 test.describe( 'Agent Builder - Edit Agent', () => {
-	test.beforeEach( async ( { page } ) => {
+	test.beforeEach( async ( { page, browser } ) => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
+		// Delete any real agents left by a previous flaky run.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );
@@ -604,9 +654,11 @@ test.describe( 'Agent Builder - Edit Agent', () => {
 } );
 
 test.describe( 'Agent Builder - Delete Agent', () => {
-	test.beforeEach( async ( { page } ) => {
+	test.beforeEach( async ( { page, browser } ) => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
+		// Delete any real agents left by a previous flaky run.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );
@@ -639,11 +691,13 @@ test.describe( 'Agent Builder - Delete Agent', () => {
 } );
 
 test.describe( 'Agent Builder - Agent Selector in Chat', () => {
-	test.beforeEach( async ( { page } ) => {
+	test.beforeEach( async ( { page, browser } ) => {
 		// Register mocks BEFORE login so all API calls are intercepted,
 		// including the fetchAgents() call made by the floating widget on
 		// the admin dashboard after login.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
+		// Delete any real agents left by a previous flaky run.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 		await goToAgentPage( page );
 	} );
@@ -724,9 +778,12 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 	 */
 	test( 'create, verify in chat selector, edit, then delete an agent', async ( {
 		page,
+		browser,
 	} ) => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [] } );
+		// Delete any real agents left by a previous flaky run.
+		await cleanupRealAgents( browser );
 		await loginToWordPress( page );
 
 		// ---- Step 1: Create the agent ----

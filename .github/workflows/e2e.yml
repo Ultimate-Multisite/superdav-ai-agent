@@ -122,7 +122,7 @@ jobs:
           # Done here (not in test.beforeAll) so WP_ENV_HOME is available and
           # wp-env can locate its docker-compose.yml.
           npx wp-env run cli wp user create admin2 admin2@example.com \
-            --role=administrator --user_pass=password2 --skip-email || true
+            --role=administrator --user_pass=password2 --send-email=false || true
         env:
           WP_ENV_HOME: /tmp/wp-env
 

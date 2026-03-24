@@ -57,17 +57,16 @@ const MOCK_SESSION = {
 // ---------------------------------------------------------------------------
 
 /**
- * Decode a Playwright URL object to its full decoded string.
+ * Decode a URL (string or URL object) to its full decoded string.
  *
  * wp-env uses the index.php?rest_route= format (pretty permalinks disabled),
  * so REST API paths appear URL-encoded in the URL string:
  *   http://localhost:8888/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fsessions&status=active
  *
- * Playwright's page.route() regex matches against the raw (encoded) URL, so
- * literal-slash regexes like /sessions\/shared/ never match. Using a function
- * matcher with decodeURIComponent() normalises the URL before matching.
+ * Used for response/request URL matching in waitForResponse/waitForRequest
+ * callbacks where the URL is already a string.
  *
- * @param {URL} url - Playwright URL object.
+ * @param {string|URL} url - URL string or object.
  * @return {string} Fully decoded URL string.
  */
 function decodeUrl( url ) {
@@ -81,125 +80,133 @@ function decodeUrl( url ) {
 /**
  * Intercept the REST sessions list endpoint to return a single mock session.
  *
- * Matches /gratis-ai-agent/v1/sessions (with any query params) but NOT
- * /sessions/shared or /sessions/{id} sub-paths.
+ * Uses a glob pattern so it works with both pretty-permalink (/wp-json/...) and
+ * plain-permalink (?rest_route=...) URL formats. The handler inspects the decoded
+ * URL to exclude /sessions/shared and /sessions/{id} sub-paths.
  *
  * @param {import('@playwright/test').Page} page
  * @param {Object[]} sessions - Sessions to return (defaults to [MOCK_SESSION]).
  */
 async function interceptSessionsList( page, sessions = [ MOCK_SESSION ] ) {
-	await page.route(
-		( url ) => {
-			const decoded = decodeUrl( url );
-			return (
-				decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
-				! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) &&
-				! /gratis-ai-agent\/v1\/sessions\/\d/.test( decoded )
-			);
-		},
-		async ( route ) => {
-			await route.fulfill( {
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify( sessions ),
-			} );
+	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
+		const decoded = decodeUrl( route.request().url() );
+		// Only handle the sessions list — not /sessions/shared or /sessions/{id}.
+		if (
+			! decoded.includes( 'gratis-ai-agent/v1/sessions' ) ||
+			decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ||
+			/gratis-ai-agent\/v1\/sessions\/\d/.test( decoded )
+		) {
+			return route.continue();
 		}
-	);
+		await route.fulfill( {
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify( sessions ),
+		} );
+	} );
 }
 
 /**
  * Intercept the shared sessions list endpoint.
  *
+ * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
+ * URL formats.
+ *
  * @param {import('@playwright/test').Page} page
  * @param {Object[]} sessions - Shared sessions to return.
  */
 async function interceptSharedSessionsList( page, sessions = [ MOCK_SESSION ] ) {
-	await page.route(
-		( url ) =>
-			decodeUrl( url ).includes( 'gratis-ai-agent/v1/sessions/shared' ),
-		async ( route ) => {
-			await route.fulfill( {
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify( sessions ),
-			} );
+	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
+		const decoded = decodeUrl( route.request().url() );
+		if ( ! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) ) {
+			return route.continue();
 		}
-	);
+		await route.fulfill( {
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify( sessions ),
+		} );
+	} );
 }
 
 /**
  * Intercept the share endpoint (POST /sessions/{id}/share).
  *
+ * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
+ * URL formats.
+ *
  * @param {import('@playwright/test').Page} page
  * @param {boolean}                         success - Whether to simulate success.
  */
 async function interceptShareEndpoint( page, success = true ) {
-	await page.route(
-		( url ) =>
-			/gratis-ai-agent\/v1\/sessions\/\d+\/share/.test(
-				decodeUrl( url )
-			),
-		async ( route ) => {
-			if ( route.request().method() === 'POST' ) {
-				await route.fulfill( {
-					status: success ? 200 : 500,
-					contentType: 'application/json',
-					body: JSON.stringify( { shared: success } ),
-				} );
-			} else if ( route.request().method() === 'DELETE' ) {
-				await route.fulfill( {
-					status: success ? 200 : 500,
-					contentType: 'application/json',
-					body: JSON.stringify( { shared: false } ),
-				} );
-			} else {
-				await route.continue();
-			}
+	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
+		const decoded = decodeUrl( route.request().url() );
+		if ( ! /gratis-ai-agent\/v1\/sessions\/\d+\/share/.test( decoded ) ) {
+			return route.continue();
 		}
-	);
+		if ( route.request().method() === 'POST' ) {
+			await route.fulfill( {
+				status: success ? 200 : 500,
+				contentType: 'application/json',
+				body: JSON.stringify( { shared: success } ),
+			} );
+		} else if ( route.request().method() === 'DELETE' ) {
+			await route.fulfill( {
+				status: success ? 200 : 500,
+				contentType: 'application/json',
+				body: JSON.stringify( { shared: false } ),
+			} );
+		} else {
+			await route.continue();
+		}
+	} );
 }
 
 /**
  * Intercept the stream endpoint so message sending completes without a real AI
  * provider. Returns a minimal SSE response (one token + done event).
  *
+ * Uses a glob pattern so it works with both pretty-permalink and plain-permalink
+ * URL formats.
+ *
  * @param {import('@playwright/test').Page} page
  * @param {number}                          sessionId
  */
 async function interceptStream( page, sessionId = MOCK_SESSION.id ) {
-	await page.route(
-		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/stream' ),
-		async ( route ) => {
-			let sid = sessionId;
-			try {
-				const body = route.request().postDataJSON();
-				if ( body?.session_id ) {
-					sid = body.session_id;
-				}
-			} catch {
-				// Non-JSON body — use default.
-			}
-
-			const sseBody = [
-				'event: token',
-				`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
-				'',
-				'event: done',
-				`data: ${ JSON.stringify( { session_id: sid } ) }`,
-				'',
-				'',
-			].join( '\n' );
-
-			await route.fulfill( {
-				status: 200,
-				headers: {
-					'Content-Type': 'text/event-stream',
-					'Cache-Control': 'no-cache',
-				},
-				body: sseBody,
-			} );
+	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
+		const decoded = decodeUrl( route.request().url() );
+		if ( ! decoded.includes( 'gratis-ai-agent/v1/stream' ) ) {
+			return route.continue();
 		}
-	);
+		let sid = sessionId;
+		try {
+			const body = route.request().postDataJSON();
+			if ( body?.session_id ) {
+				sid = body.session_id;
+			}
+		} catch {
+			// Non-JSON body — use default.
+		}
+
+		const sseBody = [
+			'event: token',
+			`data: ${ JSON.stringify( { token: 'Hello from shared session!' } ) }`,
+			'',
+			'event: done',
+			`data: ${ JSON.stringify( { session_id: sid } ) }`,
+			'',
+			'',
+		].join( '\n' );
+
+		await route.fulfill( {
+			status: 200,
+			headers: {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache',
+			},
+			body: sseBody,
+		} );
+	} );
 }
 
 /**
@@ -224,11 +231,14 @@ async function openFirstSessionContextMenu( page ) {
 /**
  * Click the "Shared" tab in the session sidebar.
  *
+ * Uses a longer timeout because the sidebar only renders after settingsLoaded=true,
+ * which requires the settings fetch to complete after React hydration.
+ *
  * @param {import('@playwright/test').Page} page
  */
 async function clickSharedTab( page ) {
 	const sharedTab = page.getByRole( 'tab', { name: /shared/i } );
-	await expect( sharedTab ).toBeVisible();
+	await expect( sharedTab ).toBeVisible( { timeout: 15_000 } );
 	await sharedTab.click();
 }
 
@@ -287,12 +297,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 			page,
 		} ) => {
 			// Pre-populate shared sessions so the store considers this session shared.
+			// Use a glob pattern so it works with both pretty-permalink and
+			// plain-permalink (?rest_route=...) URL formats.
 			await page.route(
-				( url ) =>
-					decodeURIComponent( url.toString() ).includes(
-						'gratis-ai-agent/v1/sessions/shared'
-					),
+				'**/gratis-ai-agent/v1/**',
 				async ( route ) => {
+					const decoded = decodeUrl( route.request().url() );
+					if (
+						! decoded.includes(
+							'gratis-ai-agent/v1/sessions/shared'
+						)
+					) {
+						return route.continue();
+					}
 					await route.fulfill( {
 						status: 200,
 						contentType: 'application/json',
@@ -371,12 +388,21 @@ test.describe( 'Shared Conversations (t091)', () => {
 			page,
 		} ) => {
 			// Remove the beforeEach route so our counting handler takes precedence.
-			await page.unroute( /gratis-ai-agent\/v1\/sessions\/shared/ );
+			// Use a glob pattern — regex won't match URL-encoded plain-permalink URLs.
+			await page.unroute( '**/gratis-ai-agent/v1/**' );
 
 			let sharedListCallCount = 0;
 			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
+				'**/gratis-ai-agent/v1/**',
 				async ( route ) => {
+					const decoded = decodeUrl( route.request().url() );
+					if (
+						! decoded.includes(
+							'gratis-ai-agent/v1/sessions/shared'
+						)
+					) {
+						return route.continue();
+					}
 					sharedListCallCount++;
 					// After first call (initial load), return empty list to simulate revocation.
 					const sessions =
@@ -400,10 +426,12 @@ test.describe( 'Shared Conversations (t091)', () => {
 			} );
 
 			// Wait for the refetch response after clicking Unshare.
+			// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
 			const refetchPromise = page.waitForResponse(
 				( resp ) =>
-					resp.url().includes( '/sessions/shared' ) &&
-					resp.status() === 200,
+					decodeURIComponent( resp.url() ).includes(
+						'/sessions/shared'
+					) && resp.status() === 200,
 				{ timeout: 5_000 }
 			);
 			await unshareOption.click();
@@ -437,10 +465,12 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// The beforeEach already loaded the page (initial fetchSharedSessions
 			// was handled by the beforeEach route). We just need to confirm that
 			// clicking the tab triggers another fetch.
+			// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
 			const sharedResponsePromise = page.waitForResponse(
 				( resp ) =>
-					resp.url().includes( '/sessions/shared' ) &&
-					resp.status() === 200,
+					decodeURIComponent( resp.url() ).includes(
+						'/sessions/shared'
+					) && resp.status() === 200,
 				{ timeout: 5_000 }
 			);
 
@@ -452,10 +482,12 @@ test.describe( 'Shared Conversations (t091)', () => {
 			page,
 		} ) => {
 			// Wait for the shared sessions response before asserting the list.
+			// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
 			const sharedResponsePromise = page.waitForResponse(
 				( resp ) =>
-					resp.url().includes( '/sessions/shared' ) &&
-					resp.status() === 200,
+					decodeURIComponent( resp.url() ).includes(
+						'/sessions/shared'
+					) && resp.status() === 200,
 				{ timeout: 5_000 }
 			);
 
@@ -471,16 +503,21 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 		test( 'empty state shown when no shared sessions', async ( { page } ) => {
 			// Override to return empty list.
-			await page.route(
-				/gratis-ai-agent\/v1\/sessions\/shared/,
-				async ( route ) => {
-					await route.fulfill( {
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify( [] ),
-					} );
+			// Use a glob pattern so it works with both pretty-permalink and
+			// plain-permalink (?rest_route=...) URL formats.
+			await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
+				const decoded = decodeUrl( route.request().url() );
+				if (
+					! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' )
+				) {
+					return route.continue();
 				}
-			);
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( [] ),
+				} );
+			} );
 
 			await goToAgentPage( page );
 			await clickSharedTab( page );
@@ -521,10 +558,12 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await goToAgentPage( secondPage );
 
 				// Wait for the shared sessions response before asserting.
+				// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
 				const sharedResponsePromise = secondPage.waitForResponse(
 					( resp ) =>
-						resp.url().includes( '/sessions/shared' ) &&
-						resp.status() === 200,
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
 					{ timeout: 5_000 }
 				);
 				await clickSharedTab( secondPage );
@@ -564,13 +603,15 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				await goToAgentPage( secondPage );
 
-				// Switch to the Shared tab so isSharedTab=true in SessionItem.
+			// Switch to the Shared tab so isSharedTab=true in SessionItem.
 				// When isSharedTab=true, isOwner = (session.user_id === currentUserId).
 				// MOCK_SESSION has no user_id, so isOwner=false → Share/Unshare hidden.
+				// Decode the URL before matching — wp-env uses URL-encoded plain-permalink format.
 				const sharedResponsePromise = secondPage.waitForResponse(
 					( resp ) =>
-						resp.url().includes( '/sessions/shared' ) &&
-						resp.status() === 200,
+						decodeURIComponent( resp.url() ).includes(
+							'/sessions/shared'
+						) && resp.status() === 200,
 					{ timeout: 5_000 }
 				);
 				await clickSharedTab( secondPage );
@@ -622,9 +663,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				// Intercept the single-session GET (openSession thunk fetches
 				// /sessions/{id} to load messages and tool calls).
+				// Use a glob pattern so it works with both pretty-permalink and
+				// plain-permalink (?rest_route=...) URL formats.
 				await secondPage.route(
-					/gratis-ai-agent\/v1\/sessions\/42(\?|$)/,
+					'**/gratis-ai-agent/v1/**',
 					async ( route ) => {
+						const decoded = decodeUrl( route.request().url() );
+						if (
+							! /gratis-ai-agent\/v1\/sessions\/42/.test(
+								decoded
+							)
+						) {
+							return route.continue();
+						}
 						await route.fulfill( {
 							status: 200,
 							contentType: 'application/json',
@@ -692,7 +743,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// (MOCK_SESSION has no user_id, so non-owner restriction applies).
 				const sharedResponsePromise = secondPage.waitForResponse(
 					( resp ) =>
-						resp.url().includes( '/sessions/shared' ) &&
+						decodeURIComponent( resp.url() ).includes( '/sessions/shared' ) &&
 						resp.status() === 200,
 					{ timeout: 5_000 }
 				);
@@ -726,12 +777,19 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// call (made during the admin dashboard load after login) is intercepted.
 				// Start with the session shared.
 				let isRevoked = false;
+				// Use a glob pattern so it works with both pretty-permalink and
+				// plain-permalink (?rest_route=...) URL formats.
 				await secondPage.route(
-					( url ) =>
-						decodeUrl( url ).includes(
-							'gratis-ai-agent/v1/sessions/shared'
-						),
+					'**/gratis-ai-agent/v1/**',
 					async ( route ) => {
+						const decoded = decodeUrl( route.request().url() );
+						if (
+							! decoded.includes(
+								'gratis-ai-agent/v1/sessions/shared'
+							)
+						) {
+							return route.continue();
+						}
 						await route.fulfill( {
 							status: 200,
 							contentType: 'application/json',
@@ -764,7 +822,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Trigger a refetch by clicking the Shared tab again.
 				const refetchPromise = secondPage.waitForResponse(
 					( resp ) =>
-						resp.url().includes( '/sessions/shared' ) &&
+						decodeURIComponent( resp.url() ).includes( '/sessions/shared' ) &&
 						resp.status() === 200,
 					{ timeout: 5_000 }
 				);

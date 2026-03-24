@@ -44,6 +44,8 @@ async function loginToWordPress(
 async function goToAgentPage( page ) {
 	// Set up the response waiter BEFORE navigating so we don't miss the request
 	// that fires immediately after React hydrates and dispatches fetchSessions().
+	// wp-env may use plain-permalink URLs (?rest_route=...) where slashes are
+	// URL-encoded, so always decode before matching.
 	const sessionsResponsePromise = page
 		.waitForResponse(
 			( resp ) => {
@@ -63,6 +65,15 @@ async function goToAgentPage( page ) {
 
 	// Wait for the sessions response so the sidebar is populated before returning.
 	await sessionsResponsePromise;
+
+	// Wait for the sidebar filter tabs to be visible. The AdminPageApp returns
+	// null until settingsLoaded=true, so the sidebar (and its tabs) may not
+	// exist immediately after domcontentloaded. Waiting here prevents tests
+	// from asserting on sidebar elements before React has finished rendering.
+	await page
+		.locator( '.ai-agent-sidebar-filters' )
+		.waitFor( { state: 'visible', timeout: 15_000 } )
+		.catch( () => {} ); // Non-fatal: some tests navigate away before sidebar renders.
 }
 
 /**

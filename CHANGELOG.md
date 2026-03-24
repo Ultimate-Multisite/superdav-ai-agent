@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-24
+
+### Added
+
+- Gemini 2.5 Flash and Gemini 2.5 Flash Lite models to the model selector (#599)
+- o3, o4-mini, claude-sonnet-4-6, and claude-opus-4-6 models to the model selector (#603)
+- Claude 3.5 Haiku and Gemini 2.0 Flash models to the model selector (#594)
+- JS bundle size budget enforced in CI to prevent regressions (#616)
+- Playwright E2E tests for the shared conversations feature (#614)
+- Playwright E2E tests for the agent builder UI (#612)
+- Playwright E2E tests for the automations system (#613)
+- Playwright E2E tests for the Changes admin page (diff/revert/export) (#615)
+- WP.org SVN submission guide and `deploy-wporg.sh` script (#600)
+- PHPStan raised to level 10 (maximum) with all new errors resolved (#606)
+
+### Fixed
+
+- Security hardening, i18n compliance, and code safety improvements
+- GPL-2.0-or-later license headers added to all PHP files (#596)
+- `readme.txt` PHP requirement corrected from 7.4 to 8.2 (#582, #590)
+- PHPCS ignore annotations added for justified WordPress.org plugin-check warnings
+- PHP-native fallback added to pre-commit hook for environments without Node (#619)
+- `get_option()` result guarded before array offset access in `SiteScanner` (#632)
+- `@phpstan-ignore-next-line` suppressions removed from `AutomationRunner` (#633)
+- Filtered trigger entries guarded against non-array values (#634)
+- `is_string()` type narrowing guards added in `GitAbilities` (#635)
+- `get-plugins` truncator field mismatch fixed (`status`/`slug` → `active`/`file`) (#636)
+- `google/` OpenRouter prefix removed from Google direct provider model IDs (#637)
+- `update-post` benchmark schema aligned with implementation (#638)
+- Export fallback filename updated from `ai-changes.patch` to `gratis-ai-changes.patch` (#640)
+- Collapsed sections now force-open when filtering activates in the abilities manager (#641)
+- `package_type` schema/runtime inconsistency fixed in `GitAbilities` (#644)
+- ShellCheck violations resolved in `tests/` and `.husky/` (#588)
+- PHPStan raised to level 8 with zero errors (#595)
+- PHPStan raised to level 9 with zero errors (#604)
+- E2E test coverage for SSE `done.generated_title` path in auto-title spec (#639)
+- Post-merge E2E fixes for shared-conversations spec (#645)
+
+### Changed
+
+- Composer package renamed from `ultimate-multisite/gratis-ai-agent` to `ultimate-multisite/ai-agent`
+
 ## [1.2.0] - 2026-03-19
 
 ### Added
@@ -114,4 +156,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - wp-env override JSON passed via env var to avoid shell quote stripping
 - PHPUnit (WP trunk) fatal resolved — `ClientWithOptionsInterface` namespace mismatch
 
+[1.3.0]: https://github.com/Ultimate-Multisite/gratis-ai-agent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Ultimate-Multisite/gratis-ai-agent/compare/v1.1.0...v1.2.0

@@ -3,7 +3,7 @@
  * Plugin Name: Gratis AI Agent
  * Plugin URI:  https://developer.wordpress.org/
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
- * Version:     1.2.0
+ * Version:     1.3.0
  * Author:      Dave
  * License:     GPL-2.0-or-later
  * Requires at least: 6.9

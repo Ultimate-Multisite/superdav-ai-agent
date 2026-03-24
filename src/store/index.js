@@ -3001,15 +3001,37 @@ const reducer = ( state = DEFAULT_STATE, action ) => {
 				sharedSessions: action.sessions,
 				sharedSessionsLoaded: true,
 			};
-		case 'UPDATE_SESSION_TITLE':
+		case 'UPDATE_SESSION_TITLE': {
+			const exists = state.sessions.some(
+				( s ) => parseInt( s.id, 10 ) === action.sessionId
+			);
+			// If the session is already in the list, update its title in place.
+			// If it is not yet in the list (e.g. a brand-new session whose
+			// setCurrentSession ran before fetchSessions populated state.sessions),
+			// prepend a minimal stub so the sidebar shows the generated title
+			// immediately without waiting for the fetchSessions round-trip.
+			const updatedSessions = exists
+				? state.sessions.map( ( s ) =>
+						parseInt( s.id, 10 ) === action.sessionId
+							? { ...s, title: action.title }
+							: s
+				  )
+				: [
+						{
+							id: action.sessionId,
+							title: action.title,
+							created_at: new Date().toISOString(),
+							updated_at: new Date().toISOString(),
+							status: 'active',
+							message_count: 0,
+						},
+						...state.sessions,
+				  ];
 			return {
 				...state,
-				sessions: state.sessions.map( ( s ) =>
-					parseInt( s.id, 10 ) === action.sessionId
-						? { ...s, title: action.title }
-						: s
-				),
+				sessions: updatedSessions,
 			};
+		}
 		default:
 			return state;
 	}

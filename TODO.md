@@ -9,7 +9,7 @@
 - [x] t135 Add E2E tests for Changes page (diff/revert/export) @superdav42 #testing ~2h ref=GH#610 pr:#615 completed:2026-03-19
   - Changes page (diff view, revert, export patch) has zero E2E coverage — destructive feature, high regression risk
 
-- [ ] t134 Add E2E tests for automations system (t080/t081) @superdav42 #testing ~3h ref=GH#609
+- [x] t134 Add E2E tests for automations system (t080/t081) @superdav42 #testing ~3h ref=GH#609 pr:#613 completed:2026-03-24
   - Event-triggered and scheduled automations have zero E2E coverage — silent regression risk for scheduled AI tasks
 
 - [x] t133 Add E2E tests for agent builder UI (t082) @superdav42 #testing ~3h ref=GH#608 pr:#612 completed:2026-03-24

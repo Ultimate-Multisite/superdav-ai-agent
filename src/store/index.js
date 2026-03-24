@@ -2206,12 +2206,20 @@ const actions = {
 	},
 
 	updateAgent( id, data ) {
-		return async ( { dispatch } ) => {
-			await apiFetch( {
+		return async ( { dispatch, select } ) => {
+			const updated = await apiFetch( {
 				path: `/gratis-ai-agent/v1/agents/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
+			// Optimistically update the agent in the store so the card
+			// reflects the new name immediately without waiting for a re-fetch.
+			const current = select.getAgents();
+			const merged = current.map( ( a ) =>
+				a.id === id ? { ...a, ...( updated || data ) } : a
+			);
+			dispatch.setAgents( merged );
+			// Re-fetch to confirm server state.
 			dispatch.fetchAgents();
 		};
 	},
@@ -2226,6 +2234,11 @@ const actions = {
 			if ( select.getSelectedAgentId() === id ) {
 				dispatch.setSelectedAgentId( null );
 			}
+			// Optimistically remove the agent from the store so the card
+			// disappears immediately without waiting for a re-fetch.
+			const current = select.getAgents();
+			dispatch.setAgents( current.filter( ( a ) => a.id !== id ) );
+			// Re-fetch to confirm server state.
 			dispatch.fetchAgents();
 		};
 	},

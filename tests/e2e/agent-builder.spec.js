@@ -686,9 +686,20 @@ test.describe( 'Agent Builder - Edit Agent', () => {
 
 		await getUpdateAgentButton( page ).click();
 
-		// After update the card should show the new name. The component
-		// re-fetches the agent list after saving; allow time for the list
-		// to repopulate before asserting on the card content.
+		// Wait for the success notice — confirms the PATCH completed.
+		await expect(
+			page.locator( '.components-notice.is-success' )
+		).toBeVisible( { timeout: 10000 } );
+
+		// Close the form so the card list becomes visible again.
+		// The edit form hides the card list (showForm=true renders only the
+		// form), so we must dismiss it before asserting on card content.
+		await getCancelButton( page ).click();
+		await expect( getAgentForm( page ) ).not.toBeVisible();
+
+		// After closing the form the card should show the updated name.
+		// The store was optimistically updated on PATCH so no re-fetch wait
+		// is needed, but allow a short timeout as a safety net.
 		await expect( getAgentCards( page ).first() ).toContainText(
 			AGENT_FIXTURE_UPDATED.name,
 			{ timeout: 10_000 }
@@ -907,7 +918,14 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 		await expect(
 			page.locator( '.components-notice.is-success' )
 		).toBeVisible( { timeout: 10000 } );
-		// Allow time for the list to repopulate after the update re-fetch.
+
+		// Close the form so the card list becomes visible again.
+		// The edit form hides the card list (showForm=true renders only the
+		// form), so we must dismiss it before asserting on card content.
+		await getCancelButton( page ).click();
+		await expect( getAgentForm( page ) ).not.toBeVisible();
+
+		// After closing the form the card should show the updated name.
 		await expect( getAgentCards( page ).first() ).toContainText(
 			AGENT_FIXTURE_UPDATED.name,
 			{ timeout: 10_000 }

@@ -312,8 +312,12 @@ test.describe( 'White-Label Branding - Live Preview', () => {
 		const fab = getPreviewFab( page );
 		await expect( fab ).toBeVisible();
 		// Verify the inline style contains the custom color.
+		// Browsers normalise hex colours to rgb() in computed/inline styles,
+		// so check for either the hex value or its rgb() equivalent.
 		const fabStyle = await fab.getAttribute( 'style' );
-		expect( fabStyle ).toContain( '#e63946' );
+		const hasHex = fabStyle && fabStyle.includes( '#e63946' );
+		const hasRgb = fabStyle && fabStyle.includes( 'rgb(230, 57, 70)' );
+		expect( hasHex || hasRgb ).toBe( true );
 	} );
 
 	test( 'entering a logo URL shows the logo image in the preview', async ( {

@@ -79,7 +79,7 @@ class ToolResultTruncator {
 	 */
 	private static function apply_tool_strategy( array $result, string $tool_name ): array {
 		switch ( $tool_name ) {
-			// Plugin list: keep name + status, drop description/version details.
+			// Plugin list: keep name + active status + file, drop description/version details.
 			case 'gratis-ai-agent/get-plugins':
 				if ( isset( $result['plugins'] ) && is_array( $result['plugins'] ) ) {
 					$total                = count( $result['plugins'] );
@@ -87,11 +87,11 @@ class ToolResultTruncator {
 						function ( $plugin ) {
 							return [
 								// @phpstan-ignore-next-line
-								'name'   => $plugin['name'] ?? $plugin['slug'] ?? '',
+								'name'   => $plugin['name'] ?? '',
 								// @phpstan-ignore-next-line
-								'status' => $plugin['status'] ?? '',
+								'active' => $plugin['active'] ?? false,
 								// @phpstan-ignore-next-line
-								'slug'   => $plugin['slug'] ?? '',
+								'file'   => $plugin['file'] ?? '',
 							];
 						},
 						array_slice( $result['plugins'], 0, self::MAX_ARRAY_ITEMS )

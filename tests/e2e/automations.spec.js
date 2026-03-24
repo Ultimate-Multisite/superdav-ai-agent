@@ -22,8 +22,11 @@ const { loginToWordPress, goToAdminDashboard } = require( './utils/wp-admin' );
 /** A minimal scheduled automation returned by the REST API. */
 const MOCK_AUTOMATION = {
 	id: 1,
-	name: 'Daily Site Health Report',
-	description: 'Run a comprehensive site health check.',
+	// Use a name that does NOT match any built-in template name so that
+	// filter({ hasText }) always resolves to the automation card, never to
+	// a template card (templates also use .ai-agent-skill-card).
+	name: 'Test Scheduled Automation',
+	description: 'Run a test site health check.',
 	prompt: 'Check site health and report issues.',
 	schedule: 'daily',
 	tool_profile: '',
@@ -40,7 +43,8 @@ const MOCK_AUTOMATION = {
 /** A minimal event automation returned by the REST API. */
 const MOCK_EVENT = {
 	id: 1,
-	name: 'Auto-tag new posts',
+	// Use a name that does NOT match any built-in template name.
+	name: 'Test Event Automation',
 	description: 'Tag posts automatically when published.',
 	hook_name: 'transition_post_status',
 	prompt_template: 'Tag the post {{post_title}} with relevant categories.',
@@ -61,15 +65,21 @@ const MOCK_TRIGGER = {
 	// Description must match the real EventTriggerRegistry value so the test
 	// passes whether the mock intercepts or the real server responds.
 	description: 'Fires when a post status transitions (e.g. draft to publish).',
-	category: 'content',
-	placeholders: [
-		{ key: 'post_title', description: 'The post title' },
-		{ key: 'post_id', description: 'The post ID' },
-	],
-	conditions: [
-		{ key: 'post_type', description: 'Post type' },
-		{ key: 'new_status', description: 'New status' },
-	],
+	category: 'wordpress',
+	// The real EventTriggerRegistry returns placeholders as a key→label object,
+	// not an array of {key, description} objects.  The EventsManager component
+	// checks `selectedTrigger.placeholders?.length > 0` — an object has no
+	// `.length`, so the section would never render with the old array format.
+	// Use the same key-value shape the real API returns.
+	placeholders: {
+		'post.title': 'Post title',
+		'post.ID': 'Post ID',
+		new_status: 'New post status',
+	},
+	conditions: {
+		post_type: 'Post type equals',
+		new_status: 'New status equals',
+	},
 };
 
 /** Automation templates returned by the REST API. */
@@ -163,10 +173,12 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 	// tests would otherwise shadow the current mock data.
 	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
-	// Match both pretty-permalink (/wp-json/...) and plain-permalink
-	// (?rest_route=...) REST URL forms so mocks work regardless of how
-	// wp-env configures WordPress permalinks.
-	await page.route( /gratis-ai-agent\/v1\//, async ( route ) => {
+	// Use a glob pattern to match both pretty-permalink (/wp-json/...) and
+	// plain-permalink (?rest_route=...) REST URL forms so mocks work regardless
+	// of how wp-env configures WordPress permalinks.
+	// A glob pattern is more reliable than a regex for URL matching in Playwright
+	// because it avoids edge cases with URL encoding and query parameters.
+	await page.route( '**/gratis-ai-agent/v1/**', async ( route ) => {
 		const url = route.request().url();
 		const method = route.request().method();
 
@@ -344,9 +356,10 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 /**
  * Navigate to the Settings page and activate the Automations tab.
  *
- * Waits for the AutomationsManager container to be visible rather than
- * relying solely on networkidle, which can resolve before React finishes
- * rendering the tab content.
+ * Waits for the AutomationsManager container to be visible AND for the
+ * initial data fetch to complete (loading spinner gone) before returning.
+ * This prevents tests from running assertions against the loading state
+ * where automations = [] and template cards may be visible.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
@@ -356,17 +369,23 @@ async function goToAutomationsTab( page ) {
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	await page
-		.locator( '.ai-agent-automations-manager' )
-		.waitFor( { state: 'visible', timeout: 15_000 } );
+	const manager = page.locator( '.ai-agent-automations-manager' );
+	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
+	// Wait for the async fetchAll() to complete: the "Loading…" text is shown
+	// while loaded=false and disappears once fetchAll resolves or rejects.
+	// This ensures assertions run against the final data state, not the
+	// intermediate loading state where automations=[] and templates may show.
+	await manager
+		.getByText( 'Loading…' )
+		.waitFor( { state: 'hidden', timeout: 10_000 } )
+		.catch( () => {} ); // Already gone — that's fine.
 }
 
 /**
  * Navigate to the Settings page and activate the Events tab.
  *
- * Waits for the EventsManager container to be visible rather than
- * relying solely on networkidle, which can resolve before React finishes
- * rendering the tab content.
+ * Waits for the EventsManager container to be visible AND for the
+ * initial data fetch to complete (loading spinner gone) before returning.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
@@ -376,9 +395,13 @@ async function goToEventsTab( page ) {
 	const tab = page.getByRole( 'tab', { name: /events/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	await page
-		.locator( '.ai-agent-events-manager' )
-		.waitFor( { state: 'visible', timeout: 15_000 } );
+	const manager = page.locator( '.ai-agent-events-manager' );
+	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
+	// Wait for the async fetchAll() to complete.
+	await manager
+		.getByText( 'Loading…' )
+		.waitFor( { state: 'hidden', timeout: 10_000 } )
+		.catch( () => {} ); // Already gone — that's fine.
 }
 
 // ---------------------------------------------------------------------------
@@ -499,22 +522,11 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// Track whether the POST was made and capture the request body.
 		let postMade = false;
 		let postBody = null;
-		// Use a function matcher to precisely target the /automations list
-		// endpoint (not /automations/ID or /automation-templates).
-		// A function matcher is more reliable than a regex with lookahead
-		// because it can inspect the parsed URL directly.
+		// Use a glob pattern to precisely target the /automations list endpoint
+		// (not /automations/ID or /automation-templates).
+		// Registered after the beforeEach mock so it takes precedence (LIFO).
 		await page.route(
-			( url ) => {
-				const path = url.pathname || url.toString();
-				// Match /automations at the end of the path (with optional
-				// trailing slash) but not /automations/ID or /automation-templates.
-				return (
-					/\/automations\/?$/.test( path ) ||
-					/[?&]rest_route=%2Fgratis-ai-agent%2Fv1%2Fautomations\/?$/.test(
-						url.toString()
-					)
-				);
-			},
+			'**/gratis-ai-agent/v1/automations',
 			async ( route ) => {
 				if ( route.request().method() === 'POST' ) {
 					postMade = true;
@@ -578,10 +590,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// After the PATCH the component calls fetchAll(); the GET must return
 		// the updated state so the card re-renders with enabled: false.
 		await page.route(
-			( url ) => {
-				const path = url.pathname || url.toString();
-				return /\/automations\/1\/?$/.test( path );
-			},
+			'**/gratis-ai-agent/v1/automations/1',
 			async ( route ) => {
 				if ( route.request().method() === 'PATCH' ) {
 					patchCalled = true;
@@ -836,10 +845,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		let postMade = false;
 		let postBody = null;
 		await page.route(
-			( url ) => {
-				const path = url.pathname || url.toString();
-				return /\/event-automations\/?$/.test( path );
-			},
+			'**/gratis-ai-agent/v1/event-automations',
 			async ( route ) => {
 				if ( route.request().method() === 'POST' ) {
 					postMade = true;
@@ -934,10 +940,10 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		);
 
 		// Placeholder keys should be listed.
-		for ( const placeholder of MOCK_TRIGGER.placeholders ) {
-			await expect( triggerInfo ).toContainText(
-				`{{${ placeholder.key }}}`
-			);
+		// MOCK_TRIGGER.placeholders is a key→label object (matching the real
+		// EventTriggerRegistry API format); iterate over its keys.
+		for ( const key of Object.keys( MOCK_TRIGGER.placeholders ) ) {
+			await expect( triggerInfo ).toContainText( `{{${ key }}}` );
 		}
 	} );
 
@@ -950,10 +956,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		// After the PATCH the component calls fetchAll(); the GET must return
 		// the updated state so the card re-renders with enabled: false.
 		await page.route(
-			( url ) => {
-				const path = url.pathname || url.toString();
-				return /\/event-automations\/1\/?$/.test( path );
-			},
+			'**/gratis-ai-agent/v1/event-automations/1',
 			async ( route ) => {
 				if ( route.request().method() === 'PATCH' ) {
 					patchCalled = true;

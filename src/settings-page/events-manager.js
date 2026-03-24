@@ -300,32 +300,47 @@ export default function EventsManager() {
 							<p className="description">
 								{ selectedTrigger.description }
 							</p>
-							{ selectedTrigger.placeholders?.length > 0 && (
-								<p className="description">
-									<strong>
-										{ __(
-											'Available placeholders:',
-											'gratis-ai-agent'
-										) }
-									</strong>{ ' ' }
-									{ selectedTrigger.placeholders
-										.map( ( p ) => `{{${ p.key }}}` )
-										.join( ', ' ) }
-								</p>
-							) }
-							{ selectedTrigger.conditions?.length > 0 && (
-								<p className="description">
-									<strong>
-										{ __(
-											'Available conditions:',
-											'gratis-ai-agent'
-										) }
-									</strong>{ ' ' }
-									{ selectedTrigger.conditions
-										.map( ( c ) => c.key )
-										.join( ', ' ) }
-								</p>
-							) }
+							{ ( () => {
+								// The REST API returns placeholders as a
+								// key→label object; normalise to an array of
+								// keys so the component works with both the
+								// real API and array-format mocks.
+								const ph = selectedTrigger.placeholders;
+								const keys = Array.isArray( ph )
+									? ph.map( ( p ) => p.key )
+									: Object.keys( ph || {} );
+								return keys.length > 0 ? (
+									<p className="description">
+										<strong>
+											{ __(
+												'Available placeholders:',
+												'gratis-ai-agent'
+											) }
+										</strong>{ ' ' }
+										{ keys
+											.map( ( k ) => `{{${ k }}}` )
+											.join( ', ' ) }
+									</p>
+								) : null;
+							} )() }
+							{ ( () => {
+								// Same normalisation for conditions.
+								const cond = selectedTrigger.conditions;
+								const keys = Array.isArray( cond )
+									? cond.map( ( c ) => c.key )
+									: Object.keys( cond || {} );
+								return keys.length > 0 ? (
+									<p className="description">
+										<strong>
+											{ __(
+												'Available conditions:',
+												'gratis-ai-agent'
+											) }
+										</strong>{ ' ' }
+										{ keys.join( ', ' ) }
+									</p>
+								) : null;
+							} )() }
 						</div>
 					) }
 

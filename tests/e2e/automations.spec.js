@@ -650,10 +650,17 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// The ToggleControl inside the card header renders as a checkbox.
+		// The underlying <input type="checkbox"> has opacity:0 (visually hidden
+		// behind the styled track/thumb). Playwright's click() fires native
+		// pointer events but may not trigger the React onChange on opacity:0
+		// inputs in all browser/React combinations. Using evaluate(el.click())
+		// fires a programmatic click that reliably toggles the checked state
+		// and dispatches the change event that React's synthetic onChange
+		// handler processes.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();
 		await expect( toggle ).toBeChecked(); // enabled by default.
 
-		await toggle.click();
+		await toggle.evaluate( ( el ) => el.click() );
 
 		// PATCH should have been called with enabled: false.
 		await expect
@@ -1031,10 +1038,13 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// The ToggleControl inside the card header renders as a checkbox.
+		// Use evaluate(el.click()) for the same reason as the scheduled
+		// automation toggle test: opacity:0 inputs need a programmatic click
+		// to reliably trigger React's synthetic onChange handler.
 		const toggle = card.locator( 'input[type="checkbox"]' ).first();
 		await expect( toggle ).toBeChecked();
 
-		await toggle.click();
+		await toggle.evaluate( ( el ) => el.click() );
 
 		// PATCH should have been called with enabled: false.
 		await expect

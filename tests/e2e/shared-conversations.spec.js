@@ -72,7 +72,7 @@ const MOCK_SESSION = {
 /**
  * Register per-endpoint route handlers for all plugin REST endpoints.
  *
- * Uses separate `page.route(/regex/, handler)` calls for each endpoint
+ * Uses separate `page.route(predicate, handler)` calls for each endpoint
  * instead of a single `page.route('**', handler)` catch-all. The catch-all
  * approach is unreliable in wp-env environments where REST routes live in
  * query parameters (`?rest_route=...`) rather than URL paths — the `**`
@@ -80,7 +80,7 @@ const MOCK_SESSION = {
  * (CSS, JS, images, HTML), and this high-volume pass-through can cause
  * timing issues that prevent mock responses from reaching the store.
  *
- * With per-endpoint regex handlers, each handler only fires for its own
+ * With per-endpoint predicate handlers, each handler only fires for its own
  * endpoint. Non-matching requests are never intercepted, so there is no
  * `route.continue()` overhead and no risk of interference.
  *

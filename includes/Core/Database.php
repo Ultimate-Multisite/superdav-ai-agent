@@ -20,7 +20,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '11.0.0';
+	const DB_VERSION        = '12.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -155,6 +155,24 @@ class Database {
 	}
 
 	/**
+	 * Get the model benchmark runs table name.
+	 */
+	public static function benchmark_runs_table_name(): string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		return $wpdb->prefix . 'gratis_ai_agent_benchmark_runs';
+	}
+
+	/**
+	 * Get the model benchmark results table name.
+	 */
+	public static function benchmark_results_table_name(): string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		return $wpdb->prefix . 'gratis_ai_agent_benchmark_results';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -184,6 +202,8 @@ class Database {
 		$modified_files_table         = self::modified_files_table_name();
 		$agents_table                 = self::agents_table_name();
 		$shared_sessions_table        = self::shared_sessions_table_name();
+		$benchmark_runs_table         = self::benchmark_runs_table_name();
+		$benchmark_results_table      = self::benchmark_results_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -434,6 +454,49 @@ class Database {
 			PRIMARY KEY  (id),
 			UNIQUE KEY session_id (session_id),
 			KEY shared_by (shared_by)
+		) {$charset};
+
+		CREATE TABLE {$benchmark_runs_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			name varchar(255) NOT NULL DEFAULT '',
+			description text NOT NULL DEFAULT '',
+			status varchar(20) NOT NULL DEFAULT 'running',
+			test_suite varchar(50) NOT NULL DEFAULT 'wp-core-v1',
+			questions_count int(11) NOT NULL DEFAULT 0,
+			completed_count int(11) NOT NULL DEFAULT 0,
+			started_at datetime NOT NULL,
+			completed_at datetime DEFAULT NULL,
+			PRIMARY KEY  (id),
+			KEY user_id (user_id),
+			KEY status (status),
+			KEY started_at (started_at)
+		) {$charset};
+
+		CREATE TABLE {$benchmark_results_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			run_id bigint(20) unsigned NOT NULL,
+			provider_id varchar(100) NOT NULL DEFAULT '',
+			model_id varchar(100) NOT NULL DEFAULT '',
+			question_id varchar(100) NOT NULL DEFAULT '',
+			question_category varchar(50) NOT NULL DEFAULT '',
+			question_type varchar(20) NOT NULL DEFAULT 'knowledge',
+			question text NOT NULL,
+			correct_answer text NOT NULL,
+			model_answer text NOT NULL,
+			is_correct tinyint(1) NOT NULL DEFAULT 0,
+			score decimal(5,2) NOT NULL DEFAULT 0,
+			prompt_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
+			completion_tokens bigint(20) unsigned NOT NULL DEFAULT 0,
+			latency_ms bigint(20) unsigned NOT NULL DEFAULT 0,
+			error_message text NOT NULL DEFAULT '',
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY run_id (run_id),
+			KEY model_id (model_id),
+			KEY question_id (question_id),
+			KEY is_correct (is_correct),
+			KEY created_at (created_at)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

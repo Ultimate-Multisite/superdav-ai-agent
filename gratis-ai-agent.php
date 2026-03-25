@@ -73,7 +73,11 @@ use GratisAiAgent\Admin\AbilitiesExplorerAdminPage;
 use GratisAiAgent\Admin\AdminPage;
 use GratisAiAgent\Admin\ChangesAdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
+use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
+use GratisAiAgent\Benchmark\BenchmarkRunner;
+use GratisAiAgent\Benchmark\BenchmarkSuite;
+use GratisAiAgent\REST\BenchmarkController;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
@@ -113,9 +117,11 @@ add_action(
 );
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
+add_action( 'rest_api_init', [ BenchmarkController::class, 'register_routes' ] );
 add_action( 'admin_menu', [ AdminPage::class, 'register' ] );
 add_action( 'admin_menu', [ ChangesAdminPage::class, 'register' ] );
 add_action( 'admin_menu', [ AbilitiesExplorerAdminPage::class, 'register' ] );
+add_action( 'admin_menu', [ ModelBenchmarkPage::class, 'register' ] );
 add_action( 'admin_menu', [ Settings::class, 'register' ] );
 
 // Register ability category.

@@ -21,7 +21,7 @@ import SettingsRoute from './routes/settings';
  * @return {JSX.Element} Route component.
  */
 export default function Router( { route } ) {
-	const routeParts = route.split( '/' );
+	const routeParts = ( route || '' ).split( '/' );
 	const mainRoute = routeParts[ 0 ];
 	const subRoute = routeParts.slice( 1 ).join( '/' ) || null;
 

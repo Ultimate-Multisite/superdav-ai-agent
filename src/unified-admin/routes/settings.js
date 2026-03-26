@@ -9,18 +9,21 @@ import {
 	CardHeader,
 	CardBody,
 	TabPanel,
-	Panel,
-	PanelBody,
-	PanelRow,
 	Button,
 	Notice,
+	ProgressBar,
+	CheckboxControl,
 	TextControl,
 	TextareaControl,
 	SelectControl,
-	CheckboxControl,
-	ProgressBar,
 } from '@wordpress/components';
 import { help, arrowLeft } from '@wordpress/icons';
+
+/**
+ * Internal dependencies
+ */
+import SettingsApp from '../../settings-page/settings-app';
+import ProvidersManager from '../../settings-page/providers-manager';
 
 /**
  * Settings Route Component
@@ -54,9 +57,9 @@ export default function SettingsRoute( { subRoute } ) {
 						{ ( tab ) => {
 							switch ( tab.name ) {
 								case 'general':
-									return <GeneralSettings />;
+									return <SettingsApp />;
 								case 'providers':
-									return <ProviderSettings />;
+									return <ProvidersManager />;
 								case 'advanced':
 									return <AdvancedSettings />;
 								default:
@@ -71,47 +74,6 @@ export default function SettingsRoute( { subRoute } ) {
 }
 
 /**
- * General Settings Tab
- *
- * @return {JSX.Element} General settings element.
- */
-function GeneralSettings() {
-	return (
-		<Panel>
-			<PanelBody title={ __( 'General Settings', 'gratis-ai-agent' ) }>
-				<PanelRow>
-					<p>
-						{ __( 'General settings content.', 'gratis-ai-agent' ) }
-					</p>
-				</PanelRow>
-			</PanelBody>
-		</Panel>
-	);
-}
-
-/**
- * Provider Settings Tab
- *
- * @return {JSX.Element} Provider settings element.
- */
-function ProviderSettings() {
-	return (
-		<Panel>
-			<PanelBody title={ __( 'AI Providers', 'gratis-ai-agent' ) }>
-				<PanelRow>
-					<p>
-						{ __(
-							'Configure AI provider API keys and settings.',
-							'gratis-ai-agent'
-						) }
-					</p>
-				</PanelRow>
-			</PanelBody>
-		</Panel>
-	);
-}
-
-/**
  * Advanced Settings Tab — includes the benchmark feature.
  *
  * @return {JSX.Element} Advanced settings element.
@@ -122,49 +84,33 @@ function AdvancedSettings() {
 	return (
 		<div className="gratis-ai-advanced-settings">
 			{ ! showBenchmark ? (
-				<Panel>
-					<PanelBody
-						title={ __( 'Advanced Features', 'gratis-ai-agent' ) }
+				<div className="gratis-ai-benchmark-section">
+					<h4>{ __( 'Model Benchmark', 'gratis-ai-agent' ) }</h4>
+					<p className="description">
+						{ __(
+							'Benchmark AI models against WordPress knowledge tests. Compare performance, accuracy, and cost across different providers.',
+							'gratis-ai-agent'
+						) }
+					</p>
+					<Notice
+						status="warning"
+						isDismissible={ false }
+						className="gratis-ai-notice-advanced"
 					>
-						<PanelRow>
-							<div style={ { width: '100%' } }>
-								<h4>
-									{ __(
-										'Model Benchmark',
-										'gratis-ai-agent'
-									) }
-								</h4>
-								<p className="description">
-									{ __(
-										'Benchmark AI models against WordPress knowledge tests. Compare performance, accuracy, and cost across different providers.',
-										'gratis-ai-agent'
-									) }
-								</p>
-								<Notice
-									status="warning"
-									isDismissible={ false }
-									className="gratis-ai-notice-advanced"
-								>
-									{ __(
-										'This feature is for advanced users and will consume API credits.',
-										'gratis-ai-agent'
-									) }
-								</Notice>
-								<Button
-									variant="secondary"
-									onClick={ () => setShowBenchmark( true ) }
-									icon={ help }
-									style={ { marginTop: '12px' } }
-								>
-									{ __(
-										'Open Model Benchmark',
-										'gratis-ai-agent'
-									) }
-								</Button>
-							</div>
-						</PanelRow>
-					</PanelBody>
-				</Panel>
+						{ __(
+							'This feature is for advanced users and will consume API credits.',
+							'gratis-ai-agent'
+						) }
+					</Notice>
+					<Button
+						variant="secondary"
+						onClick={ () => setShowBenchmark( true ) }
+						icon={ help }
+						style={ { marginTop: '12px' } }
+					>
+						{ __( 'Open Model Benchmark', 'gratis-ai-agent' ) }
+					</Button>
+				</div>
 			) : (
 				<div className="gratis-ai-benchmark-section">
 					<Button
@@ -292,13 +238,13 @@ function EmbeddedBenchmark() {
 		}
 	};
 
-	const tabs = [
+	const benchmarkTabs = [
 		{ name: 'new-run', title: __( 'New Benchmark', 'gratis-ai-agent' ) },
 		{ name: 'history', title: __( 'History', 'gratis-ai-agent' ) },
 	];
 
 	return (
-		<div className="gratis-ai-embedded-benchmark">
+		<div className="gratis-ai-benchmark-embedded">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -309,7 +255,7 @@ function EmbeddedBenchmark() {
 				</Notice>
 			) }
 			<TabPanel
-				tabs={ tabs }
+				tabs={ benchmarkTabs }
 				initialTabName={ activeTab }
 				onSelect={ setActiveTab }
 			>

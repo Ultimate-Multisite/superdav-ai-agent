@@ -19,10 +19,22 @@ import { AppProvider } from './context';
  *
  * @return {JSX.Element} App element.
  */
+/**
+ * Derive the initial route from the URL hash (JS-side), falling back to the
+ * PHP-localized value (which cannot read fragments) or 'chat'.
+ *
+ * @return {string} Initial route string.
+ */
+function getInitialRoute() {
+	const hash = window.location.hash;
+	if ( hash && hash.startsWith( '#/' ) ) {
+		return hash.substring( 2 );
+	}
+	return window.gratisAiAgentData?.initialRoute || 'chat';
+}
+
 function UnifiedAdminApp() {
-	const [ currentRoute, setCurrentRoute ] = useState(
-		window.gratisAiAgentData?.initialRoute || 'chat'
-	);
+	const [ currentRoute, setCurrentRoute ] = useState( getInitialRoute );
 	const [ notice, setNotice ] = useState( null );
 
 	// Listen for hash changes.
@@ -31,11 +43,12 @@ function UnifiedAdminApp() {
 			const hash = window.location.hash;
 			if ( hash && hash.startsWith( '#/' ) ) {
 				setCurrentRoute( hash.substring( 2 ) );
+			} else if ( ! hash ) {
+				setCurrentRoute( 'chat' );
 			}
 		};
 
 		window.addEventListener( 'hashchange', handleHashChange );
-		handleHashChange();
 
 		return () =>
 			window.removeEventListener( 'hashchange', handleHashChange );

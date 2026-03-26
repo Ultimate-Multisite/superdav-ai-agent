@@ -16,7 +16,8 @@ import { Button } from '@wordpress/components';
  */
 export default function Navigation( { currentRoute, onNavigate } ) {
 	const menuItems = window.gratisAiAgentData?.menuItems || [];
-	const baseRoute = currentRoute.split( '/' )[ 0 ];
+	// Normalize empty route to 'chat' so the Chat item is highlighted on initial load.
+	const baseRoute = currentRoute.split( '/' )[ 0 ] || 'chat';
 
 	return (
 		<nav

@@ -201,3 +201,14 @@
 .gratis-ai-route {
 	animation: slideIn 0.2s ease-out;
 }
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+	.gratis-ai-route {
+		animation: none;
+	}
+
+	.gratis-ai-nav-link {
+		transition: none;
+	}
+}

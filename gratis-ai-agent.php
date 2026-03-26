@@ -72,8 +72,6 @@ use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\FloatingWidget;
 use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Admin\UnifiedAdminMenu;
-use GratisAiAgent\Benchmark\BenchmarkRunner;
-use GratisAiAgent\Benchmark\BenchmarkSuite;
 use GratisAiAgent\REST\BenchmarkController;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;

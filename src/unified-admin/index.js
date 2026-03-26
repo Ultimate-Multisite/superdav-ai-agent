@@ -13,13 +13,6 @@ import Navigation from './navigation';
 import { AppProvider } from './context';
 
 /**
- * Unified Admin App Component
- *
- * Main entry point for the unified admin interface with hash-based routing.
- *
- * @return {JSX.Element} App element.
- */
-/**
  * Derive the initial route from the URL hash (JS-side), falling back to the
  * PHP-localized value (which cannot read fragments) or 'chat'.
  *
@@ -34,7 +27,11 @@ function getInitialRoute() {
 }
 
 /**
+ * Unified Admin App Component
  *
+ * Main entry point for the unified admin interface with hash-based routing.
+ *
+ * @return {JSX.Element} App element.
  */
 function UnifiedAdminApp() {
 	const [ currentRoute, setCurrentRoute ] = useState( getInitialRoute );

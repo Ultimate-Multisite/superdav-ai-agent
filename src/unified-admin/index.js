@@ -21,7 +21,7 @@ import { AppProvider } from './context';
 function getInitialRoute() {
 	const hash = window.location.hash;
 	if ( hash && hash.startsWith( '#/' ) ) {
-		return hash.substring( 2 );
+		return hash.substring( 2 ) || 'chat';
 	}
 	return window.gratisAiAgentData?.initialRoute || 'chat';
 }
@@ -42,7 +42,7 @@ function UnifiedAdminApp() {
 		const handleHashChange = () => {
 			const hash = window.location.hash;
 			if ( hash && hash.startsWith( '#/' ) ) {
-				setCurrentRoute( hash.substring( 2 ) );
+				setCurrentRoute( hash.substring( 2 ) || 'chat' );
 			} else if ( ! hash ) {
 				setCurrentRoute( 'chat' );
 			}

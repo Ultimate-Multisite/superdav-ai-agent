@@ -74,11 +74,16 @@ class BenchmarkSuite {
 	 * Get questions for a suite.
 	 *
 	 * @param string $slug Suite slug.
-	 * @return array
+	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_questions( string $slug ): array {
 		$suite = self::get_suite( $slug );
-		return $suite ? $suite['questions'] : array();
+		if ( ! $suite ) {
+			return array();
+		}
+		/** @var array<int, array<string, mixed>> $questions */
+		$questions = $suite['questions'];
+		return $questions;
 	}
 
 	/**

@@ -111,23 +111,23 @@ class BenchmarkController {
 				'callback'            => array( $instance, 'handle_create_run' ),
 				'permission_callback' => array( $instance, 'check_permission' ),
 				'args'                => array(
-					'name'       => array(
+					'name'         => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'description' => array(
+					'description'  => array(
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_textarea_field',
 					),
-					'test_suite' => array(
+					'test_suite'   => array(
 						'required'          => false,
 						'type'              => 'string',
 						'default'           => 'wp-core-v1',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'models'     => array(
+					'models'       => array(
 						'required' => true,
 						'type'     => 'array',
 					),
@@ -217,7 +217,7 @@ class BenchmarkController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_get_suite( WP_REST_Request $request ) {
-		$slug = $request->get_param( 'slug' );
+		$slug  = $request->get_param( 'slug' );
 		$suite = BenchmarkSuite::get_suite( $slug );
 
 		if ( ! $suite ) {
@@ -238,8 +238,8 @@ class BenchmarkController {
 	 * @return WP_REST_Response
 	 */
 	public function handle_list_runs( WP_REST_Request $request ): WP_REST_Response {
-		$per_page = $request->get_param( 'per_page' );
-		$page     = $request->get_param( 'page' );
+		$per_page = (int) $request->get_param( 'per_page' );
+		$page     = (int) $request->get_param( 'page' );
 
 		$runs = BenchmarkRunner::list_runs( $per_page, $page );
 
@@ -276,10 +276,10 @@ class BenchmarkController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_create_run( WP_REST_Request $request ) {
-		$name        = $request->get_param( 'name' );
-		$description = $request->get_param( 'description' );
-		$test_suite  = $request->get_param( 'test_suite' );
-		$models      = $request->get_param( 'models' );
+		$name         = $request->get_param( 'name' );
+		$description  = $request->get_param( 'description' );
+		$test_suite   = $request->get_param( 'test_suite' );
+		$models       = $request->get_param( 'models' );
 		$question_ids = $request->get_param( 'question_ids' );
 
 		if ( empty( $models ) || ! is_array( $models ) ) {
@@ -350,10 +350,18 @@ class BenchmarkController {
 
 		$run = BenchmarkRunner::get_run( $run_id );
 
+		if ( ! $run ) {
+			return new WP_Error(
+				'benchmark_run_not_found',
+				__( 'Benchmark run not found after execution.', 'gratis-ai-agent' ),
+				array( 'status' => 404 )
+			);
+		}
+
 		return new WP_REST_Response(
 			array(
-				'status'   => $run->status,
-				'progress' => array(
+				'status'      => $run->status,
+				'progress'    => array(
 					'completed' => $run->completed_count,
 					'total'     => $run->questions_count,
 				),

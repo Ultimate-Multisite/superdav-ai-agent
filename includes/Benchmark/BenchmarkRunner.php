@@ -23,27 +23,33 @@ class BenchmarkRunner {
 	/**
 	 * Create a new benchmark run.
 	 *
-	 * @param array $data Run configuration.
+	 * @param array<string, mixed> $data Run configuration.
 	 * @return int|false Run ID or false on failure.
 	 */
 	public static function create_run( array $data ) {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		$suite     = BenchmarkSuite::get_suite( $data['test_suite'] );
+		$suite = BenchmarkSuite::get_suite( (string) $data['test_suite'] );
+		/** @var array<int, array<string, mixed>> $questions */
 		$questions = $suite ? $suite['questions'] : array();
 
 		// Filter to specific questions if provided.
 		if ( ! empty( $data['question_ids'] ) && is_array( $data['question_ids'] ) ) {
-			$questions = array_filter(
-				$questions,
-				function ( $q ) use ( $data ) {
-					return in_array( $q['id'], $data['question_ids'], true );
-				}
+			/** @var array<int, array<string, mixed>> $questions */
+			$questions = array_values(
+				array_filter(
+					$questions,
+					function ( array $q ) use ( $data ): bool {
+						return in_array( $q['id'], (array) $data['question_ids'], true );
+					}
+				)
 			);
 		}
 
 		$questions_count = count( $questions );
+		/** @var array<array<string, mixed>> $models */
+		$models = (array) $data['models'];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write; caching not applicable.
 		$result = $wpdb->insert(
@@ -54,7 +60,7 @@ class BenchmarkRunner {
 				'description'     => $data['description'] ?? '',
 				'status'          => 'pending',
 				'test_suite'      => $data['test_suite'],
-				'questions_count' => $questions_count * count( $data['models'] ),
+				'questions_count' => $questions_count * count( $models ),
 				'completed_count' => 0,
 				'started_at'      => current_time( 'mysql', true ),
 			),
@@ -72,10 +78,10 @@ class BenchmarkRunner {
 			"gratis_ai_benchmark_run_{$run_id}",
 			array(
 				'run_id'    => $run_id,
-				'models'    => $data['models'],
+				'models'    => $models,
 				'questions' => array_values( $questions ),
 				'current_q' => 0,
-				'total_q'   => $questions_count * count( $data['models'] ),
+				'total_q'   => $questions_count * count( $models ),
 			),
 			HOUR_IN_SECONDS
 		);
@@ -173,9 +179,10 @@ class BenchmarkRunner {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		/** @var array<string, mixed>|false $run_config */
 		$run_config = get_transient( "gratis_ai_benchmark_run_{$run_id}" );
 
-		if ( ! $run_config ) {
+		if ( ! $run_config || ! is_array( $run_config ) ) {
 			// Try to reconstruct from database.
 			return new \WP_Error(
 				'benchmark_expired',
@@ -184,9 +191,9 @@ class BenchmarkRunner {
 			);
 		}
 
-		$current_index = $run_config['current_q'];
+		$current_index = (int) $run_config['current_q'];
 
-		if ( $current_index >= $run_config['total_q'] ) {
+		if ( $current_index >= (int) $run_config['total_q'] ) {
 			// Mark as completed.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
 			$wpdb->update(
@@ -206,12 +213,18 @@ class BenchmarkRunner {
 		}
 
 		// Calculate which model and question we're on.
-		$questions_per_model = count( $run_config['questions'] );
+		/** @var array<int, array<string, mixed>> $questions */
+		$questions = (array) $run_config['questions'];
+		/** @var array<int, array<string, mixed>> $models */
+		$models              = (array) $run_config['models'];
+		$questions_per_model = count( $questions );
 		$model_index         = (int) floor( $current_index / $questions_per_model );
 		$question_index      = $current_index % $questions_per_model;
 
-		$model    = $run_config['models'][ $model_index ];
-		$question = $run_config['questions'][ $question_index ];
+		/** @var array<string, mixed> $model */
+		$model = $models[ $model_index ];
+		/** @var array<string, mixed> $question */
+		$question = $questions[ $question_index ];
 
 		// Update status to running.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
@@ -277,9 +290,9 @@ class BenchmarkRunner {
 	/**
 	 * Benchmark a single question against a model.
 	 *
-	 * @param array $model    Model configuration.
-	 * @param array $question Question data.
-	 * @return array
+	 * @param array<string, mixed> $model    Model configuration.
+	 * @param array<string, mixed> $question Question data.
+	 * @return array<string, mixed>
 	 */
 	private static function benchmark_question( array $model, array $question ): array {
 		$start_time = microtime( true );
@@ -319,16 +332,16 @@ class BenchmarkRunner {
 	/**
 	 * Build the prompt for a question.
 	 *
-	 * @param array $question Question data.
+	 * @param array<string, mixed> $question Question data.
 	 * @return string
 	 */
 	private static function build_prompt( array $question ): string {
-		$prompt = "Question: {$question['question']}\n\n";
+		$prompt = 'Question: ' . (string) $question['question'] . "\n\n";
 
 		if ( ! empty( $question['options'] ) ) {
 			$prompt .= "Options:\n";
-			foreach ( $question['options'] as $key => $option ) {
-				$prompt .= "{$key}. {$option}\n";
+			foreach ( (array) $question['options'] as $key => $option ) {
+				$prompt .= (string) $key . '. ' . (string) $option . "\n";
 			}
 			$prompt .= "\n";
 		}
@@ -341,9 +354,9 @@ class BenchmarkRunner {
 	/**
 	 * Call a model to get a response.
 	 *
-	 * @param array  $model  Model configuration.
-	 * @param string $prompt Prompt text.
-	 * @return array|\WP_Error
+	 * @param array<string, mixed> $model  Model configuration.
+	 * @param string               $prompt Prompt text.
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_model( array $model, string $prompt ) {
 		$provider_id = $model['provider_id'] ?? '';
@@ -375,7 +388,7 @@ class BenchmarkRunner {
 	 *
 	 * @param string $model_id Model identifier.
 	 * @param string $prompt   Prompt text.
-	 * @return array|\WP_Error
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_wp_ai_client( string $model_id, string $prompt ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
@@ -385,32 +398,33 @@ class BenchmarkRunner {
 			);
 		}
 
-		$messages = array(
-			array(
-				'role'    => 'user',
-				'content' => $prompt,
-			),
-		);
+		$builder = wp_ai_client_prompt( $prompt );
 
-		$response = wp_ai_client_prompt( $messages, array( 'model' => $model_id ) );
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
+		if ( ! empty( $model_id ) ) {
+			$builder = $builder->using_model_preference( $model_id );
 		}
 
-		$content = '';
-		if ( isset( $response['content'] ) ) {
-			if ( is_string( $response['content'] ) ) {
-				$content = $response['content'];
-			} elseif ( is_array( $response['content'] ) && isset( $response['content'][0]['text'] ) ) {
-				$content = $response['content'][0]['text'];
-			}
+		$result = $builder->generate_text_result();
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$content           = '';
+		$prompt_tokens     = 0;
+		$completion_tokens = 0;
+
+		if ( $result instanceof \WordPress\AiClient\Results\DTO\GenerativeAiResult ) {
+			$content           = $result->toText();
+			$usage             = $result->getTokenUsage();
+			$prompt_tokens     = $usage->getPromptTokens();
+			$completion_tokens = $usage->getCompletionTokens();
 		}
 
 		return array(
 			'content'           => $content,
-			'prompt_tokens'     => $response['usage']['prompt_tokens'] ?? 0,
-			'completion_tokens' => $response['usage']['completion_tokens'] ?? 0,
+			'prompt_tokens'     => $prompt_tokens,
+			'completion_tokens' => $completion_tokens,
 		);
 	}
 
@@ -419,7 +433,7 @@ class BenchmarkRunner {
 	 *
 	 * @param string $model_id Model identifier.
 	 * @param string $prompt   Prompt text.
-	 * @return array|\WP_Error
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_anthropic( string $model_id, string $prompt ) {
 		$api_key = Settings::get_provider_key( 'anthropic' );
@@ -479,7 +493,7 @@ class BenchmarkRunner {
 	 *
 	 * @param string $model_id Model identifier.
 	 * @param string $prompt   Prompt text.
-	 * @return array|\WP_Error
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_openai( string $model_id, string $prompt ) {
 		$api_key = Settings::get_provider_key( 'openai' );
@@ -538,7 +552,7 @@ class BenchmarkRunner {
 	 *
 	 * @param string $model_id Model identifier.
 	 * @param string $prompt   Prompt text.
-	 * @return array|\WP_Error
+	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_google( string $model_id, string $prompt ) {
 		$api_key = Settings::get_provider_key( 'google' );
@@ -599,9 +613,9 @@ class BenchmarkRunner {
 	/**
 	 * Evaluate if the answer is correct.
 	 *
-	 * @param string $answer   Model's answer.
-	 * @param array  $question Question data.
-	 * @return array
+	 * @param string               $answer   Model's answer.
+	 * @param array<string, mixed> $question Question data.
+	 * @return array<string, mixed>
 	 */
 	private static function evaluate_answer( string $answer, array $question ): array {
 		// Extract the letter answer from the response.
@@ -652,8 +666,8 @@ class BenchmarkRunner {
 	/**
 	 * Compare multiple benchmark runs.
 	 *
-	 * @param array $run_ids Array of run IDs.
-	 * @return array
+	 * @param array<int|string, mixed> $run_ids Array of run IDs.
+	 * @return array<string, mixed>
 	 */
 	public static function compare_runs( array $run_ids ): array {
 		$runs = array();
@@ -680,20 +694,21 @@ class BenchmarkRunner {
 	/**
 	 * Calculate comparison summary.
 	 *
-	 * @param array $runs Array of run objects.
-	 * @return array
+	 * @param array<int, object> $runs Array of run objects.
+	 * @return array<int, array<string, mixed>>
 	 */
 	private static function calculate_comparison_summary( array $runs ): array {
 		$summary = array();
 
 		foreach ( $runs as $run ) {
-			$results      = $run->results;
+			/** @var array<int, object> $results */
+			$results      = is_array( $run->results ) ? $run->results : array();
 			$total        = count( $results );
 			$correct      = count(
 				array_filter(
 					$results,
-					function ( $r ) {
-						return $r->is_correct;
+					function ( object $r ): bool {
+						return (bool) $r->is_correct;
 					}
 				)
 			);
@@ -718,8 +733,8 @@ class BenchmarkRunner {
 	/**
 	 * Calculate stats by model.
 	 *
-	 * @param array $runs Array of run objects.
-	 * @return array
+	 * @param array<int, object> $runs Array of run objects.
+	 * @return array<int, array<string, mixed>>
 	 */
 	private static function calculate_by_model( array $runs ): array {
 		$by_model = array();
@@ -752,8 +767,8 @@ class BenchmarkRunner {
 	/**
 	 * Calculate stats by category.
 	 *
-	 * @param array $runs Array of run objects.
-	 * @return array
+	 * @param array<int, object> $runs Array of run objects.
+	 * @return array<int, array<string, mixed>>
 	 */
 	private static function calculate_by_category( array $runs ): array {
 		$by_category = array();

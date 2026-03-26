@@ -39,5 +39,10 @@ module.exports = {
 			'src/benchmark-page',
 			'index.js'
 		),
+		'unified-admin': path.resolve(
+			process.cwd(),
+			'src/unified-admin',
+			'index.js'
+		),
 	},
 };

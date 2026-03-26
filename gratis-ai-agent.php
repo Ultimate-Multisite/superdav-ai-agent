@@ -69,12 +69,9 @@ use GratisAiAgent\Abilities\StockImageAbilities;
 use GratisAiAgent\Abilities\ToolCapabilities;
 use GratisAiAgent\Abilities\WooCommerceAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
-use GratisAiAgent\Admin\AbilitiesExplorerAdminPage;
-use GratisAiAgent\Admin\AdminPage;
-use GratisAiAgent\Admin\ChangesAdminPage;
 use GratisAiAgent\Admin\FloatingWidget;
-use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
+use GratisAiAgent\Admin\UnifiedAdminMenu;
 use GratisAiAgent\Benchmark\BenchmarkRunner;
 use GratisAiAgent\Benchmark\BenchmarkSuite;
 use GratisAiAgent\REST\BenchmarkController;
@@ -118,11 +115,12 @@ add_action(
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
 add_action( 'rest_api_init', [ BenchmarkController::class, 'register_routes' ] );
-add_action( 'admin_menu', [ AdminPage::class, 'register' ] );
-add_action( 'admin_menu', [ ChangesAdminPage::class, 'register' ] );
-add_action( 'admin_menu', [ AbilitiesExplorerAdminPage::class, 'register' ] );
-add_action( 'admin_menu', [ ModelBenchmarkPage::class, 'register' ] );
-add_action( 'admin_menu', [ Settings::class, 'register' ] );
+
+// Unified admin menu — single top-level menu with hash-based React routing.
+add_action( 'admin_menu', [ UnifiedAdminMenu::class, 'register' ] );
+
+// Redirect old menu URLs to the unified structure.
+add_action( 'admin_init', [ UnifiedAdminMenu::class, 'handle_legacy_redirects' ] );
 
 // Register ability category.
 add_action(

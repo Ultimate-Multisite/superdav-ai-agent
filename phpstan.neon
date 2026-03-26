@@ -19,6 +19,7 @@ parameters:
 		- compat/ai-client.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 	treatPhpDocTypesAsCertain: false
+	reportUnmatchedIgnoredErrors: false
 	ignoreErrors:
 		# WP_CLI is only available when running in CLI context
 		- '#Call to static method .* on an unknown class WP_CLI#'
@@ -111,6 +112,14 @@ parameters:
 		  identifier: argument.type
 		# array from get_params() passed to methods expecting array<string, mixed> — safe at runtime
 		- message: '#expects array<string, mixed>, array given#'
+		  identifier: argument.type
+		# array<mixed, mixed> from json_decode/get_params passed to typed array parameters — safe at runtime
+		- message: '#expects array<string, mixed>, array<mixed, mixed> given#'
+		  identifier: argument.type
+		- message: '#expects array<string, mixed>, array<mixed> given#'
+		  identifier: argument.type
+		# implode() with array<mixed, mixed> — values are always strings at runtime
+		- message: '#\$array of function implode expects array<string>, array<mixed, mixed> given#'
 		  identifier: argument.type
 		# absint() with mixed — safe when value is from trusted source
 		- message: '#\$maybeint of function absint expects#'

@@ -34,5 +34,10 @@ module.exports = {
 			'src/abilities-explorer',
 			'index.js'
 		),
+		'benchmark-page': path.resolve(
+			process.cwd(),
+			'src/benchmark-page',
+			'index.js'
+		),
 	},
 };

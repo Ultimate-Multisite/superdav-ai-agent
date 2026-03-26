@@ -39,7 +39,8 @@
 	"config": {
 		"allow-plugins": {
 			"automattic/jetpack-autoloader": true,
-			"dealerdirect/phpcodesniffer-composer-installer": true
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"php-http/discovery": true
 		},
 		"platform": {
 			"php": "8.2.0"

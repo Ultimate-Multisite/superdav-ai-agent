@@ -103,6 +103,7 @@ export default function useSpeechRecognition( {
 		recognitionRef.current = recognition;
 		recognition.start();
 	}, [
+		SpeechRecognition,
 		isSupported,
 		isListening,
 		lang,
@@ -110,7 +111,7 @@ export default function useSpeechRecognition( {
 		interimResults,
 		onResult,
 		onEnd,
-	] ); // eslint-disable-line react-hooks/exhaustive-deps
+	] );
 
 	const stopListening = useCallback( () => {
 		if ( recognitionRef.current ) {

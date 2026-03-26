@@ -35,6 +35,10 @@ use WordPress\AiClient\AiClient;
  * @return WP_AI_Client_Prompt_Builder The prompt builder instance.
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- This is a core WordPress 6.9+ API compatibility function.
-function wp_ai_client_prompt( $prompt = null ) {
-	return new WP_AI_Client_Prompt_Builder( AiClient::defaultRegistry(), $prompt );
+function wp_ai_client_prompt( $prompt = null, array $options = array() ) {
+	$builder = new WP_AI_Client_Prompt_Builder( AiClient::defaultRegistry(), $prompt );
+	if ( ! empty( $options['model'] ) ) {
+		$builder->withModel( $options['model'] );
+	}
+	return $builder;
 }

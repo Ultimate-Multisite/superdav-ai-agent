@@ -33,6 +33,9 @@ function getInitialRoute() {
 	return window.gratisAiAgentData?.initialRoute || 'chat';
 }
 
+/**
+ *
+ */
 function UnifiedAdminApp() {
 	const [ currentRoute, setCurrentRoute ] = useState( getInitialRoute );
 	const [ notice, setNotice ] = useState( null );

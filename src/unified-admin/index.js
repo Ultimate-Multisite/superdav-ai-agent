@@ -29,7 +29,8 @@ function getInitialRoute() {
 /**
  * Unified Admin App Component
  *
- * Main entry point for the unified admin interface with hash-based routing.
+ * Main entry point for the unified admin SPA. Manages hash-based routing,
+ * listens for hashchange events, and updates the document title on navigation.
  *
  * @return {JSX.Element} App element.
  */

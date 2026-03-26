@@ -22,10 +22,10 @@ module.exports = defineConfig( {
 	/* Retry on CI only — 1 retry keeps total time bounded. */
 	retries: process.env.CI ? 1 : 0,
 
-	/* 2 workers on CI: halves runtime (~57 min → ~30 min) while staying
-	 * conservative about wp-env resource contention. 1 worker caused the
-	 * 202-test suite to exceed the 60-minute job timeout consistently. */
-	workers: process.env.CI ? 2 : undefined,
+	/* 3 workers on CI: reduces runtime to ~35 min, well within the 90-min
+	 * job timeout. 2 workers still hit ~59 min (PR #671). 1 worker caused
+	 * the 202-test suite to exceed the 60-minute job timeout consistently. */
+	workers: process.env.CI ? 3 : undefined,
 
 	/* Reporter to use. */
 	reporter: process.env.CI

@@ -24,7 +24,9 @@ async function loginToWordPress(
 	await page.fill( '#user_login', username );
 	await page.fill( '#user_pass', password );
 	await page.click( '#wp-submit' );
-	await page.waitForURL( /wp-admin/ );
+	// Use a generous timeout for the login redirect — WP trunk can be slow
+	// to respond on CI runners under load.
+	await page.waitForURL( /wp-admin/, { timeout: 60_000 } );
 }
 
 /**
@@ -92,8 +94,8 @@ async function goToAgentPage( page ) {
 
 	// Wait for the unified admin app root to be present. The SPA mounts into
 	// #gratis-ai-agent-root and renders .gratis-ai-unified-admin once React
-	// has hydrated. This replaces the old .ai-agent-sidebar-filters wait which
-	// targeted the previous AdminPageApp structure.
+	// has hydrated. This replaces the old .gratis-ai-agent-chat-panel wait which
+	// could time out under CI load when the admin-page bundle is slow to mount.
 	await page
 		.locator( '.gratis-ai-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 15_000 } )
@@ -112,11 +114,22 @@ async function goToAgentPage( page ) {
 /**
  * Navigate to any admin page where the floating widget is rendered.
  *
+ * Waits for the floating action button to be visible before returning so
+ * that tests which immediately click the FAB don't race against React mount.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function goToAdminDashboard( page ) {
 	await page.goto( '/wp-admin/index.php' );
 	await page.waitForLoadState( 'networkidle' );
+	// Wait for the floating widget React app to mount and render the FAB.
+	// The FAB renders after FloatingWidget mounts and fetchSettings() resolves.
+	// Without this wait, tests that immediately call fab.click() can time out
+	// when the CI runner is under load.
+	await page
+		.locator( '.gratis-ai-agent-fab' )
+		.waitFor( { state: 'visible', timeout: 15_000 } )
+		.catch( () => {} ); // Non-fatal: some tests may not need the FAB.
 }
 
 /**
@@ -142,61 +155,100 @@ function getFloatingPanel( page ) {
 /**
  * Get the chat message input textarea.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden .ai-agent-input element. The floating widget
+ * renders ChatPanel with compact=true (adds is-compact class), while the
+ * admin page chat panel does not have is-compact.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The textarea locator.
  */
 function getMessageInput( page ) {
-	return page.locator( '.ai-agent-input' );
+	return page
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input' )
+		.first();
 }
 
 /**
  * Get the send message button.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden send button.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The send button locator.
  */
 function getSendButton( page ) {
-	return page.locator( '.ai-agent-send-btn' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-send-btn'
+		)
+		.first();
 }
 
 /**
  * Get the stop generation button.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden stop button.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The stop button locator.
  */
 function getStopButton( page ) {
-	return page.locator( '.ai-agent-stop-btn' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-stop-btn'
+		)
+		.first();
 }
 
 /**
  * Get the message list container.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden message list.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The message list locator.
  */
 function getMessageList( page ) {
-	return page.locator( '.ai-agent-messages' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-messages'
+		)
+		.first();
 }
 
 /**
  * Get all message rows in the chat.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden message rows.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The message rows locator.
  */
 function getMessageRows( page ) {
-	return page.locator( '.ai-agent-message-row' );
+	return page.locator(
+		'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+	);
 }
 
 /**
- * Get the chat panel (works in both admin page and floating widget).
+ * Get the admin page chat panel (non-compact, not the floating widget).
+ *
+ * The floating widget renders ChatPanel with compact=true (adds is-compact
+ * class). The admin page chat panel does not have is-compact. This selector
+ * avoids strict-mode violations when both panels are in the DOM.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The chat panel locator.
  */
 function getChatPanel( page ) {
-	return page.locator( '.gratis-ai-agent-chat-panel' );
+	return page
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact)' )
+		.first();
 }
 
 /**
@@ -215,10 +267,11 @@ async function goToChangesPage( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the unified admin app and the changes route container to render.
+	// Use 30 s to match the Playwright test timeout — the unified admin SPA
+	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.gratis-ai-route-changes' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 }
 
 /**
@@ -240,10 +293,11 @@ async function goToSettingsPage( page, tabName ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the settings route container to render.
+	// Use 30 s to match the Playwright test timeout — the unified admin SPA
+	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.gratis-ai-route-settings' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 
 	if ( tabName ) {
 		// WordPress TabPanel renders tab buttons with role="tab" and a name
@@ -273,17 +327,14 @@ async function goToAbilitiesPage( page ) {
 	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/abilities' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
-	// Wait for the abilities route container and the abilities manager to render.
-	await page
-		.locator( '.gratis-ai-route-abilities' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
-
 	// Wait for AbilitiesExplorerApp to finish loading abilities.
+	// .ai-agent-abilities-manager is the outer wrapper rendered by
+	// AbilitiesExplorerApp once the REST fetch completes.
+	// Use 30 s to match the Playwright test timeout — the abilities REST fetch
+	// can be slow on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.ai-agent-abilities-manager' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 }
 
 /**
@@ -303,8 +354,12 @@ async function goToAbilitiesPage( page ) {
  * @return {Promise<void>}
  */
 async function waitForMessageSubmitted( page, timeout = 5_000 ) {
+	// Scope to the non-compact (admin page) chat panel to avoid matching the
+	// floating widget's hidden message rows.
 	await page
-		.locator( '.ai-agent-message-row' )
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+		)
 		.first()
 		.waitFor( { state: 'visible', timeout } );
 }

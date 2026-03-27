@@ -77,27 +77,35 @@ test.describe( 'Changes Page - REST Endpoint', () => {
 	test( 'REST endpoint for modified plugins returns expected shape', async ( {
 		page,
 	} ) => {
-		// Navigate to the changes page so the nonce is available via
-		// window.gratisAiAgentData, then verify the endpoint returns the
-		// expected JSON shape.
+		// Navigate to the changes page so the nonce and wpApiSettings are
+		// available in the page context.
 		await goToChangesPage( page );
 
 		const apiResponse = await page.evaluate( async () => {
 			const nonce = window.gratisAiAgentData?.nonce || '';
-			const restNamespace = window.gratisAiAgentData?.restNamespace || 'gratis-ai-agent/v1';
-			const restUrl = `/wp-json/${ restNamespace }`;
 			if ( ! nonce ) {
 				return { status: 0, body: null };
 			}
-			const res = await fetch( `${ restUrl }/modified-plugins`, {
+			// Use wpApiSettings.root (set by wp_localize_script for wp-api-fetch)
+			// which handles both pretty-permalink (/wp-json/) and plain-permalink
+			// (?rest_route=) environments. Fall back to the plain-permalink format
+			// if wpApiSettings is unavailable (e.g. wp-env without pretty permalinks).
+			const apiRoot =
+				window.wpApiSettings?.root ||
+				window.location.origin + '/?rest_route=/';
+			const endpoint = `${ apiRoot }gratis-ai-agent/v1/modified-plugins`;
+			const res = await fetch( endpoint, {
 				headers: {
 					'X-WP-Nonce': nonce,
 				},
 			} );
-			return {
-				status: res.status,
-				body: await res.json(),
-			};
+			let body = null;
+			try {
+				body = await res.json();
+			} catch ( e ) {
+				body = null;
+			}
+			return { status: res.status, body };
 		} );
 
 		// Endpoint must return 200.
@@ -115,20 +123,25 @@ test.describe( 'Changes Page - REST Endpoint', () => {
 
 		const apiResponse = await page.evaluate( async () => {
 			const nonce = window.gratisAiAgentData?.nonce || '';
-			const restNamespace = window.gratisAiAgentData?.restNamespace || 'gratis-ai-agent/v1';
-			const restUrl = `/wp-json/${ restNamespace }`;
 			if ( ! nonce ) {
 				return { status: 0, body: null };
 			}
-			const res = await fetch( `${ restUrl }/modified-plugins`, {
+			const apiRoot =
+				window.wpApiSettings?.root ||
+				window.location.origin + '/?rest_route=/';
+			const endpoint = `${ apiRoot }gratis-ai-agent/v1/modified-plugins`;
+			const res = await fetch( endpoint, {
 				headers: {
 					'X-WP-Nonce': nonce,
 				},
 			} );
-			return {
-				status: res.status,
-				body: await res.json(),
-			};
+			let body = null;
+			try {
+				body = await res.json();
+			} catch ( e ) {
+				body = null;
+			}
+			return { status: res.status, body };
 		} );
 
 		expect( apiResponse.status ).toBe( 200 );

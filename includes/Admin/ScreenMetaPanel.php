@@ -38,8 +38,14 @@ class ScreenMetaPanel {
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 */
 	public static function enqueue_assets( string $hook_suffix ): void {
-		// Skip the dedicated full-page admin page.
-		if ( 'tools_page_' . AdminPage::SLUG === $hook_suffix ) {
+		// Skip the dedicated full-page admin page (UnifiedAdminMenu registers as
+		// a top-level menu page, so the hook suffix is toplevel_page_<slug>).
+		// Submenu pages under the same slug use <parent>_page_<slug> suffixes.
+		if ( 'toplevel_page_' . UnifiedAdminMenu::SLUG === $hook_suffix ) {
+			return;
+		}
+		// Also skip any submenu page under the unified admin.
+		if ( strpos( $hook_suffix, '_page_' . UnifiedAdminMenu::SLUG ) !== false ) {
 			return;
 		}
 

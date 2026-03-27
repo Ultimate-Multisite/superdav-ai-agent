@@ -3,23 +3,18 @@
  *
  * Lists all registered WordPress abilities with name, description,
  * configuration status, required API keys, annotations, and output schema.
+ * Abilities are grouped by category with collapsible sections.
  */
 
 /**
  * WordPress dependencies
  */
-import { useEffect, useState, useCallback } from '@wordpress/element';
+import { useEffect, useState, useCallback, useMemo } from '@wordpress/element';
 import {
 	SearchControl,
 	SelectControl,
 	Spinner,
 	Notice,
-	Card,
-	CardHeader,
-	CardBody,
-	Flex,
-	FlexItem,
-	FlexBlock,
 	Button,
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
@@ -100,12 +95,12 @@ function AnnotationBadge( { label, active, intent } ) {
 }
 
 /**
- * Single ability card component with expandable output schema.
+ * Single ability row component.
  *
  * @param {Object} props
  * @param {Object} props.ability Ability data object from the REST API.
  */
-function AbilityCard( { ability } ) {
+function AbilityRow( { ability } ) {
 	const [ expanded, setExpanded ] = useState( false );
 
 	const {
@@ -123,123 +118,85 @@ function AbilityCard( { ability } ) {
 	} = ability;
 
 	return (
-		<Card className="gratis-ability-card">
-			<CardHeader>
-				<Flex justify="space-between" align="center" wrap={ true }>
-					<FlexBlock>
-						<div className="gratis-ability-title">
-							{ label || name }
-						</div>
-						<div className="gratis-ability-name">{ name }</div>
-					</FlexBlock>
-					<FlexItem>
-						<Flex gap={ 1 } wrap={ true }>
-							<FlexItem>
-								{ isConfigured ? (
-									<Badge intent="success">
-										{ __(
-											'Configured',
-											'gratis-ai-agent'
-										) }
-									</Badge>
-								) : (
-									<Badge intent="warning">
-										{ __(
-											'Needs Setup',
-											'gratis-ai-agent'
-										) }
-									</Badge>
-								) }
-							</FlexItem>
-							<FlexItem>
-								<AnnotationBadge
-									label={ __(
-										'destructive',
-										'gratis-ai-agent'
-									) }
-									active={ annotations.destructive }
-									intent="error"
-								/>
-							</FlexItem>
-							<FlexItem>
-								<AnnotationBadge
-									label={ __(
-										'readonly',
-										'gratis-ai-agent'
-									) }
-									active={ annotations.readonly }
-									intent="info"
-								/>
-							</FlexItem>
-							<FlexItem>
-								<AnnotationBadge
-									label={ __(
-										'idempotent',
-										'gratis-ai-agent'
-									) }
-									active={ annotations.idempotent }
-									intent="success"
-								/>
-							</FlexItem>
-							{ showInRest && (
-								<FlexItem>
-									<Badge intent="default">
-										{ __( 'REST', 'gratis-ai-agent' ) }
-									</Badge>
-								</FlexItem>
-							) }
-						</Flex>
-					</FlexItem>
-				</Flex>
-			</CardHeader>
-			<CardBody>
+		<div className="gratis-ability-row">
+			<div className="gratis-ability-row-header">
+				<div className="gratis-ability-title">{ label || name }</div>
+				<div className="gratis-ability-name">{ name }</div>
+				<div className="gratis-ability-badges">
+					{ isConfigured ? (
+						<Badge intent="success">
+							{ __( 'Configured', 'gratis-ai-agent' ) }
+						</Badge>
+					) : (
+						<Badge intent="warning">
+							{ __( 'Needs Setup', 'gratis-ai-agent' ) }
+						</Badge>
+					) }
+					<AnnotationBadge
+						label={ __( 'destructive', 'gratis-ai-agent' ) }
+						active={ annotations.destructive }
+						intent="error"
+					/>
+					<AnnotationBadge
+						label={ __( 'readonly', 'gratis-ai-agent' ) }
+						active={ annotations.readonly }
+						intent="info"
+					/>
+					<AnnotationBadge
+						label={ __( 'idempotent', 'gratis-ai-agent' ) }
+						active={ annotations.idempotent }
+						intent="success"
+					/>
+					{ showInRest && (
+						<Badge intent="default">
+							{ __( 'REST', 'gratis-ai-agent' ) }
+						</Badge>
+					) }
+				</div>
+			</div>
+			<div className="gratis-ability-row-body">
 				<p className="gratis-ability-category">{ category }</p>
 				<p className="gratis-ability-description">
 					{ description ||
 						__( 'No description available.', 'gratis-ai-agent' ) }
 				</p>
-				<Flex gap={ 3 } wrap={ true } className="gratis-ability-meta">
-					<FlexItem>
-						<span className="gratis-ability-params">
-							{ paramCount === 1
-								? __( '1 parameter', 'gratis-ai-agent' )
-								: sprintf(
-										/* translators: %d: number of parameters */
-										__(
-											'%d parameters',
-											'gratis-ai-agent'
-										),
-										paramCount
-								  ) }
+				<div className="gratis-ability-meta">
+					<span className="gratis-ability-params">
+						{ paramCount === 1
+							? __( '1 parameter', 'gratis-ai-agent' )
+							: sprintf(
+									/* translators: %d: number of parameters */
+									__( '%d parameters', 'gratis-ai-agent' ),
+									paramCount
+							  ) }
+					</span>
+					{ requiredParams && requiredParams.length > 0 && (
+						<span className="gratis-ability-required">
+							{ __( 'Required:', 'gratis-ai-agent' ) }{ ' ' }
+							<code>{ requiredParams.join( ', ' ) }</code>
 						</span>
-					</FlexItem>
-					{ requiredParams.length > 0 && (
-						<FlexItem>
-							<span className="gratis-ability-required">
-								{ __( 'Required:', 'gratis-ai-agent' ) }{ ' ' }
-								<code>{ requiredParams.join( ', ' ) }</code>
-							</span>
-						</FlexItem>
 					) }
-				</Flex>
-				{ ! isConfigured && requiredApiKeys.length > 0 && (
-					<Notice
-						status="warning"
-						isDismissible={ false }
-						className="gratis-ability-notice"
-					>
-						{ __( 'Requires:', 'gratis-ai-agent' ) }{ ' ' }
-						{ requiredApiKeys.join( ', ' ) }{ ' ' }
-						{ gratisAiAgentAbilities?.settingsUrl && (
-							<a href={ gratisAiAgentAbilities.settingsUrl }>
-								{ __(
-									'Configure in Settings',
-									'gratis-ai-agent'
-								) }
-							</a>
-						) }
-					</Notice>
-				) }
+				</div>
+				{ ! isConfigured &&
+					requiredApiKeys &&
+					requiredApiKeys.length > 0 && (
+						<Notice
+							status="warning"
+							isDismissible={ false }
+							className="gratis-ability-notice"
+						>
+							{ __( 'Requires:', 'gratis-ai-agent' ) }{ ' ' }
+							{ requiredApiKeys.join( ', ' ) }{ ' ' }
+							{ gratisAiAgentAbilities?.settingsUrl && (
+								<a href={ gratisAiAgentAbilities.settingsUrl }>
+									{ __(
+										'Configure in Settings',
+										'gratis-ai-agent'
+									) }
+								</a>
+							) }
+						</Notice>
+					) }
 				{ outputSchema && Object.keys( outputSchema ).length > 0 && (
 					<div className="gratis-ability-schema-toggle">
 						<Button
@@ -261,13 +218,68 @@ function AbilityCard( { ability } ) {
 						) }
 					</div>
 				) }
-			</CardBody>
-		</Card>
+			</div>
+		</div>
+	);
+}
+
+/**
+ * Collapsible category section component.
+ *
+ * Renders a header with the category name and ability count badge,
+ * and a collapsible body containing the ability rows.
+ *
+ * @param {Object}   props
+ * @param {string}   props.category  Category name.
+ * @param {Array}    props.abilities Abilities in this category.
+ * @param {boolean}  props.open      Whether the section is expanded.
+ * @param {Function} props.onToggle  Callback to toggle open/closed state.
+ */
+function CategorySection( { category, abilities, open, onToggle } ) {
+	return (
+		<div className="ai-agent-abilities-category">
+			<button
+				type="button"
+				className="ai-agent-abilities-category-header"
+				onClick={ onToggle }
+				aria-expanded={ open }
+			>
+				<span className="ai-agent-abilities-category-name">
+					{ category }
+				</span>
+				<span className="ai-agent-abilities-category-count">
+					{ abilities.length }
+				</span>
+			</button>
+			{ open && (
+				<div className="ai-agent-abilities-category-body">
+					{ abilities.map( ( ability ) => (
+						<AbilityRow key={ ability.name } ability={ ability } />
+					) ) }
+				</div>
+			) }
+		</div>
 	);
 }
 
 /**
  * Main Abilities Explorer application component.
+ *
+ * Renders abilities grouped by category with:
+ *   - A SearchControl that filters by name/description.
+ *   - A SelectControl that filters by category.
+ *   - Collapsible category sections with Expand all / Collapse all buttons.
+ *   - A result count paragraph that updates as filters change.
+ *
+ * CSS classes used by E2E tests:
+ *   .ai-agent-abilities-manager       — outer wrapper
+ *   .ai-agent-abilities-search        — SearchControl wrapper
+ *   .ai-agent-abilities-filters       — category SelectControl wrapper
+ *   .ai-agent-abilities-count         — count paragraph
+ *   .ai-agent-abilities-category      — per-category section
+ *   .ai-agent-abilities-category-header — clickable header button
+ *   .ai-agent-abilities-category-body   — collapsible body
+ *   .ai-agent-abilities-category-count  — count badge in header
  */
 export default function AbilitiesExplorerApp() {
 	const [ abilities, setAbilities ] = useState( [] );
@@ -275,7 +287,8 @@ export default function AbilitiesExplorerApp() {
 	const [ error, setError ] = useState( null );
 	const [ search, setSearch ] = useState( '' );
 	const [ categoryFilter, setCategoryFilter ] = useState( '' );
-	const [ statusFilter, setStatusFilter ] = useState( '' );
+	// Map of category name → open state. True = expanded.
+	const [ openCategories, setOpenCategories ] = useState( {} );
 
 	useEffect( () => {
 		apiFetch( { path: '/gratis-ai-agent/v1/abilities/explorer' } )
@@ -293,46 +306,114 @@ export default function AbilitiesExplorerApp() {
 	}, [] );
 
 	// Derive unique categories for the filter dropdown.
-	const categories = [
-		{ label: __( 'All Categories', 'gratis-ai-agent' ), value: '' },
-		...[ ...new Set( abilities.map( ( a ) => a.category ) ) ]
-			.sort()
-			.map( ( cat ) => ( { label: cat, value: cat } ) ),
-	];
+	const categoryOptions = useMemo(
+		() => [
+			{ label: __( 'All Categories', 'gratis-ai-agent' ), value: '' },
+			...[ ...new Set( abilities.map( ( a ) => a.category ) ) ]
+				.sort()
+				.map( ( cat ) => ( { label: cat, value: cat } ) ),
+		],
+		[ abilities ]
+	);
 
-	const statusOptions = [
-		{ label: __( 'All Statuses', 'gratis-ai-agent' ), value: '' },
-		{
-			label: __( 'Configured', 'gratis-ai-agent' ),
-			value: 'configured',
-		},
-		{
-			label: __( 'Needs Setup', 'gratis-ai-agent' ),
-			value: 'needs-setup',
-		},
-	];
-
-	const filtered = abilities.filter( ( ability ) => {
+	// Filtered abilities based on search and category filter.
+	const filtered = useMemo( () => {
 		const searchLower = search.toLowerCase();
-		const matchesSearch =
-			! search ||
-			ability.label.toLowerCase().includes( searchLower ) ||
-			ability.name.toLowerCase().includes( searchLower ) ||
-			( ability.description || '' ).toLowerCase().includes( searchLower );
+		return abilities.filter( ( ability ) => {
+			const matchesSearch =
+				! search ||
+				( ability.label || '' ).toLowerCase().includes( searchLower ) ||
+				ability.name.toLowerCase().includes( searchLower ) ||
+				( ability.description || '' )
+					.toLowerCase()
+					.includes( searchLower );
 
-		const matchesCategory =
-			! categoryFilter || ability.category === categoryFilter;
+			const matchesCategory =
+				! categoryFilter || ability.category === categoryFilter;
 
-		const matchesStatus =
-			! statusFilter ||
-			( statusFilter === 'configured' && ability.is_configured ) ||
-			( statusFilter === 'needs-setup' && ! ability.is_configured );
+			return matchesSearch && matchesCategory;
+		} );
+	}, [ abilities, search, categoryFilter ] );
 
-		return matchesSearch && matchesCategory && matchesStatus;
-	} );
+	// Group filtered abilities by category.
+	const groupedByCategory = useMemo( () => {
+		const groups = {};
+		for ( const ability of filtered ) {
+			if ( ! groups[ ability.category ] ) {
+				groups[ ability.category ] = [];
+			}
+			groups[ ability.category ].push( ability );
+		}
+		return groups;
+	}, [ filtered ] );
+
+	const sortedCategories = useMemo(
+		() => Object.keys( groupedByCategory ).sort(),
+		[ groupedByCategory ]
+	);
+
+	// When filtering is active, auto-expand all categories.
+	const isFiltering = search !== '' || categoryFilter !== '';
+
+	// Initialise open state when abilities load or categories change.
+	useEffect( () => {
+		if ( abilities.length === 0 ) {
+			return;
+		}
+		setOpenCategories( ( prev ) => {
+			const next = { ...prev };
+			for ( const cat of sortedCategories ) {
+				if ( ! ( cat in next ) ) {
+					// Default to open.
+					next[ cat ] = true;
+				}
+			}
+			return next;
+		} );
+	}, [ abilities, sortedCategories ] );
+
+	// Auto-expand all categories when a filter is active.
+	useEffect( () => {
+		if ( isFiltering ) {
+			setOpenCategories( ( prev ) => {
+				const next = { ...prev };
+				for ( const cat of sortedCategories ) {
+					next[ cat ] = true;
+				}
+				return next;
+			} );
+		}
+	}, [ isFiltering, sortedCategories ] );
 
 	const handleSearchChange = useCallback( ( value ) => {
 		setSearch( value );
+	}, [] );
+
+	const handleCollapseAll = useCallback( () => {
+		setOpenCategories( ( prev ) => {
+			const next = { ...prev };
+			for ( const cat of Object.keys( next ) ) {
+				next[ cat ] = false;
+			}
+			return next;
+		} );
+	}, [] );
+
+	const handleExpandAll = useCallback( () => {
+		setOpenCategories( ( prev ) => {
+			const next = { ...prev };
+			for ( const cat of Object.keys( next ) ) {
+				next[ cat ] = true;
+			}
+			return next;
+		} );
+	}, [] );
+
+	const handleToggleCategory = useCallback( ( category ) => {
+		setOpenCategories( ( prev ) => ( {
+			...prev,
+			[ category ]: ! prev[ category ],
+		} ) );
 	}, [] );
 
 	if ( loading ) {
@@ -353,10 +434,11 @@ export default function AbilitiesExplorerApp() {
 	}
 
 	return (
-		<div className="gratis-abilities-explorer">
-			<div className="gratis-abilities-toolbar">
-				<Flex gap={ 3 } wrap={ true } align="flex-end">
-					<FlexBlock className="gratis-abilities-search">
+		<div className="ai-agent-abilities-manager">
+			{ /* Toolbar: search, category filter, expand/collapse controls */ }
+			<div className="ai-agent-abilities-toolbar">
+				<div className="ai-agent-abilities-controls">
+					<div className="ai-agent-abilities-search">
 						<SearchControl
 							label={ __(
 								'Search abilities',
@@ -369,25 +451,28 @@ export default function AbilitiesExplorerApp() {
 								'gratis-ai-agent'
 							) }
 						/>
-					</FlexBlock>
-					<FlexItem>
+					</div>
+					<div className="ai-agent-abilities-filters">
 						<SelectControl
 							label={ __( 'Category', 'gratis-ai-agent' ) }
 							value={ categoryFilter }
-							options={ categories }
+							options={ categoryOptions }
 							onChange={ setCategoryFilter }
 						/>
-					</FlexItem>
-					<FlexItem>
-						<SelectControl
-							label={ __( 'Status', 'gratis-ai-agent' ) }
-							value={ statusFilter }
-							options={ statusOptions }
-							onChange={ setStatusFilter }
-						/>
-					</FlexItem>
-				</Flex>
-				<p className="gratis-abilities-count">
+					</div>
+					<div className="ai-agent-abilities-bulk-actions">
+						<Button
+							variant="tertiary"
+							onClick={ handleCollapseAll }
+						>
+							{ __( 'Collapse all', 'gratis-ai-agent' ) }
+						</Button>
+						<Button variant="tertiary" onClick={ handleExpandAll }>
+							{ __( 'Expand all', 'gratis-ai-agent' ) }
+						</Button>
+					</div>
+				</div>
+				<p className="ai-agent-abilities-count">
 					{ filtered.length === abilities.length
 						? sprintf(
 								/* translators: %d: total number of abilities */
@@ -409,17 +494,29 @@ export default function AbilitiesExplorerApp() {
 				</p>
 			</div>
 
+			{ /* Category sections */ }
 			{ filtered.length === 0 ? (
-				<Notice status="info" isDismissible={ false }>
-					{ __(
-						'No abilities match your filters.',
-						'gratis-ai-agent'
-					) }
-				</Notice>
+				<p className="ai-agent-abilities-no-results">
+					{ abilities.length === 0
+						? __(
+								'No abilities are registered.',
+								'gratis-ai-agent'
+						  )
+						: __(
+								'No abilities match your current filters.',
+								'gratis-ai-agent'
+						  ) }
+				</p>
 			) : (
-				<div className="gratis-abilities-grid">
-					{ filtered.map( ( ability ) => (
-						<AbilityCard key={ ability.name } ability={ ability } />
+				<div className="ai-agent-abilities-list">
+					{ sortedCategories.map( ( category ) => (
+						<CategorySection
+							key={ category }
+							category={ category }
+							abilities={ groupedByCategory[ category ] }
+							open={ !! openCategories[ category ] }
+							onToggle={ () => handleToggleCategory( category ) }
+						/>
 					) ) }
 				</div>
 			) }

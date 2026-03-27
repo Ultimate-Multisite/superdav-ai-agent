@@ -127,3 +127,135 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* ── New category-grouped layout (CategorySection component) ── */
+
+.ai-agent-abilities-manager {
+	margin-top: 16px;
+}
+
+.ai-agent-abilities-toolbar {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 16px;
+	margin-bottom: 16px;
+}
+
+.ai-agent-abilities-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-end;
+}
+
+.ai-agent-abilities-search {
+	flex: 1 1 200px;
+}
+
+.ai-agent-abilities-filters {
+	flex: 0 1 200px;
+}
+
+.ai-agent-abilities-bulk-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.ai-agent-abilities-count {
+	font-size: 12px;
+	color: #757575;
+	margin: 8px 0 0;
+}
+
+.ai-agent-abilities-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ai-agent-abilities-no-results {
+	color: #757575;
+	font-style: italic;
+	padding: 16px 0;
+}
+
+/* Category section */
+.ai-agent-abilities-category {
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.ai-agent-abilities-category-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 10px 16px;
+	background: #f6f7f7;
+	border: none;
+	border-bottom: 1px solid #ddd;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	text-align: left;
+	color: #1e1e1e;
+}
+
+.ai-agent-abilities-category-header:hover {
+	background: #f0f0f0;
+}
+
+.ai-agent-abilities-category-name {
+	flex: 1;
+}
+
+.ai-agent-abilities-category-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	background: #c3c4c7;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	color: #1e1e1e;
+}
+
+.ai-agent-abilities-category-body {
+	padding: 8px 0;
+}
+
+/* Ability row inside a category */
+.gratis-ability-row {
+	padding: 10px 16px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.gratis-ability-row:last-child {
+	border-bottom: none;
+}
+
+.gratis-ability-row-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.gratis-ability-row-body {
+	padding-left: 0;
+}
+
+.gratis-ability-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-left: auto;
+}

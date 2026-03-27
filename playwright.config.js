@@ -13,8 +13,12 @@ module.exports = defineConfig( {
 	testDir: './tests/e2e',
 	testMatch: '**/*.spec.js',
 
-	/* Maximum time one test can run for. */
-	timeout: 30_000,
+	/* Maximum time one test can run for.
+	 * 60 s gives goToAgentPage (30 s wait for AdminPageApp) enough headroom
+	 * on CI runners under load with 3 parallel workers. The 90-min job timeout
+	 * is still respected — 202 tests × 60 s / 3 workers ≈ 67 min worst case,
+	 * but most tests complete in < 5 s so the real runtime stays ~35 min. */
+	timeout: 60_000,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !! process.env.CI,

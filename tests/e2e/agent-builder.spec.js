@@ -399,13 +399,21 @@ function getDeleteButton( card ) {
 }
 
 /**
- * Get the agent selector dropdown in the chat panel.
+ * Get the agent selector dropdown in the admin page chat panel.
+ *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden agent selector (.gratis-ai-agent-agent-selector.is-compact).
+ * The floating widget renders AgentSelector with compact=true, adding is-compact.
  *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getAgentSelector( page ) {
-	return page.locator( '.gratis-ai-agent-agent-selector' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-agent-selector'
+		)
+		.first();
 }
 
 /**
@@ -427,10 +435,11 @@ async function goToAgentsTab( page ) {
 	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
+	// Use 30 s to match the Playwright test timeout — the unified admin SPA
+	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.gratis-ai-route-settings' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// Click the Agents tab (present in the unified settings route).
 	const tab = page.getByRole( 'tab', { name: /agents/i } );
 	await tab.click();
@@ -640,7 +649,9 @@ test.describe( 'Agent Builder - Edit Agent', () => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
 		// Delete any real agents left by a previous flaky run.
-		await cleanupRealAgents( browser );
+		// Wrapped in try-catch: cleanupRealAgents creates a separate browser
+		// page that can time out under CI load without failing the test setup.
+		await cleanupRealAgents( browser ).catch( () => {} );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );

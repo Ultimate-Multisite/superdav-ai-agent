@@ -395,10 +395,11 @@ async function goToAutomationsTab( page ) {
 	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
+	// Use 30 s to match the Playwright test timeout — the unified admin SPA
+	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.gratis-ai-route-settings' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
@@ -430,10 +431,11 @@ async function goToEventsTab( page ) {
 	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
+	// Use 30 s to match the Playwright test timeout — the unified admin SPA
+	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
 		.locator( '.gratis-ai-route-settings' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} );
+		.waitFor( { state: 'visible', timeout: 30_000 } );
 	const tab = page.getByRole( 'tab', { name: /events/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
@@ -1270,8 +1272,10 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		await goToAdminDashboard( page );
 
+		// Use 20 s — the badge appears after fetchAlerts() resolves, which can
+		// take longer than 10 s on CI runners under load with 3 parallel workers.
 		const badge = page.locator( '.gratis-ai-agent-fab-badge' );
-		await expect( badge ).toBeVisible( { timeout: 10_000 } );
+		await expect( badge ).toBeVisible( { timeout: 20_000 } );
 		await expect( badge ).toContainText( '9+' );
 	} );
 

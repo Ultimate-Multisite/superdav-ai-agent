@@ -31,51 +31,81 @@ const {
 /**
  * Get the paperclip upload button locator.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden upload button.
+ *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getUploadButton( page ) {
-	return page.locator( '.ai-agent-upload-btn' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-upload-btn'
+		)
+		.first();
 }
 
 /**
  * Get the hidden file input locator.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden file input.
+ *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getFileInput( page ) {
-	return page.locator( '.ai-agent-file-input' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-file-input'
+		)
+		.first();
 }
 
 /**
  * Get the attachment preview strip locator.
  *
+ * Scoped to the non-compact (admin page) chat panel.
+ *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getAttachmentPreviews( page ) {
-	return page.locator( '.ai-agent-attachment-previews' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-attachment-previews'
+		)
+		.first();
 }
 
 /**
  * Get all attachment thumbnail locators.
  *
+ * Scoped to the non-compact (admin page) chat panel.
+ *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getAttachmentThumbs( page ) {
-	return page.locator( '.ai-agent-attachment-thumb' );
+	return page.locator(
+		'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-attachment-thumb'
+	);
 }
 
 /**
  * Get the input area wrapper (drag-drop target).
  *
+ * Scoped to the non-compact (admin page) chat panel.
+ *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getInputArea( page ) {
-	return page.locator( '.ai-agent-input-area' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input-area'
+		)
+		.first();
 }
 
 /**

@@ -184,8 +184,53 @@ function AdminPageApp() {
 	);
 }
 
-const container = document.getElementById( 'gratis-ai-agent-root' );
-if ( container ) {
+/**
+ * Mount the AdminPageApp into a given container element.
+ *
+ * Called by the unified admin's ChatRoute via window.gratisAiAgentChat.mount().
+ * Returns a root instance so the caller can unmount cleanly.
+ *
+ * @param {HTMLElement} container - DOM element to mount into.
+ * @return {import('@wordpress/element').Root} React root.
+ */
+function mountAdminPageApp( container ) {
 	const root = createRoot( container );
 	root.render( <AdminPageApp /> );
+	return root;
 }
+
+/**
+ * Expose the mount/unmount API for the unified admin's ChatRoute.
+ *
+ * The unified admin (src/unified-admin/routes/chat.js) calls
+ * window.gratisAiAgentChat.mount(container) to embed the full chat UI
+ * (sidebar + chat panel) inside the #gratis-ai-chat-container div that
+ * ChatRoute renders. This avoids the old pattern of both the unified admin
+ * and the admin-page bundle competing to mount into #gratis-ai-agent-root.
+ */
+window.gratisAiAgentChat = {
+	/**
+	 * Mount the admin page app into the given container.
+	 *
+	 * @param {HTMLElement} container - Target DOM element.
+	 */
+	mount( container ) {
+		if ( ! container ) {
+			return;
+		}
+		// Store the root so unmount() can tear it down cleanly.
+		container.__gratisAiRoot = mountAdminPageApp( container );
+	},
+
+	/**
+	 * Unmount the admin page app from the given container.
+	 *
+	 * @param {HTMLElement} container - Target DOM element.
+	 */
+	unmount( container ) {
+		if ( container && container.__gratisAiRoot ) {
+			container.__gratisAiRoot.unmount();
+			delete container.__gratisAiRoot;
+		}
+	},
+};

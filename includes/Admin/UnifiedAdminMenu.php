@@ -110,6 +110,12 @@ class UnifiedAdminMenu {
 	/**
 	 * Enqueue the unified React app.
 	 *
+	 * Also enqueues the admin-page bundle which exposes window.gratisAiAgentChat.
+	 * ChatRoute (src/unified-admin/routes/chat.js) calls
+	 * window.gratisAiAgentChat.mount(container) to embed the full chat UI
+	 * (AdminPageApp) inside the #gratis-ai-chat-container div. Without this
+	 * bundle the mount API is undefined and the chat panel never renders.
+	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 */
 	public static function enqueueAssets( string $hook_suffix ): void {
@@ -151,6 +157,31 @@ class UnifiedAdminMenu {
 			$asset['version'],
 			true
 		);
+
+		// Enqueue the admin-page bundle which sets window.gratisAiAgentChat.
+		// ChatRoute calls window.gratisAiAgentChat.mount(container) to render
+		// AdminPageApp inside #gratis-ai-chat-container. This bundle must load
+		// after unified-admin.js so the container element exists in the DOM.
+		$admin_page_asset_file = GRATIS_AI_AGENT_DIR . '/build/admin-page.asset.php';
+		if ( file_exists( $admin_page_asset_file ) ) {
+			/** @var array{dependencies: string[], version: string} $admin_page_asset */
+			$admin_page_asset = require $admin_page_asset_file;
+
+			wp_enqueue_style(
+				'gratis-ai-agent-admin-page',
+				GRATIS_AI_AGENT_URL . 'build/style-admin-page.css',
+				[ 'wp-components' ],
+				$admin_page_asset['version']
+			);
+
+			wp_enqueue_script(
+				'gratis-ai-agent-admin-page',
+				GRATIS_AI_AGENT_URL . 'build/admin-page.js',
+				array_merge( $admin_page_asset['dependencies'], [ 'gratis-ai-agent-unified-admin' ] ),
+				$admin_page_asset['version'],
+				true
+			);
+		}
 
 		$current_user = wp_get_current_user();
 

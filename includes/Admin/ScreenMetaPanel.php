@@ -45,7 +45,7 @@ class ScreenMetaPanel {
 			return;
 		}
 		// Also skip any submenu page under the unified admin.
-		if ( str_contains( $hook_suffix, '_page_' . UnifiedAdminMenu::SLUG ) ) {
+		if ( strpos( $hook_suffix, '_page_' . UnifiedAdminMenu::SLUG ) !== false ) {
 			return;
 		}
 

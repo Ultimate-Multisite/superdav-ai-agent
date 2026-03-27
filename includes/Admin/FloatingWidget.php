@@ -45,7 +45,7 @@ class FloatingWidget {
 			return;
 		}
 		// Also skip any submenu page under the unified admin (e.g. abilities, settings).
-		if ( str_contains( $hook_suffix, '_page_' . UnifiedAdminMenu::SLUG ) ) {
+		if ( strpos( $hook_suffix, '_page_' . UnifiedAdminMenu::SLUG ) !== false ) {
 			return;
 		}
 

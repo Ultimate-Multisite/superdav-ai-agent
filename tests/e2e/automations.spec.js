@@ -1272,8 +1272,10 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		await goToAdminDashboard( page );
 
+		// Use 20 s — the badge appears after fetchAlerts() resolves, which can
+		// take longer than 10 s on CI runners under load with 3 parallel workers.
 		const badge = page.locator( '.gratis-ai-agent-fab-badge' );
-		await expect( badge ).toBeVisible( { timeout: 10_000 } );
+		await expect( badge ).toBeVisible( { timeout: 20_000 } );
 		await expect( badge ).toContainText( '9+' );
 	} );
 

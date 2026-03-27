@@ -64,10 +64,12 @@ export default function ChatRoute() {
 			};
 		}
 
-		// Poll every 50 ms for up to 10 s waiting for admin-page.js to load
+		// Poll every 50 ms for up to 30 s waiting for admin-page.js to load
 		// and expose window.gratisAiAgentChat. This handles the race condition
 		// where unified-admin.js renders ChatRoute before admin-page.js has
 		// finished executing (both are loaded as async scripts).
+		// 30 s matches the goToAgentPage() wait timeout in tests/e2e/utils/wp-admin.js
+		// so the chat panel always has a chance to mount before the test times out.
 		let intervalId = setInterval( () => {
 			if ( tryMount() ) {
 				clearInterval( intervalId );
@@ -75,13 +77,13 @@ export default function ChatRoute() {
 			}
 		}, 50 );
 
-		// Safety timeout: stop polling after 10 s to avoid an infinite loop.
+		// Safety timeout: stop polling after 30 s to avoid an infinite loop.
 		const timeoutId = setTimeout( () => {
 			if ( intervalId ) {
 				clearInterval( intervalId );
 				intervalId = null;
 			}
-		}, 10_000 );
+		}, 30_000 );
 
 		// Cleanup: stop polling and unmount the chat app.
 		return () => {

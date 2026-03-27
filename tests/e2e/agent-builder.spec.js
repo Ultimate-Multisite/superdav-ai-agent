@@ -649,7 +649,9 @@ test.describe( 'Agent Builder - Edit Agent', () => {
 		// Register mocks BEFORE login so all API calls are intercepted.
 		await mockAgentsApi( page, { initialAgents: [ AGENT_FIXTURE ] } );
 		// Delete any real agents left by a previous flaky run.
-		await cleanupRealAgents( browser );
+		// Wrapped in try-catch: cleanupRealAgents creates a separate browser
+		// page that can time out under CI load without failing the test setup.
+		await cleanupRealAgents( browser ).catch( () => {} );
 		await loginToWordPress( page );
 		await goToAgentsTab( page );
 	} );

@@ -3,6 +3,8 @@
  * @package GratisAiAgent
  */
 
+declare( strict_types = 1 );
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -93,12 +95,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.9.0
  * @license GPL-2.0-or-later
  */
-
-declare( strict_types = 1 );
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
 
 /**
  * Registers a new ability using the Abilities API. It requires three steps:

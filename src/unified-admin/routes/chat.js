@@ -56,11 +56,13 @@ export default function ChatRoute() {
 		if ( tryMount() ) {
 			return () => {
 				if (
+					mountedRef.current &&
 					window.gratisAiAgentChat &&
 					typeof window.gratisAiAgentChat.unmount === 'function'
 				) {
 					window.gratisAiAgentChat.unmount( container );
 				}
+				mountedRef.current = false;
 			};
 		}
 
@@ -82,6 +84,12 @@ export default function ChatRoute() {
 			if ( intervalId ) {
 				clearInterval( intervalId );
 				intervalId = null;
+				// Log a warning to help diagnose a missing admin-page bundle.
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[Gratis AI Agent] ChatRoute: window.gratisAiAgentChat.mount() not available after 30s. ' +
+						'Ensure build/admin-page.js is enqueued.'
+				);
 			}
 		}, 30_000 );
 

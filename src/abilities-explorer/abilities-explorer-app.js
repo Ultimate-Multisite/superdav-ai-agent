@@ -497,10 +497,15 @@ export default function AbilitiesExplorerApp() {
 			{ /* Category sections */ }
 			{ filtered.length === 0 ? (
 				<p className="ai-agent-abilities-no-results">
-					{ __(
-						'No abilities match your search.',
-						'gratis-ai-agent'
-					) }
+					{ abilities.length === 0
+						? __(
+								'No abilities are registered.',
+								'gratis-ai-agent'
+						  )
+						: __(
+								'No abilities match your current filters.',
+								'gratis-ai-agent'
+						  ) }
 				</p>
 			) : (
 				<div className="ai-agent-abilities-list">

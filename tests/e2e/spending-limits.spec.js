@@ -539,15 +539,13 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// Wait for the unified admin SPA to render.
 		await page
 			.locator( '.gratis-ai-unified-admin' )
-			.waitFor( { state: 'visible', timeout: 15_000 } )
-			.catch( () => {} );
+			.waitFor( { state: 'visible', timeout: 15_000 } );
 		// Wait for the AdminPageApp to mount inside #gratis-ai-chat-container.
 		// The non-compact chat panel confirms the app has hydrated past the
 		// settingsLoaded=false null-return guard.
 		await page
 			.locator( '.gratis-ai-agent-chat-panel:not(.is-compact)' )
-			.waitFor( { state: 'visible', timeout: 15_000 } )
-			.catch( () => {} );
+			.waitFor( { state: 'visible', timeout: 15_000 } );
 	}
 
 	test( 'budget indicator is hidden when no caps are configured', async ( {

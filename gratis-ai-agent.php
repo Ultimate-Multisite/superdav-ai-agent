@@ -1,10 +1,11 @@
 <?php
 /**
  * Plugin Name: Gratis AI Agent
- * Plugin URI:  https://developer.wordpress.org/
+ * Plugin URI:  https://github.com/Ultimate-Multisite/gratis-ai-agent
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
  * Version:     1.3.0
- * Author:      Dave
+ * Author:      superdav42
+ * Author URI:  https://github.com/superdav42
  * License:     GPL-2.0-or-later
  * Requires at least: 6.9
  * Requires PHP: 8.2

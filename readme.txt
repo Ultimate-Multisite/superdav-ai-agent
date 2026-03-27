@@ -1,5 +1,5 @@
 === Gratis AI Agent ===
-Contributors: developer-dave
+Contributors: superdav42
 Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 6.9
 Tested up to: 6.9
@@ -158,6 +158,24 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 
 == Changelog ==
 
+= 1.3.0 =
+* New: Gemini 2.5 Flash and Gemini 2.5 Flash Lite models added to the model selector
+* New: o3, o4-mini, claude-sonnet-4-6, and claude-opus-4-6 models added to the model selector
+* New: Claude 3.5 Haiku and Gemini 2.0 Flash models added to the model selector
+* New: JS bundle size budget enforced in CI to prevent regressions
+* New: Playwright E2E tests for shared conversations, agent builder, automations, and Changes page
+* New: PHPStan raised to level 10 (maximum) with all new errors resolved
+* Enhancement: WP.org SVN submission guide and deploy script
+* Enhancement: GPL-2.0-or-later license headers added to all PHP files
+* Enhancement: Security hardening, i18n compliance, and code safety improvements
+* Fix: get_option() result guarded before array offset access in SiteScanner
+* Fix: get-plugins truncator field mismatch (status/slug to active/file)
+* Fix: google/ OpenRouter prefix removed from Google direct provider model IDs
+* Fix: update-post benchmark schema aligned with implementation
+* Fix: Collapsed sections now force-open when filtering activates in abilities manager
+* Fix: package_type schema/runtime inconsistency in GitAbilities
+* Fix: ShellCheck violations resolved in tests/ and .husky/
+
 = 1.2.0 =
 * New: Support all three official AI providers — OpenAI, Anthropic, and Google Gemini
 * New: Image and file upload support in chat messages
@@ -250,6 +268,9 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * WordPress 6.9 compatibility layer (bundles AI Client SDK)
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+Quality and model update: PHPStan level 10, new models (o3, o4-mini, Claude Sonnet 4, Gemini 2.5 Flash), security hardening, and bug fixes. Database will upgrade automatically.
 
 = 1.2.0 =
 Major feature release: adds Google/Anthropic provider support, image uploads, spending limits, white-label branding, agent builder, role-based permissions, WooCommerce abilities, MCP server, and many more features. Database will upgrade automatically.

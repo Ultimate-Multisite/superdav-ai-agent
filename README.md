@@ -146,13 +146,13 @@ The AI automatically receives relevant context about the current page:
 ## Requirements
 
 - WordPress 6.9+ (for AI Client SDK and Abilities API)
-- PHP 7.4+
+- PHP 8.2+
 - An AI provider connector plugin (e.g., WordPress AI: OpenAI, or any OpenAI-compatible connector)
 - An API key from your chosen provider
 
 ## Installation
 
-1. Upload the `ai-agent` folder to `/wp-content/plugins/`
+1. Upload the `gratis-ai-agent` folder to `/wp-content/plugins/`
 2. Activate through the Plugins screen
 3. Configure an AI provider in **Settings > AI Credentials** (this is part of WordPress core's Connectors API)
 4. Go to **Tools > AI Agent Settings** to select your default provider and model
@@ -180,44 +180,38 @@ All settings live under **Tools > AI Agent Settings** with these tabs:
 ## Architecture
 
 ```
-ai-agent/
-├── ai-agent.php                    # Bootstrap, requires, hooks
+gratis-ai-agent/
+├── gratis-ai-agent.php             # Bootstrap, requires, hooks
 ├── includes/
-│   ├── class-agent-loop.php        # Core agentic loop (plan → tool call → iterate)
-│   ├── class-rest-controller.php   # REST API (async job pattern)
-│   ├── class-database.php          # Schema + migrations (10 tables)
-│   ├── class-settings.php          # Settings model (wp_option backed)
-│   ├── class-memory.php            # Persistent memory CRUD
-│   ├── class-skill.php             # Skills CRUD
-│   ├── class-knowledge*.php        # RAG pipeline (collections, sources, chunks)
-│   ├── class-custom-tools.php      # Custom tool model
-│   ├── class-custom-tool-executor.php  # HTTP/ACTION/CLI execution
-│   ├── class-tool-profiles.php     # Named tool sets
-│   ├── class-automations.php       # Scheduled automation model
-│   ├── class-automation-runner.php  # Cron handler
-│   ├── class-event-automations.php # Event automation model
-│   ├── class-event-trigger-*.php   # Hook registry + handler
-│   ├── class-conversation-trimmer.php  # Context overflow prevention
-│   ├── class-tool-discovery.php    # Meta-tool system
-│   ├── class-cost-calculator.php   # Token cost estimates
-│   └── class-context-providers.php # Page context injection
+│   ├── Abilities/                   # 30 ability classes (tools the AI can call)
+│   ├── Admin/                       # Admin pages, floating widget, screen-meta panel
+│   ├── Automations/                 # Scheduled + event-driven automation system
+│   ├── Benchmark/                   # Model benchmark runner and suite
+│   ├── CLI/                         # WP-CLI command
+│   ├── Core/                        # AgentLoop, Database, Settings, CostCalculator, etc.
+│   ├── Enums/                       # PHP 8.1 enums (ToolType, Schedule, etc.)
+│   ├── Knowledge/                   # RAG pipeline (collections, sources, chunks)
+│   ├── Models/                      # Data models (Memory, Skill, Agent, Chunker, etc.)
+│   ├── REST/                        # REST API, SSE streamer, MCP, webhooks, resale proxy
+│   └── Tools/                       # Custom tools, tool discovery, tool profiles
+├── compat/                          # WordPress < 7.0 compatibility (AI Client SDK + Abilities API)
 ├── src/
-│   ├── admin-page/                 # Full-page chat React app
-│   ├── floating-widget/            # Draggable widget React app
-│   ├── settings-page/              # Settings React app (12 tabs)
-│   ├── components/                 # Shared React components
-│   ├── store/                      # Redux store (actions, selectors)
-│   └── utils/                      # Keyboard shortcuts, helpers
-└── build/                          # Compiled assets
+│   ├── admin-page/                  # Full-page chat React app
+│   ├── floating-widget/             # Draggable widget React app
+│   ├── settings-page/               # Settings React app
+│   ├── components/                  # Shared React components
+│   ├── store/                       # Redux store (actions, selectors)
+│   └── utils/                       # Keyboard shortcuts, helpers
+└── build/                           # Compiled assets
 ```
 
 ### REST API Pattern
 
 The agent uses an **async job + polling** pattern to handle long-running inference:
 
-1. `POST /ai-agent/v1/run` — Starts a background job, returns `job_id`
-2. `GET /ai-agent/v1/job/{id}` — Poll until `status: completed` (or `awaiting_confirmation` for tool approval)
-3. `POST /ai-agent/v1/job/{id}/confirm` or `/reject` — Handle tool confirmations
+1. `POST /gratis-ai-agent/v1/run` — Starts a background job, returns `job_id`
+2. `GET /gratis-ai-agent/v1/job/{id}` — Poll until `status: completed` (or `awaiting_confirmation` for tool approval)
+3. `POST /gratis-ai-agent/v1/job/{id}/confirm` or `/reject` — Handle tool confirmations
 
 This avoids HTTP timeout issues with multi-step agentic loops that can take 30+ seconds.
 

@@ -31,10 +31,15 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'admin page loads with correct layout', async ( { page } ) => {
-		// Two-column layout.
-		await expect( page.locator( '.gratis-ai-agent-layout' ) ).toBeVisible();
-		await expect( page.locator( '.ai-agent-sidebar' ) ).toBeVisible();
-		await expect( page.locator( '.gratis-ai-agent-main' ) ).toBeVisible();
+		// The unified admin SPA renders .gratis-ai-unified-admin as the outer
+		// wrapper. The AdminPageApp (chat UI) is mounted inside
+		// #gratis-ai-chat-container by ChatRoute via window.gratisAiAgentChat.mount().
+		// Scope layout assertions to #gratis-ai-chat-container to avoid matching
+		// the floating widget's hidden elements.
+		const chatContainer = page.locator( '#gratis-ai-chat-container' );
+		await expect( chatContainer.locator( '.gratis-ai-agent-layout' ) ).toBeVisible();
+		await expect( chatContainer.locator( '.ai-agent-sidebar' ) ).toBeVisible();
+		await expect( chatContainer.locator( '.gratis-ai-agent-main' ) ).toBeVisible();
 	} );
 
 	test( 'chat panel is visible on admin page', async ( { page } ) => {
@@ -55,7 +60,11 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'empty state is shown when no messages', async ( { page } ) => {
-		const emptyState = page.locator( '.ai-agent-empty-state' );
+		// Scope to the non-compact (admin page) chat panel to avoid matching
+		// the floating widget's hidden empty state element.
+		const emptyState = page.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+		);
 		await expect( emptyState ).toBeVisible();
 	} );
 
@@ -125,8 +134,11 @@ test.describe( 'Admin Page - Session Management', () => {
 		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
 		await newChatButton.click();
 
-		// Empty state should reappear.
-		const emptyState = page.locator( '.ai-agent-empty-state' );
+		// Empty state should reappear. Scope to the non-compact chat panel to
+		// avoid matching the floating widget's hidden empty state element.
+		const emptyState = page.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+		);
 		await expect( emptyState ).toBeVisible( { timeout: 5_000 } );
 	} );
 
@@ -175,7 +187,11 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		// Trigger new chat shortcut.
 		await page.keyboard.press( 'ControlOrMeta+n' );
 
-		const emptyState = page.locator( '.ai-agent-empty-state' );
+		// Scope to the non-compact chat panel to avoid matching the floating
+		// widget's hidden empty state element.
+		const emptyState = page.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+		);
 		await expect( emptyState ).toBeVisible( { timeout: 5_000 } );
 	} );
 

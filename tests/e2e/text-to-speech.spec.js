@@ -171,14 +171,25 @@ test.describe( 'TTS Toggle Button', () => {
 	} ) => {
 		// The button is only rendered when isTTSSupported is true.
 		// Our mock defines window.speechSynthesis, so the button should appear.
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Scope to the non-compact (admin page) chat panel to avoid matching
+		// the floating widget's hidden TTS button.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 	} );
 
 	test( 'clicking TTS toggle button enables TTS and adds is-active class', async ( {
 		page,
 	} ) => {
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Scope to the non-compact (admin page) chat panel.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 
 		// Ensure TTS starts disabled (default state).
@@ -198,7 +209,12 @@ test.describe( 'TTS Toggle Button', () => {
 	test( 'clicking TTS toggle button a second time disables TTS', async ( {
 		page,
 	} ) => {
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Scope to the non-compact (admin page) chat panel.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 
 		// Enable TTS.
@@ -297,8 +313,13 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 	test( 'speechSynthesis.speak is called when TTS is enabled and AI responds', async ( {
 		page,
 	} ) => {
-		// Enable TTS via the header toggle.
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Enable TTS via the header toggle. Scope to the non-compact (admin page)
+		// chat panel to avoid matching the floating widget's hidden TTS button.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 
 		const isActive = await ttsBtn.evaluate( ( el ) =>
@@ -312,8 +333,12 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Intercept the stream so the AI response completes quickly.
 		await interceptStream( page );
 
-		// Send a message.
-		const input = page.locator( '.ai-agent-input' );
+		// Send a message. Scope to the non-compact chat panel.
+		const input = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input'
+			)
+			.first();
 		await input.fill( 'Hello' );
 		await input.press( 'Enter' );
 
@@ -342,8 +367,12 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 	test( 'speechSynthesis.speak is NOT called when TTS is disabled', async ( {
 		page,
 	} ) => {
-		// Ensure TTS is disabled.
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Ensure TTS is disabled. Scope to the non-compact (admin page) chat panel.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 
 		const isActive = await ttsBtn.evaluate( ( el ) =>
@@ -357,8 +386,12 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Intercept the stream.
 		await interceptStream( page );
 
-		// Send a message.
-		const input = page.locator( '.ai-agent-input' );
+		// Send a message. Scope to the non-compact chat panel.
+		const input = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input'
+			)
+			.first();
 		await input.fill( 'Hello' );
 		await input.press( 'Enter' );
 
@@ -377,8 +410,12 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 	test( 'disabling TTS mid-conversation calls speechSynthesis.cancel', async ( {
 		page,
 	} ) => {
-		// Enable TTS.
-		const ttsBtn = page.locator( '.ai-agent-tts-btn' );
+		// Enable TTS. Scope to the non-compact (admin page) chat panel.
+		const ttsBtn = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+			)
+			.first();
 		await expect( ttsBtn ).toBeVisible();
 
 		const isActive = await ttsBtn.evaluate( ( el ) =>

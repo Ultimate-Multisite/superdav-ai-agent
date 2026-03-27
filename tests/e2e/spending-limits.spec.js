@@ -493,6 +493,32 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		await loginToWordPress( page );
 	} );
 
+	/**
+	 * Navigate to the admin page and wait for the AdminPageApp to mount inside
+	 * #gratis-ai-chat-container. The unified admin's ChatRoute calls
+	 * window.gratisAiAgentChat.mount() which renders AdminPageApp. AdminPageApp
+	 * returns null until settingsLoaded=true, then renders the chat UI including
+	 * BudgetIndicator. Wait for the non-compact chat panel to confirm hydration.
+	 *
+	 * @param {import('@playwright/test').Page} page - Playwright page.
+	 */
+	async function goToAdminChatPage( page ) {
+		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+		await page.waitForLoadState( 'domcontentloaded' );
+		// Wait for the unified admin SPA to render.
+		await page
+			.locator( '.gratis-ai-unified-admin' )
+			.waitFor( { state: 'visible', timeout: 15_000 } )
+			.catch( () => {} );
+		// Wait for the AdminPageApp to mount inside #gratis-ai-chat-container.
+		// The non-compact chat panel confirms the app has hydrated past the
+		// settingsLoaded=false null-return guard.
+		await page
+			.locator( '.gratis-ai-agent-chat-panel:not(.is-compact)' )
+			.waitFor( { state: 'visible', timeout: 15_000 } )
+			.catch( () => {} );
+	}
+
 	test( 'budget indicator is hidden when no caps are configured', async ( {
 		page,
 	} ) => {
@@ -504,13 +530,15 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 			} ),
 		} );
 
-		// UnifiedAdminMenu registers a top-level menu at admin.php (not tools.php).
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await goToAdminChatPage( page );
 
-		// The indicator element should not be present in the DOM.
+		// The indicator element should not be present in the admin page chat panel.
+		// Scope to the non-compact chat panel to avoid matching the floating
+		// widget's hidden budget indicator (which also returns null when no caps).
 		await expect(
-			page.locator( '.ai-agent-budget-indicator' )
+			page.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+			)
 		).toHaveCount( 0 );
 	} );
 
@@ -525,10 +553,15 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 			} ),
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await goToAdminChatPage( page );
 
-		const indicator = page.locator( '.ai-agent-budget-indicator' );
+		// Scope to the non-compact (admin page) chat panel to avoid matching
+		// the floating widget's hidden budget indicator.
+		const indicator = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+			)
+			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
 		await expect( indicator ).toHaveClass(
 			/ai-agent-budget-indicator--ok/
@@ -550,10 +583,14 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 			} ),
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await goToAdminChatPage( page );
 
-		const indicator = page.locator( '.ai-agent-budget-indicator' );
+		// Scope to the non-compact (admin page) chat panel.
+		const indicator = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+			)
+			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
 		await expect( indicator ).toHaveClass(
 			/ai-agent-budget-indicator--warning/
@@ -575,10 +612,14 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 			} ),
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await goToAdminChatPage( page );
 
-		const indicator = page.locator( '.ai-agent-budget-indicator' );
+		// Scope to the non-compact (admin page) chat panel.
+		const indicator = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+			)
+			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
 		await expect( indicator ).toHaveClass(
 			/ai-agent-budget-indicator--exceeded/
@@ -601,10 +642,14 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 			} ),
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await goToAdminChatPage( page );
 
-		const indicator = page.locator( '.ai-agent-budget-indicator' );
+		// Scope to the non-compact (admin page) chat panel.
+		const indicator = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+			)
+			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
 		// Should show monthly spend and cap.
 		await expect( indicator ).toContainText( '$25.00' );

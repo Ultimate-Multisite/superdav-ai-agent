@@ -34,6 +34,12 @@ async function loginToWordPress(
  * at admin.php?page=gratis-ai-agent with hash-based routing. The chat route
  * is the default (no hash or #/chat).
  *
+ * The chat UI (AdminPageApp) is mounted by the unified admin's ChatRoute via
+ * window.gratisAiAgentChat.mount(). AdminPageApp renders null until
+ * settingsLoaded=true, then renders .gratis-ai-agent-layout inside
+ * #gratis-ai-chat-container. We wait for the non-compact chat panel to confirm
+ * the app has fully hydrated before returning.
+ *
  * Waits for both the sessions list and shared sessions REST responses so that
  * the sidebar is fully populated before the function returns. This prevents
  * race conditions where tests assert on sidebar elements before React has had
@@ -92,21 +98,23 @@ async function goToAgentPage( page ) {
 
 	// Wait for the unified admin app root to be present. The SPA mounts into
 	// #gratis-ai-agent-root and renders .gratis-ai-unified-admin once React
-	// has hydrated. This replaces the old .ai-agent-sidebar-filters wait which
-	// targeted the previous AdminPageApp structure.
+	// has hydrated.
 	await page
 		.locator( '.gratis-ai-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 15_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before app renders.
 
-	// Wait for the chat container to be present — ChatRoute mounts the chat
-	// app into #gratis-ai-chat-container. Either the container or the session
-	// list / empty state must be visible before we return.
+	// Wait for the AdminPageApp to mount inside #gratis-ai-chat-container.
+	// ChatRoute calls window.gratisAiAgentChat.mount(container) which renders
+	// AdminPageApp. AdminPageApp returns null until settingsLoaded=true, then
+	// renders .gratis-ai-agent-layout. The non-compact chat panel
+	// (.gratis-ai-agent-chat-panel:not(.is-compact)) confirms the app has
+	// fully hydrated. The floating widget renders a compact panel (is-compact),
+	// so this selector uniquely identifies the admin page chat.
 	await page
-		.locator( '#gratis-ai-chat-container, .ai-agent-session-item, .ai-agent-session-empty' )
-		.first()
-		.waitFor( { state: 'visible', timeout: 10_000 } )
-		.catch( () => {} ); // Non-fatal: some tests navigate away before list renders.
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact)' )
+		.waitFor( { state: 'visible', timeout: 20_000 } )
+		.catch( () => {} ); // Non-fatal: some tests navigate away before app renders.
 }
 
 /**
@@ -142,61 +150,100 @@ function getFloatingPanel( page ) {
 /**
  * Get the chat message input textarea.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden .ai-agent-input element. The floating widget
+ * renders ChatPanel with compact=true (adds is-compact class), while the
+ * admin page chat panel does not have is-compact.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The textarea locator.
  */
 function getMessageInput( page ) {
-	return page.locator( '.ai-agent-input' );
+	return page
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input' )
+		.first();
 }
 
 /**
  * Get the send message button.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden send button.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The send button locator.
  */
 function getSendButton( page ) {
-	return page.locator( '.ai-agent-send-btn' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-send-btn'
+		)
+		.first();
 }
 
 /**
  * Get the stop generation button.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden stop button.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The stop button locator.
  */
 function getStopButton( page ) {
-	return page.locator( '.ai-agent-stop-btn' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-stop-btn'
+		)
+		.first();
 }
 
 /**
  * Get the message list container.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden message list.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The message list locator.
  */
 function getMessageList( page ) {
-	return page.locator( '.ai-agent-messages' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-messages'
+		)
+		.first();
 }
 
 /**
  * Get all message rows in the chat.
  *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden message rows.
+ *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The message rows locator.
  */
 function getMessageRows( page ) {
-	return page.locator( '.ai-agent-message-row' );
+	return page.locator(
+		'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+	);
 }
 
 /**
- * Get the chat panel (works in both admin page and floating widget).
+ * Get the admin page chat panel (non-compact, not the floating widget).
+ *
+ * The floating widget renders ChatPanel with compact=true (adds is-compact
+ * class). The admin page chat panel does not have is-compact. This selector
+ * avoids strict-mode violations when both panels are in the DOM.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The chat panel locator.
  */
 function getChatPanel( page ) {
-	return page.locator( '.gratis-ai-agent-chat-panel' );
+	return page
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact)' )
+		.first();
 }
 
 /**
@@ -303,8 +350,12 @@ async function goToAbilitiesPage( page ) {
  * @return {Promise<void>}
  */
 async function waitForMessageSubmitted( page, timeout = 5_000 ) {
+	// Scope to the non-compact (admin page) chat panel to avoid matching the
+	// floating widget's hidden message rows.
 	await page
-		.locator( '.ai-agent-message-row' )
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+		)
 		.first()
 		.waitFor( { state: 'visible', timeout } );
 }

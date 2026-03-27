@@ -227,8 +227,11 @@ test.describe( 'Slash Command Menu', () => {
 		} );
 		await newItem.click();
 
-		// Empty state should be visible.
-		const emptyState = page.locator( '.ai-agent-empty-state' );
+		// Empty state should be visible. Scope to the non-compact chat panel to
+		// avoid matching the floating widget's hidden empty state element.
+		const emptyState = page.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+		);
 		await expect( emptyState ).toBeVisible();
 	} );
 
@@ -259,7 +262,13 @@ test.describe( 'Provider Selector', () => {
 	test( 'provider selector is visible in the chat header', async ( {
 		page,
 	} ) => {
-		const providerSelector = page.locator( '.ai-agent-provider-selector' );
+		// Scope to the non-compact (admin page) chat panel to avoid matching
+		// the floating widget's hidden provider selector (is-compact).
+		const providerSelector = page
+			.locator(
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-provider-selector'
+			)
+			.first();
 		await expect( providerSelector ).toBeVisible();
 	} );
 } );

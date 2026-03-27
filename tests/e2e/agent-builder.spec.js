@@ -399,13 +399,21 @@ function getDeleteButton( card ) {
 }
 
 /**
- * Get the agent selector dropdown in the chat panel.
+ * Get the agent selector dropdown in the admin page chat panel.
+ *
+ * Scoped to the non-compact (admin page) chat panel to avoid matching the
+ * floating widget's hidden agent selector (.gratis-ai-agent-agent-selector.is-compact).
+ * The floating widget renders AgentSelector with compact=true, adding is-compact.
  *
  * @param {import('@playwright/test').Page} page
  * @return {import('@playwright/test').Locator}
  */
 function getAgentSelector( page ) {
-	return page.locator( '.gratis-ai-agent-agent-selector' );
+	return page
+		.locator(
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-agent-selector'
+		)
+		.first();
 }
 
 /**

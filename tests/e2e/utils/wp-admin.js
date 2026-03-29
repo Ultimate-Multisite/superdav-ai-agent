@@ -270,8 +270,8 @@ async function goToChangesPage( page ) {
 
 	// Wait for the unified admin app and the changes route container to render.
 	// Use 45 s — the unified admin SPA can be slow to render on CI runners
-	// under load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
-	// resource contention, but a generous timeout is still needed.
+	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
+	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.gratis-ai-route-changes' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
@@ -297,8 +297,8 @@ async function goToSettingsPage( page, tabName ) {
 
 	// Wait for the settings route container to render.
 	// Use 45 s — the unified admin SPA can be slow to render on CI runners
-	// under load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
-	// resource contention, but a generous timeout is still needed.
+	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
+	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.gratis-ai-route-settings' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
@@ -335,8 +335,8 @@ async function goToAbilitiesPage( page ) {
 	// .ai-agent-abilities-manager is the outer wrapper rendered by
 	// AbilitiesExplorerApp once the REST fetch completes.
 	// Use 45 s — the abilities REST fetch can be slow on CI runners under
-	// load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
-	// resource contention, but a generous timeout is still needed.
+	// load. CI currently uses 2 parallel workers for both WP 6.9 and trunk
+	// to reduce resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.ai-agent-abilities-manager' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );

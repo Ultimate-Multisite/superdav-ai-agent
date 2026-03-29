@@ -27,13 +27,15 @@ module.exports = defineConfig( {
 	retries: process.env.CI ? 1 : 0,
 
 	/* Worker count on CI is tunable via PLAYWRIGHT_WORKERS env var.
-	 * Default: 3 workers (reduces runtime to ~35 min on WP trunk).
-	 * WP 6.9 uses 2 workers (set in e2e.yml) to avoid overloading the
-	 * wp-env environment — 3 workers cause resource contention that
-	 * manifests as login and SPA-render timeouts on WP 6.9 CI runners.
-	 * 2 workers still completes within the 90-min job timeout. */
+	 * Both WP 6.9 and trunk use 2 workers (set in e2e.yml) to avoid
+	 * overloading the wp-env environment — more workers cause resource
+	 * contention that manifests as login and SPA-render timeouts on CI
+	 * runners. 2 workers still completes within the 90-min job timeout. */
 	workers: process.env.CI
-		? parseInt( process.env.PLAYWRIGHT_WORKERS || '3', 10 )
+		? ( () => {
+				const parsed = parseInt( process.env.PLAYWRIGHT_WORKERS, 10 );
+				return Number.isFinite( parsed ) && parsed > 0 ? parsed : 2;
+			} )()
 		: undefined,
 
 	/* Reporter to use. */

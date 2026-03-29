@@ -96,9 +96,11 @@ async function goToAgentPage( page ) {
 	// #gratis-ai-agent-root and renders .gratis-ai-unified-admin once React
 	// has hydrated. This replaces the old .gratis-ai-agent-chat-panel wait which
 	// could time out under CI load when the admin-page bundle is slow to mount.
+	// Use 30 s — WP 6.9 CI runners can be slow to render the SPA even with
+	// 2 parallel workers.
 	await page
 		.locator( '.gratis-ai-unified-admin' )
-		.waitFor( { state: 'visible', timeout: 15_000 } )
+		.waitFor( { state: 'visible', timeout: 30_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before app renders.
 
 	// Wait for the chat container to be present — ChatRoute mounts the chat
@@ -267,11 +269,12 @@ async function goToChangesPage( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the unified admin app and the changes route container to render.
-	// Use 30 s to match the Playwright test timeout — the unified admin SPA
-	// can be slow to render on CI runners under load with 3 parallel workers.
+	// Use 45 s — the unified admin SPA can be slow to render on CI runners
+	// under load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
+	// resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.gratis-ai-route-changes' )
-		.waitFor( { state: 'visible', timeout: 30_000 } );
+		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 /**
@@ -293,11 +296,12 @@ async function goToSettingsPage( page, tabName ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the settings route container to render.
-	// Use 30 s to match the Playwright test timeout — the unified admin SPA
-	// can be slow to render on CI runners under load with 3 parallel workers.
+	// Use 45 s — the unified admin SPA can be slow to render on CI runners
+	// under load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
+	// resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.gratis-ai-route-settings' )
-		.waitFor( { state: 'visible', timeout: 30_000 } );
+		.waitFor( { state: 'visible', timeout: 45_000 } );
 
 	if ( tabName ) {
 		// WordPress TabPanel renders tab buttons with role="tab" and a name
@@ -330,11 +334,12 @@ async function goToAbilitiesPage( page ) {
 	// Wait for AbilitiesExplorerApp to finish loading abilities.
 	// .ai-agent-abilities-manager is the outer wrapper rendered by
 	// AbilitiesExplorerApp once the REST fetch completes.
-	// Use 30 s to match the Playwright test timeout — the abilities REST fetch
-	// can be slow on CI runners under load with 3 parallel workers.
+	// Use 45 s — the abilities REST fetch can be slow on CI runners under
+	// load. WP 6.9 uses 2 parallel workers (vs 3 for trunk) to reduce
+	// resource contention, but a generous timeout is still needed.
 	await page
 		.locator( '.ai-agent-abilities-manager' )
-		.waitFor( { state: 'visible', timeout: 30_000 } );
+		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 /**

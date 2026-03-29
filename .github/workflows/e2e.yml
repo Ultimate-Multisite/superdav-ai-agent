@@ -27,9 +27,13 @@ jobs:
           - wp: '6.9'
             wp_env_port: '8888'
             wp_env_override: ''
+            # 2 workers on WP 6.9: 3 workers cause resource contention that
+            # manifests as login and SPA-render timeouts on CI runners.
+            playwright_workers: '2'
           - wp: 'trunk'
             wp_env_port: '8888'
             wp_env_override: '{"core":"WordPress/WordPress#master"}'
+            playwright_workers: '3'
 
     steps:
       - name: Checkout code
@@ -144,6 +148,7 @@ jobs:
           WP_ADMIN_USER: admin
           WP_ADMIN_PASSWORD: password
           CI: true
+          PLAYWRIGHT_WORKERS: ${{ matrix.playwright_workers }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

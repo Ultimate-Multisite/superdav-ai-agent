@@ -60,10 +60,12 @@ async function cleanupRealAgents( browser ) {
 		await cleanupPage.goto( '/wp-admin/index.php' );
 		await cleanupPage.waitForLoadState( 'networkidle' );
 		// Wait for wpApiSettings to be injected by WordPress.
+		// Use 30 s — WP 6.9 CI runners can be slow to inject wpApiSettings
+		// when running alongside other parallel workers.
 		await cleanupPage
 			.waitForFunction(
 				() => window.wpApiSettings && window.wpApiSettings.root,
-				{ timeout: 10000 }
+				{ timeout: 30_000 }
 			)
 			.catch( () => {} ); // Ignore timeout — fall back to /wp-json/.
 		await cleanupPage.evaluate( async () => {

@@ -294,8 +294,10 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 	} );
 
 	test( 'Select All button selects all visible models', async ( { page } ) => {
+		// Use exact match to avoid matching "Deselect All" (which contains "select all").
 		const selectAllBtn = page.getByRole( 'button', {
-			name: /select all/i,
+			name: 'Select All',
+			exact: true,
 		} );
 		await expect( selectAllBtn ).toBeVisible();
 		await selectAllBtn.click();
@@ -314,13 +316,16 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		page,
 	} ) => {
 		// First select all, then deselect all.
+		// Use exact match to avoid strict mode violation (both buttons contain "all").
 		const selectAllBtn = page.getByRole( 'button', {
-			name: /select all/i,
+			name: 'Select All',
+			exact: true,
 		} );
 		await selectAllBtn.click();
 
 		const deselectAllBtn = page.getByRole( 'button', {
-			name: /deselect all/i,
+			name: 'Deselect All',
+			exact: true,
 		} );
 		await deselectAllBtn.click();
 

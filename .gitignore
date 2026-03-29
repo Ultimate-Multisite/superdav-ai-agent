@@ -17,3 +17,5 @@ tests/benchmark/results/
 .claude/
 .agents/skills/
 skills-lock.json
+# Local wp-env port overrides
+.wp-env.override.json

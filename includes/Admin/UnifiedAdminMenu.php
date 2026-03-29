@@ -250,7 +250,6 @@ class UnifiedAdminMenu {
 			'gratis-ai-agent-changes'   => admin_url( 'admin.php?page=gratis-ai-agent#/changes' ),
 			'gratis-ai-agent-abilities' => admin_url( 'admin.php?page=gratis-ai-agent#/abilities' ),
 			'gratis-ai-agent-settings'  => admin_url( 'admin.php?page=gratis-ai-agent#/settings' ),
-			'gratis-ai-agent-benchmark' => admin_url( 'admin.php?page=gratis-ai-agent#/settings' ),
 		);
 
 		if ( isset( $redirect_map[ $page ] ) ) {

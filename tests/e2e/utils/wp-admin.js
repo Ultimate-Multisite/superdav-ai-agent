@@ -338,6 +338,32 @@ async function goToAbilitiesPage( page ) {
 }
 
 /**
+ * Navigate to the Gratis AI Agent Model Benchmark admin page.
+ *
+ * The benchmark page is a standalone React SPA registered under Tools:
+ * tools.php?page=gratis-ai-agent-benchmark. It renders BenchmarkPageApp
+ * inside #gratis-ai-agent-benchmark-root once the bundle loads.
+ *
+ * Waits for the benchmark page root element to be present before returning
+ * so that tests can immediately assert on page content.
+ *
+ * @param {import('@playwright/test').Page} page - Playwright page object.
+ */
+async function goToBenchmarkPage( page ) {
+	await page.goto( '/wp-admin/tools.php?page=gratis-ai-agent-benchmark' );
+	await page.waitForLoadState( 'domcontentloaded' );
+
+	// Wait for the React app to mount into the benchmark root container.
+	// Use 30 s to match the Playwright test timeout — the benchmark bundle
+	// can be slow to mount on CI runners under load.
+	await page
+		.locator( '#gratis-ai-agent-benchmark-root, .gratis-ai-benchmark-page' )
+		.first()
+		.waitFor( { state: 'visible', timeout: 30_000 } )
+		.catch( () => {} ); // Non-fatal: some tests may assert on the wrap before React mounts.
+}
+
+/**
  * Wait for a user message to appear in the chat after sending.
  *
  * This is more reliable than waiting for the stop button because the user
@@ -369,6 +395,7 @@ module.exports = {
 	goToAgentPage,
 	goToAdminDashboard,
 	goToAbilitiesPage,
+	goToBenchmarkPage,
 	goToChangesPage,
 	goToSettingsPage,
 	getFloatingButton,

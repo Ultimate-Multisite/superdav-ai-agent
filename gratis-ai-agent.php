@@ -71,6 +71,7 @@ use GratisAiAgent\Abilities\ToolCapabilities;
 use GratisAiAgent\Abilities\WooCommerceAbilities;
 use GratisAiAgent\Abilities\WordPressAbilities;
 use GratisAiAgent\Admin\FloatingWidget;
+use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Admin\UnifiedAdminMenu;
 use GratisAiAgent\REST\BenchmarkController;
@@ -117,6 +118,9 @@ add_action( 'rest_api_init', [ BenchmarkController::class, 'register_routes' ] )
 
 // Unified admin menu — single top-level menu with hash-based React routing.
 add_action( 'admin_menu', [ UnifiedAdminMenu::class, 'register' ] );
+
+// Benchmark page — registered under Tools for standalone access.
+add_action( 'admin_menu', [ ModelBenchmarkPage::class, 'register' ] );
 
 // Redirect old menu URLs to the unified structure.
 add_action( 'admin_init', [ UnifiedAdminMenu::class, 'handleLegacyRedirects' ] );

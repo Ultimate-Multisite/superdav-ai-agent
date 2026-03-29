@@ -9,6 +9,8 @@
 
 const { defineConfig, devices } = require( '@playwright/test' );
 
+const ciWorkers = Number.parseInt( process.env.PLAYWRIGHT_WORKERS || '2', 10 );
+
 module.exports = defineConfig( {
 	testDir: './tests/e2e',
 	testMatch: '**/*.spec.js',
@@ -32,10 +34,7 @@ module.exports = defineConfig( {
 	 * contention that manifests as login and SPA-render timeouts on CI
 	 * runners. 2 workers still completes within the 90-min job timeout. */
 	workers: process.env.CI
-		? ( () => {
-				const parsed = parseInt( process.env.PLAYWRIGHT_WORKERS, 10 );
-				return Number.isFinite( parsed ) && parsed > 0 ? parsed : 2;
-			} )()
+		? ( Number.isFinite( ciWorkers ) && ciWorkers > 0 ? ciWorkers : 2 )
 		: undefined,
 
 	/* Reporter to use. */

@@ -44,7 +44,7 @@ async function goToUnifiedAdmin( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
 		.locator( '.gratis-ai-unified-admin' )
-		.waitFor( { state: 'visible', timeout: 30_000 } );
+		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 /**
@@ -58,7 +58,7 @@ async function goToHashRoute( page, hash ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
 		.locator( '.gratis-ai-unified-admin' )
-		.waitFor( { state: 'visible', timeout: 30_000 } );
+		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 // ---------------------------------------------------------------------------

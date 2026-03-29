@@ -203,11 +203,11 @@
 
 ## New Tasks
 
-- [ ] t141 Add E2E tests for UnifiedAdminMenu (PR #665) @superdav42 #testing #auto-dispatch ~2h ref=GH#680
+- [x] t141 Add E2E tests for UnifiedAdminMenu (PR #665) @superdav42 #testing #auto-dispatch ~2h ref=GH#680 pr:#683 completed:2026-03-29
   - UnifiedAdminMenu (hash-based React SPA) shipped with no E2E coverage — regressions break all admin navigation
   - Create tests/e2e/unified-admin-menu.spec.js with ≥5 test cases: navigation, routing, active state, access control
 
-- [ ] t142 Add E2E tests for model benchmark page (PR #663) @superdav42 #testing #auto-dispatch ~2h ref=GH#681
+- [x] t142 Add E2E tests for model benchmark page (PR #663) @superdav42 #testing #auto-dispatch ~2h ref=GH#681 pr:#682 completed:2026-03-29
   - Benchmark page (React SPA with REST API) shipped with no E2E coverage
   - Create tests/e2e/benchmark-page.spec.js with ≥4 test cases: page render, form inputs, run list
 

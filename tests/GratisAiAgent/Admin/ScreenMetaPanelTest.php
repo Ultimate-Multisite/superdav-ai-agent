@@ -126,8 +126,14 @@ class ScreenMetaPanelTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
-		// Build asset file won't exist in test environment.
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		// When wp_ai_client_prompt is unavailable, enqueue_assets returns early before
+		// the file_exists check — the filter is a no-op but the assertion still holds.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		ScreenMetaPanel::enqueue_assets( 'dashboard' );
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-screen-meta', 'enqueued' ) );
 	}

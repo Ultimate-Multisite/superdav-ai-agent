@@ -91,7 +91,8 @@ class FloatingWidget {
 	 * Shared asset enqueueing logic for both admin and frontend contexts.
 	 */
 	private static function enqueue_widget_assets(): void {
-		$asset_file = GRATIS_AI_AGENT_DIR . '/build/floating-widget.asset.php';
+		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$asset_file = $build_dir . '/floating-widget.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;

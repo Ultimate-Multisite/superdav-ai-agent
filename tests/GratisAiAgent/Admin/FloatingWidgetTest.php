@@ -45,11 +45,13 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Clean up settings after each test.
+	 * Clean up settings and dequeue scripts after each test.
 	 */
 	public function tear_down(): void {
 		parent::tear_down();
 		delete_option( Settings::OPTION_NAME );
+		wp_dequeue_script( 'gratis-ai-agent-floating-widget' );
+		wp_deregister_script( 'gratis-ai-agent-floating-widget' );
 	}
 
 	// ─── Hook Registration ────────────────────────────────────────────────────
@@ -119,8 +121,12 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_admin_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
-		// Build asset file won't exist in test environment.
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		FloatingWidget::enqueue_assets_admin( 'dashboard' );
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-floating-widget', 'enqueued' ) );
 	}
@@ -162,8 +168,12 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 
 		Settings::update( [ 'show_on_frontend' => true ] );
 
-		// Build asset file won't exist in test environment.
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		FloatingWidget::enqueue_assets_frontend();
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-floating-widget', 'enqueued' ) );
 	}

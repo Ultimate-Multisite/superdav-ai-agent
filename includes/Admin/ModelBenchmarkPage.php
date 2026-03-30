@@ -47,7 +47,8 @@ class ModelBenchmarkPage {
 			return;
 		}
 
-		$asset_file = GRATIS_AI_AGENT_DIR . '/build/benchmark-page.asset.php';
+		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$asset_file = $build_dir . '/benchmark-page.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;

@@ -100,7 +100,12 @@ class ChangesAdminPageTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		ChangesAdminPage::enqueue_assets( 'tools_page_' . ChangesAdminPage::SLUG );
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-changes-page', 'enqueued' ) );
 	}

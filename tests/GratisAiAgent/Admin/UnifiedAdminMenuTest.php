@@ -214,8 +214,12 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
-		// Build asset file won't exist in test environment.
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		UnifiedAdminMenu::enqueueAssets( 'toplevel_page_' . UnifiedAdminMenu::SLUG );
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-unified-admin', 'enqueued' ) );
 	}

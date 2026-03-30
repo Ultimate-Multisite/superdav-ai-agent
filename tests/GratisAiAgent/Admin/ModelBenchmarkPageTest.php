@@ -100,8 +100,12 @@ class ModelBenchmarkPageTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
-		// Build asset file won't exist in test environment.
+		// Override build dir to a path that does not exist so file_exists() returns false.
+		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );
+
 		ModelBenchmarkPage::enqueue_assets( 'tools_page_' . ModelBenchmarkPage::SLUG );
+
+		remove_all_filters( 'gratis_ai_agent_build_dir' );
 
 		$this->assertFalse( wp_script_is( 'gratis-ai-agent-benchmark-page', 'enqueued' ) );
 	}
@@ -112,8 +116,9 @@ class ModelBenchmarkPageTest extends WP_UnitTestCase {
 	 * Test render() outputs compatibility notice when wp_ai_client_prompt is unavailable.
 	 */
 	public function test_render_outputs_notice_when_ai_client_unavailable(): void {
-		// wp_ai_client_prompt is not available in the test environment.
-		$this->assertFalse( function_exists( 'wp_ai_client_prompt' ) );
+		if ( function_exists( 'wp_ai_client_prompt' ) ) {
+			$this->markTestSkipped( 'wp_ai_client_prompt() is available; cannot test unavailable path.' );
+		}
 
 		ob_start();
 		ModelBenchmarkPage::render();

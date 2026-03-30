@@ -661,7 +661,7 @@ class SiteHealthAbilities {
 		}
 
 		// 4. Object cache.
-		$object_cache_enabled = wp_using_ext_object_cache();
+		$object_cache_enabled = (bool) wp_using_ext_object_cache();
 
 		if ( ! $object_cache_enabled ) {
 			$recommendations[] = 'No persistent object cache detected. Consider installing Redis or Memcached for improved performance.';

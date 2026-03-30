@@ -48,7 +48,8 @@ class ChangesAdminPage {
 			return;
 		}
 
-		$asset_file = GRATIS_AI_AGENT_DIR . '/build/changes-page.asset.php';
+		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$asset_file = $build_dir . '/changes-page.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
 			return;

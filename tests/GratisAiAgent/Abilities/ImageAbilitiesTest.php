@@ -219,8 +219,11 @@ class ImageAbilitiesTest extends WP_UnitTestCase {
 	/**
 	 * Test handle_import_base64_image with data URI prefix strips header correctly.
 	 *
-	 * A non-image payload after stripping the data URI prefix should still
-	 * return invalid_image.
+	 * After stripping the data URI prefix the payload is plain text. The MIME
+	 * type is extracted from the header ("image/png"), so the image/invalid-type
+	 * check passes. The handler then writes the bytes to a temp file and calls
+	 * media_handle_sideload(), which fails because the bytes are not a valid PNG.
+	 * The resulting error code is upload_error (from wp_handle_sideload).
 	 */
 	public function test_handle_import_base64_image_data_uri_prefix_stripped() {
 		$plain_b64 = base64_encode( 'plain text content' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- test data encoding
@@ -231,8 +234,10 @@ class ImageAbilitiesTest extends WP_UnitTestCase {
 		] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		// After stripping the prefix the binary won't match PNG magic bytes.
-		$this->assertSame( 'invalid_image', $result->get_error_code() );
+		// The MIME type is taken from the data URI header ("image/png"), so the
+		// image-type guard passes. media_handle_sideload then rejects the invalid
+		// bytes and returns upload_error.
+		$this->assertSame( 'upload_error', $result->get_error_code() );
 	}
 
 	/**

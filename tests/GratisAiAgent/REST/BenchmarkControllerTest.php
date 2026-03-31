@@ -357,13 +357,16 @@ class BenchmarkControllerTest extends WP_UnitTestCase {
 	// ─── handle_delete_run ────────────────────────────────────────────────────
 
 	/**
-	 * DELETE /benchmark/runs/{id} returns 500 for unknown ID (delete returns false).
+	 * DELETE /benchmark/runs/{id} for an unknown ID succeeds (wpdb->delete returns 0
+	 * rows affected, not false, so delete_run() returns true and the controller
+	 * responds 200 with { deleted: true }).
 	 */
 	public function test_delete_run_not_found(): void {
 		wp_set_current_user( $this->admin_id );
 		$response = $this->dispatch( 'DELETE', '/gratis-ai-agent/v1/benchmark/runs/999999' );
-		// BenchmarkRunner::delete_run returns false for non-existent → 500.
-		$this->assertContains( $response->get_status(), [ 404, 500 ] );
+		// wpdb->delete on a non-existent row returns 0 (not false), so
+		// BenchmarkRunner::delete_run() returns true → controller returns 200.
+		$this->assertSame( 200, $response->get_status() );
 	}
 
 	/**

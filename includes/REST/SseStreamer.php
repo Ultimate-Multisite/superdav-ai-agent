@@ -42,6 +42,14 @@ class SseStreamer {
 
 		$this->started = true;
 
+		// Skip HTTP plumbing when headers have already been sent (e.g. in unit
+		// tests where the WP bootstrap has already produced output). In a real
+		// HTTP request headers are never sent before this point, so the guard
+		// is a no-op in production.
+		if ( headers_sent() ) {
+			return;
+		}
+
 		// Prevent WordPress / PHP from buffering the response.
 		while ( ob_get_level() > 0 ) {
 			ob_end_clean();

@@ -348,22 +348,23 @@ class OnboardingInterviewTest extends WP_UnitTestCase {
 
 		$this->assertTrue( $result );
 
-		// Verify primary_goal was stored.
+		// Content is stored as "Label: answer". Verify primary_goal was stored.
 		$primary = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT content FROM %i WHERE content = %s",
+				"SELECT content FROM %i WHERE content LIKE %s",
 				$table,
-				'Real answer'
+				'%Real answer'
 			)
 		);
-		$this->assertSame( 'Real answer', $primary );
+		$this->assertNotNull( $primary );
+		$this->assertStringContainsString( 'Real answer', $primary );
 
-		// Verify blank target_audience was not stored.
+		// Verify blank target_audience was not stored (no "Target audience:" row).
 		$blank = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i WHERE content = %s",
+				"SELECT COUNT(*) FROM %i WHERE content LIKE %s",
 				$table,
-				'   '
+				'Target audience:%'
 			)
 		);
 		$this->assertSame( '0', (string) $blank );
@@ -389,24 +390,26 @@ class OnboardingInterviewTest extends WP_UnitTestCase {
 		);
 		$this->assertGreaterThanOrEqual( 2, $count );
 
-		// Verify specific memories were stored.
+		// Content is stored as "Label: answer". Verify specific memories.
 		$primary = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT content FROM %i WHERE content = %s",
+				"SELECT content FROM %i WHERE content LIKE %s",
 				$table,
-				'Generate leads'
+				'%Generate leads'
 			)
 		);
-		$this->assertSame( 'Generate leads', $primary );
+		$this->assertNotNull( $primary );
+		$this->assertStringContainsString( 'Generate leads', $primary );
 
 		$audience = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT content FROM %i WHERE content = %s",
+				"SELECT content FROM %i WHERE content LIKE %s",
 				$table,
-				'Small business owners'
+				'%Small business owners'
 			)
 		);
-		$this->assertSame( 'Small business owners', $audience );
+		$this->assertNotNull( $audience );
+		$this->assertStringContainsString( 'Small business owners', $audience );
 	}
 
 	/**
@@ -422,14 +425,17 @@ class OnboardingInterviewTest extends WP_UnitTestCase {
 
 		$this->assertTrue( $result );
 
-		// Verify a memory row was inserted for the unknown question.
+		// Verify a memory row was inserted with the fallback label.
+		// Unknown IDs use ucwords(str_replace('_', ' ', $id)) as label.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE content = %s",
+				"SELECT * FROM %i WHERE content LIKE %s",
 				$table,
-				'Some answer'
+				'%Some answer'
 			)
 		);
 		$this->assertNotNull( $row );
+		// Verify the fallback label was used (not the question ID verbatim).
+		$this->assertStringContainsString( 'Unknown Question Id', $row->content );
 	}
 }

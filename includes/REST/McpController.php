@@ -166,7 +166,7 @@ class McpController {
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			return new WP_Error(
 				'ai_agent_mcp_no_abilities_api',
-				__( 'WordPress Abilities API is not available. WordPress 6.9+ is required.', 'gratis-ai-agent' ),
+				__( 'WordPress Abilities API is not available. WordPress 7.0+ is required.', 'gratis-ai-agent' ),
 				[ 'status' => 503 ]
 			);
 		}

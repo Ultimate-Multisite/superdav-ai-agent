@@ -76,7 +76,7 @@ class McpControllerTest extends WP_UnitTestCase {
 	/**
 	 * Set up REST server, test users, and a mock ability before each test.
 	 *
-	 * WordPress 6.9 enforces that wp_register_ability() is called from within
+	 * WordPress 7.0 enforces that wp_register_ability() is called from within
 	 * the wp_abilities_api_init hook. Calling it outside the hook triggers
 	 * _doing_it_wrong() and the ability is not registered.
 	 *

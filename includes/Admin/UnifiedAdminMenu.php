@@ -70,7 +70,7 @@ class UnifiedAdminMenu {
 			__( 'AI Agent', 'gratis-ai-agent' ),
 			self::CAPABILITY,
 			self::SLUG,
-			[ __CLASS__, 'render' ],
+			array( __CLASS__, 'render' ),
 			'dashicons-robot',
 			30 // Position after Dashboard
 		);
@@ -84,12 +84,12 @@ class UnifiedAdminMenu {
 				$item['label'],
 				$item['capability'],
 				self::SLUG . '#/' . $item['slug'],
-				[ __CLASS__, 'render' ]
+				array( __CLASS__, 'render' )
 			);
 		}
 
 		// Hook for enqueuing assets.
-		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueueAssets' ] );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueueAssets' ) );
 	}
 
 	/**
@@ -147,7 +147,7 @@ class UnifiedAdminMenu {
 		wp_enqueue_style(
 			'gratis-ai-agent-unified-admin',
 			GRATIS_AI_AGENT_URL . 'build/style-unified-admin.css',
-			[ 'wp-components' ],
+			array( 'wp-components' ),
 			$asset['version']
 		);
 
@@ -173,14 +173,14 @@ class UnifiedAdminMenu {
 			wp_enqueue_style(
 				'gratis-ai-agent-admin-page',
 				GRATIS_AI_AGENT_URL . 'build/style-admin-page.css',
-				[ 'wp-components' ],
+				array( 'wp-components' ),
 				$admin_page_asset['version']
 			);
 
 			wp_enqueue_script(
 				'gratis-ai-agent-admin-page',
 				GRATIS_AI_AGENT_URL . 'build/admin-page.js',
-				array_merge( $admin_page_asset['dependencies'], [ 'gratis-ai-agent-unified-admin' ] ),
+				array_merge( $admin_page_asset['dependencies'], array( 'gratis-ai-agent-unified-admin' ) ),
 				$admin_page_asset['version'],
 				true
 			);
@@ -193,16 +193,15 @@ class UnifiedAdminMenu {
 		wp_localize_script(
 			'gratis-ai-agent-unified-admin',
 			'gratisAiAgentData',
-			[
-				'currentUserId'     => get_current_user_id(),
-				'currentUserName'   => $current_user->display_name,
-				'restNamespace'     => 'gratis-ai-agent/v1',
-				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
-				'nonce'             => wp_create_nonce( 'wp_rest' ),
-				'initialRoute'      => self::getCurrentRoute(),
-				'menuItems'         => self::getMenuItems(),
-				'aiClientAvailable' => function_exists( 'wp_ai_client_prompt' ),
-			]
+			array(
+				'currentUserId'   => get_current_user_id(),
+				'currentUserName' => $current_user->display_name,
+				'restNamespace'   => 'gratis-ai-agent/v1',
+				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
+				'nonce'           => wp_create_nonce( 'wp_rest' ),
+				'initialRoute'    => self::getCurrentRoute(),
+				'menuItems'       => self::getMenuItems(),
+			)
 		);
 	}
 
@@ -210,35 +209,9 @@ class UnifiedAdminMenu {
 	 * Render the admin page — mount point for React Router app.
 	 */
 	public static function render(): void {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			self::renderCompatibilityNotice();
-			return;
-		}
-
 		?>
 		<div class="wrap gratis-ai-agent-wrap">
 			<div id="gratis-ai-agent-root" class="gratis-ai-agent-app"></div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Render compatibility notice when AI Client is not available.
-	 */
-	private static function renderCompatibilityNotice(): void {
-		?>
-		<div class="wrap">
-			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-			<div class="notice notice-error">
-				<p>
-					<?php
-					esc_html_e(
-						'The WordPress AI Client SDK is not available. Please check that WordPress 6.9+ is installed or the compatibility layer is loaded.',
-						'gratis-ai-agent'
-					);
-					?>
-				</p>
-			</div>
 		</div>
 		<?php
 	}

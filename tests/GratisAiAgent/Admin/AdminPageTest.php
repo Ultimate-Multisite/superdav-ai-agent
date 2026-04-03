@@ -117,36 +117,12 @@ class AdminPageTest extends WP_UnitTestCase {
 	// ─── render ───────────────────────────────────────────────────────────────
 
 	/**
-	 * Test render() outputs compatibility notice when wp_ai_client_prompt is unavailable.
+	 * Test render() outputs the React mount point.
 	 */
-	public function test_render_outputs_notice_when_ai_client_unavailable(): void {
-		if ( function_exists( 'wp_ai_client_prompt' ) ) {
-			$this->markTestSkipped( 'wp_ai_client_prompt() is available; cannot test unavailable path.' );
-		}
-
+	public function test_render_outputs_mount_point(): void {
 		ob_start();
 		AdminPage::render();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'notice-error', $output );
-		$this->assertStringContainsString( 'AI Client SDK', $output );
-	}
-
-	/**
-	 * Test render() outputs wrap div when wp_ai_client_prompt is available.
-	 */
-	public function test_render_outputs_wrap_when_ai_client_available(): void {
-		// Temporarily define the function if not already defined.
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Test stub for WP core function.
-			function wp_ai_client_prompt() {
-				return null;
-			}
-		}
-
-		ob_start();
-		AdminPage::render();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'gratis-ai-agent-admin-wrap', $output );
 		$this->assertStringContainsString( 'gratis-ai-agent-root', $output );

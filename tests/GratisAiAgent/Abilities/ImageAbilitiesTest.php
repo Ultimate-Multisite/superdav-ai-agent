@@ -22,8 +22,8 @@ class ImageAbilitiesTest extends WP_UnitTestCase {
 	/**
 	 * Test handle_generate_alt_text returns WP_Error when wp_ai_client_prompt unavailable.
 	 *
-	 * In the test environment wp_ai_client_prompt() is not available (requires
-	 * WordPress 6.9+ AI Client SDK), so the handler must return a WP_Error.
+	 * In the test environment wp_ai_client_prompt() may not be available
+	 * (requires WordPress 7.0+ AI Client SDK), so the handler must return a WP_Error.
 	 */
 	public function test_handle_generate_alt_text_no_ai_client_returns_wp_error() {
 		if ( function_exists( 'wp_ai_client_prompt' ) ) {

@@ -87,15 +87,6 @@ class AdminPage {
 	 * Render the admin page — just a mount point for React.
 	 */
 	public static function render(): void {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			echo '<div class="wrap">';
-			echo '<h1>' . esc_html__( 'Gratis AI Agent', 'gratis-ai-agent' ) . '</h1>';
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'The WordPress AI Client SDK is not available. Please check the compatibility layer.', 'gratis-ai-agent' );
-			echo '</p></div></div>';
-			return;
-		}
-
 		?>
 		<div class="wrap gratis-ai-agent-admin-wrap">
 			<h1><?php esc_html_e( 'Gratis AI Agent', 'gratis-ai-agent' ); ?></h1>

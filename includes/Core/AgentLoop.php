@@ -179,7 +179,7 @@ class AgentLoop {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
 				'gratis_ai_agent_missing_client',
-				__( 'The AI Client SDK is not available. Please check the compatibility layer.', 'gratis-ai-agent' )
+				__( 'The AI Client SDK is not available. WordPress 7.0+ is required.', 'gratis-ai-agent' )
 			);
 		}
 

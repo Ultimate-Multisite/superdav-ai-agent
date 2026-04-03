@@ -23,8 +23,8 @@ declare(strict_types=1);
  * filter to return a fake HTTP response, bypassing the network entirely.
  *
  * For the SDK-unavailable path we simply don't define `wp_ai_client_prompt`
- * (it's absent in the test environment unless the compat layer loads it),
- * which lets us test the WP_Error early-return branch.
+ * (it may be absent in the test environment), which lets us test the
+ * WP_Error early-return branch.
  *
  * @package GratisAiAgent
  * @subpackage Tests

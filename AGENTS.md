@@ -73,7 +73,7 @@
 | `Memory_Abilities` | `Abilities/MemoryAbilities.php` | `GratisAiAgent\Abilities\MemoryAbilities` |
 
 ## WordPress SDK Integration
-- Use `wp_ai_client_prompt()` for AI calls (WordPress 6.9+ AI Client SDK)
+- Use `wp_ai_client_prompt()` for AI calls (WordPress 7.0+ AI Client SDK)
 - Register abilities via `wp_register_ability()` (Abilities API)
 - All tool schemas follow OpenAI function-calling JSON schema format
 - Provider/model selection via WordPress Connectors API

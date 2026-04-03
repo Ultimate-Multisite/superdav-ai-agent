@@ -44,12 +44,29 @@ class SseStreamerTest extends WP_UnitTestCase {
 	/**
 	 * Capture output produced by a callable.
 	 *
+	 * Installs a temporary error handler that silences PHP warnings about
+	 * headers already being sent (e.g. from SseStreamer::start() in CLI mode)
+	 * so that assertions can run without the test suite failing on those
+	 * warnings. All other errors are passed through to the previous handler.
+	 *
 	 * @param callable $fn The callable to execute.
 	 * @return string Captured output.
 	 */
 	private function capture( callable $fn ): string {
 		ob_start();
-		$fn();
+		set_error_handler(
+			static function ( int $severity, string $message ): bool {
+				return E_WARNING === $severity
+					&& str_contains( $message, 'Cannot modify header information' );
+			}
+		);
+
+		try {
+			$fn();
+		} finally {
+			restore_error_handler();
+		}
+
 		return (string) ob_get_clean();
 	}
 

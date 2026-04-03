@@ -72,6 +72,8 @@ class ModelBenchmarkPage {
 			true
 		);
 
+		wp_set_script_translations( 'gratis-ai-agent-benchmark-page', 'gratis-ai-agent' );
+
 		wp_localize_script(
 			'gratis-ai-agent-benchmark-page',
 			'gratisAiBenchmarkData',

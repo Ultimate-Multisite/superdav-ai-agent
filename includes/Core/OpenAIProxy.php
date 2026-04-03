@@ -108,13 +108,12 @@ class OpenAIProxy {
 		$response = wp_remote_post(
 			$this->endpoint_url . '/chat/completions',
 			[
-				'timeout'   => $this->timeout,
-				'headers'   => [
+				'timeout' => $this->timeout,
+				'headers' => [
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $this->api_key ?: 'no-key' ),
 				],
-				'body'      => $encoded_body,
-				'sslverify' => false,
+				'body'    => $encoded_body,
 			]
 		);
 

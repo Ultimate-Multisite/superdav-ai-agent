@@ -84,6 +84,8 @@ class ScreenMetaPanel {
 			true
 		);
 
+		wp_set_script_translations( 'gratis-ai-agent-screen-meta', 'gratis-ai-agent' );
+
 		// Pass screen context to JS.
 		$screen_context = self::get_screen_context();
 

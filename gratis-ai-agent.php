@@ -105,6 +105,14 @@ register_deactivation_hook( __FILE__, [ AutomationRunner::class, 'unschedule_all
 register_deactivation_hook( __FILE__, [ SiteScanner::class, 'unschedule' ] );
 add_action( 'admin_init', [ Database::class, 'install' ] );
 
+// Load plugin text domain for i18n.
+add_action(
+	'init',
+	function () {
+		load_plugin_textdomain( 'gratis-ai-agent', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	}
+);
+
 // Register per-tool capabilities on admin_init so role-management plugins can discover them.
 add_action(
 	'admin_init',

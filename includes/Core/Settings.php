@@ -491,6 +491,8 @@ class Settings {
 			$asset['version'],
 			true
 		);
+
+		wp_set_script_translations( 'gratis-ai-agent-settings-page', 'gratis-ai-agent' );
 	}
 
 	/**

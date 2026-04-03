@@ -72,6 +72,8 @@ class AdminPage {
 			true
 		);
 
+		wp_set_script_translations( 'gratis-ai-agent-admin-page', 'gratis-ai-agent' );
+
 		wp_localize_script(
 			'gratis-ai-agent-admin-page',
 			'gratisAiAgentData',

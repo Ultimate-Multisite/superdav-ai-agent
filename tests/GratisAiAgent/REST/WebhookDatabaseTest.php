@@ -122,11 +122,18 @@ class WebhookDatabaseTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * create_webhook defaults enabled to 1.
+	 * create_webhook defaults enabled to 1 when not supplied.
+	 *
+	 * Calls WebhookDatabase::create_webhook() directly without an 'enabled'
+	 * key so the production default — not the test fixture — is exercised.
 	 */
 	public function test_create_webhook_defaults_enabled(): void {
-		$id      = $this->create_webhook();
-		$webhook = WebhookDatabase::get_webhook( $id );
+		$id = WebhookDatabase::create_webhook( [
+			'name'   => 'Stored Name Webhook',
+			'secret' => 'wh_' . wp_generate_password( 32, false ),
+		] );
+		$this->assertNotFalse( $id );
+		$webhook = WebhookDatabase::get_webhook( (int) $id );
 		$this->assertNotNull( $webhook );
 		$this->assertSame( '1', (string) $webhook->enabled );
 	}

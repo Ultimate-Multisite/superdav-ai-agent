@@ -216,6 +216,15 @@
   - Move auth into permission_callback for webhook/resale endpoints, harden CLI exec, wrap error_log in WP_DEBUG
   - Fix blueprint slugs, add MODELS.md to .distignore, update PHPCS min WP version to 6.9
 
+## In Progress
+
+- [ ] t144 WP 7.0 cleanup: fix settings tab overflow, flatten tab hierarchy, remove custom provider management #refactor ~9h logged:2026-04-03 ref:GH#727
+  - Settings tab bar has CSS selector mismatch causing 9 of 18 tabs to be hidden off-screen
+  - Two-level tab nesting creates duplicate tab names (General, Providers, Advanced at both levels)
+  - Custom provider key management duplicates WP 7.0 Connectors API — remove and delegate to core
+  - Direct HTTP provider paths (send_prompt_openai/anthropic/google/direct) bypass WP SDK — consolidate to wp_ai_client_prompt()
+  - Tasks: [todo/tasks/tasks-wp70-cleanup.md](todo/tasks/tasks-wp70-cleanup.md)
+
 ## Backlog
 
 ### Onboarding & First-Run Experience (P0)

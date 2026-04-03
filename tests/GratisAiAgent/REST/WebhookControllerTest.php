@@ -653,8 +653,9 @@ class WebhookControllerTest extends WP_UnitTestCase {
 	/**
 	 * POST /webhook/trigger with prompt template interpolates {{message}}.
 	 *
-	 * Verifies the async dispatch path is taken (202) when a prompt template
-	 * is configured and no raw message is provided.
+	 * Verifies that the stored job message equals the rendered template
+	 * (e.g. 'Summarise: some content') rather than the raw input, ensuring
+	 * {{message}} placeholder substitution actually occurs.
 	 */
 	public function test_trigger_uses_prompt_template(): void {
 		wp_set_current_user( 0 );
@@ -675,5 +676,11 @@ class WebhookControllerTest extends WP_UnitTestCase {
 			[ 'X-Webhook-Secret' => $webhook['secret'] ]
 		);
 		$this->assertStatus( 202, $response );
+
+		$data = $response->get_data();
+		$this->assertArrayHasKey( 'job_id', $data );
+		$job = get_transient( WebhookController::JOB_PREFIX . $data['job_id'] );
+		$this->assertIsArray( $job );
+		$this->assertSame( 'Summarise: some content', $job['params']['message'] );
 	}
 }

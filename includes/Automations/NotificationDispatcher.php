@@ -333,8 +333,10 @@ class NotificationDispatcher {
 		$body = wp_json_encode( $payload );
 
 		if ( false === $body ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
-			error_log( 'GratisAiAgent NotificationDispatcher: failed to JSON-encode payload for ' . $url );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
+				error_log( 'GratisAiAgent NotificationDispatcher: failed to JSON-encode payload for ' . $url );
+			}
 			return;
 		}
 
@@ -352,8 +354,10 @@ class NotificationDispatcher {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
-			error_log( 'GratisAiAgent NotificationDispatcher: webhook error for ' . $url . ': ' . $response->get_error_message() );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
+				error_log( 'GratisAiAgent NotificationDispatcher: webhook error for ' . $url . ': ' . $response->get_error_message() );
+			}
 		}
 	}
 }

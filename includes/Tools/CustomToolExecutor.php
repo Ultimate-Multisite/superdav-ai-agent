@@ -260,11 +260,13 @@ class CustomToolExecutor {
 			return new WP_Error( 'missing_config', __( 'No command configured.', 'gratis-ai-agent' ) );
 		}
 
-		// Replace {{placeholders}} in the command.
+		// Replace {{placeholders}} in the command, escaping each substituted
+		// value with escapeshellarg() to prevent shell injection.
 		// @phpstan-ignore-next-line
-		$command = self::replace_placeholders( $command, $input );
+		$command = self::replace_placeholders_escaped( $command, $input );
 
-		// Security: only allow wp-cli subcommands — strip any attempts to chain.
+		// Secondary defence: strip shell metacharacters that may remain in the
+		// static (non-placeholder) parts of the command template.
 		$command = preg_replace( '/[;&|`$]/', '', $command );
 
 		// Build full WP-CLI command.
@@ -293,6 +295,51 @@ class CustomToolExecutor {
 			'output'      => $output_text ?: '(no output)',
 			'command'     => 'wp ' . $command,
 		];
+	}
+
+	/**
+	 * Replace {{placeholder}} tokens in a string with shell-escaped input values.
+	 *
+	 * Each substituted value is passed through escapeshellarg() to prevent
+	 * shell injection from user-controlled input. Use this variant when the
+	 * result will be passed to exec() or similar shell execution functions.
+	 *
+	 * @param string               $template Template string with placeholders.
+	 * @param array<string, mixed> $input    Input values.
+	 * @return string
+	 */
+	public static function replace_placeholders_escaped( string $template, array $input ): string {
+		return (string) preg_replace_callback(
+			'/\{\{(\w[\w.]*)\}\}/',
+			/** @phpstan-ignore-next-line */
+			function ( $matches ) use ( $input ) {
+				$key = $matches[1];
+
+				// Direct key lookup.
+				if ( isset( $input[ $key ] ) ) {
+					$value = is_scalar( $input[ $key ] ) ? (string) $input[ $key ] : (string) wp_json_encode( $input[ $key ] );
+					return escapeshellarg( $value );
+				}
+
+				// Dot-notation traversal.
+				if ( str_contains( $key, '.' ) ) {
+					$parts = explode( '.', $key );
+					$value = $input;
+					foreach ( $parts as $part ) {
+						if ( is_array( $value ) && isset( $value[ $part ] ) ) {
+							$value = $value[ $part ];
+						} else {
+							return $matches[0]; // Leave placeholder as-is if not found.
+						}
+					}
+					$scalar = is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
+					return escapeshellarg( $scalar );
+				}
+
+				return $matches[0]; // Leave placeholder as-is if not found.
+			},
+			$template
+		);
 	}
 
 	/**

@@ -65,7 +65,7 @@ class WebhookController {
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $instance, 'handle_trigger' ],
-				'permission_callback' => '__return_true',
+				'permission_callback' => [ $instance, 'check_webhook_permission' ],
 				'args'                => [
 					'webhook_id'         => [
 						'required'          => false,
@@ -273,6 +273,49 @@ class WebhookController {
 	 */
 	public function check_admin_permission(): bool {
 		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Permission check for the public webhook trigger endpoint.
+	 *
+	 * Validates the X-Webhook-Secret header against the stored secret for the
+	 * given webhook_id. Returns true on success, WP_Error on failure.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return true|WP_Error
+	 */
+	public function check_webhook_permission( WP_REST_Request $request ) {
+		$webhook_id = absint( $request->get_param( 'webhook_id' ) );
+
+		if ( ! $webhook_id ) {
+			return new WP_Error(
+				'gratis_ai_agent_webhook_id_required',
+				__( 'webhook_id is required.', 'gratis-ai-agent' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$webhook = WebhookDatabase::get_webhook( $webhook_id );
+
+		if ( ! $webhook ) {
+			return new WP_Error(
+				'gratis_ai_agent_webhook_unauthorized',
+				__( 'Invalid webhook credentials.', 'gratis-ai-agent' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		$provided_secret = $request->get_header( 'X-Webhook-Secret' );
+
+		if ( empty( $provided_secret ) || ! hash_equals( (string) $webhook->secret, $provided_secret ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_webhook_unauthorized',
+				__( 'Invalid webhook credentials.', 'gratis-ai-agent' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		return true;
 	}
 
 	// ─── Admin CRUD handlers ─────────────────────────────────────────
@@ -547,22 +590,14 @@ class WebhookController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_trigger( WP_REST_Request $request ) {
-		// ── 1. Identify the webhook ──────────────────────────────────
+		// ── 1. Identify and load the webhook ─────────────────────────
+		// Authentication (webhook_id + X-Webhook-Secret) was already validated
+		// in check_webhook_permission(). We only need to load the record here.
 		// @phpstan-ignore-next-line
 		$webhook_id = absint( $request->get_param( 'webhook_id' ) );
-
-		if ( ! $webhook_id ) {
-			return new WP_Error(
-				'gratis_ai_agent_webhook_id_required',
-				__( 'webhook_id is required.', 'gratis-ai-agent' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$webhook = WebhookDatabase::get_webhook( $webhook_id );
+		$webhook    = WebhookDatabase::get_webhook( $webhook_id );
 
 		if ( ! $webhook ) {
-			// Return 401 rather than 404 to avoid leaking webhook existence.
 			return new WP_Error(
 				'gratis_ai_agent_webhook_unauthorized',
 				__( 'Invalid webhook credentials.', 'gratis-ai-agent' ),
@@ -570,29 +605,7 @@ class WebhookController {
 			);
 		}
 
-		// ── 2. Validate the secret ───────────────────────────────────
-		$provided_secret = $request->get_header( 'X-Webhook-Secret' );
-
-		if ( empty( $provided_secret ) || ! hash_equals( (string) $webhook->secret, $provided_secret ) ) {
-			WebhookDatabase::log_execution(
-				$webhook_id,
-				'error',
-				'',
-				[],
-				0,
-				0,
-				0,
-				'Invalid or missing X-Webhook-Secret header.'
-			);
-
-			return new WP_Error(
-				'gratis_ai_agent_webhook_unauthorized',
-				__( 'Invalid webhook credentials.', 'gratis-ai-agent' ),
-				[ 'status' => 401 ]
-			);
-		}
-
-		// ── 3. Check enabled state ───────────────────────────────────
+		// ── 2. Check enabled state ───────────────────────────────────
 		if ( ! (bool) $webhook->enabled ) {
 			return new WP_Error(
 				'gratis_ai_agent_webhook_disabled',
@@ -686,16 +699,15 @@ class WebhookController {
 		wp_remote_post(
 			rest_url( self::NAMESPACE . '/process' ),
 			[
-				'timeout'   => 0.01,
-				'blocking'  => false,
-				'sslverify' => false,
-				'body'      => (string) wp_json_encode(
+				'timeout'  => 0.01,
+				'blocking' => false,
+				'body'     => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
 					]
 				),
-				'headers'   => [
+				'headers'  => [
 					'Content-Type' => 'application/json',
 				],
 			]

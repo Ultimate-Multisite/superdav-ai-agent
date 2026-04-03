@@ -2236,16 +2236,15 @@ class RestController {
 		wp_remote_post(
 			rest_url( self::NAMESPACE . '/process' ),
 			array(
-				'timeout'   => 0.01,
-				'blocking'  => false,
-				'sslverify' => false,
-				'body'      => (string) wp_json_encode(
+				'timeout'  => 0.01,
+				'blocking' => false,
+				'body'     => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
 					]
 				),
-				'headers'   => array(
+				'headers'  => array(
 					'Content-Type' => 'application/json',
 				),
 			)
@@ -2426,16 +2425,15 @@ class RestController {
 		wp_remote_post(
 			rest_url( self::NAMESPACE . '/process' ),
 			array(
-				'timeout'   => 0.01,
-				'blocking'  => false,
-				'sslverify' => false,
-				'body'      => (string) wp_json_encode(
+				'timeout'  => 0.01,
+				'blocking' => false,
+				'body'     => (string) wp_json_encode(
 					[
 						'job_id' => $job_id,
 						'token'  => $token,
 					]
 				),
-				'headers'   => array(
+				'headers'  => array(
 					'Content-Type' => 'application/json',
 				),
 			)
@@ -6381,13 +6379,12 @@ Assistant: %s',
 		$response = wp_remote_post(
 			rtrim( $endpoint_url, '/' ) . '/chat/completions',
 			[
-				'timeout'   => 15,
-				'headers'   => [
+				'timeout' => 15,
+				'headers' => [
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
 				],
-				'body'      => (string) wp_json_encode( $request_body ),
-				'sslverify' => false,
+				'body'    => (string) wp_json_encode( $request_body ),
 			]
 		);
 

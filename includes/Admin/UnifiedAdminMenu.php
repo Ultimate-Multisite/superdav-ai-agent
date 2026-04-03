@@ -159,6 +159,8 @@ class UnifiedAdminMenu {
 			true
 		);
 
+		wp_set_script_translations( 'gratis-ai-agent-unified-admin', 'gratis-ai-agent' );
+
 		// Enqueue the admin-page bundle which sets window.gratisAiAgentChat.
 		// ChatRoute calls window.gratisAiAgentChat.mount(container) to render
 		// AdminPageApp inside #gratis-ai-chat-container. This bundle must load
@@ -182,6 +184,8 @@ class UnifiedAdminMenu {
 				$admin_page_asset['version'],
 				true
 			);
+
+			wp_set_script_translations( 'gratis-ai-agent-admin-page', 'gratis-ai-agent' );
 		}
 
 		$current_user = wp_get_current_user();

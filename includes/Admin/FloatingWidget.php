@@ -116,6 +116,8 @@ class FloatingWidget {
 			true
 		);
 
+		wp_set_script_translations( 'gratis-ai-agent-floating-widget', 'gratis-ai-agent' );
+
 		// Detect fresh install and pass site-builder context to the widget.
 		$is_fresh     = FreshInstallDetector::isFreshInstall();
 		$site_builder = (bool) Settings::get( 'site_builder_mode' );

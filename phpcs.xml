@@ -21,7 +21,7 @@
     <arg value="ps"/>
 
     <!-- WordPress version -->
-    <config name="minimum_supported_wp_version" value="6.7"/>
+    <config name="minimum_supported_wp_version" value="6.9"/>
 
     <!-- Text domain -->
     <config name="text_domain" value="gratis-ai-agent"/>

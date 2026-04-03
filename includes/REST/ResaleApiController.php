@@ -55,7 +55,7 @@ class ResaleApiController {
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $instance, 'handle_proxy' ],
-				'permission_callback' => '__return_true',
+				'permission_callback' => [ $instance, 'check_resale_permission' ],
 				'args'                => [
 					'model'       => [
 						'required'          => false,
@@ -260,26 +260,16 @@ class ResaleApiController {
 		return current_user_can( 'manage_options' );
 	}
 
-	// ─── Proxy handler ───────────────────────────────────────────────
-
 	/**
-	 * POST /resale/proxy — forward an AI request on behalf of a resale client.
+	 * Permission check for the public resale proxy endpoint.
 	 *
-	 * Authentication: X-Resale-API-Key header must match a stored client key.
-	 *
-	 * The endpoint accepts an OpenAI-compatible messages array, resolves the
-	 * site's configured AI provider, forwards the request, logs usage, and
-	 * returns the response in OpenAI-compatible format.
-	 *
-	 * Quota enforcement: if the client has a monthly_token_quota > 0 and
-	 * tokens_used_this_month >= monthly_token_quota, the request is rejected
-	 * with HTTP 429.
+	 * Validates the X-Resale-API-Key header against stored client keys.
+	 * Returns true on success, WP_Error on failure.
 	 *
 	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response|WP_Error
+	 * @return true|WP_Error
 	 */
-	public function handle_proxy( WP_REST_Request $request ) {
-		// ── 1. Authenticate ──────────────────────────────────────────
+	public function check_resale_permission( WP_REST_Request $request ) {
 		$api_key = $request->get_header( 'X-Resale-API-Key' );
 
 		if ( empty( $api_key ) ) {
@@ -300,7 +290,42 @@ class ResaleApiController {
 			);
 		}
 
-		// ── 2. Check enabled state ───────────────────────────────────
+		return true;
+	}
+
+	// ─── Proxy handler ───────────────────────────────────────────────
+
+	/**
+	 * POST /resale/proxy — forward an AI request on behalf of a resale client.
+	 *
+	 * Authentication: X-Resale-API-Key header must match a stored client key.
+	 *
+	 * The endpoint accepts an OpenAI-compatible messages array, resolves the
+	 * site's configured AI provider, forwards the request, logs usage, and
+	 * returns the response in OpenAI-compatible format.
+	 *
+	 * Quota enforcement: if the client has a monthly_token_quota > 0 and
+	 * tokens_used_this_month >= monthly_token_quota, the request is rejected
+	 * with HTTP 429.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_proxy( WP_REST_Request $request ) {
+		// Authentication (X-Resale-API-Key) was already validated in
+		// check_resale_permission(). Load the client record here.
+		$api_key = $request->get_header( 'X-Resale-API-Key' );
+		$client  = ResaleApiDatabase::get_client_by_key( (string) $api_key );
+
+		if ( ! $client ) {
+			return new WP_Error(
+				'resale_api_unauthorized',
+				__( 'Invalid API key.', 'gratis-ai-agent' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		// ── 1. Check enabled state ───────────────────────────────────
 		if ( ! (bool) $client->enabled ) {
 			return new WP_Error(
 				'resale_api_disabled',
@@ -317,7 +342,7 @@ class ResaleApiController {
 			if ( $reset_at && strtotime( $reset_at ) <= time() ) {
 				ResaleApiDatabase::reset_monthly_quota( (int) $client->id );
 				// Re-fetch to get updated counters.
-				$client = ResaleApiDatabase::get_client_by_key( $api_key );
+				$client = ResaleApiDatabase::get_client_by_key( (string) $api_key );
 				if ( ! $client ) {
 					return new WP_Error( 'resale_api_unauthorized', __( 'Invalid API key.', 'gratis-ai-agent' ), [ 'status' => 401 ] );
 				}

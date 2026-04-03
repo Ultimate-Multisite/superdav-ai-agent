@@ -6,7 +6,7 @@
     "author": "Ultimate-Multisite",
     "categories": ["AI", "Automation", "Chat"]
   },
-  "landingPage": "/wp-admin/admin.php?page=ai-agent",
+  "landingPage": "/wp-admin/admin.php?page=gratis-ai-agent",
   "login": {
     "username": "admin",
     "password": "password"
@@ -43,7 +43,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require '/wordpress/wp-load.php'; update_option('ai_agent_settings', array_merge((array) get_option('ai_agent_settings', []), ['_demo_note' => 'Add your API key under Tools > AI Agent Settings > General to start chatting.'])); echo 'Demo settings applied.'; ?>"
+      "code": "<?php require '/wordpress/wp-load.php'; update_option('gratis_ai_agent_settings', array_merge((array) get_option('gratis_ai_agent_settings', []), ['_demo_note' => 'Add your API key under Tools > AI Agent Settings > General to start chatting.'])); echo 'Demo settings applied.'; ?>"
     }
   ]
 }

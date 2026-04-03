@@ -1137,13 +1137,12 @@ class AgentLoop {
 		$response = wp_remote_post(
 			$endpoint_url . '/chat/completions',
 			array(
-				'timeout'   => $timeout,
-				'headers'   => array(
+				'timeout' => $timeout,
+				'headers' => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
 				),
-				'body'      => $encoded_body,
-				'sslverify' => false,
+				'body'    => $encoded_body,
 			)
 		);
 
@@ -1200,10 +1199,6 @@ class AgentLoop {
 					'content'       => $encoded_body,
 					'timeout'       => $timeout,
 					'ignore_errors' => true,
-				),
-				'ssl'  => array(
-					'verify_peer'      => false,
-					'verify_peer_name' => false,
 				),
 			)
 		);

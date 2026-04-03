@@ -556,12 +556,15 @@ class ResaleApiControllerTest extends WP_UnitTestCase {
 
 		$api_key   = 'gaa_' . wp_generate_password( 32, false );
 		$client_id = $this->create_test_client( [
-			'api_key'                => $api_key,
-			'enabled'                => 1,
-			'monthly_token_quota'    => 100,
-			'tokens_used_this_month' => 100,
-			'quota_reset_at'         => gmdate( 'Y-m-d H:i:s', strtotime( '+1 month' ) ),
+			'api_key'             => $api_key,
+			'enabled'             => 1,
+			'monthly_token_quota' => 100,
 		] );
+
+		// Prime the quota: create_client() starts tokens_used_this_month at 0.
+		// Use log_usage() to record 100 tokens so the quota is fully exhausted
+		// before the proxy request, ensuring the controller returns 429.
+		ResaleApiDatabase::log_usage( $client_id, 'openai', 'gpt-4o', 50, 50, 0.0, 'success', '', 100 );
 
 		$response = $this->dispatch(
 			'POST',

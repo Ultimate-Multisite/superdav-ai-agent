@@ -14,6 +14,7 @@ import FloatingButton from './floating-button';
 import FloatingPanel from './floating-panel';
 import SiteBuilderOverlay from './site-builder-overlay';
 import useKeyboardShortcut from './use-keyboard-shortcut';
+import '../components/shared.css';
 import './style.css';
 
 /**

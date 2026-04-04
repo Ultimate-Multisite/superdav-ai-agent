@@ -22,6 +22,7 @@ import OnboardingWizard from '../components/onboarding-wizard';
 import OnboardingInterview from '../components/onboarding-interview';
 import ShortcutsHelp from '../components/shortcuts-help';
 import { useKeyboardShortcuts } from '../utils/keyboard-shortcuts';
+import '../components/shared.css';
 import './style.css';
 
 /**

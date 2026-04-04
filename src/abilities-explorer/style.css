@@ -11,50 +11,6 @@
 	padding: 24px 0;
 }
 
-.gratis-abilities-explorer {
-	margin-top: 16px;
-}
-
-.gratis-abilities-toolbar {
-	background: #fff;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	padding: 16px;
-	margin-bottom: 16px;
-}
-
-.gratis-abilities-count {
-	font-size: 12px;
-	color: #757575;
-	margin: 8px 0 0;
-}
-
-.gratis-abilities-grid {
-	display: grid;
-	grid-template-columns: repeat( auto-fill, minmax( 480px, 1fr ) );
-	gap: 12px;
-}
-
-.gratis-ability-card {
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	background: #fff;
-	transition: box-shadow 0.15s ease;
-}
-
-.gratis-ability-card:hover {
-	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.1 );
-}
-
-.gratis-ability-card .components-card__header {
-	padding: 12px 16px;
-	border-bottom: 1px solid #f0f0f0;
-}
-
-.gratis-ability-card .components-card__body {
-	padding: 12px 16px;
-}
-
 .gratis-ability-title {
 	font-weight: 600;
 	font-size: 14px;
@@ -121,14 +77,7 @@
 	word-break: break-all;
 }
 
-/* Responsive: single column on narrow screens */
-@media ( max-width: 782px ) {
-	.gratis-abilities-grid {
-		grid-template-columns: 1fr;
-	}
-}
-
-/* ── New category-grouped layout (CategorySection component) ── */
+/* ── Category-grouped layout (CategorySection component) ── */
 
 .gratis-ai-agent-abilities-manager {
 	margin-top: 16px;

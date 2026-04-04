@@ -382,10 +382,7 @@ export default function SettingsApp() {
 								return (
 									<div className="gratis-ai-agent-settings-section">
 										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Model',
-												'gratis-ai-agent'
-											) }
+											{ __( 'Model', 'gratis-ai-agent' ) }
 										</h3>
 										<table className="form-table gratis-ai-agent-form-table">
 											<tbody>

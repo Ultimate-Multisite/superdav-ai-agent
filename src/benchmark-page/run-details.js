@@ -144,28 +144,28 @@ export default function RunDetails( { run, onBack } ) {
 				</CardBody>
 			</Card>
 
-		<div className="gratis-ai-agent-benchmark-summary">
-			<StatCard
-				label={ __( 'Total Questions', 'gratis-ai-agent' ) }
-				value={ results.length }
-			/>
-			<StatCard
-				label={ __( 'Accuracy', 'gratis-ai-agent' ) }
-				value={ `${ accuracy }%` }
-			/>
-			<StatCard
-				label={ __( 'Correct', 'gratis-ai-agent' ) }
-				value={ correctCount }
-			/>
-			<StatCard
-				label={ __( 'Avg Latency', 'gratis-ai-agent' ) }
-				value={ `${ avgLatency }ms` }
-			/>
-			<StatCard
-				label={ __( 'Total Tokens', 'gratis-ai-agent' ) }
-				value={ totalTokens.toLocaleString() }
-			/>
-		</div>
+			<div className="gratis-ai-agent-benchmark-summary">
+				<StatCard
+					label={ __( 'Total Questions', 'gratis-ai-agent' ) }
+					value={ results.length }
+				/>
+				<StatCard
+					label={ __( 'Accuracy', 'gratis-ai-agent' ) }
+					value={ `${ accuracy }%` }
+				/>
+				<StatCard
+					label={ __( 'Correct', 'gratis-ai-agent' ) }
+					value={ correctCount }
+				/>
+				<StatCard
+					label={ __( 'Avg Latency', 'gratis-ai-agent' ) }
+					value={ `${ avgLatency }ms` }
+				/>
+				<StatCard
+					label={ __( 'Total Tokens', 'gratis-ai-agent' ) }
+					value={ totalTokens.toLocaleString() }
+				/>
+			</div>
 
 			{ Object.keys( byModel ).length > 0 && (
 				<Card style={ { marginTop: '20px' } }>

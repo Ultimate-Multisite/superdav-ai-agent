@@ -5,7 +5,15 @@ import { useState, useCallback, useRef, useEffect } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { plus, upload } from '@wordpress/icons';
+import {
+	Icon,
+	plus,
+	upload,
+	pin,
+	people,
+	moreVertical,
+	closeSmall,
+} from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -88,16 +96,18 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 					<span
 						className="gratis-ai-agent-pin-icon"
 						title={ __( 'Pinned', 'gratis-ai-agent' ) }
+						aria-label={ __( 'Pinned', 'gratis-ai-agent' ) }
 					>
-						&#128204;
+						<Icon icon={ pin } size={ 12 } />
 					</span>
 				) }
 				{ isShared && (
 					<span
 						className="gratis-ai-agent-shared-icon"
 						title={ __( 'Shared with admins', 'gratis-ai-agent' ) }
+						aria-label={ __( 'Shared', 'gratis-ai-agent' ) }
 					>
-						&#128101;
+						<Icon icon={ people } size={ 12 } />
 					</span>
 				) }
 				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
@@ -122,7 +132,7 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 				aria-expanded={ showMenu }
 				type="button"
 			>
-				&#8943;
+				<Icon icon={ moreVertical } size={ 16 } />
 			</button>
 			{ showMenu && (
 				<SessionContextMenu
@@ -288,17 +298,13 @@ export default function SessionSidebar( { onClose } ) {
 						onChange={ handleImport }
 					/>
 					{ onClose && (
-						<button
-							type="button"
+						<Button
 							className="gratis-ai-agent-sidebar-close-btn"
 							onClick={ onClose }
-							aria-label={ __(
-								'Close sidebar',
-								'gratis-ai-agent'
-							) }
-						>
-							&#10005;
-						</button>
+							label={ __( 'Close sidebar', 'gratis-ai-agent' ) }
+							showTooltip
+							icon={ <Icon icon={ closeSmall } size={ 20 } /> }
+						/>
 					) }
 				</div>
 				{ ! isSharedTab && (

@@ -29,7 +29,9 @@ export default function FloatingButton() {
 
 	const branding = getBranding();
 	// FAB uses light background; only apply custom icon color from branding if set.
-	const fabStyle = branding.primaryColor ? { color: branding.primaryColor } : {};
+	const fabStyle = branding.primaryColor
+		? { color: branding.primaryColor }
+		: {};
 	const agentLabel = branding.agentName
 		? sprintf(
 				/* translators: %s: agent display name */

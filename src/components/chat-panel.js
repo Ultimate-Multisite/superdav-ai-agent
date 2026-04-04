@@ -4,7 +4,7 @@
 import { useEffect, useCallback } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { Button } from '@wordpress/components';
+import { Button, Tooltip } from '@wordpress/components';
 
 /**
  * Internal dependencies
@@ -124,9 +124,16 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 						/>
 					) }
 					{ debugMode && (
-						<span className="gratis-ai-agent-debug-badge">
-							{ __( 'DEBUG', 'gratis-ai-agent' ) }
-						</span>
+						<Tooltip
+							text={ __(
+								'Debug mode is active — extra metadata is shown below each response.',
+								'gratis-ai-agent'
+							) }
+						>
+							<span className="gratis-ai-agent-debug-badge">
+								{ __( 'DEBUG', 'gratis-ai-agent' ) }
+							</span>
+						</Tooltip>
 					) }
 				</div>
 				<ContextIndicator />
@@ -159,15 +166,16 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					/>
 				) }
 				{ yoloMode && (
-					<span
-						className="gratis-ai-agent-yolo-badge"
-						title={ __(
+					<Tooltip
+						text={ __(
 							'YOLO mode is active — all tool confirmations are skipped automatically.',
 							'gratis-ai-agent'
 						) }
 					>
-						{ __( 'YOLO', 'gratis-ai-agent' ) }
-					</span>
+						<span className="gratis-ai-agent-yolo-badge">
+							{ __( 'YOLO', 'gratis-ai-agent' ) }
+						</span>
+					</Tooltip>
 				) }
 			</div>
 		</ErrorBoundary>

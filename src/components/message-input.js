@@ -5,7 +5,7 @@ import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { Icon, arrowUp } from '@wordpress/icons';
+import { Icon, arrowUp, pages, closeSmall } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 
 /**
@@ -569,15 +569,15 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			) }
 			<div className="gratis-ai-agent-input-row">
 				<Button
-					variant="tertiary"
 					onClick={ () => setShowTemplates( ( v ) => ! v ) }
-					className="gratis-ai-agent-templates-btn"
+					className={ `gratis-ai-agent-templates-btn${
+						showTemplates ? ' is-active' : ''
+					}` }
 					label={ __( 'Templates', 'gratis-ai-agent' ) }
-					isSmall
+					showTooltip
+					icon={ <Icon icon={ pages } size={ 18 } /> }
 					disabled={ sending }
-				>
-					{ __( 'Templates', 'gratis-ai-agent' ) }
-				</Button>
+				/>
 				{ /* Hidden file input */ }
 				<input
 					ref={ fileInputRef }
@@ -645,13 +645,12 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				) }
 				{ sending ? (
 					<Button
-						variant="secondary"
 						onClick={ stopGeneration }
 						className="gratis-ai-agent-stop-btn"
-						label={ __( 'Stop', 'gratis-ai-agent' ) }
-					>
-						{ __( 'Stop', 'gratis-ai-agent' ) }
-					</Button>
+						label={ __( 'Stop generation', 'gratis-ai-agent' ) }
+						showTooltip
+						icon={ <Icon icon={ closeSmall } size={ 18 } /> }
+					/>
 				) : (
 					<Button
 						variant="primary"

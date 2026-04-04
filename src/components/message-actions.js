@@ -4,6 +4,8 @@
 import { useState, useCallback, useRef, useEffect } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import { Button } from '@wordpress/components';
+import { Icon, copy, pencil, redo, check } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -84,16 +86,21 @@ export default function MessageActions( { message, index } ) {
 					} }
 				/>
 				<div className="gratis-ai-agent-message-edit-actions">
-					<button
-						type="button"
+					<Button
+						variant="primary"
 						onClick={ handleEditSubmit }
 						disabled={ sending }
+						size="small"
 					>
 						{ __( 'Send', 'gratis-ai-agent' ) }
-					</button>
-					<button type="button" onClick={ () => setEditing( false ) }>
+					</Button>
+					<Button
+						variant="tertiary"
+						onClick={ () => setEditing( false ) }
+						size="small"
+					>
 						{ __( 'Cancel', 'gratis-ai-agent' ) }
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
@@ -104,37 +111,39 @@ export default function MessageActions( { message, index } ) {
 
 	return (
 		<div className="gratis-ai-agent-message-actions">
-			<button
-				type="button"
+			<Button
 				className="gratis-ai-agent-action-btn"
 				onClick={ handleCopy }
-				title={ __( 'Copy', 'gratis-ai-agent' ) }
-			>
-				{ copied
-					? __( 'Copied', 'gratis-ai-agent' )
-					: __( 'Copy', 'gratis-ai-agent' ) }
-			</button>
+				label={
+					copied
+						? __( 'Copied!', 'gratis-ai-agent' )
+						: __( 'Copy', 'gratis-ai-agent' )
+				}
+				showTooltip
+				icon={ <Icon icon={ copied ? check : copy } size={ 14 } /> }
+				size="small"
+			/>
 			{ isUser && (
-				<button
-					type="button"
+				<Button
 					className="gratis-ai-agent-action-btn"
 					onClick={ handleEdit }
 					disabled={ sending }
-					title={ __( 'Edit', 'gratis-ai-agent' ) }
-				>
-					{ __( 'Edit', 'gratis-ai-agent' ) }
-				</button>
+					label={ __( 'Edit message', 'gratis-ai-agent' ) }
+					showTooltip
+					icon={ <Icon icon={ pencil } size={ 14 } /> }
+					size="small"
+				/>
 			) }
 			{ isModel && (
-				<button
-					type="button"
+				<Button
 					className="gratis-ai-agent-action-btn"
 					onClick={ () => regenerateMessage( index ) }
 					disabled={ sending }
-					title={ __( 'Regenerate', 'gratis-ai-agent' ) }
-				>
-					{ __( 'Regenerate', 'gratis-ai-agent' ) }
-				</button>
+					label={ __( 'Regenerate', 'gratis-ai-agent' ) }
+					showTooltip
+					icon={ <Icon icon={ redo } size={ 14 } /> }
+					size="small"
+				/>
 			) }
 		</div>
 	);

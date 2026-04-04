@@ -31,13 +31,13 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 
 .gratis-ai-agent-layout {
 	display: flex;
-	height: calc(100vh - 100px);
+	height: calc(100vh - 140px);
 	min-height: 500px;
 	border: 1px solid #c3c4c7;
-	border-radius: 4px;
+	border-radius: 8px;
 	background: #fff;
 	overflow: hidden;
-	margin-top: 16px;
+	margin-top: 12px;
 }
 
 /* Sidebar */
@@ -61,14 +61,34 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	margin-bottom: 8px;
 }
 
-.gratis-ai-agent-new-chat-btn {
+.gratis-ai-agent-new-chat-btn.components-button {
 	flex: 1;
 	justify-content: center;
+	border-radius: 6px;
 }
 
-.gratis-ai-agent-import-btn {
+.gratis-ai-agent-import-btn.components-button {
 	min-width: auto;
-	padding: 0 8px;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border-radius: 6px;
+}
+
+.gratis-ai-agent-sidebar-close-btn.components-button {
+	min-width: auto;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border-radius: 6px;
+	color: #646970;
+	background: transparent;
+	border: none;
+}
+
+.gratis-ai-agent-sidebar-close-btn.components-button:hover {
+	background: #f0f0f1;
+	color: #1d2327;
 }
 
 .gratis-ai-agent-sidebar-search {
@@ -218,10 +238,14 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	margin-top: 1px;
 }
 
-/* Pin indicator */
-.gratis-ai-agent-pin-icon {
-	font-size: 11px;
+/* Pin / shared indicators */
+.gratis-ai-agent-pin-icon,
+.gratis-ai-agent-shared-icon {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: middle;
 	margin-right: 3px;
+	color: #a7aaad;
 }
 
 .gratis-ai-agent-session-folder-badge {
@@ -238,18 +262,21 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 .gratis-ai-agent-session-more {
 	position: absolute;
 	top: 50%;
-	right: 6px;
+	right: 4px;
 	transform: translateY(-50%);
 	background: none;
-	border: 1px solid transparent;
-	color: #646970;
+	border: none;
+	color: #a7aaad;
 	cursor: pointer;
-	font-size: 16px;
-	line-height: 1;
-	padding: 2px 5px;
-	border-radius: 2px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	padding: 0;
 	opacity: 0;
-	transition: opacity 0.1s, background 0.1s, border-color 0.1s;
+	transition: opacity 0.1s, background 0.1s, color 0.1s;
 }
 
 .gratis-ai-agent-session-item:hover .gratis-ai-agent-session-more,
@@ -259,8 +286,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 
 .gratis-ai-agent-session-more:hover {
 	color: #1d2327;
-	background: #dcdcde;
-	border-color: #c3c4c7;
+	background: #e0e0e0;
 }
 
 .gratis-ai-agent-session-more:focus-visible {
@@ -418,16 +444,16 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	min-height: 0;
 }
 
-/* Header — wp-admin toolbar style: compact, single-row, no background fill */
+/* Header */
 .gratis-ai-agent-header {
 	padding: 6px 12px;
 	border-bottom: 1px solid #dcdcde;
-	background: #fff;
+	background: #fafafa;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	flex-wrap: wrap;
-	min-height: 40px;
+	min-height: 44px;
 }
 
 .gratis-ai-agent-provider-selector {
@@ -492,20 +518,21 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 3px;
-	padding: 10px 12px;
-	background: #f6f7f7;
+	gap: 4px;
+	padding: 12px 14px;
+	background: #fff;
 	border: 1px solid #dcdcde;
-	border-radius: 3px;
+	border-radius: 8px;
 	cursor: pointer;
 	text-align: left;
 	font-family: inherit;
-	transition: background 0.1s, border-color 0.1s;
+	transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 
 .gratis-ai-agent-welcome__card:hover {
-	background: #f0f0f1;
-	border-color: #8c8f94;
+	background: #f8f9fa;
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .gratis-ai-agent-welcome__card:focus-visible {
@@ -513,8 +540,21 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	outline-offset: 2px;
 }
 
+.gratis-ai-agent-welcome__card-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
+	background: #f0f6fc;
+	color: var(--wp-admin-theme-color, #2271b1);
+	margin-bottom: 4px;
+	flex-shrink: 0;
+}
+
 .gratis-ai-agent-welcome__card-title {
-	font-size: 12px;
+	font-size: 13px;
 	font-weight: 600;
 	color: #1d2327;
 	line-height: 1.3;
@@ -552,12 +592,12 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	}
 }
 
-/* Bubbles — wp-admin form conventions: reduced visual weight, 13px body text */
+/* Bubbles */
 .gratis-ai-agent-bubble {
-	padding: 8px 12px;
-	border-radius: 2px;
+	padding: 9px 13px;
+	border-radius: 8px;
 	max-width: 85%;
-	line-height: 1.5;
+	line-height: 1.55;
 	word-wrap: break-word;
 	white-space: pre-wrap;
 	font-size: 13px;
@@ -568,7 +608,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	color: #1d2327;
 	align-self: flex-end;
 	border: 1px solid #c5d9ed;
-	border-right: 3px solid var(--wp-admin-theme-color, #2271b1);
+	border-radius: 8px 8px 2px 8px;
 }
 
 .gratis-ai-agent-assistant {
@@ -576,7 +616,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	color: #1d2327;
 	align-self: flex-start;
 	border: 1px solid #dcdcde;
-	border-left: 3px solid #a7aaad;
+	border-radius: 8px 8px 8px 2px;
 	white-space: normal;
 }
 
@@ -976,39 +1016,50 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 /* Message row */
 .gratis-ai-agent-message-row {
 	position: relative;
+	display: flex;
+	flex-direction: column;
 }
 
 .gratis-ai-agent-message-row:hover .gratis-ai-agent-message-actions {
 	opacity: 1;
 }
 
-/* Message actions */
+/* Message actions — align to match bubble side */
 .gratis-ai-agent-message-actions {
 	display: flex;
-	gap: 4px;
-	margin-top: 2px;
+	gap: 2px;
+	margin-top: 3px;
 	opacity: 0;
 	transition: opacity 0.15s;
+	align-self: flex-start;
 }
 
-.gratis-ai-agent-action-btn {
-	padding: 2px 8px;
-	background: none;
-	border: 1px solid #dcdcde;
-	border-radius: 3px;
-	color: #50575e;
-	font-size: 11px;
-	cursor: pointer;
-	transition: background 0.1s, color 0.1s;
+/* User message rows: bubble + actions both right-aligned */
+.gratis-ai-agent-message-row:has(.gratis-ai-agent-user) .gratis-ai-agent-message-actions {
+	align-self: flex-end;
 }
 
-.gratis-ai-agent-action-btn:hover {
+.gratis-ai-agent-action-btn.components-button {
+	min-width: 26px;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 5px;
+	color: #787c82;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+	transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.gratis-ai-agent-action-btn.components-button:hover {
 	background: #f0f0f1;
 	color: #1d2327;
+	border-color: #c3c4c7;
 }
 
-.gratis-ai-agent-action-btn:disabled {
-	opacity: 0.5;
+.gratis-ai-agent-action-btn.components-button:disabled {
+	opacity: 0.4;
 	cursor: default;
 }
 
@@ -1021,7 +1072,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	width: 100%;
 	padding: 6px 8px;
 	border: 1px solid var(--wp-admin-theme-color, #2271b1);
-	border-radius: 0;
+	border-radius: 4px;
 	font-size: 13px;
 	font-family: inherit;
 	resize: vertical;
@@ -1031,41 +1082,36 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 .gratis-ai-agent-message-edit-actions {
 	display: flex;
 	gap: 6px;
-	margin-top: 4px;
+	margin-top: 6px;
 }
 
-.gratis-ai-agent-message-edit-actions button {
-	padding: 4px 12px;
-	border: 1px solid #c3c4c7;
-	border-radius: 3px;
-	font-size: 12px;
-	cursor: pointer;
-	background: #fff;
-}
-
-.gratis-ai-agent-message-edit-actions button:first-child {
-	background: var(--wp-admin-theme-color, #2271b1);
-	color: #fff;
-	border-color: var(--wp-admin-theme-color, #2271b1);
-}
-
-/* Stop button */
-.gratis-ai-agent-stop-btn {
+/* Stop button — icon-only, matches send/mic sizing */
+.gratis-ai-agent-stop-btn.components-button {
 	flex-shrink: 0;
 	min-width: auto;
-	font-size: 12px;
-	padding: 4px 12px;
-	border-radius: 2px;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border-radius: 6px;
 	align-self: flex-end;
-	height: 30px;
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	color: #50575e;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-/* Input area — wp-admin form conventions: white background, standard border */
+.gratis-ai-agent-stop-btn.components-button:hover {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+}
+
+/* Input area */
 .gratis-ai-agent-input-area {
 	display: flex;
 	flex-direction: column;
 	position: relative;
-	padding: 10px 12px;
+	padding: 10px 12px 12px;
 	border-top: 1px solid #dcdcde;
 	background: #fff;
 }
@@ -1074,15 +1120,16 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	flex: 1;
 	resize: none;
 	font-size: 13px;
-	padding: 6px 8px;
-	border: 1px solid #8c8f94;
-	border-radius: 0;
+	padding: 7px 10px;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
 	font-family: inherit;
 	line-height: 1.5;
 	overflow-y: auto;
 	background: #fff;
 	color: #1d2327;
 	box-shadow: none;
+	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .gratis-ai-agent-input:focus {
@@ -1092,20 +1139,42 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 .gratis-ai-agent-input:disabled {
-	background: #f0f0f1;
+	background: #f6f7f7;
 	color: #a7aaad;
 	cursor: not-allowed;
 }
 
-.gratis-ai-agent-send-btn {
-	position: static;
+/* ── Shared icon-button sizing for input row ─────────────────── */
+.gratis-ai-agent-send-btn.components-button,
+.gratis-ai-agent-mic-btn.components-button,
+.gratis-ai-agent-upload-btn.components-button,
+.gratis-ai-agent-templates-btn.components-button {
 	flex-shrink: 0;
 	min-width: auto;
-	width: 30px;
-	height: 30px;
+	width: 32px;
+	height: 32px;
 	padding: 0;
-	border-radius: 2px;
+	border-radius: 6px;
 	align-self: flex-end;
+}
+
+/* Send button — filled primary style */
+.gratis-ai-agent-send-btn.components-button {
+	background: var(--wp-admin-theme-color, #2271b1);
+	color: #fff;
+	border: none;
+	transition: background 0.15s, opacity 0.15s;
+}
+
+.gratis-ai-agent-send-btn.components-button:hover:not(:disabled) {
+	background: var(--wp-admin-theme-color-darker-10, #135e96);
+	color: #fff;
+}
+
+.gratis-ai-agent-send-btn.components-button:disabled {
+	background: #c3c4c7;
+	color: #fff;
+	opacity: 1;
 }
 
 .gratis-ai-agent-send-btn svg {
@@ -1114,32 +1183,25 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Mic / push-to-talk button */
-.gratis-ai-agent-mic-btn {
-	flex-shrink: 0;
-	min-width: auto;
-	width: 30px;
-	height: 30px;
-	padding: 0;
-	border-radius: 2px;
+.gratis-ai-agent-mic-btn.components-button {
 	color: #646970;
 	background: transparent;
 	border: 1px solid #c3c4c7;
-	align-self: flex-end;
 	transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.gratis-ai-agent-mic-btn svg {
+.gratis-ai-agent-mic-btn.components-button svg {
 	width: 18px;
 	height: 18px;
 }
 
-.gratis-ai-agent-mic-btn:hover {
+.gratis-ai-agent-mic-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
-.gratis-ai-agent-mic-btn.is-listening {
+.gratis-ai-agent-mic-btn.components-button.is-listening {
 	color: #fff;
 	background: #d63638;
 	border-color: #d63638;
@@ -1415,7 +1477,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 .gratis-ai-agent-input-row {
 	display: flex;
 	align-items: flex-end;
-	gap: 6px;
+	gap: 5px;
 	width: 100%;
 }
 
@@ -1423,30 +1485,35 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	flex: 1;
 }
 
-.gratis-ai-agent-templates-btn {
-	flex-shrink: 0;
-	font-size: 12px;
-	padding: 4px 8px;
-	height: 30px;
-	align-self: flex-end;
-}
-
-/* ── File upload button (paperclip) ─────────────────────────── */
-.gratis-ai-agent-upload-btn {
-	flex-shrink: 0;
-	min-width: auto;
-	width: 30px;
-	height: 30px;
-	padding: 0;
-	border-radius: 2px;
+/* Templates button — icon-only, subtle */
+.gratis-ai-agent-templates-btn.components-button {
 	color: #787c82;
 	background: transparent;
 	border: 1px solid #c3c4c7;
-	align-self: flex-end;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.gratis-ai-agent-templates-btn.components-button:hover {
+	color: var(--wp-admin-theme-color, #2271b1);
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	background: transparent;
+}
+
+.gratis-ai-agent-templates-btn.components-button.is-active {
+	color: var(--wp-admin-theme-color, #2271b1);
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	background: #f0f6fc;
+}
+
+/* ── File upload button (paperclip) ─────────────────────────── */
+.gratis-ai-agent-upload-btn.components-button {
+	color: #787c82;
+	background: transparent;
+	border: 1px solid #c3c4c7;
 	transition: color 0.15s, border-color 0.15s;
 }
 
-.gratis-ai-agent-upload-btn:hover {
+.gratis-ai-agent-upload-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
@@ -2045,7 +2112,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	/* Layout stays as a row; sidebar becomes a fixed overlay */
 	.gratis-ai-agent-layout {
 		position: relative;
-		height: calc(100vh - 100px);
+		height: calc(100vh - 140px);
 	}
 
 	/* Sidebar: hidden off-screen by default */

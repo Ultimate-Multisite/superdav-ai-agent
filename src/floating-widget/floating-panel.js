@@ -71,11 +71,11 @@ export default function FloatingPanel() {
 
 	return (
 		<div className={ classNames } style={ panelStyle }>
-		<div
-			role="presentation"
-			className="gratis-ai-agent-floating-titlebar"
-			onMouseDown={ handleMouseDown }
-		>
+			<div
+				role="presentation"
+				className="gratis-ai-agent-floating-titlebar"
+				onMouseDown={ handleMouseDown }
+			>
 				{ branding.logoUrl && (
 					<img
 						src={ branding.logoUrl }

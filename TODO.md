@@ -241,7 +241,7 @@
 - [x] t148 Standardize CSS class prefix to gratis-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch pr:#739 completed:2026-04-04
   - Three conventions coexist: ai-agent-, gratis-ai-agent-, gratis-ai- — namespace collision risk
 
-- [ ] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch
+- [x] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch pr:#742 completed:2026-04-04
   - Single store/index.js handles sessions, messages, streaming, settings, memory, skills, agents, templates, TTS, site builder
 
 - [x] t150 Add JS unit tests for critical components (chat-panel, message-input, onboarding-wizard) #testing ~8h logged:2026-04-03 ref:GH#734 #auto-dispatch pr:#743 completed:2026-04-04

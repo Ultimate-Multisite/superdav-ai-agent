@@ -88,7 +88,7 @@ export default function RunDetails( { run, onBack } ) {
 	} );
 
 	return (
-		<div className="gratis-ai-benchmark-run-details">
+		<div className="gratis-ai-agent-benchmark-run-details">
 			<Button
 				variant="tertiary"
 				onClick={ onBack }
@@ -125,24 +125,24 @@ export default function RunDetails( { run, onBack } ) {
 				</CardBody>
 			</Card>
 
-			<div className="gratis-ai-benchmark-summary">
-				<div className="gratis-ai-benchmark-stat-card">
+			<div className="gratis-ai-agent-benchmark-summary">
+				<div className="gratis-ai-agent-benchmark-stat-card">
 					<h4>{ __( 'Total Questions', 'gratis-ai-agent' ) }</h4>
 					<div className="stat-value">{ results.length }</div>
 				</div>
-				<div className="gratis-ai-benchmark-stat-card">
+				<div className="gratis-ai-agent-benchmark-stat-card">
 					<h4>{ __( 'Accuracy', 'gratis-ai-agent' ) }</h4>
 					<div className="stat-value">{ accuracy }%</div>
 				</div>
-				<div className="gratis-ai-benchmark-stat-card">
+				<div className="gratis-ai-agent-benchmark-stat-card">
 					<h4>{ __( 'Correct', 'gratis-ai-agent' ) }</h4>
 					<div className="stat-value">{ correctCount }</div>
 				</div>
-				<div className="gratis-ai-benchmark-stat-card">
+				<div className="gratis-ai-agent-benchmark-stat-card">
 					<h4>{ __( 'Avg Latency', 'gratis-ai-agent' ) }</h4>
 					<div className="stat-value">{ avgLatency }ms</div>
 				</div>
-				<div className="gratis-ai-benchmark-stat-card">
+				<div className="gratis-ai-agent-benchmark-stat-card">
 					<h4>{ __( 'Total Tokens', 'gratis-ai-agent' ) }</h4>
 					<div className="stat-value">
 						{ totalTokens.toLocaleString() }
@@ -256,7 +256,7 @@ export default function RunDetails( { run, onBack } ) {
 					<h3>{ __( 'Detailed Results', 'gratis-ai-agent' ) }</h3>
 				</CardHeader>
 				<CardBody>
-					<div className="gratis-ai-benchmark-results-table">
+					<div className="gratis-ai-agent-benchmark-results-table">
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>

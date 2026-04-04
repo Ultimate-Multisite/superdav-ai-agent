@@ -262,7 +262,7 @@ export default function ChangesApp() {
 			const url = URL.createObjectURL( blob );
 			const a = document.createElement( 'a' );
 			a.href = url;
-			a.download = data.filename || 'gratis-ai-changes.patch';
+			a.download = data.filename || 'gratis-ai-agent-changes.patch';
 			document.body.appendChild( a );
 			a.click();
 			document.body.removeChild( a );

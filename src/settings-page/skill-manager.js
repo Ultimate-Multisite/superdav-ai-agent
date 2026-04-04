@@ -132,8 +132,8 @@ export default function SkillManager() {
 	);
 
 	return (
-		<div className="ai-agent-skill-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-skill-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
 					<h3>{ __( 'Agent Skills', 'gratis-ai-agent' ) }</h3>
 					<p className="description">
@@ -156,7 +156,7 @@ export default function SkillManager() {
 			</div>
 
 			{ showForm && (
-				<div className="ai-agent-skill-form">
+				<div className="gratis-ai-agent-skill-form">
 					{ ! editId && (
 						<TextControl
 							label={ __( 'Slug', 'gratis-ai-agent' ) }
@@ -195,7 +195,7 @@ export default function SkillManager() {
 							'gratis-ai-agent'
 						) }
 					/>
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -237,26 +237,26 @@ export default function SkillManager() {
 			) }
 
 			{ skills.length > 0 && (
-				<div className="ai-agent-skill-cards">
+				<div className="gratis-ai-agent-skill-cards">
 					{ skills.map( ( skill ) => (
 						<div
 							key={ skill.id }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								! skill.enabled
-									? 'ai-agent-skill-card--disabled'
+									? 'gratis-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
+							<div className="gratis-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ skill.enabled }
 									onChange={ () => handleToggle( skill ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="ai-agent-skill-card-title">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ skill.name }</strong>
 									{ skill.is_builtin && (
-										<span className="ai-agent-skill-badge">
+										<span className="gratis-ai-agent-skill-badge">
 											{ __(
 												'Built-in',
 												'gratis-ai-agent'
@@ -265,15 +265,15 @@ export default function SkillManager() {
 									) }
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ skill.description }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ skill.word_count }{ ' ' }
 									{ __( 'words', 'gratis-ai-agent' ) }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									<Button
 										icon={ pencil }
 										size="small"

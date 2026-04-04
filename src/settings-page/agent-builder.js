@@ -237,7 +237,7 @@ export default function AgentBuilder() {
 	}
 
 	return (
-		<div className="gratis-ai-agent-agent-builder">
+		<div className="gratis-ai-agent-builder">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -267,21 +267,18 @@ export default function AgentBuilder() {
 					) }
 
 					{ agents.map( ( agent ) => (
-						<Card
-							key={ agent.id }
-							className="gratis-ai-agent-agent-card"
-						>
+						<Card key={ agent.id } className="gratis-ai-agent-card">
 							<CardHeader>
-								<div className="gratis-ai-agent-agent-card-header">
-									<div className="gratis-ai-agent-agent-card-title">
+								<div className="gratis-ai-agent-card-header">
+									<div className="gratis-ai-agent-card-title">
 										<strong>{ agent.name }</strong>
 										{ agent.description && (
-											<span className="gratis-ai-agent-agent-card-desc">
+											<span className="gratis-ai-agent-card-desc">
 												{ agent.description }
 											</span>
 										) }
 									</div>
-									<div className="gratis-ai-agent-agent-card-actions">
+									<div className="gratis-ai-agent-card-actions">
 										<Button
 											icon={ pencil }
 											label={ __(
@@ -309,7 +306,7 @@ export default function AgentBuilder() {
 								</div>
 							</CardHeader>
 							<CardBody>
-								<div className="gratis-ai-agent-agent-card-meta">
+								<div className="gratis-ai-agent-card-meta">
 									{ agent.provider_id && (
 										<span>
 											<strong>
@@ -356,7 +353,7 @@ export default function AgentBuilder() {
 									) }
 								</div>
 								{ agent.system_prompt && (
-									<p className="gratis-ai-agent-agent-prompt-preview">
+									<p className="gratis-ai-agent-prompt-preview">
 										{ agent.system_prompt.length > 120
 											? agent.system_prompt.slice(
 													0,
@@ -384,7 +381,7 @@ export default function AgentBuilder() {
 			) }
 
 			{ showForm && (
-				<div className="gratis-ai-agent-agent-form">
+				<div className="gratis-ai-agent-form">
 					<h3>
 						{ editId
 							? __( 'Edit Agent', 'gratis-ai-agent' )

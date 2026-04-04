@@ -105,7 +105,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					{ isTTSSupported && (
 						<Button
 							onClick={ handleTtsToggle }
-							className={ `ai-agent-tts-btn${
+							className={ `gratis-ai-agent-tts-btn${
 								ttsEnabled ? ' is-active' : ''
 							}` }
 							label={
@@ -160,7 +160,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 				) }
 				{ yoloMode && (
 					<span
-						className="ai-agent-yolo-badge"
+						className="gratis-ai-agent-yolo-badge"
 						title={ __(
 							'YOLO mode is active — all tool confirmations are skipped automatically.',
 							'gratis-ai-agent'

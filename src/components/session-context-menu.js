@@ -89,8 +89,8 @@ export default function SessionContextMenu( {
 
 	if ( isRenaming ) {
 		return (
-			<div className="ai-agent-context-menu" ref={ menuRef }>
-				<div className="ai-agent-context-menu-rename">
+			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
+				<div className="gratis-ai-agent-context-menu-rename">
 					<input
 						ref={ renameInputRef }
 						type="text"
@@ -115,7 +115,7 @@ export default function SessionContextMenu( {
 
 	if ( showFolderPicker ) {
 		return (
-			<div className="ai-agent-context-menu" ref={ menuRef }>
+			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
 				<FolderPicker
 					currentFolder={ session.folder || '' }
 					onSelect={ ( folder ) => {
@@ -129,7 +129,11 @@ export default function SessionContextMenu( {
 	}
 
 	return (
-		<div className="ai-agent-context-menu" ref={ menuRef } role="menu">
+		<div
+			className="gratis-ai-agent-context-menu"
+			ref={ menuRef }
+			role="menu"
+		>
 			{ ! isTrashed && (
 				<>
 					{ isOwner && (
@@ -221,7 +225,7 @@ export default function SessionContextMenu( {
 				<button
 					type="button"
 					role="menuitem"
-					className="ai-agent-context-menu-danger"
+					className="gratis-ai-agent-context-menu-danger"
 					onClick={ () => {
 						trashSession( sessionId );
 						onClose();

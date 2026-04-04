@@ -13,7 +13,7 @@ import STORE_NAME from '../store';
 /**
  * Session import dialog with drag-and-drop and click-to-browse support.
  *
- * Validates that the uploaded file is a gratis-ai-agent-v1 or ai-agent-v1
+ * Validates that the uploaded file is a gratis-ai-agent-v1 or gratis-ai-agent-v1
  * export before enabling the Import button. Shows an error message for
  * invalid files.
  *
@@ -47,10 +47,10 @@ export default function ImportDialog( { onClose } ) {
 		reader.onload = ( evt ) => {
 			try {
 				const data = JSON.parse( evt.target.result );
-				if ( data.format !== 'ai-agent-v1' ) {
+				if ( data.format !== 'gratis-ai-agent-v1' ) {
 					setError(
 						__(
-							'Invalid format. Expected ai-agent-v1.',
+							'Invalid format. Expected gratis-ai-agent-v1.',
 							'gratis-ai-agent'
 						)
 					);
@@ -83,18 +83,18 @@ export default function ImportDialog( { onClose } ) {
 	}, [ fileData, importSession, onClose ] );
 
 	return (
-		<div className="ai-agent-shortcuts-overlay">
-			<div className="ai-agent-export-dialog" ref={ dialogRef }>
-				<div className="ai-agent-export-header">
+		<div className="gratis-ai-agent-shortcuts-overlay">
+			<div className="gratis-ai-agent-export-dialog" ref={ dialogRef }>
+				<div className="gratis-ai-agent-export-header">
 					<h3>{ __( 'Import Conversation', 'gratis-ai-agent' ) }</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
 				</div>
-				<div className="ai-agent-export-body">
+				<div className="gratis-ai-agent-export-body">
 					<div
 						ref={ dropRef }
-						className="ai-agent-import-dropzone"
+						className="gratis-ai-agent-import-dropzone"
 						role="button"
 						tabIndex={ 0 }
 						onDragOver={ ( e ) => e.preventDefault() }
@@ -128,7 +128,7 @@ export default function ImportDialog( { onClose } ) {
 						} }
 					>
 						{ fileName ? (
-							<div className="ai-agent-import-file">
+							<div className="gratis-ai-agent-import-file">
 								<strong>{ fileName }</strong>
 								{ fileData && (
 									<p>
@@ -152,10 +152,12 @@ export default function ImportDialog( { onClose } ) {
 						) }
 					</div>
 					{ error && (
-						<p className="ai-agent-import-error">{ error }</p>
+						<p className="gratis-ai-agent-import-error">
+							{ error }
+						</p>
 					) }
 				</div>
-				<div className="ai-agent-export-footer">
+				<div className="gratis-ai-agent-export-footer">
 					<button
 						type="button"
 						className="button"

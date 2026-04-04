@@ -1,4 +1,4 @@
-.gratis-ai-unified-admin {
+.gratis-ai-agent-unified-admin {
 	display: flex;
 	flex-direction: column;
 	min-height: calc(100vh - 32px - 65px);
@@ -25,7 +25,7 @@
 	flex-shrink: 0;
 }
 
-.gratis-ai-nav-header {
+.gratis-ai-agent-nav-header {
 	padding: 16px;
 	border-bottom: 1px solid #333;
 	display: flex;
@@ -33,7 +33,7 @@
 	gap: 12px;
 }
 
-.gratis-ai-nav-logo {
+.gratis-ai-agent-nav-logo {
 	width: 32px;
 	height: 32px;
 	background: #2271b1;
@@ -43,20 +43,20 @@
 	justify-content: center;
 }
 
-.gratis-ai-nav-logo .dashicons {
+.gratis-ai-agent-nav-logo .dashicons {
 	color: #fff;
 	font-size: 20px;
 	width: 20px;
 	height: 20px;
 }
 
-.gratis-ai-nav-header h1 {
+.gratis-ai-agent-nav-header h1 {
 	margin: 0;
 	font-size: 16px;
 	font-weight: 600;
 }
 
-.gratis-ai-nav-menu {
+.gratis-ai-agent-nav-menu {
 	list-style: none;
 	margin: 0;
 	padding: 8px 0;
@@ -64,11 +64,11 @@
 	overflow-y: auto;
 }
 
-.gratis-ai-nav-item {
+.gratis-ai-agent-nav-item {
 	margin: 0;
 }
 
-.gratis-ai-nav-link {
+.gratis-ai-agent-nav-link {
 	display: flex !important;
 	align-items: center;
 	gap: 12px;
@@ -84,17 +84,17 @@
 	border-radius: 0 !important;
 }
 
-.gratis-ai-nav-link:hover {
+.gratis-ai-agent-nav-link:hover {
 	color: #fff !important;
 	background: #333 !important;
 }
 
-.gratis-ai-nav-item.is-active .gratis-ai-nav-link {
+.gratis-ai-agent-nav-item.is-active .gratis-ai-agent-nav-link {
 	color: #fff !important;
 	background: #2271b1 !important;
 }
 
-.gratis-ai-nav-link .dashicons {
+.gratis-ai-agent-nav-link .dashicons {
 	font-size: 20px;
 	width: 20px;
 	height: 20px;
@@ -110,52 +110,52 @@
 }
 
 /* Route Containers */
-.gratis-ai-route {
+.gratis-ai-agent-route {
 	max-width: 1200px;
 	margin: 0 auto;
 }
 
-.gratis-ai-route h2 {
+.gratis-ai-agent-route h2 {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 600;
 }
 
-.gratis-ai-route-not-found {
+.gratis-ai-agent-route-not-found {
 	text-align: center;
 	padding: 60px 20px;
 }
 
 /* Settings Tabs */
-.gratis-ai-settings-tabs .components-tab-panel__tabs {
+.gratis-ai-agent-settings-tabs .components-tab-panel__tabs {
 	margin-bottom: 20px;
 	border-bottom: 1px solid #c3c4c7;
 }
 
 /* Advanced Settings */
-.gratis-ai-advanced-settings .gratis-ai-notice-advanced {
+.gratis-ai-advanced-settings .gratis-ai-agent-notice-advanced {
 	margin: 16px 0;
 }
 
-.gratis-ai-benchmark-section {
+.gratis-ai-agent-benchmark-section {
 	margin-top: 16px;
 }
 
-.gratis-ai-benchmark-progress {
+.gratis-ai-agent-benchmark-progress {
 	margin-bottom: 24px;
 	padding: 16px;
 	background: #f0f6fc;
 	border-radius: 4px;
 }
 
-.gratis-ai-benchmark-models {
+.gratis-ai-agent-benchmark-models {
 	margin: 16px 0;
 	padding: 16px;
 	background: #f6f7f7;
 	border-radius: 4px;
 }
 
-.gratis-ai-benchmark-models h4 {
+.gratis-ai-agent-benchmark-models h4 {
 	margin-top: 0;
 }
 
@@ -165,21 +165,21 @@
 		width: 60px;
 	}
 
-	.gratis-ai-nav-logo {
+	.gratis-ai-agent-nav-logo {
 		margin: 0 auto;
 	}
 
-	.gratis-ai-nav-header h1,
-	.gratis-ai-nav-label {
+	.gratis-ai-agent-nav-header h1,
+	.gratis-ai-agent-nav-label {
 		display: none;
 	}
 
-	.gratis-ai-nav-link {
+	.gratis-ai-agent-nav-link {
 		justify-content: center;
 		padding: 16px !important;
 	}
 
-	.gratis-ai-nav-link .dashicons {
+	.gratis-ai-agent-nav-link .dashicons {
 		font-size: 24px;
 		width: 24px;
 		height: 24px;
@@ -198,17 +198,17 @@
 	}
 }
 
-.gratis-ai-route {
+.gratis-ai-agent-route {
 	animation: slideIn 0.2s ease-out;
 }
 
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
-	.gratis-ai-route {
+	.gratis-ai-agent-route {
 		animation: none;
 	}
 
-	.gratis-ai-nav-link {
+	.gratis-ai-agent-nav-link {
 		transition: none;
 	}
 }

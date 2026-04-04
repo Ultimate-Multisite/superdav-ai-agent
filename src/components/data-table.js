@@ -147,27 +147,27 @@ export default function DataTable( { children } ) {
 	const sortIndicator = ( colIndex ) => {
 		if ( sortCol !== colIndex ) {
 			return (
-				<span className="ai-agent-table-sort-icon ai-agent-table-sort-none">
+				<span className="gratis-ai-agent-table-sort-icon gratis-ai-agent-table-sort-none">
 					⇅
 				</span>
 			);
 		}
 		return (
-			<span className="ai-agent-table-sort-icon ai-agent-table-sort-active">
+			<span className="gratis-ai-agent-table-sort-icon gratis-ai-agent-table-sort-active">
 				{ sortDir === 'asc' ? '↑' : '↓' }
 			</span>
 		);
 	};
 
 	return (
-		<div className="ai-agent-data-table-wrap">
+		<div className="gratis-ai-agent-data-table-wrap">
 			{ /* Filter bar — only shown when the table has data */ }
 			{ rawRows.length > 0 && (
-				<div className="ai-agent-data-table-toolbar">
-					<div className="ai-agent-data-table-filter">
+				<div className="gratis-ai-agent-data-table-toolbar">
+					<div className="gratis-ai-agent-data-table-filter">
 						<input
 							type="search"
-							className="ai-agent-data-table-filter-input"
+							className="gratis-ai-agent-data-table-filter-input"
 							placeholder={ __( 'Filter…', 'gratis-ai-agent' ) }
 							value={ filter }
 							onChange={ handleFilterChange }
@@ -179,7 +179,7 @@ export default function DataTable( { children } ) {
 						{ filter && (
 							<button
 								type="button"
-								className="ai-agent-data-table-filter-clear"
+								className="gratis-ai-agent-data-table-filter-clear"
 								onClick={ handleFilterClear }
 								aria-label={ __(
 									'Clear filter',
@@ -191,15 +191,15 @@ export default function DataTable( { children } ) {
 						) }
 					</div>
 					{ filter && (
-						<span className="ai-agent-data-table-count">
+						<span className="gratis-ai-agent-data-table-count">
 							{ filteredRows.length } / { rawRows.length }
 						</span>
 					) }
 				</div>
 			) }
 
-			<div className="ai-agent-data-table-scroll">
-				<table className="ai-agent-data-table">
+			<div className="gratis-ai-agent-data-table-scroll">
+				<table className="gratis-ai-agent-data-table">
 					{ headers.length > 0 && (
 						<thead>
 							<tr>
@@ -208,8 +208,8 @@ export default function DataTable( { children } ) {
 										key={ i }
 										className={
 											sortCol === i
-												? 'ai-agent-data-table-th is-sorted'
-												: 'ai-agent-data-table-th'
+												? 'gratis-ai-agent-data-table-th is-sorted'
+												: 'gratis-ai-agent-data-table-th'
 										}
 										onClick={ () => handleSort( i ) }
 										aria-sort={ ( () => {
@@ -232,7 +232,7 @@ export default function DataTable( { children } ) {
 											}
 										} }
 									>
-										<span className="ai-agent-data-table-th-label">
+										<span className="gratis-ai-agent-data-table-th-label">
 											{ header }
 										</span>
 										{ sortIndicator( i ) }
@@ -248,7 +248,7 @@ export default function DataTable( { children } ) {
 									{ row.map( ( cell, cellIdx ) => (
 										<td
 											key={ cellIdx }
-											className="ai-agent-data-table-td"
+											className="gratis-ai-agent-data-table-td"
 										>
 											{ cell.node }
 										</td>
@@ -259,7 +259,7 @@ export default function DataTable( { children } ) {
 							<tr>
 								<td
 									colSpan={ headers.length || 1 }
-									className="ai-agent-data-table-empty"
+									className="gratis-ai-agent-data-table-empty"
 								>
 									{ __(
 										'No matching rows.',

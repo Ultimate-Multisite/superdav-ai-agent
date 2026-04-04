@@ -13,7 +13,7 @@ import '../../abilities-explorer/style.css';
  */
 export default function AbilitiesRoute() {
 	return (
-		<div className="gratis-ai-route gratis-ai-route-abilities">
+		<div className="gratis-ai-agent-route gratis-ai-agent-route-abilities">
 			<AbilitiesExplorerApp />
 		</div>
 	);

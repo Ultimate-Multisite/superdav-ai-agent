@@ -278,7 +278,7 @@ function BenchmarkPageApp() {
 	}
 
 	return (
-		<div className="gratis-ai-benchmark-page">
+		<div className="gratis-ai-agent-benchmark-page">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -290,7 +290,7 @@ function BenchmarkPageApp() {
 			) }
 
 			<TabPanel
-				className="gratis-ai-benchmark-tabs"
+				className="gratis-ai-agent-benchmark-tabs"
 				activeClass="is-active"
 				tabs={ tabs }
 				initialTabName={ activeTab }
@@ -382,14 +382,14 @@ function NewRunTab( {
 	runProgress,
 } ) {
 	return (
-		<div className="gratis-ai-benchmark-new-run">
+		<div className="gratis-ai-agent-benchmark-new-run">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Configure Benchmark', 'gratis-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
 					{ isRunning && runProgress && (
-						<div className="gratis-ai-benchmark-progress">
+						<div className="gratis-ai-agent-benchmark-progress">
 							<Notice status="info" isDismissible={ false }>
 								{ __(
 									'Benchmark is running…',
@@ -448,7 +448,7 @@ function NewRunTab( {
 						disabled={ isRunning }
 					/>
 
-					<div className="gratis-ai-benchmark-models">
+					<div className="gratis-ai-agent-benchmark-models">
 						<h3>{ __( 'Select Models', 'gratis-ai-agent' ) }</h3>
 						<ModelSelector
 							providers={ providers }

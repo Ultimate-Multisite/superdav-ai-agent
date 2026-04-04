@@ -56,7 +56,7 @@ export default function AgentSelector( { compact = false } ) {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-agent-selector ${
+			className={ `gratis-ai-agent-selector ${
 				compact ? 'is-compact' : ''
 			}` }
 		>

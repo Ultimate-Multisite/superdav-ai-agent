@@ -130,11 +130,11 @@
 
 /* ── New category-grouped layout (CategorySection component) ── */
 
-.ai-agent-abilities-manager {
+.gratis-ai-agent-abilities-manager {
 	margin-top: 16px;
 }
 
-.ai-agent-abilities-toolbar {
+.gratis-ai-agent-abilities-toolbar {
 	background: #fff;
 	border: 1px solid #ddd;
 	border-radius: 4px;
@@ -142,54 +142,54 @@
 	margin-bottom: 16px;
 }
 
-.ai-agent-abilities-controls {
+.gratis-ai-agent-abilities-controls {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 12px;
 	align-items: flex-end;
 }
 
-.ai-agent-abilities-search {
+.gratis-ai-agent-abilities-search {
 	flex: 1 1 200px;
 }
 
-.ai-agent-abilities-filters {
+.gratis-ai-agent-abilities-filters {
 	flex: 0 1 200px;
 }
 
-.ai-agent-abilities-bulk-actions {
+.gratis-ai-agent-abilities-bulk-actions {
 	display: flex;
 	gap: 8px;
 	align-items: center;
 }
 
-.ai-agent-abilities-count {
+.gratis-ai-agent-abilities-count {
 	font-size: 12px;
 	color: #757575;
 	margin: 8px 0 0;
 }
 
-.ai-agent-abilities-list {
+.gratis-ai-agent-abilities-list {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 
-.ai-agent-abilities-no-results {
+.gratis-ai-agent-abilities-no-results {
 	color: #757575;
 	font-style: italic;
 	padding: 16px 0;
 }
 
 /* Category section */
-.ai-agent-abilities-category {
+.gratis-ai-agent-abilities-category {
 	border: 1px solid #ddd;
 	border-radius: 4px;
 	background: #fff;
 	overflow: hidden;
 }
 
-.ai-agent-abilities-category-header {
+.gratis-ai-agent-abilities-category-header {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -205,15 +205,15 @@
 	color: #1e1e1e;
 }
 
-.ai-agent-abilities-category-header:hover {
+.gratis-ai-agent-abilities-category-header:hover {
 	background: #f0f0f0;
 }
 
-.ai-agent-abilities-category-name {
+.gratis-ai-agent-abilities-category-name {
 	flex: 1;
 }
 
-.ai-agent-abilities-category-count {
+.gratis-ai-agent-abilities-category-count {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -227,7 +227,7 @@
 	color: #1e1e1e;
 }
 
-.ai-agent-abilities-category-body {
+.gratis-ai-agent-abilities-category-body {
 	padding: 8px 0;
 }
 

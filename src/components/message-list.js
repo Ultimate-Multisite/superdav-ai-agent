@@ -122,20 +122,20 @@ function MessageAttachments( { attachments } ) {
 	}
 
 	return (
-		<div className="ai-agent-message-attachments">
+		<div className="gratis-ai-agent-message-attachments">
 			{ attachments.map( ( att, i ) => (
 				<a
 					key={ i }
 					href={ att.dataUrl || att.image_url }
 					target="_blank"
 					rel="noopener noreferrer"
-					className="ai-agent-message-attachment-link"
+					className="gratis-ai-agent-message-attachment-link"
 					aria-label={ att.name || att.image_name }
 				>
 					<img
 						src={ att.dataUrl || att.image_url }
 						alt={ att.name || att.image_name || '' }
-						className="ai-agent-message-attachment-img"
+						className="gratis-ai-agent-message-attachment-img"
 					/>
 				</a>
 			) ) }
@@ -154,9 +154,9 @@ function MessageAttachments( { attachments } ) {
  */
 function MessageBubble( { role, text, attachments } ) {
 	const classMap = {
-		user: 'ai-agent-bubble ai-agent-user',
-		model: 'ai-agent-bubble ai-agent-assistant',
-		system: 'ai-agent-bubble ai-agent-system',
+		user: 'gratis-ai-agent-bubble gratis-ai-agent-user',
+		model: 'gratis-ai-agent-bubble gratis-ai-agent-assistant',
+		system: 'gratis-ai-agent-bubble gratis-ai-agent-system',
 	};
 
 	if ( role === 'model' ) {
@@ -195,12 +195,12 @@ function SuggestionChips( { suggestions, onSelect } ) {
 	}
 
 	return (
-		<div className="ai-agent-suggestion-chips">
+		<div className="gratis-ai-agent-suggestion-chips">
 			{ suggestions.map( ( suggestion, i ) => (
 				<Button
 					key={ i }
 					variant="tertiary"
-					className="ai-agent-suggestion-chip"
+					className="gratis-ai-agent-suggestion-chip"
 					onClick={ () => onSelect( suggestion ) }
 				>
 					{ suggestion }
@@ -221,27 +221,29 @@ function SuggestionChips( { suggestions, onSelect } ) {
  */
 function EmptyStateWelcome( { greeting, onSelect } ) {
 	return (
-		<div className="ai-agent-empty-state">
-			<div className="ai-agent-welcome">
-				<p className="ai-agent-welcome__greeting">{ greeting }</p>
-				<div className="ai-agent-welcome__grid">
+		<div className="gratis-ai-agent-empty-state">
+			<div className="gratis-ai-agent-welcome">
+				<p className="gratis-ai-agent-welcome__greeting">
+					{ greeting }
+				</p>
+				<div className="gratis-ai-agent-welcome__grid">
 					{ SUGGESTION_CARDS.map( ( card, i ) => (
 						<button
 							key={ i }
 							type="button"
-							className="ai-agent-welcome__card"
+							className="gratis-ai-agent-welcome__card"
 							onClick={ () => onSelect( card.prompt ) }
 						>
-							<span className="ai-agent-welcome__card-title">
+							<span className="gratis-ai-agent-welcome__card-title">
 								{ card.title }
 							</span>
-							<span className="ai-agent-welcome__card-desc">
+							<span className="gratis-ai-agent-welcome__card-desc">
 								{ card.description }
 							</span>
 						</button>
 					) ) }
 				</div>
-				<p className="ai-agent-welcome__hint">
+				<p className="gratis-ai-agent-welcome__hint">
 					{ __(
 						'Or type a message below to ask anything.',
 						'gratis-ai-agent'
@@ -405,7 +407,7 @@ export default function MessageList() {
 	}, [] );
 
 	return (
-		<div className="ai-agent-messages" ref={ messagesRef }>
+		<div className="gratis-ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
 				<EmptyStateWelcome
 					greeting={ greeting }
@@ -433,7 +435,7 @@ export default function MessageList() {
 					i === visibleMessages.length - 1;
 
 				return (
-					<div key={ i } className="ai-agent-message-row">
+					<div key={ i } className="gratis-ai-agent-message-row">
 						{ msg.toolCalls?.length > 0 && (
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
@@ -463,10 +465,10 @@ export default function MessageList() {
 							/>
 						) }
 						{ isLastSystemError && (
-							<div className="ai-agent-retry-row">
+							<div className="gratis-ai-agent-retry-row">
 								<Button
 									variant="secondary"
-									className="ai-agent-retry-btn"
+									className="gratis-ai-agent-retry-btn"
 									onClick={ retryLastMessage }
 								>
 									{ __( 'Try again', 'gratis-ai-agent' ) }
@@ -477,18 +479,18 @@ export default function MessageList() {
 				);
 			} ) }
 			{ isStreaming && streamingText && (
-				<div className="ai-agent-message-row ai-agent-message-row--streaming">
-					<div className="ai-agent-bubble ai-agent-assistant ai-agent-streaming">
+				<div className="gratis-ai-agent-message-row gratis-ai-agent-message-row--streaming">
+					<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-streaming">
 						<MarkdownMessage content={ streamingText } />
 						<span
-							className="ai-agent-streaming-cursor"
+							className="gratis-ai-agent-streaming-cursor"
 							aria-hidden="true"
 						/>
 					</div>
 				</div>
 			) }
 			{ pendingActionCard && (
-				<div className="ai-agent-message-row ai-agent-message-row-action-card">
+				<div className="gratis-ai-agent-message-row gratis-ai-agent-message-row-action-card">
 					<ActionCard
 						card={ pendingActionCard }
 						onConfirm={ ( alwaysAllow ) =>
@@ -504,7 +506,7 @@ export default function MessageList() {
 				</div>
 			) }
 			{ sending && ! isStreaming && ! pendingActionCard && (
-				<div className="ai-agent-bubble ai-agent-assistant ai-agent-thinking">
+				<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-thinking">
 					<Spinner />
 					{ __( 'Thinking…', 'gratis-ai-agent' ) }
 				</div>

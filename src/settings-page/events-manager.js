@@ -226,8 +226,8 @@ export default function EventsManager() {
 	];
 
 	return (
-		<div className="ai-agent-events-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-events-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
 					<h3>
 						{ __( 'Event-Driven Automations', 'gratis-ai-agent' ) }
@@ -265,7 +265,7 @@ export default function EventsManager() {
 			) }
 
 			{ showForm && (
-				<div className="ai-agent-skill-form">
+				<div className="gratis-ai-agent-skill-form">
 					<TextControl
 						label={ __( 'Name', 'gratis-ai-agent' ) }
 						value={ form.name }
@@ -296,7 +296,7 @@ export default function EventsManager() {
 					/>
 
 					{ selectedTrigger && (
-						<div className="ai-agent-trigger-info">
+						<div className="gratis-ai-agent-trigger-info">
 							<p className="description">
 								{ selectedTrigger.description }
 							</p>
@@ -385,7 +385,7 @@ export default function EventsManager() {
 						}
 						__nextHasNoMarginBottom
 					/>
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -428,37 +428,37 @@ export default function EventsManager() {
 
 			{ events.length > 0 && (
 				<div
-					className="ai-agent-skill-cards"
+					className="gratis-ai-agent-skill-cards"
 					style={ { marginTop: '16px' } }
 				>
 					{ events.map( ( ev ) => (
 						<div
 							key={ ev.id }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								! ev.enabled
-									? 'ai-agent-skill-card--disabled'
+									? 'gratis-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
+							<div className="gratis-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ ev.enabled }
 									onChange={ () => handleToggle( ev ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="ai-agent-skill-card-title">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ ev.name }</strong>
-									<span className="ai-agent-skill-badge">
+									<span className="gratis-ai-agent-skill-badge">
 										{ ev.hook_name }
 									</span>
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ ev.description ||
 									ev.prompt_template.slice( 0, 100 ) + '...' }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ ev.run_count }{ ' ' }
 									{ __( 'runs', 'gratis-ai-agent' ) }
 									{ ev.last_run_at && (
@@ -473,7 +473,7 @@ export default function EventsManager() {
 										</>
 									) }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									<Button
 										variant="tertiary"
 										size="small"
@@ -511,7 +511,7 @@ export default function EventsManager() {
 							</div>
 
 							{ viewLogsId === ev.id && (
-								<div className="ai-agent-automation-logs">
+								<div className="gratis-ai-agent-automation-logs">
 									{ logs.length === 0 && (
 										<p className="description">
 											{ __(
@@ -523,11 +523,11 @@ export default function EventsManager() {
 									{ logs.map( ( log ) => (
 										<div
 											key={ log.id }
-											className={ `ai-agent-log-entry ai-agent-log--${ log.status }` }
+											className={ `gratis-ai-agent-log-entry gratis-ai-agent-log--${ log.status }` }
 										>
-											<div className="ai-agent-log-meta">
+											<div className="gratis-ai-agent-log-meta">
 												<span
-													className={ `ai-agent-log-status ai-agent-log-status--${ log.status }` }
+													className={ `gratis-ai-agent-log-status gratis-ai-agent-log-status--${ log.status }` }
 												>
 													{ log.status }
 												</span>
@@ -541,7 +541,7 @@ export default function EventsManager() {
 												</span>
 											</div>
 											{ log.error_message && (
-												<p className="ai-agent-log-error">
+												<p className="gratis-ai-agent-log-error">
 													{ log.error_message }
 												</p>
 											) }
@@ -553,7 +553,7 @@ export default function EventsManager() {
 															'gratis-ai-agent'
 														) }
 													</summary>
-													<pre className="ai-agent-log-reply">
+													<pre className="gratis-ai-agent-log-reply">
 														{ log.reply }
 													</pre>
 												</details>

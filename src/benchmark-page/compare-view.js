@@ -30,14 +30,14 @@ export default function CompareView( { comparison } ) {
 	const { summary, by_model: byModel, by_category: byCategory } = comparison;
 
 	return (
-		<div className="gratis-ai-benchmark-compare">
+		<div className="gratis-ai-agent-benchmark-compare">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Benchmark Comparison', 'gratis-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
 					<h3>{ __( 'Summary', 'gratis-ai-agent' ) }</h3>
-					<div className="gratis-ai-benchmark-compare-table">
+					<div className="gratis-ai-agent-benchmark-compare-table">
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>
@@ -87,7 +87,7 @@ export default function CompareView( { comparison } ) {
 							<h3 style={ { marginTop: '24px' } }>
 								{ __( 'By Model', 'gratis-ai-agent' ) }
 							</h3>
-							<div className="gratis-ai-benchmark-compare-table">
+							<div className="gratis-ai-agent-benchmark-compare-table">
 								<table className="wp-list-table widefat fixed striped">
 									<thead>
 										<tr>
@@ -137,7 +137,7 @@ export default function CompareView( { comparison } ) {
 							<h3 style={ { marginTop: '24px' } }>
 								{ __( 'By Category', 'gratis-ai-agent' ) }
 							</h3>
-							<div className="gratis-ai-benchmark-compare-table">
+							<div className="gratis-ai-agent-benchmark-compare-table">
 								<table className="wp-list-table widefat fixed striped">
 									<thead>
 										<tr>

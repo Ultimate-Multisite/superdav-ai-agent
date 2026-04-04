@@ -309,8 +309,8 @@ export default function AutomationsManager() {
 	];
 
 	return (
-		<div className="ai-agent-automations-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-automations-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
 					<h3>
 						{ __( 'Scheduled Automations', 'gratis-ai-agent' ) }
@@ -354,22 +354,22 @@ export default function AutomationsManager() {
 						<h4>
 							{ __( 'Quick Start Templates', 'gratis-ai-agent' ) }
 						</h4>
-						<div className="ai-agent-skill-cards">
+						<div className="gratis-ai-agent-skill-cards">
 							{ templates.map( ( tpl, idx ) => (
 								<div
 									key={ idx }
-									className="ai-agent-skill-card"
+									className="gratis-ai-agent-skill-card"
 								>
-									<div className="ai-agent-skill-card-header">
-										<div className="ai-agent-skill-card-title">
+									<div className="gratis-ai-agent-skill-card-header">
+										<div className="gratis-ai-agent-skill-card-title">
 											<strong>{ tpl.name }</strong>
 										</div>
 									</div>
-									<p className="ai-agent-skill-card-description">
+									<p className="gratis-ai-agent-skill-card-description">
 										{ tpl.description }
 									</p>
-									<div className="ai-agent-skill-card-footer">
-										<span className="ai-agent-skill-word-count">
+									<div className="gratis-ai-agent-skill-card-footer">
+										<span className="gratis-ai-agent-skill-word-count">
 											{ tpl.schedule }
 										</span>
 										<Button
@@ -392,7 +392,7 @@ export default function AutomationsManager() {
 				) }
 
 			{ showForm && (
-				<div className="ai-agent-skill-form">
+				<div className="gratis-ai-agent-skill-form">
 					<TextControl
 						label={ __( 'Name', 'gratis-ai-agent' ) }
 						value={ form.name }
@@ -449,7 +449,7 @@ export default function AutomationsManager() {
 					/>
 
 					<BaseControl
-						id="ai-agent-notification-channels"
+						id="gratis-ai-agent-notification-channels"
 						label={ __(
 							'Notification Channels',
 							'gratis-ai-agent'
@@ -464,7 +464,7 @@ export default function AutomationsManager() {
 							( channel, idx ) => (
 								<div
 									key={ idx }
-									className="ai-agent-notification-channel"
+									className="gratis-ai-agent-notification-channel"
 									style={ {
 										display: 'flex',
 										gap: '8px',
@@ -563,7 +563,7 @@ export default function AutomationsManager() {
 						</Button>
 					</BaseControl>
 
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -595,34 +595,34 @@ export default function AutomationsManager() {
 
 			{ loaded && automations.length > 0 && (
 				<div
-					className="ai-agent-skill-cards"
+					className="gratis-ai-agent-skill-cards"
 					style={ { marginTop: '16px' } }
 				>
 					{ automations.map( ( auto ) => (
 						<div
 							key={ auto.id }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								! auto.enabled
-									? 'ai-agent-skill-card--disabled'
+									? 'gratis-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
+							<div className="gratis-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ auto.enabled }
 									onChange={ () => handleToggle( auto ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="ai-agent-skill-card-title">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ auto.name }</strong>
-									<span className="ai-agent-skill-badge">
+									<span className="gratis-ai-agent-skill-badge">
 										{ auto.schedule }
 									</span>
 									{ auto.notification_channels?.filter(
 										( c ) => c.enabled
 									).length > 0 && (
 										<span
-											className="ai-agent-skill-badge"
+											className="gratis-ai-agent-skill-badge"
 											title={ __(
 												'Notifications configured',
 												'gratis-ai-agent'
@@ -646,12 +646,12 @@ export default function AutomationsManager() {
 									) }
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ auto.description ||
 									auto.prompt.slice( 0, 100 ) + '...' }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ auto.run_count }{ ' ' }
 									{ __( 'runs', 'gratis-ai-agent' ) }
 									{ auto.last_run_at && (
@@ -666,7 +666,7 @@ export default function AutomationsManager() {
 										</>
 									) }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									<Button
 										variant="secondary"
 										size="small"
@@ -718,7 +718,7 @@ export default function AutomationsManager() {
 							</div>
 
 							{ viewLogsId === auto.id && (
-								<div className="ai-agent-automation-logs">
+								<div className="gratis-ai-agent-automation-logs">
 									{ logs.length === 0 && (
 										<p className="description">
 											{ __(
@@ -730,11 +730,11 @@ export default function AutomationsManager() {
 									{ logs.map( ( log ) => (
 										<div
 											key={ log.id }
-											className={ `ai-agent-log-entry ai-agent-log--${ log.status }` }
+											className={ `gratis-ai-agent-log-entry gratis-ai-agent-log--${ log.status }` }
 										>
-											<div className="ai-agent-log-meta">
+											<div className="gratis-ai-agent-log-meta">
 												<span
-													className={ `ai-agent-log-status ai-agent-log-status--${ log.status }` }
+													className={ `gratis-ai-agent-log-status gratis-ai-agent-log-status--${ log.status }` }
 												>
 													{ log.status }
 												</span>
@@ -751,7 +751,7 @@ export default function AutomationsManager() {
 												) }
 											</div>
 											{ log.error_message && (
-												<p className="ai-agent-log-error">
+												<p className="gratis-ai-agent-log-error">
 													{ log.error_message }
 												</p>
 											) }
@@ -763,7 +763,7 @@ export default function AutomationsManager() {
 															'gratis-ai-agent'
 														) }
 													</summary>
-													<pre className="ai-agent-log-reply">
+													<pre className="gratis-ai-agent-log-reply">
 														{ log.reply }
 													</pre>
 												</details>

@@ -65,25 +65,25 @@ export default function TokenCounter() {
 
 	return (
 		<div
-			className="ai-agent-token-counter"
+			className="gratis-ai-agent-token-counter"
 			title={ __(
 				'Session token usage and estimated cost',
 				'gratis-ai-agent'
 			) }
 		>
-			<span className="ai-agent-token-counter__tokens">
+			<span className="gratis-ai-agent-token-counter__tokens">
 				{ formatTokens( sessionTokens ) }{ ' ' }
 				{ __( 'tokens', 'gratis-ai-agent' ) }
 			</span>
 			{ costStr && (
 				<>
 					<span
-						className="ai-agent-token-counter__sep"
+						className="gratis-ai-agent-token-counter__sep"
 						aria-hidden="true"
 					>
 						{ ' · ' }
 					</span>
-					<span className="ai-agent-token-counter__cost">
+					<span className="gratis-ai-agent-token-counter__cost">
 						{ costStr }
 					</span>
 				</>
@@ -116,7 +116,7 @@ export function MessageTokenAnnotation( { tokenData } ) {
 	const costStr = formatCost( tokenData.cost || 0 );
 
 	return (
-		<div className="ai-agent-message-token-annotation">
+		<div className="gratis-ai-agent-message-token-annotation">
 			{ formatTokens( total ) } { __( 'tokens', 'gratis-ai-agent' ) }
 			{ costStr && (
 				<>

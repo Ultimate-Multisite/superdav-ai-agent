@@ -77,7 +77,7 @@ function UnifiedAdminApp() {
 
 	return (
 		<AppProvider value={ appContext }>
-			<div className="gratis-ai-unified-admin">
+			<div className="gratis-ai-agent-unified-admin">
 				{ notice && (
 					<Notice
 						status={ notice.status }

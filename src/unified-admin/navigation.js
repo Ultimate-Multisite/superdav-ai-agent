@@ -24,24 +24,24 @@ export default function Navigation( { currentRoute, onNavigate } ) {
 			className="gratis-ai-admin-nav"
 			aria-label={ __( 'AI Agent Navigation', 'gratis-ai-agent' ) }
 		>
-			<div className="gratis-ai-nav-header">
-				<span className="gratis-ai-nav-logo">
+			<div className="gratis-ai-agent-nav-header">
+				<span className="gratis-ai-agent-nav-logo">
 					<span className="dashicons dashicons-robot"></span>
 				</span>
 				<h1>{ __( 'AI Agent', 'gratis-ai-agent' ) }</h1>
 			</div>
 
-			<ul className="gratis-ai-nav-menu" role="menubar">
+			<ul className="gratis-ai-agent-nav-menu" role="menubar">
 				{ menuItems.map( ( item ) => (
 					<li
 						key={ item.slug }
-						className={ `gratis-ai-nav-item${
+						className={ `gratis-ai-agent-nav-item${
 							baseRoute === item.slug ? ' is-active' : ''
 						}` }
 						role="none"
 					>
 						<Button
-							className="gratis-ai-nav-link"
+							className="gratis-ai-agent-nav-link"
 							onClick={ () => onNavigate( item.slug ) }
 							aria-current={
 								baseRoute === item.slug ? 'page' : undefined
@@ -51,7 +51,7 @@ export default function Navigation( { currentRoute, onNavigate } ) {
 							<span
 								className={ `dashicons ${ item.icon }` }
 							></span>
-							<span className="gratis-ai-nav-label">
+							<span className="gratis-ai-agent-nav-label">
 								{ item.label }
 							</span>
 						</Button>

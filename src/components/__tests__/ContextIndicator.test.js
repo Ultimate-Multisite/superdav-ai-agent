@@ -261,20 +261,20 @@ describe( 'ContextIndicator rendering', () => {
 		expect( html ).toContain( 'width:100%' );
 	} );
 
-	test( 'renders ai-agent-context-indicator wrapper', () => {
+	test( 'renders gratis-ai-agent-context-indicator wrapper', () => {
 		setupMocks();
 		const html = renderToStaticMarkup(
 			createElement( ContextIndicator, {} )
 		);
-		expect( html ).toContain( 'ai-agent-context-indicator' );
+		expect( html ).toContain( 'gratis-ai-agent-context-indicator' );
 	} );
 
-	test( 'renders ai-agent-context-bar-track element', () => {
+	test( 'renders gratis-ai-agent-context-bar-track element', () => {
 		setupMocks();
 		const html = renderToStaticMarkup(
 			createElement( ContextIndicator, {} )
 		);
-		expect( html ).toContain( 'ai-agent-context-bar-track' );
+		expect( html ).toContain( 'gratis-ai-agent-context-bar-track' );
 	} );
 } );
 

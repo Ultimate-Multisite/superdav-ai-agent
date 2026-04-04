@@ -60,7 +60,7 @@ export default function FloatingPanel() {
 	}
 
 	const classNames = [
-		'ai-agent-floating-panel',
+		'gratis-ai-agent-floating-panel',
 		isDragging ? 'is-dragging' : '',
 		isResizing ? 'is-resizing' : '',
 		isMinimized ? 'is-minimized' : '',
@@ -74,7 +74,7 @@ export default function FloatingPanel() {
 		<div className={ classNames } style={ panelStyle }>
 			<div
 				role="presentation"
-				className="ai-agent-floating-titlebar"
+				className="gratis-ai-agent-floating-titlebar"
 				style={ titleBarStyle }
 				onMouseDown={ handleMouseDown }
 			>
@@ -82,12 +82,14 @@ export default function FloatingPanel() {
 					<img
 						src={ branding.logoUrl }
 						alt=""
-						className="ai-agent-floating-titlebar-logo"
+						className="gratis-ai-agent-floating-titlebar-logo"
 						aria-hidden="true"
 					/>
 				) }
-				<span className="ai-agent-floating-title">{ displayName }</span>
-				<div className="ai-agent-floating-titlebar-actions">
+				<span className="gratis-ai-agent-floating-title">
+					{ displayName }
+				</span>
+				<div className="gratis-ai-agent-floating-titlebar-actions">
 					{ currentSessionId && (
 						<Button
 							icon={ plus }
@@ -134,21 +136,21 @@ export default function FloatingPanel() {
 					<ChatPanel compact />
 					{ /* Resize handles — right edge, bottom edge, corner */ }
 					<div
-						className="ai-agent-resize-handle ai-agent-resize-handle--right"
+						className="gratis-ai-agent-resize-handle gratis-ai-agent-resize-handle--right"
 						role="presentation"
 						onMouseDown={ ( e ) =>
 							handleResizeMouseDown( e, 'right' )
 						}
 					/>
 					<div
-						className="ai-agent-resize-handle ai-agent-resize-handle--bottom"
+						className="gratis-ai-agent-resize-handle gratis-ai-agent-resize-handle--bottom"
 						role="presentation"
 						onMouseDown={ ( e ) =>
 							handleResizeMouseDown( e, 'bottom' )
 						}
 					/>
 					<div
-						className="ai-agent-resize-handle ai-agent-resize-handle--corner"
+						className="gratis-ai-agent-resize-handle gratis-ai-agent-resize-handle--corner"
 						role="presentation"
 						onMouseDown={ ( e ) =>
 							handleResizeMouseDown( e, 'corner' )

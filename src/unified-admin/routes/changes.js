@@ -11,7 +11,7 @@ import { Card, CardHeader, CardBody } from '@wordpress/components';
  */
 export default function ChangesRoute() {
 	return (
-		<div className="gratis-ai-route gratis-ai-route-changes">
+		<div className="gratis-ai-agent-route gratis-ai-agent-route-changes">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Changes', 'gratis-ai-agent' ) }</h2>

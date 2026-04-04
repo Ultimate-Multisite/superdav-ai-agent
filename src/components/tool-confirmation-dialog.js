@@ -45,9 +45,12 @@ export default function ToolConfirmationDialog( {
 	}
 
 	return (
-		<div className="ai-agent-shortcuts-overlay">
-			<div className="ai-agent-tool-confirm-dialog" ref={ dialogRef }>
-				<div className="ai-agent-tool-confirm-header">
+		<div className="gratis-ai-agent-shortcuts-overlay">
+			<div
+				className="gratis-ai-agent-tool-confirm-dialog"
+				ref={ dialogRef }
+			>
+				<div className="gratis-ai-agent-tool-confirm-header">
 					<h3>
 						{ __(
 							'Tool Confirmation Required',
@@ -55,8 +58,8 @@ export default function ToolConfirmationDialog( {
 						) }
 					</h3>
 				</div>
-				<div className="ai-agent-tool-confirm-body">
-					<p className="ai-agent-tool-confirm-desc">
+				<div className="gratis-ai-agent-tool-confirm-body">
+					<p className="gratis-ai-agent-tool-confirm-desc">
 						{ __(
 							'The AI wants to use the following tools:',
 							'gratis-ai-agent'
@@ -65,20 +68,20 @@ export default function ToolConfirmationDialog( {
 					{ confirmation.tools.map( ( tool ) => (
 						<div
 							key={ tool.id }
-							className="ai-agent-tool-confirm-item"
+							className="gratis-ai-agent-tool-confirm-item"
 						>
-							<div className="ai-agent-tool-confirm-name">
+							<div className="gratis-ai-agent-tool-confirm-name">
 								{ tool.name }
 							</div>
 							{ tool.args && (
-								<pre className="ai-agent-tool-confirm-args">
+								<pre className="gratis-ai-agent-tool-confirm-args">
 									{ JSON.stringify( tool.args, null, 2 ) }
 								</pre>
 							) }
 						</div>
 					) ) }
 					<label
-						className="ai-agent-tool-confirm-always"
+						className="gratis-ai-agent-tool-confirm-always"
 						htmlFor="tool-confirm-always-allow"
 					>
 						<input
@@ -95,7 +98,7 @@ export default function ToolConfirmationDialog( {
 						) }
 					</label>
 				</div>
-				<div className="ai-agent-tool-confirm-footer">
+				<div className="gratis-ai-agent-tool-confirm-footer">
 					<button
 						type="button"
 						className="button"

@@ -68,7 +68,7 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 
 	return (
 		<div
-			className={ `ai-agent-session-item ${
+			className={ `gratis-ai-agent-session-item ${
 				isActive ? 'is-active' : ''
 			} ${ isPinned ? 'is-pinned' : '' } ${
 				isShared ? 'is-shared' : ''
@@ -83,10 +83,10 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 			tabIndex={ 0 }
 			aria-current={ isActive ? 'true' : undefined }
 		>
-			<div className="ai-agent-session-title">
+			<div className="gratis-ai-agent-session-title">
 				{ isPinned && (
 					<span
-						className="ai-agent-pin-icon"
+						className="gratis-ai-agent-pin-icon"
 						title={ __( 'Pinned', 'gratis-ai-agent' ) }
 					>
 						&#128204;
@@ -94,7 +94,7 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 				) }
 				{ isShared && (
 					<span
-						className="ai-agent-shared-icon"
+						className="gratis-ai-agent-shared-icon"
 						title={ __( 'Shared with admins', 'gratis-ai-agent' ) }
 					>
 						&#128101;
@@ -102,16 +102,16 @@ function SessionItem( { session, isActive, isOwner = true } ) {
 				) }
 				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
 			</div>
-			<div className="ai-agent-session-meta">
+			<div className="gratis-ai-agent-session-meta">
 				{ session.folder && (
-					<span className="ai-agent-session-folder-badge">
+					<span className="gratis-ai-agent-session-folder-badge">
 						{ session.folder }
 					</span>
 				) }
 				{ relativeTime( session.updated_at ) }
 			</div>
 			<button
-				className="ai-agent-session-more"
+				className="gratis-ai-agent-session-more"
 				onClick={ ( e ) => {
 					e.stopPropagation();
 					setShowMenu( ! showMenu );
@@ -262,14 +262,14 @@ export default function SessionSidebar( { onClose } ) {
 	const displaySessions = isSharedTab ? sharedSessions : sessions;
 
 	return (
-		<div className="ai-agent-sidebar">
-			<div className="ai-agent-sidebar-header">
-				<div className="ai-agent-sidebar-actions">
+		<div className="gratis-ai-agent-sidebar">
+			<div className="gratis-ai-agent-sidebar-header">
+				<div className="gratis-ai-agent-sidebar-actions">
 					<Button
 						variant="primary"
 						icon={ plus }
 						onClick={ clearCurrentSession }
-						className="ai-agent-new-chat-btn"
+						className="gratis-ai-agent-new-chat-btn"
 					>
 						{ __( 'New Chat', 'gratis-ai-agent' ) }
 					</Button>
@@ -277,7 +277,7 @@ export default function SessionSidebar( { onClose } ) {
 						variant="tertiary"
 						icon={ upload }
 						onClick={ () => fileInputRef.current?.click() }
-						className="ai-agent-import-btn"
+						className="gratis-ai-agent-import-btn"
 						label={ __( 'Import', 'gratis-ai-agent' ) }
 					/>
 					<input
@@ -290,7 +290,7 @@ export default function SessionSidebar( { onClose } ) {
 					{ onClose && (
 						<button
 							type="button"
-							className="ai-agent-sidebar-close-btn"
+							className="gratis-ai-agent-sidebar-close-btn"
 							onClick={ onClose }
 							aria-label={ __(
 								'Close sidebar',
@@ -318,7 +318,7 @@ export default function SessionSidebar( { onClose } ) {
 				) }
 			</div>
 			<div
-				className="ai-agent-sidebar-filters"
+				className="gratis-ai-agent-sidebar-filters"
 				role="tablist"
 				aria-label={ __( 'Conversation filters', 'gratis-ai-agent' ) }
 			>
@@ -328,7 +328,7 @@ export default function SessionSidebar( { onClose } ) {
 						type="button"
 						role="tab"
 						aria-selected={ sessionFilter === tab.key }
-						className={ `ai-agent-filter-tab ${
+						className={ `gratis-ai-agent-filter-tab ${
 							sessionFilter === tab.key ? 'is-active' : ''
 						}` }
 						onClick={ () => {
@@ -345,7 +345,7 @@ export default function SessionSidebar( { onClose } ) {
 			</div>
 			{ folders.length > 0 && sessionFilter === 'active' && (
 				<div
-					className="ai-agent-sidebar-folders"
+					className="gratis-ai-agent-sidebar-folders"
 					role="tablist"
 					aria-label={ __(
 						'Conversation folders',
@@ -356,7 +356,7 @@ export default function SessionSidebar( { onClose } ) {
 						type="button"
 						role="tab"
 						aria-selected={ ! sessionFolder }
-						className={ `ai-agent-folder-tab ${
+						className={ `gratis-ai-agent-folder-tab ${
 							! sessionFolder ? 'is-active' : ''
 						}` }
 						onClick={ () => setSessionFolder( '' ) }
@@ -369,7 +369,7 @@ export default function SessionSidebar( { onClose } ) {
 							type="button"
 							role="tab"
 							aria-selected={ sessionFolder === folder }
-							className={ `ai-agent-folder-tab ${
+							className={ `gratis-ai-agent-folder-tab ${
 								sessionFolder === folder ? 'is-active' : ''
 							}` }
 							onClick={ () => setSessionFolder( folder ) }
@@ -379,9 +379,9 @@ export default function SessionSidebar( { onClose } ) {
 					) ) }
 				</div>
 			) }
-			<div className="ai-agent-session-list">
+			<div className="gratis-ai-agent-session-list">
 				{ displaySessions.length === 0 && (
-					<div className="ai-agent-session-empty">
+					<div className="gratis-ai-agent-session-empty">
 						{ getEmptyMessage( sessionFilter ) }
 					</div>
 				) }

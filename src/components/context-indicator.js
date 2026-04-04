@@ -63,25 +63,25 @@ export default function ContextIndicator() {
 	const totalTokens = tokenUsage.prompt + tokenUsage.completion;
 
 	return (
-		<div className="ai-agent-context-indicator">
-			<div className="ai-agent-context-stats">
-				<span className="ai-agent-context-tokens">
+		<div className="gratis-ai-agent-context-indicator">
+			<div className="gratis-ai-agent-context-stats">
+				<span className="gratis-ai-agent-context-tokens">
 					{ formatTokens( totalTokens ) }{ ' ' }
 					{ __( 'tokens', 'gratis-ai-agent' ) }
-					<span className="ai-agent-context-detail">
+					<span className="gratis-ai-agent-context-detail">
 						({ formatTokens( tokenUsage.prompt ) }{ ' ' }
 						{ __( 'in', 'gratis-ai-agent' ) } /{ ' ' }
 						{ formatTokens( tokenUsage.completion ) }{ ' ' }
 						{ __( 'out', 'gratis-ai-agent' ) })
 					</span>
 				</span>
-				<span className="ai-agent-context-pct">
+				<span className="gratis-ai-agent-context-pct">
 					{ Math.round( clampedPct ) }%
 				</span>
 			</div>
-			<div className="ai-agent-context-bar-track">
+			<div className="gratis-ai-agent-context-bar-track">
 				<div
-					className="ai-agent-context-bar-fill"
+					className="gratis-ai-agent-context-bar-fill"
 					style={ {
 						width: clampedPct + '%',
 						backgroundColor: barColor,
@@ -89,14 +89,14 @@ export default function ContextIndicator() {
 				/>
 			</div>
 			{ isWarning && (
-				<div className="ai-agent-context-warning">
+				<div className="gratis-ai-agent-context-warning">
 					<span>
 						{ __(
 							'Context window is getting full.',
 							'gratis-ai-agent'
 						) }
 					</span>
-					<div className="ai-agent-context-warning-actions">
+					<div className="gratis-ai-agent-context-warning-actions">
 						<Button
 							variant="secondary"
 							size="small"

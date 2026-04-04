@@ -111,7 +111,7 @@ export default function ChatRoute() {
 	}, [] );
 
 	return (
-		<div className="gratis-ai-route gratis-ai-route-chat">
+		<div className="gratis-ai-agent-route gratis-ai-agent-route-chat">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Chat', 'gratis-ai-agent' ) }</h2>
@@ -119,8 +119,8 @@ export default function ChatRoute() {
 				<CardBody>
 					<div
 						ref={ containerRef }
-						id="gratis-ai-chat-container"
-						className="gratis-ai-chat-container"
+						id="gratis-ai-agent-chat-container"
+						className="gratis-ai-agent-chat-container"
 						style={ { minHeight: '500px' } }
 					/>
 				</CardBody>

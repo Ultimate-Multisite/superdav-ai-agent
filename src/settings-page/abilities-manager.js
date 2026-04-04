@@ -72,24 +72,24 @@ function AbilityCategorySection( {
 	} ).length;
 
 	return (
-		<div className="ai-agent-abilities-category">
+		<div className="gratis-ai-agent-abilities-category">
 			<button
 				type="button"
-				className="ai-agent-abilities-category-header"
+				className="gratis-ai-agent-abilities-category-header"
 				onClick={ () => setOpen( ( v ) => ! v ) }
 				aria-expanded={ open }
 			>
-				<span className="ai-agent-abilities-category-chevron">
+				<span className="gratis-ai-agent-abilities-category-chevron">
 					{ open ? '▾' : '▸' }
 				</span>
-				<span className="ai-agent-abilities-category-name">
+				<span className="gratis-ai-agent-abilities-category-name">
 					{ category }
 				</span>
-				<span className="ai-agent-abilities-category-count">
+				<span className="gratis-ai-agent-abilities-category-count">
 					{ abilities.length }
 				</span>
 				{ nonDefaultCount > 0 && (
-					<span className="ai-agent-abilities-category-badge">
+					<span className="gratis-ai-agent-abilities-category-badge">
 						{ nonDefaultCount }{ ' ' }
 						{ __( 'customised', 'gratis-ai-agent' ) }
 					</span>
@@ -97,14 +97,14 @@ function AbilityCategorySection( {
 			</button>
 
 			{ open && (
-				<div className="ai-agent-abilities-category-body">
+				<div className="gratis-ai-agent-abilities-category-body">
 					{ abilities.map( ( ability ) => {
 						const currentPerm =
 							toolPermissions[ ability.name ] || 'auto';
 						return (
 							<div
 								key={ ability.name }
-								className="ai-agent-ability-row"
+								className="gratis-ai-agent-ability-row"
 							>
 								<SelectControl
 									label={ ability.label || ability.name }
@@ -217,10 +217,10 @@ export default function AbilitiesManager( {
 	const isFiltering = search || categoryFilter;
 
 	return (
-		<div className="ai-agent-abilities-manager">
+		<div className="gratis-ai-agent-abilities-manager">
 			{ /* Toolbar: search + category filter + expand/collapse */ }
-			<div className="ai-agent-abilities-toolbar">
-				<div className="ai-agent-abilities-search">
+			<div className="gratis-ai-agent-abilities-toolbar">
+				<div className="gratis-ai-agent-abilities-search">
 					<SearchControl
 						label={ __( 'Search abilities', 'gratis-ai-agent' ) }
 						value={ search }
@@ -231,7 +231,7 @@ export default function AbilitiesManager( {
 						) }
 					/>
 				</div>
-				<div className="ai-agent-abilities-filters">
+				<div className="gratis-ai-agent-abilities-filters">
 					<SelectControl
 						label={ __( 'Category', 'gratis-ai-agent' ) }
 						value={ categoryFilter }
@@ -239,7 +239,7 @@ export default function AbilitiesManager( {
 						onChange={ setCategoryFilter }
 						__nextHasNoMarginBottom
 					/>
-					<div className="ai-agent-abilities-expand-buttons">
+					<div className="gratis-ai-agent-abilities-expand-buttons">
 						<Button
 							variant="tertiary"
 							size="small"
@@ -259,7 +259,7 @@ export default function AbilitiesManager( {
 			</div>
 
 			{ /* Result count */ }
-			<p className="ai-agent-abilities-count description">
+			<p className="gratis-ai-agent-abilities-count description">
 				{ filtered.length === abilities.length
 					? sprintf(
 							/* translators: %d: total number of abilities */
@@ -288,7 +288,7 @@ export default function AbilitiesManager( {
 			) }
 
 			{ /* Category sections */ }
-			<div className="ai-agent-abilities-sections">
+			<div className="gratis-ai-agent-abilities-sections">
 				{ grouped.map( ( [ category, categoryAbilities ] ) => (
 					<AbilityCategorySection
 						key={ category }

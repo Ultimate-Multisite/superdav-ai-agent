@@ -117,14 +117,14 @@ function ProviderSetupRow( { provider, onKeySaved } ) {
 	}, [ apiKey, provider.id, provider.name, fetchProviders, onKeySaved ] );
 
 	return (
-		<div className="ai-agent-site-builder-provider-row">
-			<div className="ai-agent-site-builder-provider-info">
+		<div className="gratis-ai-agent-site-builder-provider-row">
+			<div className="gratis-ai-agent-site-builder-provider-info">
 				<strong>{ provider.name }</strong>
 				<a
 					href={ provider.docsUrl }
 					target="_blank"
 					rel="noopener noreferrer"
-					className="ai-agent-site-builder-provider-docs"
+					className="gratis-ai-agent-site-builder-provider-docs"
 				>
 					{ provider.docsLabel } ↗
 				</a>
@@ -138,7 +138,7 @@ function ProviderSetupRow( { provider, onKeySaved } ) {
 					{ notice.message }
 				</Notice>
 			) }
-			<div className="ai-agent-site-builder-provider-key-row">
+			<div className="gratis-ai-agent-site-builder-provider-key-row">
 				<TextControl
 					type="password"
 					value={ apiKey }
@@ -205,21 +205,21 @@ export default function SiteBuilderOverlay() {
 
 	return (
 		<div
-			className="ai-agent-site-builder-overlay"
+			className="gratis-ai-agent-site-builder-overlay"
 			role="dialog"
 			aria-modal="true"
 			aria-label={ __( 'Site Builder', 'gratis-ai-agent' ) }
 		>
-			<div className="ai-agent-site-builder-backdrop" />
+			<div className="gratis-ai-agent-site-builder-backdrop" />
 
-			<div className="ai-agent-site-builder-panel">
+			<div className="gratis-ai-agent-site-builder-panel">
 				{ /* Header */ }
-				<div className="ai-agent-site-builder-header">
-					<div className="ai-agent-site-builder-header-text">
-						<h2 className="ai-agent-site-builder-title">
+				<div className="gratis-ai-agent-site-builder-header">
+					<div className="gratis-ai-agent-site-builder-header-text">
+						<h2 className="gratis-ai-agent-site-builder-title">
 							{ __( 'Build Your Site', 'gratis-ai-agent' ) }
 						</h2>
-						<p className="ai-agent-site-builder-subtitle">
+						<p className="gratis-ai-agent-site-builder-subtitle">
 							{ hasProviders
 								? __(
 										"Let's set up your WordPress site. Answer a few questions and I'll build it for you.",
@@ -232,7 +232,7 @@ export default function SiteBuilderOverlay() {
 						</p>
 					</div>
 					<Button
-						className="ai-agent-site-builder-skip"
+						className="gratis-ai-agent-site-builder-skip"
 						variant="tertiary"
 						onClick={ handleSkip }
 					>
@@ -242,10 +242,10 @@ export default function SiteBuilderOverlay() {
 
 				{ /* Progress bar */ }
 				{ hasProgress && (
-					<div className="ai-agent-site-builder-progress">
-						<div className="ai-agent-site-builder-progress-bar">
+					<div className="gratis-ai-agent-site-builder-progress">
+						<div className="gratis-ai-agent-site-builder-progress-bar">
 							<div
-								className="ai-agent-site-builder-progress-fill"
+								className="gratis-ai-agent-site-builder-progress-fill"
 								style={ { width: progressPercent + '%' } }
 								role="progressbar"
 								aria-valuenow={ progressPercent }
@@ -258,7 +258,7 @@ export default function SiteBuilderOverlay() {
 								) }
 							/>
 						</div>
-						<span className="ai-agent-site-builder-progress-label">
+						<span className="gratis-ai-agent-site-builder-progress-label">
 							{ sprintf(
 								/* translators: 1: current step, 2: total steps */
 								__( 'Step %1$d of %2$d', 'gratis-ai-agent' ),
@@ -271,18 +271,18 @@ export default function SiteBuilderOverlay() {
 
 				{ /* Provider setup or chat panel */ }
 				{ hasProviders ? (
-					<div className="ai-agent-site-builder-chat">
+					<div className="gratis-ai-agent-site-builder-chat">
 						<ChatPanel />
 					</div>
 				) : (
-					<div className="ai-agent-site-builder-setup">
-						<p className="ai-agent-site-builder-setup-intro">
+					<div className="gratis-ai-agent-site-builder-setup">
+						<p className="gratis-ai-agent-site-builder-setup-intro">
 							{ __(
 								'Enter an API key for at least one provider. You can add more later in Settings.',
 								'gratis-ai-agent'
 							) }
 						</p>
-						<div className="ai-agent-site-builder-provider-list">
+						<div className="gratis-ai-agent-site-builder-provider-list">
 							{ PROVIDERS.map( ( provider ) => (
 								<ProviderSetupRow
 									key={ provider.id }

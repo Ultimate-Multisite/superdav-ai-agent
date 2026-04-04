@@ -170,8 +170,8 @@ export default function ToolProfilesManager() {
 	];
 
 	return (
-		<div className="ai-agent-tool-profiles-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-tool-profiles-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
 					<h3>{ __( 'Tool Profiles', 'gratis-ai-agent' ) }</h3>
 					<p className="description">
@@ -217,7 +217,7 @@ export default function ToolProfilesManager() {
 
 			{ showForm && (
 				<div
-					className="ai-agent-skill-form"
+					className="gratis-ai-agent-skill-form"
 					style={ { marginTop: '16px' } }
 				>
 					<TextControl
@@ -249,7 +249,7 @@ export default function ToolProfilesManager() {
 							abilities.map( ( a ) => a.name ).join( ', ' )
 						) }
 					/>
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -279,23 +279,23 @@ export default function ToolProfilesManager() {
 
 			{ loaded && profiles.length > 0 && (
 				<div
-					className="ai-agent-skill-cards"
+					className="gratis-ai-agent-skill-cards"
 					style={ { marginTop: '16px' } }
 				>
 					{ profiles.map( ( profile ) => (
 						<div
 							key={ profile.slug }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								activeProfile === profile.slug
-									? 'ai-agent-skill-card--active'
+									? 'gratis-ai-agent-skill-card--active'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
-								<div className="ai-agent-skill-card-title">
+							<div className="gratis-ai-agent-skill-card-header">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ profile.name }</strong>
 									{ profile.is_builtin && (
-										<span className="ai-agent-skill-badge">
+										<span className="gratis-ai-agent-skill-badge">
 											{ __(
 												'Built-in',
 												'gratis-ai-agent'
@@ -304,7 +304,7 @@ export default function ToolProfilesManager() {
 									) }
 									{ activeProfile === profile.slug && (
 										<span
-											className="ai-agent-skill-badge"
+											className="gratis-ai-agent-skill-badge"
 											style={ {
 												background: '#00a32a',
 												color: '#fff',
@@ -318,15 +318,15 @@ export default function ToolProfilesManager() {
 									) }
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ profile.description }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ ( profile.tool_names || [] ).length }{ ' ' }
 									{ __( 'tool prefixes', 'gratis-ai-agent' ) }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									{ ! profile.is_builtin && (
 										<>
 											<Button

@@ -42,14 +42,14 @@ export default function SettingsRoute( { subRoute } ) {
 	];
 
 	return (
-		<div className="gratis-ai-route gratis-ai-route-settings">
+		<div className="gratis-ai-agent-route gratis-ai-agent-route-settings">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Settings', 'gratis-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
 					<TabPanel
-						className="gratis-ai-settings-tabs"
+						className="gratis-ai-agent-settings-tabs"
 						activeClass="is-active"
 						tabs={ tabs }
 						initialTabName={ initialTab }
@@ -85,7 +85,7 @@ export default function SettingsRoute( { subRoute } ) {
 function AdvancedSettings() {
 	return (
 		<div className="gratis-ai-advanced-settings">
-			<div className="gratis-ai-benchmark-section">
+			<div className="gratis-ai-agent-benchmark-section">
 				<h4>{ __( 'Model Benchmark', 'gratis-ai-agent' ) }</h4>
 				<Notice status="info" isDismissible={ false }>
 					{ __(

@@ -154,7 +154,7 @@ function ChartCanvas( { config } ) {
 
 	if ( runtimeError ) {
 		return (
-			<p className="ai-agent-chart-error-msg">
+			<p className="gratis-ai-agent-chart-error-msg">
 				{ __( 'Chart render error:', 'gratis-ai-agent' ) }
 				<code>{ runtimeError }</code>
 			</p>
@@ -178,8 +178,8 @@ export default function ChartBlock( { children } ) {
 	// Synchronous parse/validation error — render immediately without useEffect.
 	if ( error ) {
 		return (
-			<div className="ai-agent-chart-error">
-				<p className="ai-agent-chart-error-msg">
+			<div className="gratis-ai-agent-chart-error">
+				<p className="gratis-ai-agent-chart-error-msg">
 					{ __( 'Chart render error:', 'gratis-ai-agent' ) }
 					<code>{ error }</code>
 				</p>
@@ -189,7 +189,7 @@ export default function ChartBlock( { children } ) {
 	}
 
 	return (
-		<div className="ai-agent-chart-block">
+		<div className="gratis-ai-agent-chart-block">
 			<ChartCanvas config={ config } />
 		</div>
 	);

@@ -201,13 +201,15 @@ export default function CodeBlock( { language, children } ) {
 	}, [ code ] );
 
 	return (
-		<div className="ai-agent-code-block">
-			<div className="ai-agent-code-header">
+		<div className="gratis-ai-agent-code-block">
+			<div className="gratis-ai-agent-code-header">
 				{ language && (
-					<span className="ai-agent-code-language">{ language }</span>
+					<span className="gratis-ai-agent-code-language">
+						{ language }
+					</span>
 				) }
 				<button
-					className="ai-agent-code-copy"
+					className="gratis-ai-agent-code-copy"
 					onClick={ handleCopy }
 					type="button"
 					aria-label={ __(
@@ -221,7 +223,7 @@ export default function CodeBlock( { language, children } ) {
 				</button>
 			</div>
 			{ /* CodeMirror mounts into this div */ }
-			<div ref={ containerRef } className="ai-agent-code-cm" />
+			<div ref={ containerRef } className="gratis-ai-agent-code-cm" />
 		</div>
 	);
 }

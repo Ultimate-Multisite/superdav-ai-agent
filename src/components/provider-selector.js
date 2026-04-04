@@ -66,7 +66,7 @@ export default function ProviderSelector( { compact = false } ) {
 
 	return (
 		<div
-			className={ `ai-agent-provider-selector ${
+			className={ `gratis-ai-agent-provider-selector ${
 				compact ? 'is-compact' : ''
 			}` }
 		>

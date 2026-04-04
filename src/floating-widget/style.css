@@ -64,7 +64,7 @@
 }
 
 /* Floating panel */
-.ai-agent-floating-panel {
+.gratis-ai-agent-floating-panel {
 	position: fixed;
 	bottom: 24px;
 	right: 24px;
@@ -83,23 +83,23 @@
 	transition: height 0.2s, width 0.2s;
 }
 
-.ai-agent-floating-panel.is-dragging,
-.ai-agent-floating-panel.is-resizing {
+.gratis-ai-agent-floating-panel.is-dragging,
+.gratis-ai-agent-floating-panel.is-resizing {
 	transition: none;
 }
 
-.ai-agent-floating-panel.is-minimized {
+.gratis-ai-agent-floating-panel.is-minimized {
 	height: auto;
 	width: 280px;
 }
 
 /* Resize handles */
-.ai-agent-resize-handle {
+.gratis-ai-agent-resize-handle {
 	position: absolute;
 	z-index: 10;
 }
 
-.ai-agent-resize-handle--right {
+.gratis-ai-agent-resize-handle--right {
 	top: 0;
 	right: 0;
 	width: 6px;
@@ -107,7 +107,7 @@
 	cursor: ew-resize;
 }
 
-.ai-agent-resize-handle--bottom {
+.gratis-ai-agent-resize-handle--bottom {
 	bottom: 0;
 	left: 0;
 	width: 100%;
@@ -115,7 +115,7 @@
 	cursor: ns-resize;
 }
 
-.ai-agent-resize-handle--corner {
+.gratis-ai-agent-resize-handle--corner {
 	bottom: 0;
 	right: 0;
 	width: 16px;
@@ -124,7 +124,7 @@
 }
 
 /* Visual indicator on the corner handle */
-.ai-agent-resize-handle--corner::after {
+.gratis-ai-agent-resize-handle--corner::after {
 	content: '';
 	position: absolute;
 	bottom: 3px;
@@ -137,7 +137,7 @@
 }
 
 /* Title bar */
-.ai-agent-floating-titlebar {
+.gratis-ai-agent-floating-titlebar {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -148,17 +148,17 @@
 	cursor: grab;
 }
 
-.ai-agent-floating-panel.is-dragging .ai-agent-floating-titlebar {
+.gratis-ai-agent-floating-panel.is-dragging .gratis-ai-agent-floating-titlebar {
 	cursor: grabbing;
 }
 
-.ai-agent-floating-title {
+.gratis-ai-agent-floating-title {
 	font-size: 14px;
 	font-weight: 600;
 }
 
 /* White-label logo inside the title bar (t075) */
-.ai-agent-floating-titlebar-logo {
+.gratis-ai-agent-floating-titlebar-logo {
 	width: 20px;
 	height: 20px;
 	object-fit: contain;
@@ -167,26 +167,26 @@
 	flex-shrink: 0;
 }
 
-.ai-agent-floating-titlebar-actions {
+.gratis-ai-agent-floating-titlebar-actions {
 	display: flex;
 	gap: 2px;
 }
 
-.ai-agent-floating-titlebar-actions .components-button {
+.gratis-ai-agent-floating-titlebar-actions .components-button {
 	color: #fff;
 }
 
-.ai-agent-floating-titlebar-actions .components-button:hover {
+.gratis-ai-agent-floating-titlebar-actions .components-button:hover {
 	color: #fff;
 	background: rgba(255, 255, 255, 0.15);
 }
 
-.ai-agent-floating-titlebar-actions .components-button svg {
+.gratis-ai-agent-floating-titlebar-actions .components-button svg {
 	fill: currentcolor;
 }
 
 /* Session Tabs */
-.ai-agent-session-tabs {
+.gratis-ai-agent-session-tabs {
 	display: flex;
 	gap: 2px;
 	padding: 4px 8px;
@@ -197,7 +197,7 @@
 	align-items: center;
 }
 
-.ai-agent-tab-item {
+.gratis-ai-agent-tab-item {
 	padding: 4px 8px;
 	font-size: 11px;
 	border-radius: 3px;
@@ -209,42 +209,42 @@
 	transition: background 0.15s;
 }
 
-.ai-agent-tab-item:hover {
+.gratis-ai-agent-tab-item:hover {
 	background: #e0e0e0;
 }
 
-.ai-agent-tab-item.is-active {
+.gratis-ai-agent-tab-item.is-active {
 	background: var(--wp-admin-theme-color);
 	color: #fff;
 }
 
-.ai-agent-tab-new.components-button {
+.gratis-ai-agent-tab-new.components-button {
 	padding: 2px;
 	min-width: auto;
 	height: auto;
 }
 
 /* Chat panel inside floating panel — compact adjustments */
-.ai-agent-floating-panel .ai-agent-chat-panel {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-chat-panel {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 }
 
-.ai-agent-floating-panel .ai-agent-header {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-header {
 	padding: 6px 10px;
 }
 
-.ai-agent-floating-panel .ai-agent-provider-selector {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-provider-selector {
 	gap: 8px;
 }
 
-.ai-agent-floating-panel .ai-agent-provider-selector .components-select-control {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-provider-selector .components-select-control {
 	min-width: 120px;
 }
 
-.ai-agent-floating-panel .ai-agent-messages {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-messages {
 	flex: 1;
 	overflow-y: auto;
 	display: flex;
@@ -253,26 +253,26 @@
 	gap: 8px;
 }
 
-.ai-agent-floating-panel .ai-agent-bubble {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-bubble {
 	font-size: 13px;
 	padding: 8px 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-input-area {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-area {
 	padding: 8px 10px;
 	position: relative;
 	flex-direction: column;
 	gap: 0;
 }
 
-.ai-agent-floating-panel .ai-agent-input {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input {
 	font-size: 13px;
 	padding: 6px 70px 6px 8px;
 	width: 100%;
 	box-sizing: border-box;
 }
 
-.ai-agent-floating-panel .ai-agent-send-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-send-btn {
 	position: absolute;
 	right: 14px;
 	bottom: 12px;
@@ -283,13 +283,13 @@
 	border-radius: 50%;
 }
 
-.ai-agent-floating-panel .ai-agent-send-btn svg {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-send-btn svg {
 	width: 18px;
 	height: 18px;
 }
 
 /* Mic button — floating panel */
-.ai-agent-floating-panel .ai-agent-mic-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-mic-btn {
 	position: absolute;
 	right: 48px;
 	bottom: 12px;
@@ -304,50 +304,50 @@
 	transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.ai-agent-floating-panel .ai-agent-mic-btn svg {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-mic-btn svg {
 	width: 16px;
 	height: 16px;
 }
 
-.ai-agent-floating-panel .ai-agent-mic-btn:hover {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-mic-btn:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
-.ai-agent-floating-panel .ai-agent-mic-btn.is-listening {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-mic-btn.is-listening {
 	color: #fff;
 	background: #d63638;
 	border-color: #d63638;
 	box-shadow: 0 0 0 3px rgba(214, 54, 56, 0.25);
-	animation: ai-agent-mic-pulse 1.2s ease-in-out infinite;
+	animation: gratis-ai-agent-mic-pulse 1.2s ease-in-out infinite;
 }
 
-.ai-agent-floating-panel .ai-agent-empty-state {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-empty-state {
 	font-size: 13px;
 }
 
 /* Shared styles that both entry points need */
 
 /* Provider selector compact mode (no labels) */
-.ai-agent-provider-selector.is-compact {
+.gratis-ai-agent-provider-selector.is-compact {
 	gap: 6px;
 }
 
 /* stylelint-disable-next-line selector-class-pattern */
-.ai-agent-provider-selector.is-compact .components-base-control__label {
+.gratis-ai-agent-provider-selector.is-compact .components-base-control__label {
 	display: none;
 }
 
 /* Bubbles (needed for floating widget) */
-.ai-agent-floating-panel .ai-agent-user {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-user {
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 	align-self: flex-end;
 	border-bottom-right-radius: 2px;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant {
 	background: #f0f0f1;
 	color: #1d2327;
 	align-self: flex-start;
@@ -356,32 +356,32 @@
 }
 
 /* Markdown inside floating assistant bubbles */
-.ai-agent-floating-panel .ai-agent-assistant p {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant p {
 	margin: 0 0 0.5em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant p:last-child {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant p:last-child {
 	margin-bottom: 0;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant ul,
-.ai-agent-floating-panel .ai-agent-assistant ol {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant ul,
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant ol {
 	margin: 0.3em 0;
 	padding-left: 1.3em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant li {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant li {
 	margin-bottom: 0.15em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant code {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant code {
 	background: #e0e0e0;
 	padding: 1px 4px;
 	border-radius: 3px;
 	font-size: 0.85em;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant pre {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant pre {
 	background: #1d2327;
 	color: #e0e0e0;
 	padding: 8px 10px;
@@ -392,23 +392,23 @@
 	line-height: 1.4;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant pre code {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant pre code {
 	background: none;
 	padding: 0;
 	color: inherit;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant strong {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant strong {
 	font-weight: 600;
 }
 
-.ai-agent-floating-panel .ai-agent-assistant hr {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-assistant hr {
 	border: none;
 	border-top: 1px solid #dcdcde;
 	margin: 0.4em 0;
 }
 
-.ai-agent-floating-panel .ai-agent-system {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-system {
 	background: #fcf0f1;
 	color: #8a2424;
 	align-self: center;
@@ -416,7 +416,7 @@
 	border: 1px solid #d63638;
 }
 
-.ai-agent-floating-panel .ai-agent-thinking {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-thinking {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -424,51 +424,51 @@
 	font-style: italic;
 }
 
-.ai-agent-floating-panel .ai-agent-thinking .components-spinner {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-thinking .components-spinner {
 	margin: 0;
 	width: 16px;
 	height: 16px;
 }
 
 /* Tool calls inside floating */
-.ai-agent-floating-panel .ai-agent-tool-calls {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls {
 	align-self: flex-start;
 	max-width: 95%;
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-calls details {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls details {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-calls summary {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls summary {
 	padding: 6px 10px;
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-tool-entry pre {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-entry pre {
 	max-height: 120px;
 	font-size: 10px;
 }
 
 /* Context Indicator */
-.ai-agent-context-indicator {
+.gratis-ai-agent-context-indicator {
 	flex-shrink: 0;
 }
 
-.ai-agent-context-bar-track {
+.gratis-ai-agent-context-bar-track {
 	height: 3px;
 	background: #dcdcde;
 }
 
-.ai-agent-context-bar-fill {
+.gratis-ai-agent-context-bar-fill {
 	height: 100%;
 	transition: width 0.3s, background-color 0.3s;
 }
 
-.ai-agent-context-warning {
+.gratis-ai-agent-context-warning {
 	padding: 6px 12px;
 	background: #fcf0f1;
 	border-bottom: 1px solid #d63638;
@@ -480,16 +480,16 @@
 	flex-wrap: wrap;
 }
 
-.ai-agent-context-warning span {
+.gratis-ai-agent-context-warning span {
 	color: #8a2424;
 }
 
-.ai-agent-context-warning-actions {
+.gratis-ai-agent-context-warning-actions {
 	display: flex;
 	gap: 4px;
 }
 
-.ai-agent-context-warning-actions .components-button {
+.gratis-ai-agent-context-warning-actions .components-button {
 	font-size: 11px;
 	height: auto;
 	padding: 2px 8px;
@@ -498,7 +498,7 @@
 /* Responsive */
 @media (max-width: 500px) {
 
-	.ai-agent-floating-panel {
+	.gratis-ai-agent-floating-panel {
 		width: calc(100vw - 16px);
 		height: calc(100vh - 80px);
 		bottom: 8px;
@@ -515,7 +515,7 @@
 }
 
 /* Debug mode badge */
-.ai-agent-debug-badge {
+.gratis-ai-agent-debug-badge {
 	display: inline-block;
 	background: #dba617;
 	color: #fff;
@@ -530,7 +530,7 @@
 }
 
 /* YOLO mode badge */
-.ai-agent-yolo-badge {
+.gratis-ai-agent-yolo-badge {
 	display: inline-block;
 	background: #cc1818;
 	color: #fff;
@@ -546,7 +546,7 @@
 }
 
 /* Budget indicator in chat header */
-.ai-agent-budget-indicator {
+.gratis-ai-agent-budget-indicator {
 	display: inline-block;
 	font-size: 10px;
 	font-weight: 600;
@@ -559,23 +559,23 @@
 	white-space: nowrap;
 }
 
-.ai-agent-budget-indicator--ok {
+.gratis-ai-agent-budget-indicator--ok {
 	background: rgba(255, 255, 255, 0.15);
 	color: rgba(255, 255, 255, 0.85);
 }
 
-.ai-agent-budget-indicator--warning {
+.gratis-ai-agent-budget-indicator--warning {
 	background: #dba617;
 	color: #fff;
 }
 
-.ai-agent-budget-indicator--exceeded {
+.gratis-ai-agent-budget-indicator--exceeded {
 	background: #cc1818;
 	color: #fff;
 }
 
 /* TTS toggle button in chat header (floating widget) */
-.ai-agent-floating-panel .ai-agent-tts-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tts-btn {
 	min-width: auto;
 	width: 26px;
 	height: 26px;
@@ -591,31 +591,31 @@
 	justify-content: center;
 }
 
-.ai-agent-floating-panel .ai-agent-tts-btn:hover {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tts-btn:hover {
 	color: #fff;
 	border-color: rgba(255, 255, 255, 0.5);
 	background: transparent;
 }
 
-.ai-agent-floating-panel .ai-agent-tts-btn.is-active {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tts-btn.is-active {
 	color: #fff;
 	background: rgba(255, 255, 255, 0.2);
 	border-color: rgba(255, 255, 255, 0.5);
 }
 
-.ai-agent-floating-panel .ai-agent-tts-btn svg {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tts-btn svg {
 	width: 16px;
 	height: 16px;
 }
 
 /* Debug panel (below assistant messages) */
-.ai-agent-debug-panel {
+.gratis-ai-agent-debug-panel {
 	align-self: flex-start;
 	max-width: 85%;
 	margin-top: 2px;
 }
 
-.ai-agent-debug-toggle {
+.gratis-ai-agent-debug-toggle {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -630,19 +630,19 @@
 	transition: color 0.15s;
 }
 
-.ai-agent-debug-toggle:hover {
+.gratis-ai-agent-debug-toggle:hover {
 	color: #787c82;
 }
 
-.ai-agent-debug-summary {
+.gratis-ai-agent-debug-summary {
 	white-space: nowrap;
 }
 
-.ai-agent-debug-caret {
+.gratis-ai-agent-debug-caret {
 	font-size: 10px;
 }
 
-.ai-agent-debug-details {
+.gratis-ai-agent-debug-details {
 	background: #f6f7f7;
 	border: 1px solid #e0e0e0;
 	border-radius: 4px;
@@ -652,7 +652,7 @@
 	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-.ai-agent-debug-row {
+.gratis-ai-agent-debug-row {
 	display: flex;
 	justify-content: space-between;
 	gap: 16px;
@@ -660,25 +660,25 @@
 	line-height: 1.5;
 }
 
-.ai-agent-debug-label {
+.gratis-ai-agent-debug-label {
 	color: #787c82;
 	white-space: nowrap;
 }
 
-.ai-agent-debug-value {
+.gratis-ai-agent-debug-value {
 	color: #1d2327;
 	font-weight: 500;
 	text-align: right;
 }
 
-.ai-agent-debug-detail {
+.gratis-ai-agent-debug-detail {
 	font-weight: 400;
 	color: #a7aaad;
 	margin-left: 4px;
 }
 
 /* Suggestion chips */
-.ai-agent-suggestion-chips {
+.gratis-ai-agent-suggestion-chips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
@@ -686,7 +686,7 @@
 	padding-left: 4px;
 }
 
-.ai-agent-suggestion-chip.components-button {
+.gratis-ai-agent-suggestion-chip.components-button {
 	font-size: 12px;
 	padding: 3px 10px;
 	border-radius: 14px;
@@ -699,49 +699,49 @@
 	transition: background 0.15s, border-color 0.15s;
 }
 
-.ai-agent-suggestion-chip.components-button:hover {
+.gratis-ai-agent-suggestion-chip.components-button:hover {
 	background: #e0e0e0;
 	border-color: #bbb;
 }
 
 /* DataTable — sortable, filterable table (t072) — compact for floating panel */
-.ai-agent-floating-panel .ai-agent-data-table-wrap {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table-wrap {
 	margin: 0.4em 0;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 	overflow: hidden;
 }
 
-.ai-agent-floating-panel .ai-agent-data-table-toolbar {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table-toolbar {
 	padding: 4px 6px;
 	gap: 6px;
 }
 
-.ai-agent-floating-panel .ai-agent-data-table-filter-input {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table-filter-input {
 	font-size: 11px;
 	padding: 3px 24px 3px 6px;
 }
 
-.ai-agent-floating-panel .ai-agent-data-table {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table {
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-data-table-th {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table-th {
 	padding: 4px 8px;
 	font-size: 12px;
 }
 
-.ai-agent-floating-panel .ai-agent-data-table-td {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-data-table-td {
 	padding: 4px 8px;
 	font-size: 12px;
 }
 
 /* Action card — inline confirmation (t074) */
-.ai-agent-message-row-action-card {
+.gratis-ai-agent-message-row-action-card {
 	margin: 4px 0 8px;
 }
 
-.ai-agent-action-card {
+.gratis-ai-agent-action-card {
 	background: #fff8f0;
 	border: 1px solid #f0b849;
 	border-left: 4px solid #d63638;
@@ -749,7 +749,7 @@
 	overflow: hidden;
 }
 
-.ai-agent-action-card-header {
+.gratis-ai-agent-action-card-header {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -758,23 +758,23 @@
 	background: #fef8ec;
 }
 
-.ai-agent-action-card-icon {
+.gratis-ai-agent-action-card-icon {
 	font-size: 13px;
 	color: #d63638;
 	flex-shrink: 0;
 }
 
-.ai-agent-action-card-heading {
+.gratis-ai-agent-action-card-heading {
 	font-weight: 600;
 	font-size: 12px;
 	color: #d63638;
 }
 
-.ai-agent-action-card-body {
+.gratis-ai-agent-action-card-body {
 	padding: 8px 12px;
 }
 
-.ai-agent-action-card-tool {
+.gratis-ai-agent-action-card-tool {
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -782,34 +782,34 @@
 	margin-bottom: 4px;
 }
 
-.ai-agent-action-card-tool:last-child {
+.gratis-ai-agent-action-card-tool:last-child {
 	margin-bottom: 0;
 }
 
-.ai-agent-action-card-tool-title {
+.gratis-ai-agent-action-card-tool-title {
 	font-weight: 600;
 	font-size: 12px;
 	color: #1d2327;
 	margin-bottom: 2px;
 }
 
-.ai-agent-action-card-tool-desc {
+.gratis-ai-agent-action-card-tool-desc {
 	font-size: 11px;
 	color: #50575e;
 }
 
-.ai-agent-action-card-tool-args-details {
+.gratis-ai-agent-action-card-tool-args-details {
 	margin-top: 4px;
 }
 
-.ai-agent-action-card-tool-args-details summary {
+.gratis-ai-agent-action-card-tool-args-details summary {
 	font-size: 11px;
 	color: #787c82;
 	cursor: pointer;
 	user-select: none;
 }
 
-.ai-agent-action-card-tool-args {
+.gratis-ai-agent-action-card-tool-args {
 	margin: 4px 0 0;
 	padding: 4px 6px;
 	background: #f6f7f7;
@@ -824,7 +824,7 @@
 	word-break: break-all;
 }
 
-.ai-agent-action-card-footer {
+.gratis-ai-agent-action-card-footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 6px;
@@ -833,14 +833,14 @@
 	background: #fef8ec;
 }
 
-.ai-agent-action-card-btn-cancel {
+.gratis-ai-agent-action-card-btn-cancel {
 	min-width: 64px;
 	font-size: 12px !important;
 	padding: 2px 10px !important;
 	height: auto !important;
 }
 
-.ai-agent-action-card-btn-confirm {
+.gratis-ai-agent-action-card-btn-confirm {
 	min-width: 72px;
 	font-size: 12px !important;
 	padding: 2px 10px !important;
@@ -848,7 +848,7 @@
 }
 
 /* Floating panel: input row adjustments */
-.ai-agent-floating-panel .ai-agent-input-row {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-row {
 	display: flex;
 	align-items: flex-end;
 	gap: 4px;
@@ -856,18 +856,18 @@
 	position: relative;
 }
 
-.ai-agent-floating-panel .ai-agent-input-row .ai-agent-input {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-row .gratis-ai-agent-input {
 	flex: 1;
 	padding-right: 8px;
 }
 
-.ai-agent-floating-panel .ai-agent-input-row .ai-agent-send-btn,
-.ai-agent-floating-panel .ai-agent-input-row .ai-agent-stop-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-row .gratis-ai-agent-send-btn,
+.gratis-ai-agent-floating-panel .gratis-ai-agent-input-row .gratis-ai-agent-stop-btn {
 	position: static;
 	flex-shrink: 0;
 }
 
-.ai-agent-floating-panel .ai-agent-templates-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-templates-btn {
 	font-size: 11px;
 	padding: 2px 6px;
 	height: 28px;
@@ -876,47 +876,47 @@
 }
 
 /* Floating panel: upload button */
-.ai-agent-floating-panel .ai-agent-upload-btn {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-upload-btn {
 	width: 28px;
 	height: 28px;
 	margin-bottom: 2px;
 }
 
 /* Floating panel: attachment thumbnail strip */
-.ai-agent-floating-panel .ai-agent-attachment-previews {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-attachment-previews {
 	padding: 0 0 6px;
 	gap: 6px;
 }
 
-.ai-agent-floating-panel .ai-agent-attachment-thumb {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-attachment-thumb {
 	width: 56px;
 }
 
-.ai-agent-floating-panel .ai-agent-attachment-thumb__img,
-.ai-agent-floating-panel .ai-agent-attachment-thumb__file {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-attachment-thumb__img,
+.gratis-ai-agent-floating-panel .gratis-ai-agent-attachment-thumb__file {
 	width: 56px;
 	height: 56px;
 }
 
 /* Floating panel: inline message images */
-.ai-agent-floating-panel .ai-agent-message-attachment-img {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-message-attachment-img {
 	max-width: 180px;
 	max-height: 180px;
 }
 
 /* Floating panel: template menu */
-.ai-agent-floating-panel .gratis-ai-agent-template-menu {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-template-menu {
 	max-height: 280px;
 }
 
-.ai-agent-floating-panel .gratis-ai-agent-template-menu__grid {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-template-menu__grid {
 	grid-template-columns: 1fr 1fr;
 }
 
 /* ─── Site Builder Full-Screen Overlay (t062) ─────────────────────────────── */
 
 /* Backdrop — semi-transparent dark layer covering the entire admin screen */
-.ai-agent-site-builder-overlay {
+.gratis-ai-agent-site-builder-overlay {
 	position: fixed;
 	inset: 0;
 	z-index: 999999;
@@ -927,14 +927,14 @@
 	box-sizing: border-box;
 }
 
-.ai-agent-site-builder-backdrop {
+.gratis-ai-agent-site-builder-backdrop {
 	position: absolute;
 	inset: 0;
 	background: rgba(0, 0, 0, 0.6);
 }
 
 /* Centered panel */
-.ai-agent-site-builder-panel {
+.gratis-ai-agent-site-builder-panel {
 	position: relative;
 	z-index: 1;
 	width: 100%;
@@ -949,7 +949,7 @@
 }
 
 /* Header row: title + skip button */
-.ai-agent-site-builder-header {
+.gratis-ai-agent-site-builder-header {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -960,12 +960,12 @@
 	flex-shrink: 0;
 }
 
-.ai-agent-site-builder-header-text {
+.gratis-ai-agent-site-builder-header-text {
 	flex: 1;
 	min-width: 0;
 }
 
-.ai-agent-site-builder-title {
+.gratis-ai-agent-site-builder-title {
 	margin: 0 0 4px;
 	font-size: 20px;
 	font-weight: 700;
@@ -973,7 +973,7 @@
 	line-height: 1.3;
 }
 
-.ai-agent-site-builder-subtitle {
+.gratis-ai-agent-site-builder-subtitle {
 	margin: 0;
 	font-size: 13px;
 	color: rgba(255, 255, 255, 0.85);
@@ -981,7 +981,7 @@
 }
 
 /* Skip button */
-.ai-agent-site-builder-skip.components-button {
+.gratis-ai-agent-site-builder-skip.components-button {
 	flex-shrink: 0;
 	color: rgba(255, 255, 255, 0.8);
 	border: 1px solid rgba(255, 255, 255, 0.4);
@@ -992,14 +992,14 @@
 	transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.ai-agent-site-builder-skip.components-button:hover {
+.gratis-ai-agent-site-builder-skip.components-button:hover {
 	color: #fff;
 	border-color: rgba(255, 255, 255, 0.8);
 	background: rgba(255, 255, 255, 0.1);
 }
 
 /* Progress bar */
-.ai-agent-site-builder-progress {
+.gratis-ai-agent-site-builder-progress {
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -1009,7 +1009,7 @@
 	flex-shrink: 0;
 }
 
-.ai-agent-site-builder-progress-bar {
+.gratis-ai-agent-site-builder-progress-bar {
 	flex: 1;
 	height: 6px;
 	background: #dcdcde;
@@ -1017,14 +1017,14 @@
 	overflow: hidden;
 }
 
-.ai-agent-site-builder-progress-fill {
+.gratis-ai-agent-site-builder-progress-fill {
 	height: 100%;
 	background: var(--wp-admin-theme-color, #2271b1);
 	border-radius: 3px;
 	transition: width 0.4s ease;
 }
 
-.ai-agent-site-builder-progress-label {
+.gratis-ai-agent-site-builder-progress-label {
 	flex-shrink: 0;
 	font-size: 12px;
 	color: #50575e;
@@ -1032,7 +1032,7 @@
 }
 
 /* Chat panel inside site builder overlay */
-.ai-agent-site-builder-chat {
+.gratis-ai-agent-site-builder-chat {
 	flex: 1;
 	min-height: 0;
 	display: flex;
@@ -1040,63 +1040,63 @@
 	overflow: hidden;
 }
 
-.ai-agent-site-builder-chat .ai-agent-chat-panel {
+.gratis-ai-agent-site-builder-chat .gratis-ai-agent-chat-panel {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 }
 
-.ai-agent-site-builder-chat .ai-agent-messages {
+.gratis-ai-agent-site-builder-chat .gratis-ai-agent-messages {
 	flex: 1;
 	overflow-y: auto;
 	padding: 20px 24px;
 	gap: 12px;
 }
 
-.ai-agent-site-builder-chat .ai-agent-bubble {
+.gratis-ai-agent-site-builder-chat .gratis-ai-agent-bubble {
 	font-size: 14px;
 	padding: 10px 14px;
 	max-width: 80%;
 }
 
-.ai-agent-site-builder-chat .ai-agent-input-area {
+.gratis-ai-agent-site-builder-chat .gratis-ai-agent-input-area {
 	padding: 12px 24px 16px;
 	border-top: 1px solid #dcdcde;
 }
 
-.ai-agent-site-builder-chat .ai-agent-input {
+.gratis-ai-agent-site-builder-chat .gratis-ai-agent-input {
 	font-size: 14px;
 }
 
 /* ─── Provider setup panel (shown when no providers configured) ───────────── */
 
-.ai-agent-site-builder-setup {
+.gratis-ai-agent-site-builder-setup {
 	flex: 1;
 	overflow-y: auto;
 	padding: 20px 24px;
 }
 
-.ai-agent-site-builder-setup-intro {
+.gratis-ai-agent-site-builder-setup-intro {
 	margin: 0 0 16px;
 	font-size: 14px;
 	color: #50575e;
 }
 
-.ai-agent-site-builder-provider-list {
+.gratis-ai-agent-site-builder-provider-list {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
 }
 
-.ai-agent-site-builder-provider-row {
+.gratis-ai-agent-site-builder-provider-row {
 	padding: 16px;
 	border: 1px solid #dcdcde;
 	border-radius: 8px;
 	background: #f6f7f7;
 }
 
-.ai-agent-site-builder-provider-info {
+.gratis-ai-agent-site-builder-provider-info {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1104,107 +1104,107 @@
 	margin-bottom: 10px;
 }
 
-.ai-agent-site-builder-provider-info strong {
+.gratis-ai-agent-site-builder-provider-info strong {
 	font-size: 14px;
 }
 
-.ai-agent-site-builder-provider-docs {
+.gratis-ai-agent-site-builder-provider-docs {
 	font-size: 12px;
 	color: var(--wp-admin-theme-color, #2271b1);
 	text-decoration: none;
 	white-space: nowrap;
 }
 
-.ai-agent-site-builder-provider-docs:hover {
+.gratis-ai-agent-site-builder-provider-docs:hover {
 	text-decoration: underline;
 }
 
-.ai-agent-site-builder-provider-key-row {
+.gratis-ai-agent-site-builder-provider-key-row {
 	display: flex;
 	gap: 8px;
 	align-items: flex-end;
 }
 
-.ai-agent-site-builder-provider-key-row .components-text-control__input,
-.ai-agent-site-builder-provider-key-row .components-base-control {
+.gratis-ai-agent-site-builder-provider-key-row .components-text-control__input,
+.gratis-ai-agent-site-builder-provider-key-row .components-base-control {
 	flex: 1;
 	min-width: 0;
 }
 
-.ai-agent-site-builder-provider-key-row .components-base-control__label {
+.gratis-ai-agent-site-builder-provider-key-row .components-base-control__label {
 	display: none;
 }
 
-.ai-agent-site-builder-provider-row .components-notice {
+.gratis-ai-agent-site-builder-provider-row .components-notice {
 	margin: 0 0 8px;
 }
 
 /* ─── Responsive — narrow screens ─────────────────────────────────────────── */
 @media (max-width: 782px) {
 
-	.ai-agent-site-builder-overlay {
+	.gratis-ai-agent-site-builder-overlay {
 		padding: 0;
 		align-items: stretch;
 	}
 
-	.ai-agent-site-builder-panel {
+	.gratis-ai-agent-site-builder-panel {
 		max-width: 100%;
 		max-height: 100vh;
 		height: 100vh;
 		border-radius: 0;
 	}
 
-	.ai-agent-site-builder-header {
+	.gratis-ai-agent-site-builder-header {
 		padding: 14px 16px 10px;
 	}
 
-	.ai-agent-site-builder-title {
+	.gratis-ai-agent-site-builder-title {
 		font-size: 17px;
 	}
 
-	.ai-agent-site-builder-subtitle {
+	.gratis-ai-agent-site-builder-subtitle {
 		font-size: 12px;
 	}
 
-	.ai-agent-site-builder-chat .ai-agent-messages {
+	.gratis-ai-agent-site-builder-chat .gratis-ai-agent-messages {
 		padding: 12px 16px;
 	}
 
-	.ai-agent-site-builder-chat .ai-agent-input-area {
+	.gratis-ai-agent-site-builder-chat .gratis-ai-agent-input-area {
 		padding: 8px 12px 12px;
 	}
 
 	/* Provider setup on mobile */
-	.ai-agent-site-builder-setup {
+	.gratis-ai-agent-site-builder-setup {
 		padding: 16px;
 	}
 
-	.ai-agent-site-builder-provider-row {
+	.gratis-ai-agent-site-builder-provider-row {
 		padding: 12px;
 	}
 
-	.ai-agent-site-builder-provider-key-row {
+	.gratis-ai-agent-site-builder-provider-key-row {
 		flex-direction: column;
 		align-items: stretch;
 	}
 
-	.ai-agent-site-builder-provider-key-row .components-button {
+	.gratis-ai-agent-site-builder-provider-key-row .components-button {
 		align-self: flex-end;
 	}
 
 	/* Hide provider/model selectors in compact chat header on mobile */
-	.ai-agent-site-builder-chat .ai-agent-provider-selector {
+	.gratis-ai-agent-site-builder-chat .gratis-ai-agent-provider-selector {
 		flex-direction: column;
 		gap: 4px;
 	}
 
-	.ai-agent-site-builder-chat .ai-agent-provider-selector .components-select-control {
+	.gratis-ai-agent-site-builder-chat .gratis-ai-agent-provider-selector .components-select-control {
 		min-width: 0;
 	}
 }
 
 /* Chart blocks (Chart.js) */
-.ai-agent-chart-block {
+.gratis-ai-agent-chart-block {
 	margin: 0.5em 0;
 	padding: 8px;
 	background: #fff;
@@ -1214,23 +1214,23 @@
 	overflow: hidden;
 }
 
-.ai-agent-chart-block canvas {
+.gratis-ai-agent-chart-block canvas {
 	display: block;
 	max-width: 100%;
 	height: auto !important;
 }
 
-.ai-agent-chart-error {
+.gratis-ai-agent-chart-error {
 	margin: 0.5em 0;
 }
 
-.ai-agent-chart-error-msg {
+.gratis-ai-agent-chart-error-msg {
 	margin: 0 0 4px;
 	font-size: 11px;
 	color: #d63638;
 }
 
-.ai-agent-chart-error-msg code {
+.gratis-ai-agent-chart-error-msg code {
 	font-size: 10px;
 	background: #f6f7f7;
 	padding: 1px 3px;
@@ -1238,14 +1238,14 @@
 }
 
 /* Code blocks (CodeMirror 6) — floating panel */
-.ai-agent-floating-panel .ai-agent-code-block {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-block {
 	margin: 0.4em 0;
 	border-radius: 4px;
 	overflow: hidden;
 	border: 1px solid #3a3a3a;
 }
 
-.ai-agent-floating-panel .ai-agent-code-header {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1254,12 +1254,12 @@
 	font-size: 11px;
 }
 
-.ai-agent-floating-panel .ai-agent-code-language {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-language {
 	color: #a0a0a0;
 	text-transform: lowercase;
 }
 
-.ai-agent-floating-panel .ai-agent-code-copy {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-copy {
 	background: none;
 	border: 1px solid #555;
 	color: #ccc;
@@ -1270,21 +1270,21 @@
 	transition: background 0.15s, color 0.15s;
 }
 
-.ai-agent-floating-panel .ai-agent-code-copy:hover {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-copy:hover {
 	background: #555;
 	color: #fff;
 }
 
 /* CodeMirror mount container — floating panel */
-.ai-agent-floating-panel .ai-agent-code-cm .cm-editor {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-cm .cm-editor {
 	border-radius: 0 0 4px 4px;
 }
 
-.ai-agent-floating-panel .ai-agent-code-cm .cm-editor.cm-focused {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-cm .cm-editor.cm-focused {
 	outline: none;
 }
 
 /* Scale down CodeMirror font in the compact floating panel */
-.ai-agent-floating-panel .ai-agent-code-cm .cm-scroller {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-code-cm .cm-scroller {
 	font-size: 0.78em;
 }

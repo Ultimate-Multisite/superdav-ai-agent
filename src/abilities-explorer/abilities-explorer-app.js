@@ -237,22 +237,22 @@ function AbilityRow( { ability } ) {
  */
 function CategorySection( { category, abilities, open, onToggle } ) {
 	return (
-		<div className="ai-agent-abilities-category">
+		<div className="gratis-ai-agent-abilities-category">
 			<button
 				type="button"
-				className="ai-agent-abilities-category-header"
+				className="gratis-ai-agent-abilities-category-header"
 				onClick={ onToggle }
 				aria-expanded={ open }
 			>
-				<span className="ai-agent-abilities-category-name">
+				<span className="gratis-ai-agent-abilities-category-name">
 					{ category }
 				</span>
-				<span className="ai-agent-abilities-category-count">
+				<span className="gratis-ai-agent-abilities-category-count">
 					{ abilities.length }
 				</span>
 			</button>
 			{ open && (
-				<div className="ai-agent-abilities-category-body">
+				<div className="gratis-ai-agent-abilities-category-body">
 					{ abilities.map( ( ability ) => (
 						<AbilityRow key={ ability.name } ability={ ability } />
 					) ) }
@@ -272,14 +272,14 @@ function CategorySection( { category, abilities, open, onToggle } ) {
  *   - A result count paragraph that updates as filters change.
  *
  * CSS classes used by E2E tests:
- *   .ai-agent-abilities-manager       — outer wrapper
- *   .ai-agent-abilities-search        — SearchControl wrapper
- *   .ai-agent-abilities-filters       — category SelectControl wrapper
- *   .ai-agent-abilities-count         — count paragraph
- *   .ai-agent-abilities-category      — per-category section
- *   .ai-agent-abilities-category-header — clickable header button
- *   .ai-agent-abilities-category-body   — collapsible body
- *   .ai-agent-abilities-category-count  — count badge in header
+ *   .gratis-ai-agent-abilities-manager       — outer wrapper
+ *   .gratis-ai-agent-abilities-search        — SearchControl wrapper
+ *   .gratis-ai-agent-abilities-filters       — category SelectControl wrapper
+ *   .gratis-ai-agent-abilities-count         — count paragraph
+ *   .gratis-ai-agent-abilities-category      — per-category section
+ *   .gratis-ai-agent-abilities-category-header — clickable header button
+ *   .gratis-ai-agent-abilities-category-body   — collapsible body
+ *   .gratis-ai-agent-abilities-category-count  — count badge in header
  */
 export default function AbilitiesExplorerApp() {
 	const [ abilities, setAbilities ] = useState( [] );
@@ -434,11 +434,11 @@ export default function AbilitiesExplorerApp() {
 	}
 
 	return (
-		<div className="ai-agent-abilities-manager">
+		<div className="gratis-ai-agent-abilities-manager">
 			{ /* Toolbar: search, category filter, expand/collapse controls */ }
-			<div className="ai-agent-abilities-toolbar">
-				<div className="ai-agent-abilities-controls">
-					<div className="ai-agent-abilities-search">
+			<div className="gratis-ai-agent-abilities-toolbar">
+				<div className="gratis-ai-agent-abilities-controls">
+					<div className="gratis-ai-agent-abilities-search">
 						<SearchControl
 							label={ __(
 								'Search abilities',
@@ -452,7 +452,7 @@ export default function AbilitiesExplorerApp() {
 							) }
 						/>
 					</div>
-					<div className="ai-agent-abilities-filters">
+					<div className="gratis-ai-agent-abilities-filters">
 						<SelectControl
 							label={ __( 'Category', 'gratis-ai-agent' ) }
 							value={ categoryFilter }
@@ -460,7 +460,7 @@ export default function AbilitiesExplorerApp() {
 							onChange={ setCategoryFilter }
 						/>
 					</div>
-					<div className="ai-agent-abilities-bulk-actions">
+					<div className="gratis-ai-agent-abilities-bulk-actions">
 						<Button
 							variant="tertiary"
 							onClick={ handleCollapseAll }
@@ -472,7 +472,7 @@ export default function AbilitiesExplorerApp() {
 						</Button>
 					</div>
 				</div>
-				<p className="ai-agent-abilities-count">
+				<p className="gratis-ai-agent-abilities-count">
 					{ filtered.length === abilities.length
 						? sprintf(
 								/* translators: %d: total number of abilities */
@@ -496,7 +496,7 @@ export default function AbilitiesExplorerApp() {
 
 			{ /* Category sections */ }
 			{ filtered.length === 0 ? (
-				<p className="ai-agent-abilities-no-results">
+				<p className="gratis-ai-agent-abilities-no-results">
 					{ abilities.length === 0
 						? __(
 								'No abilities are registered.',
@@ -508,7 +508,7 @@ export default function AbilitiesExplorerApp() {
 						  ) }
 				</p>
 			) : (
-				<div className="ai-agent-abilities-list">
+				<div className="gratis-ai-agent-abilities-list">
 					{ sortedCategories.map( ( category ) => (
 						<CategorySection
 							key={ category }

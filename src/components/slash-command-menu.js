@@ -140,12 +140,12 @@ export default function SlashCommandMenu( {
 	}
 
 	const activeId = filtered[ selectedIndex ]
-		? `ai-agent-slash-option-${ filtered[ selectedIndex ].action }`
+		? `gratis-ai-agent-slash-option-${ filtered[ selectedIndex ].action }`
 		: undefined;
 
 	return (
 		<div
-			className="ai-agent-slash-menu"
+			className="gratis-ai-agent-slash-menu"
 			ref={ menuRef }
 			role="listbox"
 			aria-label={ __( 'Slash commands', 'gratis-ai-agent' ) }
@@ -156,11 +156,11 @@ export default function SlashCommandMenu( {
 			{ filtered.map( ( cmd, i ) => (
 				<div
 					key={ cmd.name }
-					id={ `ai-agent-slash-option-${ cmd.action }` }
+					id={ `gratis-ai-agent-slash-option-${ cmd.action }` }
 					role="option"
 					aria-selected={ i === selectedIndex }
 					tabIndex={ 0 }
-					className={ `ai-agent-slash-item ${
+					className={ `gratis-ai-agent-slash-item ${
 						i === selectedIndex ? 'is-selected' : ''
 					}` }
 					onClick={ () => onSelect( cmd ) }
@@ -172,8 +172,10 @@ export default function SlashCommandMenu( {
 					} }
 					onMouseEnter={ () => setSelectedIndex( i ) }
 				>
-					<span className="ai-agent-slash-name">{ cmd.name }</span>
-					<span className="ai-agent-slash-desc">
+					<span className="gratis-ai-agent-slash-name">
+						{ cmd.name }
+					</span>
+					<span className="gratis-ai-agent-slash-desc">
 						{ cmd.description }
 					</span>
 				</div>

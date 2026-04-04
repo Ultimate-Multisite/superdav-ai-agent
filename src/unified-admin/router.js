@@ -41,7 +41,7 @@ export default function Router( { route } ) {
 
 		default:
 			return (
-				<div className="gratis-ai-route-not-found">
+				<div className="gratis-ai-agent-route-not-found">
 					<h2>{ __( 'Page Not Found', 'gratis-ai-agent' ) }</h2>
 					<p>
 						{ __(

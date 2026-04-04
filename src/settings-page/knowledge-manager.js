@@ -308,7 +308,7 @@ export default function KnowledgeManager() {
 	}
 
 	return (
-		<div className="ai-agent-knowledge-manager">
+		<div className="gratis-ai-agent-knowledge-manager">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -371,7 +371,7 @@ export default function KnowledgeManager() {
 							<div>
 								<strong>{ col.name }</strong>
 								<span
-									className="ai-agent-text-muted"
+									className="gratis-ai-agent-text-muted"
 									style={ { marginLeft: '8px' } }
 								>
 									{ col.slug }
@@ -384,12 +384,12 @@ export default function KnowledgeManager() {
 									alignItems: 'center',
 								} }
 							>
-								<span className="ai-agent-text-muted">
+								<span className="gratis-ai-agent-text-muted">
 									{ col.chunk_count }{ ' ' }
 									{ __( 'chunks', 'gratis-ai-agent' ) }
 								</span>
 								{ col.auto_index && (
-									<span className="ai-agent-badge">
+									<span className="gratis-ai-agent-badge">
 										{ __( 'Auto', 'gratis-ai-agent' ) }
 									</span>
 								) }
@@ -538,7 +538,7 @@ export default function KnowledgeManager() {
 															</td>
 															<td>
 																<span
-																	className={ `ai-agent-status-badge is-${ src.status }` }
+																	className={ `gratis-ai-agent-status-badge is-${ src.status }` }
 																>
 																	{
 																		src.status
@@ -630,7 +630,7 @@ export default function KnowledgeManager() {
 					</Button>
 				</div>
 				{ searchResults.length > 0 && (
-					<div className="ai-agent-search-results">
+					<div className="gratis-ai-agent-search-results">
 						{ searchResults.map( ( result, i ) => (
 							<Card key={ i } style={ { marginBottom: '8px' } }>
 								<CardBody>
@@ -641,7 +641,7 @@ export default function KnowledgeManager() {
 											marginBottom: '4px',
 										} }
 									>
-										<span className="ai-agent-text-muted">
+										<span className="gratis-ai-agent-text-muted">
 											<strong>
 												{ result.source_title }
 											</strong>
@@ -649,7 +649,7 @@ export default function KnowledgeManager() {
 												` — ${ result.collection_name }` }
 										</span>
 										{ result.score && (
-											<span className="ai-agent-text-muted">
+											<span className="gratis-ai-agent-text-muted">
 												{ __(
 													'Score:',
 													'gratis-ai-agent'

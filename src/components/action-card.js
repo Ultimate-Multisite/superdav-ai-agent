@@ -75,20 +75,23 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 
 	return (
 		<div
-			className="ai-agent-action-card"
+			className="gratis-ai-agent-action-card"
 			role="region"
 			aria-label={ __( 'Action confirmation', 'gratis-ai-agent' ) }
 		>
-			<div className="ai-agent-action-card-header">
-				<span className="ai-agent-action-card-icon" aria-hidden="true">
+			<div className="gratis-ai-agent-action-card-header">
+				<span
+					className="gratis-ai-agent-action-card-icon"
+					aria-hidden="true"
+				>
 					&#9888;
 				</span>
-				<span className="ai-agent-action-card-heading">
+				<span className="gratis-ai-agent-action-card-heading">
 					{ __( 'Confirm Action', 'gratis-ai-agent' ) }
 				</span>
 			</div>
 
-			<div className="ai-agent-action-card-body">
+			<div className="gratis-ai-agent-action-card-body">
 				{ card.tools.map( ( tool ) => {
 					const { title, description } = describeToolCall(
 						tool.name,
@@ -97,25 +100,25 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 					return (
 						<div
 							key={ tool.id || tool.name }
-							className="ai-agent-action-card-tool"
+							className="gratis-ai-agent-action-card-tool"
 						>
-							<div className="ai-agent-action-card-tool-title">
+							<div className="gratis-ai-agent-action-card-tool-title">
 								{ title }
 							</div>
 							{ description && (
-								<div className="ai-agent-action-card-tool-desc">
+								<div className="gratis-ai-agent-action-card-tool-desc">
 									{ description }
 								</div>
 							) }
 							{ tool.args && (
-								<details className="ai-agent-action-card-tool-args-details">
+								<details className="gratis-ai-agent-action-card-tool-args-details">
 									<summary>
 										{ __(
 											'View details',
 											'gratis-ai-agent'
 										) }
 									</summary>
-									<pre className="ai-agent-action-card-tool-args">
+									<pre className="gratis-ai-agent-action-card-tool-args">
 										{ JSON.stringify( tool.args, null, 2 ) }
 									</pre>
 								</details>
@@ -125,10 +128,10 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 				} ) }
 			</div>
 
-			<div className="ai-agent-action-card-footer">
+			<div className="gratis-ai-agent-action-card-footer">
 				<button
 					type="button"
-					className="button ai-agent-action-card-btn-cancel"
+					className="button gratis-ai-agent-action-card-btn-cancel"
 					onClick={ onCancel }
 				>
 					{ __( 'Cancel', 'gratis-ai-agent' ) }
@@ -136,7 +139,7 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 				<button
 					type="button"
 					ref={ confirmRef }
-					className="button button-primary ai-agent-action-card-btn-confirm"
+					className="button button-primary gratis-ai-agent-action-card-btn-confirm"
 					onClick={ () => onConfirm( false ) }
 				>
 					{ __( 'Confirm', 'gratis-ai-agent' ) }

@@ -60,7 +60,7 @@ export default function UsageDashboard() {
 
 	if ( loading ) {
 		return (
-			<div className="ai-agent-usage-loading">
+			<div className="gratis-ai-agent-usage-loading">
 				<Spinner />
 			</div>
 		);
@@ -79,8 +79,8 @@ export default function UsageDashboard() {
 	);
 
 	return (
-		<div className="ai-agent-usage-dashboard">
-			<div className="ai-agent-usage-header">
+		<div className="gratis-ai-agent-usage-dashboard">
+			<div className="gratis-ai-agent-usage-header">
 				<h3>{ __( 'Usage Summary', 'gratis-ai-agent' ) }</h3>
 				<SelectControl
 					value={ period }
@@ -107,45 +107,45 @@ export default function UsageDashboard() {
 				/>
 			</div>
 
-			<div className="ai-agent-usage-cards">
-				<div className="ai-agent-usage-card">
-					<div className="ai-agent-usage-card-label">
+			<div className="gratis-ai-agent-usage-cards">
+				<div className="gratis-ai-agent-usage-card">
+					<div className="gratis-ai-agent-usage-card-label">
 						{ __( 'Total Cost', 'gratis-ai-agent' ) }
 					</div>
-					<div className="ai-agent-usage-card-value">
+					<div className="gratis-ai-agent-usage-card-value">
 						{ formatCost( totals.cost_usd ) }
 					</div>
 				</div>
-				<div className="ai-agent-usage-card">
-					<div className="ai-agent-usage-card-label">
+				<div className="gratis-ai-agent-usage-card">
+					<div className="gratis-ai-agent-usage-card-label">
 						{ __( 'Requests', 'gratis-ai-agent' ) }
 					</div>
-					<div className="ai-agent-usage-card-value">
+					<div className="gratis-ai-agent-usage-card-value">
 						{ totals.request_count || 0 }
 					</div>
 				</div>
-				<div className="ai-agent-usage-card">
-					<div className="ai-agent-usage-card-label">
+				<div className="gratis-ai-agent-usage-card">
+					<div className="gratis-ai-agent-usage-card-label">
 						{ __( 'Input Tokens', 'gratis-ai-agent' ) }
 					</div>
-					<div className="ai-agent-usage-card-value">
+					<div className="gratis-ai-agent-usage-card-value">
 						{ formatTokens( totals.prompt_tokens ) }
 					</div>
 				</div>
-				<div className="ai-agent-usage-card">
-					<div className="ai-agent-usage-card-label">
+				<div className="gratis-ai-agent-usage-card">
+					<div className="gratis-ai-agent-usage-card-label">
 						{ __( 'Output Tokens', 'gratis-ai-agent' ) }
 					</div>
-					<div className="ai-agent-usage-card-value">
+					<div className="gratis-ai-agent-usage-card-value">
 						{ formatTokens( totals.completion_tokens ) }
 					</div>
 				</div>
 			</div>
 
 			{ byModel.length > 0 && (
-				<div className="ai-agent-usage-breakdown">
+				<div className="gratis-ai-agent-usage-breakdown">
 					<h4>{ __( 'By Model', 'gratis-ai-agent' ) }</h4>
-					<table className="ai-agent-usage-table">
+					<table className="gratis-ai-agent-usage-table">
 						<thead>
 							<tr>
 								<th>{ __( 'Model', 'gratis-ai-agent' ) }</th>
@@ -183,9 +183,9 @@ export default function UsageDashboard() {
 										</td>
 										<td>{ formatCost( m.cost_usd ) }</td>
 										<td>
-											<div className="ai-agent-usage-bar">
+											<div className="gratis-ai-agent-usage-bar">
 												<div
-													className="ai-agent-usage-bar-fill"
+													className="gratis-ai-agent-usage-bar-fill"
 													style={ {
 														width: pct + '%',
 													} }

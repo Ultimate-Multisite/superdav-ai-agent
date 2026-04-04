@@ -104,16 +104,16 @@ export default function BudgetIndicator() {
 		: __( 'this month', 'gratis-ai-agent' );
 
 	const classMap = {
-		ok: 'ai-agent-budget-indicator--ok',
-		warning: 'ai-agent-budget-indicator--warning',
-		exceeded: 'ai-agent-budget-indicator--exceeded',
+		ok: 'gratis-ai-agent-budget-indicator--ok',
+		warning: 'gratis-ai-agent-budget-indicator--warning',
+		exceeded: 'gratis-ai-agent-budget-indicator--exceeded',
 	};
 
 	const levelClass = classMap[ warningLevel ] || classMap.ok;
 
 	return (
 		<span
-			className={ `ai-agent-budget-indicator ${ levelClass }` }
+			className={ `gratis-ai-agent-budget-indicator ${ levelClass }` }
 			title={ getTooltip( warningLevel ) }
 		>
 			{ formatCost( spend ) } / { formatCost( cap ) } { label }

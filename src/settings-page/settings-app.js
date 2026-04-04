@@ -518,7 +518,7 @@ export default function SettingsApp() {
 											placeholder="alt+a"
 											__nextHasNoMarginBottom
 										/>
-										<div className="ai-agent-settings-yolo-section">
+										<div className="gratis-ai-agent-settings-yolo-section">
 											<ToggleControl
 												label={ __(
 													'YOLO Mode',
@@ -538,7 +538,7 @@ export default function SettingsApp() {
 												__nextHasNoMarginBottom
 											/>
 											{ local.yolo_mode && (
-												<div className="ai-agent-yolo-warning">
+												<div className="gratis-ai-agent-yolo-warning">
 													{ __(
 														'Warning: YOLO mode is active. All tool confirmations are skipped automatically. Destructive operations will execute without asking.',
 														'gratis-ai-agent'

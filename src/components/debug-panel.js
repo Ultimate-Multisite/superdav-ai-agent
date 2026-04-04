@@ -82,44 +82,46 @@ export default function DebugPanel( { debug } ) {
 		summaryParts.join( ' / ' ) || __( 'No metrics', 'gratis-ai-agent' );
 
 	return (
-		<div className="ai-agent-debug-panel">
+		<div className="gratis-ai-agent-debug-panel">
 			<button
-				className="ai-agent-debug-toggle"
+				className="gratis-ai-agent-debug-toggle"
 				onClick={ () => setExpanded( ! expanded ) }
 				type="button"
 			>
-				<span className="ai-agent-debug-summary">{ summary }</span>
-				<span className="ai-agent-debug-caret">
+				<span className="gratis-ai-agent-debug-summary">
+					{ summary }
+				</span>
+				<span className="gratis-ai-agent-debug-caret">
 					{ expanded ? '\u25B4' : '\u25BE' }
 				</span>
 			</button>
 			{ expanded && (
-				<div className="ai-agent-debug-details">
+				<div className="gratis-ai-agent-debug-details">
 					{ modelId && (
-						<div className="ai-agent-debug-row">
-							<span className="ai-agent-debug-label">
+						<div className="gratis-ai-agent-debug-row">
+							<span className="gratis-ai-agent-debug-label">
 								{ __( 'Model', 'gratis-ai-agent' ) }
 							</span>
-							<span className="ai-agent-debug-value">
+							<span className="gratis-ai-agent-debug-value">
 								{ modelId }
 							</span>
 						</div>
 					) }
-					<div className="ai-agent-debug-row">
-						<span className="ai-agent-debug-label">
+					<div className="gratis-ai-agent-debug-row">
+						<span className="gratis-ai-agent-debug-label">
 							{ __( 'Response time', 'gratis-ai-agent' ) }
 						</span>
-						<span className="ai-agent-debug-value">
+						<span className="gratis-ai-agent-debug-value">
 							{ formatTime( responseTimeMs ) }
 						</span>
 					</div>
-					<div className="ai-agent-debug-row">
-						<span className="ai-agent-debug-label">
+					<div className="gratis-ai-agent-debug-row">
+						<span className="gratis-ai-agent-debug-label">
 							{ __( 'Tokens', 'gratis-ai-agent' ) }
 						</span>
-						<span className="ai-agent-debug-value">
+						<span className="gratis-ai-agent-debug-value">
 							{ totalTokens.toLocaleString() }
-							<span className="ai-agent-debug-detail">
+							<span className="gratis-ai-agent-debug-detail">
 								({ ( tokenUsage.prompt || 0 ).toLocaleString() }{ ' ' }
 								in /{ ' ' }
 								{ (
@@ -130,42 +132,42 @@ export default function DebugPanel( { debug } ) {
 						</span>
 					</div>
 					{ tokensPerSecond > 0 && (
-						<div className="ai-agent-debug-row">
-							<span className="ai-agent-debug-label">
+						<div className="gratis-ai-agent-debug-row">
+							<span className="gratis-ai-agent-debug-label">
 								{ __( 'Speed', 'gratis-ai-agent' ) }
 							</span>
-							<span className="ai-agent-debug-value">
+							<span className="gratis-ai-agent-debug-value">
 								{ tokensPerSecond } tok/s
 							</span>
 						</div>
 					) }
 					{ costEstimate > 0 && (
-						<div className="ai-agent-debug-row">
-							<span className="ai-agent-debug-label">
+						<div className="gratis-ai-agent-debug-row">
+							<span className="gratis-ai-agent-debug-label">
 								{ __( 'Cost', 'gratis-ai-agent' ) }
 							</span>
-							<span className="ai-agent-debug-value">
+							<span className="gratis-ai-agent-debug-value">
 								{ formatCost( costEstimate ) }
 							</span>
 						</div>
 					) }
-					<div className="ai-agent-debug-row">
-						<span className="ai-agent-debug-label">
+					<div className="gratis-ai-agent-debug-row">
+						<span className="gratis-ai-agent-debug-label">
 							{ __( 'Iterations', 'gratis-ai-agent' ) }
 						</span>
-						<span className="ai-agent-debug-value">
+						<span className="gratis-ai-agent-debug-value">
 							{ iterationsUsed }
 						</span>
 					</div>
 					{ toolCallCount > 0 && (
-						<div className="ai-agent-debug-row">
-							<span className="ai-agent-debug-label">
+						<div className="gratis-ai-agent-debug-row">
+							<span className="gratis-ai-agent-debug-label">
 								{ __( 'Tool calls', 'gratis-ai-agent' ) }
 							</span>
-							<span className="ai-agent-debug-value">
+							<span className="gratis-ai-agent-debug-value">
 								{ toolCallCount }
 								{ toolNames.length > 0 && (
-									<span className="ai-agent-debug-detail">
+									<span className="gratis-ai-agent-debug-detail">
 										({ toolNames.join( ', ' ) })
 									</span>
 								) }

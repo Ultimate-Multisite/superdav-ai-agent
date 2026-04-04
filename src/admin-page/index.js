@@ -204,7 +204,7 @@ function mountAdminPageApp( container ) {
  *
  * The unified admin (src/unified-admin/routes/chat.js) calls
  * window.gratisAiAgentChat.mount(container) to embed the full chat UI
- * (sidebar + chat panel) inside the #gratis-ai-chat-container div that
+ * (sidebar + chat panel) inside the #gratis-ai-agent-chat-container div that
  * ChatRoute renders. This avoids the old pattern of both the unified admin
  * and the admin-page bundle competing to mount into #gratis-ai-agent-root.
  */

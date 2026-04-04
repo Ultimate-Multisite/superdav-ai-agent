@@ -203,7 +203,7 @@ export default function ModelSelector( {
 	};
 
 	return (
-		<div className="gratis-ai-model-selector">
+		<div className="gratis-ai-agent-model-selector">
 			<SearchControl
 				value={ searchTerm }
 				onChange={ setSearchTerm }
@@ -211,7 +211,7 @@ export default function ModelSelector( {
 			/>
 
 			<div
-				className="gratis-ai-model-selector-actions"
+				className="gratis-ai-agent-model-selector-actions"
 				style={ { margin: '12px 0' } }
 			>
 				<Button
@@ -241,14 +241,14 @@ export default function ModelSelector( {
 				( [ providerName, models ] ) => (
 					<div
 						key={ providerName }
-						className="gratis-ai-model-provider"
+						className="gratis-ai-agent-model-provider"
 					>
 						<h4>{ providerName }</h4>
-						<div className="gratis-ai-model-list">
+						<div className="gratis-ai-agent-model-list">
 							{ models.map( ( model ) => (
 								<div
 									key={ `${ model.provider_id }-${ model.model_id }` }
-									className="gratis-ai-model-item"
+									className="gratis-ai-agent-model-item"
 								>
 									<CheckboxControl
 										label={ model.model_name }

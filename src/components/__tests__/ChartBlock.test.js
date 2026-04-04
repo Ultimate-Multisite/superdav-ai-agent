@@ -7,8 +7,8 @@
  * - Shows error message when "type" field is missing
  * - Shows error message when "data" field is missing
  * - Falls back to CodeBlock on parse error
- * - Renders ai-agent-chart-block wrapper for valid config
- * - Renders ai-agent-chart-error wrapper for invalid config
+ * - Renders gratis-ai-agent-chart-block wrapper for valid config
+ * - Renders gratis-ai-agent-chart-error wrapper for invalid config
  *
  * Uses react-dom/server for static rendering tests.
  * Chart.js is mocked to avoid canvas rendering in jsdom.
@@ -96,11 +96,11 @@ const MISSING_DATA = JSON.stringify( {
 // ─── Rendering tests ──────────────────────────────────────────────────────────
 
 describe( 'ChartBlock rendering', () => {
-	test( 'renders ai-agent-chart-block wrapper for valid config', () => {
+	test( 'renders gratis-ai-agent-chart-block wrapper for valid config', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, VALID_CONFIG )
 		);
-		expect( html ).toContain( 'ai-agent-chart-block' );
+		expect( html ).toContain( 'gratis-ai-agent-chart-block' );
 	} );
 
 	test( 'renders a canvas element for valid config', () => {
@@ -114,14 +114,14 @@ describe( 'ChartBlock rendering', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, VALID_CONFIG )
 		);
-		expect( html ).not.toContain( 'ai-agent-chart-error' );
+		expect( html ).not.toContain( 'gratis-ai-agent-chart-error' );
 	} );
 
-	test( 'renders ai-agent-chart-error wrapper for invalid JSON', () => {
+	test( 'renders gratis-ai-agent-chart-error wrapper for invalid JSON', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, INVALID_JSON )
 		);
-		expect( html ).toContain( 'ai-agent-chart-error' );
+		expect( html ).toContain( 'gratis-ai-agent-chart-error' );
 	} );
 
 	test( 'renders error message for invalid JSON', () => {
@@ -142,7 +142,7 @@ describe( 'ChartBlock rendering', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, MISSING_TYPE )
 		);
-		expect( html ).toContain( 'ai-agent-chart-error' );
+		expect( html ).toContain( 'gratis-ai-agent-chart-error' );
 		// HTML-encoded double quotes in the error message.
 		expect( html ).toContain( '&quot;type&quot;' );
 	} );
@@ -151,7 +151,7 @@ describe( 'ChartBlock rendering', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, MISSING_DATA )
 		);
-		expect( html ).toContain( 'ai-agent-chart-error' );
+		expect( html ).toContain( 'gratis-ai-agent-chart-error' );
 		// HTML-encoded double quotes in the error message.
 		expect( html ).toContain( '&quot;data&quot;' );
 	} );
@@ -168,6 +168,6 @@ describe( 'ChartBlock rendering', () => {
 		const html = renderToStaticMarkup(
 			createElement( ChartBlock, {}, padded )
 		);
-		expect( html ).toContain( 'ai-agent-chart-block' );
+		expect( html ).toContain( 'gratis-ai-agent-chart-block' );
 	} );
 } );

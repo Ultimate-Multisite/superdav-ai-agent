@@ -41,14 +41,14 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 	}, [ foldersLoaded, fetchFolders ] );
 
 	return (
-		<div className="ai-agent-folder-picker">
-			<div className="ai-agent-folder-picker-header">
+		<div className="gratis-ai-agent-folder-picker">
+			<div className="gratis-ai-agent-folder-picker-header">
 				{ __( 'Move to Folder', 'gratis-ai-agent' ) }
 			</div>
 			{ currentFolder && (
 				<button
 					type="button"
-					className="ai-agent-folder-picker-item"
+					className="gratis-ai-agent-folder-picker-item"
 					onClick={ () => onSelect( '' ) }
 				>
 					{ __( 'Remove from folder', 'gratis-ai-agent' ) }
@@ -58,7 +58,7 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 				<button
 					key={ folder }
 					type="button"
-					className={ `ai-agent-folder-picker-item ${
+					className={ `gratis-ai-agent-folder-picker-item ${
 						folder === currentFolder ? 'is-current' : ''
 					}` }
 					onClick={ () => onSelect( folder ) }
@@ -66,7 +66,7 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 					{ folder }
 				</button>
 			) ) }
-			<div className="ai-agent-folder-picker-new">
+			<div className="gratis-ai-agent-folder-picker-new">
 				<input
 					type="text"
 					placeholder={ __( 'New folder…', 'gratis-ai-agent' ) }

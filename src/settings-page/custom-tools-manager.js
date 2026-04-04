@@ -285,8 +285,8 @@ export default function CustomToolsManager() {
 	};
 
 	return (
-		<div className="ai-agent-custom-tools-manager">
-			<div className="ai-agent-skill-header">
+		<div className="gratis-ai-agent-custom-tools-manager">
+			<div className="gratis-ai-agent-skill-header">
 				<div>
 					<h3>{ __( 'Custom Tools', 'gratis-ai-agent' ) }</h3>
 					<p className="description">
@@ -319,7 +319,7 @@ export default function CustomToolsManager() {
 			) }
 
 			{ showForm && (
-				<div className="ai-agent-skill-form">
+				<div className="gratis-ai-agent-skill-form">
 					{ ! editId && (
 						<TextControl
 							label={ __( 'Slug', 'gratis-ai-agent' ) }
@@ -384,7 +384,7 @@ export default function CustomToolsManager() {
 						) }
 					/>
 
-					<div className="ai-agent-skill-form-actions">
+					<div className="gratis-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -419,7 +419,7 @@ export default function CustomToolsManager() {
 
 					{ testResult && (
 						<div
-							className={ `ai-agent-test-result ${
+							className={ `gratis-ai-agent-test-result ${
 								testResult.success ? 'is-success' : 'is-error'
 							}` }
 						>
@@ -458,37 +458,37 @@ export default function CustomToolsManager() {
 			) }
 
 			{ tools.length > 0 && (
-				<div className="ai-agent-skill-cards">
+				<div className="gratis-ai-agent-skill-cards">
 					{ tools.map( ( tool ) => (
 						<div
 							key={ tool.id }
-							className={ `ai-agent-skill-card ${
+							className={ `gratis-ai-agent-skill-card ${
 								! tool.enabled
-									? 'ai-agent-skill-card--disabled'
+									? 'gratis-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="ai-agent-skill-card-header">
+							<div className="gratis-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ tool.enabled }
 									onChange={ () => handleToggle( tool ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="ai-agent-skill-card-title">
+								<div className="gratis-ai-agent-skill-card-title">
 									<strong>{ tool.name }</strong>
-									<span className="ai-agent-skill-badge">
+									<span className="gratis-ai-agent-skill-badge">
 										{ tool.type.toUpperCase() }
 									</span>
 								</div>
 							</div>
-							<p className="ai-agent-skill-card-description">
+							<p className="gratis-ai-agent-skill-card-description">
 								{ tool.description }
 							</p>
-							<div className="ai-agent-skill-card-footer">
-								<span className="ai-agent-skill-word-count">
+							<div className="gratis-ai-agent-skill-card-footer">
+								<span className="gratis-ai-agent-skill-word-count">
 									{ tool.slug }
 								</span>
-								<div className="ai-agent-skill-card-actions">
+								<div className="gratis-ai-agent-skill-card-actions">
 									<Button
 										icon={ pencil }
 										size="small"

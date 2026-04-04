@@ -79,7 +79,7 @@ export default function useResize() {
 			return;
 		}
 
-		const panel = e.target.closest( '.ai-agent-floating-panel' );
+		const panel = e.target.closest( '.gratis-ai-agent-floating-panel' );
 		if ( ! panel ) {
 			return;
 		}

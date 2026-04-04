@@ -102,28 +102,28 @@ function AttachmentPreviews( { attachments, onRemove } ) {
 	}
 
 	return (
-		<div className="ai-agent-attachment-previews">
+		<div className="gratis-ai-agent-attachment-previews">
 			{ attachments.map( ( att, i ) => (
-				<div key={ i } className="ai-agent-attachment-thumb">
+				<div key={ i } className="gratis-ai-agent-attachment-thumb">
 					{ att.isImage ? (
 						<img
 							src={ att.dataUrl }
 							alt={ att.name }
-							className="ai-agent-attachment-thumb__img"
+							className="gratis-ai-agent-attachment-thumb__img"
 						/>
 					) : (
-						<div className="ai-agent-attachment-thumb__file">
-							<span className="ai-agent-attachment-thumb__ext">
+						<div className="gratis-ai-agent-attachment-thumb__file">
+							<span className="gratis-ai-agent-attachment-thumb__ext">
 								{ att.name.split( '.' ).pop().toUpperCase() }
 							</span>
 						</div>
 					) }
-					<span className="ai-agent-attachment-thumb__name">
+					<span className="gratis-ai-agent-attachment-thumb__name">
 						{ att.name }
 					</span>
 					<button
 						type="button"
-						className="ai-agent-attachment-thumb__remove"
+						className="gratis-ai-agent-attachment-thumb__remove"
 						onClick={ () => onRemove( i ) }
 						aria-label={ __(
 							'Remove attachment',
@@ -538,9 +538,9 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 
 	return (
 		<div
-			className={ `ai-agent-input-area ${ compact ? 'is-compact' : '' } ${
-				isDragOver ? 'is-drag-over' : ''
-			}` }
+			className={ `gratis-ai-agent-input-area ${
+				compact ? 'is-compact' : ''
+			} ${ isDragOver ? 'is-drag-over' : '' }` }
 			onDragOver={ handleDragOver }
 			onDragLeave={ handleDragLeave }
 			onDrop={ handleDrop }
@@ -563,15 +563,15 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				onRemove={ handleRemoveAttachment }
 			/>
 			{ isDragOver && (
-				<div className="ai-agent-drop-overlay">
+				<div className="gratis-ai-agent-drop-overlay">
 					{ __( 'Drop files here', 'gratis-ai-agent' ) }
 				</div>
 			) }
-			<div className="ai-agent-input-row">
+			<div className="gratis-ai-agent-input-row">
 				<Button
 					variant="tertiary"
 					onClick={ () => setShowTemplates( ( v ) => ! v ) }
-					className="ai-agent-templates-btn"
+					className="gratis-ai-agent-templates-btn"
 					label={ __( 'Templates', 'gratis-ai-agent' ) }
 					isSmall
 					disabled={ sending }
@@ -584,7 +584,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					type="file"
 					accept={ ACCEPTED_TYPES.join( ',' ) }
 					multiple
-					className="ai-agent-file-input"
+					className="gratis-ai-agent-file-input"
 					onChange={ handleFileInputChange }
 					aria-hidden="true"
 					tabIndex={ -1 }
@@ -592,14 +592,14 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				{ /* Upload button (paperclip) */ }
 				<Button
 					onClick={ () => fileInputRef.current?.click() }
-					className="ai-agent-upload-btn"
+					className="gratis-ai-agent-upload-btn"
 					label={ __( 'Attach file', 'gratis-ai-agent' ) }
 					icon={ <PaperclipIcon /> }
 					disabled={ sending }
 				/>
 				<textarea
 					ref={ textareaRef }
-					className="ai-agent-input"
+					className="gratis-ai-agent-input"
 					rows={ 1 }
 					placeholder={ __(
 						'Type a message or / for commands…',
@@ -614,7 +614,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				{ isSpeechSupported && ! sending && (
 					<Button
 						onClick={ toggleListening }
-						className={ `ai-agent-mic-btn${
+						className={ `gratis-ai-agent-mic-btn${
 							isListening ? ' is-listening' : ''
 						}` }
 						label={
@@ -647,7 +647,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					<Button
 						variant="secondary"
 						onClick={ stopGeneration }
-						className="ai-agent-stop-btn"
+						className="gratis-ai-agent-stop-btn"
 						label={ __( 'Stop', 'gratis-ai-agent' ) }
 					>
 						{ __( 'Stop', 'gratis-ai-agent' ) }
@@ -657,7 +657,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 						variant="primary"
 						onClick={ handleSend }
 						disabled={ ! canSend }
-						className="ai-agent-send-btn"
+						className="gratis-ai-agent-send-btn"
 						label={ __( 'Send message', 'gratis-ai-agent' ) }
 						aria-label={ __( 'Send message', 'gratis-ai-agent' ) }
 						icon={ <Icon icon={ arrowUp } /> }

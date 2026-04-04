@@ -64,7 +64,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 
 	if ( isLoading && runs.length === 0 ) {
 		return (
-			<div className="gratis-ai-benchmark-loading">
+			<div className="gratis-ai-agent-benchmark-loading">
 				<Spinner />
 			</div>
 		);
@@ -74,7 +74,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 		return (
 			<Card>
 				<CardBody>
-					<div className="gratis-ai-benchmark-empty">
+					<div className="gratis-ai-agent-benchmark-empty">
 						<p>
 							{ __(
 								'No benchmark runs yet.',
@@ -94,7 +94,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 	}
 
 	return (
-		<div className="gratis-ai-benchmark-run-list">
+		<div className="gratis-ai-agent-benchmark-run-list">
 			<Card>
 				<CardHeader>
 					<h2>{ __( 'Benchmark History', 'gratis-ai-agent' ) }</h2>
@@ -129,7 +129,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 									<td>{ run.test_suite }</td>
 									<td>
 										<span
-											className={ `gratis-ai-benchmark-status ${ getStatusClass(
+											className={ `gratis-ai-agent-benchmark-status ${ getStatusClass(
 												run.status
 											) }` }
 										>

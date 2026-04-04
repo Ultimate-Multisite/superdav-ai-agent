@@ -66,10 +66,10 @@ export default function MessageActions( { message, index } ) {
 
 	if ( editing ) {
 		return (
-			<div className="ai-agent-message-edit">
+			<div className="gratis-ai-agent-message-edit">
 				<textarea
 					ref={ editInputRef }
-					className="ai-agent-message-edit-input"
+					className="gratis-ai-agent-message-edit-input"
 					value={ editText }
 					onChange={ ( e ) => setEditText( e.target.value ) }
 					rows={ 3 }
@@ -83,7 +83,7 @@ export default function MessageActions( { message, index } ) {
 						}
 					} }
 				/>
-				<div className="ai-agent-message-edit-actions">
+				<div className="gratis-ai-agent-message-edit-actions">
 					<button
 						type="button"
 						onClick={ handleEditSubmit }
@@ -103,10 +103,10 @@ export default function MessageActions( { message, index } ) {
 	const isModel = message.role === 'model';
 
 	return (
-		<div className="ai-agent-message-actions">
+		<div className="gratis-ai-agent-message-actions">
 			<button
 				type="button"
-				className="ai-agent-action-btn"
+				className="gratis-ai-agent-action-btn"
 				onClick={ handleCopy }
 				title={ __( 'Copy', 'gratis-ai-agent' ) }
 			>
@@ -117,7 +117,7 @@ export default function MessageActions( { message, index } ) {
 			{ isUser && (
 				<button
 					type="button"
-					className="ai-agent-action-btn"
+					className="gratis-ai-agent-action-btn"
 					onClick={ handleEdit }
 					disabled={ sending }
 					title={ __( 'Edit', 'gratis-ai-agent' ) }
@@ -128,7 +128,7 @@ export default function MessageActions( { message, index } ) {
 			{ isModel && (
 				<button
 					type="button"
-					className="ai-agent-action-btn"
+					className="gratis-ai-agent-action-btn"
 					onClick={ () => regenerateMessage( index ) }
 					disabled={ sending }
 					title={ __( 'Regenerate', 'gratis-ai-agent' ) }

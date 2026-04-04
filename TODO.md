@@ -257,7 +257,7 @@
 
 Goal: clean, minimal design that matches wp-admin conventions. Replace custom dark sidebar nav, reduce visual noise, align spacing/typography with core wp-admin patterns.
 
-- [ ] t153 Redesign unified admin nav sidebar to match wp-admin aesthetic #ui ~3h logged:2026-04-03 ref:GH#748 #auto-dispatch
+- [x] t153 Redesign unified admin nav sidebar to match wp-admin aesthetic #ui ~3h logged:2026-04-03 ref:GH#748 #auto-dispatch pr:#758 completed:2026-04-04
   - Current: custom dark (#1e1e1e) sidebar with blue active state — looks like a separate app, not a WP admin page
   - Replace with wp-admin-style left nav: white/light background, standard WP submenu link styles, no custom dark theme
   - Use `--wp-admin-theme-color` for active state only; remove hardcoded #1e1e1e, #333, #a7aaad

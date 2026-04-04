@@ -18,7 +18,7 @@ Gratis AI Agent adds a powerful AI assistant directly inside your WordPress admi
 
 = Built on WordPress Core =
 
-Gratis AI Agent is built on official WordPress APIs shipping in version 6.9:
+Gratis AI Agent is built on official WordPress APIs shipping in version 7.0:
 
 * **AI Client SDK** — One interface for all AI providers. Install a connector plugin for OpenAI, Anthropic, Ollama, or any compatible service and Gratis AI Agent works immediately.
 * **Abilities API** — The WordPress-native tool registry. Every tool registered by any plugin on your site is automatically available to the agent. As your site grows, so does the agent's capabilities.
@@ -110,7 +110,7 @@ The Gratis AI Agent discovers abilities at runtime from any plugin that register
 
 = Requirements =
 
-* WordPress 6.9 or higher
+* WordPress 7.0 or higher
 * PHP 8.2 or higher
 * An AI provider connector plugin registered through the WordPress Connectors API
 * An API key from your chosen AI provider (OpenAI, Anthropic, etc.)
@@ -270,7 +270,7 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * Suggestion Chips for contextual follow-ups
 * Usage Dashboard with token counts and cost estimates
 * Context Providers for page-aware AI responses
-* WordPress 6.9 compatibility layer (bundles AI Client SDK)
+* WordPress 7.0 AI Client SDK integration (native core API)
 
 == Upgrade Notice ==
 
@@ -284,4 +284,4 @@ Major feature release: adds Google/Anthropic provider support, image uploads, sp
 Adds Gutenberg block content generation, SEO/content/marketing abilities, WP-CLI command, and improved agent behavior. Database will upgrade automatically.
 
 = 1.0.0 =
-Initial release. Requires WordPress 6.9+ and an AI provider connector plugin.
+Initial release. Requires WordPress 7.0+ and an AI provider connector plugin.

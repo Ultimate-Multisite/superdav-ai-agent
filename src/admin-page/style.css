@@ -86,38 +86,42 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
 }
 
-/* Filter tabs */
+/* Filter tabs — wp-admin subsubsub style */
 .gratis-ai-agent-sidebar-filters {
 	display: flex;
 	border-bottom: 1px solid #dcdcde;
+	padding: 0 4px;
 }
 
 .gratis-ai-agent-filter-tab {
 	flex: 1;
-	padding: 6px 0;
+	padding: 8px 4px;
 	background: none;
 	border: none;
 	border-bottom: 2px solid transparent;
 	color: #50575e;
 	font-size: 12px;
+	font-weight: 400;
 	cursor: pointer;
 	text-align: center;
 	transition: color 0.15s, border-color 0.15s;
+	line-height: 1.4;
 }
 
 .gratis-ai-agent-filter-tab:hover {
-	color: var(--wp-admin-theme-color, #2271b1);
+	color: #1d2327;
 }
 
 .gratis-ai-agent-filter-tab:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
+	border-radius: 2px;
 }
 
 .gratis-ai-agent-filter-tab.is-active {
-	color: var(--wp-admin-theme-color, #2271b1);
+	color: #1d2327;
 	border-bottom-color: var(--wp-admin-theme-color, #2271b1);
-	font-weight: 500;
+	font-weight: 600;
 }
 
 /* Folder tabs */
@@ -158,26 +162,28 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 .gratis-ai-agent-session-list {
 	flex: 1;
 	overflow-y: auto;
-	padding: 4px 0;
+	padding: 0;
 }
 
 .gratis-ai-agent-session-empty {
-	padding: 24px 16px;
+	padding: 20px 16px;
 	color: #646970;
 	text-align: center;
 	font-size: 13px;
 }
 
+/* Session item — mirrors wp-admin list table row conventions */
 .gratis-ai-agent-session-item {
 	position: relative;
-	padding: 10px 36px 10px 12px;
+	padding: 7px 32px 7px 12px;
 	cursor: pointer;
 	border-bottom: 1px solid #f0f0f1;
-	transition: background 0.15s;
+	transition: background 0.1s;
+	box-sizing: border-box;
 }
 
 .gratis-ai-agent-session-item:hover {
-	background: #eef0f4;
+	background: #f0f0f1;
 }
 
 .gratis-ai-agent-session-item:focus-visible {
@@ -185,15 +191,20 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	outline-offset: -2px;
 }
 
+/* Active state: left accent bar without shifting content */
 .gratis-ai-agent-session-item.is-active {
-	background: #e0e6ed;
-	border-left: 3px solid var(--wp-admin-theme-color, #2271b1);
-	padding-left: 9px;
+	background: #f0f6fc;
+	box-shadow: inset 3px 0 0 var(--wp-admin-theme-color, #2271b1);
+}
+
+.gratis-ai-agent-session-item.is-active .gratis-ai-agent-session-title {
+	color: var(--wp-admin-theme-color, #2271b1);
+	font-weight: 600;
 }
 
 .gratis-ai-agent-session-title {
 	font-size: 13px;
-	font-weight: 500;
+	font-weight: 400;
 	color: #1d2327;
 	white-space: nowrap;
 	overflow: hidden;
@@ -203,8 +214,8 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 
 .gratis-ai-agent-session-meta {
 	font-size: 11px;
-	color: #646970;
-	margin-top: 2px;
+	color: #8c8f94;
+	margin-top: 1px;
 }
 
 /* Pin indicator */
@@ -223,36 +234,40 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	vertical-align: middle;
 }
 
-/* More button (three dots) */
+/* More button (three dots) — shown on hover/focus, wp-admin row-action style */
 .gratis-ai-agent-session-more {
 	position: absolute;
-	top: 8px;
-	right: 8px;
+	top: 50%;
+	right: 6px;
+	transform: translateY(-50%);
 	background: none;
-	border: none;
-	color: #a7aaad;
+	border: 1px solid transparent;
+	color: #646970;
 	cursor: pointer;
-	font-size: 18px;
+	font-size: 16px;
 	line-height: 1;
-	padding: 2px 6px;
-	border-radius: 3px;
+	padding: 2px 5px;
+	border-radius: 2px;
 	opacity: 0;
-	transition: opacity 0.15s;
+	transition: opacity 0.1s, background 0.1s, border-color 0.1s;
 }
 
-.gratis-ai-agent-session-item:hover .gratis-ai-agent-session-more {
+.gratis-ai-agent-session-item:hover .gratis-ai-agent-session-more,
+.gratis-ai-agent-session-item.is-active .gratis-ai-agent-session-more {
 	opacity: 1;
 }
 
 .gratis-ai-agent-session-more:hover {
-	color: #50575e;
+	color: #1d2327;
 	background: #dcdcde;
+	border-color: #c3c4c7;
 }
 
 .gratis-ai-agent-session-more:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
-	outline-offset: 2px;
+	outline-offset: 1px;
 	opacity: 1;
+	border-radius: 2px;
 }
 
 /* Context menu */

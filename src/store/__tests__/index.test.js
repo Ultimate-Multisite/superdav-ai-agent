@@ -29,12 +29,6 @@ Object.defineProperty( global, 'localStorage', {
 	writable: true,
 } );
 
-// Mock @wordpress/data so we can test the store internals without a full WP env.
-jest.mock( '@wordpress/data', () => ( {
-	createReduxStore: ( name, config ) => ( { name, config } ),
-	register: jest.fn(),
-} ) );
-
 // Mock @wordpress/api-fetch.
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 
@@ -51,6 +45,9 @@ jest.mock( '@wordpress/data', () => ( {
 		return { name, config };
 	},
 	register: jest.fn(),
+	// select() is called at module load time to guard against double-registration.
+	// Return null so the guard evaluates to falsy and register() is called once.
+	select: jest.fn( () => null ),
 } ) );
 
 // Require after mocks are set up.
@@ -122,10 +119,8 @@ describe( 'actions', () => {
 		);
 	} );
 
-	test( 'clearCurrentSession returns correct action', () => {
-		expect( actions.clearCurrentSession() ).toEqual( {
-			type: 'CLEAR_CURRENT_SESSION',
-		} );
+	test( 'clearCurrentSession returns a thunk function', () => {
+		expect( typeof actions.clearCurrentSession() ).toBe( 'function' );
 	} );
 
 	test( 'setSending returns correct action', () => {

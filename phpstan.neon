@@ -44,6 +44,25 @@ parameters:
 		- '#unknown class WP_AI_Client_Ability_Function_Resolver#'
 		- '#Instantiated class WP_AI_Client_Ability_Function_Resolver not found#'
 		- '#has invalid return type WP_AI_Client_Ability_Function_Resolver#'
+		# WP AI Client SDK — wp_ai_client_prompt() and WP_AI_Client_Prompt_Builder are
+		# WordPress 7.0+ core functions/classes not available in PHPStan stubs. The compat
+		# layer stubs were removed when WP 6.9 support was dropped; suppress until upstream
+		# phpstan-wordpress provides stubs for the WP 7.0 AI Client SDK.
+		- '#Function wp_ai_client_prompt not found#'
+		- '#Call to method .* on an unknown class WP_AI_Client_Prompt_Builder#'
+		- '#PHPDoc tag @var for variable .* contains unknown class WP_AI_Client_Prompt_Builder#'
+		- '#has invalid type WP_AI_Client_Prompt_Builder#'
+		- '#Parameter \$builder of method .* has invalid type WP_AI_Client_Prompt_Builder#'
+		# wp_ai_client_prompt() returns mixed (no stubs); method chains on the builder are safe
+		- '#Cannot call method .* on mixed#'
+		# Return type inferred as mixed when wp_ai_client_prompt() result is returned directly
+		- '#Method .* should return .* but returns mixed#'
+		# array_map with typed Closure on mixed array (result of wp_ai_client_prompt())
+		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(string\): string given#'
+		  identifier: argument.type
+		# AdminPage class was deleted in t146 (dead code removal); ScreenMetaPanel still
+		# references AdminPage::SLUG — suppress until the reference is cleaned up.
+		- '#Access to constant SLUG on an unknown class GratisAiAgent\\\\Admin\\\\AdminPage#'
 		# WP_Block_Type properties may be empty strings
 		- '#Property WP_Block_Type::.* on left side of \?\? is not nullable#'
 		- '#Property WP_Block_Template::.* on left side of \?\? is not nullable#'

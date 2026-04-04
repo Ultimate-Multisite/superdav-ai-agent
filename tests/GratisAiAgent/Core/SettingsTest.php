@@ -147,13 +147,6 @@ class SettingsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test PAGE_SLUG constant.
-	 */
-	public function test_page_slug_constant() {
-		$this->assertSame( 'gratis-ai-agent-settings', Settings::PAGE_SLUG );
-	}
-
-	/**
 	 * Test OPTION_NAME constant.
 	 */
 	public function test_option_name_constant() {

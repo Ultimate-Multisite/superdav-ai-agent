@@ -229,7 +229,7 @@
 
 ### Pre-Release Codebase Cleanup
 
-- [ ] t145 Split RestController.php (6,416 lines) into domain controllers #refactor ~8h logged:2026-04-03 ref:GH#729 #auto-dispatch
+- [x] t145 Split RestController.php (6,416 lines) into domain controllers #refactor ~8h logged:2026-04-03 ref:GH#729 #auto-dispatch pr:#746 completed:2026-04-04
   - 73 routes and 101 handlers in one file — split into SessionController, SettingsController, MemoryController, AutomationController, KnowledgeController, ToolController, ProviderController, ExportController
 
 - [ ] t146 Delete dead code — orphaned admin pages, OpenAIProxy, legacy E2E scripts #refactor ~2h logged:2026-04-03 ref:GH#730 #auto-dispatch

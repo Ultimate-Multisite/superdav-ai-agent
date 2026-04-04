@@ -49,139 +49,134 @@ class Settings {
 	/**
 	 * Supported direct providers with their metadata.
 	 */
-	const DIRECT_PROVIDERS = [
-		'openai'    => [
+	const DIRECT_PROVIDERS = array(
+		'openai'    => array(
 			'name'          => 'OpenAI',
 			'default_model' => 'gpt-4.1-nano',
-			'models'        => [
-				[
+			'models'        => array(
+				array(
 					'id'   => 'gpt-4.1-nano',
 					'name' => 'GPT-4.1 Nano',
-				],
-				[
+				),
+				array(
 					'id'   => 'gpt-4.1-mini',
 					'name' => 'GPT-4.1 Mini',
-				],
-				[
+				),
+				array(
 					'id'   => 'gpt-4.1',
 					'name' => 'GPT-4.1',
-				],
-				[
+				),
+				array(
 					'id'   => 'gpt-4o',
 					'name' => 'GPT-4o',
-				],
-				[
+				),
+				array(
 					'id'   => 'gpt-4o-mini',
 					'name' => 'GPT-4o Mini',
-				],
-				[
+				),
+				array(
 					'id'   => 'gpt-4-turbo',
 					'name' => 'GPT-4 Turbo',
-				],
-				[
+				),
+				array(
 					'id'   => 'o1',
 					'name' => 'o1',
-				],
-				[
+				),
+				array(
 					'id'   => 'o1-mini',
 					'name' => 'o1 Mini',
-				],
-				[
+				),
+				array(
 					'id'   => 'o3-mini',
 					'name' => 'o3 Mini',
-				],
-				[
+				),
+				array(
 					'id'   => 'o3',
 					'name' => 'o3',
-				],
-				[
+				),
+				array(
 					'id'   => 'o4-mini',
 					'name' => 'o4 Mini',
-				],
-			],
-		],
-		'anthropic' => [
+				),
+			),
+		),
+		'anthropic' => array(
 			'name'          => 'Anthropic',
 			'default_model' => 'claude-sonnet-4-6',
-			'models'        => [
-				[
+			'models'        => array(
+				array(
 					'id'   => 'claude-opus-4-6',
 					'name' => 'Claude Opus 4.6',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-sonnet-4-6',
 					'name' => 'Claude Sonnet 4.6',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-opus-4-5',
 					'name' => 'Claude Opus 4.5',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-sonnet-4-5',
 					'name' => 'Claude Sonnet 4.5',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-haiku-3-5',
 					'name' => 'Claude Haiku 3.5',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-3-5-haiku-20241022',
 					'name' => 'Claude 3.5 Haiku',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-opus-4-20250514',
 					'name' => 'Claude Opus 4',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-sonnet-4-20250514',
 					'name' => 'Claude Sonnet 4',
-				],
-				[
+				),
+				array(
 					'id'   => 'claude-haiku-3-20241022',
 					'name' => 'Claude Haiku 3',
-				],
-			],
-		],
-		'google'    => [
+				),
+			),
+		),
+		'google'    => array(
 			'name'          => 'Google',
 			'default_model' => 'gemini-2.0-flash',
-			'models'        => [
-				[
+			'models'        => array(
+				array(
 					'id'   => 'gemini-2.5-pro-preview-05-06',
 					'name' => 'Gemini 2.5 Pro',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-2.5-flash-preview',
 					'name' => 'Gemini 2.5 Flash',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-2.5-flash-lite-preview',
 					'name' => 'Gemini 2.5 Flash Lite',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-2.0-flash',
 					'name' => 'Gemini 2.0 Flash',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-2.0-flash-lite',
 					'name' => 'Gemini 2.0 Flash Lite',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-1.5-pro',
 					'name' => 'Gemini 1.5 Pro',
-				],
-				[
+				),
+				array(
 					'id'   => 'gemini-1.5-flash',
 					'name' => 'Gemini 1.5 Flash',
-				],
-			],
-		],
-	];
-
-	/**
-	 * Settings page slug.
-	 */
-	const PAGE_SLUG = 'gratis-ai-agent-settings';
+				),
+			),
+		),
+	);
 
 	/**
 	 * Default settings.
@@ -189,15 +184,15 @@ class Settings {
 	 * @return array<string, mixed>
 	 */
 	public static function get_defaults(): array {
-		return [
+		return array(
 			'default_provider'         => '',
 			'default_model'            => '',
 			'max_iterations'           => 25,
 			'greeting_message'         => '',
 			'system_prompt'            => '',
 			'auto_memory'              => true,
-			'disabled_abilities'       => [],
-			'tool_permissions'         => [],
+			'disabled_abilities'       => array(),
+			'tool_permissions'         => array(),
 			'temperature'              => 0.7,
 			'max_output_tokens'        => 4096,
 			'context_window_default'   => 128000,
@@ -227,7 +222,7 @@ class Settings {
 			'budget_monthly_cap'       => 0.0,
 			'budget_warning_threshold' => 80,
 			'budget_exceeded_action'   => 'pause',
-		];
+		);
 	}
 
 	/**
@@ -240,7 +235,7 @@ class Settings {
 	 * @return string Empty string when not configured.
 	 */
 	public static function get_provider_key( string $provider_id ): string {
-		$keys = get_option( self::PROVIDER_KEYS_OPTION, [] );
+		$keys = get_option( self::PROVIDER_KEYS_OPTION, array() );
 		// @phpstan-ignore-next-line
 		return isset( $keys[ $provider_id ] ) ? (string) $keys[ $provider_id ] : '';
 	}
@@ -259,7 +254,7 @@ class Settings {
 			return false;
 		}
 
-		$keys = get_option( self::PROVIDER_KEYS_OPTION, [] );
+		$keys = get_option( self::PROVIDER_KEYS_OPTION, array() );
 
 		if ( '' === $api_key ) {
 			// @phpstan-ignore-next-line
@@ -281,16 +276,16 @@ class Settings {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_configured_direct_providers(): array {
-		$result = [];
+		$result = array();
 		foreach ( self::DIRECT_PROVIDERS as $id => $meta ) {
 			$key      = self::get_provider_key( $id );
-			$result[] = [
+			$result[] = array(
 				'id'         => $id,
 				'name'       => $meta['name'],
 				'configured' => '' !== $key,
 				'has_key'    => '' !== $key,
 				'models'     => $meta['models'],
-			];
+			);
 		}
 		return $result;
 	}
@@ -309,9 +304,9 @@ class Settings {
 	 * @return array<string, mixed> Credential array or empty array.
 	 */
 	public static function get_gsc_credentials(): array {
-		$creds = get_option( self::GSC_CREDENTIALS_OPTION, [] );
+		$creds = get_option( self::GSC_CREDENTIALS_OPTION, array() );
 		/** @var array<string, mixed> $result */
-		$result = is_array( $creds ) ? $creds : [];
+		$result = is_array( $creds ) ? $creds : array();
 		return $result;
 	}
 
@@ -409,7 +404,7 @@ class Settings {
 	 * @return mixed
 	 */
 	public static function get( ?string $key = null ) {
-		$saved    = get_option( self::OPTION_NAME, [] );
+		$saved    = get_option( self::OPTION_NAME, array() );
 		$defaults = self::get_defaults();
 		// @phpstan-ignore-next-line
 		$merged = wp_parse_args( $saved, $defaults );
@@ -428,7 +423,7 @@ class Settings {
 	 * @return bool
 	 */
 	public static function update( array $data ): bool {
-		$current  = get_option( self::OPTION_NAME, [] );
+		$current  = get_option( self::OPTION_NAME, array() );
 		$defaults = self::get_defaults();
 
 		// Only allow known keys.
@@ -439,71 +434,5 @@ class Settings {
 		$merged = array_merge( $current, $data );
 
 		return update_option( self::OPTION_NAME, $merged );
-	}
-
-	/**
-	 * Register the admin menu page.
-	 */
-	public static function register(): void {
-		$hook = add_management_page(
-			__( 'Gratis AI Agent Settings', 'gratis-ai-agent' ),
-			__( 'Gratis AI Agent Settings', 'gratis-ai-agent' ),
-			'manage_options',
-			self::PAGE_SLUG,
-			[ __CLASS__, 'render' ]
-		);
-
-		if ( $hook ) {
-			add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
-		}
-	}
-
-	/**
-	 * Enqueue the settings page React app.
-	 *
-	 * @param string $hook_suffix Current admin page hook suffix.
-	 */
-	public static function enqueue_assets( string $hook_suffix ): void {
-		if ( 'tools_page_' . self::PAGE_SLUG !== $hook_suffix ) {
-			return;
-		}
-
-		$asset_file = GRATIS_AI_AGENT_DIR . '/build/settings-page.asset.php';
-
-		if ( ! file_exists( $asset_file ) ) {
-			return;
-		}
-
-		/** @var array{dependencies: string[], version: string} $asset */
-		$asset = require $asset_file;
-
-		wp_enqueue_style(
-			'gratis-ai-agent-settings-page',
-			GRATIS_AI_AGENT_URL . 'build/style-settings-page.css',
-			[ 'wp-components' ],
-			$asset['version']
-		);
-
-		wp_enqueue_script(
-			'gratis-ai-agent-settings-page',
-			GRATIS_AI_AGENT_URL . 'build/settings-page.js',
-			$asset['dependencies'],
-			$asset['version'],
-			true
-		);
-
-		wp_set_script_translations( 'gratis-ai-agent-settings-page', 'gratis-ai-agent' );
-	}
-
-	/**
-	 * Render the settings page mount point.
-	 */
-	public static function render(): void {
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Gratis AI Agent Settings', 'gratis-ai-agent' ); ?></h1>
-			<div id="gratis-ai-agent-settings-root"></div>
-		</div>
-		<?php
 	}
 }

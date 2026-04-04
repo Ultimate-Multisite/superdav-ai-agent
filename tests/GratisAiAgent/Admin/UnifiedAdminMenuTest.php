@@ -227,34 +227,15 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	// ─── render ───────────────────────────────────────────────────────────────
 
 	/**
-	 * Test render() outputs compatibility notice when wp_ai_client_prompt is unavailable.
+	 * Test render() outputs the React mount point.
 	 */
-	public function test_render_outputs_notice_when_ai_client_unavailable(): void {
-		// wp_ai_client_prompt is not available in the test environment unless
-		// AdminPageTest already defined it. Either way, test the output.
+	public function test_render_outputs_mount_point(): void {
 		ob_start();
 		UnifiedAdminMenu::render();
 		$output = (string) ob_get_clean();
 
-		// When AI client is unavailable: notice-error. When available: wrap div.
-		$this->assertTrue(
-			str_contains( $output, 'notice-error' ) || str_contains( $output, 'gratis-ai-agent-wrap' )
-		);
-	}
-
-	/**
-	 * Test render() outputs the React mount point when AI client is available.
-	 */
-	public function test_render_outputs_mount_point_when_ai_client_available(): void {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			$this->markTestSkipped( 'wp_ai_client_prompt not available in this test run.' );
-		}
-
-		ob_start();
-		UnifiedAdminMenu::render();
-		$output = ob_get_clean();
-
 		$this->assertStringContainsString( 'gratis-ai-agent-root', $output );
+		$this->assertStringContainsString( 'gratis-ai-agent-wrap', $output );
 	}
 
 	// ─── handleLegacyRedirects ────────────────────────────────────────────────

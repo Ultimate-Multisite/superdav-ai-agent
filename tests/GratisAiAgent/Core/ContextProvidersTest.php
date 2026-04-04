@@ -207,7 +207,7 @@ class ContextProvidersTest extends WP_UnitTestCase {
 		$context = [
 			'site_info' => [
 				'Site Name' => 'My Site',
-				'WP Version' => '6.9',
+				'WP Version' => '7.0',
 			],
 		];
 

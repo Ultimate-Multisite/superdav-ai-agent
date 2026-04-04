@@ -113,32 +113,12 @@ class ModelBenchmarkPageTest extends WP_UnitTestCase {
 	// ─── render ───────────────────────────────────────────────────────────────
 
 	/**
-	 * Test render() outputs compatibility notice when wp_ai_client_prompt is unavailable.
+	 * Test render() outputs the React mount point.
 	 */
-	public function test_render_outputs_notice_when_ai_client_unavailable(): void {
-		if ( function_exists( 'wp_ai_client_prompt' ) ) {
-			$this->markTestSkipped( 'wp_ai_client_prompt() is available; cannot test unavailable path.' );
-		}
-
+	public function test_render_outputs_mount_point(): void {
 		ob_start();
 		ModelBenchmarkPage::render();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'notice-error', $output );
-		$this->assertStringContainsString( 'AI Client SDK', $output );
-	}
-
-	/**
-	 * Test render() outputs the benchmark wrap div when AI client is available.
-	 */
-	public function test_render_outputs_wrap_when_ai_client_available(): void {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			$this->markTestSkipped( 'wp_ai_client_prompt not available in this test run.' );
-		}
-
-		ob_start();
-		ModelBenchmarkPage::render();
-		$output = ob_get_clean();
+		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'gratis-ai-agent-benchmark-wrap', $output );
 		$this->assertStringContainsString( 'gratis-ai-agent-benchmark-root', $output );

@@ -32,7 +32,7 @@ class AbilityDiscoveryAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_list_abilities when Abilities API is unavailable returns WP_Error.
 	 *
 	 * In the test environment, wp_get_abilities() may not be available
-	 * (requires WordPress 6.9+). The handler should return WP_Error gracefully.
+	 * (requires WordPress 7.0+). The handler should return WP_Error gracefully.
 	 */
 	public function test_handle_list_abilities_api_unavailable_or_available() {
 		$result = AbilityDiscoveryAbilities::handle_list_abilities( [] );
@@ -112,7 +112,7 @@ class AbilityDiscoveryAbilitiesTest extends WP_UnitTestCase {
 	/**
 	 * Test handle_get_ability with non-existent ability returns WP_Error.
 	 *
-	 * WordPress 6.9 fires _doing_it_wrong when looking up a non-existent ability.
+	 * WordPress fires _doing_it_wrong when looking up a non-existent ability.
 	 * We suppress this expected notice so the test can assert the WP_Error result.
 	 */
 	public function test_handle_get_ability_not_found() {
@@ -156,7 +156,7 @@ class AbilityDiscoveryAbilitiesTest extends WP_UnitTestCase {
 	/**
 	 * Test handle_execute_ability with non-existent ability returns WP_Error.
 	 *
-	 * WordPress 6.9 fires _doing_it_wrong when looking up a non-existent ability.
+	 * WordPress fires _doing_it_wrong when looking up a non-existent ability.
 	 * We suppress this expected notice so the test can assert the WP_Error result.
 	 */
 	public function test_handle_execute_ability_not_found() {

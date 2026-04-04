@@ -195,7 +195,7 @@ class DiscoveryListAbility extends AbstractAbility {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
 			return new WP_Error(
 				'abilities_api_unavailable',
-				__( 'Abilities API not available. WordPress 6.9+ with the Abilities API is required.', 'gratis-ai-agent' )
+				__( 'Abilities API not available. WordPress 7.0+ is required.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -300,7 +300,7 @@ class DiscoveryGetAbility extends AbstractAbility {
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			return new WP_Error(
 				'abilities_api_unavailable',
-				__( 'Abilities API not available. WordPress 6.9+ with the Abilities API is required.', 'gratis-ai-agent' )
+				__( 'Abilities API not available. WordPress 7.0+ is required.', 'gratis-ai-agent' )
 			);
 		}
 
@@ -407,7 +407,7 @@ class DiscoveryExecuteAbility extends AbstractAbility {
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			return new WP_Error(
 				'abilities_api_unavailable',
-				__( 'Abilities API not available. WordPress 6.9+ with the Abilities API is required.', 'gratis-ai-agent' )
+				__( 'Abilities API not available. WordPress 7.0+ is required.', 'gratis-ai-agent' )
 			);
 		}
 

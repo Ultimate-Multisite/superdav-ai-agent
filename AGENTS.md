@@ -1,5 +1,7 @@
 # Gratis AI Agent - WordPress Plugin Development Guide
 
+**Requires:** WordPress 7.0+, PHP 8.2+
+
 ## Build Commands
 - **Build**: `npm run build` or `npx wp-scripts build` (production)
 - **Dev**: `npm start` or `npx wp-scripts start` (watch mode)
@@ -14,6 +16,7 @@
 - **Test PHP**: `npm run test:php` (PHPUnit via `@wordpress/env`)
 - **Test E2E**: `npm run test:e2e:playwright` (Playwright)
 - **Pre-commit**: Husky + lint-staged runs lint fixes on staged files
+- **Dev environment**: `npx wp-env start` (WordPress 7.0 via `.wp-env.json`)
 
 ## Code Style & Architecture
 
@@ -22,19 +25,19 @@
 - **Class names**: PascalCase (e.g., `AgentLoop`, `RestController`)
 - **File naming**: `{ClassName}.php` matching the class name exactly
 - **Directory structure**:
-  - `includes/Core/` - Core classes (Database, Settings, AgentLoop)
-  - `includes/Models/` - Data models (Memory, Skill, Chunker)
-  - `includes/Abilities/` - WordPress Abilities API implementations (30 ability classes)
-  - `includes/Knowledge/` - Knowledge base system
-  - `includes/Tools/` - Custom tools and profiles
+  - `includes/Core/` - Core classes (Database, Settings, AgentLoop, BudgetManager)
+  - `includes/Models/` - Data models (Memory, Skill, Agent, ConversationTemplate, Chunker)
+  - `includes/Abilities/` - WordPress Abilities API implementations (30+ ability classes)
+  - `includes/Knowledge/` - Knowledge base system (collections, sources, chunks, RAG search)
+  - `includes/Tools/` - Custom tools, tool profiles, and tool discovery
   - `includes/Automations/` - Scheduled and event-driven automations
-  - `includes/Benchmark/` - Performance benchmarking
-  - `includes/REST/` - REST API controller
-  - `includes/Admin/` - Admin pages and widgets
+  - `includes/Benchmark/` - Model benchmarking (runner, suite, scoring)
+  - `includes/REST/` - REST API controllers (RestController, WebhookController, McpController, ResaleApiController, BenchmarkController)
+  - `includes/Admin/` - Admin pages (UnifiedAdminMenu, ModelBenchmarkPage)
   - `includes/CLI/` - WP-CLI commands
   - `includes/Enums/` - PHP 8.1+ enums
 - **Constants**: SCREAMING_SNAKE_CASE (e.g., `DB_VERSION`, `PAGE_SLUG`)
-- **Methods**: camelCase (PSR convention, e.g., `getSession()`, `createSession()`)
+- **Methods**: snake_case (e.g., `get_session()`, `create_session()`, `list_sessions()`)
 - **Properties**: camelCase with typed declarations
 - **Hooks**: Use `add_action()`, `add_filter()` with priority 10 by default
 - **Autoloading**: Composer PSR-4 from `includes/` directory
@@ -46,34 +49,25 @@
 - **Framework**: React 18 with `@wordpress/element` and `@wordpress/components`
 - **State**: Redux via `@wordpress/data` store (see `src/store/index.js`)
 - **Imports**: WordPress packages first, then internal dependencies
-- **File structure**: React components in `src/components/`, entry points in `src/{admin-page,floating-widget,screen-meta,settings-page,changes-page,abilities-explorer}/`
-- **Styling**: CSS modules in same directory as component (`style.css`)
+- **File structure**: React components in `src/components/`, entry points in `src/`
+- **Styling**: CSS files in same directory as component (`style.css`), prefix all classes with `gratis-ai-agent-`
 - **i18n**: Always use `__( 'text', 'gratis-ai-agent' )` for translatable strings
 - **Hooks**: Use WordPress data hooks (`useSelect`, `useDispatch`) consistently
-- **Build**: Webpack via `@wordpress/scripts` targeting 6 entry points (admin-page, floating-widget, screen-meta, settings-page, changes-page, abilities-explorer)
+- **Build**: Webpack via `@wordpress/scripts` with entry points defined in `webpack.config.js`
 
 ### Naming Conventions
 - **Variables**: camelCase in both JS and PHP
-- **Functions/Methods**: camelCase in both JS and PHP
+- **Functions/Methods**: snake_case in PHP, camelCase in JS
 - **Classes**: PascalCase (e.g., `AgentLoop`, `MemoryAbilities`)
 - **Components**: PascalCase (e.g., `ChatPanel`, `MessageList`)
 - **Enums**: PascalCase with PascalCase cases (e.g., `MemoryCategory::SiteInfo`)
-- **Database tables**: Prefixed with `{$wpdb->prefix}gratis_ai_agent_` (10 tables total)
+- **Database tables**: Prefixed with `{$wpdb->prefix}gratis_ai_agent_` (23 tables across 4 schema files)
 - **REST routes**: `/gratis-ai-agent/v1/{endpoint}` namespace
-
-### Class Mapping Reference
-| Old Name | New Location | New Class Name |
-|----------|--------------|----------------|
-| `Database` | `Core/Database.php` | `GratisAiAgent\Core\Database` |
-| `Settings` | `Core/Settings.php` | `GratisAiAgent\Core\Settings` |
-| `Agent_Loop` | `Core/AgentLoop.php` | `GratisAiAgent\Core\AgentLoop` |
-| `Memory` | `Models/Memory.php` | `GratisAiAgent\Models\Memory` |
-| `Skill` | `Models/Skill.php` | `GratisAiAgent\Models\Skill` |
-| `Rest_Controller` | `REST/RestController.php` | `GratisAiAgent\REST\RestController` |
-| `Memory_Abilities` | `Abilities/MemoryAbilities.php` | `GratisAiAgent\Abilities\MemoryAbilities` |
+- **CSS classes**: Prefixed with `gratis-ai-agent-` (e.g., `gratis-ai-agent-chat-panel`)
 
 ## WordPress SDK Integration
-- Use `wp_ai_client_prompt()` for AI calls (WordPress 6.9+ AI Client SDK)
+- Use `wp_ai_client_prompt()` for AI calls (WordPress 7.0+ AI Client SDK)
 - Register abilities via `wp_register_ability()` (Abilities API)
 - All tool schemas follow OpenAI function-calling JSON schema format
-- Provider/model selection via WordPress Connectors API
+- Provider/model selection via WordPress Connectors API (Settings > Connectors)
+- Abilities extend `AbstractAbility` which extends core `WP_Ability`

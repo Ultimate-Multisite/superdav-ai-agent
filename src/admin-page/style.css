@@ -403,22 +403,28 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	min-height: 0;
 }
 
-/* Header */
+/* Header — wp-admin toolbar style: compact, single-row, no background fill */
 .gratis-ai-agent-header {
-	padding: 8px 12px;
+	padding: 6px 12px;
 	border-bottom: 1px solid #dcdcde;
-	background: #f6f7f7;
+	background: #fff;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	min-height: 40px;
 }
 
 .gratis-ai-agent-provider-selector {
 	display: flex;
-	align-items: flex-end;
-	gap: 12px;
+	align-items: center;
+	gap: 8px;
 	flex-wrap: wrap;
+	flex: 1;
 }
 
 .gratis-ai-agent-provider-selector .components-select-control {
-	min-width: 180px;
+	min-width: 160px;
 }
 
 /* Messages */

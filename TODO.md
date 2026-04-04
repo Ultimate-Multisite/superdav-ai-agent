@@ -281,7 +281,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Form fields: use WP's `<BaseControl>` with proper label/help text instead of raw inputs
   - Skill cards and memory cards: border-radius 4px is fine; consider removing the card border on hover-only items
 
-- [ ] t157 Session sidebar: tighten spacing, improve active/hover states #ui ~1h logged:2026-04-03 ref:GH#752 #auto-dispatch
+- [x] t157 Session sidebar: tighten spacing, improve active/hover states #ui ~1h logged:2026-04-03 ref:GH#752 #auto-dispatch pr:#761 completed:2026-04-04
   - Active item uses `border-left: 3px solid` + background — the left border is a good WP pattern, keep it
   - Session item padding (10px 36px 10px 12px) is generous — reduce to 8px 32px 8px 10px
   - Folder tabs (pill shape, #e0e0e0 background) look out of place — replace with plain text tabs matching filter tabs

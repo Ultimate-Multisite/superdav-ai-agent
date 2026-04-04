@@ -38,7 +38,8 @@ parameters:
 		# wp_ai_client_prompt() return type is mixed until WP stubs include it;
 		# callers chain methods on the result which PHPStan cannot type-check
 		- '#Cannot call method (using_system_instruction|using_temperature|using_candidate_count|using_model_preference|using_model|using_provider|using_abilities|using_max_tokens|with_history|with_file|generate_text|generate_texts|generate_text_result|as_json_response)\(\) on mixed#'
-		- '#Method GratisAiAgent\\\\Core\\\\AgentLoop::send_prompt\(\) should return .* but returns mixed#'
+		- message: '#Method .*AgentLoop::send_prompt\(\) should return .* but returns mixed#'
+		  identifier: return.type
 		# Compat layer classes loaded conditionally (kept for reportUnmatchedIgnoredErrors: false)
 		- '#unknown class WP_AI_Client_Ability_Function_Resolver#'
 		- '#Instantiated class WP_AI_Client_Ability_Function_Resolver not found#'

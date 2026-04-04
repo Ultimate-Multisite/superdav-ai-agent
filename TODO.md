@@ -263,7 +263,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Use `--wp-admin-theme-color` for active state only; remove hardcoded #1e1e1e, #333, #a7aaad
   - Consider replacing custom nav entirely with WP's native submenu structure (registered via add_submenu_page)
 
-- [ ] t154 Simplify chat panel header — reduce clutter, align with wp-admin toolbar style #ui ~2h logged:2026-04-03 ref:GH#749 #auto-dispatch
+- [x] t154 Simplify chat panel header — reduce clutter, align with wp-admin toolbar style #ui ~2h logged:2026-04-03 ref:GH#749 #auto-dispatch pr:#759 completed:2026-04-04
   - Current: provider selector + agent selector + budget badge + TTS button + debug badge + YOLO badge all in one row
   - Move secondary controls (TTS, debug badge) to a settings popover or collapse into a single "options" button
   - Provider/agent selectors: use compact inline selects without labels (labels add height, break the toolbar feel)

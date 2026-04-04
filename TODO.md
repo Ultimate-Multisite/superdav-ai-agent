@@ -244,7 +244,7 @@
 - [ ] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch
   - Single store/index.js handles sessions, messages, streaming, settings, memory, skills, agents, templates, TTS, site builder
 
-- [ ] t150 Add JS unit tests for critical components (chat-panel, message-input, onboarding-wizard) #testing ~8h logged:2026-04-03 ref:GH#734 #auto-dispatch
+- [x] t150 Add JS unit tests for critical components (chat-panel, message-input, onboarding-wizard) #testing ~8h logged:2026-04-03 ref:GH#734 #auto-dispatch pr:#743 completed:2026-04-04
   - 29 of 32 components have zero unit tests — cover the 5 most critical
 
 - [ ] t151 Remove dead CSS rules and consolidate shared component styles #refactor ~2h logged:2026-04-03 ref:GH#735 #auto-dispatch blocked-by:t148

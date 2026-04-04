@@ -109,7 +109,7 @@
 	},
 	"size-limit": [
 		{
-			"name": "admin-page (main bundle)",
+			"name": "admin-page",
 			"path": "build/admin-page.js",
 			"limit": "400 KB",
 			"gzip": true
@@ -127,21 +127,15 @@
 			"gzip": true
 		},
 		{
-			"name": "settings-page",
-			"path": "build/settings-page.js",
-			"limit": "50 KB",
+			"name": "unified-admin",
+			"path": "build/unified-admin.js",
+			"limit": "500 KB",
 			"gzip": true
 		},
 		{
-			"name": "changes-page",
-			"path": "build/changes-page.js",
-			"limit": "10 KB",
-			"gzip": true
-		},
-		{
-			"name": "abilities-explorer",
-			"path": "build/abilities-explorer.js",
-			"limit": "10 KB",
+			"name": "benchmark-page",
+			"path": "build/benchmark-page.js",
+			"limit": "100 KB",
 			"gzip": true
 		}
 	]

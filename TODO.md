@@ -238,7 +238,7 @@
 - [ ] t147 Remove redundant webpack entry points (changes-page, settings-page, abilities-explorer standalone) #refactor ~1h logged:2026-04-03 ref:GH#731 #auto-dispatch blocked-by:t146
   - These produce build artifacts that are never loaded — their PHP registration pages are dead code
 
-- [ ] t148 Standardize CSS class prefix to gratis-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch
+- [x] t148 Standardize CSS class prefix to gratis-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch pr:#739 completed:2026-04-04
   - Three conventions coexist: ai-agent-, gratis-ai-agent-, gratis-ai- — namespace collision risk
 
 - [ ] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch

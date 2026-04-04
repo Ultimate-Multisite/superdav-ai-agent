@@ -12,6 +12,25 @@ import {
 import { check, closeSmall, arrowLeft } from '@wordpress/icons';
 
 /**
+ * Stat Card Component — wraps a single metric in a wp-admin Card.
+ *
+ * @param {Object} props       Component props.
+ * @param {string} props.label Metric label.
+ * @param {*}      props.value Metric value.
+ * @return {JSX.Element} Stat card element.
+ */
+function StatCard( { label, value } ) {
+	return (
+		<Card className="gratis-ai-agent-benchmark-stat-card">
+			<CardBody>
+				<h4>{ label }</h4>
+				<div className="stat-value">{ value }</div>
+			</CardBody>
+		</Card>
+	);
+}
+
+/**
  * Run Details Component
  *
  * @param {Object}   props        Component props.
@@ -125,30 +144,28 @@ export default function RunDetails( { run, onBack } ) {
 				</CardBody>
 			</Card>
 
-			<div className="gratis-ai-agent-benchmark-summary">
-				<div className="gratis-ai-agent-benchmark-stat-card">
-					<h4>{ __( 'Total Questions', 'gratis-ai-agent' ) }</h4>
-					<div className="stat-value">{ results.length }</div>
-				</div>
-				<div className="gratis-ai-agent-benchmark-stat-card">
-					<h4>{ __( 'Accuracy', 'gratis-ai-agent' ) }</h4>
-					<div className="stat-value">{ accuracy }%</div>
-				</div>
-				<div className="gratis-ai-agent-benchmark-stat-card">
-					<h4>{ __( 'Correct', 'gratis-ai-agent' ) }</h4>
-					<div className="stat-value">{ correctCount }</div>
-				</div>
-				<div className="gratis-ai-agent-benchmark-stat-card">
-					<h4>{ __( 'Avg Latency', 'gratis-ai-agent' ) }</h4>
-					<div className="stat-value">{ avgLatency }ms</div>
-				</div>
-				<div className="gratis-ai-agent-benchmark-stat-card">
-					<h4>{ __( 'Total Tokens', 'gratis-ai-agent' ) }</h4>
-					<div className="stat-value">
-						{ totalTokens.toLocaleString() }
-					</div>
-				</div>
-			</div>
+		<div className="gratis-ai-agent-benchmark-summary">
+			<StatCard
+				label={ __( 'Total Questions', 'gratis-ai-agent' ) }
+				value={ results.length }
+			/>
+			<StatCard
+				label={ __( 'Accuracy', 'gratis-ai-agent' ) }
+				value={ `${ accuracy }%` }
+			/>
+			<StatCard
+				label={ __( 'Correct', 'gratis-ai-agent' ) }
+				value={ correctCount }
+			/>
+			<StatCard
+				label={ __( 'Avg Latency', 'gratis-ai-agent' ) }
+				value={ `${ avgLatency }ms` }
+			/>
+			<StatCard
+				label={ __( 'Total Tokens', 'gratis-ai-agent' ) }
+				value={ totalTokens.toLocaleString() }
+			/>
+		</div>
 
 			{ Object.keys( byModel ).length > 0 && (
 				<Card style={ { marginTop: '20px' } }>

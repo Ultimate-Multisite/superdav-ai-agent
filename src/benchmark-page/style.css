@@ -117,21 +117,24 @@
 }
 
 .gratis-ai-agent-benchmark-stat-card {
-  padding: 16px;
-  background: #f6f7f7;
-  border-radius: 4px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 3px;
   text-align: center;
 }
 
 .gratis-ai-agent-benchmark-stat-card h4 {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 6px;
+  font-size: 11px;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: #646970;
+  font-weight: 400;
 }
 
 .gratis-ai-agent-benchmark-stat-card .stat-value {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 600;
   color: #1d2327;
 }

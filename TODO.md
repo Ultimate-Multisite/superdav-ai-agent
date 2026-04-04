@@ -269,7 +269,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Provider/agent selectors: use compact inline selects without labels (labels add height, break the toolbar feel)
   - Header background #f6f7f7 with border-bottom is fine — keep; remove excess padding
 
-- [ ] t155 Redesign floating widget panel — lighter titlebar, less visual weight #ui ~2h logged:2026-04-03 ref:GH#750
+- [x] t155 Redesign floating widget panel — lighter titlebar, less visual weight #ui ~2h logged:2026-04-03 ref:GH#750 pr:#757 completed:2026-04-04
   - Current: solid `--wp-admin-theme-color` titlebar (blue) is heavy and inconsistent with wp-admin modals
   - Replace with white/light titlebar, thin border-bottom, title in dark text — matches WP modal style
   - FAB button is fine; keep the circular shape and theme color

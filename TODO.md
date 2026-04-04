@@ -216,6 +216,43 @@
   - Move auth into permission_callback for webhook/resale endpoints, harden CLI exec, wrap error_log in WP_DEBUG
   - Fix blueprint slugs, add MODELS.md to .distignore, update PHPCS min WP version to 6.9
 
+## In Progress
+
+- [ ] t144 WP 7.0 cleanup: fix settings tab overflow, flatten tab hierarchy, remove custom provider management @superdav42 #refactor ~9h logged:2026-04-03 started:2026-04-03 ref:GH#727 assignee:superdav42
+  - Settings tab bar has CSS selector mismatch causing 9 of 18 tabs to be hidden off-screen
+  - Two-level tab nesting creates duplicate tab names (General, Providers, Advanced at both levels)
+  - Custom provider key management duplicates WP 7.0 Connectors API — remove and delegate to core
+  - Direct HTTP provider paths (send_prompt_openai/anthropic/google/direct) bypass WP SDK — consolidate to wp_ai_client_prompt()
+  - Tasks: [todo/tasks/tasks-wp70-cleanup.md](todo/tasks/tasks-wp70-cleanup.md)
+
+## Ready
+
+### Pre-Release Codebase Cleanup
+
+- [ ] t145 Split RestController.php (6,416 lines) into domain controllers #refactor ~8h logged:2026-04-03 ref:GH#729 #auto-dispatch
+  - 73 routes and 101 handlers in one file — split into SessionController, SettingsController, MemoryController, AutomationController, KnowledgeController, ToolController, ProviderController, ExportController
+
+- [ ] t146 Delete dead code — orphaned admin pages, OpenAIProxy, legacy E2E scripts #refactor ~2h logged:2026-04-03 ref:GH#730 #auto-dispatch
+  - AdminPage.php, ChangesAdminPage.php, AbilitiesExplorerAdminPage.php (never registered), OpenAIProxy.php (452 lines, only referenced by own test), 4 legacy E2E scripts (1,840 lines), placeholder dirs, Settings::register() dead method
+
+- [ ] t147 Remove redundant webpack entry points (changes-page, settings-page, abilities-explorer standalone) #refactor ~1h logged:2026-04-03 ref:GH#731 #auto-dispatch blocked-by:t146
+  - These produce build artifacts that are never loaded — their PHP registration pages are dead code
+
+- [ ] t148 Standardize CSS class prefix to gratis-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch
+  - Three conventions coexist: ai-agent-, gratis-ai-agent-, gratis-ai- — namespace collision risk
+
+- [ ] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch
+  - Single store/index.js handles sessions, messages, streaming, settings, memory, skills, agents, templates, TTS, site builder
+
+- [ ] t150 Add JS unit tests for critical components (chat-panel, message-input, onboarding-wizard) #testing ~8h logged:2026-04-03 ref:GH#734 #auto-dispatch
+  - 29 of 32 components have zero unit tests — cover the 5 most critical
+
+- [ ] t151 Remove dead CSS rules and consolidate shared component styles #refactor ~2h logged:2026-04-03 ref:GH#735 #auto-dispatch blocked-by:t148
+  - Dead selectors for old Tools page, shared ChatPanel/MessageList styles duplicated across entry points
+
+- [ ] t152 Fix AGENTS.md to document actual conventions and WP 7.0 requirement #docs ~30m logged:2026-04-03 ref:GH#736 #auto-dispatch
+  - Says camelCase but codebase is 95% snake_case, references removed compat layer, stale class mapping table
+
 ## Backlog
 
 ### Onboarding & First-Run Experience (P0)

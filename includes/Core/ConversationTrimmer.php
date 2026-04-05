@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace GratisAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
+use WordPress\AiClient\Messages\DTO\MessagePart;
+use WordPress\AiClient\Messages\DTO\UserMessage;
 
 class ConversationTrimmer {
 
@@ -34,7 +36,7 @@ class ConversationTrimmer {
 	 *
 	 * @param Message[] $history   The full conversation history.
 	 * @param int       $max_turns Maximum turns to keep. 0 = no trimming.
-	 * @return Message[]
+	 * @return array<Message|UserMessage>
 	 */
 	public static function trim( array $history, int $max_turns = 0 ): array {
 		if ( $max_turns <= 0 ) {
@@ -77,9 +79,9 @@ class ConversationTrimmer {
 
 		// Create a summary marker message.
 		$removed_turns = $keep_from - 1; // Minus the first turn we're keeping.
-		$marker        = new \WordPress\AiClient\Messages\DTO\UserMessage(
+		$marker        = new UserMessage(
 			[
-				new \WordPress\AiClient\Messages\DTO\MessagePart(
+				new MessagePart(
 					sprintf(
 						'[%d earlier conversation turns were trimmed to save context. The conversation continues below.]',
 						$removed_turns

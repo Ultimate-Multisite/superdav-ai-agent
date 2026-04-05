@@ -1710,7 +1710,7 @@ class AgentLoop {
 	/**
 	 * Deserialize conversation history from arrays back to Message objects.
 	 *
-	 * @param list<array<string, mixed>> $data Serialized history arrays.
+	 * @param array<string, mixed> $data Serialized history arrays.
 	 * @return list<Message>
 	 */
 	public static function deserialize_history( array $data ): array {

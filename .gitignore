@@ -1,4 +1,5 @@
 node_modules/
+# Composer dependencies — managed locally, not committed (see PR #770)
 vendor/
 .agents/loop-state/
 .phpunit.result.cache

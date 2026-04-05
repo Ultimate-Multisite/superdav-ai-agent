@@ -67,7 +67,7 @@ parameters:
 		- '#Property .* has unknown class WordPress\\AiClient\\#'
 		- '#Property .* \(.*WordPress\\AiClient\\.*\) does not accept#'
 		- '#Method .* has invalid return type WordPress\\AiClient\\#'
-		- '#Method .* should return .* WordPress\\AiClient\\#'
+		- '#Method .* should return.*WordPress\\AiClient\\#'
 		- '#expects WordPress\\AiClient\\#'
 		# Secondary effects: when WordPress\AiClient\* classes are unknown, enum cases
 		# become class-string|object and registry calls return mixed — suppress cascades.

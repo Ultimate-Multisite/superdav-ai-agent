@@ -51,6 +51,29 @@ parameters:
 		- '#PHPDoc tag @var for variable .* contains unknown class WP_AI_Client_Prompt_Builder#'
 		- '#has invalid type WP_AI_Client_Prompt_Builder#'
 		- '#Parameter \$builder of method .* has invalid type WP_AI_Client_Prompt_Builder#'
+		# WordPress\AiClient\* SDK — the php-ai-client package was removed from vendor/ in
+		# commit 7b10461 (issue #769) because WordPress 7.0 bundles it as a core component.
+		# PHPStan cannot resolve these classes without the vendor stubs; suppress all errors
+		# for the WordPress\AiClient namespace until phpstan-wordpress provides core stubs.
+		- '#unknown class WordPress\\AiClient\\#'
+		- '#Instantiated class WordPress\\AiClient\\#'
+		- '#Class WordPress\\AiClient\\#'
+		- '#has invalid type WordPress\\AiClient\\#'
+		- '#Call to (method|static method) .* on an unknown class WordPress\\AiClient\\#'
+		- '#PHPDoc tag .* contains unknown class WordPress\\AiClient\\#'
+		- '#Parameter .* has invalid type WordPress\\AiClient\\#'
+		- '#Parameter .* of method .* has invalid type WordPress\\AiClient\\#'
+		- '#Parameter .* of anonymous function has invalid type WordPress\\AiClient\\#'
+		- '#Property .* has unknown class WordPress\\AiClient\\#'
+		- '#Property .* \(.*WordPress\\AiClient\\.*\) does not accept#'
+		- '#Method .* has invalid return type WordPress\\AiClient\\#'
+		- '#Method .* should return .* WordPress\\AiClient\\#'
+		- '#expects WordPress\\AiClient\\#'
+		# Secondary effects: when WordPress\AiClient\* classes are unknown, enum cases
+		# become class-string|object and registry calls return mixed — suppress cascades.
+		- '#Cannot access property \$value on class-string\|object#'
+		- '#Cannot call method (getValue|getText|getType|getFunctionCall|getFunctionResponse)\(\) on class-string\|object#'
+		- '#Cannot call static method (metadata|modelMetadataDirectory)\(\) on mixed#'
 		# wp_ai_client_prompt() returns mixed (no stubs); method chains on the builder are safe
 		- '#Cannot call method .* on mixed#'
 		# Return type inferred as mixed when wp_ai_client_prompt() result is returned directly

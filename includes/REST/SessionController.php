@@ -1164,7 +1164,7 @@ class SessionController {
 			}
 		} elseif ( ! empty( $params['history'] ) && is_array( $params['history'] ) ) {
 			try {
-				/** @var array<string, mixed> $params_history */
+				/** @var list<array<string, mixed>> $params_history */
 				$params_history = $params['history'];
 				$history        = AgentLoop::deserialize_history( $params_history );
 			} catch ( \Exception $e ) {

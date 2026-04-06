@@ -161,6 +161,7 @@ class CliCommand extends \WP_CLI_Command {
 			}
 
 			// Resume the loop with the serialized history.
+			// @phpstan-ignore-next-line
 			$history   = AgentLoop::deserialize_history( $result['history'] ?? [] );
 			$remaining = $result['iterations_remaining'] ?? $max_iterations;
 

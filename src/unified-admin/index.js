@@ -9,7 +9,6 @@ import { Notice } from '@wordpress/components';
  */
 import './style.css';
 import Router from './router';
-import Navigation from './navigation';
 import { AppProvider } from './context';
 
 /**
@@ -90,13 +89,6 @@ function UnifiedAdminApp() {
 				) }
 
 				<div className="gratis-ai-admin-layout">
-					<Navigation
-						currentRoute={ currentRoute }
-						onNavigate={ ( route ) => {
-							window.location.hash = '#/' + route;
-						} }
-					/>
-
 					<main className="gratis-ai-admin-main">
 						<Router route={ currentRoute } />
 					</main>

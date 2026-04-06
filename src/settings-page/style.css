@@ -52,10 +52,12 @@
 }
 
 .gratis-ai-agent-settings .components-tab-panel__tabs {
-	border-bottom: 1px solid #c3c4c7;
+	border-bottom: 1px solid #dcdcde;
 	padding: 0 12px;
 	flex-wrap: nowrap;
 	overflow-x: auto;
+	overflow-y: hidden;
+	-webkit-overflow-scrolling: touch;
 
 	/* Hide scrollbar visually while keeping it functional */
 	scrollbar-width: none; /* Firefox */
@@ -64,6 +66,46 @@
 
 .gratis-ai-agent-settings .components-tab-panel__tabs::-webkit-scrollbar {
 	display: none; /* Chrome/Safari/Opera */
+}
+
+.gratis-ai-agent-settings .components-tab-panel__tabs-item {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.gratis-ai-agent-providers-link-notice {
+	margin: 12px 16px 0 !important;
+}
+
+/* Settings wrap — full width, no fixed max */
+.gratis-ai-agent-settings {
+	max-width: none;
+}
+
+@media screen and (max-width: 782px) {
+	.gratis-ai-agent-settings {
+		margin: 12px 0 0;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+	}
+
+	.gratis-ai-agent-settings .components-tab-panel__tabs {
+		padding: 0 8px;
+	}
+
+	.gratis-ai-agent-settings .components-tab-panel__tabs-item {
+		padding: 8px 12px;
+		font-size: 13px;
+	}
+
+	.gratis-ai-agent-settings-section {
+		padding: 16px;
+	}
+
+	.gratis-ai-agent-providers-link-notice {
+		margin: 8px 0 0 !important;
+	}
 }
 
 .gratis-ai-agent-settings .components-tab-panel__tab-content {

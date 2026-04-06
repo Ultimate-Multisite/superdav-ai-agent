@@ -1710,13 +1710,12 @@ class AgentLoop {
 	/**
 	 * Deserialize conversation history from arrays back to Message objects.
 	 *
-	 * @param array<string, mixed> $data Serialized history arrays.
+	 * @param list<array<string, mixed>> $data Serialized history arrays.
 	 * @return list<Message>
 	 */
 	public static function deserialize_history( array $data ): array {
 		$messages = [];
 		foreach ( $data as $item ) {
-			// @phpstan-ignore-next-line
 			$messages[] = Message::fromArray( $item );
 		}
 		return $messages;

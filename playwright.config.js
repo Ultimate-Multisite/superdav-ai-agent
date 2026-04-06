@@ -17,9 +17,9 @@ module.exports = defineConfig( {
 
 	/* Maximum time one test can run for.
 	 * 60 s gives goToAgentPage (30 s wait for AdminPageApp) enough headroom
-	 * on CI runners under load with 3 parallel workers. The 90-min job timeout
-	 * is still respected — 202 tests × 60 s / 3 workers ≈ 67 min worst case,
-	 * but most tests complete in < 5 s so the real runtime stays ~35 min. */
+	 * on CI runners under load with 2 parallel workers. The suite is split
+	 * across 3 shards in e2e.yml (--shard N/3), so each shard runs ~4-5 of
+	 * the 13 spec files within the 45-min per-shard timeout. */
 	timeout: 60_000,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -32,7 +32,8 @@ module.exports = defineConfig( {
 	 * Both WP 6.9 and trunk use 2 workers (set in e2e.yml) to avoid
 	 * overloading the wp-env environment — more workers cause resource
 	 * contention that manifests as login and SPA-render timeouts on CI
-	 * runners. 2 workers still completes within the 90-min job timeout. */
+	 * runners. The suite is sharded (3 shards per WP version) so 2 workers
+	 * per shard is sufficient to complete within the 45-min shard timeout. */
 	workers: process.env.CI
 		? ( Number.isFinite( ciWorkers ) && ciWorkers > 0 ? ciWorkers : 2 )
 		: undefined,

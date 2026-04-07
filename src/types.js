@@ -105,11 +105,10 @@
  * Plugin settings object.
  *
  * @typedef {Object} Settings
- * @property {boolean}  [onboarding_complete]    - Whether onboarding has been completed.
- * @property {string}   [default_provider]       - Default provider ID.
- * @property {string}   [default_model]          - Default model ID.
- * @property {string[]} [disabled_abilities]     - List of disabled ability names.
- * @property {number}   [context_window_default] - Default context window size in tokens.
+ * @property {boolean} [onboarding_complete]    - Whether onboarding has been completed.
+ * @property {string}  [default_provider]       - Default provider ID.
+ * @property {string}  [default_model]          - Default model ID.
+ * @property {number}  [context_window_default] - Default context window size in tokens.
  */
 
 /**

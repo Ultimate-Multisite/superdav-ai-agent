@@ -2027,10 +2027,34 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 
 .gratis-ai-agent-tool-confirm-name {
 	font-weight: 600;
-	font-size: 13px;
+	font-size: 14px;
 	color: #1d2327;
-	margin-bottom: 6px;
+	margin-bottom: 4px;
+}
+
+.gratis-ai-agent-tool-confirm-description {
+	margin: 0 0 8px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: #50575e;
+}
+
+.gratis-ai-agent-tool-confirm-details {
+	margin-top: 8px;
+	font-size: 12px;
+}
+
+.gratis-ai-agent-tool-confirm-details summary {
+	cursor: pointer;
+	color: #50575e;
+	user-select: none;
+}
+
+.gratis-ai-agent-tool-confirm-tool-name {
+	margin-top: 6px;
 	font-family: monospace;
+	font-size: 12px;
+	color: #1d2327;
 }
 
 .gratis-ai-agent-tool-confirm-args {

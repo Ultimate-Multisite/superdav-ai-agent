@@ -18,8 +18,8 @@ use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Knowledge\Knowledge;
 use GratisAiAgent\Models\Memory;
 use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Tools\ModelHealthTracker;
 use GratisAiAgent\Tools\ToolDiscovery;
-use GratisAiAgent\Tools\ToolProfiles;
 use GratisAiAgent\Core\RolePermissions;
 use WP_AI_Client_Ability_Function_Resolver;
 use WP_Error;
@@ -66,6 +66,12 @@ class AgentLoop {
 
 	/** @var string */
 	private $system_instruction;
+
+	/** @var array<string,mixed> Cached settings for per-turn system-prompt rebuilds. */
+	private array $settings_for_prompt = array();
+
+	/** @var bool When true the constructor was given an explicit system_instruction override and we should NOT rebuild it per turn. */
+	private bool $system_instruction_locked = false;
 
 	/** @var int */
 	private $max_iterations;
@@ -130,7 +136,7 @@ class AgentLoop {
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
 		$this->user_message = $user_message;
 		$this->abilities    = $abilities;
-		$this->history     = $history;
+		$this->history      = $history;
 		// @phpstan-ignore-next-line
 		$this->page_context     = $options['page_context'] ?? array();
 		$this->settings_service = $settings_service ?? new Settings();
@@ -144,6 +150,13 @@ class AgentLoop {
 		$this->model_id = $options['model_id'] ?? ( $settings['default_model'] ?: '' );
 		// @phpstan-ignore-next-line
 		$this->max_iterations = $options['max_iterations'] ?? ( $settings['max_iterations'] ?: 25 );
+
+		// Cap iterations harder for known-weak models — they burn through
+		// rounds on dead-end paths, so failing fast surfaces a model
+		// limitation to the user instead of timing out at 2 minutes.
+		if ( ModelHealthTracker::is_weak( (string) ( $options['model_id'] ?? ( $settings['default_model'] ?? '' ) ) ) ) {
+			$this->max_iterations = min( (int) $this->max_iterations, 10 );
+		}
 		// @phpstan-ignore-next-line
 		$this->temperature = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		// @phpstan-ignore-next-line
@@ -156,14 +169,18 @@ class AgentLoop {
 			$settings['system_prompt'] = $options['agent_system_prompt'];
 		}
 
-		// If an agent overrides the active tool profile, apply it to settings.
-		if ( ! empty( $options['active_tool_profile'] ) ) {
-			// @phpstan-ignore-next-line
-			$settings['active_tool_profile'] = $options['active_tool_profile'];
-		}
-
+		// Store settings so send_prompt() can rebuild the system instruction
+		// before each model call — this lets the recently_fetched_section
+		// (and any other dynamic blocks) reach the model on subsequent turns.
 		// @phpstan-ignore-next-line
-		$this->system_instruction = $options['system_instruction'] ?? $this->build_system_instruction( $settings );
+		$this->settings_for_prompt = $settings;
+		if ( isset( $options['system_instruction'] ) ) {
+			// @phpstan-ignore-next-line
+			$this->system_instruction        = $options['system_instruction'];
+			$this->system_instruction_locked = true;
+		} else {
+			$this->system_instruction = $this->build_system_instruction( $settings );
+		}
 
 		// Tool permissions, YOLO mode, and resumable state.
 		// Options override settings for tool_permissions and yolo_mode so
@@ -181,7 +198,6 @@ class AgentLoop {
 			'prompt'     => 0,
 			'completion' => 0,
 		);
-
 	}
 
 	/**
@@ -202,6 +218,11 @@ class AgentLoop {
 		if ( is_wp_error( $budget_check ) ) {
 			return $budget_check;
 		}
+
+		// Clear per-call failure history so spin detection is per-run, and
+		// attribute subsequent telemetry to the configured model.
+		IdenticalFailureTracker::reset();
+		ModelHealthTracker::set_current_model( $this->model_id );
 
 		// Ensure provider auth is available (critical for loopback requests).
 		self::ensure_provider_credentials_static();
@@ -239,9 +260,9 @@ class AgentLoop {
 			} finally {
 				ChangeLogger::end();
 			}
-			// Truncate large tool results before adding to history.
+			// Truncate then split for OpenAI-compatible providers.
 			$truncated_message = self::truncate_tool_results( $response_message );
-			$this->history[]   = $truncated_message;
+			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $response_message );
 		} else {
 			// Remove the model's tool call message and tell the model the call was rejected.
@@ -396,9 +417,11 @@ class AgentLoop {
 			} finally {
 				ChangeLogger::end();
 			}
-			// Truncate large tool results before adding to history.
+			// Truncate large tool results before adding to history, then
+			// append (splitting multi-part responses for OpenAI-compatible
+			// providers that only accept one tool result per message).
 			$truncated_message = self::truncate_tool_results( $response_message );
-			$this->history[]   = $truncated_message;
+			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $response_message );
 
 			// Spin detection: if this round's tool calls are identical to the
@@ -520,11 +543,28 @@ class AgentLoop {
 		$builder = wp_ai_client_prompt();
 		/** @var \WP_AI_Client_Prompt_Builder $builder */
 
+		// Rebuild the system instruction unless the caller pinned a static
+		// override. This lets the manifest's "recently fetched ability
+		// schemas" block reach the model on subsequent turns.
+		if ( ! $this->system_instruction_locked ) {
+			$this->system_instruction = $this->build_system_instruction( $this->settings_for_prompt );
+		}
 		$builder->using_system_instruction( $this->system_instruction );
 		$this->configure_model( $builder );
 
+		// For known-weak models, force temperature 0 (less hallucination
+		// of arg shapes) and disable parallel tool calls (single-track
+		// models lose track of which result corresponds to which call).
+		$is_weak     = ModelHealthTracker::is_weak( $this->model_id );
+		$temperature = $is_weak ? 0.0 : (float) $this->temperature;
+
 		if ( method_exists( $builder, 'using_temperature' ) ) {
-			$builder->using_temperature( (float) $this->temperature );
+			$builder->using_temperature( $temperature );
+		}
+
+		if ( $is_weak && method_exists( $builder, 'using_custom_options' ) ) {
+			// @phpstan-ignore-next-line — using_custom_options() exists at runtime in WP 7.0.
+			$builder->using_custom_options( array( 'parallel_tool_calls' => false ) );
 		}
 
 		if ( method_exists( $builder, 'using_max_tokens' ) ) {
@@ -649,7 +689,6 @@ class AgentLoop {
 				);
 			}
 		}
-
 	}
 
 	/**
@@ -781,10 +820,15 @@ class AgentLoop {
 	}
 
 	/**
-	 * Resolve ability names to WP_Ability objects.
+	 * Resolve which abilities should be loaded as direct (Tier-1) tools for
+	 * this run. Returns the WP_Ability objects matching {@see ToolDiscovery::tier_1_for_run()}
+	 * (curated cold-start list ∪ top-N most-used ∪ meta-tools), filtered
+	 * through tool_permissions, the `ai_hidden` meta flag and any role-based
+	 * restrictions.
 	 *
-	 * Respects both the new `tool_permissions` setting and the legacy
-	 * `disabled_abilities` array for backward compatibility.
+	 * Tier-2 abilities are NOT returned here — the model sees them as a
+	 * name-only manifest in the system prompt and reaches them via
+	 * gratis-ai-agent/ability-search + ability-call.
 	 *
 	 * @return \WP_Ability[]
 	 */
@@ -793,98 +837,46 @@ class AgentLoop {
 			return array();
 		}
 
-		$all = wp_get_abilities();
-
-		// Hide abilities marked as ai_hidden from the model's tool list.
-		$all = array_filter(
-			$all,
-			function ( $ability ) {
-				$meta = $ability->get_meta();
-				return empty( $meta['ai_hidden'] );
-			}
-		);
-
-		// Use tool_permissions if set, otherwise fall back to disabled_abilities.
-		if ( ! empty( $this->tool_permissions ) ) {
-			$perms = $this->tool_permissions;
-			$all   = array_filter(
-				$all,
-				function ( $ability ) use ( $perms ) {
-					$perm = $perms[ $ability->get_name() ] ?? 'auto';
-					return 'disabled' !== $perm;
-				}
-			);
-		} else {
-			$disabled = $this->settings_service->get( 'disabled_abilities' );
-			if ( ! empty( $disabled ) && is_array( $disabled ) ) {
-				$all = array_filter(
-					$all,
-					function ( $ability ) use ( $disabled ) {
-						return ! in_array( $ability->get_name(), $disabled, true );
-					}
-				);
-			}
-		}
-
-		// Apply role-based ability restrictions for the current user.
-		// Administrators are unrestricted (get_allowed_abilities_for_current_user returns null).
-		$role_allowed = RolePermissions::get_allowed_abilities_for_current_user();
-		if ( null !== $role_allowed ) {
-			$all = array_filter(
-				$all,
-				function ( $ability ) use ( $role_allowed ) {
-					return in_array( $ability->get_name(), $role_allowed, true );
-				}
-			);
-		}
-
+		// Explicit per-instance override (e.g. from tests or CLI --abilities).
+		// When set, bypass the auto-discovery layer and return exactly what was asked for.
 		if ( ! empty( $this->abilities ) ) {
 			$resolved = array();
 			foreach ( $this->abilities as $name ) {
-				if ( isset( $all[ $name ] ) ) {
-					$resolved[] = $all[ $name ];
+				// @phpstan-ignore-next-line
+				$ability = wp_get_ability( $name );
+				if ( $ability instanceof \WP_Ability ) {
+					$resolved[] = $ability;
 				}
 			}
 			return $resolved;
 		}
 
-		// Apply tool profile filter.
-		$active_profile = $this->settings_service->get( 'active_tool_profile' );
-		if ( ! empty( $active_profile ) && 'all' !== $active_profile ) {
+		$tier_1 = ToolDiscovery::tier_1_for_run();
+
+		$role_allowed = RolePermissions::get_allowed_abilities_for_current_user();
+		$perms        = $this->tool_permissions;
+
+		$resolved = array();
+		foreach ( $tier_1 as $name ) {
+			if ( null !== $role_allowed && ! in_array( $name, $role_allowed, true ) ) {
+				continue;
+			}
+			if ( 'disabled' === ( $perms[ $name ] ?? 'auto' ) ) {
+				continue;
+			}
 			// @phpstan-ignore-next-line
-			$all = ToolProfiles::filter_abilities( $all, $active_profile );
+			$ability = wp_get_ability( $name );
+			if ( ! $ability instanceof \WP_Ability ) {
+				continue;
+			}
+			$meta = $ability->get_meta();
+			if ( ! empty( $meta['ai_hidden'] ) ) {
+				continue;
+			}
+			$resolved[] = $ability;
 		}
 
-		// Discovery mode: only load priority-category and priority-named tools.
-		if ( ToolDiscovery::should_use_discovery_mode() ) {
-			$priority_cats  = ToolDiscovery::get_priority_categories();
-			$priority_tools = ToolDiscovery::get_priority_tools();
-			$priority       = array_filter(
-				$all,
-				function ( $ability ) use ( $priority_cats, $priority_tools ) {
-					if ( in_array( $ability->get_category(), $priority_cats, true ) ) {
-						return true;
-					}
-
-					// Check if this ability matches a priority tool name.
-					$name = $ability->get_name();
-					foreach ( $priority_tools as $tool ) {
-						if ( $name === $tool ) {
-							return true;
-						}
-						$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
-						if ( str_ends_with( $name, '/' . $suffix ) ) {
-							return true;
-						}
-					}
-
-					return false;
-				}
-			);
-			return array_values( $priority );
-		}
-
-		return array_values( $all );
+		return $resolved;
 	}
 
 	/**
@@ -895,7 +887,7 @@ class AgentLoop {
 	private function get_ability_resolver(): WP_AI_Client_Ability_Function_Resolver {
 		if ( null === $this->ability_resolver ) {
 			$abilities              = $this->resolve_abilities();
-			$this->ability_resolver = new WP_AI_Client_Ability_Function_Resolver( ...$abilities );
+			$this->ability_resolver = new AbilityFunctionResolver( ...$abilities );
 		}
 		return $this->ability_resolver;
 	}
@@ -1090,13 +1082,22 @@ class AgentLoop {
 			}
 		}
 
-		// Append tool discovery instructions when discovery mode is active.
-		if ( ToolDiscovery::should_use_discovery_mode() ) {
-			$discovery_section = ToolDiscovery::get_system_prompt_section();
-			if ( ! empty( $discovery_section ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $discovery_section;
-			}
+		// Append the Tier-2 ability manifest so the model knows what's
+		// reachable via ability-search / ability-call. This is the heart of
+		// the auto-discovery layer.
+		$manifest = ToolDiscovery::build_manifest_section();
+		if ( '' !== $manifest ) {
+			// @phpstan-ignore-next-line
+			$base .= "\n\n" . $manifest;
+		}
+
+		// If the configured model is known to be weak at tool use (either
+		// by name heuristic or by accumulated telemetry), append explicit
+		// guidance about reading schemas and not retrying with the same
+		// arguments. Strong models don't get this — keeps their context lean.
+		if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
+			// @phpstan-ignore-next-line
+			$base .= "\n\n" . ModelHealthTracker::weak_model_prompt_nudge();
 		}
 
 		// Suggestion chips: instruct the AI to append follow-up suggestions.
@@ -1262,6 +1263,41 @@ class AgentLoop {
 			}
 		} catch ( \Throwable $e ) {
 			// Token tracking is best-effort.
+		}
+	}
+
+	/**
+	 * Append a tool-response message to history, splitting multi-part
+	 * function-response messages into one UserMessage per part.
+	 *
+	 * Anthropic accepts a single user message containing N function_response
+	 * parts; OpenAI-compatible providers (synthetic.new, Ollama, LM Studio,
+	 * etc.) require one `tool` role message per `tool_call_id`. The SDK's
+	 * OpenAI adapter only special-cases the single-part shape, so we have
+	 * to split here for portability.
+	 *
+	 * @param Message $message Tool-response message returned by the resolver.
+	 * @return void
+	 */
+	private function append_tool_response_to_history( Message $message ): void {
+		$parts = $message->getParts();
+
+		$has_function_response = false;
+		foreach ( $parts as $part ) {
+			$fr = method_exists( $part, 'getFunctionResponse' ) ? $part->getFunctionResponse() : null;
+			if ( $fr ) {
+				$has_function_response = true;
+				break;
+			}
+		}
+
+		if ( ! $has_function_response || count( $parts ) <= 1 ) {
+			$this->history[] = $message;
+			return;
+		}
+
+		foreach ( $parts as $part ) {
+			$this->history[] = new UserMessage( array( $part ) );
 		}
 	}
 

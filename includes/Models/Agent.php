@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Each agent is a named configuration that overrides the global defaults:
  * - system_prompt: custom instructions prepended to the base system prompt
  * - provider_id / model_id: override the default provider and model
- * - tool_profile: restrict available tools to a named profile
+ * - tool_profile: legacy, no longer applied — kept on the row for backward compatibility
  * - temperature / max_iterations: per-agent inference settings
  *
  * @package GratisAiAgent
@@ -291,9 +291,6 @@ class Agent {
 		}
 		if ( ! empty( $agent->model_id ) ) {
 			$options['model_id'] = $agent->model_id;
-		}
-		if ( ! empty( $agent->tool_profile ) ) {
-			$options['active_tool_profile'] = $agent->tool_profile;
 		}
 		if ( null !== $agent->temperature && '' !== $agent->temperature ) {
 			$options['temperature'] = (float) $agent->temperature;

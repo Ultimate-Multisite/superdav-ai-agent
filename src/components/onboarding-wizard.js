@@ -296,7 +296,6 @@ function OnboardingProviderRow( { provider, hasKey, onKeySaved } ) {
 export default function OnboardingWizard( { onComplete } ) {
 	const [ step, setStep ] = useState( 0 );
 	const [ abilities, setAbilities ] = useState( [] );
-	const [ disabledAbilities, setDisabledAbilities ] = useState( [] );
 	const [ wooStatus, setWooStatus ] = useState( null );
 	const [ wooLoading, setWooLoading ] = useState( false );
 	const [ wooOfferAccepted, setWooOfferAccepted ] = useState( false );
@@ -370,16 +369,9 @@ export default function OnboardingWizard( { onComplete } ) {
 			onboarding_complete: true,
 			default_provider: selectedProviderId,
 			default_model: selectedModelId,
-			disabled_abilities: disabledAbilities,
 		} );
 		onComplete();
-	}, [
-		saveSettings,
-		selectedProviderId,
-		selectedModelId,
-		disabledAbilities,
-		onComplete,
-	] );
+	}, [ saveSettings, selectedProviderId, selectedModelId, onComplete ] );
 
 	/**
 	 * Render the WooCommerce onboarding step content.
@@ -609,53 +601,29 @@ export default function OnboardingWizard( { onComplete } ) {
 				</div>
 			),
 		},
-		// Step 2: Abilities
+		// Step 2: Abilities overview (auto-discovery — no curation needed).
 		{
-			title: __( 'Configure Abilities', 'gratis-ai-agent' ),
+			title: __( 'Abilities', 'gratis-ai-agent' ),
 			content: (
 				<div className="gratis-ai-agent-wizard-abilities">
 					<p>
 						{ __(
-							'Choose which abilities the AI agent can use. You can change these later in settings.',
+							'The agent will automatically discover and use any ability registered by your installed plugins. You do not need to curate them — frequently-used abilities are loaded directly each turn, and the rest are reachable via the built-in ability search.',
 							'gratis-ai-agent'
 						) }
 					</p>
-					{ abilities.length === 0 && (
+					{ abilities.length > 0 && (
 						<p className="description">
-							{ __(
-								'No abilities registered yet. They will appear once plugins register them.',
-								'gratis-ai-agent'
+							{ sprintf(
+								/* translators: %d: number of abilities */
+								__(
+									'%d abilities are currently registered on this site.',
+									'gratis-ai-agent'
+								),
+								abilities.length
 							) }
 						</p>
 					) }
-					{ abilities.map( ( ability ) => {
-						const disabled = disabledAbilities.includes(
-							ability.name
-						);
-						return (
-							<ToggleControl
-								key={ ability.name }
-								label={ ability.label || ability.name }
-								help={ ability.description || '' }
-								checked={ ! disabled }
-								onChange={ ( enabled ) => {
-									if ( enabled ) {
-										setDisabledAbilities( ( prev ) =>
-											prev.filter(
-												( n ) => n !== ability.name
-											)
-										);
-									} else {
-										setDisabledAbilities( ( prev ) => [
-											...prev,
-											ability.name,
-										] );
-									}
-								} }
-								__nextHasNoMarginBottom
-							/>
-						);
-					} ) }
 				</div>
 			),
 		},

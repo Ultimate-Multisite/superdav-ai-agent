@@ -1,12 +1,11 @@
 /* Admin Page — full-page two-column layout */
 
-/* Prevent the outer page from scrolling on the AI Agent page.
-   The WordPress admin menu can be taller than the viewport, making
-   the body scrollable. Without this, focusing the chat input or
-   updating messages can inadvertently scroll the whole page. */
+/* Prevent the outer page from scrolling while the chat UI is mounted.
+   Scoped to the chat layout so other routes (Settings, Abilities, Changes)
+   can scroll normally. */
 /* stylelint-disable selector-class-pattern */
-html:has(body.toplevel_page_gratis-ai-agent),
-body.toplevel_page_gratis-ai-agent {
+html:has(body.toplevel_page_gratis-ai-agent .gratis-ai-agent-layout),
+body.toplevel_page_gratis-ai-agent:has(.gratis-ai-agent-layout) {
 	overflow: hidden;
 }
 

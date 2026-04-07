@@ -27,7 +27,6 @@ import {
 import STORE_NAME from '../store';
 import ErrorBoundary from '../components/error-boundary';
 import ModelPricingSelector from '../components/model-pricing-selector';
-import ProvidersManager from './providers-manager';
 import MemoryManager from './memory-manager';
 import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
@@ -82,7 +81,7 @@ export default function SettingsApp() {
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
 	const [ abilities, setAbilities ] = useState( [] );
-	const [ activeTab, setActiveTab ] = useState( 'providers' );
+	const [ activeTab, setActiveTab ] = useState( 'general' );
 
 	// Scroll affordance: ref to the wrapper div, state for fade indicators.
 	const tabsWrapperRef = useRef( null );
@@ -290,13 +289,9 @@ export default function SettingsApp() {
 		( p ) => p.id === local.default_provider
 	);
 
-	// Consolidated tab list: 18 tabs → 10 tabs.
+	// Consolidated tab list. Providers are configured network-wide via the
+	// WP Multisite WaaS Connectors page, so no Providers tab is rendered here.
 	const tabs = [
-		{
-			name: 'providers',
-			title: __( 'Providers', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
-		},
 		{
 			name: 'general',
 			title: __( 'General', 'gratis-ai-agent' ),
@@ -363,21 +358,28 @@ export default function SettingsApp() {
 					{ notice.message }
 				</Notice>
 			) }
+			<Notice
+				status="info"
+				isDismissible={ false }
+				className="gratis-ai-agent-providers-link-notice"
+			>
+				{ __(
+					'Provider API keys are configured network-wide on the Connectors page.',
+					'gratis-ai-agent'
+				) }{ ' ' }
+				<a
+					href={
+						window.gratisAiAgentData?.connectorsUrl ||
+						'options-connectors.php'
+					}
+				>
+					{ __( 'Open Connectors →', 'gratis-ai-agent' ) }
+				</a>
+			</Notice>
 			<div ref={ tabsWrapperRef } className={ scrollWrapperClasses }>
 				<TabPanel tabs={ tabs } onSelect={ setActiveTab }>
 					{ ( tab ) => {
 						switch ( tab.name ) {
-							case 'providers':
-								return (
-									<div className="gratis-ai-agent-settings-section">
-										<ProvidersManager
-											providerKeys={
-												local?._provider_keys || {}
-											}
-										/>
-									</div>
-								);
-
 							case 'general':
 								return (
 									<div className="gratis-ai-agent-settings-section">

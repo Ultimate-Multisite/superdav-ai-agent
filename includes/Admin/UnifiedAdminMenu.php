@@ -76,14 +76,16 @@ class UnifiedAdminMenu {
 		);
 
 		// Submenu items — all point to the same render callback.
+		// The first submenu uses the parent slug to replace the auto-generated
+		// duplicate WordPress creates when add_menu_page has a render callback.
 		$menu_items = self::getMenuItems();
-		foreach ( $menu_items as $item ) {
+		foreach ( $menu_items as $index => $item ) {
 			add_submenu_page(
 				self::SLUG,
 				$item['label'],
 				$item['label'],
 				$item['capability'],
-				self::SLUG . '#/' . $item['slug'],
+				0 === $index ? self::SLUG : self::SLUG . '#/' . $item['slug'],
 				array( __CLASS__, 'render' )
 			);
 		}
@@ -205,6 +207,9 @@ class UnifiedAdminMenu {
 				'nonce'           => wp_create_nonce( 'wp_rest' ),
 				'initialRoute'    => self::getCurrentRoute(),
 				'menuItems'       => self::getMenuItems(),
+				'connectorsUrl'   => is_multisite()
+					? network_admin_url( 'options-connectors.php' )
+					: admin_url( 'options-connectors.php' ),
 			)
 		);
 	}

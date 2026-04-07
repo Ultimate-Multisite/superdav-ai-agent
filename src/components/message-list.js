@@ -5,92 +5,6 @@ import { useSelect, useDispatch } from '@wordpress/data';
 import { useRef, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Spinner } from '@wordpress/components';
-import {
-	Icon,
-	shield,
-	plugins,
-	post,
-	trendingUp,
-	update,
-} from '@wordpress/icons';
-
-/** Heart icon SVG — not in @wordpress/icons, inline fallback. */
-const heartIcon = (
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		viewBox="0 0 24 24"
-		width="20"
-		height="20"
-		fill="currentColor"
-		aria-hidden="true"
-		focusable="false"
-	>
-		<path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" />
-	</svg>
-);
-
-/**
- * Suggestion cards shown in the empty state welcome screen.
- * Each card has a title, description, icon, and the prompt text to send on click.
- *
- * @type {Array<{title: string, description: string, prompt: string, icon: JSX.Element}>}
- */
-const SUGGESTION_CARDS = [
-	{
-		title: __( 'Check site health', 'gratis-ai-agent' ),
-		description: __(
-			'Run a full health check and surface any issues.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'Check site health', 'gratis-ai-agent' ),
-		icon: <Icon icon={ heartIcon } size={ 20 } />,
-	},
-	{
-		title: __( 'List plugins', 'gratis-ai-agent' ),
-		description: __(
-			'Show all installed plugins and their status.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'List installed plugins', 'gratis-ai-agent' ),
-		icon: <Icon icon={ plugins } size={ 20 } />,
-	},
-	{
-		title: __( 'Create a blog post', 'gratis-ai-agent' ),
-		description: __(
-			'Draft a new post with a title, content, and tags.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'Create a blog post', 'gratis-ai-agent' ),
-		icon: <Icon icon={ post } size={ 20 } />,
-	},
-	{
-		title: __( 'Run security check', 'gratis-ai-agent' ),
-		description: __(
-			'Scan for vulnerabilities and security misconfigurations.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'Run a security check', 'gratis-ai-agent' ),
-		icon: <Icon icon={ shield } size={ 20 } />,
-	},
-	{
-		title: __( 'Analyze SEO', 'gratis-ai-agent' ),
-		description: __(
-			'Review SEO settings and suggest improvements.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'Analyze SEO', 'gratis-ai-agent' ),
-		icon: <Icon icon={ trendingUp } size={ 20 } />,
-	},
-	{
-		title: __( 'Check for updates', 'gratis-ai-agent' ),
-		description: __(
-			'List available plugin, theme, and core updates.',
-			'gratis-ai-agent'
-		),
-		prompt: __( 'Check for updates', 'gratis-ai-agent' ),
-		icon: <Icon icon={ update } size={ 20 } />,
-	},
-];
 
 /**
  * Internal dependencies
@@ -240,48 +154,16 @@ function SuggestionChips( { suggestions, onSelect } ) {
 }
 
 /**
- * Rich welcome screen shown when the chat has no messages yet.
- * Displays a greeting and 6 clickable suggestion cards.
+ * Simple empty state shown when the chat has no messages yet.
  *
- * @param {Object}   props          - Component props.
- * @param {string}   props.greeting - Greeting text shown above the cards.
- * @param {Function} props.onSelect - Called with the prompt text when a card is clicked.
- * @return {JSX.Element} The empty state welcome element.
+ * @param {Object} props          - Component props.
+ * @param {string} props.greeting - Greeting text.
+ * @return {JSX.Element} The empty state element.
  */
-function EmptyStateWelcome( { greeting, onSelect } ) {
+function EmptyStateWelcome( { greeting } ) {
 	return (
 		<div className="gratis-ai-agent-empty-state">
-			<div className="gratis-ai-agent-welcome">
-				<p className="gratis-ai-agent-welcome__greeting">
-					{ greeting }
-				</p>
-				<div className="gratis-ai-agent-welcome__grid">
-					{ SUGGESTION_CARDS.map( ( card, i ) => (
-						<button
-							key={ i }
-							type="button"
-							className="gratis-ai-agent-welcome__card"
-							onClick={ () => onSelect( card.prompt ) }
-						>
-							<span className="gratis-ai-agent-welcome__card-icon">
-								{ card.icon }
-							</span>
-							<span className="gratis-ai-agent-welcome__card-title">
-								{ card.title }
-							</span>
-							<span className="gratis-ai-agent-welcome__card-desc">
-								{ card.description }
-							</span>
-						</button>
-					) ) }
-				</div>
-				<p className="gratis-ai-agent-welcome__hint">
-					{ __(
-						'Or type a message below to ask anything.',
-						'gratis-ai-agent'
-					) }
-				</p>
-			</div>
+			<p className="gratis-ai-agent-welcome__greeting">{ greeting }</p>
 		</div>
 	);
 }
@@ -441,10 +323,7 @@ export default function MessageList() {
 	return (
 		<div className="gratis-ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
-				<EmptyStateWelcome
-					greeting={ greeting }
-					onSelect={ sendMessage }
-				/>
+				<EmptyStateWelcome greeting={ greeting } />
 			) }
 			{ visibleMessages.map( ( { msg, originalIndex }, i ) => {
 				const rawText = extractText( msg );

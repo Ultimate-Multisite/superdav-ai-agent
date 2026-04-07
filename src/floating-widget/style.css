@@ -274,6 +274,13 @@
 	width: 100%;
 	box-sizing: border-box;
 	border-radius: 0;
+	overflow: hidden;
+	resize: none;
+	min-height: 28px;
+}
+
+.gratis-ai-agent-floating-panel .gratis-ai-agent-file-input {
+	display: none !important;
 }
 
 .gratis-ai-agent-floating-panel .gratis-ai-agent-send-btn {

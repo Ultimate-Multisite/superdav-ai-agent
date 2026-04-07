@@ -5,7 +5,7 @@ import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { Icon, arrowUp, pages, closeSmall } from '@wordpress/icons';
+import { Icon, arrowUp, closeSmall } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 
 /**
@@ -14,7 +14,6 @@ import apiFetch from '@wordpress/api-fetch';
 import STORE_NAME from '../store';
 import SlashCommandMenu from './slash-command-menu';
 import useSpeechRecognition from './use-speech-recognition';
-import ConversationTemplateMenu from './conversation-template-menu';
 
 /** Maximum file size in bytes (10 MB). */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -159,7 +158,6 @@ function AttachmentPreviews( { attachments, onRemove } ) {
 export default function MessageInput( { compact = false, onSlashCommand } ) {
 	const [ text, setText ] = useState( '' );
 	const [ showSlash, setShowSlash ] = useState( false );
-	const [ showTemplates, setShowTemplates ] = useState( false );
 	const [ attachments, setAttachments ] = useState( [] );
 	const [ isDragOver, setIsDragOver ] = useState( false );
 	const textareaRef = useRef( null );
@@ -510,15 +508,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		]
 	);
 
-	const handleTemplateSelect = useCallback( ( prompt ) => {
-		setText( ( prev ) => ( prev ? prev + '\n' + prompt : prompt ) );
-		setShowTemplates( false );
-		setTimeout(
-			() => textareaRef.current?.focus( { preventScroll: true } ),
-			0
-		);
-	}, [] );
-
 	const handleKeyDown = useCallback(
 		( e ) => {
 			// Don't intercept if slash menu is handling arrow keys.
@@ -545,12 +534,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			onDragLeave={ handleDragLeave }
 			onDrop={ handleDrop }
 		>
-			{ showTemplates && (
-				<ConversationTemplateMenu
-					onSelect={ handleTemplateSelect }
-					onClose={ () => setShowTemplates( false ) }
-				/>
-			) }
 			{ showSlash && (
 				<SlashCommandMenu
 					filter={ text }
@@ -568,16 +551,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				</div>
 			) }
 			<div className="gratis-ai-agent-input-row">
-				<Button
-					onClick={ () => setShowTemplates( ( v ) => ! v ) }
-					className={ `gratis-ai-agent-templates-btn${
-						showTemplates ? ' is-active' : ''
-					}` }
-					label={ __( 'Templates', 'gratis-ai-agent' ) }
-					showTooltip
-					icon={ <Icon icon={ pages } size={ 18 } /> }
-					disabled={ sending }
-				/>
 				{ /* Hidden file input */ }
 				<input
 					ref={ fileInputRef }
@@ -588,6 +561,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					onChange={ handleFileInputChange }
 					aria-hidden="true"
 					tabIndex={ -1 }
+					style={ { display: 'none' } }
 				/>
 				{ /* Upload button (paperclip) */ }
 				<Button

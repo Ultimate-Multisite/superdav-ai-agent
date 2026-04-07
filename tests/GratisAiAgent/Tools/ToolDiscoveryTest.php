@@ -1,6 +1,6 @@
 <?php
 /**
- * Test case for ToolDiscovery class.
+ * Test case for the rewritten ToolDiscovery auto-discovery layer.
  *
  * @package GratisAiAgent
  * @subpackage Tests
@@ -9,263 +9,233 @@
 
 namespace GratisAiAgent\Tests\Tools;
 
+use GratisAiAgent\Core\IdenticalFailureTracker;
+use GratisAiAgent\Tools\AbilityUsageTracker;
 use GratisAiAgent\Tools\ToolDiscovery;
 use WP_UnitTestCase;
 
-/**
- * Test ToolDiscovery functionality.
- */
 class ToolDiscoveryTest extends WP_UnitTestCase {
 
-	/**
-	 * Clean up filters after each test.
-	 */
+	private int $admin_id = 0;
+
+	public function set_up(): void {
+		parent::set_up();
+		AbilityUsageTracker::reset();
+		ToolDiscovery::reset_schema_cache();
+		IdenticalFailureTracker::reset();
+
+		// Most abilities require admin caps in their permission callbacks.
+		$this->admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $this->admin_id );
+		grant_super_admin( $this->admin_id );
+	}
+
 	public function tear_down(): void {
 		parent::tear_down();
-		remove_all_filters( 'gratis_ai_agent_priority_categories' );
-		remove_all_filters( 'gratis_ai_agent_priority_tools' );
+		remove_all_filters( 'gratis_ai_agent_ability_usage_instructions' );
+		AbilityUsageTracker::reset();
+		ToolDiscovery::reset_schema_cache();
+		IdenticalFailureTracker::reset();
 	}
 
-	// ── get_priority_categories ───────────────────────────────────────────
+	// ── tier_1_for_run ────────────────────────────────────────────────
 
-	/**
-	 * Test get_priority_categories returns an array.
-	 */
-	public function test_get_priority_categories_returns_array(): void {
-		$categories = ToolDiscovery::get_priority_categories();
-		$this->assertIsArray( $categories );
+	public function test_tier_1_always_includes_meta_tools(): void {
+		$tier_1 = ToolDiscovery::tier_1_for_run();
+
+		$this->assertContains( 'gratis-ai-agent/ability-search', $tier_1 );
+		$this->assertContains( 'gratis-ai-agent/ability-call', $tier_1 );
 	}
 
-	/**
-	 * Test get_priority_categories includes default categories.
-	 */
-	public function test_get_priority_categories_includes_defaults(): void {
-		$categories = ToolDiscovery::get_priority_categories();
+	public function test_tier_1_promotes_recently_used_abilities(): void {
+		// Pick an ability that exists in this install.
+		AbilityUsageTracker::record( 'gratis-ai-agent/get-plugins' );
+		AbilityUsageTracker::record( 'gratis-ai-agent/get-plugins' );
+		AbilityUsageTracker::record( 'gratis-ai-agent/get-plugins' );
 
-		$this->assertContains( 'gratis-ai-agent', $categories );
-		$this->assertContains( 'site', $categories );
-		$this->assertContains( 'user', $categories );
+		$tier_1 = ToolDiscovery::tier_1_for_run();
+
+		$this->assertContains( 'gratis-ai-agent/get-plugins', $tier_1 );
 	}
 
-	/**
-	 * Test get_priority_categories is filterable.
-	 */
-	public function test_get_priority_categories_is_filterable(): void {
-		add_filter(
-			'gratis_ai_agent_priority_categories',
-			function ( array $cats ): array {
-				$cats[] = 'custom-category';
-				return $cats;
-			}
-		);
+	public function test_tier_1_size_is_capped(): void {
+		$tier_1 = ToolDiscovery::tier_1_for_run();
 
-		$categories = ToolDiscovery::get_priority_categories();
-
-		$this->assertContains( 'custom-category', $categories );
+		// Cap is MAX_TIER_1 (15) plus the two meta-tools always added on top.
+		$this->assertLessThanOrEqual( ToolDiscovery::MAX_TIER_1 + 2, count( $tier_1 ) );
 	}
 
-	// ── get_priority_tools ────────────────────────────────────────────────
+	// ── ability-search ────────────────────────────────────────────────
 
-	/**
-	 * Test get_priority_tools returns an array.
-	 */
-	public function test_get_priority_tools_returns_array(): void {
-		$tools = ToolDiscovery::get_priority_tools();
-		$this->assertIsArray( $tools );
-	}
+	public function test_ability_search_returns_inline_schemas(): void {
+		$result = ToolDiscovery::handle_ability_search( [ 'query' => 'plugins' ] );
 
-	/**
-	 * Test get_priority_tools includes expected default tools.
-	 */
-	public function test_get_priority_tools_includes_defaults(): void {
-		$tools = ToolDiscovery::get_priority_tools();
-
-		$this->assertContains( 'wpcli/post/create', $tools );
-		$this->assertContains( 'wpcli/post/list', $tools );
-		$this->assertContains( 'wpcli/media/import', $tools );
-	}
-
-	/**
-	 * Test get_priority_tools is filterable.
-	 */
-	public function test_get_priority_tools_is_filterable(): void {
-		add_filter(
-			'gratis_ai_agent_priority_tools',
-			function ( array $tools ): array {
-				$tools[] = 'custom/my-priority-tool';
-				return $tools;
-			}
-		);
-
-		$tools = ToolDiscovery::get_priority_tools();
-
-		$this->assertContains( 'custom/my-priority-tool', $tools );
-	}
-
-	// ── should_use_discovery_mode ─────────────────────────────────────────
-
-	/**
-	 * Test should_use_discovery_mode returns bool.
-	 */
-	public function test_should_use_discovery_mode_returns_bool(): void {
-		$result = ToolDiscovery::should_use_discovery_mode();
-		$this->assertIsBool( $result );
-	}
-
-	/**
-	 * Test should_use_discovery_mode returns false when Abilities API unavailable.
-	 */
-	public function test_should_use_discovery_mode_false_without_abilities_api(): void {
-		// If wp_get_abilities doesn't exist, should return false.
-		if ( function_exists( 'wp_get_abilities' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; cannot test unavailable path.' );
-		}
-
-		$result = ToolDiscovery::should_use_discovery_mode();
-		$this->assertFalse( $result );
-	}
-
-	// ── get_discoverable_category_counts ──────────────────────────────────
-
-	/**
-	 * Test get_discoverable_category_counts returns array.
-	 */
-	public function test_get_discoverable_category_counts_returns_array(): void {
-		$counts = ToolDiscovery::get_discoverable_category_counts();
-		$this->assertIsArray( $counts );
-	}
-
-	/**
-	 * Test get_discoverable_category_counts returns empty array when Abilities API unavailable.
-	 */
-	public function test_get_discoverable_category_counts_empty_without_abilities_api(): void {
-		if ( function_exists( 'wp_get_abilities' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; cannot test unavailable path.' );
-		}
-
-		$counts = ToolDiscovery::get_discoverable_category_counts();
-		$this->assertEmpty( $counts );
-	}
-
-	// ── get_system_prompt_section ─────────────────────────────────────────
-
-	/**
-	 * Test get_system_prompt_section returns a string.
-	 */
-	public function test_get_system_prompt_section_returns_string(): void {
-		$result = ToolDiscovery::get_system_prompt_section();
-		$this->assertIsString( $result );
-	}
-
-	/**
-	 * Test get_system_prompt_section returns empty string when no discoverable tools.
-	 */
-	public function test_get_system_prompt_section_empty_when_no_discoverable_tools(): void {
-		if ( function_exists( 'wp_get_abilities' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; cannot test unavailable path.' );
-		}
-
-		$result = ToolDiscovery::get_system_prompt_section();
-		$this->assertSame( '', $result );
-	}
-
-	// ── handle_list_tools ─────────────────────────────────────────────────
-
-	/**
-	 * Test handle_list_tools returns WP_Error when Abilities API unavailable.
-	 */
-	public function test_handle_list_tools_returns_wp_error_without_abilities_api(): void {
-		if ( function_exists( 'wp_get_abilities' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; cannot test unavailable path.' );
-		}
-
-		$result = ToolDiscovery::handle_list_tools( [] );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'api_unavailable', $result->get_error_code() );
-	}
-
-	/**
-	 * Test handle_list_tools treats sequential array input as empty (no filters).
-	 */
-	public function test_handle_list_tools_treats_sequential_array_as_empty(): void {
-		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			$this->markTestSkipped( 'Abilities API not available.' );
-		}
-
-		// Sequential array (e.g. []) should be treated as no filters.
-		$result = ToolDiscovery::handle_list_tools( [] );
-
-		// Should return either category_overview or tools list, not an error.
 		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'results', $result );
+		$this->assertNotEmpty( $result['results'] );
+
+		$first = $result['results'][0];
+		$this->assertArrayHasKey( 'id', $first );
+		$this->assertArrayHasKey( 'input_schema', $first );
+		$this->assertArrayHasKey( 'output_schema', $first );
 	}
 
-	// ── handle_execute_tool ───────────────────────────────────────────────
-
-	/**
-	 * Test handle_execute_tool returns WP_Error when tool_name is empty.
-	 */
-	public function test_handle_execute_tool_empty_tool_name(): void {
-		$result = ToolDiscovery::handle_execute_tool( [ 'tool_name' => '' ] );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'missing_param', $result->get_error_code() );
-	}
-
-	/**
-	 * Test handle_execute_tool returns WP_Error when tool_name is missing.
-	 */
-	public function test_handle_execute_tool_missing_tool_name(): void {
-		$result = ToolDiscovery::handle_execute_tool( [] );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'missing_param', $result->get_error_code() );
-	}
-
-	/**
-	 * Test handle_execute_tool returns WP_Error when Abilities API unavailable.
-	 */
-	public function test_handle_execute_tool_returns_wp_error_without_abilities_api(): void {
-		if ( function_exists( 'wp_get_ability' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; cannot test unavailable path.' );
-		}
-
-		$result = ToolDiscovery::handle_execute_tool( [ 'tool_name' => 'some/tool' ] );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'api_unavailable', $result->get_error_code() );
-	}
-
-	/**
-	 * Test handle_execute_tool normalises wpab__ prefixed tool names.
-	 */
-	public function test_handle_execute_tool_normalises_wpab_prefix(): void {
-		if ( function_exists( 'wp_get_ability' ) ) {
-			$this->markTestSkipped( 'Abilities API is available; normalisation path leads to actual lookup.' );
-		}
-
-		// With wpab__ prefix, the tool name should be normalised before lookup.
-		// Since the API is unavailable, we expect api_unavailable error (not missing_param).
-		$result = ToolDiscovery::handle_execute_tool( [
-			'tool_name' => 'wpab__gratis-ai-agent__check-security',
-		] );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		// Should reach the API check, not the empty-name check.
-		$this->assertNotSame( 'missing_param', $result->get_error_code() );
-	}
-
-	// ── register ──────────────────────────────────────────────────────────
-
-	/**
-	 * Test register adds action hook.
-	 */
-	public function test_register_adds_action_hook(): void {
-		ToolDiscovery::register();
-
-		$this->assertGreaterThan(
-			0,
-			has_action( 'wp_abilities_api_init', [ ToolDiscovery::class, 'register_abilities' ] )
+	public function test_ability_search_select_form_returns_exact_matches(): void {
+		$result = ToolDiscovery::handle_ability_search(
+			[ 'query' => 'select:gratis-ai-agent/get-plugins,gratis-ai-agent/get-themes' ]
 		);
+
+		$ids = array_map(
+			static function ( $r ) {
+				return $r['id'];
+			},
+			$result['results']
+		);
+
+		$this->assertContains( 'gratis-ai-agent/get-plugins', $ids );
+		$this->assertContains( 'gratis-ai-agent/get-themes', $ids );
+	}
+
+	public function test_ability_search_respects_max_results(): void {
+		$result = ToolDiscovery::handle_ability_search(
+			[
+				'query'       => 'a',
+				'max_results' => 3,
+			]
+		);
+
+		$this->assertLessThanOrEqual( 3, count( $result['results'] ) );
+	}
+
+	public function test_ability_search_caches_schemas_for_recently_fetched_section(): void {
+		ToolDiscovery::handle_ability_search(
+			[ 'query' => 'select:gratis-ai-agent/get-plugins' ]
+		);
+
+		$section = ToolDiscovery::recently_fetched_section();
+		$this->assertStringContainsString( 'get-plugins', $section );
+	}
+
+	// ── ability-call ──────────────────────────────────────────────────
+
+	public function test_ability_call_executes_a_known_ability(): void {
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'   => 'gratis-ai-agent/get-plugins',
+				'arguments' => [],
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'success', $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertArrayHasKey( 'result', $result );
+	}
+
+	public function test_ability_call_records_usage(): void {
+		ToolDiscovery::handle_ability_call(
+			[
+				'ability'   => 'gratis-ai-agent/get-plugins',
+				'arguments' => [],
+			]
+		);
+
+		$top = AbilityUsageTracker::top( 5 );
+		$this->assertContains( 'gratis-ai-agent/get-plugins', $top );
+	}
+
+	public function test_ability_call_returns_error_for_unknown_ability(): void {
+		$this->setExpectedIncorrectUsage( 'WP_Abilities_Registry::get_registered' );
+
+		$result = ToolDiscovery::handle_ability_call(
+			[ 'ability' => 'no-such/ability' ]
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+	}
+
+	// ── manifest ──────────────────────────────────────────────────────
+
+	public function test_manifest_lists_tier_2_abilities(): void {
+		$manifest = ToolDiscovery::build_manifest_section();
+
+		$this->assertNotEmpty( $manifest );
+		$this->assertStringContainsString( '## Available Abilities', $manifest );
+	}
+
+	public function test_manifest_uses_usage_instructions_filter(): void {
+		add_filter(
+			'gratis_ai_agent_ability_usage_instructions',
+			static function ( $blocks ) {
+				$blocks['gratis-ai-agent'] = 'CUSTOM-INSTRUCTION-MARKER';
+				return $blocks;
+			}
+		);
+
+		$manifest = ToolDiscovery::build_manifest_section();
+
+		$this->assertStringContainsString( 'CUSTOM-INSTRUCTION-MARKER', $manifest );
+	}
+
+	public function test_manifest_inlines_required_fields_for_abilities(): void {
+		// memory-delete requires `id`. It's not in DEFAULT_TIER_1 so it
+		// appears in the manifest, and the line should include "Required: id".
+		$manifest = ToolDiscovery::build_manifest_section();
+
+		$this->assertMatchesRegularExpression(
+			'/`ai-agent\/memory-delete`.*Required:.*id/',
+			$manifest,
+			'Manifest line for memory-delete should include "Required: id".'
+		);
+	}
+
+	// ── validation error self-correction ──────────────────────────────
+
+	public function test_ability_call_inlines_schema_on_validation_error(): void {
+		// memory-save requires `category` and `content`. Calling with empty
+		// args should produce ability_invalid_input + the input_schema +
+		// example_arguments + missing_required_fields.
+		$result = ToolDiscovery::handle_ability_call(
+			array(
+				'ability'   => 'ai-agent/memory-save',
+				'arguments' => array(),
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( 'ability_invalid_input', $result['code'] );
+		$this->assertArrayHasKey( 'input_schema', $result );
+		$this->assertArrayHasKey( 'hint', $result );
+		$this->assertArrayHasKey( 'missing_required_fields', $result );
+		$this->assertArrayHasKey( 'example_arguments', $result );
+
+		// example_arguments should contain at least one of the required
+		// fields (whichever the validator complains about first).
+		$this->assertNotEmpty( $result['example_arguments'] );
+	}
+
+	public function test_ability_call_injects_nudge_after_two_identical_failures(): void {
+		$args = array();
+
+		// First call: gets the schema/hint but no nudge yet.
+		$first = ToolDiscovery::handle_ability_call(
+			array(
+				'ability'   => 'ai-agent/memory-save',
+				'arguments' => $args,
+			)
+		);
+		$this->assertArrayNotHasKey( 'nudge', $first );
+
+		// Second identical call: nudge appears.
+		$second = ToolDiscovery::handle_ability_call(
+			array(
+				'ability'   => 'ai-agent/memory-save',
+				'arguments' => $args,
+			)
+		);
+		$this->assertArrayHasKey( 'nudge', $second );
+		$this->assertStringContainsString( 'STOP', $second['nudge'] );
+		$this->assertStringContainsString( 'ai-agent/memory-save', $second['nudge'] );
 	}
 }

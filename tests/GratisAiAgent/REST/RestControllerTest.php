@@ -153,7 +153,6 @@ class RestControllerTest extends WP_UnitTestCase {
 			'/gratis-ai-agent/v1/usage',
 			'/gratis-ai-agent/v1/custom-tools',
 			'/gratis-ai-agent/v1/custom-tools/(?P<id>\d+)',
-			'/gratis-ai-agent/v1/tool-profiles',
 			'/gratis-ai-agent/v1/automations',
 			'/gratis-ai-agent/v1/automations/(?P<id>\d+)',
 			'/gratis-ai-agent/v1/event-automations',
@@ -960,72 +959,6 @@ class RestControllerTest extends WP_UnitTestCase {
 	public function test_custom_tools_requires_auth(): void {
 		wp_set_current_user( 0 );
 		$response = $this->dispatch( 'GET', '/gratis-ai-agent/v1/custom-tools' );
-		$this->assertStatus( 401, $response );
-	}
-
-	// ─── /tool-profiles ──────────────────────────────────────────────────────
-
-	/**
-	 * Test GET /tool-profiles returns list.
-	 */
-	public function test_list_tool_profiles(): void {
-		wp_set_current_user( $this->admin_id );
-		$response = $this->dispatch( 'GET', '/gratis-ai-agent/v1/tool-profiles' );
-		$this->assertStatus( 200, $response );
-		$this->assertIsArray( $response->get_data() );
-	}
-
-	/**
-	 * Test POST /tool-profiles creates a profile.
-	 */
-	public function test_create_tool_profile(): void {
-		wp_set_current_user( $this->admin_id );
-
-		// Use lowercase slug — sanitize_title() lowercases the value.
-		$slug = 'rest-test-profile-' . strtolower( wp_generate_password( 6, false ) );
-
-		$response = $this->dispatch( 'POST', '/gratis-ai-agent/v1/tool-profiles', [
-			'slug'       => $slug,
-			'name'       => 'REST Test Profile',
-			'tool_names' => [ 'memory_get', 'memory_set' ],
-		] );
-
-		$this->assertStatus( 200, $response );
-		$data = $response->get_data();
-		$this->assertArrayHasKey( 'slug', $data );
-		$this->assertSame( $slug, $data['slug'] );
-	}
-
-	/**
-	 * Test DELETE /tool-profiles/{slug} removes a profile.
-	 */
-	public function test_delete_tool_profile(): void {
-		wp_set_current_user( $this->admin_id );
-
-		// Use lowercase slug — sanitize_title() lowercases the value.
-		$slug = 'delete-profile-' . strtolower( wp_generate_password( 6, false ) );
-
-		// Create first.
-		$this->dispatch( 'POST', '/gratis-ai-agent/v1/tool-profiles', [
-			'slug' => $slug,
-			'name' => 'Profile To Delete',
-		] );
-
-		$request  = new WP_REST_Request( 'DELETE', "/gratis-ai-agent/v1/tool-profiles/{$slug}" );
-		$response = $this->server->dispatch( $request );
-
-		$this->assertStatus( 200, $response );
-		$data = $response->get_data();
-		$this->assertArrayHasKey( 'deleted', $data );
-		$this->assertTrue( $data['deleted'] );
-	}
-
-	/**
-	 * Test unauthenticated access to /tool-profiles is rejected.
-	 */
-	public function test_tool_profiles_requires_auth(): void {
-		wp_set_current_user( 0 );
-		$response = $this->dispatch( 'GET', '/gratis-ai-agent/v1/tool-profiles' );
 		$this->assertStatus( 401, $response );
 	}
 

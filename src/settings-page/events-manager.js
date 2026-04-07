@@ -24,7 +24,6 @@ function emptyForm() {
 		hook_name: '',
 		prompt_template: '',
 		conditions: '{}',
-		tool_profile: '',
 		max_iterations: 10,
 		enabled: true,
 	};
@@ -37,7 +36,6 @@ export default function EventsManager() {
 	const [ events, setEvents ] = useState( [] );
 	const [ loaded, setLoaded ] = useState( false );
 	const [ triggers, setTriggers ] = useState( [] );
-	const [ profiles, setProfiles ] = useState( [] );
 	const [ showForm, setShowForm ] = useState( false );
 	const [ editId, setEditId ] = useState( null );
 	const [ form, setForm ] = useState( emptyForm() );
@@ -47,16 +45,12 @@ export default function EventsManager() {
 
 	const fetchAll = useCallback( async () => {
 		try {
-			const [ result, trigs, prof ] = await Promise.all( [
+			const [ result, trigs ] = await Promise.all( [
 				apiFetch( { path: '/gratis-ai-agent/v1/event-automations' } ),
 				apiFetch( { path: '/gratis-ai-agent/v1/event-triggers' } ),
-				apiFetch( { path: '/gratis-ai-agent/v1/tool-profiles' } ).catch(
-					() => []
-				),
 			] );
 			setEvents( result );
 			setTriggers( trigs );
-			setProfiles( prof );
 		} catch {
 			setEvents( [] );
 		}
@@ -131,7 +125,6 @@ export default function EventsManager() {
 			hook_name: ev.hook_name,
 			prompt_template: ev.prompt_template,
 			conditions: JSON.stringify( ev.conditions || {}, null, 2 ),
-			tool_profile: ev.tool_profile || '',
 			max_iterations: ev.max_iterations || 10,
 			enabled: ev.enabled,
 		} );
@@ -219,11 +212,6 @@ export default function EventsManager() {
 	const selectedTrigger = triggers.find(
 		( t ) => t.hook_name === form.hook_name
 	);
-
-	const profileOptions = [
-		{ label: __( 'None (all tools)', 'gratis-ai-agent' ), value: '' },
-		...profiles.map( ( p ) => ( { label: p.name, value: p.slug } ) ),
-	];
 
 	return (
 		<div className="gratis-ai-agent-events-manager">
@@ -363,13 +351,6 @@ export default function EventsManager() {
 							'Optional. e.g., {"post_type":"post","new_status":"publish"}',
 							'gratis-ai-agent'
 						) }
-					/>
-					<SelectControl
-						label={ __( 'Tool Profile', 'gratis-ai-agent' ) }
-						value={ form.tool_profile }
-						options={ profileOptions }
-						onChange={ ( v ) => updateForm( 'tool_profile', v ) }
-						__nextHasNoMarginBottom
 					/>
 					<TextControl
 						label={ __( 'Max Iterations', 'gratis-ai-agent' ) }

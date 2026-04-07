@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * REST API controller for custom-tools, tool-profiles, abilities, and abilities-explorer.
+ * REST API controller for custom-tools, abilities, and abilities-explorer.
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -14,7 +14,6 @@ use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Tools\CustomToolExecutor;
 use GratisAiAgent\Tools\CustomTools;
-use GratisAiAgent\Tools\ToolProfiles;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -158,64 +157,6 @@ class ToolController {
 						'required' => false,
 						'type'     => 'object',
 						'default'  => array(),
-					),
-				),
-			)
-		);
-
-		// Tool Profiles endpoints.
-		register_rest_route(
-			self::NAMESPACE,
-			'/tool-profiles',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_tool_profiles' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_save_tool_profile' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'slug'        => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_title',
-						),
-						'name'        => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'description' => array(
-							'required'          => false,
-							'type'              => 'string',
-							'default'           => '',
-							'sanitize_callback' => 'sanitize_textarea_field',
-						),
-						'tool_names'  => array(
-							'required' => false,
-							'type'     => 'array',
-							'default'  => array(),
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/tool-profiles/(?P<slug>[a-z0-9-]+)',
-			array(
-				'methods'             => WP_REST_Server::DELETABLE,
-				'callback'            => array( $instance, 'handle_delete_tool_profile' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-				'args'                => array(
-					'slug' => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_title',
 					),
 				),
 			)
@@ -408,36 +349,5 @@ class ToolController {
 		$result = CustomToolExecutor::execute( $tool, $input );
 
 		return new WP_REST_Response( $result, 200 );
-	}
-
-	/**
-	 * List tool profiles.
-	 */
-	public function handle_list_tool_profiles(): WP_REST_Response {
-		return new WP_REST_Response( ToolProfiles::list(), 200 );
-	}
-
-	/**
-	 * Save (create or update) a tool profile.
-	 */
-	public function handle_save_tool_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$data = $request->get_json_params();
-
-		if ( ! ToolProfiles::save( $data ) ) {
-			return new WP_Error( 'save_failed', __( 'Failed to save tool profile.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
-		}
-
-		return new WP_REST_Response( ToolProfiles::get( $data['slug'] ), 200 );
-	}
-
-	/**
-	 * Delete a tool profile.
-	 */
-	public function handle_delete_tool_profile( WP_REST_Request $request ): WP_REST_Response {
-		$slug = $request->get_param( 'slug' );
-		// @phpstan-ignore-next-line
-		ToolProfiles::delete( $slug );
-
-		return new WP_REST_Response( array( 'deleted' => true ), 200 );
 	}
 }

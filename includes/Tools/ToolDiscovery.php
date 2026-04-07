@@ -2,11 +2,30 @@
 
 declare(strict_types=1);
 /**
- * Tool Discovery Mode for AI Agent.
+ * Auto-discovery layer for the AI agent's tool catalog.
  *
- * Provides meta-tools (list-tools, execute-tool) that let the AI agent
- * discover and run any registered ability on demand, reducing the number
- * of tools loaded per request from ~64 to ~11 priority tools.
+ * Two-tier design:
+ *
+ *   • Tier 1 (always loaded with full schemas) — a small curated cold-start
+ *     list unioned with the most-frequently-used abilities (top-N from
+ *     {@see AbilityUsageTracker}). The two meta-tools below are also always
+ *     part of Tier 1.
+ *
+ *   • Tier 2 (name + one-line description in the system prompt) — every
+ *     other registered ability, regardless of which plugin registered it.
+ *     The model fetches the full schema for any of them on demand via the
+ *     {@see ability-search} meta-tool.
+ *
+ * Two meta-tools:
+ *
+ *   • gratis-ai-agent/ability-search — keyword / select: / +substr search
+ *     across the registered ability catalog. Returns full input/output
+ *     schemas inline so the agent gets everything it needs in one call.
+ *
+ *   • gratis-ai-agent/ability-call — execute any ability by id with an
+ *     `arguments` object. (The bridge for Tier 2 abilities the model can't
+ *     call directly because their FunctionDeclaration wasn't sent in the
+ *     current turn.)
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -24,320 +43,527 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ToolDiscovery {
 
 	/**
-	 * Default priority categories — always loaded as direct tools.
+	 * Curated cold-start Tier 1 list. These are the abilities the agent
+	 * needs on its very first turn before any usage history exists. The
+	 * usage tracker can grow this list, but these names are always present.
+	 *
+	 * Keep this list short — every entry burns prompt tokens on every turn.
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_PRIORITY_CATEGORIES = [ 'gratis-ai-agent', 'site', 'user' ];
+	public const DEFAULT_TIER_1 = array(
+		'gratis-ai-agent/ability-search',
+		'gratis-ai-agent/ability-call',
+		// Memory + skill + knowledge are registered under the `ai-agent/`
+		// prefix by their feature classes, not under `gratis-ai-agent/`.
+		'ai-agent/memory-save',
+		'ai-agent/memory-list',
+		'ai-agent/skill-load',
+		'ai-agent/knowledge-search',
+		'gratis-ai-agent/get-plugins',
+		'gratis-ai-agent/get-themes',
+		'gratis-ai-agent/file-read',
+		'gratis-ai-agent/file-list',
+		'gratis-ai-agent/db-query',
+		'gratis-ai-agent/run-php',
+	);
 
 	/**
-	 * Default priority tool names — loaded directly even if their category
-	 * isn't in the priority categories list. These are the most commonly
-	 * needed WP-CLI tools for content creation workflows.
+	 * Hard cap on Tier 1 size (curated + tracked) excluding the two
+	 * meta-tools, which are always added on top.
+	 */
+	public const MAX_TIER_1 = 15;
+
+	/**
+	 * The two meta-tools — always present in Tier 1.
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_PRIORITY_TOOLS = [
-		'wpcli/site/create',
-		'wpcli/site/list',
-		'wpcli/post/create',
-		'wpcli/post/update',
-		'wpcli/post/list',
-		'wpcli/post/get',
-		'wpcli/media/import',
-		'wpcli/option/update',
-		'wpcli/option/get',
-		'wpcli/theme/list',
-		'wpcli/theme/activate',
-		'wpcli/plugin/list',
-	];
+	private const META_TOOLS = array(
+		'gratis-ai-agent/ability-search',
+		'gratis-ai-agent/ability-call',
+	);
 
 	/**
 	 * Register the meta-tool abilities.
 	 */
 	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
+		add_action( 'wp_abilities_api_init', array( __CLASS__, 'register_abilities' ) );
 	}
 
 	/**
-	 * Register the list-tools and execute-tool abilities.
+	 * Register the ability-search and ability-call meta-tools.
 	 *
-	 * Skips registration entirely when there are no discoverable tools
-	 * (i.e. all registered abilities fall within priority categories/tools),
-	 * so the AI is never offered meta-tools that would return empty results.
+	 * @return void
 	 */
 	public static function register_abilities(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
 			return;
 		}
 
-		// Count how many tools would be discoverable (not in priority categories).
-		$discoverable_count = array_sum( self::get_discoverable_category_counts() );
-		if ( 0 === $discoverable_count ) {
-			return;
-		}
-
 		wp_register_ability(
-			'gratis-ai-agent/list-tools',
-			[
-				'label'               => __( 'List Tools', 'gratis-ai-agent' ),
-				'description'         => __( 'Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter.', 'gratis-ai-agent' ),
+			'gratis-ai-agent/ability-search',
+			array(
+				'label'               => __( 'Search Abilities', 'gratis-ai-agent' ),
+				'description'         => __( 'Search the full catalog of registered WordPress abilities and return matching ids together with their full input/output schemas. Use this whenever you need an ability that is not already loaded in your tool list. Query forms: bare keywords for ranked search ("create site"), `select:foo,bar` to fetch specific abilities by id, or `+substr keyword` to require a substring before ranking.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
+				'input_schema'        => array(
 					'type'       => 'object',
-					'properties' => [
-						'query'    => [
+					'properties' => array(
+						'query'       => array(
 							'type'        => 'string',
-							'description' => 'Search query to fuzzy-match against tool names and descriptions.',
-						],
-						'category' => [
-							'type'        => 'string',
-							'description' => 'Filter tools by category slug.',
-						],
-						'page'     => [
+							'description' => 'Keywords, "select:id1,id2", or "+substr keyword". Required.',
+						),
+						'max_results' => array(
 							'type'        => 'integer',
-							'description' => 'Page number for pagination (default: 1).',
-							'default'     => 1,
-						],
-						'per_page' => [
-							'type'        => 'integer',
-							'description' => 'Tools per page (default: 20, max: 50).',
-							'default'     => 20,
-						],
-					],
-				],
-				'meta'                => [
+							'description' => 'Maximum number of abilities to return (default 10, hard max 25).',
+							'default'     => 10,
+						),
+					),
+					'required'   => array( 'query' ),
+				),
+				'meta'                => array(
 					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_list_tools' ],
-				'permission_callback' => function () {
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+				'execute_callback'    => array( __CLASS__, 'handle_ability_search' ),
+				'permission_callback' => static function () {
 					return current_user_can( 'manage_options' );
 				},
-			]
+			)
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/execute-tool',
-			[
-				'label'               => __( 'Execute Tool', 'gratis-ai-agent' ),
-				'description'         => __( 'Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval.', 'gratis-ai-agent' ),
+			'gratis-ai-agent/ability-call',
+			array(
+				'label'               => __( 'Call Ability', 'gratis-ai-agent' ),
+				'description'         => __( 'Execute any registered ability by its id, passing the matching arguments object. Use ability-search first if you do not already know the input schema.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
-				'input_schema'        => [
+				'input_schema'        => array(
 					'type'       => 'object',
-					'properties' => [
-						'tool_name'  => [
+					'properties' => array(
+						'ability'   => array(
 							'type'        => 'string',
-							'description' => 'The ability name to execute (e.g. "wpcli/wp-cli").',
-						],
-						'parameters' => [
+							'description' => 'The ability id to invoke (e.g. "multisite-ultimate/site-create-item").',
+						),
+						'arguments' => array(
 							'type'        => 'object',
-							'description' => 'Parameters to pass to the tool.',
-						],
-						'confirmed'  => [
-							'type'        => 'boolean',
-							'description' => 'Set to true to confirm execution of tools that require confirmation.',
-							'default'     => false,
-						],
-					],
-					'required'   => [ 'tool_name' ],
-				],
-				'meta'                => [
+							'description' => 'Arguments object that matches the ability\'s input schema.',
+						),
+					),
+					'required'   => array( 'ability' ),
+				),
+				'meta'                => array(
 					'show_in_rest' => true,
-				],
-				'execute_callback'    => [ __CLASS__, 'handle_execute_tool' ],
-				'permission_callback' => function () {
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => false,
+						'destructive' => false,
+					),
+				),
+				'execute_callback'    => array( __CLASS__, 'handle_ability_call' ),
+				'permission_callback' => static function () {
 					return current_user_can( 'manage_options' );
 				},
-			]
+			)
 		);
 	}
 
+	// ─── Tier-1 selection ────────────────────────────────────────────────
+
 	/**
-	 * Handle the list-tools ability call.
+	 * Return the list of ability names that should be loaded as Tier 1 for
+	 * this run. This is the curated cold-start list unioned with the
+	 * top-N most-frequently used abilities, capped at MAX_TIER_1, plus the
+	 * two meta-tools.
 	 *
-	 * @param array<string, mixed> $input The input parameters.
-	 * @return array<string, mixed>|\WP_Error The result or WP_Error on failure.
+	 * Disabled or non-existent abilities are filtered out.
+	 *
+	 * @return string[]
 	 */
-	public static function handle_list_tools( array $input ): array|\WP_Error {
+	public static function tier_1_for_run(): array {
+		$tracked = AbilityUsageTracker::top( self::MAX_TIER_1 );
+		$curated = self::DEFAULT_TIER_1;
+
+		// Tracked first (so the most-used floats to the top of the list);
+		// curated entries fill remaining slots up to the cap.
+		$names = array_values( array_unique( array_merge( $tracked, $curated ) ) );
+
+		// Hard cap, then re-add meta-tools so they survive truncation.
+		if ( count( $names ) > self::MAX_TIER_1 ) {
+			$names = array_slice( $names, 0, self::MAX_TIER_1 );
+		}
+		foreach ( self::META_TOOLS as $meta ) {
+			if ( ! in_array( $meta, $names, true ) ) {
+				$names[] = $meta;
+			}
+		}
+
+		// Filter against actually-registered, non-disabled abilities so
+		// callers don't have to recheck.
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			return array();
+		}
+		$perms  = self::tool_permissions();
+		$result = array();
+		foreach ( $names as $name ) {
+			if ( 'disabled' === ( $perms[ $name ] ?? 'auto' ) ) {
+				continue;
+			}
+			// @phpstan-ignore-next-line
+			$ability = wp_get_ability( $name );
+			if ( $ability instanceof \WP_Ability ) {
+				$result[] = $name;
+			}
+		}
+
+		return $result;
+	}
+
+	// ─── Tier-2 manifest ─────────────────────────────────────────────────
+
+	/**
+	 * Build the Tier-2 manifest section that is injected into the system
+	 * prompt every turn. Lists every visible ability that is NOT in Tier 1
+	 * by id + one-line description, grouped by category.
+	 *
+	 * @return string An empty string when there are no Tier-2 abilities.
+	 */
+	public static function build_manifest_section(): string {
+		if ( ! function_exists( 'wp_get_abilities' ) ) {
+			return '';
+		}
+
+		$tier_1_set = array_flip( self::tier_1_for_run() );
+		$perms      = self::tool_permissions();
+		$by_cat     = array();
+
+		foreach ( wp_get_abilities() as $ability ) {
+			$name = $ability->get_name();
+
+			if ( isset( $tier_1_set[ $name ] ) ) {
+				continue;
+			}
+
+			$meta = $ability->get_meta();
+			if ( ! empty( $meta['ai_hidden'] ) ) {
+				continue;
+			}
+
+			if ( 'disabled' === ( $perms[ $name ] ?? 'auto' ) ) {
+				continue;
+			}
+
+			$cat = $ability->get_category();
+			if ( '' === $cat ) {
+				$cat = 'uncategorized';
+			}
+
+			$desc = (string) $ability->get_description();
+			if ( strlen( $desc ) > 140 ) {
+				$desc = substr( $desc, 0, 137 ) . '...';
+			}
+
+			// Pull out the `required` field from the input schema so the
+			// model sees the minimum arg shape inline and stops guessing
+			// empty arguments. Cheap (~5 tokens per ability with required
+			// fields) but a major win for weaker models.
+			// @phpstan-ignore-next-line — get_input_schema() exists at runtime in WP 7.0.
+			$schema_required = array();
+			$schema          = $ability->get_input_schema();
+			if ( is_array( $schema ) && isset( $schema['required'] ) && is_array( $schema['required'] ) ) {
+				$schema_required = array_values(
+					array_filter(
+						$schema['required'],
+						static function ( $r ) {
+							return is_string( $r ) && '' !== $r;
+						}
+					)
+				);
+			}
+
+			$by_cat[ $cat ][] = array(
+				'name'     => $name,
+				'desc'     => $desc,
+				'required' => $schema_required,
+			);
+		}
+
+		if ( empty( $by_cat ) ) {
+			return '';
+		}
+
+		ksort( $by_cat );
+
+		$instructions  = self::usage_instructions();
+		$category_meta = self::category_metadata();
+
+		$lines   = array();
+		$lines[] = '## Available Abilities';
+		$lines[] = 'The abilities listed below are NOT loaded as direct tools — call `gratis-ai-agent/ability-search` with a keyword query (or `select:id1,id2`) to retrieve their full schemas, then call `gratis-ai-agent/ability-call` to invoke them.';
+		$lines[] = '';
+
+		foreach ( $by_cat as $cat => $entries ) {
+			$heading = isset( $category_meta[ $cat ]['label'] )
+				? $category_meta[ $cat ]['label'] . " (`{$cat}`)"
+				: "`{$cat}`";
+			$lines[] = "### {$heading}";
+
+			if ( ! empty( $instructions[ $cat ] ) ) {
+				$lines[] = $instructions[ $cat ];
+			} elseif ( ! empty( $category_meta[ $cat ]['description'] ) ) {
+				$lines[] = $category_meta[ $cat ]['description'];
+			}
+
+			usort(
+				$entries,
+				static function ( $a, $b ) {
+					return strcmp( $a['name'], $b['name'] );
+				}
+			);
+
+			foreach ( $entries as $e ) {
+				$line = "- `{$e['name']}` — {$e['desc']}";
+				if ( ! empty( $e['required'] ) ) {
+					$line .= ' Required: ' . implode( ', ', $e['required'] );
+				}
+				$lines[] = $line;
+			}
+			$lines[] = '';
+		}
+
+		// Append any cached schemas the agent fetched on a previous turn so
+		// it can re-use them without spending another search call.
+		$cache_section = self::recently_fetched_section();
+		if ( '' !== $cache_section ) {
+			$lines[] = $cache_section;
+		}
+
+		return rtrim( implode( "\n", $lines ) );
+	}
+
+	/**
+	 * Per-category usage instructions, supplied by plugin authors via the
+	 * `gratis_ai_agent_ability_usage_instructions` filter. Maps category
+	 * slug => prose blurb the model sees in the manifest.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function usage_instructions(): array {
+		/**
+		 * Filter the prose usage instructions injected into the system
+		 * prompt under each ability category. Maps category slug => string.
+		 *
+		 * @param array<string, string> $blocks
+		 */
+		$blocks = (array) apply_filters( 'gratis_ai_agent_ability_usage_instructions', array() );
+		$out    = array();
+		foreach ( $blocks as $cat => $text ) {
+			if ( is_string( $cat ) && '' !== $cat && is_string( $text ) && '' !== $text ) {
+				$out[ $cat ] = $text;
+			}
+		}
+		return $out;
+	}
+
+	// ─── ability-search handler ──────────────────────────────────────────
+
+	/**
+	 * Handle a call to gratis-ai-agent/ability-search.
+	 *
+	 * @param array<string, mixed> $input The input arguments from the model.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	public static function handle_ability_search( array $input ) {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
 			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
 		}
 
-		// An empty JSON array ([]) is semantically equivalent to an empty object ({})
-		// here — both mean "no filters applied". When the AI sends [] instead of {},
-		// treat it as having no filter parameters (query='', category='', defaults apply).
-		// array_values() check: if $input is a non-empty sequential (list) array,
-		// it was likely passed incorrectly; ignore it and use defaults.
-		if ( ! empty( $input ) && array_values( $input ) === $input ) {
-			// Sequential array passed where associative object expected — treat as empty.
-			$input = [];
-		}
-
-		$query    = $input['query'] ?? '';
-		$category = $input['category'] ?? '';
+		$query_raw = isset( $input['query'] ) ? trim( (string) $input['query'] ) : '';
 		// @phpstan-ignore-next-line
-		$page = max( 1, (int) ( $input['page'] ?? 1 ) );
-		// @phpstan-ignore-next-line
-		$per_page = min( 50, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
+		$max_results = isset( $input['max_results'] ) ? (int) $input['max_results'] : 10;
+		$max_results = max( 1, min( 25, $max_results ) );
 
-		$all        = wp_get_abilities();
-		$perms      = Settings::get( 'tool_permissions' ) ?: [];
-		$priorities = self::get_priority_categories();
+		$candidates = self::visible_abilities();
 
-		// Filter out disabled tools and priority tools (already loaded directly).
-		$priority_tools = self::get_priority_tools();
-		$tools          = [];
-		foreach ( $all as $ability ) {
-			$name = $ability->get_name();
-			// @phpstan-ignore-next-line
-			$perm = $perms[ $name ] ?? 'auto';
-
-			if ( 'disabled' === $perm ) {
-				continue;
-			}
-
-			if ( in_array( $ability->get_category(), $priorities, true ) ) {
-				continue;
-			}
-
-			if ( self::is_priority_tool( $ability, $priority_tools ) ) {
-				continue;
-			}
-
-			$tools[] = $ability;
-		}
-
-		// If no query and no category filter, return category overview.
-		if ( '' === $query && '' === $category ) {
-			$categories = self::count_categories( $tools );
-
-			return [
-				'mode'       => 'category_overview',
-				'categories' => $categories,
-				'total'      => count( $tools ),
-				'hint'       => 'Use category or query parameter to browse specific tools.',
-			];
-		}
-
-		// Filter by category.
-		if ( '' !== $category ) {
-			$tools = array_filter(
-				$tools,
-				function ( $ability ) use ( $category ) {
-					return $ability->get_category() === $category;
-				}
-			);
-			$tools = array_values( $tools );
-		}
-
-		// Fuzzy search by query.
-		if ( '' !== $query ) {
-			// @phpstan-ignore-next-line
-			$query_lower = strtolower( $query );
-			$scored      = [];
-
-			foreach ( $tools as $ability ) {
-				$name_lower  = strtolower( $ability->get_name() );
-				$label_lower = strtolower( $ability->get_label() );
-				$desc_lower  = strtolower( $ability->get_description() );
-
-				$score = 0;
-
-				// Exact name match.
-				if ( $name_lower === $query_lower ) {
-					$score += 100;
-				} elseif ( str_contains( $name_lower, $query_lower ) ) {
-					$score += 50;
-				}
-
-				// Label match.
-				if ( str_contains( $label_lower, $query_lower ) ) {
-					$score += 30;
-				}
-
-				// Description match.
-				if ( str_contains( $desc_lower, $query_lower ) ) {
-					$score += 10;
-				}
-
-				// Word-level matching for multi-word queries.
-				$words = preg_split( '/[\s\-_\/]+/', $query_lower );
-				if ( is_array( $words ) && count( $words ) > 1 ) {
-					$haystack = $name_lower . ' ' . $label_lower . ' ' . $desc_lower;
-					foreach ( $words as $word ) {
-						if ( '' !== $word && str_contains( $haystack, $word ) ) {
-							$score += 5;
-						}
+		// `select:foo,bar` exact-id form.
+		if ( str_starts_with( $query_raw, 'select:' ) ) {
+			$ids   = array_filter( array_map( 'trim', explode( ',', substr( $query_raw, 7 ) ) ) );
+			$found = array();
+			foreach ( $ids as $id ) {
+				foreach ( $candidates as $a ) {
+					if ( $a->get_name() === $id ) {
+						$found[] = $a;
+						break;
 					}
 				}
-
-				if ( $score > 0 ) {
-					$scored[] = [
-						'ability' => $ability,
-						'score'   => $score,
-					];
-				}
 			}
+			return self::format_search_response( $query_raw, $found, count( $found ) );
+		}
 
-			usort(
-				$scored,
-				function ( $a, $b ) {
-					return $b['score'] - $a['score'];
-				}
-			);
+		// `+substr keyword` required-substring form.
+		$require = '';
+		$query   = $query_raw;
+		if ( str_starts_with( $query, '+' ) ) {
+			$parts   = preg_split( '/\s+/', $query, 2 );
+			$parts   = is_array( $parts ) ? $parts : array( $query );
+			$require = strtolower( substr( (string) $parts[0], 1 ) );
+			$query   = isset( $parts[1] ) ? (string) $parts[1] : '';
+		}
 
-			$tools = array_map(
-				function ( $item ) {
-					return $item['ability'];
-				},
-				$scored
+		if ( '' !== $require ) {
+			$candidates = array_values(
+				array_filter(
+					$candidates,
+					static function ( $a ) use ( $require ) {
+						return str_contains( strtolower( $a->get_name() . ' ' . $a->get_label() . ' ' . $a->get_description() ), $require );
+					}
+				)
 			);
 		}
 
-		$total  = count( $tools );
-		$offset = ( $page - 1 ) * $per_page;
-		$paged  = array_slice( $tools, $offset, $per_page );
-
-		$results = [];
-		foreach ( $paged as $ability ) {
-			$results[] = self::format_tool_summary( $ability );
+		// If the query is empty after handling +require, just return the
+		// filtered list (no scoring).
+		if ( '' === trim( $query ) ) {
+			$slice = array_slice( $candidates, 0, $max_results );
+			return self::format_search_response( $query_raw, $slice, count( $candidates ) );
 		}
 
-		// Collect categories from the full (pre-paged) set.
-		$categories = self::count_categories( $tools );
+		$ranked = self::rank( $candidates, $query );
+		$slice  = array_slice( $ranked, 0, $max_results );
 
-		return [
-			'tools'      => $results,
-			'total'      => $total,
-			'page'       => $page,
-			'per_page'   => $per_page,
-			'categories' => $categories,
-		];
+		return self::format_search_response( $query_raw, $slice, count( $ranked ) );
 	}
 
 	/**
-	 * Handle the execute-tool ability call.
+	 * Score and sort abilities by how well they match a free-text query.
+	 * Same scoring rules as the legacy list-tools fuzzy search.
 	 *
-	 * @param array<string, mixed> $input The input parameters.
-	 * @return array<string, mixed>|\WP_Error The result or WP_Error on failure.
+	 * @param \WP_Ability[] $abilities Candidate abilities to score.
+	 * @param string        $query     The free-text query to score against.
+	 * @return \WP_Ability[]
 	 */
-	public static function handle_execute_tool( array $input ): array|\WP_Error {
-		$tool_name  = $input['tool_name'] ?? '';
-		$parameters = $input['parameters'] ?? null;
-		$confirmed  = $input['confirmed'] ?? false;
+	private static function rank( array $abilities, string $query ): array {
+		$q = strtolower( $query );
 
-		if ( '' === $tool_name ) {
-			return new WP_Error( 'missing_param', __( 'tool_name is required.', 'gratis-ai-agent' ) );
+		$split = preg_split( '/[\s\-_\/]+/', $q );
+		$words = array_values(
+			array_filter(
+				is_array( $split ) ? $split : array(),
+				static function ( $w ) {
+					return '' !== $w;
+				}
+			)
+		);
+
+		$scored = array();
+		foreach ( $abilities as $ability ) {
+			$name  = strtolower( $ability->get_name() );
+			$label = strtolower( $ability->get_label() );
+			$desc  = strtolower( $ability->get_description() );
+
+			$score = 0;
+			if ( $name === $q ) {
+				$score += 100;
+			} elseif ( str_contains( $name, $q ) ) {
+				$score += 50;
+			}
+			if ( str_contains( $label, $q ) ) {
+				$score += 30;
+			}
+			if ( str_contains( $desc, $q ) ) {
+				$score += 10;
+			}
+
+			if ( count( $words ) > 1 ) {
+				$haystack = $name . ' ' . $label . ' ' . $desc;
+				foreach ( $words as $w ) {
+					if ( str_contains( $haystack, $w ) ) {
+						$score += 5;
+					}
+				}
+			}
+
+			if ( $score > 0 ) {
+				$scored[] = array(
+					'ability' => $ability,
+					'score'   => $score,
+				);
+			}
 		}
 
-		// Normalize tool names that arrive in the Abilities API wire format
-		// (e.g. "wpab__gratis-ai-agent__check-security" → "gratis-ai-agent/check-security").
-		// The Abilities API encodes "/" as "__" and prefixes with "wpab__".
-		// @phpstan-ignore-next-line
-		if ( str_starts_with( $tool_name, 'wpab__' ) ) {
-			// @phpstan-ignore-next-line
-			$tool_name = substr( $tool_name, strlen( 'wpab__' ) );
-			$tool_name = str_replace( '__', '/', $tool_name );
+		usort(
+			$scored,
+			static function ( $a, $b ) {
+				return $b['score'] - $a['score'];
+			}
+		);
+
+		return array_map(
+			static function ( $row ) {
+				return $row['ability'];
+			},
+			$scored
+		);
+	}
+
+	/**
+	 * Build the response payload for ability-search, caching schemas as we
+	 * format them so subsequent turns can re-inject them via
+	 * recently_fetched_section().
+	 *
+	 * @param string        $query     The original query string for echo.
+	 * @param \WP_Ability[] $abilities The page of results.
+	 * @param int           $total     Total matches before slicing.
+	 * @return array<string, mixed>
+	 */
+	private static function format_search_response( string $query, array $abilities, int $total ): array {
+		$results = array();
+		foreach ( $abilities as $ability ) {
+			$name   = $ability->get_name();
+			$schema = self::serialise_schema( $ability->get_input_schema() );
+			// @phpstan-ignore-next-line — get_output_schema() exists at runtime in WP 7.0.
+			$out = self::serialise_schema( $ability->get_output_schema() );
+
+			self::cache_schema( $name );
+
+			$results[] = array(
+				'id'            => $name,
+				'label'         => $ability->get_label(),
+				'description'   => $ability->get_description(),
+				'category'      => $ability->get_category(),
+				'input_schema'  => $schema,
+				'output_schema' => $out,
+			);
+		}
+
+		return array(
+			'query'   => $query,
+			'total'   => $total,
+			'count'   => count( $results ),
+			'results' => $results,
+			'hint'    => 'Use gratis-ai-agent/ability-call with the chosen `id` and an `arguments` object that matches `input_schema`.',
+		);
+	}
+
+	// ─── ability-call handler ────────────────────────────────────────────
+
+	/**
+	 * Handle a call to gratis-ai-agent/ability-call.
+	 *
+	 * @param array<string, mixed> $input The input arguments from the model.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	public static function handle_ability_call( array $input ) {
+		$ability_id = isset( $input['ability'] ) ? (string) $input['ability'] : '';
+		$args       = $input['arguments'] ?? array();
+
+		if ( '' === $ability_id ) {
+			return new WP_Error( 'invalid_argument', __( 'ability is required.', 'gratis-ai-agent' ) );
 		}
 
 		if ( ! function_exists( 'wp_get_ability' ) ) {
@@ -345,292 +571,226 @@ class ToolDiscovery {
 		}
 
 		// @phpstan-ignore-next-line
-		$ability = wp_get_ability( $tool_name );
-
+		$ability = wp_get_ability( $ability_id );
 		if ( ! $ability instanceof \WP_Ability ) {
 			return new WP_Error(
-				'not_found',
+				'ability_not_found',
 				sprintf(
-					/* translators: %s: tool name */
-					__( 'Tool "%s" not found.', 'gratis-ai-agent' ),
-					// @phpstan-ignore-next-line
-					$tool_name
+					/* translators: %s: ability id */
+					__( 'Ability "%s" not found.', 'gratis-ai-agent' ),
+					$ability_id
 				)
 			);
 		}
 
-		// Check tool permissions.
-		$perms = Settings::get( 'tool_permissions' ) ?: [];
-		// @phpstan-ignore-next-line
-		$permission = $perms[ $tool_name ] ?? 'auto';
-
-		if ( 'disabled' === $permission ) {
+		$perms = self::tool_permissions();
+		if ( 'disabled' === ( $perms[ $ability_id ] ?? 'auto' ) ) {
 			return new WP_Error(
-				'tool_disabled',
+				'ability_disabled',
 				sprintf(
-					/* translators: %s: tool name */
-					__( 'Tool "%s" is disabled.', 'gratis-ai-agent' ),
-					// @phpstan-ignore-next-line
-					$tool_name
+					/* translators: %s: ability id */
+					__( 'Ability "%s" is disabled.', 'gratis-ai-agent' ),
+					$ability_id
 				)
 			);
 		}
 
-		if ( 'confirm' === $permission && ! $confirmed ) {
-			return [
-				'needs_confirmation' => true,
-				'tool_name'          => $tool_name,
-				'message'            => sprintf(
-					'The tool "%s" requires user confirmation before execution. Ask the user for permission, then call execute-tool again with confirmed: true.',
-					// @phpstan-ignore-next-line
-					$tool_name
-				),
-			];
-		}
-
-		// Execute the ability.
-		$result = $ability->execute( $parameters );
+		// Pass an empty assoc array (not null) so parameterless abilities
+		// with `type: object` schemas pass input validation.
+		$input_data = is_array( $args ) ? $args : array();
+		// @phpstan-ignore-next-line — execute() exists at runtime in WP 7.0.
+		$result = $ability->execute( $input_data );
 
 		if ( is_wp_error( $result ) ) {
-			return [
-				'error' => $result->get_error_message(),
-				'code'  => $result->get_error_code(),
-			];
+			$error_code = (string) $result->get_error_code();
+
+			$payload = array(
+				'success' => false,
+				'ability' => $ability_id,
+				'error'   => $result->get_error_message(),
+				'code'    => $error_code,
+			);
+
+			// Inline the input_schema on validation errors so the model
+			// can self-correct without making another search call. Also
+			// synthesise an example_arguments stub and pull the specific
+			// missing field name(s) out of the error message — gives the
+			// model a copy-paste path to a valid call.
+			if ( 'ability_invalid_input' === $error_code ) {
+				// @phpstan-ignore-next-line — get_input_schema() exists at runtime in WP 7.0.
+				$schema                             = $ability->get_input_schema();
+				$payload['input_schema']            = $schema;
+				$payload['missing_required_fields'] = SchemaExampleBuilder::extract_missing_required( (string) $result->get_error_message() );
+				$payload['example_arguments']       = SchemaExampleBuilder::build_example( $schema );
+				$payload['hint']                    = 'Copy `example_arguments`, replace each `<placeholder>` with a real value, then call ability-call again. Do not retry with empty arguments.';
+				ModelHealthTracker::record_validation_error();
+			}
+
+			// Per-call spin detection: after the second identical failure,
+			// inject a hard stop-and-rethink nudge.
+			$count = \GratisAiAgent\Core\IdenticalFailureTracker::record( $ability_id, $input_data, $error_code );
+			if ( \GratisAiAgent\Core\IdenticalFailureTracker::should_nudge( $count ) ) {
+				$schema_for_nudge = $payload['input_schema'] ?? ( method_exists( $ability, 'get_input_schema' ) ? $ability->get_input_schema() : array() );
+				$payload['nudge'] = \GratisAiAgent\Core\IdenticalFailureTracker::nudge_message( $ability_id, $schema_for_nudge );
+				ModelHealthTracker::record_nudge();
+			}
+
+			return $payload;
 		}
 
-		return [
+		AbilityUsageTracker::record( $ability_id );
+		ModelHealthTracker::record_success();
+
+		return array(
+			'ability' => $ability_id,
 			'success' => true,
-			'tool'    => $tool_name,
 			'result'  => $result,
-		];
+		);
 	}
 
+	// ─── Schema cache ────────────────────────────────────────────────────
+
 	/**
-	 * Check whether discovery mode should be active.
+	 * Per-request schema cache. Populated as ability-search returns
+	 * schemas; consumed by recently_fetched_section() when building the
+	 * next system prompt.
 	 *
-	 * @return bool
+	 * @var array<string, true>
 	 */
-	public static function should_use_discovery_mode(): bool {
-		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return false;
-		}
+	private static array $schema_cache = array();
 
-		$mode = Settings::get( 'tool_discovery_mode' ) ?: 'auto';
-
-		if ( 'never' === $mode ) {
-			return false;
-		}
-
-		if ( 'always' === $mode ) {
-			return true;
-		}
-
-		// Auto mode: activate when total tool count exceeds threshold.
-		// @phpstan-ignore-next-line
-		$threshold = (int) ( Settings::get( 'tool_discovery_threshold' ) ?: 20 );
-		$all       = wp_get_abilities();
-
-		return count( $all ) > $threshold;
+	private static function cache_schema( string $ability_id ): void {
+		self::$schema_cache[ $ability_id ] = true;
 	}
 
 	/**
-	 * Get the list of priority categories.
-	 *
-	 * @return string[]
-	 */
-	public static function get_priority_categories(): array {
-		/**
-		 * Filter the priority categories that are always loaded as direct tools.
-		 *
-		 * @param string[] $categories Default priority category slugs.
-		 */
-		return apply_filters( 'gratis_ai_agent_priority_categories', self::DEFAULT_PRIORITY_CATEGORIES );
-	}
-
-	/**
-	 * Get the list of priority tool names (loaded directly regardless of category).
-	 *
-	 * @return string[]
-	 */
-	public static function get_priority_tools(): array {
-		/**
-		 * Filter the priority tool names that are always loaded as direct tools.
-		 *
-		 * @param string[] $tools Default priority tool names.
-		 */
-		return apply_filters( 'gratis_ai_agent_priority_tools', self::DEFAULT_PRIORITY_TOOLS );
-	}
-
-	/**
-	 * Check if an ability matches a priority tool name.
-	 *
-	 * Matches both exact names (e.g. "wpcli/post/create") and suffix patterns
-	 * so that registered names like "wpcli/wp-cli/post/create" also match
-	 * a priority entry of "wpcli/post/create".
-	 *
-	 * @param \WP_Ability $ability        The ability to check.
-	 * @param string[]    $priority_tools The priority tool names.
-	 * @return bool
-	 */
-	private static function is_priority_tool( \WP_Ability $ability, array $priority_tools ): bool {
-		$name = $ability->get_name();
-
-		foreach ( $priority_tools as $tool ) {
-			if ( $name === $tool ) {
-				return true;
-			}
-
-			// Also match if the ability name ends with the priority tool's
-			// path segments (e.g. "wpcli/wp-cli/post/create" ends with "post/create").
-			$suffix = substr( $tool, strpos( $tool, '/' ) + 1 );
-			if ( str_ends_with( $name, '/' . $suffix ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Get the system prompt section describing discovery mode.
+	 * Build a "Recently fetched ability schemas" block for re-injection.
+	 * Empty when no schemas have been fetched yet this request.
 	 *
 	 * @return string
 	 */
-	public static function get_system_prompt_section(): string {
-		$categories = self::get_discoverable_category_counts();
-
-		if ( empty( $categories ) ) {
+	public static function recently_fetched_section(): string {
+		if ( empty( self::$schema_cache ) ) {
 			return '';
 		}
 
-		$total = array_sum( $categories );
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			return '';
+		}
 
-		$lines   = [];
-		$lines[] = '## Tool Discovery';
-		$lines[] = 'Your most-used tools (site management, content creation, media) are loaded directly — use them without discovery.';
-		$lines[] = sprintf( '%d additional tools are available via `gratis-ai-agent/list-tools` (search by name or category) and `gratis-ai-agent/execute-tool`.', $total );
-		$lines[] = 'Only use discovery if you need a tool not already in your loaded set.';
+		$lines = array( '## Recently fetched ability schemas', 'These schemas have already been retrieved this session — call them via `ability-call` directly without searching again.', '' );
+		foreach ( array_keys( self::$schema_cache ) as $name ) {
+			// @phpstan-ignore-next-line
+			$ability = wp_get_ability( $name );
+			if ( ! $ability instanceof \WP_Ability ) {
+				continue;
+			}
+			$schema  = self::serialise_schema( $ability->get_input_schema() );
+			$json    = (string) wp_json_encode( $schema );
+			$lines[] = "- `{$name}` input: `{$json}`";
+		}
 
-		return implode( "\n", $lines );
+		return rtrim( implode( "\n", $lines ) );
 	}
 
 	/**
-	 * Get category counts for discoverable (non-priority) tools.
+	 * Reset the schema cache. Tests + AgentLoop use this between requests.
 	 *
-	 * @return array<string, int>
+	 * @return void
 	 */
-	public static function get_discoverable_category_counts(): array {
+	public static function reset_schema_cache(): void {
+		self::$schema_cache = array();
+	}
+
+	// ─── Helpers ─────────────────────────────────────────────────────────
+
+	/**
+	 * Tool permission map from settings (legacy `disabled_abilities` is no
+	 * longer consulted; only `tool_permissions`).
+	 *
+	 * @return array<string, string>
+	 */
+	private static function tool_permissions(): array {
+		$perms = Settings::get( 'tool_permissions' );
+		if ( ! is_array( $perms ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $perms as $name => $level ) {
+			if ( is_string( $name ) && is_string( $level ) ) {
+				$out[ $name ] = $level;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * All registered abilities the current user can see — `ai_hidden` and
+	 * `disabled` entries removed.
+	 *
+	 * @return \WP_Ability[]
+	 */
+	private static function visible_abilities(): array {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return [];
+			return array();
 		}
 
-		$all            = wp_get_abilities();
-		$perms          = Settings::get( 'tool_permissions' ) ?: [];
-		$priorities     = self::get_priority_categories();
-		$priority_tools = self::get_priority_tools();
-
-		$tools = [];
-		foreach ( $all as $ability ) {
-			$name = $ability->get_name();
-			// @phpstan-ignore-next-line
-			$perm = $perms[ $name ] ?? 'auto';
-
-			if ( 'disabled' === $perm ) {
+		$perms = self::tool_permissions();
+		$out   = array();
+		foreach ( wp_get_abilities() as $ability ) {
+			$meta = $ability->get_meta();
+			if ( ! empty( $meta['ai_hidden'] ) ) {
 				continue;
 			}
-
-			if ( in_array( $ability->get_category(), $priorities, true ) ) {
+			if ( 'disabled' === ( $perms[ $ability->get_name() ] ?? 'auto' ) ) {
 				continue;
 			}
-
-			if ( self::is_priority_tool( $ability, $priority_tools ) ) {
-				continue;
-			}
-
-			$tools[] = $ability;
+			$out[] = $ability;
 		}
-
-		return self::count_categories( $tools );
+		return $out;
 	}
 
 	/**
-	 * Format a single ability as a compact summary for the list-tools response.
+	 * Recursively coerce stdClass nodes to assoc arrays so JSON encoding
+	 * always emits a clean object structure.
 	 *
-	 * @param \WP_Ability $ability The ability to format.
-	 * @return array<string, mixed>
+	 * @param mixed $schema The schema node to walk.
+	 * @return mixed
 	 */
-	private static function format_tool_summary( \WP_Ability $ability ): array {
-		$schema = $ability->get_input_schema();
-		$hint   = self::build_parameters_hint( $schema );
-
-		$description = $ability->get_description();
-		if ( strlen( $description ) > 150 ) {
-			$description = substr( $description, 0, 147 ) . '...';
+	private static function serialise_schema( $schema ) {
+		if ( $schema instanceof \stdClass ) {
+			$schema = (array) $schema;
 		}
-
-		return [
-			'name'            => $ability->get_name(),
-			'label'           => $ability->get_label(),
-			'description'     => $description,
-			'category'        => $ability->get_category(),
-			'parameters_hint' => $hint,
-		];
+		if ( is_array( $schema ) ) {
+			foreach ( $schema as $k => $v ) {
+				$schema[ $k ] = self::serialise_schema( $v );
+			}
+		}
+		return $schema;
 	}
 
 	/**
-	 * Build a compact parameters hint from an input schema.
+	 * Look up category metadata (label + description) from the abilities
+	 * registry. Falls back to an empty array when the registry is missing.
 	 *
-	 * @param array<string, mixed> $schema The input schema.
-	 * @return string A compact string like "command(string, required), working_dir(string)".
+	 * @return array<string, array{label?:string,description?:string}>
 	 */
-	private static function build_parameters_hint( array $schema ): string {
-		if ( empty( $schema ) || empty( $schema['properties'] ) ) {
-			return '(no parameters)';
+	private static function category_metadata(): array {
+		if ( ! function_exists( 'wp_get_ability_categories' ) ) {
+			return array();
 		}
-
-		$properties = $schema['properties'];
-
-		if ( $properties instanceof \stdClass ) {
-			return '(no parameters)';
-		}
-
-		$required = $schema['required'] ?? [];
-		$parts    = [];
-
-		// @phpstan-ignore-next-line
-		foreach ( $properties as $name => $prop ) {
-			// @phpstan-ignore-next-line
-			$type = $prop['type'] ?? 'any';
-			if ( is_array( $type ) ) {
-				$type = implode( '|', $type );
+		$out = array();
+		// @phpstan-ignore-next-line — wp_get_ability_categories() is WP 7.0.
+		foreach ( wp_get_ability_categories() as $cat ) {
+			$slug = method_exists( $cat, 'get_slug' ) ? (string) $cat->get_slug() : ( method_exists( $cat, 'get_name' ) ? (string) $cat->get_name() : '' );
+			if ( '' === $slug ) {
+				continue;
 			}
-			// @phpstan-ignore-next-line
-			$req = in_array( $name, $required, true ) ? ', required' : '';
-			// @phpstan-ignore-next-line
-			$parts[] = sprintf( '%s(%s%s)', $name, $type, $req );
+			$out[ $slug ] = array(
+				'label'       => method_exists( $cat, 'get_label' ) ? (string) $cat->get_label() : $slug,
+				'description' => method_exists( $cat, 'get_description' ) ? (string) $cat->get_description() : '',
+			);
 		}
-
-		return implode( ', ', $parts );
-	}
-
-	/**
-	 * Count abilities per category.
-	 *
-	 * @param \WP_Ability[] $tools The abilities to count.
-	 * @return array<string, int>
-	 */
-	private static function count_categories( array $tools ): array {
-		$counts = [];
-		foreach ( $tools as $ability ) {
-			$cat = $ability->get_category();
-			if ( '' === $cat ) {
-				$cat = 'uncategorized';
-			}
-			$counts[ $cat ] = ( $counts[ $cat ] ?? 0 ) + 1;
-		}
-
-		arsort( $counts );
-
-		return $counts;
+		return $out;
 	}
 }

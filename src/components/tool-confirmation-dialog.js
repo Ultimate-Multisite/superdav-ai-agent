@@ -71,12 +71,28 @@ export default function ToolConfirmationDialog( {
 							className="gratis-ai-agent-tool-confirm-item"
 						>
 							<div className="gratis-ai-agent-tool-confirm-name">
-								{ tool.name }
+								{ tool.label || tool.name }
 							</div>
+							{ tool.description && (
+								<p className="gratis-ai-agent-tool-confirm-description">
+									{ tool.description }
+								</p>
+							) }
 							{ tool.args && (
-								<pre className="gratis-ai-agent-tool-confirm-args">
-									{ JSON.stringify( tool.args, null, 2 ) }
-								</pre>
+								<details className="gratis-ai-agent-tool-confirm-details">
+									<summary>
+										{ __(
+											'Technical details',
+											'gratis-ai-agent'
+										) }
+									</summary>
+									<div className="gratis-ai-agent-tool-confirm-tool-name">
+										{ tool.name }
+									</div>
+									<pre className="gratis-ai-agent-tool-confirm-args">
+										{ JSON.stringify( tool.args, null, 2 ) }
+									</pre>
+								</details>
 							) }
 						</div>
 					) ) }

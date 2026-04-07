@@ -44,7 +44,6 @@ function emptyForm() {
 		description: '',
 		prompt: '',
 		schedule: 'daily',
-		tool_profile: '',
 		max_iterations: 10,
 		enabled: true,
 		notification_channels: [],
@@ -58,7 +57,6 @@ export default function AutomationsManager() {
 	const [ automations, setAutomations ] = useState( [] );
 	const [ loaded, setLoaded ] = useState( false );
 	const [ templates, setTemplates ] = useState( [] );
-	const [ profiles, setProfiles ] = useState( [] );
 	const [ showForm, setShowForm ] = useState( false );
 	const [ editId, setEditId ] = useState( null );
 	const [ form, setForm ] = useState( emptyForm() );
@@ -70,18 +68,14 @@ export default function AutomationsManager() {
 
 	const fetchAll = useCallback( async () => {
 		try {
-			const [ result, tpl, prof ] = await Promise.all( [
+			const [ result, tpl ] = await Promise.all( [
 				apiFetch( { path: '/gratis-ai-agent/v1/automations' } ),
 				apiFetch( {
 					path: '/gratis-ai-agent/v1/automation-templates',
 				} ),
-				apiFetch( { path: '/gratis-ai-agent/v1/tool-profiles' } ).catch(
-					() => []
-				),
 			] );
 			setAutomations( result );
 			setTemplates( tpl );
-			setProfiles( prof );
 		} catch {
 			setAutomations( [] );
 		}
@@ -143,7 +137,6 @@ export default function AutomationsManager() {
 			description: auto.description || '',
 			prompt: auto.prompt,
 			schedule: auto.schedule,
-			tool_profile: auto.tool_profile || '',
 			max_iterations: auto.max_iterations || 10,
 			enabled: auto.enabled,
 			notification_channels: auto.notification_channels || [],
@@ -303,11 +296,6 @@ export default function AutomationsManager() {
 		setEditId( null );
 	}, [] );
 
-	const profileOptions = [
-		{ label: __( 'None (all tools)', 'gratis-ai-agent' ), value: '' },
-		...profiles.map( ( p ) => ( { label: p.name, value: p.slug } ) ),
-	];
-
 	return (
 		<div className="gratis-ai-agent-automations-manager">
 			<div className="gratis-ai-agent-skill-header">
@@ -420,17 +408,6 @@ export default function AutomationsManager() {
 						value={ form.schedule }
 						options={ SCHEDULE_OPTIONS }
 						onChange={ ( v ) => updateForm( 'schedule', v ) }
-						__nextHasNoMarginBottom
-					/>
-					<SelectControl
-						label={ __( 'Tool Profile', 'gratis-ai-agent' ) }
-						value={ form.tool_profile }
-						options={ profileOptions }
-						onChange={ ( v ) => updateForm( 'tool_profile', v ) }
-						help={ __(
-							'Restrict which tools this automation can use.',
-							'gratis-ai-agent'
-						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl

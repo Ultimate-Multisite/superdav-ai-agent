@@ -40,7 +40,6 @@ if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 	require_once GRATIS_AI_AGENT_DIR . '/vendor/autoload.php';
 }
 
-use GratisAiAgent\Abilities\AbilityDiscoveryAbilities;
 use GratisAiAgent\Abilities\AiImageAbilities;
 use GratisAiAgent\Abilities\BlockAbilities;
 use GratisAiAgent\Abilities\ContentAbilities;
@@ -150,7 +149,7 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 		if ( empty( $schema ) ) {
 			return [
 				'type'       => 'object',
-				'properties' => (object) [],
+				'properties' => [],
 			];
 		}
 
@@ -160,11 +159,13 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 			$schema['type'] = 'object';
 		}
 
-		// `properties`: must serialise as a JSON object, never an array.
+		// `properties`: keep as PHP array so the REST validator can do array
+		// access (`isset( $schema['properties'][ $name ] )`). Wire encoding to
+		// JSON is handled separately.
 		if ( array_key_exists( 'properties', $schema ) ) {
 			$props = $schema['properties'];
 			if ( is_array( $props ) && empty( $props ) ) {
-				$schema['properties'] = (object) [];
+				$schema['properties'] = [];
 			} elseif ( is_array( $props ) ) {
 				$promoted_required = [];
 				foreach ( $props as $k => $v ) {
@@ -182,7 +183,7 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 				$schema['properties'] = $props;
 
 				if ( ! empty( $promoted_required ) ) {
-					$existing = isset( $schema['required'] ) && is_array( $schema['required'] ) ? $schema['required'] : [];
+					$existing           = isset( $schema['required'] ) && is_array( $schema['required'] ) ? $schema['required'] : [];
 					$schema['required'] = array_values( array_unique( array_merge( $existing, $promoted_required ) ) );
 				}
 			}
@@ -190,14 +191,15 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 
 		// Object schemas must have a `properties` field.
 		if ( isset( $schema['type'] ) && 'object' === $schema['type'] && ! isset( $schema['properties'] ) ) {
-			$schema['properties'] = (object) [];
+			$schema['properties'] = [];
 		}
 
-		// `items`: draft-2020-12 requires a schema object or boolean, never
-		// an array. Coerce empty/list-form arrays to an empty object schema.
+		// `items`: draft-2020-12 requires a schema object, never an array.
+		// If empty/list-form, drop it entirely so the validator skips it
+		// (valid: an array schema may omit `items`).
 		if ( array_key_exists( 'items', $schema ) && is_array( $schema['items'] ) ) {
 			if ( empty( $schema['items'] ) || array_is_list( $schema['items'] ) ) {
-				$schema['items'] = (object) [];
+				unset( $schema['items'] );
 			} else {
 				$schema['items'] = gratis_ai_agent_normalize_ability_schema( $schema['items'] );
 			}
@@ -253,6 +255,35 @@ add_action(
 	}
 );
 
+// Default usage instructions for the auto-discovery manifest. Plugins can
+// add their own blocks by hooking into the same filter at a later priority.
+add_filter(
+	'gratis_ai_agent_ability_usage_instructions',
+	function ( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			$blocks = [];
+		}
+
+		$defaults = [
+			'gratis-ai-agent'    => 'Built-in agent abilities — memory, knowledge, file ops, image/SEO/analytics helpers, WP/site management, and the discovery meta-tools (`ability-search`, `ability-call`).',
+			'multisite-ultimate' => 'CRUD for the Multisite Ultimate WaaS platform: subsites, customers, memberships, products, payments, domains, broadcasts, and webhooks. **Prefer these abilities over `db-query`/`run-php` when creating or managing subsites and related entities.**',
+			'site'               => 'Built-in WordPress core abilities for posts, pages, media, options, taxonomies, and site information.',
+			'user'               => 'Built-in WordPress core abilities for user lookup and management.',
+			'ai-experiments'     => 'WordPress core AI experiments — prompt helpers, image analysis, etc.',
+			'mcp-adapter'        => 'MCP-adapter introspection abilities for browsing other registered abilities.',
+			'wpcli'              => 'WP-CLI bridge abilities — every WP-CLI command exposed as an ability. Use these for site/post/option/theme/plugin operations when no more specific ability exists.',
+		];
+
+		foreach ( $defaults as $cat => $text ) {
+			if ( ! isset( $blocks[ $cat ] ) ) {
+				$blocks[ $cat ] = $text;
+			}
+		}
+
+		return $blocks;
+	}
+);
+
 // Memory abilities.
 MemoryAbilities::register();
 
@@ -263,11 +294,8 @@ SkillAbilities::register();
 KnowledgeAbilities::register();
 KnowledgeHooks::register();
 
-// Tool discovery meta-tools.
+// Tool discovery meta-tools (ability-search, ability-call) + auto-discovery layer.
 ToolDiscovery::register();
-
-// Ability discovery meta-tools (list_abilities, get_ability, execute_ability).
-AbilityDiscoveryAbilities::register();
 
 // Stock image import ability.
 StockImageAbilities::register();

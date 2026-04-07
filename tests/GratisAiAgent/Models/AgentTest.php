@@ -336,8 +336,7 @@ class AgentTest extends WP_UnitTestCase {
 		$this->assertSame( 'anthropic', $options['provider_id'] );
 		$this->assertArrayHasKey( 'model_id', $options );
 		$this->assertSame( 'claude-3', $options['model_id'] );
-		$this->assertArrayHasKey( 'active_tool_profile', $options );
-		$this->assertSame( 'minimal', $options['active_tool_profile'] );
+		$this->assertArrayNotHasKey( 'active_tool_profile', $options, 'tool profiles have been removed' );
 		$this->assertArrayHasKey( 'temperature', $options );
 		$this->assertEqualsWithDelta( 0.5, $options['temperature'], 0.001 );
 		$this->assertArrayHasKey( 'max_iterations', $options );

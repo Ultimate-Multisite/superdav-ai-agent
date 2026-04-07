@@ -232,7 +232,21 @@ class ContextProviders {
 		];
 
 		if ( is_multisite() ) {
-			$data['Multisite'] = 'Yes';
+			$is_subdomain      = function_exists( 'is_subdomain_install' ) && is_subdomain_install();
+			$data['Multisite'] = $is_subdomain ? 'Yes (subdomain install)' : 'Yes (subdirectory install)';
+
+			// Surface the network root domain so the agent can compose
+			// subsite hostnames without guessing.
+			$network = function_exists( 'get_current_site' ) ? get_current_site() : null;
+			if ( $network && ! empty( $network->domain ) ) {
+				$data['Network Domain'] = (string) $network->domain;
+			}
+
+			if ( $is_subdomain ) {
+				$data['New Subsite Convention'] = 'Use a subdomain like "<slug>.' . ( $network->domain ?? 'example.com' ) . '". For multisite-ultimate/site-create-item, just pass the slug as `path` and wu_create_site() will convert it to the correct subdomain automatically.';
+			} else {
+				$data['New Subsite Convention'] = 'Use a subdirectory like "/<slug>/". For multisite-ultimate/site-create-item, pass `path: "/<slug>/"`.';
+			}
 		}
 
 		return $data;

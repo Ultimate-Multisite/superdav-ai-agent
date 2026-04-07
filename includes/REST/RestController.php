@@ -11,7 +11,7 @@ declare(strict_types=1);
  *   - SkillController      — skills
  *   - AutomationController — automations, event-automations, logs, triggers
  *   - KnowledgeController  — knowledge collections, sources, search, stats
- *   - ToolController       — custom-tools, tool-profiles, abilities
+ *   - ToolController       — custom-tools, abilities
  *   - ChangesController    — changes, modified-plugins, download
  *   - AgentController      — agents, conversation-templates
  *
@@ -367,9 +367,31 @@ class RestController {
 				if ( str_starts_with( $pt_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 					$pt_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $pt_name );
 				}
-				$pt['ability_name']     = $pt_name;
+				// If this is a discovery-execute call, unwrap to the inner ability so the
+				// user sees a meaningful label/description instead of the generic executor.
+				$display_name = $pt_name;
+				$display_args = $pt['args'] ?? array();
+				if ( 'gratis-ai-agent/discovery-execute' === $pt_name && is_array( $display_args ) ) {
+					$inner = (string) ( $display_args['ability'] ?? '' );
+					if ( '' !== $inner ) {
+						$display_name = $inner;
+						$display_args = $display_args['arguments'] ?? array();
+						$pt['args']   = $display_args;
+					}
+				}
+
+				$pt['ability_name']     = $display_name;
 				$pt['classification']   = 'write'; // Default — these are all write tools.
 				$pt['can_always_allow'] = true;    // Frontend can show "Always Allow" button.
+
+				// Enrich with human-readable label/description from ability registry.
+				if ( function_exists( 'wp_get_ability' ) ) {
+					$ability = wp_get_ability( $display_name );
+					if ( $ability ) {
+						$pt['label']       = $ability->get_label();
+						$pt['description'] = $ability->get_description();
+					}
+				}
 			}
 			unset( $pt );
 

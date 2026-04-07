@@ -154,16 +154,6 @@ class SettingsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test disabled_abilities default is empty array.
-	 */
-	public function test_disabled_abilities_default_is_empty_array() {
-		$defaults = Settings::get_defaults();
-
-		$this->assertIsArray( $defaults['disabled_abilities'] );
-		$this->assertEmpty( $defaults['disabled_abilities'] );
-	}
-
-	/**
 	 * Test tool_permissions default is empty array.
 	 */
 	public function test_tool_permissions_default_is_empty_array() {
@@ -174,13 +164,14 @@ class SettingsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test update can save array values.
+	 * Test update can save array values (using tool_permissions, the
+	 * remaining curated ability-gating setting).
 	 */
 	public function test_update_can_save_array_values() {
-		$disabled = [ 'tool1', 'tool2' ];
-		Settings::update( [ 'disabled_abilities' => $disabled ] );
+		$perms = [ 'tool1' => 'disabled', 'tool2' => 'confirm' ];
+		Settings::update( [ 'tool_permissions' => $perms ] );
 
-		$result = Settings::get( 'disabled_abilities' );
-		$this->assertSame( $disabled, $result );
+		$result = Settings::get( 'tool_permissions' );
+		$this->assertSame( $perms, $result );
 	}
 }

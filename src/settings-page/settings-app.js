@@ -33,7 +33,6 @@ import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
 import UsageDashboard from './usage-dashboard';
 import CustomToolsManager from './custom-tools-manager';
-import ToolProfilesManager from './tool-profiles-manager';
 import AutomationsManager from './automations-manager';
 import EventsManager from './events-manager';
 import RolePermissionsManager from './role-permissions-manager';
@@ -1401,21 +1400,6 @@ export default function SettingsApp() {
 										>
 											<CustomToolsManager />
 										</ErrorBoundary>
-
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Tool Profiles',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<ErrorBoundary
-											label={ __(
-												'Tool profiles manager',
-												'gratis-ai-agent'
-											) }
-										>
-											<ToolProfilesManager />
-										</ErrorBoundary>
 									</div>
 								);
 
@@ -1621,111 +1605,6 @@ export default function SettingsApp() {
 														/>
 													</td>
 												</tr>
-											</tbody>
-										</table>
-
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Tool Discovery',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
-											<tbody>
-												<tr>
-													<th scope="row">
-														<label htmlFor="gratis-tool-discovery-mode">
-															{ __(
-																'Discovery Mode',
-																'gratis-ai-agent'
-															) }
-														</label>
-													</th>
-													<td>
-														<SelectControl
-															id="gratis-tool-discovery-mode"
-															value={
-																local.tool_discovery_mode ||
-																'auto'
-															}
-															options={ [
-																{
-																	label: __(
-																		'Auto (enable when tools exceed threshold)',
-																		'gratis-ai-agent'
-																	),
-																	value: 'auto',
-																},
-																{
-																	label: __(
-																		'Always (always use discovery)',
-																		'gratis-ai-agent'
-																	),
-																	value: 'always',
-																},
-																{
-																	label: __(
-																		'Never (load all tools directly)',
-																		'gratis-ai-agent'
-																	),
-																	value: 'never',
-																},
-															] }
-															onChange={ ( v ) =>
-																updateField(
-																	'tool_discovery_mode',
-																	v
-																)
-															}
-															help={ __(
-																'When active, only priority tools are loaded directly. Other tools are discoverable via meta-tools, saving tokens.',
-																'gratis-ai-agent'
-															) }
-															__nextHasNoMarginBottom
-														/>
-													</td>
-												</tr>
-												{ ( local.tool_discovery_mode ||
-													'auto' ) === 'auto' && (
-													<tr>
-														<th scope="row">
-															<label htmlFor="gratis-discovery-threshold">
-																{ __(
-																	'Discovery Threshold',
-																	'gratis-ai-agent'
-																) }
-															</label>
-														</th>
-														<td>
-															<TextControl
-																id="gratis-discovery-threshold"
-																type="number"
-																min={ 5 }
-																max={ 500 }
-																value={
-																	local.tool_discovery_threshold ||
-																	20
-																}
-																onChange={ (
-																	v
-																) =>
-																	updateField(
-																		'tool_discovery_threshold',
-																		parseInt(
-																			v,
-																			10
-																		) || 20
-																	)
-																}
-																help={ __(
-																	'Enable discovery mode when total registered tools exceed this number.',
-																	'gratis-ai-agent'
-																) }
-																__nextHasNoMarginBottom
-															/>
-														</td>
-													</tr>
-												) }
 											</tbody>
 										</table>
 

@@ -16,8 +16,8 @@ declare(strict_types=1);
  *   - AgentController      — agents, conversation-templates
  *
  * This class retains:
- *   - The /stream SSE endpoint (stateful, requires static context)
- *   - Session title generation helpers (used by SessionController)
+ *   - The /chat endpoint that runs the agent loop and returns JSON
+ *   - Session title generation helper (used by SessionController)
  *   - Shared constants (NAMESPACE, JOB_PREFIX, JOB_TTL)
  *   - sanitize_page_context() (used by route args in SessionController)
  *
@@ -84,13 +84,13 @@ class RestController {
 
 		$instance = new self();
 
-		// SSE streaming endpoint — kept here because it uses static context and exits.
+		// Synchronous chat endpoint — runs the agent loop and returns JSON.
 		register_rest_route(
 			self::NAMESPACE,
-			'/stream',
+			'/chat',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'handle_stream' ),
+				'callback'            => array( __CLASS__, 'handle_chat' ),
 				'permission_callback' => array( $instance, 'check_chat_permission' ),
 				'args'                => array(
 					'message'            => array(
@@ -277,15 +277,12 @@ class RestController {
 	}
 
 	/**
-	 * Handle POST /stream — run the agent loop and stream tokens via SSE.
+	 * Handle POST /chat — run the agent loop and return the result as JSON.
 	 *
 	 * @param WP_REST_Request $request The request object.
-	 * @return void This method exits after streaming; it never returns a WP_REST_Response.
+	 * @return WP_REST_Response|WP_Error
 	 */
-	public static function handle_stream( WP_REST_Request $request ): void {
-		$streamer = new SseStreamer();
-		$streamer->start();
-
+	public static function handle_chat( WP_REST_Request $request ) {
 		$session_id      = self::get_int_param( $request, 'session_id' );
 		$raw_attachments = $request->get_param( 'attachments' ) ?? array();
 		/** @var array<int, array{name: string, type: string, data_url: string, is_image: bool}> $raw_attachments_typed */
@@ -351,17 +348,13 @@ class RestController {
 			$options['attachments'] = $params['attachments'];
 		}
 
-		// Attach the SSE streamer so AgentLoop can emit tokens as they arrive.
-		$options['sse_streamer'] = $streamer;
-
 		$abilities_param = $params['abilities'];
 		// @phpstan-ignore-next-line
 		$loop   = new AgentLoop( $params['message'], is_array( $abilities_param ) ? $abilities_param : array(), $history, $options );
 		$result = $loop->run();
 
 		if ( is_wp_error( $result ) ) {
-			$streamer->send_error( $result->get_error_message(), (string) $result->get_error_code() );
-			exit;
+			return $result;
 		}
 
 		/** @var array<string, mixed> $result */
@@ -404,10 +397,14 @@ class RestController {
 
 			set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 
-			/** @var list<array<string, mixed>> $pending_tools_stream */
-			$pending_tools_stream = $result['pending_tools'] ?? array();
-			$streamer->send_confirmation_required( $job_id, $pending_tools_stream );
-			exit;
+			return new WP_REST_Response(
+				array(
+					'awaiting_confirmation' => true,
+					'job_id'                => $job_id,
+					'pending_tools'         => $pending_tools,
+				),
+				200
+			);
 		}
 
 		// Persist to session.
@@ -485,11 +482,14 @@ class RestController {
 		);
 		$model_id    = $result['model_id'] ?? ( $params['model_id'] ?? '' );
 
-		$done_payload = array(
-			'session_id'      => $session_id ?: null,
+		$response = array(
+			'reply'           => $result['reply'] ?? '',
+			'history'         => $result['history'] ?? array(),
+			'tool_calls'      => $result['tool_calls'] ?? array(),
 			'token_usage'     => $token_usage,
-			'model_id'        => $model_id,
 			'iterations_used' => $result['iterations_used'] ?? 0,
+			'model_id'        => $model_id,
+			'session_id'      => $session_id ?: null,
 			'cost_estimate'   => CostCalculator::calculate_cost(
 				// @phpstan-ignore-next-line
 				$model_id,
@@ -498,21 +498,17 @@ class RestController {
 				// @phpstan-ignore-next-line
 				(int) ( $token_usage['completion'] ?? 0 )
 			),
-			'tool_calls'      => $result['tool_calls'] ?? array(),
 		);
 
-		// Include exit reason if the loop terminated early (timeout, spin, budget).
 		if ( ! empty( $result['exit_reason'] ) ) {
-			$done_payload['exit_reason'] = $result['exit_reason'];
+			$response['exit_reason'] = $result['exit_reason'];
 		}
 
 		if ( null !== $generated_title ) {
-			$done_payload['generated_title'] = $generated_title;
+			$response['generated_title'] = $generated_title;
 		}
 
-		$streamer->send_done( $done_payload );
-
-		exit;
+		return new WP_REST_Response( $response, 200 );
 	}
 
 	// ─── Session Title Generation ─────────────────────────────────────────────
@@ -520,20 +516,22 @@ class RestController {
 	/**
 	 * Generate a short 3-5 word session title from the first user message and AI reply.
 	 *
+	 * Routes the request through the WP AI Client SDK so the same provider/model
+	 * resolution as the main chat loop applies.
+	 *
 	 * @param string $user_message The first user message.
 	 * @param string $ai_reply     The first AI reply.
-	 * @param string $provider_id  Provider identifier (e.g. 'openai', 'anthropic').
+	 * @param string $provider_id  Provider identifier.
 	 * @param string $model_id     Model identifier.
 	 * @return string A short title (3-5 words, no quotes, no punctuation at end).
 	 */
 	public static function generate_session_title( string $user_message, string $ai_reply, string $provider_id, string $model_id ): string {
 		$fallback = self::title_fallback( $user_message );
 
-		if ( empty( $user_message ) ) {
+		if ( empty( $user_message ) || ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return $fallback;
 		}
 
-		// Build a minimal prompt asking for a 3-5 word title.
 		$prompt_text = sprintf(
 			'Generate a short 3-5 word title for this conversation. Reply with ONLY the title — no quotes, no punctuation at the end, no explanation.
 
@@ -543,236 +541,42 @@ Assistant: %s',
 			mb_substr( $ai_reply, 0, 500 )
 		);
 
-		$messages = array(
-			array(
-				'role'    => 'user',
-				'content' => $prompt_text,
-			),
-		);
+		try {
+			$builder = wp_ai_client_prompt( $prompt_text );
+			/** @var \WP_AI_Client_Prompt_Builder $builder */
 
-		$request_body = array(
-			'messages'   => $messages,
-			'max_tokens' => 20,
-			'stream'     => false,
-		);
+			$effective_provider = $provider_id;
+			if ( empty( $effective_provider ) ) {
+				$settings = Settings::get();
+				// @phpstan-ignore-next-line
+				$effective_provider = (string) ( $settings['default_provider'] ?? '' );
+			}
 
-		$raw_title = self::call_provider_for_title( $provider_id, $model_id, $request_body );
+			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+			if ( ! empty( $effective_provider ) && $registry->hasProvider( $effective_provider ) ) {
+				if ( ! empty( $model_id ) ) {
+					$builder->using_model( $registry->getProviderModel( $effective_provider, $model_id ) );
+				} else {
+					$builder->using_provider( $effective_provider );
+				}
+			}
 
-		if ( null === $raw_title ) {
+			if ( method_exists( $builder, 'using_max_tokens' ) ) {
+				$builder->using_max_tokens( 20 );
+			}
+
+			$result    = $builder->generate_text_result();
+			$raw_title = $result->toText();
+		} catch ( \Throwable $e ) {
 			return $fallback;
 		}
 
-		// Sanitize: strip surrounding quotes, trim whitespace, limit length.
-		$title = trim( $raw_title, " \t\n\r\0\x0B\"'" );
+		$title = trim( (string) $raw_title, " \t\n\r\0\x0B\"'" );
 		$title = wp_strip_all_tags( $title );
 		$title = mb_substr( $title, 0, 100 );
 
 		return '' !== $title ? $title : $fallback;
 	}
-
-	/**
-	 * Make a minimal API call to the configured provider to generate a title.
-	 *
-	 * @param string               $provider_id  Provider identifier.
-	 * @param string               $model_id     Model identifier.
-	 * @param array<string, mixed> $request_body Base request body (messages, max_tokens, stream).
-	 * @return string|null Raw response text, or null on failure.
-	 */
-	private static function call_provider_for_title( string $provider_id, string $model_id, array $request_body ): ?string {
-		// Determine which provider to use.
-		$effective_provider = $provider_id;
-		if ( empty( $effective_provider ) ) {
-			$settings = Settings::get();
-			// @phpstan-ignore-next-line
-			$effective_provider = $settings['default_provider'] ?? '';
-		}
-
-		switch ( $effective_provider ) {
-			case 'openai':
-				return self::call_openai_for_title( $model_id, $request_body );
-
-			case 'anthropic':
-				return self::call_anthropic_for_title( $model_id, $request_body );
-
-			case 'google':
-				return self::call_google_for_title( $model_id, $request_body );
-
-			default:
-				// Try OpenAI-compatible proxy.
-				return self::call_openai_compat_for_title( $model_id, $request_body );
-		}
-	}
-
-	/**
-	 * Call OpenAI to generate a title.
-	 *
-	 * @param string               $model_id     Model identifier.
-	 * @param array<string, mixed> $request_body Base request body.
-	 * @return string|null
-	 */
-	private static function call_openai_for_title( string $model_id, array $request_body ): ?string {
-		$api_key = Settings::get_provider_key( 'openai' );
-		if ( '' === $api_key ) {
-			return null;
-		}
-
-		$request_body['model'] = $model_id ?: Settings::DIRECT_PROVIDERS['openai']['default_model'];
-
-		$response = wp_remote_post(
-			'https://api.openai.com/v1/chat/completions',
-			[
-				'timeout' => 15,
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $api_key,
-				],
-				'body'    => (string) wp_json_encode( $request_body ),
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return null;
-		}
-
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		// @phpstan-ignore-next-line
-		return $data['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * Call Anthropic to generate a title.
-	 *
-	 * @param string               $model_id     Model identifier.
-	 * @param array<string, mixed> $request_body Base request body.
-	 * @return string|null
-	 */
-	private static function call_anthropic_for_title( string $model_id, array $request_body ): ?string {
-		$api_key = Settings::get_provider_key( 'anthropic' );
-		if ( '' === $api_key ) {
-			return null;
-		}
-
-		// Anthropic uses a different format.
-		$anthropic_body = [
-			'model'      => $model_id ?: Settings::DIRECT_PROVIDERS['anthropic']['default_model'],
-			'max_tokens' => 20,
-			'messages'   => $request_body['messages'],
-		];
-
-		$response = wp_remote_post(
-			'https://api.anthropic.com/v1/messages',
-			[
-				'timeout' => 15,
-				'headers' => [
-					'Content-Type'      => 'application/json',
-					'x-api-key'         => $api_key,
-					'anthropic-version' => '2023-06-01',
-				],
-				'body'    => (string) wp_json_encode( $anthropic_body ),
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return null;
-		}
-
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		// @phpstan-ignore-next-line
-		return $data['content'][0]['text'] ?? null;
-	}
-
-	/**
-	 * Call Google Gemini to generate a title.
-	 *
-	 * @param string               $model_id     Model identifier.
-	 * @param array<string, mixed> $request_body Base request body.
-	 * @return string|null
-	 */
-	private static function call_google_for_title( string $model_id, array $request_body ): ?string {
-		$api_key = Settings::get_provider_key( 'google' );
-		if ( '' === $api_key ) {
-			return null;
-		}
-
-		$effective_model = $model_id ?: Settings::DIRECT_PROVIDERS['google']['default_model'];
-
-		// Google uses OpenAI-compatible endpoint via their REST API.
-		$google_body = [
-			'model'      => $effective_model,
-			'max_tokens' => 20,
-			'messages'   => $request_body['messages'],
-			'stream'     => false,
-		];
-
-		$response = wp_remote_post(
-			'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-			[
-				'timeout' => 15,
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $api_key,
-				],
-				'body'    => (string) wp_json_encode( $google_body ),
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return null;
-		}
-
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		// @phpstan-ignore-next-line
-		return $data['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * Call an OpenAI-compatible proxy to generate a title.
-	 *
-	 * @param string               $model_id     Model identifier.
-	 * @param array<string, mixed> $request_body Base request body.
-	 * @return string|null
-	 */
-	private static function call_openai_compat_for_title( string $model_id, array $request_body ): ?string {
-		$endpoint_url = \GratisAiAgent\Core\CredentialResolver::getOpenAiCompatEndpointUrl();
-		if ( '' === $endpoint_url ) {
-			return null;
-		}
-
-		$api_key = \GratisAiAgent\Core\CredentialResolver::getOpenAiCompatApiKey();
-
-		$effective_model = $model_id;
-		if ( empty( $effective_model ) ) {
-			if ( function_exists( 'OpenAiCompatibleConnector\\get_default_model' ) ) {
-				$effective_model = \OpenAiCompatibleConnector\get_default_model();
-			}
-			if ( empty( $effective_model ) ) {
-				$effective_model = Settings::get_default_model();
-			}
-		}
-
-		$request_body['model'] = $effective_model;
-
-		$response = wp_remote_post(
-			rtrim( $endpoint_url, '/' ) . '/chat/completions',
-			[
-				'timeout' => 15,
-				'headers' => [
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . ( $api_key ?: 'no-key' ),
-				],
-				'body'    => (string) wp_json_encode( $request_body ),
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return null;
-		}
-
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		// @phpstan-ignore-next-line
-		return $data['choices'][0]['message']['content'] ?? null;
-	}
-
 	/**
 	 * Fallback title: truncate the user message to 60 characters.
 	 *

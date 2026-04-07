@@ -17,7 +17,6 @@ use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\Export;
 use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Models\Agent;
-use GratisAiAgent\REST\SseStreamer;
 use GratisAiAgent\REST\WebhookDatabase;
 use WP_Error;
 use WP_REST_Request;

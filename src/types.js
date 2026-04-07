@@ -161,9 +161,6 @@
  * @property {PendingConfirmation|null} pendingConfirmation     - Pending tool confirmation.
  * @property {boolean}                  debugMode               - Whether debug mode is active.
  * @property {number}                   sendTimestamp           - Timestamp of the last send (ms since epoch).
- * @property {string}                   streamingText           - Accumulated streaming text buffer.
- * @property {boolean}                  isStreaming             - Whether an SSE stream is active.
- * @property {AbortController|null}     [streamAbortController] - Controller for the active stream.
  */
 
 /**

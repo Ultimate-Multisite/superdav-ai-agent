@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Single SDK code path.** All chat completions now route through `wp_ai_client_prompt()` (the WordPress AI Client SDK). The four bespoke per-vendor request paths (`send_prompt_openai`, `send_prompt_anthropic`, `send_prompt_google`, `send_prompt_direct` + its streaming variant) and their helpers (`build_openai_messages`, `build_openai_tools`, `sanitize_tool_schema`, `sanitize_schema_properties`) have been deleted from `AgentLoop`. Provider auth, model resolution, and HTTP transport are entirely the SDK's responsibility now. ~1,500 lines removed.
+- **REST `/stream` → `/chat`.** The SSE streaming endpoint has been replaced with a synchronous JSON `/chat` endpoint. Token-by-token streaming is removed for now: replies arrive in one chunk after the agent loop finishes. The frontend shows a "Thinking…" spinner while the request is in flight. Streaming will return when the SDK exposes `streamGenerateTextResult()`.
+- **Session title generation.** The four per-vendor `call_*_for_title` helpers in `RestController` have been replaced by a single `wp_ai_client_prompt()->generate_text_result()` call.
+- Removed `includes/REST/SseStreamer.php`, `includes/Core/SimpleAiResult.php`, and their tests.
+- Removed `CredentialResolver::getOpenAiCompat*()` and `isOpenAiCompatConfigured()` — provider credentials are owned by SDK provider plugins (e.g. `ai-provider-for-any-openai-compatible`).
+
+### Removed
+
+- Frontend SSE parser, abort-controller / 120-second stream timeout, `streamingText` / `isStreaming` / `streamAbortController` store slots, `appendStreamingText` / `setIsStreaming` / `setStreamingText` actions, and the streaming-text branch in `<MessageList>`.
+- `AgentLoop::$attachments` (write-only after the deletions). Image attachments handed to the chat endpoint are no longer threaded into the user message — vision support via the SDK is a follow-up.
+
+### Known regressions
+
+- No token-by-token streaming UI; users see a spinner until the agent loop completes.
+- Image attachments in chat are accepted by the REST endpoint and uploaded to the media library, but not yet sent to the model. To be re-added once the SDK exposes image-part construction.
+- `Settings::DIRECT_PROVIDERS` and the `SettingsController` provider-key/test-key/models endpoints are still wired to the (now-removed) Providers UI flow. They no longer feed any chat code path and will be removed in a follow-up.
+
+
 ## [1.3.0] - 2026-03-24
 
 ### Added

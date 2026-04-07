@@ -39,10 +39,6 @@ export const initialState = {
 	// Action card — inline confirmation rendered in the message list (t074).
 	pendingActionCard: null,
 
-	// Streaming state — token buffer for the in-progress assistant message.
-	streamingText: '',
-	isStreaming: false,
-
 	// Stream error state — true when the last stream attempt failed.
 	// Used to show a "Try again" button in the message list.
 	streamError: false,
@@ -99,18 +95,10 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	clearCurrentSession() {
-		return async ( { dispatch, select } ) => {
-			// Cancel any active SSE stream.
-			const controller = select.getStreamAbortController();
-			if ( controller ) {
-				controller.abort();
-				dispatch.setStreamAbortController( null );
-			}
+		return async ( { dispatch } ) => {
 			// Stop polling / sending state so the empty state renders immediately.
 			dispatch.setCurrentJobId( null );
 			dispatch.setSending( false );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 			// Clear the session.
 			dispatch( { type: 'CLEAR_CURRENT_SESSION' } );
 		};
@@ -230,46 +218,6 @@ export const actions = {
 	 */
 	setSendTimestamp( ts ) {
 		return { type: 'SET_SEND_TIMESTAMP', ts };
-	},
-
-	/**
-	 * Replace the streaming text buffer.
-	 *
-	 * @param {string} text - Full accumulated streaming text.
-	 * @return {Object} Redux action.
-	 */
-	setStreamingText( text ) {
-		return { type: 'SET_STREAMING_TEXT', text };
-	},
-
-	/**
-	 * Append a token to the streaming text buffer.
-	 *
-	 * @param {string} token - Token string to append.
-	 * @return {Object} Redux action.
-	 */
-	appendStreamingText( token ) {
-		return { type: 'APPEND_STREAMING_TEXT', token };
-	},
-
-	/**
-	 * Set whether an SSE stream is currently active.
-	 *
-	 * @param {boolean} streaming - Whether streaming is in progress.
-	 * @return {Object} Redux action.
-	 */
-	setIsStreaming( streaming ) {
-		return { type: 'SET_IS_STREAMING', streaming };
-	},
-
-	/**
-	 * Store the AbortController for the active SSE stream.
-	 *
-	 * @param {AbortController|null} controller - Controller, or null to clear.
-	 * @return {Object} Redux action.
-	 */
-	setStreamAbortController( controller ) {
-		return { type: 'SET_STREAM_ABORT_CONTROLLER', controller };
 	},
 
 	/**
@@ -627,23 +575,17 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	stopGeneration() {
-		return async ( { dispatch, select } ) => {
-			// Abort any active SSE stream.
-			const controller = select.getStreamAbortController();
-			if ( controller ) {
-				controller.abort();
-				dispatch.setStreamAbortController( null );
-			}
+		return async ( { dispatch } ) => {
+			// SDK requests are synchronous from the client's POV — there is
+			// nothing to abort mid-flight. Just reset the local UI state.
 			dispatch.setCurrentJobId( null );
 			dispatch.setSending( false );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 		};
 	},
 
 	/**
-	 * Retry the last failed stream by removing the error message and
-	 * resending the last user message via streamMessage.
+	 * Retry the last failed request by removing the error message and
+	 * resending the last user message.
 	 *
 	 * @return {Function} Redux thunk.
 	 */
@@ -653,32 +595,29 @@ export const actions = {
 			if ( ! lastMessage ) {
 				return;
 			}
-			// Remove the error system message appended on failure.
 			dispatch.removeLastMessage();
-			// Remove the user message that was appended before the failure.
 			dispatch.removeLastMessage();
-			// Clear the error flag.
 			dispatch.setStreamError( false );
-			// Resend.
-			dispatch.streamMessage( lastMessage );
+			dispatch.sendChat( lastMessage );
 		};
 	},
 
 	/**
-	 * Send a message and stream the response token-by-token via SSE.
+	 * Send a message and await the agent loop response as JSON.
 	 *
-	 * Uses the Fetch API with a ReadableStream reader to consume the
-	 * text/event-stream response from POST /gratis-ai-agent/v1/stream.
+	 * POSTs to /gratis-ai-agent/v1/chat. The agent loop runs server-side and
+	 * the entire response (reply text, tool calls, token usage, optional
+	 * confirmation pause) arrives in one shot. Token-by-token streaming was
+	 * removed when the bespoke per-vendor request paths were stripped — the
+	 * WP AI Client SDK does not yet expose streamGenerateTextResult().
 	 *
 	 * @param {string} message     The user message to send.
 	 * @param {Array}  attachments Optional array of attachment objects with
 	 *                             { name, type, dataUrl, isImage } shape.
 	 */
-	streamMessage( message, attachments = [] ) {
+	sendChat( message, attachments = [] ) {
 		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 			dispatch.setStreamError( false );
 			dispatch.setLastUserMessage( message );
 
@@ -692,7 +631,6 @@ export const actions = {
 				parts.push( { image_url: att.dataUrl, image_name: att.name } );
 			} );
 
-			// Append user message immediately (with attachment previews).
 			dispatch.appendMessage( {
 				role: 'user',
 				parts: parts.length ? parts : [ { text: '' } ],
@@ -740,7 +678,6 @@ export const actions = {
 				model_id: select.getSelectedModelId(),
 			};
 
-			// Include image attachments as base64 data URLs for vision models.
 			if ( attachments?.length ) {
 				body.attachments = attachments.map( ( att ) => ( {
 					name: att.name,
@@ -752,7 +689,6 @@ export const actions = {
 
 			const pageContext = select.getPageContext();
 			if ( pageContext ) {
-				// Normalise to object — screen-meta may set a string.
 				body.page_context =
 					typeof pageContext === 'string'
 						? { summary: pageContext }
@@ -766,65 +702,22 @@ export const actions = {
 
 			dispatch.setSendTimestamp( Date.now() );
 
-			// Build the URL with nonce for authentication.
-			const streamUrl =
-				( window.wpApiSettings?.root || '/wp-json/' ) +
-				'gratis-ai-agent/v1/stream';
-
-			const abortController = new AbortController();
-			dispatch.setStreamAbortController( abortController );
-
-			// 120-second timeout: abort the stream if no completion within limit.
-			const STREAM_TIMEOUT_MS = 120000;
-			let timeoutId = setTimeout( () => {
-				abortController.abort( 'timeout' );
-			}, STREAM_TIMEOUT_MS );
-
-			let response;
+			let result;
 			try {
-				response = await fetch( streamUrl, {
+				result = await apiFetch( {
+					path: '/gratis-ai-agent/v1/chat',
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-WP-Nonce': window.wpApiSettings?.nonce || '',
-					},
-					body: JSON.stringify( body ),
-					signal: abortController.signal,
+					data: body,
 				} );
 			} catch ( err ) {
-				clearTimeout( timeoutId );
-				if ( err.name === 'AbortError' ) {
-					const isTimeout =
-						err.message === 'timeout' ||
-						String( abortController.signal?.reason ) === 'timeout';
-					if ( isTimeout ) {
-						dispatch.appendMessage( {
-							role: 'system',
-							parts: [
-								{
-									text: __(
-										'Error: The request timed out after 120 seconds. The server may be overloaded. Please try again.',
-										'gratis-ai-agent'
-									),
-								},
-							],
-						} );
-						dispatch.setStreamError( true );
-					}
-					dispatch.setSending( false );
-					dispatch.setIsStreaming( false );
-					dispatch.setStreamingText( '' );
-					dispatch.setStreamAbortController( null );
-					return;
-				}
 				dispatch.appendMessage( {
 					role: 'system',
 					parts: [
 						{
 							text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
-								err.message ||
+								err?.message ||
 								__(
-									'Failed to connect to stream',
+									'Failed to reach the agent.',
 									'gratis-ai-agent'
 								)
 							}`,
@@ -833,240 +726,46 @@ export const actions = {
 				} );
 				dispatch.setStreamError( true );
 				dispatch.setSending( false );
-				dispatch.setStreamAbortController( null );
 				return;
 			}
 
-			if ( ! response.ok ) {
-				clearTimeout( timeoutId );
-				// Detect non-SSE responses (e.g. PHP fatal error HTML pages).
-				const contentType =
-					response.headers.get( 'Content-Type' ) || '';
-				const isHtml = contentType.includes( 'text/html' );
-				const errorText = isHtml
-					? __(
-							'Error: The server returned an unexpected response (possibly a PHP error). Check your server logs.',
-							'gratis-ai-agent'
-					  )
-					: `${ __( 'Error: HTTP', 'gratis-ai-agent' ) } ${
-							response.status
-					  } ${ __( 'from stream endpoint', 'gratis-ai-agent' ) }`;
-				dispatch.appendMessage( {
-					role: 'system',
-					parts: [ { text: errorText } ],
-				} );
-				dispatch.setStreamError( true );
-				dispatch.setSending( false );
-				dispatch.setStreamAbortController( null );
-				return;
-			}
-
-			// Verify the response is actually an SSE stream before reading.
-			const responseContentType =
-				response.headers.get( 'Content-Type' ) || '';
-			if ( ! responseContentType.includes( 'text/event-stream' ) ) {
-				clearTimeout( timeoutId );
-				dispatch.appendMessage( {
-					role: 'system',
-					parts: [
-						{
-							text: __(
-								'Error: The server did not return a streaming response. This may indicate a PHP error or misconfiguration.',
-								'gratis-ai-agent'
-							),
-						},
-					],
-				} );
-				dispatch.setStreamError( true );
-				dispatch.setSending( false );
-				dispatch.setStreamAbortController( null );
-				return;
-			}
-
-			dispatch.setIsStreaming( true );
-
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = '';
-			let accumulatedText = '';
-			let doneMetadata = null;
-			let pendingConfirmationData = null;
-
-			try {
-				// eslint-disable-next-line no-constant-condition
-				while ( true ) {
-					const { done, value } = await reader.read();
-					if ( done ) {
-						clearTimeout( timeoutId );
-						break;
-					}
-					// Reset timeout on each received chunk — stream is alive.
-					clearTimeout( timeoutId );
-					timeoutId = setTimeout( () => {
-						abortController.abort( 'timeout' );
-					}, STREAM_TIMEOUT_MS );
-
-					buffer += decoder.decode( value, { stream: true } );
-
-					// Process complete SSE messages (terminated by \n\n).
-					const sseChunks = buffer.split( '\n\n' );
-					// Keep the last (possibly incomplete) chunk in the buffer.
-					buffer = sseChunks.pop() || '';
-
-					for ( const part of sseChunks ) {
-						const lines = part.split( '\n' );
-						let eventName = 'message';
-						let dataLine = '';
-
-						for ( const line of lines ) {
-							if ( line.startsWith( 'event: ' ) ) {
-								eventName = line.slice( 7 );
-							} else if ( line.startsWith( 'data: ' ) ) {
-								dataLine = line.slice( 6 );
-							}
-						}
-
-						if ( ! dataLine ) {
-							continue;
-						}
-
-						let payload;
-						try {
-							payload = JSON.parse( dataLine );
-						} catch {
-							continue;
-						}
-
-						switch ( eventName ) {
-							case 'token':
-								accumulatedText += payload.token || '';
-								dispatch.appendStreamingText(
-									payload.token || ''
-								);
-								break;
-
-							case 'tool_call':
-								// Tool calls are surfaced in the done metadata.
-								break;
-
-							case 'tool_result':
-								// Tool results are surfaced in the done metadata.
-								break;
-
-							case 'confirmation_required':
-								pendingConfirmationData = payload;
-								break;
-
-							case 'done':
-								doneMetadata = payload;
-								break;
-
-							case 'error':
-								clearTimeout( timeoutId );
-								dispatch.setIsStreaming( false );
-								dispatch.setStreamingText( '' );
-								dispatch.appendMessage( {
-									role: 'system',
-									parts: [
-										{
-											text: `${ __(
-												'Error:',
-												'gratis-ai-agent'
-											) } ${
-												payload.message ||
-												__(
-													'Unknown error',
-													'gratis-ai-agent'
-												)
-											}`,
-										},
-									],
-								} );
-								dispatch.setStreamError( true );
-								dispatch.setSending( false );
-								dispatch.setStreamAbortController( null );
-								return;
-						}
-					}
-				}
-			} catch ( err ) {
-				clearTimeout( timeoutId );
-				if ( err.name === 'AbortError' ) {
-					const isTimeout =
-						err.message === 'timeout' ||
-						String( abortController.signal?.reason ) === 'timeout';
-					if ( isTimeout ) {
-						dispatch.appendMessage( {
-							role: 'system',
-							parts: [
-								{
-									text: __(
-										'Error: The response timed out after 120 seconds. Please try again.',
-										'gratis-ai-agent'
-									),
-								},
-							],
-						} );
-						dispatch.setStreamError( true );
-					}
-				} else {
-					dispatch.appendMessage( {
-						role: 'system',
-						parts: [
-							{
-								text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
-									err.message ||
-									__( 'Stream read error', 'gratis-ai-agent' )
-								}`,
-							},
-						],
-					} );
-					dispatch.setStreamError( true );
-				}
-				dispatch.setIsStreaming( false );
-				dispatch.setStreamingText( '' );
-				dispatch.setSending( false );
-				dispatch.setStreamAbortController( null );
-				return;
-			}
-
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
-			dispatch.setStreamAbortController( null );
-			dispatch.setStreamError( false );
-
-			// Handle tool confirmation pause.
-			if ( pendingConfirmationData ) {
+			// Tool confirmation pause — keep sending=true so the spinner stays
+			// up while the user decides.
+			if ( result?.awaiting_confirmation ) {
 				dispatch.setPendingConfirmation( {
-					jobId: pendingConfirmationData.job_id,
-					tools: pendingConfirmationData.pending_tools || [],
+					jobId: result.job_id,
+					tools: result.pending_tools || [],
 				} );
-				// Keep sending=true — we're still waiting for user input.
 				return;
 			}
 
-			// Commit the streamed text as a proper message.
-			if ( accumulatedText ) {
+			const replyText = result?.reply || '';
+			const toolCalls = result?.tool_calls || [];
+			const tokenUsage = result?.token_usage || {
+				prompt: 0,
+				completion: 0,
+			};
+
+			if ( replyText || toolCalls.length ) {
 				const msg = {
 					role: 'model',
-					parts: [ { text: accumulatedText } ],
-					toolCalls: doneMetadata?.tool_calls || [],
+					parts: [ { text: replyText } ],
+					toolCalls,
 				};
 
-				if ( select.isDebugMode() && doneMetadata ) {
+				if ( select.isDebugMode() ) {
 					const sendTs = select.getSendTimestamp();
 					const elapsed = sendTs ? Date.now() - sendTs : 0;
-					const tu = doneMetadata.token_usage || {};
-					const completionTokens = tu.completion || 0;
-					const promptTokens = tu.prompt || 0;
+					const completionTokens = tokenUsage.completion || 0;
+					const promptTokens = tokenUsage.prompt || 0;
 					const tokPerSec =
 						elapsed > 0 ? completionTokens / ( elapsed / 1000 ) : 0;
-					const tc = doneMetadata.tool_calls || [];
-					const toolCalls = tc.filter( ( t ) => t.type === 'call' );
+					const calls = toolCalls.filter(
+						( t ) => t.type === 'call'
+					);
 					const toolNames = [
-						...new Set( toolCalls.map( ( t ) => t.name ) ),
+						...new Set( calls.map( ( t ) => t.name ) ),
 					];
-
 					msg.debug = {
 						responseTimeMs: elapsed,
 						tokenUsage: {
@@ -1074,10 +773,10 @@ export const actions = {
 							completion: completionTokens,
 						},
 						tokensPerSecond: Math.round( tokPerSec * 10 ) / 10,
-						modelId: doneMetadata.model_id || '',
-						costEstimate: doneMetadata.cost_estimate || 0,
-						iterationsUsed: doneMetadata.iterations_used || 0,
-						toolCallCount: toolCalls.length,
+						modelId: result?.model_id || '',
+						costEstimate: result?.cost_estimate || 0,
+						iterationsUsed: result?.iterations_used || 0,
+						toolCallCount: calls.length,
 						toolNames,
 					};
 				}
@@ -1085,50 +784,42 @@ export const actions = {
 				dispatch.appendMessage( msg );
 			}
 
-			if ( doneMetadata?.session_id ) {
+			if ( result?.session_id ) {
 				dispatch.setCurrentSession(
-					doneMetadata.session_id,
+					result.session_id,
 					select.getCurrentSessionMessages(),
 					select.getCurrentSessionToolCalls()
 				);
 			}
 
-			if ( doneMetadata?.token_usage ) {
+			if ( result?.token_usage ) {
 				const current = select.getTokenUsage();
 				dispatch.setTokenUsage( {
-					prompt:
-						current.prompt +
-						( doneMetadata.token_usage.prompt || 0 ),
+					prompt: current.prompt + ( tokenUsage.prompt || 0 ),
 					completion:
-						current.completion +
-						( doneMetadata.token_usage.completion || 0 ),
+						current.completion + ( tokenUsage.completion || 0 ),
 				} );
 
-				// Live token counter (t111).
-				const tu = doneMetadata.token_usage;
-				const totalTokens = ( tu.prompt || 0 ) + ( tu.completion || 0 );
-				const cost = doneMetadata.cost_estimate || 0;
+				const totalTokens =
+					( tokenUsage.prompt || 0 ) + ( tokenUsage.completion || 0 );
+				const cost = result?.cost_estimate || 0;
 				dispatch.accumulateSessionTokens( totalTokens, cost );
 
-				// Record per-message token data at the index of the message
-				// we just appended (last in the list after appendMessage).
 				const msgs = select.getCurrentSessionMessages();
 				const msgIndex = msgs.length - 1;
 				if ( msgIndex >= 0 ) {
 					dispatch.setMessageTokens( msgIndex, {
-						prompt: tu.prompt || 0,
-						completion: tu.completion || 0,
+						prompt: tokenUsage.prompt || 0,
+						completion: tokenUsage.completion || 0,
 						cost,
 					} );
 				}
 			}
 
-			// Optimistically update the session title in the sidebar when the
-			// server generated one (first message only — title is empty before).
-			if ( doneMetadata?.generated_title && doneMetadata?.session_id ) {
+			if ( result?.generated_title && result?.session_id ) {
 				dispatch.updateSessionTitle(
-					doneMetadata.session_id,
-					doneMetadata.generated_title
+					result.session_id,
+					result.generated_title
 				);
 			}
 
@@ -1206,11 +897,8 @@ export const actions = {
 	},
 
 	/**
-	 * Send a message via the polling (non-streaming) endpoint.
-	 * Creates a session lazily on the first message.
-	 *
-	 * Routes to streamMessage when streaming is available (Fetch + ReadableStream).
-	 * Falls back to the polling /run endpoint when streaming is unavailable.
+	 * Send a message and await the agent response. Thin alias around sendChat
+	 * kept so existing call sites do not need to change.
 	 *
 	 * @param {string} message     - User message text.
 	 * @param {Array}  attachments - Optional array of attachment objects with
@@ -1218,16 +906,22 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	sendMessage( message, attachments = [] ) {
-		return async ( { dispatch, select } ) => {
-			// Prefer streaming when the browser supports it.
-			if (
-				typeof fetch !== 'undefined' &&
-				typeof ReadableStream !== 'undefined'
-			) {
-				dispatch.streamMessage( message, attachments );
-				return;
-			}
+		return async ( { dispatch } ) => {
+			dispatch.sendChat( message, attachments );
+		};
+	},
 
+	/**
+	 * Legacy job-polling helper. Retained because confirmToolCall/rejectToolCall
+	 * still resume the agent loop via the /run + pollJob path. Not invoked
+	 * directly from the chat UI any more.
+	 *
+	 * @param {string} message     - User message text.
+	 * @param {Array}  attachments - Attachments (currently unused).
+	 * @return {Function} Redux thunk.
+	 */
+	sendMessageViaPolling( message, attachments = [] ) {
+		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
 
 			// Build message parts — text first, then image attachments.
@@ -1743,31 +1437,7 @@ export const selectors = {
 
 	/**
 	 * @param {import('../../types').StoreState} state
-	 * @return {string} Accumulated streaming text buffer.
-	 */
-	getStreamingText( state ) {
-		return state.streamingText;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
-	 * @return {boolean} Whether an SSE stream is currently active.
-	 */
-	isStreamingActive( state ) {
-		return state.isStreaming;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
-	 * @return {AbortController|null} Controller for the active stream, or null.
-	 */
-	getStreamAbortController( state ) {
-		return state.streamAbortController || null;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
-	 * @return {boolean} Whether the last stream attempt failed with an error.
+	 * @return {boolean} Whether the last request attempt failed with an error.
 	 */
 	hasStreamError( state ) {
 		return state.streamError;
@@ -1897,17 +1567,6 @@ export function reducer( state, action ) {
 			};
 		case 'SET_SEND_TIMESTAMP':
 			return { ...state, sendTimestamp: action.ts };
-		case 'SET_STREAMING_TEXT':
-			return { ...state, streamingText: action.text };
-		case 'APPEND_STREAMING_TEXT':
-			return {
-				...state,
-				streamingText: state.streamingText + action.token,
-			};
-		case 'SET_IS_STREAMING':
-			return { ...state, isStreaming: action.streaming };
-		case 'SET_STREAM_ABORT_CONTROLLER':
-			return { ...state, streamAbortController: action.controller };
 		case 'SET_STREAM_ERROR':
 			return { ...state, streamError: action.error };
 		case 'SET_LAST_USER_MESSAGE':

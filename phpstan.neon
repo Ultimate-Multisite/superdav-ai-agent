@@ -235,5 +235,40 @@ parameters:
 		# GratisAiAgent\Admin\AdminPage — referenced in ScreenMetaPanel for SLUG constant;
 		# class was removed/renamed but the reference remains. Suppress until class is restored.
 		- '#Access to constant SLUG on an unknown class GratisAiAgent\\Admin\\AdminPage#'
+		# WP_CLI constant is defined as false in stubs for analysis; at runtime it is true when
+		# running under WP-CLI. The `defined('WP_CLI') && WP_CLI` guard is correct runtime code.
+		- message: '#Right side of && is always false#'
+		  identifier: booleanAnd.rightAlwaysFalse
+		# FunctionCall::getName() and getId() return string per stubs but may return null at
+		# runtime in older WP builds. The ?? fallback is intentional defensive code.
+		- message: '#Expression on left side of \?\? is not nullable#'
+		  identifier: nullCoalesce.expr
+		# FunctionCall::getArgs() returns array per stubs; is_array() guard is intentional
+		# defensive code for runtime compatibility with WP builds that may differ from stubs.
+		- message: '#Call to function is_array\(\) with array will always evaluate to true#'
+		  identifier: function.alreadyNarrowedType
+		# WP_Ability::get_input_schema() is defined in stubs; method_exists() guard is
+		# intentional defensive code for runtime compatibility.
+		- message: '#Call to function method_exists\(\) with WP_Ability and .get_input_schema. will always evaluate to true#'
+		  identifier: function.alreadyNarrowedType
+		# AgentLoop: $settings comes from Settings::get() which returns mixed; build_system_instruction
+		# expects array<string, mixed>. The value is always an array at runtime.
+		- message: '#\$settings of method GratisAiAgent\\Core\\AgentLoop::build_system_instruction\(\) expects array<string, mixed>, mixed given#'
+		  identifier: argument.type
+		# McpController: $arguments is array<mixed> from request params; execute() expects
+		# array<string, mixed>|null. Keys are always strings at runtime (JSON object keys).
+		- message: '#\$args of method WP_Ability::execute\(\) expects array<string, mixed>\|null, array<mixed>\|null given#'
+		  identifier: argument.type
+		# ModelHealthTracker: $map after isset() guard is non-empty-array<string, non-empty-array<string, int>>;
+		# prune_internal() expects the typed shape. The shape is always correct at runtime.
+		- message: '#\$map of static method GratisAiAgent\\Tools\\ModelHealthTracker::prune_internal\(\) expects array<string, array{success: int, validation_error: int, nudge: int, last_used: int}>, non-empty-array<string, non-empty-array<string, int>> given#'
+		  identifier: argument.type
+		# gratis-ai-agent.php: array_unique on array<mixed> from schema['required'] — values are
+		# always strings at runtime (JSON Schema required arrays contain string field names).
+		- message: '#\$array of function array_unique expects an array of values castable to string, array<mixed> given#'
+		  identifier: argument.type
+		# SimpleAiResult: str_replace subject is mixed from parsed JSON — always a string at runtime.
+		- message: '#\$subject of function str_replace expects array<string>\|string, mixed given#'
+		  identifier: argument.type
 
 

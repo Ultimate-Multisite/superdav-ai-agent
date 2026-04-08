@@ -63,9 +63,11 @@ class SchemaExampleBuilder {
 			}
 			$prop = isset( $properties[ $field ] ) && is_array( $properties[ $field ] ) ? $properties[ $field ] : array();
 
-			$type = $prop['type'] ?? 'value';
+			$type = isset( $prop['type'] ) ? $prop['type'] : 'value';
 			if ( is_array( $type ) ) {
 				$type = implode( '|', $type );
+			} else {
+				$type = (string) $type;
 			}
 
 			$desc = isset( $prop['description'] ) ? trim( (string) $prop['description'] ) : '';
@@ -76,7 +78,7 @@ class SchemaExampleBuilder {
 			// If the schema lists an enum, hint with the allowed values
 			// instead of the description — much more actionable.
 			if ( isset( $prop['enum'] ) && is_array( $prop['enum'] ) && ! empty( $prop['enum'] ) ) {
-				$enum_summary = implode( '|', array_map( 'strval', array_slice( $prop['enum'], 0, 5 ) ) );
+				$enum_summary = implode( '|', array_map( static fn( $v ) => (string) $v, array_slice( $prop['enum'], 0, 5 ) ) );
 				$desc         = "one of: {$enum_summary}";
 			}
 

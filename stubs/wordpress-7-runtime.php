@@ -38,6 +38,15 @@ namespace WordPress\AiClient\Messages\Enums {
 		public function getValue(): string {
 			return $this->value;
 		}
+
+		/**
+		 * Allow casting to string.
+		 *
+		 * @return string
+		 */
+		public function __toString(): string {
+			return $this->value;
+		}
 	}
 }
 
@@ -198,6 +207,32 @@ namespace WordPress\AiClient\Results\DTO {
 	use WordPress\AiClient\Messages\DTO\Message;
 
 	/**
+	 * Token usage data from a generative AI request (stub).
+	 */
+	class TokenUsage {
+		/**
+		 * Get the number of prompt/input tokens used.
+		 *
+		 * @return int
+		 */
+		public function getPromptTokens(): int { return 0; }
+
+		/**
+		 * Get the number of completion/output tokens used.
+		 *
+		 * @return int
+		 */
+		public function getCompletionTokens(): int { return 0; }
+
+		/**
+		 * Get the total number of tokens used.
+		 *
+		 * @return int
+		 */
+		public function getTotalTokens(): int { return 0; }
+	}
+
+	/**
 	 * Result from a generative AI request (stub).
 	 */
 	class GenerativeAiResult {
@@ -227,6 +262,13 @@ namespace WordPress\AiClient\Results\DTO {
 		 * @return bool
 		 */
 		public function has_ability_calls(): bool { return false; }
+
+		/**
+		 * Get token usage data for this result.
+		 *
+		 * @return TokenUsage
+		 */
+		public function getTokenUsage(): TokenUsage { return new TokenUsage(); }
 	}
 }
 
@@ -254,6 +296,21 @@ namespace WordPress\AiClient {
 		 * @param mixed  $authentication
 		 */
 		public function setProviderRequestAuthentication( string $provider_id, mixed $authentication ): void {}
+
+		/**
+		 * Get all registered provider IDs.
+		 *
+		 * @return string[]
+		 */
+		public function getRegisteredProviderIds(): array { return array(); }
+
+		/**
+		 * Get the class name for a registered provider.
+		 *
+		 * @param string $provider_id Provider identifier.
+		 * @return string Fully-qualified class name.
+		 */
+		public function getProviderClassName( string $provider_id ): string { return ''; }
 	}
 
 	/**
@@ -325,6 +382,29 @@ namespace {
 	 * @since 7.0.0
 	 */
 	class WP_Ability {
+		/**
+		 * The namespaced ability name (e.g. 'gratis-ai-agent/memory-save').
+		 *
+		 * @var string
+		 */
+		public string $name = '';
+
+		/**
+		 * Constructor.
+		 *
+		 * @param string               $name       The namespaced ability name.
+		 * @param array<string, mixed> $args       Ability configuration args.
+		 */
+		public function __construct( string $name, array $args = array() ) {}
+
+		/**
+		 * Prepare and validate ability properties from args.
+		 *
+		 * @param array<string, mixed> $args The ability args array.
+		 * @return array<string, mixed> The validated and prepared properties.
+		 */
+		protected function prepare_properties( array $args ): array { return $args; }
+
 		/** @return string */
 		public function get_name(): string { return ''; }
 
@@ -345,6 +425,13 @@ namespace {
 		public function get_input_schema(): array { return array(); }
 
 		/**
+		 * Get the JSON Schema for the ability's output.
+		 *
+		 * @return array<string, mixed>
+		 */
+		public function get_output_schema(): array { return array(); }
+
+		/**
 		 * Get the ability category slug.
 		 *
 		 * @return string
@@ -360,6 +447,22 @@ namespace {
 
 		/** @return mixed */
 		public function call( array $params ): mixed { return null; }
+
+		/**
+		 * Execute the ability with the given arguments.
+		 *
+		 * @param array<string, mixed>|null $args Input arguments.
+		 * @return mixed|\WP_Error
+		 */
+		public function execute( ?array $args ): mixed { return null; }
+
+		/**
+		 * Validate input against the ability's input schema.
+		 *
+		 * @param mixed $input Input to validate.
+		 * @return true|\WP_Error
+		 */
+		public function validate_input( mixed $input ): true|\WP_Error { return true; }
 	}
 
 	/**
@@ -368,8 +471,14 @@ namespace {
 	 * @since 7.0.0
 	 */
 	class WP_AI_Client_Ability_Function_Resolver {
-		/** @param WP_Ability ...$abilities */
-		public function __construct( WP_Ability ...$abilities ) {}
+		/**
+		 * Constructor.
+		 *
+		 * Accepts ability objects or ability name strings.
+		 *
+		 * @param WP_Ability|string ...$abilities Abilities to register (objects or name strings).
+		 */
+		public function __construct( WP_Ability|string ...$abilities ) {}
 
 		/** @param string $ability_name */
 		public static function ability_name_to_function_name( string $ability_name ): string { return ''; }
@@ -389,6 +498,14 @@ namespace {
 		public function has_ability_calls( \WordPress\AiClient\Messages\DTO\Message $message ): bool { return false; }
 
 		/**
+		 * Check whether a single function call is an ability call.
+		 *
+		 * @param \WordPress\AiClient\Tools\DTO\FunctionCall $call The function call to check.
+		 * @return bool
+		 */
+		public function is_ability_call( \WordPress\AiClient\Tools\DTO\FunctionCall $call ): bool { return false; }
+
+		/**
 		 * Execute all ability calls in a message and return the response message.
 		 *
 		 * @param \WordPress\AiClient\Messages\DTO\Message $message
@@ -396,6 +513,16 @@ namespace {
 		 */
 		public function execute_abilities( \WordPress\AiClient\Messages\DTO\Message $message ): \WordPress\AiClient\Messages\DTO\Message {
 			return new \WordPress\AiClient\Messages\DTO\UserMessage();
+		}
+
+		/**
+		 * Execute a single ability call and return the function response.
+		 *
+		 * @param \WordPress\AiClient\Tools\DTO\FunctionCall $call The function call to execute.
+		 * @return \WordPress\AiClient\Tools\DTO\FunctionResponse
+		 */
+		public function execute_ability( \WordPress\AiClient\Tools\DTO\FunctionCall $call ): \WordPress\AiClient\Tools\DTO\FunctionResponse {
+			return new \WordPress\AiClient\Tools\DTO\FunctionResponse( '', '' );
 		}
 	}
 

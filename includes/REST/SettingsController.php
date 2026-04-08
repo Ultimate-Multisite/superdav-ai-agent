@@ -893,7 +893,7 @@ class SettingsController {
 						$fake_request = new WP_REST_Request( 'GET' );
 						$result       = \OpenAiCompatibleConnector\rest_list_models( $fake_request );
 						if ( ! is_wp_error( $result ) ) {
-							$data = $result instanceof WP_REST_Response ? $result->get_data() : $result;
+							$data = $result->get_data();
 							if ( is_array( $data ) ) {
 								$models = $data;
 							}

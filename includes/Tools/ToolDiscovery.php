@@ -630,7 +630,7 @@ class ToolDiscovery {
 			// inject a hard stop-and-rethink nudge.
 			$count = \GratisAiAgent\Core\IdenticalFailureTracker::record( $ability_id, $input_data, $error_code );
 			if ( \GratisAiAgent\Core\IdenticalFailureTracker::should_nudge( $count ) ) {
-				$schema_for_nudge = $payload['input_schema'] ?? ( method_exists( $ability, 'get_input_schema' ) ? $ability->get_input_schema() : array() );
+				$schema_for_nudge = $payload['input_schema'] ?? $ability->get_input_schema();
 				$payload['nudge'] = \GratisAiAgent\Core\IdenticalFailureTracker::nudge_message( $ability_id, $schema_for_nudge );
 				ModelHealthTracker::record_nudge();
 			}

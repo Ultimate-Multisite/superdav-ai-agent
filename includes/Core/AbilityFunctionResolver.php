@@ -147,7 +147,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 			// either supply different args or call a different ability.
 			$count = IdenticalFailureTracker::record( $ability_name, $args, $error_code );
 			if ( IdenticalFailureTracker::should_nudge( $count ) ) {
-				$schema_for_nudge       = $response_data['input_schema'] ?? ( method_exists( $ability, 'get_input_schema' ) ? $ability->get_input_schema() : array() );
+				$schema_for_nudge       = $response_data['input_schema'] ?? $ability->get_input_schema();
 				$response_data['nudge'] = IdenticalFailureTracker::nudge_message( $ability_name, $schema_for_nudge );
 				ModelHealthTracker::record_nudge();
 			}

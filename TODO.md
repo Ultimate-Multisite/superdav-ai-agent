@@ -203,7 +203,7 @@
 
 ## New Tasks
 
-- [ ] t162 Fix systemic CI failures: PHPStan, PHPUnit, Playwright E2E #bug #auto-dispatch ~4h ref:GH#803 logged:2026-04-07 pr:#820
+- [x] t162 Fix systemic CI failures: PHPStan, PHPUnit, Playwright E2E #bug #auto-dispatch ~4h ref:GH#803 logged:2026-04-07 pr:#820 pr:#820 completed:2026-04-08
   - PHPStan: ~40 errors from WP 7.0 Abilities API stubs not matching actual API; PHPUnit: 7 errors + 20 failures in AgentLoopTest (WP_Error returned where array expected + WP_Ability category fixture); Playwright: 6 shards failing, likely /stream → /chat rename in #802
   - PHPStan fixed in PR #820 (stubs + code fixes, verified [OK] No errors locally). PHPUnit and Playwright still need fixing.
 

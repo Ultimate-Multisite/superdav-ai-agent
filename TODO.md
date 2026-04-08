@@ -205,7 +205,7 @@
 
 - [ ] t162 Fix systemic CI failures: PHPStan, PHPUnit, Playwright E2E #bug #auto-dispatch ~4h ref:GH#803 logged:2026-04-07
   - PHPStan: ~40 errors from WP 7.0 Abilities API stubs not matching actual API; PHPUnit: 7 errors + 20 failures in AgentLoopTest (WP_Error returned where array expected + WP_Ability category fixture); Playwright: 6 shards failing, likely /stream → /chat rename in #802
-  - Fix stubs in includes/stubs/, update AgentLoopTest fixtures, update frontend endpoint reference from /stream to /chat
+  - Fix stubs in stubs/, update AgentLoopTest fixtures, update frontend endpoint reference from /stream to /chat
 
 - [ ] t163 Seamless PHP+JS abilities — foundation slice (JsAbilityCatalog, client registry, entry wiring) #feature #interactive ~3h For #806 logged:2026-04-08 started:2026-04-08
   - PR 1 of 2 splitting #806. Adds includes/Abilities/Js/JsAbilityCatalog.php (pure metadata mirror), src/abilities/{registry,navigation,editor,index}.js, wires into 4 entry points, enqueues @wordpress/abilities script module on our admin hooks. No AgentLoop or REST changes in this slice.

@@ -1153,11 +1153,12 @@ class SessionController {
 		if ( $session_id ) {
 			$session = $this->database->get_session( $session_id );
 			if ( $session ) {
-				/** @var list<array<string, mixed>> $session_messages */
 				$session_messages = json_decode( $session->messages, true ) ?: array();
+				/** @var list<array<string, mixed>> $session_messages */
+				$session_messages = array_values( array_filter( (array) $session_messages, 'is_array' ) );
 				if ( ! empty( $session_messages ) ) {
 					try {
-						$history = AgentLoop::deserialize_history( array_values( $session_messages ) );
+						$history = AgentLoop::deserialize_history( $session_messages );
 					} catch ( \Exception $e ) {
 						$history = array();
 					}

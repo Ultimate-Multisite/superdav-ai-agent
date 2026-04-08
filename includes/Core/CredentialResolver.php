@@ -8,7 +8,6 @@ declare(strict_types=1);
  * that the rest of the plugin never calls get_option() / update_option()
  * directly for secrets.  Handles:
  *
- *  - OpenAI-compatible connector (endpoint URL, API key, timeout)
  *  - AI Experiments plugin provider credentials array
  *  - Claude Max OAuth token
  *  - WordPress 7.0 Connectors API (read-only, delegated to WP functions)
@@ -28,21 +27,6 @@ class CredentialResolver {
 	// ── Option names ──────────────────────────────────────────────────────────
 
 	/**
-	 * WordPress option that stores the OpenAI-compatible endpoint URL.
-	 */
-	const OPENAI_COMPAT_ENDPOINT_OPTION = 'openai_compat_endpoint_url';
-
-	/**
-	 * WordPress option that stores the OpenAI-compatible API key.
-	 */
-	const OPENAI_COMPAT_API_KEY_OPTION = 'openai_compat_api_key';
-
-	/**
-	 * WordPress option that stores the OpenAI-compatible request timeout (seconds).
-	 */
-	const OPENAI_COMPAT_TIMEOUT_OPTION = 'openai_compat_timeout';
-
-	/**
 	 * WordPress option that stores the AI Experiments plugin provider credentials.
 	 * Shape: array<string, string>  (provider_id => api_key)
 	 */
@@ -58,51 +42,6 @@ class CredentialResolver {
 	 * string is required by the HTTP client.
 	 */
 	const NO_KEY_SENTINEL = 'no-key';
-
-	// ── OpenAI-compatible connector ───────────────────────────────────────────
-
-	/**
-	 * Return the configured OpenAI-compatible endpoint URL, trailing slash stripped.
-	 *
-	 * @return string Empty string when not configured.
-	 */
-	public static function getOpenAiCompatEndpointUrl(): string {
-		// @phpstan-ignore-next-line
-		return rtrim( (string) get_option( self::OPENAI_COMPAT_ENDPOINT_OPTION, '' ), '/' );
-	}
-
-	/**
-	 * Return the OpenAI-compatible API key.
-	 *
-	 * Falls back to {@see NO_KEY_SENTINEL} when the option is empty so that
-	 * callers can always pass a non-empty Authorization header.
-	 *
-	 * @param bool $allow_sentinel When true (default) returns the sentinel
-	 *                             instead of an empty string.  Pass false to
-	 *                             get the raw stored value (empty string when
-	 *                             not configured).
-	 * @return string
-	 */
-	public static function getOpenAiCompatApiKey( bool $allow_sentinel = true ): string {
-		// @phpstan-ignore-next-line
-		$key = (string) get_option( self::OPENAI_COMPAT_API_KEY_OPTION, '' );
-
-		if ( '' === $key && $allow_sentinel ) {
-			return self::NO_KEY_SENTINEL;
-		}
-
-		return $key;
-	}
-
-	/**
-	 * Return the OpenAI-compatible request timeout in seconds.
-	 *
-	 * @return int Default 600 seconds.
-	 */
-	public static function getOpenAiCompatTimeout(): int {
-		// @phpstan-ignore-next-line
-		return (int) get_option( self::OPENAI_COMPAT_TIMEOUT_OPTION, 600 );
-	}
 
 	// ── AI Experiments plugin credentials ─────────────────────────────────────
 
@@ -178,16 +117,6 @@ class CredentialResolver {
 	}
 
 	// ── Validation helpers ────────────────────────────────────────────────────
-
-	/**
-	 * Return true when the OpenAI-compatible connector is fully configured
-	 * (endpoint URL is non-empty).
-	 *
-	 * @return bool
-	 */
-	public static function isOpenAiCompatConfigured(): bool {
-		return '' !== self::getOpenAiCompatEndpointUrl();
-	}
 
 	/**
 	 * Return true when a Claude Max token is stored.

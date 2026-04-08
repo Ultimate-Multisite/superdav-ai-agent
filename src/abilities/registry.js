@@ -1,49 +1,126 @@
 /**
  * Client-side abilities registry for gratis-ai-agent-js namespace.
  *
- * Thin wrapper around @wordpress/abilities that:
- * - Registers the gratis-ai-agent-js category (idempotent).
- * - Provides registerClientAbility() to register abilities with correct shape.
- * - Provides snapshotDescriptors() to capture current descriptors for posting
- *   to the server in the /chat request (used by sessionsSlice sendMessage thunk).
+ * Thin wrapper around @wordpress/abilities (exposed by core 7.0 as the
+ * `wp.abilities` global, populated when the script module loads) that:
+ *
+ *   - Registers the gratis-ai-agent-js category (idempotent, async).
+ *   - Provides registerClientAbility() to register abilities with the
+ *     correct shape required by the WP 7.0 API (single options object,
+ *     with `name` as a property).
+ *   - Provides snapshotDescriptors() to capture current descriptors for
+ *     posting to the server in the /chat request body
+ *     (used by sessionsSlice sendMessage thunk).
+ *
+ * Bug history (#806 → #815 → #821 → t166):
+ *   - #815 (in #815's PR) shipped this file with three API misuses that
+ *     prevented any ability from registering at runtime:
+ *       a) registerAbilityCategory() was called without a `description`
+ *          field, which is required per the WP 7.0 dev note. Fix: add it.
+ *       b) registerAbility() was called with two positional arguments
+ *          (def.name, options) instead of the documented single options
+ *          object containing `name`. The library read `.name` off the
+ *          options bag, found undefined, and threw "Ability name is
+ *          required". Fix: pass a single object.
+ *       c) Both registerAbilityCategory() and registerAbility() in the
+ *          WP 7.0 API are ASYNC and return Promises. The category Promise
+ *          had not yet resolved when the abilities tried to register
+ *          synchronously, so the abilities looked up a not-yet-existent
+ *          category and threw "Ability references non-existent category".
+ *          Fix: await every registration call.
+ *
+ *   - #821 (t165) wired the entry-point imports so this file actually
+ *     ran, which surfaced the throws above as visible console errors
+ *     during a browser smoke test.
+ *
+ *   - This task (t166) fixes all three API misuses and makes the
+ *     registration pipeline properly async-aware.
  */
 
 const CATEGORY_SLUG = 'gratis-ai-agent-js';
 const CATEGORY_LABEL = 'Gratis AI Agent (Client)';
-
-let categoryRegistered = false;
+const CATEGORY_DESCRIPTION =
+	'Client-side abilities provided by the Gratis AI Agent plugin. Execute in the browser without a server round-trip.';
 
 /**
- * Register the gratis-ai-agent-js category (idempotent).
+ * Single category-registration Promise shared across all callers in the
+ * same module instance, so concurrent ensureRegistered() calls await the
+ * same in-flight registration instead of racing.
  *
- * @return {void}
+ * @type {Promise<void>|null}
  */
-export function registerCategory() {
-	if ( categoryRegistered ) {
-		return;
-	}
-	if (
-		typeof wp === 'undefined' ||
-		! wp.abilities ||
-		! wp.abilities.registerAbilityCategory
-	) {
-		return;
-	}
-	try {
-		wp.abilities.registerAbilityCategory( CATEGORY_SLUG, {
-			label: CATEGORY_LABEL,
-		} );
-		categoryRegistered = true;
-	} catch {
-		// Already registered or API unavailable — safe to ignore.
-	}
+let categoryRegistrationPromise = null;
+
+/**
+ * Per-ability deduplication set so the same ability isn't registered
+ * twice from a second bundle on the same page (each entry-point bundle
+ * has its own module instance).
+ *
+ * @type {Set<string>}
+ */
+const registeredAbilityNames = new Set();
+
+/**
+ * Detect whether the WP 7.0 abilities API is available on this page.
+ *
+ * @return {boolean} True when wp.abilities is loaded and exposes the
+ *                   functions we need.
+ */
+function abilitiesApiAvailable() {
+	return (
+		typeof wp !== 'undefined' &&
+		!! wp.abilities &&
+		typeof wp.abilities.registerAbility === 'function' &&
+		typeof wp.abilities.registerAbilityCategory === 'function'
+	);
 }
 
 /**
- * Register a single client-side ability.
+ * Register the gratis-ai-agent-js category (idempotent, async).
+ *
+ * Must be awaited before any registerClientAbility() call — the WP 7.0
+ * `registerAbilityCategory` API is async, and abilities registered
+ * before the category Promise resolves throw
+ * "Ability references non-existent category".
+ *
+ * Multiple concurrent callers receive the same in-flight Promise so we
+ * never double-register.
+ *
+ * @return {Promise<void>}
+ */
+export async function registerCategory() {
+	if ( categoryRegistrationPromise ) {
+		return categoryRegistrationPromise;
+	}
+	if ( ! abilitiesApiAvailable() ) {
+		return undefined;
+	}
+
+	categoryRegistrationPromise = ( async () => {
+		try {
+			await wp.abilities.registerAbilityCategory( CATEGORY_SLUG, {
+				label: CATEGORY_LABEL,
+				description: CATEGORY_DESCRIPTION,
+			} );
+		} catch ( _err ) {
+			// Already registered by another bundle on the same page —
+			// safe to ignore. Both bundles will continue to register
+			// their abilities into the same shared category.
+		}
+	} )();
+
+	return categoryRegistrationPromise;
+}
+
+/**
+ * Register a single client-side ability (async).
  *
  * Shapes the definition with the correct category and meta.annotations,
  * and guards against double-registration.
+ *
+ * The WP 7.0 `registerAbility` API takes a SINGLE options object whose
+ * `name` field identifies the ability — calling it with two positional
+ * arguments throws "Ability name is required". The call is also async.
  *
  * @param {Object}   def              Ability definition.
  * @param {string}   def.name         Fully-qualified ability name (gratis-ai-agent-js/...).
@@ -53,18 +130,27 @@ export function registerCategory() {
  * @param {Object}   def.outputSchema JSON Schema for the ability's output.
  * @param {Object}   def.annotations  Annotations (e.g. { readonly: true }).
  * @param {Function} def.callback     The function to execute when the ability is called.
- * @return {void}
+ * @return {Promise<void>}
  */
-export function registerClientAbility( def ) {
-	if (
-		typeof wp === 'undefined' ||
-		! wp.abilities ||
-		! wp.abilities.registerAbility
-	) {
+export async function registerClientAbility( def ) {
+	if ( ! abilitiesApiAvailable() ) {
 		return;
 	}
+	if ( ! def || typeof def.name !== 'string' || def.name === '' ) {
+		// eslint-disable-next-line no-console
+		console.warn(
+			'[gratis-ai-agent] registerClientAbility called without a name; skipping.'
+		);
+		return;
+	}
+	if ( registeredAbilityNames.has( def.name ) ) {
+		return;
+	}
+	registeredAbilityNames.add( def.name );
+
 	try {
-		wp.abilities.registerAbility( def.name, {
+		await wp.abilities.registerAbility( {
+			name: def.name,
 			label: def.label,
 			description: def.description,
 			category: CATEGORY_SLUG,
@@ -75,8 +161,10 @@ export function registerClientAbility( def ) {
 				annotations: def.annotations || {},
 			},
 		} );
-	} catch {
-		// Already registered — safe to ignore.
+	} catch ( _err ) {
+		// Already registered by another bundle on the same page — fine.
+		// We've already added it to registeredAbilityNames so we won't
+		// retry from this module instance.
 	}
 }
 
@@ -87,27 +175,34 @@ export function registerClientAbility( def ) {
  * as `client_abilities` in the /chat request body. The server validates each
  * name against JsAbilityCatalog::get_descriptors() and drops unknown names.
  *
- * @return {Array<{name: string, label: string, description: string, input_schema: Object, output_schema: Object, annotations: Object}>} Array of client ability descriptors.
+ * Reads via `wp.abilities.getAbilities()` (the script-module API) rather
+ * than via `wp.data.select('core/abilities').getAbilities()` because in
+ * WP 7.0-RC2 the @wordpress/data store mirror is not consistently
+ * populated by `@wordpress/core-abilities` — but the script-module API
+ * always reflects the live registry. The script-module call returns a
+ * Promise, so this function is async.
+ *
+ * Callers should `await ensureRegistered()` from index.js before calling
+ * this so the registration Promises are guaranteed to have resolved.
+ *
+ * @return {Promise<Array<{name: string, label: string, description: string, input_schema: Object, output_schema: Object, annotations: Object}>>} Promise of client ability descriptors.
  */
-export function snapshotDescriptors() {
+export async function snapshotDescriptors() {
 	if (
 		typeof wp === 'undefined' ||
-		! wp.data ||
-		! wp.data.select( 'core/abilities' )
+		! wp.abilities ||
+		typeof wp.abilities.getAbilities !== 'function'
 	) {
 		return [];
 	}
 
 	try {
-		const store = wp.data.select( 'core/abilities' );
-		const allAbilities =
-			typeof store.getAbilities === 'function'
-				? store.getAbilities()
-				: [];
+		const allAbilities = ( await wp.abilities.getAbilities() ) || [];
 
 		return allAbilities
 			.filter(
 				( ability ) =>
+					ability &&
 					ability.name &&
 					ability.name.startsWith( CATEGORY_SLUG + '/' )
 			)
@@ -119,7 +214,7 @@ export function snapshotDescriptors() {
 				output_schema: ability.output_schema || {},
 				annotations: ability.meta?.annotations || {},
 			} ) );
-	} catch {
+	} catch ( _err ) {
 		return [];
 	}
 }

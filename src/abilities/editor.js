@@ -62,37 +62,54 @@ function executeInsertBlock( args ) {
 	}
 }
 
-registerClientAbility( {
-	name: 'gratis-ai-agent-js/insert-block',
-	label: 'Insert Block',
-	description:
-		'Insert a Gutenberg block into the active block editor. Only available on editor screens.',
-	inputSchema: {
-		type: 'object',
-		properties: {
-			blockName: {
-				type: 'string',
-				description: 'Block name, e.g. "core/paragraph".',
+/**
+ * Register the insert-block ability with the client-side abilities registry.
+ *
+ * Called by src/abilities/index.js after the gratis-ai-agent-js category
+ * has been registered. Must NOT self-register at module-eval time — ES
+ * module imports are hoisted and would race the category registration
+ * (the bug t166 fixes).
+ *
+ * Safe to call on non-editor screens — the executeInsertBlock callback
+ * itself guards on `wp.data.select('core/block-editor')` being defined,
+ * so calling the registered ability from a non-editor context returns
+ * `{ inserted: false, ... }` instead of throwing.
+ *
+ * @return {void}
+ */
+export async function registerEditorAbility() {
+	await registerClientAbility( {
+		name: 'gratis-ai-agent-js/insert-block',
+		label: 'Insert Block',
+		description:
+			'Insert a Gutenberg block into the active block editor. Only available on editor screens.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				blockName: {
+					type: 'string',
+					description: 'Block name, e.g. "core/paragraph".',
+				},
+				attributes: {
+					type: 'object',
+					description: 'Block attributes.',
+				},
+				innerHTML: {
+					type: 'string',
+					description: 'Optional inner HTML for the block.',
+				},
 			},
-			attributes: {
-				type: 'object',
-				description: 'Block attributes.',
-			},
-			innerHTML: {
-				type: 'string',
-				description: 'Optional inner HTML for the block.',
+			required: [ 'blockName' ],
+		},
+		outputSchema: {
+			type: 'object',
+			properties: {
+				inserted: { type: 'boolean' },
+				clientId: { type: 'string' },
+				blockName: { type: 'string' },
 			},
 		},
-		required: [ 'blockName' ],
-	},
-	outputSchema: {
-		type: 'object',
-		properties: {
-			inserted: { type: 'boolean' },
-			clientId: { type: 'string' },
-			blockName: { type: 'string' },
-		},
-	},
-	annotations: { readonly: false },
-	callback: executeInsertBlock,
-} );
+		annotations: { readonly: false },
+		callback: executeInsertBlock,
+	} );
+}

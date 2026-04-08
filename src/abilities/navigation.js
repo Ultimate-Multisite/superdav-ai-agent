@@ -33,29 +33,41 @@ function executeNavigateTo( args ) {
 	return { navigated: true, path };
 }
 
-registerClientAbility( {
-	name: 'gratis-ai-agent-js/navigate-to',
-	label: 'Navigate to Admin Page',
-	description:
-		'Navigate to a WordPress admin page without a full page reload when inside the admin SPA.',
-	inputSchema: {
-		type: 'object',
-		properties: {
-			path: {
-				type: 'string',
-				description:
-					'wp-admin-relative path, e.g. "plugins.php" or "edit.php?post_type=page".',
+/**
+ * Register the navigate-to ability with the client-side abilities registry.
+ *
+ * Called by src/abilities/index.js after the gratis-ai-agent-js category
+ * has been registered. Must NOT self-register at module-eval time — ES
+ * module imports are hoisted and would race the category registration
+ * (the bug t166 fixes).
+ *
+ * @return {void}
+ */
+export async function registerNavigationAbility() {
+	await registerClientAbility( {
+		name: 'gratis-ai-agent-js/navigate-to',
+		label: 'Navigate to Admin Page',
+		description:
+			'Navigate to a WordPress admin page without a full page reload when inside the admin SPA.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				path: {
+					type: 'string',
+					description:
+						'wp-admin-relative path, e.g. "plugins.php" or "edit.php?post_type=page".',
+				},
+			},
+			required: [ 'path' ],
+		},
+		outputSchema: {
+			type: 'object',
+			properties: {
+				navigated: { type: 'boolean' },
+				path: { type: 'string' },
 			},
 		},
-		required: [ 'path' ],
-	},
-	outputSchema: {
-		type: 'object',
-		properties: {
-			navigated: { type: 'boolean' },
-			path: { type: 'string' },
-		},
-	},
-	annotations: { readonly: true },
-	callback: executeNavigateTo,
-} );
+		annotations: { readonly: true },
+		callback: executeNavigateTo,
+	} );
+}

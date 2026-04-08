@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\REST;
 
+use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Tools\CustomToolExecutor;
@@ -267,6 +268,32 @@ class ToolController {
 				),
 				'output_schema'     => $ability->get_output_schema(),
 				'show_in_rest'      => (bool) ( $meta['show_in_rest'] ?? false ),
+			);
+		}
+
+		// Append client-side (JS) abilities from the catalog.
+		foreach ( JsAbilityCatalog::get_descriptors() as $descriptor ) {
+			$input_schema    = $descriptor['input_schema'] ?? array();
+			$required_params = $input_schema['required'] ?? array();
+			$param_count     = isset( $input_schema['properties'] ) ? count( $input_schema['properties'] ) : 0;
+			$annotations     = $descriptor['annotations'] ?? array();
+
+			$list[] = array(
+				'name'              => $descriptor['name'],
+				'label'             => $descriptor['label'],
+				'description'       => $descriptor['description'],
+				'category'          => $descriptor['category'],
+				'param_count'       => $param_count,
+				'required_params'   => $required_params,
+				'is_configured'     => true,
+				'required_api_keys' => array(),
+				'annotations'       => array(
+					'readonly'    => (bool) ( $annotations['readonly'] ?? false ),
+					'destructive' => false,
+					'idempotent'  => false,
+				),
+				'output_schema'     => $descriptor['output_schema'] ?? array(),
+				'show_in_rest'      => false,
 			);
 		}
 

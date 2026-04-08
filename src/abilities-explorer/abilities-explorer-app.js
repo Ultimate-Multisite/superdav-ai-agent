@@ -117,6 +117,8 @@ function AbilityRow( { ability } ) {
 		show_in_rest: showInRest,
 	} = ability;
 
+	const isClientAbility = category === 'gratis-ai-agent-js';
+
 	return (
 		<div className="gratis-ai-agent-ability-row">
 			<div className="gratis-ai-agent-ability-row-header">
@@ -125,11 +127,17 @@ function AbilityRow( { ability } ) {
 				</div>
 				<div className="gratis-ai-agent-ability-name">{ name }</div>
 				<div className="gratis-ai-agent-ability-badges">
-					{ isConfigured ? (
+					{ isClientAbility && (
+						<Badge intent="info">
+							{ __( 'client', 'gratis-ai-agent' ) }
+						</Badge>
+					) }
+					{ ! isClientAbility && isConfigured && (
 						<Badge intent="success">
 							{ __( 'Configured', 'gratis-ai-agent' ) }
 						</Badge>
-					) : (
+					) }
+					{ ! isClientAbility && ! isConfigured && (
 						<Badge intent="warning">
 							{ __( 'Needs Setup', 'gratis-ai-agent' ) }
 						</Badge>

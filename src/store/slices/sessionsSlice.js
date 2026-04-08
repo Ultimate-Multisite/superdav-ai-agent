@@ -13,6 +13,7 @@
 
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { snapshotDescriptors } from '../../abilities/registry';
 
 export const initialState = {
 	sessions: [],
@@ -764,6 +765,13 @@ export const actions = {
 				body.agent_id = selectedAgentId;
 			}
 
+			// Include client-side ability descriptors so the server can route
+			// JS tool calls back to the browser instead of executing them server-side.
+			const clientAbilities = snapshotDescriptors();
+			if ( clientAbilities.length > 0 ) {
+				body.client_abilities = clientAbilities;
+			}
+
 			dispatch.setSendTimestamp( Date.now() );
 
 			// Streaming was removed when all chat routing was delegated to the
@@ -806,6 +814,131 @@ export const actions = {
 				} );
 				// Keep sending=true — we're still waiting for user input.
 				return;
+			}
+
+			// Handle client-side tool call pause — the server needs the browser
+			// to execute these abilities and POST the results back.
+			if ( result?.pending_client_tool_calls?.length ) {
+				const pendingCalls = result.pending_client_tool_calls;
+				const currentSessionId = result.session_id || sessionId;
+
+				// Execute each pending client tool call via the core/abilities store.
+				const toolResults = [];
+				for ( const call of pendingCalls ) {
+					try {
+						let callResult;
+						if (
+							typeof wp !== 'undefined' &&
+							wp.data &&
+							wp.data.dispatch( 'core/abilities' ) &&
+							typeof wp.data.dispatch( 'core/abilities' )
+								.executeAbility === 'function'
+						) {
+							callResult = await wp.data
+								.dispatch( 'core/abilities' )
+								.executeAbility( call.name, call.args || {} );
+						} else {
+							// Fallback: look up and call the ability directly.
+							const abilityStore =
+								wp?.data?.select( 'core/abilities' );
+							const abilities =
+								abilityStore?.getAbilities?.() || [];
+							const ability = abilities.find(
+								( a ) => a.name === call.name
+							);
+							if ( ability?.callback ) {
+								callResult = ability.callback(
+									call.args || {}
+								);
+							} else {
+								throw new Error(
+									`Ability ${ call.name } not found`
+								);
+							}
+						}
+						toolResults.push( {
+							id: call.id,
+							name: call.name,
+							result: callResult,
+							ran_in_browser: true,
+						} );
+					} catch ( err ) {
+						toolResults.push( {
+							id: call.id,
+							name: call.name,
+							error:
+								err?.message ||
+								'Client ability execution failed',
+							ran_in_browser: true,
+						} );
+					}
+				}
+
+				// POST results back to resume the agent loop.
+				let resumeResult;
+				try {
+					resumeResult = await apiFetch( {
+						path: '/gratis-ai-agent/v1/chat/tool-result',
+						method: 'POST',
+						data: {
+							session_id: currentSessionId,
+							tool_results: toolResults,
+						},
+					} );
+				} catch ( err ) {
+					dispatch.appendMessage( {
+						role: 'system',
+						parts: [
+							{
+								text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
+									err.message ||
+									__(
+										'Failed to resume after client tool execution',
+										'gratis-ai-agent'
+									)
+								}`,
+							},
+						],
+					} );
+					dispatch.setStreamError( true );
+					dispatch.setSending( false );
+					return;
+				}
+
+				// Replace result with the resumed response for downstream processing.
+				result = resumeResult;
+
+				// Log client tool calls in the tool-call-details UI.
+				if ( toolResults.length > 0 ) {
+					const clientToolCallLog = toolResults.flatMap( ( tr ) => [
+						{
+							type: 'call',
+							id: tr.id,
+							name: tr.name,
+							args:
+								pendingCalls.find( ( c ) => c.id === tr.id )
+									?.args || {},
+							ran_in_browser: true,
+						},
+						{
+							type: 'response',
+							id: tr.id,
+							name: tr.name,
+							response: tr.result ?? tr.error,
+							ran_in_browser: true,
+						},
+					] );
+					// Merge into the result's tool_calls for display.
+					if ( result ) {
+						result = {
+							...result,
+							tool_calls: [
+								...( result.tool_calls || [] ),
+								...clientToolCallLog,
+							],
+						};
+					}
+				}
 			}
 
 			// Append the assistant reply.

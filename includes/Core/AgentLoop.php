@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Core;
 
+use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Knowledge\Knowledge;
@@ -30,6 +31,7 @@ use WordPress\AiClient\Messages\DTO\ModelMessage;
 use WordPress\AiClient\Messages\DTO\UserMessage;
 use WordPress\AiClient\Messages\Enums\MessageRoleEnum;
 use WordPress\AiClient\Tools\DTO\FunctionCall;
+use WordPress\AiClient\Tools\DTO\FunctionResponse;
 
 class AgentLoop {
 
@@ -118,6 +120,15 @@ class AgentLoop {
 	/** @var int Session ID for change attribution (0 = no session). */
 	private int $session_id = 0;
 
+	/**
+	 * Client-side ability descriptors validated against JsAbilityCatalog.
+	 * These are abilities the browser can execute; the loop pauses and returns
+	 * them as pending_client_tool_calls when the model invokes one.
+	 *
+	 * @var list<array<string, mixed>>
+	 */
+	private array $client_abilities = array();
+
 	// ── Spin Detection State ─────────────────────────────────────────────
 
 	/** @var int Consecutive rounds with identical tool signatures. */
@@ -198,6 +209,25 @@ class AgentLoop {
 			'prompt'     => 0,
 			'completion' => 0,
 		);
+
+		// Validate and store client-side ability descriptors.
+		// Only accept names that exist in JsAbilityCatalog to prevent the
+		// client from injecting arbitrary ability names into the model's tool list.
+		// @phpstan-ignore-next-line
+		$raw_client_abilities = $options['client_abilities'] ?? array();
+		if ( is_array( $raw_client_abilities ) ) {
+			$catalog = JsAbilityCatalog::get_descriptors_by_name();
+			foreach ( $raw_client_abilities as $descriptor ) {
+				if ( ! is_array( $descriptor ) ) {
+					continue;
+				}
+				$name = (string) ( $descriptor['name'] ?? '' );
+				if ( '' !== $name && isset( $catalog[ $name ] ) ) {
+					/** @var array<string, mixed> $descriptor */
+					$this->client_abilities[] = $descriptor;
+				}
+			}
+		}
 	}
 
 	/**
@@ -274,6 +304,70 @@ class AgentLoop {
 					),
 				)
 			);
+		}
+
+		return $this->run_loop( $remaining_iterations );
+	}
+
+	/**
+	 * Resume the agent loop after the browser has executed client-side tool calls.
+	 *
+	 * Called by the /chat/tool-result REST endpoint. Reconstructs a tool-response
+	 * Message from the client results, appends it to history, and continues the loop.
+	 * Mirrors resume_after_confirmation() in shape.
+	 *
+	 * @param list<array{id: string, name: string, result?: mixed, error?: string}> $results Client tool results.
+	 * @param int                                                                   $remaining_iterations Remaining loop iterations from the paused state.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public function resume_after_client_tools( array $results, int $remaining_iterations ) {
+		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_missing_client',
+				__( 'wp_ai_client_prompt() is not available.', 'gratis-ai-agent' )
+			);
+		}
+
+		self::ensure_provider_credentials_static();
+
+		// Build a tool-response message from the client results.
+		$parts = array();
+		foreach ( $results as $result ) {
+			$id   = (string) ( $result['id'] ?? '' );
+			$name = (string) ( $result['name'] ?? '' );
+
+			if ( '' === $id || '' === $name ) {
+				continue;
+			}
+
+			// Encode the result payload as a JSON string for the response.
+			$response_payload = isset( $result['error'] )
+				? wp_json_encode( array( 'error' => $result['error'] ) )
+				: wp_json_encode( $result['result'] ?? array() );
+
+			$parts[] = new MessagePart(
+				new FunctionResponse(
+					$id,
+					$name,
+					(string) $response_payload
+				)
+			);
+		}
+
+		if ( ! empty( $parts ) ) {
+			$response_message = new UserMessage( $parts );
+			$this->append_tool_response_to_history( $response_message );
+
+			// Log the client tool responses for transparency.
+			foreach ( $results as $result ) {
+				$this->tool_call_log[] = array(
+					'type'     => 'response',
+					'id'       => (string) ( $result['id'] ?? '' ),
+					'name'     => (string) ( $result['name'] ?? '' ),
+					'response' => $result['result'] ?? $result['error'] ?? null,
+					'source'   => 'client',
+				);
+			}
 		}
 
 		return $this->run_loop( $remaining_iterations );
@@ -393,6 +487,58 @@ class AgentLoop {
 
 			// Log tool calls and check for confirmation requirement.
 			$this->log_tool_calls( $assistant_message );
+
+			// ── Client-side ability routing ───────────────────────────────
+			// Partition tool calls into PHP-executable and JS-pending sets.
+			// PHP calls execute inline; JS calls are returned as pending so
+			// the browser can dispatch them and POST results back.
+			$client_names = $this->get_client_ability_names();
+			if ( ! empty( $client_names ) ) {
+				$partition = $this->partition_tool_calls( $assistant_message, $client_names );
+
+				if ( ! empty( $partition['client'] ) ) {
+					// Execute any PHP-side calls inline first.
+					if ( ! empty( $partition['php'] ) ) {
+						$php_message = $this->build_message_from_parts( $assistant_message, $partition['php'] );
+						ChangeLogger::begin( $this->session_id );
+						try {
+							$php_response = $this->get_ability_resolver()->execute_abilities( $php_message );
+							/** @var \WordPress\AiClient\Messages\DTO\Message $php_response */
+						} finally {
+							ChangeLogger::end();
+						}
+						$truncated_php = self::truncate_tool_results( $php_response );
+						$this->append_tool_response_to_history( $truncated_php );
+						$this->log_tool_responses( $php_response );
+					}
+
+					// Persist loop state so the resume endpoint can reconstruct it.
+					if ( $this->session_id > 0 ) {
+						$paused_state = array(
+							'history'              => $this->serialize_history(),
+							'tool_call_log'        => $this->tool_call_log,
+							'token_usage'          => $this->token_usage,
+							'iterations_remaining' => $iterations,
+							'model_id'             => $this->model_id,
+							'provider_id'          => $this->provider_id,
+							'client_abilities'     => $this->client_abilities,
+						);
+						Database::save_paused_state( $this->session_id, $paused_state );
+					}
+
+					// Return pending client tool calls to the browser.
+					return array(
+						'pending_client_tool_calls' => $partition['client'],
+						'history'                   => $this->serialize_history(),
+						'tool_call_log'             => $this->tool_call_log,
+						'token_usage'               => $this->token_usage,
+						'iterations_remaining'      => $iterations,
+						'iterations_used'           => $this->iterations_used,
+						'model_id'                  => $this->model_id,
+					);
+				}
+			}
+			// ── End client-side routing ───────────────────────────────────
 
 			$confirm_needed = $this->get_tools_needing_confirmation( $assistant_message );
 
@@ -826,6 +972,11 @@ class AgentLoop {
 	 * through tool_permissions, the `ai_hidden` meta flag and any role-based
 	 * restrictions.
 	 *
+	 * When client_abilities are present, synthetic WP_Ability stubs for the
+	 * validated JS descriptors are appended so the model sees them in its
+	 * tool list. The loop intercepts calls to these names and returns them
+	 * as pending_client_tool_calls instead of executing them server-side.
+	 *
 	 * Tier-2 abilities are NOT returned here — the model sees them as a
 	 * name-only manifest in the system prompt and reaches them via
 	 * gratis-ai-agent/ability-search + ability-call.
@@ -848,7 +999,8 @@ class AgentLoop {
 					$resolved[] = $ability;
 				}
 			}
-			return $resolved;
+			// Append client ability stubs even in explicit-abilities mode.
+			return array_merge( $resolved, $this->build_client_ability_stubs() );
 		}
 
 		$tier_1 = ToolDiscovery::tier_1_for_run();
@@ -876,7 +1028,147 @@ class AgentLoop {
 			$resolved[] = $ability;
 		}
 
-		return $resolved;
+		// Append synthetic stubs for validated client-side abilities.
+		return array_merge( $resolved, $this->build_client_ability_stubs() );
+	}
+
+	/**
+	 * Build synthetic WP_Ability stubs for validated client-side descriptors.
+	 *
+	 * These stubs expose the client ability schemas to the model's tool list.
+	 * The loop intercepts calls to these names and returns them as
+	 * pending_client_tool_calls instead of executing them server-side.
+	 *
+	 * @return \WP_Ability[]
+	 */
+	private function build_client_ability_stubs(): array {
+		if ( empty( $this->client_abilities ) ) {
+			return array();
+		}
+
+		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return array();
+		}
+
+		$stubs = array();
+		foreach ( $this->client_abilities as $descriptor ) {
+			$name = (string) ( $descriptor['name'] ?? '' );
+			if ( '' === $name ) {
+				continue;
+			}
+
+			// Check if already registered in the global registry.
+			// @phpstan-ignore-next-line
+			$existing = function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
+			if ( $existing instanceof \WP_Ability ) {
+				$stubs[] = $existing;
+				continue;
+			}
+
+			// Register a transient stub for this request only.
+			// The stub has a no-op callback — the loop never actually calls it.
+			// @phpstan-ignore-next-line
+			wp_register_ability(
+				$name,
+				array(
+					'label'        => (string) ( $descriptor['label'] ?? $name ),
+					'description'  => (string) ( $descriptor['description'] ?? '' ),
+					'category'     => 'gratis-ai-agent-js',
+					'callback'     => static function ( array $args ): array {
+						// No-op: client-side abilities are never executed server-side.
+						return array( 'error' => 'Client-side ability cannot be executed server-side.' );
+					},
+					'input_schema' => $descriptor['input_schema'] ?? array(),
+					'annotations'  => array(
+						'readonly' => (bool) ( $descriptor['annotations']['readonly'] ?? true ),
+					),
+				)
+			);
+
+			// @phpstan-ignore-next-line
+			$stub = wp_get_ability( $name );
+			if ( $stub instanceof \WP_Ability ) {
+				$stubs[] = $stub;
+			}
+		}
+
+		return $stubs;
+	}
+
+	/**
+	 * Return the set of client ability names validated for this run.
+	 *
+	 * @return string[]
+	 */
+	private function get_client_ability_names(): array {
+		return array_map(
+			static function ( array $d ): string {
+				return (string) ( $d['name'] ?? '' );
+			},
+			$this->client_abilities
+		);
+	}
+
+	/**
+	 * Partition the tool calls in an assistant message into PHP-executable
+	 * and client-side (JS) sets.
+	 *
+	 * Returns an array with two keys:
+	 * - 'php':    list of MessagePart objects for PHP-executable calls.
+	 * - 'client': list of pending call descriptors for JS execution.
+	 *
+	 * @param Message  $message      The assistant message containing tool calls.
+	 * @param string[] $client_names Names of client-side abilities.
+	 * @return array{php: list<\WordPress\AiClient\Messages\DTO\MessagePart>, client: list<array<string, mixed>>}
+	 */
+	private function partition_tool_calls( Message $message, array $client_names ): array {
+		$php_parts = array();
+		$client    = array();
+
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				$php_parts[] = $part;
+				continue;
+			}
+
+			$fn_name      = (string) $call->getName();
+			$ability_name = $fn_name;
+			if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
+				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
+			}
+
+			if ( in_array( $ability_name, $client_names, true ) ) {
+				$client[] = array(
+					'id'   => (string) $call->getId(),
+					'name' => $ability_name,
+					'args' => $call->getArgs() ?: array(),
+				);
+			} else {
+				$php_parts[] = $part;
+			}
+		}
+
+		return array(
+			'php'    => $php_parts,
+			'client' => $client,
+		);
+	}
+
+	/**
+	 * Build a new Message containing only the given MessagePart objects.
+	 *
+	 * Used to construct a PHP-only sub-message when a mixed assistant message
+	 * contains both PHP and JS tool calls.
+	 *
+	 * @param Message                                            $original Original message (for role/type).
+	 * @param list<\WordPress\AiClient\Messages\DTO\MessagePart> $parts    Parts to include.
+	 * @return Message
+	 */
+	// phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- Generic list<T> not supported by PHPCS.
+	private function build_message_from_parts( Message $original, array $parts ): Message {
+		// Reconstruct as a ModelMessage with the filtered parts.
+		return new ModelMessage( $parts );
 	}
 
 	/**

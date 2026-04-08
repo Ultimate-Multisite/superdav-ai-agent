@@ -8,6 +8,40 @@ import { __ } from '@wordpress/i18n';
  */
 
 /**
+ * Inline badge for "Ran in browser" annotation on client-side tool calls.
+ *
+ * @param {Object}  props
+ * @param {boolean} props.active Whether to render the badge.
+ * @return {JSX.Element|null} The badge element, or null when inactive.
+ */
+function BrowserBadge( { active } ) {
+	if ( ! active ) {
+		return null;
+	}
+	return (
+		<span
+			className="gratis-ai-agent-tool-browser-badge"
+			style={ {
+				display: 'inline-flex',
+				alignItems: 'center',
+				padding: '1px 6px',
+				borderRadius: '2px',
+				fontSize: '10px',
+				fontWeight: 600,
+				lineHeight: '18px',
+				background: '#e8f4fd',
+				color: '#0a4b78',
+				border: '1px solid #72aee6',
+				marginLeft: '6px',
+				verticalAlign: 'middle',
+			} }
+		>
+			{ __( 'Ran in browser', 'gratis-ai-agent' ) }
+		</span>
+	);
+}
+
+/**
  * Collapsible details panel showing tool calls and their results.
  *
  * Renders a `<details>` element with a summary of how many tools were called,
@@ -43,6 +77,9 @@ export default function ToolCallDetails( { toolCalls } ) {
 										{ __( 'Call:', 'gratis-ai-agent' ) }
 									</span>{ ' ' }
 									<code>{ entry.name }</code>
+									<BrowserBadge
+										active={ !! entry.ran_in_browser }
+									/>
 									<pre>
 										{ JSON.stringify(
 											entry.args,
@@ -57,6 +94,9 @@ export default function ToolCallDetails( { toolCalls } ) {
 										{ __( 'Result:', 'gratis-ai-agent' ) }
 									</span>{ ' ' }
 									<code>{ entry.name }</code>
+									<BrowserBadge
+										active={ !! entry.ran_in_browser }
+									/>
 									<pre>
 										{ truncate(
 											typeof entry.response === 'string'

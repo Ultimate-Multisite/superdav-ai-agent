@@ -154,6 +154,53 @@ class RestController {
 							),
 						),
 					),
+					'client_abilities'   => array(
+						'required' => false,
+						'type'     => 'array',
+						'default'  => array(),
+						'items'    => array(
+							'type'       => 'object',
+							'properties' => array(
+								'name'         => array( 'type' => 'string' ),
+								'label'        => array( 'type' => 'string' ),
+								'description'  => array( 'type' => 'string' ),
+								'input_schema' => array( 'type' => 'object' ),
+								'annotations'  => array( 'type' => 'object' ),
+							),
+						),
+					),
+				),
+			)
+		);
+
+		// Client tool result endpoint — resumes the agent loop after the browser
+		// has executed client-side tool calls and POSTs the results back.
+		register_rest_route(
+			self::NAMESPACE,
+			'/chat/tool-result',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'handle_tool_result' ),
+				'permission_callback' => array( $instance, 'check_chat_permission' ),
+				'args'                => array(
+					'session_id'   => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'tool_results' => array(
+						'required' => true,
+						'type'     => 'array',
+						'items'    => array(
+							'type'       => 'object',
+							'properties' => array(
+								'id'     => array( 'type' => 'string' ),
+								'name'   => array( 'type' => 'string' ),
+								'result' => array(),
+								'error'  => array( 'type' => 'string' ),
+							),
+						),
+					),
 				),
 			)
 		);
@@ -300,6 +347,7 @@ class RestController {
 			'page_context'       => $request->get_param( 'page_context' ) ?? array(),
 			'agent_id'           => $request->get_param( 'agent_id' ),
 			'attachments'        => $attachments,
+			'client_abilities'   => $request->get_param( 'client_abilities' ) ?? array(),
 		);
 
 		// Load conversation history from session.
@@ -334,6 +382,16 @@ class RestController {
 		}
 		if ( ! empty( $params['page_context'] ) ) {
 			$options['page_context'] = $params['page_context'];
+		}
+
+		// Pass validated client-side ability descriptors to the loop.
+		$raw_client_abilities = $params['client_abilities'];
+		if ( ! empty( $raw_client_abilities ) && is_array( $raw_client_abilities ) ) {
+			$options['client_abilities'] = $raw_client_abilities;
+			// Include session_id so the loop can persist paused state.
+			if ( $session_id ) {
+				$options['session_id'] = $session_id;
+			}
 		}
 
 		// Apply agent overrides (agent_id takes precedence over individual params).
@@ -419,6 +477,24 @@ class RestController {
 					'awaiting_confirmation' => true,
 					'job_id'                => $job_id,
 					'pending_tools'         => $pending_tools,
+				),
+				200
+			);
+		}
+
+		// Handle client-side tool call pause.
+		// The loop has already persisted the paused state to the session row.
+		if ( ! empty( $result['pending_client_tool_calls'] ) ) {
+			return new WP_REST_Response(
+				array(
+					'pending_client_tool_calls' => $result['pending_client_tool_calls'],
+					'session_id'                => $session_id ?: null,
+					'token_usage'               => $result['token_usage'] ?? array(
+						'prompt'     => 0,
+						'completion' => 0,
+					),
+					'iterations_used'           => $result['iterations_used'] ?? 0,
+					'model_id'                  => $result['model_id'] ?? '',
 				),
 				200
 			);
@@ -607,5 +683,159 @@ Assistant: %s',
 			$title .= '...';
 		}
 		return $title;
+	}
+
+	/**
+	 * Handle POST /chat/tool-result — resume the agent loop after the browser
+	 * has executed client-side tool calls and POSTs the results back.
+	 *
+	 * Loads the paused loop state from the session row, reconstructs an
+	 * AgentLoop with the persisted history, and calls resume_after_client_tools().
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function handle_tool_result( WP_REST_Request $request ) {
+		$session_id   = self::get_int_param( $request, 'session_id' );
+		$tool_results = $request->get_param( 'tool_results' );
+
+		if ( ! $session_id ) {
+			return new WP_Error(
+				'gratis_ai_agent_missing_session',
+				__( 'session_id is required.', 'gratis-ai-agent' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! is_array( $tool_results ) || empty( $tool_results ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_missing_results',
+				__( 'tool_results must be a non-empty array.', 'gratis-ai-agent' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Load and clear the paused state from the session row.
+		$paused_state = Database::load_and_clear_paused_state( $session_id );
+
+		if ( null === $paused_state ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_paused_state',
+				__( 'No paused agent state found for this session. The session may have already been resumed or expired.', 'gratis-ai-agent' ),
+				array( 'status' => 409 )
+			);
+		}
+
+		// Reconstruct history from the paused state.
+		$history = array();
+		try {
+			$raw_history = $paused_state['history'] ?? array();
+			if ( ! empty( $raw_history ) && is_array( $raw_history ) ) {
+				/** @var list<array<string, mixed>> $raw_history_typed */
+				$raw_history_typed = array_values( $raw_history );
+				$history           = AgentLoop::deserialize_history( $raw_history_typed );
+			}
+		} catch ( \Exception $e ) {
+			$history = array();
+		}
+
+		$iterations_remaining = (int) ( $paused_state['iterations_remaining'] ?? 5 );
+
+		// Reconstruct the AgentLoop with the persisted state.
+		$options = array(
+			'provider_id'      => (string) ( $paused_state['provider_id'] ?? '' ),
+			'model_id'         => (string) ( $paused_state['model_id'] ?? '' ),
+			'tool_call_log'    => $paused_state['tool_call_log'] ?? array(),
+			'token_usage'      => $paused_state['token_usage'] ?? array(
+				'prompt'     => 0,
+				'completion' => 0,
+			),
+			'session_id'       => $session_id,
+			'client_abilities' => $paused_state['client_abilities'] ?? array(),
+		);
+
+		// Use an empty user message — the loop resumes from history.
+		$loop = new AgentLoop( '', array(), $history, $options );
+		/** @var list<array{id: string, name: string, result?: mixed, error?: string}> $tool_results_typed */
+		$tool_results_typed = array_values( $tool_results );
+		$result             = $loop->resume_after_client_tools( $tool_results_typed, $iterations_remaining );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		/** @var array<string, mixed> $result */
+
+		// Handle another client-side pause (chained JS tool calls).
+		if ( ! empty( $result['pending_client_tool_calls'] ) ) {
+			return new WP_REST_Response(
+				array(
+					'pending_client_tool_calls' => $result['pending_client_tool_calls'],
+					'session_id'                => $session_id,
+					'token_usage'               => $result['token_usage'] ?? array(
+						'prompt'     => 0,
+						'completion' => 0,
+					),
+					'iterations_used'           => $result['iterations_used'] ?? 0,
+					'model_id'                  => $result['model_id'] ?? '',
+				),
+				200
+			);
+		}
+
+		// Persist the completed conversation to the session.
+		$session = Database::get_session( $session_id );
+		if ( $session ) {
+			$existing_messages = json_decode( $session->messages, true ) ?: array();
+			$existing_count    = count( $existing_messages );
+			$full_history      = $result['history'] ?? array();
+			/** @var array<mixed> $full_history */
+			$appended = array_slice( $full_history, $existing_count );
+			/** @var list<array<string, mixed>> $tool_calls_stream */
+			$tool_calls_stream = $result['tool_calls'] ?? array();
+			Database::append_to_session( $session_id, array_values( $appended ), $tool_calls_stream );
+
+			$token_usage = $result['token_usage'] ?? array();
+			/** @var array<string, mixed> $token_usage */
+			if ( ! empty( $token_usage ) ) {
+				Database::update_session_tokens(
+					$session_id,
+					// @phpstan-ignore-next-line
+					(int) ( $token_usage['prompt'] ?? 0 ),
+					// @phpstan-ignore-next-line
+					(int) ( $token_usage['completion'] ?? 0 )
+				);
+			}
+		}
+
+		$token_usage = $result['token_usage'] ?? array(
+			'prompt'     => 0,
+			'completion' => 0,
+		);
+		$model_id    = $result['model_id'] ?? '';
+
+		$response = array(
+			'reply'           => $result['reply'] ?? '',
+			'history'         => $result['history'] ?? array(),
+			'tool_calls'      => $result['tool_calls'] ?? array(),
+			'token_usage'     => $token_usage,
+			'iterations_used' => $result['iterations_used'] ?? 0,
+			'model_id'        => $model_id,
+			'session_id'      => $session_id,
+			'cost_estimate'   => CostCalculator::calculate_cost(
+				// @phpstan-ignore-next-line
+				$model_id,
+				// @phpstan-ignore-next-line
+				(int) ( $token_usage['prompt'] ?? 0 ),
+				// @phpstan-ignore-next-line
+				(int) ( $token_usage['completion'] ?? 0 )
+			),
+		);
+
+		if ( ! empty( $result['exit_reason'] ) ) {
+			$response['exit_reason'] = $result['exit_reason'];
+		}
+
+		return new WP_REST_Response( $response, 200 );
 	}
 }

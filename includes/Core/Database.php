@@ -20,7 +20,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '12.0.0';
+	const DB_VERSION        = '13.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -228,6 +228,7 @@ class Database {
 			status varchar(20) NOT NULL DEFAULT 'active',
 			pinned tinyint(1) NOT NULL DEFAULT 0,
 			folder varchar(100) NOT NULL DEFAULT '',
+			paused_state longtext DEFAULT NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
@@ -896,6 +897,59 @@ class Database {
 		);
 
 		return $result !== false;
+	}
+
+	/**
+	 * Persist the paused agent-loop state for a session.
+	 *
+	 * Called by AgentLoop when it pauses to wait for client-side tool results.
+	 * The state is loaded by the /chat/tool-result endpoint to resume the loop.
+	 *
+	 * @param int                  $session_id Session ID.
+	 * @param array<string, mixed> $state      Serializable loop state.
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function save_paused_state( int $session_id, array $state ): bool {
+		return self::update_session(
+			$session_id,
+			array( 'paused_state' => wp_json_encode( $state ) )
+		);
+	}
+
+	/**
+	 * Load and clear the paused agent-loop state for a session.
+	 *
+	 * Returns the state array and clears the column so a second resume
+	 * attempt cannot replay the same state.
+	 *
+	 * @param int $session_id Session ID.
+	 * @return array<string, mixed>|null Paused state, or null if none.
+	 */
+	public static function load_and_clear_paused_state( int $session_id ): ?array {
+		$session = self::get_session( $session_id );
+
+		if ( ! $session ) {
+			return null;
+		}
+
+		// @phpstan-ignore-next-line
+		$raw = $session->paused_state ?? null;
+
+		if ( empty( $raw ) ) {
+			return null;
+		}
+
+		$state = json_decode( (string) $raw, true );
+
+		if ( ! is_array( $state ) ) {
+			return null;
+		}
+
+		// Clear the paused state so it cannot be replayed.
+		self::update_session( $session_id, array( 'paused_state' => null ) );
+
+		/** @var array<string, mixed> $state */
+		return $state;
 	}
 
 	/**

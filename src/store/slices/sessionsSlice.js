@@ -766,9 +766,18 @@ export const actions = {
 			}
 
 			// Include client-side ability descriptors so the server can route
-			// JS tool calls back to the browser instead of executing them server-side.
-			const clientAbilities = snapshotDescriptors();
-			if ( clientAbilities.length > 0 ) {
+			// JS tool calls back to the browser instead of executing them
+			// server-side. snapshotDescriptors() is async because it has to
+			// dynamically load the @wordpress/abilities script module via the
+			// import map; the returned value is a Promise that must be awaited
+			// before Array methods are usable on it (t165 — fixes the missing
+			// await in #815 that caused body.client_abilities to never be
+			// populated).
+			const clientAbilities = await snapshotDescriptors();
+			if (
+				Array.isArray( clientAbilities ) &&
+				clientAbilities.length > 0
+			) {
 				body.client_abilities = clientAbilities;
 			}
 

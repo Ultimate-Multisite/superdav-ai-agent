@@ -165,6 +165,16 @@ class UnifiedAdminMenu {
 
 		wp_set_script_translations( 'gratis-ai-agent-unified-admin', 'gratis-ai-agent' );
 
+		// WP 7.0+: enqueue the `@wordpress/abilities` script module so our
+		// client-side ability registry (src/abilities/*) can resolve the
+		// bare specifier via the document import map at runtime. Without
+		// this, the dynamic import() in registry.js throws a module
+		// resolution error and the gratis-ai-agent-js/* abilities are never
+		// registered. (t165 — fixes the missing enqueue in #815.)
+		if ( function_exists( 'wp_enqueue_script_module' ) ) {
+			wp_enqueue_script_module( '@wordpress/abilities' );
+		}
+
 		// Enqueue the admin-page bundle which sets window.gratisAiAgentChat.
 		// ChatRoute calls window.gratisAiAgentChat.mount(container) to render
 		// AdminPageApp inside #gratis-ai-chat-container. This bundle must load

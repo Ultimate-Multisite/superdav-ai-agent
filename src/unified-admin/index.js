@@ -8,6 +8,9 @@ import { Notice } from '@wordpress/components';
  * Internal dependencies
  */
 import './style.css';
+// Register gratis-ai-agent-js/* client-side abilities into core/abilities
+// before the chat mounts (t165 — closes the wiring gap in #815).
+import '../abilities';
 import Router from './router';
 import { AppProvider } from './context';
 

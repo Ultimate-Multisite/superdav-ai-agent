@@ -382,7 +382,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - NEW: includes/Abilities/DesignAbilities.php — model on BlockAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t170 Benchmark validation: ac-016 restaurant website end-to-end test #testing ~3h logged:2026-04-09 ref:GH#839
+- [x] t170 Benchmark validation: ac-016 restaurant website end-to-end test #testing ~3h logged:2026-04-09 ref:GH#839 pr:#848 completed:2026-04-09
   - Run full prompt on fresh WordPress install, document gaps
   - Create follow-up issues for ac-017 through ac-024
   - Blocked by: t168 (needs orchestration working first)

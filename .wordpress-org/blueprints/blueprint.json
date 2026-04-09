@@ -39,7 +39,7 @@
     },
     {
       "step": "wp-cli",
-      "command": "user update admin --display_name='Demo Admin' --user_email=demo@example.com"
+      "command": "wp user update admin --display_name='Demo Admin' --user_email=demo@example.com"
     },
     {
       "step": "runPHP",

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use GratisAiAgent\Core\AbilityPluginRegistry;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -95,6 +96,24 @@ class WordPressAbilities {
 	}
 
 	/**
+	 * Recommend plugins for a given need category.
+	 *
+	 * @param array<string,mixed> $input Input args.
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public static function handle_recommend_plugin( array $input = [] ) {
+		$ability = new RecommendPluginAbility(
+			'gratis-ai-agent/recommend-plugin',
+			[
+				'label'       => __( 'Recommend Plugin', 'gratis-ai-agent' ),
+				'description' => __( 'Given a need category, return ranked plugin recommendations from the curated abilities registry. Preference order: has abilities > has blocks > popular.', 'gratis-ai-agent' ),
+			]
+		);
+		// @phpstan-ignore-next-line
+		return $ability->run( $input );
+	}
+
+	/**
 	 * Call a whitelisted WordPress function by name with arguments.
 	 *
 	 * @param array<string,mixed> $input Input args (function, args).
@@ -160,6 +179,15 @@ class WordPressAbilities {
 				'label'         => __( 'Update Plugin', 'gratis-ai-agent' ),
 				'description'   => __( 'Update an installed plugin to the latest version available from its source.', 'gratis-ai-agent' ),
 				'ability_class' => UpdatePluginAbility::class,
+			]
+		);
+
+		wp_register_ability(
+			'gratis-ai-agent/recommend-plugin',
+			[
+				'label'         => __( 'Recommend Plugin', 'gratis-ai-agent' ),
+				'description'   => __( 'Given a need category, return ranked plugin recommendations from the curated abilities registry. Preference order: has abilities > has blocks > popular.', 'gratis-ai-agent' ),
+				'ability_class' => RecommendPluginAbility::class,
 			]
 		);
 
@@ -880,6 +908,132 @@ class RunPhpAbility extends AbstractAbility {
 				'readonly'    => false,
 				'destructive' => true,
 				'idempotent'  => false,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}
+
+/**
+ * Recommend Plugin ability.
+ *
+ * Returns ranked plugin recommendations from the curated AbilityPluginRegistry
+ * based on a need category. Preference order: has_abilities > has_blocks > active_installs.
+ *
+ * @since 1.2.0
+ */
+class RecommendPluginAbility extends AbstractAbility {
+
+	protected function label(): string {
+		return __( 'Recommend Plugin', 'gratis-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'Given a need category (e.g. "ecommerce", "forms", "seo"), return ranked plugin recommendations from the curated abilities registry. Plugins that register WordPress Abilities are ranked highest, followed by those with blocks, then by popularity. Use this before install-plugin to discover the best plugin for a task.', 'gratis-ai-agent' );
+	}
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'category'        => [
+					'type'        => 'string',
+					'description' => 'The need category to search for (e.g. "ecommerce", "forms", "seo", "security", "backup", "events", "booking"). Use list-categories to see all available categories.',
+				],
+				'limit'           => [
+					'type'        => 'integer',
+					'description' => 'Maximum number of recommendations to return (default: 5, max: 20).',
+					'minimum'     => 1,
+					'maximum'     => 20,
+				],
+				'list_categories' => [
+					'type'        => 'boolean',
+					'description' => 'If true, return all available categories instead of recommendations. Useful for discovery.',
+				],
+			],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'recommendations' => [
+					'type'  => 'array',
+					'items' => [
+						'type'       => 'object',
+						'properties' => [
+							'slug'            => [ 'type' => 'string' ],
+							'name'            => [ 'type' => 'string' ],
+							'description'     => [ 'type' => 'string' ],
+							'ability_count'   => [ 'type' => 'integer' ],
+							'has_abilities'   => [ 'type' => 'boolean' ],
+							'has_blocks'      => [ 'type' => 'boolean' ],
+							'active_installs' => [ 'type' => 'integer' ],
+							'categories'      => [ 'type' => 'array' ],
+						],
+					],
+				],
+				'total'           => [ 'type' => 'integer' ],
+				'category'        => [ 'type' => 'string' ],
+				'categories'      => [ 'type' => 'array' ],
+			],
+		];
+	}
+
+	protected function execute_callback( $input = null ) {
+		/** @var array<string, mixed> $input */
+		$list_categories = (bool) ( $input['list_categories'] ?? false );
+
+		if ( $list_categories ) {
+			$categories = AbilityPluginRegistry::get_categories();
+			sort( $categories );
+			return [
+				'categories' => $categories,
+				'total'      => count( $categories ),
+			];
+		}
+
+		$category = isset( $input['category'] ) ? (string) $input['category'] : '';
+		$limit    = isset( $input['limit'] ) ? min( 20, max( 1, (int) $input['limit'] ) ) : 5;
+
+		if ( '' === $category ) {
+			return new WP_Error(
+				'gratis_ai_agent_missing_category',
+				__( 'A "category" is required, or set "list_categories" to true to see all available categories.', 'gratis-ai-agent' )
+			);
+		}
+
+		$matches = AbilityPluginRegistry::get_by_category( $category );
+
+		if ( empty( $matches ) ) {
+			return [
+				'recommendations' => [],
+				'total'           => 0,
+				'category'        => $category,
+			];
+		}
+
+		$ranked = AbilityPluginRegistry::rank( $matches );
+		$top    = array_slice( $ranked, 0, $limit );
+
+		return [
+			'recommendations' => $top,
+			'total'           => count( $top ),
+			'category'        => $category,
+		];
+	}
+
+	protected function permission_callback( $input = null ): bool {
+		return ToolCapabilities::current_user_can( $this->name );
+	}
+
+	protected function meta(): array {
+		return [
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
 			],
 			'show_in_rest' => true,
 		];

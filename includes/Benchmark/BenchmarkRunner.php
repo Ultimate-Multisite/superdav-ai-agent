@@ -297,10 +297,11 @@ class BenchmarkRunner {
 	private static function benchmark_question( array $model, array $question ): array {
 		$start_time = microtime( true );
 
-		$prompt = self::build_prompt( $question );
+		$prompt     = self::build_prompt( $question );
+		$max_tokens = self::get_max_tokens_for_question( $question );
 
 		// Call the model.
-		$response = self::call_model( $model, $prompt );
+		$response = self::call_model( $model, $prompt, $max_tokens );
 
 		$latency_ms = (int) ( ( microtime( true ) - $start_time ) * 1000 );
 
@@ -330,12 +331,62 @@ class BenchmarkRunner {
 	}
 
 	/**
+	 * Determine the max_tokens limit for a question.
+	 *
+	 * Multiple-choice questions need only a few tokens for a letter answer.
+	 * Open-ended questions (code generation, debugging, architecture) need
+	 * substantially more tokens for complete responses.
+	 *
+	 * @param array<string, mixed> $question Question data.
+	 * @return int Maximum tokens for the model response.
+	 */
+	private static function get_max_tokens_for_question( array $question ): int {
+		$question_type = (string) ( $question['type'] ?? 'knowledge' );
+
+		if ( 'open_ended' === $question_type ) {
+			$category = (string) ( $question['category'] ?? '' );
+
+			// Code generation and multi-step questions need more room.
+			if ( in_array( $category, array( 'code_generation', 'multi_step' ), true ) ) {
+				return 2048;
+			}
+
+			// Debugging, reasoning, and architecture need moderate room.
+			return 1500;
+		}
+
+		// Multiple-choice: a single letter is sufficient.
+		return 10;
+	}
+
+	/**
 	 * Build the prompt for a question.
+	 *
+	 * Generates different prompt formats based on question type:
+	 * - knowledge: Multiple-choice, expects a single letter answer.
+	 * - open_ended: Free-form response for code generation, debugging,
+	 *   reasoning, architecture, and multi-step questions.
 	 *
 	 * @param array<string, mixed> $question Question data.
 	 * @return string
 	 */
 	private static function build_prompt( array $question ): string {
+		$question_type = (string) ( $question['type'] ?? 'knowledge' );
+
+		if ( 'open_ended' === $question_type ) {
+			return self::build_open_ended_prompt( $question );
+		}
+
+		return self::build_multiple_choice_prompt( $question );
+	}
+
+	/**
+	 * Build a multiple-choice prompt.
+	 *
+	 * @param array<string, mixed> $question Question data.
+	 * @return string
+	 */
+	private static function build_multiple_choice_prompt( array $question ): string {
 		$prompt = 'Question: ' . (string) $question['question'] . "\n\n";
 
 		if ( ! empty( $question['options'] ) ) {
@@ -352,13 +403,43 @@ class BenchmarkRunner {
 	}
 
 	/**
+	 * Build an open-ended prompt for complex questions.
+	 *
+	 * Tailors the system instruction based on the question category
+	 * (code_generation, debugging, reasoning, architecture, multi_step)
+	 * to elicit the most evaluable response from the model.
+	 *
+	 * @param array<string, mixed> $question Question data.
+	 * @return string
+	 */
+	private static function build_open_ended_prompt( array $question ): string {
+		$category = (string) ( $question['category'] ?? 'reasoning' );
+
+		$category_instructions = array(
+			'code_generation' => 'You are a senior WordPress developer. Write production-quality PHP code that follows WordPress coding standards. Include all necessary function calls, hooks, and security measures. Respond with code and brief inline comments only.',
+			'debugging'       => 'You are a senior WordPress security auditor. Identify every bug, vulnerability, and code quality issue. For each issue, state the problem, the risk, and the specific fix. Be thorough and precise.',
+			'reasoning'       => 'You are a senior WordPress consultant. Provide a structured, step-by-step analysis. Be specific about tools, functions, and queries you would use. Explain your reasoning at each step.',
+			'architecture'    => 'You are a senior WordPress architect. Design a robust solution considering scalability, performance, failure modes, and WordPress best practices. Discuss trade-offs explicitly.',
+			'multi_step'      => 'You are a senior WordPress developer performing a thorough technical analysis. Address every part of the question systematically. Provide specific code examples where appropriate.',
+		);
+
+		$instruction = $category_instructions[ $category ] ?? $category_instructions['reasoning'];
+
+		$prompt  = $instruction . "\n\n";
+		$prompt .= (string) $question['question'];
+
+		return $prompt;
+	}
+
+	/**
 	 * Call a model to get a response.
 	 *
-	 * @param array<string, mixed> $model  Model configuration.
-	 * @param string               $prompt Prompt text.
+	 * @param array<string, mixed> $model      Model configuration.
+	 * @param string               $prompt     Prompt text.
+	 * @param int                  $max_tokens Maximum tokens for the response.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_model( array $model, string $prompt ) {
+	private static function call_model( array $model, string $prompt, int $max_tokens = 10 ) {
 		$provider_id = $model['provider_id'] ?? '';
 		$model_id    = $model['model_id'] ?? '';
 
@@ -370,11 +451,11 @@ class BenchmarkRunner {
 		// For direct provider calls.
 		switch ( $provider_id ) {
 			case 'anthropic':
-				return self::call_anthropic( $model_id, $prompt );
+				return self::call_anthropic( $model_id, $prompt, $max_tokens );
 			case 'openai':
-				return self::call_openai( $model_id, $prompt );
+				return self::call_openai( $model_id, $prompt, $max_tokens );
 			case 'google':
-				return self::call_google( $model_id, $prompt );
+				return self::call_google( $model_id, $prompt, $max_tokens );
 			default:
 				return new \WP_Error(
 					'benchmark_unknown_provider',
@@ -431,11 +512,12 @@ class BenchmarkRunner {
 	/**
 	 * Call Anthropic API directly.
 	 *
-	 * @param string $model_id Model identifier.
-	 * @param string $prompt   Prompt text.
+	 * @param string $model_id   Model identifier.
+	 * @param string $prompt     Prompt text.
+	 * @param int    $max_tokens Maximum tokens for the response.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_anthropic( string $model_id, string $prompt ) {
+	private static function call_anthropic( string $model_id, string $prompt, int $max_tokens = 10 ) {
 		$api_key = Settings::get_provider_key( 'anthropic' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
@@ -444,10 +526,13 @@ class BenchmarkRunner {
 			);
 		}
 
+		// Scale timeout with max_tokens: open-ended questions need more time.
+		$timeout = $max_tokens > 100 ? 120 : 60;
+
 		$response = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
 			array(
-				'timeout' => 60,
+				'timeout' => $timeout,
 				'headers' => array(
 					'Content-Type'      => 'application/json',
 					'X-API-Key'         => $api_key,
@@ -456,7 +541,7 @@ class BenchmarkRunner {
 				'body'    => (string) wp_json_encode(
 					array(
 						'model'      => $model_id,
-						'max_tokens' => 10,
+						'max_tokens' => $max_tokens,
 						'messages'   => array(
 							array(
 								'role'    => 'user',
@@ -491,11 +576,12 @@ class BenchmarkRunner {
 	/**
 	 * Call OpenAI API directly.
 	 *
-	 * @param string $model_id Model identifier.
-	 * @param string $prompt   Prompt text.
+	 * @param string $model_id   Model identifier.
+	 * @param string $prompt     Prompt text.
+	 * @param int    $max_tokens Maximum tokens for the response.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_openai( string $model_id, string $prompt ) {
+	private static function call_openai( string $model_id, string $prompt, int $max_tokens = 10 ) {
 		$api_key = Settings::get_provider_key( 'openai' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
@@ -504,10 +590,13 @@ class BenchmarkRunner {
 			);
 		}
 
+		// Scale timeout with max_tokens: open-ended questions need more time.
+		$timeout = $max_tokens > 100 ? 120 : 60;
+
 		$response = wp_remote_post(
 			'https://api.openai.com/v1/chat/completions',
 			array(
-				'timeout' => 60,
+				'timeout' => $timeout,
 				'headers' => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $api_key,
@@ -515,7 +604,7 @@ class BenchmarkRunner {
 				'body'    => (string) wp_json_encode(
 					array(
 						'model'      => $model_id,
-						'max_tokens' => 10,
+						'max_tokens' => $max_tokens,
 						'messages'   => array(
 							array(
 								'role'    => 'user',
@@ -550,11 +639,12 @@ class BenchmarkRunner {
 	/**
 	 * Call Google Gemini API directly.
 	 *
-	 * @param string $model_id Model identifier.
-	 * @param string $prompt   Prompt text.
+	 * @param string $model_id   Model identifier.
+	 * @param string $prompt     Prompt text.
+	 * @param int    $max_tokens Maximum tokens for the response.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_google( string $model_id, string $prompt ) {
+	private static function call_google( string $model_id, string $prompt, int $max_tokens = 10 ) {
 		$api_key = Settings::get_provider_key( 'google' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
@@ -563,21 +653,27 @@ class BenchmarkRunner {
 			);
 		}
 
+		// Scale timeout with max_tokens: open-ended questions need more time.
+		$timeout = $max_tokens > 100 ? 120 : 60;
+
 		$response = wp_remote_post(
 			'https://generativelanguage.googleapis.com/v1beta/models/' . $model_id . ':generateContent?key=' . $api_key,
 			array(
-				'timeout' => 60,
+				'timeout' => $timeout,
 				'headers' => array(
 					'Content-Type' => 'application/json',
 				),
 				'body'    => (string) wp_json_encode(
 					array(
-						'contents' => array(
+						'contents'         => array(
 							array(
 								'parts' => array(
 									array( 'text' => $prompt ),
 								),
 							),
+						),
+						'generationConfig' => array(
+							'maxOutputTokens' => $max_tokens,
 						),
 					)
 				),
@@ -613,18 +709,118 @@ class BenchmarkRunner {
 	/**
 	 * Evaluate if the answer is correct.
 	 *
+	 * Routes to the appropriate evaluator based on question type:
+	 * - knowledge: Binary correct/incorrect based on letter match.
+	 * - open_ended: Weighted keyword scoring (0-100 partial credit).
+	 *
 	 * @param string               $answer   Model's answer.
 	 * @param array<string, mixed> $question Question data.
 	 * @return array<string, mixed>
 	 */
 	private static function evaluate_answer( string $answer, array $question ): array {
+		$question_type = (string) ( $question['type'] ?? 'knowledge' );
+
+		if ( 'open_ended' === $question_type ) {
+			return self::evaluate_open_ended_answer( $answer, $question );
+		}
+
+		return self::evaluate_multiple_choice_answer( $answer, $question );
+	}
+
+	/**
+	 * Evaluate a multiple-choice answer.
+	 *
+	 * @param string               $answer   Model's answer.
+	 * @param array<string, mixed> $question Question data.
+	 * @return array<string, mixed>
+	 */
+	private static function evaluate_multiple_choice_answer( string $answer, array $question ): array {
 		// Extract the letter answer from the response.
 		preg_match( '/[A-D]/i', trim( $answer ), $matches );
 		$extracted_answer = strtoupper( $matches[0] ?? '' );
-		$correct_answer   = strtoupper( $question['correct_answer'] );
+		$correct_answer   = strtoupper( (string) $question['correct_answer'] );
 
 		$is_correct = $extracted_answer === $correct_answer;
 		$score      = $is_correct ? 100 : 0;
+
+		return array(
+			'is_correct' => $is_correct,
+			'score'      => $score,
+		);
+	}
+
+	/**
+	 * Evaluate an open-ended answer using weighted keyword scoring.
+	 *
+	 * Each question defines scoring_criteria: an array of keyword patterns
+	 * with weights. The score is the sum of matched weights, normalized to
+	 * 0-100. Keywords can use pipe-separated alternatives (e.g.
+	 * "sanitize_text_field|esc_html") and are matched case-insensitively.
+	 *
+	 * A score >= 60 is considered "correct" (passing) for comparison
+	 * purposes, but the numeric score provides granular differentiation.
+	 *
+	 * @param string               $answer   Model's answer.
+	 * @param array<string, mixed> $question Question data.
+	 * @return array<string, mixed>
+	 */
+	private static function evaluate_open_ended_answer( string $answer, array $question ): array {
+		/** @var array<int, array<string, mixed>> $criteria */
+		$criteria = (array) ( $question['scoring_criteria'] ?? array() );
+
+		if ( empty( $criteria ) ) {
+			// No scoring criteria defined — cannot evaluate.
+			return array(
+				'is_correct' => false,
+				'score'      => 0,
+			);
+		}
+
+		$total_weight   = 0;
+		$matched_weight = 0;
+
+		foreach ( $criteria as $criterion ) {
+			$keyword = (string) ( $criterion['keyword'] ?? '' );
+			$weight  = (int) ( $criterion['weight'] ?? 0 );
+
+			if ( empty( $keyword ) || $weight <= 0 ) {
+				continue;
+			}
+
+			$total_weight += $weight;
+
+			// Build regex: keywords may contain pipe-separated alternatives.
+			// Escape regex special chars except pipe (used as alternation).
+			$parts         = explode( '|', $keyword );
+			$escaped_parts = array_map(
+				function ( string $part ): string {
+					// Escape special regex chars but preserve basic patterns.
+					// Allow \s, \w, .*, .+ as intentional regex.
+					$escaped = preg_quote( $part, '/' );
+					// Restore common regex patterns that were escaped.
+					$escaped = str_replace(
+						array( '\\\\s', '\\\\w', '\\.\\*', '\\.\\+' ),
+						array( '\\s', '\\w', '.*', '.+' ),
+						$escaped
+					);
+					return $escaped;
+				},
+				$parts
+			);
+			$pattern       = '/' . implode( '|', $escaped_parts ) . '/i';
+
+			if ( preg_match( $pattern, $answer ) ) {
+				$matched_weight += $weight;
+			}
+		}
+
+		// Normalize to 0-100 scale.
+		$score = $total_weight > 0
+			? (int) round( ( $matched_weight / $total_weight ) * 100 )
+			: 0;
+
+		// A score >= 60 is considered "passing" for binary comparison.
+		$is_correct = $score >= 60;
 
 		return array(
 			'is_correct' => $is_correct,

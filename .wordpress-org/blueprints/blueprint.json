@@ -13,7 +13,7 @@
   },
   "preferredVersions": {
     "php": "8.2",
-    "wp": "7.0-RC2"
+    "wp": "beta"
   },
   "features": {
     "networking": true

@@ -71,14 +71,17 @@ use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Admin\UnifiedAdminMenu;
 use GratisAiAgent\REST\BenchmarkController;
+use GratisAiAgent\REST\TraceController;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\CliCommand;
+use GratisAiAgent\CLI\TraceCommand;
 use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Core\OnboardingManager;
+use GratisAiAgent\Core\ProviderTraceLogger;
 use GratisAiAgent\Core\RolePermissions;
 use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Core\SiteScanner;
@@ -113,6 +116,7 @@ add_action(
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
 add_action( 'rest_api_init', [ BenchmarkController::class, 'register_routes' ] );
+add_action( 'rest_api_init', [ TraceController::class, 'register_routes' ] );
 
 // Unified admin menu — single top-level menu with hash-based React routing.
 add_action( 'admin_menu', [ UnifiedAdminMenu::class, 'register' ] );
@@ -383,6 +387,9 @@ GitTrackerManager::register();
 // Change logger — hooks into WordPress core to record AI-made changes.
 ChangeLogger::register();
 
+// Provider trace logger — captures LLM provider HTTP traffic when enabled.
+ProviderTraceLogger::register();
+
 // Fresh install detection — registers cache-invalidation hooks.
 FreshInstallDetector::register();
 
@@ -392,9 +399,12 @@ FloatingWidget::register();
 // Screen-meta Help tab chat panel.
 ScreenMetaPanel::register();
 
-// WP-CLI command.
+// WP-CLI commands.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	\WP_CLI::add_command( 'gratis-ai-agent', CliCommand::class );
 	// Backwards-compatible alias for the old command name.
 	\WP_CLI::add_command( 'ai-agent', CliCommand::class );
+	// Provider trace CLI subcommands.
+	\WP_CLI::add_command( 'ai-agent trace', TraceCommand::class );
+	\WP_CLI::add_command( 'gratis-ai-agent trace', TraceCommand::class );
 }

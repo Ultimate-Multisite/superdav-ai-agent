@@ -12,6 +12,7 @@ namespace GratisAiAgent\Core;
 
 use GratisAiAgent\Knowledge\KnowledgeDatabase;
 use GratisAiAgent\Models\ConversationTemplate;
+use GratisAiAgent\Models\ProviderTrace;
 use GratisAiAgent\Models\Skill;
 use GratisAiAgent\REST\ResaleApiDatabase;
 use GratisAiAgent\REST\WebhookDatabase;
@@ -20,7 +21,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '13.0.0';
+	const DB_VERSION        = '14.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -164,6 +165,15 @@ class Database {
 	}
 
 	/**
+	 * Get the provider trace table name.
+	 */
+	public static function provider_trace_table_name(): string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		return $wpdb->prefix . 'gratis_ai_agent_provider_trace';
+	}
+
+	/**
 	 * Get the model benchmark results table name.
 	 */
 	public static function benchmark_results_table_name(): string {
@@ -204,6 +214,7 @@ class Database {
 		$shared_sessions_table        = self::shared_sessions_table_name();
 		$benchmark_runs_table         = self::benchmark_runs_table_name();
 		$benchmark_results_table      = self::benchmark_results_table_name();
+		$provider_trace_table         = self::provider_trace_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -498,6 +509,26 @@ class Database {
 			KEY question_id (question_id),
 			KEY is_correct (is_correct),
 			KEY created_at (created_at)
+		) {$charset};
+
+		CREATE TABLE {$provider_trace_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			created_at datetime NOT NULL,
+			provider_id varchar(100) NOT NULL DEFAULT '',
+			model_id varchar(100) NOT NULL DEFAULT '',
+			url varchar(2048) NOT NULL DEFAULT '',
+			method varchar(10) NOT NULL DEFAULT 'POST',
+			status_code int(11) NOT NULL DEFAULT 0,
+			duration_ms bigint(20) unsigned NOT NULL DEFAULT 0,
+			request_headers longtext NOT NULL,
+			request_body longtext NOT NULL,
+			response_headers longtext NOT NULL,
+			response_body longtext NOT NULL,
+			error text NOT NULL DEFAULT '',
+			PRIMARY KEY  (id),
+			KEY created_at (created_at),
+			KEY provider_id (provider_id),
+			KEY status_code (status_code)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

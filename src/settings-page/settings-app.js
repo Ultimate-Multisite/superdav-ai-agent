@@ -39,6 +39,7 @@ import RolePermissionsManager from './role-permissions-manager';
 import AgentBuilder from './agent-builder';
 import BrandingManager from './branding-manager';
 import AbilitiesManager from './abilities-manager';
+import ProviderTraceViewer from './provider-trace-viewer';
 
 /**
  *
@@ -89,7 +90,7 @@ export default function SettingsApp() {
 	const [ hasScrollRight, setHasScrollRight ] = useState( false );
 
 	// Tabs that manage their own save actions — hide the global Save Settings button.
-	const SELF_SAVING_TABS = [ 'access-branding' ];
+	const SELF_SAVING_TABS = [ 'access-branding', 'provider-trace' ];
 
 	// Google Analytics integration state.
 	const [ gaPropertyId, setGaPropertyId ] = useState( '' );
@@ -330,6 +331,11 @@ export default function SettingsApp() {
 		{
 			name: 'usage',
 			title: __( 'Usage', 'gratis-ai-agent' ),
+			className: 'gratis-ai-agent-settings-tab',
+		},
+		{
+			name: 'provider-trace',
+			title: __( 'Provider Trace', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 		{
@@ -1493,6 +1499,20 @@ export default function SettingsApp() {
 											) }
 										>
 											<UsageDashboard />
+										</ErrorBoundary>
+									</div>
+								);
+
+							case 'provider-trace':
+								return (
+									<div className="gratis-ai-agent-settings-section">
+										<ErrorBoundary
+											label={ __(
+												'Provider trace viewer',
+												'gratis-ai-agent'
+											) }
+										>
+											<ProviderTraceViewer />
 										</ErrorBoundary>
 									</div>
 								);

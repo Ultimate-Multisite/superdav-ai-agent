@@ -218,6 +218,9 @@ class Settings {
 			'budget_monthly_cap'       => 0.0,
 			'budget_warning_threshold' => 80,
 			'budget_exceeded_action'   => 'pause',
+			// Provider trace / debug mode (GH#830).
+			'provider_trace_enabled'   => false,
+			'provider_trace_max_rows'  => 200,
 		);
 	}
 

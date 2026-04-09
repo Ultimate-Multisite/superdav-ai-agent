@@ -32,8 +32,8 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github-proxy.com/proxy/?repo=Ultimate-Multisite/gratis-ai-agent",
-        "caption": "Downloading AI Agent (dev build)..."
+        "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip",
+        "caption": "Downloading AI Agent..."
       },
       "options": {
         "activate": true

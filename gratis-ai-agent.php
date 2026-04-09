@@ -48,6 +48,7 @@ use GratisAiAgent\Abilities\EditorialAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
 use GratisAiAgent\Abilities\ImageAbilities;
 use GratisAiAgent\Abilities\GitAbilities;
+use GratisAiAgent\Abilities\GlobalStylesAbilities;
 use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
 use GratisAiAgent\Abilities\GscAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
@@ -331,6 +332,9 @@ GoogleAnalyticsAbilities::register();
 
 // Block content abilities (markdown-to-blocks, block discovery, content creation).
 BlockAbilities::register();
+
+// Global styles (theme.json) management abilities (get, update, reset).
+GlobalStylesAbilities::register();
 
 // File operation abilities (read, write, edit, delete, list, search).
 FileAbilities::register();

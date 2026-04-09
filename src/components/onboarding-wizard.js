@@ -3,13 +3,7 @@
  */
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
-import {
-	Button,
-	ToggleControl,
-	TextControl,
-	Notice,
-	Spinner,
-} from '@wordpress/components';
+import { Button, ToggleControl, Notice, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -20,260 +14,12 @@ import STORE_NAME from '../store';
 import ProviderSelector from './provider-selector';
 
 /**
- * Metadata for the three official AI providers shown in the onboarding wizard.
- */
-const ONBOARDING_PROVIDERS = [
-	{
-		id: 'openai',
-		name: 'OpenAI',
-		description: __(
-			'Access GPT-4o, o1, and other OpenAI models.',
-			'gratis-ai-agent'
-		),
-		keyPlaceholder: 'sk-...',
-		docsUrl: 'https://platform.openai.com/api-keys',
-		docsLabel: __( 'Get key at platform.openai.com', 'gratis-ai-agent' ),
-	},
-	{
-		id: 'anthropic',
-		name: 'Anthropic',
-		description: __(
-			'Access Claude Sonnet, Opus, and Haiku models.',
-			'gratis-ai-agent'
-		),
-		keyPlaceholder: 'sk-ant-...',
-		docsUrl: 'https://console.anthropic.com/settings/keys',
-		docsLabel: __( 'Get key at console.anthropic.com', 'gratis-ai-agent' ),
-	},
-	{
-		id: 'google',
-		name: 'Google AI',
-		description: __(
-			'Access Gemini 2.0 Flash, 2.5 Pro, and other Google models.',
-			'gratis-ai-agent'
-		),
-		keyPlaceholder: 'AIza...',
-		docsUrl: 'https://aistudio.google.com/app/apikey',
-		docsLabel: __( 'Get key at aistudio.google.com', 'gratis-ai-agent' ),
-	},
-];
-
-/**
- * Inline provider setup row used inside the onboarding wizard.
+ * Get the URL for the Connectors admin page.
  *
- * Renders a compact API key entry form for a single provider. On save,
- * refreshes the providers list in the store so the ProviderSelector updates.
- *
- * @param {Object}   props            - Component props.
- * @param {Object}   props.provider   - Provider metadata object.
- * @param {boolean}  props.hasKey     - Whether an API key is already saved.
- * @param {Function} props.onKeySaved - Called after a key is successfully saved.
- * @return {JSX.Element} The provider row element.
+ * @return {string} Connectors page URL.
  */
-function OnboardingProviderRow( { provider, hasKey, onKeySaved } ) {
-	const [ apiKey, setApiKey ] = useState( '' );
-	const [ saving, setSaving ] = useState( false );
-	const [ testing, setTesting ] = useState( false );
-	const [ notice, setNotice ] = useState( null );
-	const [ keyConfigured, setKeyConfigured ] = useState( hasKey );
-	const { fetchProviders } = useDispatch( STORE_NAME );
-
-	const handleSave = useCallback( async () => {
-		if ( ! apiKey.trim() ) {
-			setNotice( {
-				status: 'error',
-				message: __( 'Please enter an API key.', 'gratis-ai-agent' ),
-			} );
-			return;
-		}
-
-		setSaving( true );
-		setNotice( null );
-
-		try {
-			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/provider-key',
-				method: 'POST',
-				data: { provider: provider.id, api_key: apiKey.trim() },
-			} );
-
-			setKeyConfigured( true );
-			setApiKey( '' );
-			setNotice( {
-				status: 'success',
-				message: __( 'API key saved.', 'gratis-ai-agent' ),
-			} );
-
-			// Refresh providers in the store so ProviderSelector updates.
-			await fetchProviders();
-			onKeySaved( provider.id );
-		} catch ( err ) {
-			setNotice( {
-				status: 'error',
-				message:
-					err?.message ||
-					__( 'Failed to save API key.', 'gratis-ai-agent' ),
-			} );
-		}
-
-		setSaving( false );
-	}, [ apiKey, provider.id, fetchProviders, onKeySaved ] );
-
-	const handleTest = useCallback( async () => {
-		const keyToTest = apiKey.trim() || undefined;
-
-		if ( ! keyToTest && ! keyConfigured ) {
-			setNotice( {
-				status: 'error',
-				message: __(
-					'Enter an API key or save one first.',
-					'gratis-ai-agent'
-				),
-			} );
-			return;
-		}
-
-		setTesting( true );
-		setNotice( null );
-
-		try {
-			const result = await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/provider-key/test',
-				method: 'POST',
-				data: {
-					provider: provider.id,
-					...( keyToTest ? { api_key: keyToTest } : {} ),
-				},
-			} );
-
-			if ( result.success ) {
-				setNotice( {
-					status: 'success',
-					message: sprintf(
-						/* translators: %s: model name */
-						__(
-							'Connection successful. Model: %s',
-							'gratis-ai-agent'
-						),
-						result.model || provider.id
-					),
-				} );
-			} else {
-				setNotice( {
-					status: 'error',
-					message:
-						result.error ||
-						__( 'Connection test failed.', 'gratis-ai-agent' ),
-				} );
-			}
-		} catch ( err ) {
-			setNotice( {
-				status: 'error',
-				message:
-					err?.message ||
-					__( 'Connection test failed.', 'gratis-ai-agent' ),
-			} );
-		}
-
-		setTesting( false );
-	}, [ apiKey, keyConfigured, provider.id ] );
-
-	return (
-		<div
-			className={ `gratis-ai-agent-wizard-provider-row ${
-				keyConfigured
-					? 'gratis-ai-agent-wizard-provider-row--configured'
-					: ''
-			}` }
-		>
-			<div className="gratis-ai-agent-wizard-provider-row__header">
-				<div className="gratis-ai-agent-wizard-provider-row__title">
-					<strong>{ provider.name }</strong>
-					{ keyConfigured && (
-						<span className="gratis-ai-agent-wizard-provider-row__badge">
-							{ __( 'Configured', 'gratis-ai-agent' ) }
-						</span>
-					) }
-				</div>
-				<a
-					href={ provider.docsUrl }
-					target="_blank"
-					rel="noopener noreferrer"
-					className="gratis-ai-agent-wizard-provider-row__docs"
-				>
-					{ provider.docsLabel } ↗
-				</a>
-			</div>
-
-			<p className="gratis-ai-agent-wizard-provider-row__desc">
-				{ provider.description }
-			</p>
-
-			{ notice && (
-				<Notice
-					status={ notice.status }
-					isDismissible
-					onDismiss={ () => setNotice( null ) }
-				>
-					{ notice.message }
-				</Notice>
-			) }
-
-			<div className="gratis-ai-agent-wizard-provider-row__key-row">
-				<TextControl
-					label={
-						keyConfigured
-							? __( 'Replace API key', 'gratis-ai-agent' )
-							: __( 'API key', 'gratis-ai-agent' )
-					}
-					type="password"
-					value={ apiKey }
-					onChange={ setApiKey }
-					placeholder={
-						keyConfigured
-							? __(
-									'(key saved — enter new key to replace)',
-									'gratis-ai-agent'
-							  )
-							: provider.keyPlaceholder
-					}
-					__nextHasNoMarginBottom
-				/>
-				<div className="gratis-ai-agent-wizard-provider-row__actions">
-					<Button
-						variant="primary"
-						onClick={ handleSave }
-						isBusy={ saving }
-						disabled={ saving || testing || ! apiKey.trim() }
-						size="compact"
-					>
-						{ saving ? (
-							<Spinner />
-						) : (
-							__( 'Save Key', 'gratis-ai-agent' )
-						) }
-					</Button>
-					<Button
-						variant="secondary"
-						onClick={ handleTest }
-						isBusy={ testing }
-						disabled={
-							saving ||
-							testing ||
-							( ! apiKey.trim() && ! keyConfigured )
-						}
-						size="compact"
-					>
-						{ testing ? (
-							<Spinner />
-						) : (
-							__( 'Test', 'gratis-ai-agent' )
-						) }
-					</Button>
-				</div>
-			</div>
-		</div>
-	);
+function getConnectorsUrl() {
+	return window.gratisAiAgentData?.connectorsUrl || 'options-connectors.php';
 }
 
 /**
@@ -281,10 +27,9 @@ function OnboardingProviderRow( { provider, hasKey, onKeySaved } ) {
  *
  * Steps: Welcome → Set Up AI Provider → Configure Abilities → All Set.
  *
- * The provider step now embeds inline API key entry for all three official
- * providers so users can configure a provider without leaving the wizard.
- * Once at least one key is saved the ProviderSelector appears to choose the
- * default provider/model.
+ * The provider step directs users to the WordPress Connectors page to
+ * configure their API keys. Once at least one provider is available the
+ * ProviderSelector appears to choose the default provider/model.
  *
  * Saves settings (default provider/model, disabled abilities,
  * onboarding_complete) on finish or skip.
@@ -300,40 +45,15 @@ export default function OnboardingWizard( { onComplete } ) {
 	const [ wooLoading, setWooLoading ] = useState( false );
 	const [ wooOfferAccepted, setWooOfferAccepted ] = useState( false );
 
-	// Track which providers have keys configured (keyed by provider id).
-	const [ providerKeys, setProviderKeys ] = useState( {} );
-
 	const { saveSettings } = useDispatch( STORE_NAME );
-	const { providers, selectedProviderId, selectedModelId, settings } =
-		useSelect(
-			( select ) => ( {
-				providers: select( STORE_NAME ).getProviders(),
-				selectedProviderId:
-					select( STORE_NAME ).getSelectedProviderId(),
-				selectedModelId: select( STORE_NAME ).getSelectedModelId(),
-				settings: select( STORE_NAME ).getSettings(),
-			} ),
-			[]
-		);
-
-	// Initialise providerKeys from the settings API response (has_key flags).
-	// The REST API returns boolean flags under `_provider_keys` (no values exposed).
-	useEffect( () => {
-		if ( settings?._provider_keys ) {
-			setProviderKeys( settings._provider_keys );
-		}
-	}, [ settings ] );
-
-	// Also derive configured state from the live providers list (after save).
-	useEffect( () => {
-		if ( providers.length > 0 ) {
-			const keys = {};
-			providers.forEach( ( p ) => {
-				keys[ p.id ] = true;
-			} );
-			setProviderKeys( ( prev ) => ( { ...prev, ...keys } ) );
-		}
-	}, [ providers ] );
+	const { providers, selectedProviderId, selectedModelId } = useSelect(
+		( select ) => ( {
+			providers: select( STORE_NAME ).getProviders(),
+			selectedProviderId: select( STORE_NAME ).getSelectedProviderId(),
+			selectedModelId: select( STORE_NAME ).getSelectedModelId(),
+		} ),
+		[]
+	);
 
 	useEffect( () => {
 		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
@@ -357,10 +77,6 @@ export default function OnboardingWizard( { onComplete } ) {
 				setWooLoading( false );
 			} );
 	}, [ step ] );
-
-	const handleKeySaved = useCallback( ( providerId ) => {
-		setProviderKeys( ( prev ) => ( { ...prev, [ providerId ]: true } ) );
-	}, [] );
 
 	const hasAnyProvider = providers.length > 0;
 
@@ -564,28 +280,36 @@ export default function OnboardingWizard( { onComplete } ) {
 				</div>
 			),
 		},
-		// Step 1: Provider setup — inline API key entry
+		// Step 1: Provider setup — directs to the Connectors page
 		{
 			title: __( 'Set Up an AI Provider', 'gratis-ai-agent' ),
 			content: (
 				<div className="gratis-ai-agent-wizard-provider">
 					<p>
 						{ __(
-							'Enter an API key for at least one provider to get started. You can add more providers later in Settings.',
+							'The AI agent needs an API key for at least one AI provider (OpenAI, Anthropic, or Google AI). API keys are managed on the Connectors page.',
 							'gratis-ai-agent'
 						) }
 					</p>
 
-					<div className="gratis-ai-agent-wizard-provider-list">
-						{ ONBOARDING_PROVIDERS.map( ( provider ) => (
-							<OnboardingProviderRow
-								key={ provider.id }
-								provider={ provider }
-								hasKey={ !! providerKeys[ provider.id ] }
-								onKeySaved={ handleKeySaved }
-							/>
-						) ) }
-					</div>
+					<Notice status="info" isDismissible={ false }>
+						<a
+							href={ getConnectorsUrl() }
+							className="gratis-ai-agent-wizard-connectors-link"
+						>
+							{ __(
+								'Open Connectors page to configure a provider →',
+								'gratis-ai-agent'
+							) }
+						</a>
+					</Notice>
+
+					<p className="description">
+						{ __(
+							'Once you have configured a connector, come back here and continue the setup.',
+							'gratis-ai-agent'
+						) }
+					</p>
 
 					{ hasAnyProvider && (
 						<div className="gratis-ai-agent-wizard-provider-selector">

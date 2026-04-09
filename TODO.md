@@ -332,7 +332,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ### Complete Site Building Abilities (P0)
 
-- [ ] t161 Smart plugin discovery: search-plugin-directory ability #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#840
+- [ ] t177 Smart plugin discovery: search-plugin-directory ability #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#840
   - Search WordPress.org by keyword, return results with active installs, rating, block support
   - Completes the discover-then-install flow (install_plugin already exists)
   - EDIT: includes/Abilities/WordPressAbilities.php — add search_plugin_directory ability
@@ -356,13 +356,13 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Same persistence pattern as CPTs
   - EDIT: includes/Abilities/CustomPostTypeAbilities.php — add taxonomy abilities to same file
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t165 Navigation menu management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#844
+- [ ] t178 Navigation menu management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#844
   - Create menus, add/update/remove items, assign to theme locations
   - Biggest ecosystem gap — only bjornfix/mcp-expose-abilities has this
   - NEW: includes/Abilities/MenuAbilities.php — model on NavigationAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t166 Options management ability with safety blocklist #feature #auto-dispatch ~2h logged:2026-04-09 ref:GH#845
+- [ ] t179 Options management ability with safety blocklist #feature #auto-dispatch ~2h logged:2026-04-09 ref:GH#845
   - Get/set WordPress options (site title, tagline, permalinks, timezone, date format)
   - Blocklist for dangerous options (siteurl, home, active_plugins, etc.)
   - EDIT: includes/Abilities/WordPressAbilities.php — add get_option/update_option abilities
@@ -376,7 +376,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 - [ ] t175 Site builder orchestration v2: system prompt + multi-step builds #feature ~8h logged:2026-04-09 ref:GH#854
   - Rewrite site builder prompt to use new abilities + plugin discovery
   - Plan generation, progress tracking, error recovery
-  - Blocked by: t161, t165-t166, t171-t174 (needs all abilities available first)
+  - Blocked by: t171-t174, t177-t179 (needs all abilities available first)
 - [ ] t176 Design system: custom CSS injection, block patterns, site logo, theme presets #feature #auto-dispatch ~6h logged:2026-04-09 ref:GH#853
   - inject-custom-css, curated block patterns, set-site-logo, theme.json presets
   - NEW: includes/Abilities/DesignAbilities.php — model on BlockAbilities.php

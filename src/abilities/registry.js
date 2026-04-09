@@ -176,11 +176,27 @@ export async function registerClientAbility( def ) {
  * name against JsAbilityCatalog::get_descriptors() and drops unknown names.
  *
  * Reads via `wp.abilities.getAbilities()` (the script-module API) rather
- * than via `wp.data.select('core/abilities').getAbilities()` because in
- * WP 7.0-RC2 the @wordpress/data store mirror is not consistently
- * populated by `@wordpress/core-abilities` — but the script-module API
- * always reflects the live registry. The script-module call returns a
- * Promise, so this function is async.
+ * than via `wp.data.select('core/abilities').getAbilities()`.
+ *
+ * Root cause (t169 / GH#825, investigated 2026-04-08):
+ * The WP 7.0 dev note claims `@wordpress/core-abilities` is enqueued by
+ * core on all admin pages, but in WP 7.0-RC2 the module is only
+ * *registered* — never added to the script-module queue. Without an
+ * explicit `wp_enqueue_script_module('@wordpress/core-abilities')` call,
+ * the REST fetch that populates the `core/abilities` wp.data store never
+ * runs, so `wp.data.select('core/abilities').getAbilities()` returns 0
+ * items. Our PHP enqueue (FloatingWidget, ScreenMetaPanel, UnifiedAdminMenu)
+ * now explicitly enqueues `@wordpress/core-abilities` to fix this.
+ *
+ * The `wp.abilities.getAbilities()` call below reads from the same Redux
+ * store via `select(store).getAbilities()` — it is synchronous and returns
+ * an array, not a Promise. The `await` is kept for forward-compatibility
+ * in case the API becomes async in a future WP version.
+ *
+ * TODO(t169): Once WP 7.0 final ships and the upstream enqueue gap is
+ * confirmed fixed (or a core bug is filed), verify whether the explicit
+ * `@wordpress/core-abilities` enqueue in our PHP files can be removed.
+ * If core reliably enqueues it, the workaround becomes redundant.
  *
  * Callers should `await ensureRegistered()` from index.js before calling
  * this so the registration Promises are guaranteed to have resolved.

@@ -171,8 +171,18 @@ class UnifiedAdminMenu {
 		// this, the dynamic import() in registry.js throws a module
 		// resolution error and the gratis-ai-agent-js/* abilities are never
 		// registered. (t165 — fixes the missing enqueue in #815.)
+		//
+		// Also enqueue `@wordpress/core-abilities` explicitly. Despite the
+		// WP 7.0 dev note claiming core enqueues it on all admin pages, the
+		// module is only *registered* by core — never added to the queue.
+		// Without this enqueue, the REST fetch that populates the
+		// `core/abilities` wp.data store never runs, so
+		// wp.data.select('core/abilities').getAbilities() returns 0 items
+		// even though wp.abilities.getAbilities() returns the full list.
+		// Root-cause investigation: t169 / GH#825.
 		if ( function_exists( 'wp_enqueue_script_module' ) ) {
 			wp_enqueue_script_module( '@wordpress/abilities' );
+			wp_enqueue_script_module( '@wordpress/core-abilities' );
 		}
 
 		// Enqueue the admin-page bundle which sets window.gratisAiAgentChat.

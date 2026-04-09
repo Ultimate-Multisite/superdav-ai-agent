@@ -6,8 +6,8 @@ declare(strict_types=1);
  *
  * Provides custom taxonomy registration with persistence, term CRUD,
  * and taxonomy listing. Custom taxonomies registered via these abilities
- * are stored in a site option so they survive page loads and are
- * re-registered on every `init` hook.
+ * are stored in a network-scoped site option so they survive page loads
+ * and are re-registered on every `init` hook across all subsites.
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -54,20 +54,45 @@ class TaxonomyAbilities {
 	 * Re-register all custom taxonomies that were previously persisted.
 	 *
 	 * Called on `init` (priority 5) so taxonomies are available before
-	 * most plugins and themes run their own init hooks.
+	 * most plugins and themes run their own init hooks. Validates each
+	 * stored entry before calling register_taxonomy() to avoid fatals on
+	 * malformed rows.
 	 */
 	public static function restore_persisted_taxonomies(): void {
 		$definitions = self::get_persisted_taxonomies();
 
 		foreach ( $definitions as $taxonomy => $args ) {
+			// Skip if already registered or taxonomy key is invalid.
+			if ( ! is_string( $taxonomy ) || '' === $taxonomy ) {
+				continue;
+			}
+
 			if ( taxonomy_exists( $taxonomy ) ) {
 				continue;
 			}
 
-			/** @var string[] $object_types */
-			$object_types = is_array( $args['object_types'] ?? null ) ? $args['object_types'] : [ 'post' ];
-			/** @var array<string, mixed> $register_args */
-			$register_args = is_array( $args['args'] ?? null ) ? $args['args'] : [];
+			// Validate and normalise object_types.
+			$raw_types = $args['object_types'] ?? null;
+			if ( ! is_array( $raw_types ) || empty( $raw_types ) ) {
+				$raw_types = [ 'post' ];
+			}
+
+			$object_types = [];
+			foreach ( $raw_types as $type ) {
+				if ( is_string( $type ) && '' !== $type ) {
+					$object_types[] = sanitize_key( $type );
+				}
+			}
+
+			if ( empty( $object_types ) ) {
+				$object_types = [ 'post' ];
+			}
+
+			// Validate register_args.
+			$register_args = $args['args'] ?? null;
+			if ( ! is_array( $register_args ) ) {
+				$register_args = [];
+			}
 
 			register_taxonomy( $taxonomy, $object_types, $register_args );
 		}
@@ -410,7 +435,7 @@ class TaxonomyAbilities {
 	 * @param array<string, mixed> $input Input with taxonomy, object_types, label, etc.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function handle_register_taxonomy( array $input ) {
+	public static function handle_register_taxonomy( array $input ): array|WP_Error {
 		// @phpstan-ignore-next-line
 		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
 
@@ -470,7 +495,7 @@ class TaxonomyAbilities {
 			'object_types' => $object_types,
 			'args'         => $register_args,
 		];
-		update_option( self::OPTION_KEY, $definitions, false );
+		update_site_option( self::OPTION_KEY, $definitions );
 
 		return [
 			'taxonomy'     => $taxonomy,
@@ -485,9 +510,9 @@ class TaxonomyAbilities {
 	 * Handle the list-taxonomies ability.
 	 *
 	 * @param array<string, mixed> $input Input with optional object_type filter.
-	 * @return array<string, mixed>|WP_Error
+	 * @return array<string, mixed>
 	 */
-	public static function handle_list_taxonomies( array $input ) {
+	public static function handle_list_taxonomies( array $input ): array {
 		$object_type = isset( $input['object_type'] ) ? sanitize_key( (string) $input['object_type'] ) : '';
 
 		$args = [];
@@ -522,7 +547,7 @@ class TaxonomyAbilities {
 	 * @param array<string, mixed> $input Input with taxonomy, optional search/pagination.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function handle_get_terms( array $input ) {
+	public static function handle_get_terms( array $input ): array|WP_Error {
 		// @phpstan-ignore-next-line
 		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
 
@@ -538,7 +563,7 @@ class TaxonomyAbilities {
 			);
 		}
 
-		$per_page   = min( (int) ( $input['per_page'] ?? 50 ), 200 );
+		$per_page   = max( 1, min( (int) ( $input['per_page'] ?? 50 ), 200 ) );
 		$page       = max( (int) ( $input['page'] ?? 1 ), 1 );
 		$hide_empty = (bool) ( $input['hide_empty'] ?? false );
 		// @phpstan-ignore-next-line
@@ -597,7 +622,7 @@ class TaxonomyAbilities {
 	 * @param array<string, mixed> $input Input with taxonomy, name, optional slug/description/parent.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function handle_create_term( array $input ) {
+	public static function handle_create_term( array $input ): array|WP_Error {
 		// @phpstan-ignore-next-line
 		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
 		// @phpstan-ignore-next-line
@@ -662,7 +687,7 @@ class TaxonomyAbilities {
 	 * @param array<string, mixed> $input Input with term_id, taxonomy, and fields to update.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function handle_update_term( array $input ) {
+	public static function handle_update_term( array $input ): array|WP_Error {
 		$term_id = (int) ( $input['term_id'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
@@ -745,7 +770,7 @@ class TaxonomyAbilities {
 	 * @param array<string, mixed> $input Input with term_id and taxonomy.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public static function handle_delete_term( array $input ) {
+	public static function handle_delete_term( array $input ): array|WP_Error {
 		$term_id = (int) ( $input['term_id'] ?? 0 );
 		// @phpstan-ignore-next-line
 		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
@@ -807,7 +832,7 @@ class TaxonomyAbilities {
 	 * @return array<string, array<string, mixed>>
 	 */
 	private static function get_persisted_taxonomies(): array {
-		$definitions = get_option( self::OPTION_KEY, [] );
+		$definitions = get_site_option( self::OPTION_KEY, [] );
 		if ( ! is_array( $definitions ) ) {
 			return [];
 		}

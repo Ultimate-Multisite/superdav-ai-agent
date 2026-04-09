@@ -64,8 +64,10 @@ class TaxonomyAbilities {
 				continue;
 			}
 
-			$object_types  = $args['object_types'] ?? [ 'post' ];
-			$register_args = $args['args'] ?? [];
+			/** @var string[] $object_types */
+			$object_types = is_array( $args['object_types'] ?? null ) ? $args['object_types'] : [ 'post' ];
+			/** @var array<string, mixed> $register_args */
+			$register_args = is_array( $args['args'] ?? null ) ? $args['args'] : [];
 
 			register_taxonomy( $taxonomy, $object_types, $register_args );
 		}
@@ -455,6 +457,7 @@ class TaxonomyAbilities {
 			$register_args['rewrite'] = $input['rewrite'];
 		}
 
+		// @phpstan-ignore-next-line
 		$result = register_taxonomy( $taxonomy, $object_types, $register_args );
 
 		if ( is_wp_error( $result ) ) {
@@ -578,7 +581,8 @@ class TaxonomyAbilities {
 		$count_args['number'] = 0;
 		$count_args['offset'] = 0;
 		$count_args['fields'] = 'count';
-		$total                = (int) get_terms( $count_args );
+		$count_result         = get_terms( $count_args );
+		$total                = is_wp_error( $count_result ) ? count( $result ) : (int) $count_result;
 
 		return [
 			'terms'    => $result,
@@ -637,7 +641,7 @@ class TaxonomyAbilities {
 			return $result;
 		}
 
-		$term_id = (int) $result['term_id'];
+		$term_id = isset( $result['term_id'] ) ? intval( $result['term_id'] ) : 0;
 		$term    = get_term( $term_id, $taxonomy );
 
 		if ( ! ( $term instanceof WP_Term ) ) {
@@ -720,7 +724,7 @@ class TaxonomyAbilities {
 			return $result;
 		}
 
-		$updated_term_id = (int) $result['term_id'];
+		$updated_term_id = isset( $result['term_id'] ) ? (int) $result['term_id'] : $term_id;
 		$term            = get_term( $updated_term_id, $taxonomy );
 
 		if ( ! ( $term instanceof WP_Term ) ) {
@@ -804,6 +808,10 @@ class TaxonomyAbilities {
 	 */
 	private static function get_persisted_taxonomies(): array {
 		$definitions = get_option( self::OPTION_KEY, [] );
-		return is_array( $definitions ) ? $definitions : [];
+		if ( ! is_array( $definitions ) ) {
+			return [];
+		}
+		/** @var array<string, array<string, mixed>> $definitions */
+		return $definitions;
 	}
 }

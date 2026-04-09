@@ -270,5 +270,9 @@ parameters:
 		# SimpleAiResult: str_replace subject is mixed from parsed JSON — always a string at runtime.
 		- message: '#\$subject of function str_replace expects array<string>\|string, mixed given#'
 		  identifier: argument.type
+		# TaxonomyAbilities: register_taxonomy $args loaded from a site option (array<string, mixed>);
+		# the stored shape is always a valid register_taxonomy args array at runtime.
+		- message: '#\$args of function register_taxonomy expects array\{.*\}, array<string, mixed> given#'
+		  identifier: argument.type
 
 

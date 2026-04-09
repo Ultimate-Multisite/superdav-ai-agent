@@ -203,7 +203,7 @@
 
 ## New Tasks
 
-- [ ] t167 Test debt cleanup: JS snapshot + PHPUnit failures carried over from t162 #testing #bug ~4h logged:2026-04-08
+- [ ] t167 Test debt cleanup: JS snapshot + PHPUnit failures carried over from t162 #testing #bug #auto-dispatch ~4h logged:2026-04-08
   - Baseline on main post-#822: npm run test:js is 214 pass / 31 fail across 5 suites (MessageInput, ChatPanel, OnboardingWizard, ProviderSelector, ContextIndicator). vendor/bin/phpunit is 31 errors / 20 failures, all in AgentLoopTest and CredentialResolverTest. Red CI is masking real regressions — #815 shipped 3 runtime-fatal bugs despite PHPUnit passing because the failing tests hid the assertions that would have caught them.
   - Classify each failure: snapshot-stale (regen with diff review), assertion regression (fix component), or asserting dead behaviour (delete). For PHP, AgentLoopTest fixtures drifted after the WP 7.0 Abilities API shape changed — model fixes on AgentLoopClientToolsTest which is green. CredentialResolverTest failures are pinned to #805's openai_compat cleanup — absorb #805 into this task or skip with markTestSkipped. Brief: todo/tasks/t167-brief.md.
 
@@ -211,7 +211,7 @@
   - The entire #806 chain shipped, broke at runtime 3 times, and CI never caught any of it because there's no browser-pipeline spec — PHPUnit synthetically injects client_abilities into AgentLoop options, bypassing the whole registration pipeline. Port /tmp/t165-smoke.mjs (used to diagnose #821 and #822) into tests/e2e/client-abilities.spec.js. 7 test cases: category registered, abilities in getAbilities(), executeAbility navigate-to actually navigates, executeAbility insert-block inserts on editor screen, insert-block no-ops on non-editor, snapshotDescriptors returns expected shape, zero relevant console errors.
   - Blocked by t167 so this new spec doesn't land into a red baseline. Verify by temporarily reverting a t166 fix — spec must go red. Brief: todo/tasks/t168-brief.md.
 
-- [ ] t169 Investigate @wordpress/core-abilities not populating wp.data store on WP 7.0-RC2 #investigation ~2h For #806 logged:2026-04-08
+- [ ] t169 Investigate @wordpress/core-abilities not populating wp.data store on WP 7.0-RC2 #investigation #auto-dispatch ~2h For #806 logged:2026-04-08
   - Browser observation during #822 smoke test: `wp.abilities.getAbilities()` returns 62 abilities (correct), but `wp.data.select('core/abilities').getAbilities()` returns 0. The WP 7.0 dev note documents the @wordpress/data store mirror as the React-integration path; it should be populated automatically by @wordpress/core-abilities on every admin page. t166 workaround reads via wp.abilities directly; this task figures out why the wp.data path is empty.
   - Hypotheses: (1) @wordpress/core-abilities not actually enqueued; (2) REST fetch failing silently; (3) store-identity confusion; (4) RC2 regression; (5) our plugin registering before store ready. Deliverable: root-cause statement with browser-probe evidence, then one of — code fix, upstream bug report, or documented "no action needed" with registry.js comment update. Non-blocking; our feature works via workaround. Brief: todo/tasks/t169-brief.md.
 

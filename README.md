@@ -5,7 +5,7 @@
 [![PHP 8.2+](https://img.shields.io/badge/php-%3E%3D%208.2-blue.svg)](https://www.php.net/)
 [![WordPress 7.0+](https://img.shields.io/badge/WordPress-%3E%3D%207.0-blue.svg)](https://wordpress.org/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Try in Playground](https://img.shields.io/badge/Try%20in-WordPress%20Playground-3858e9?logo=wordpress&logoColor=white)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/.wordpress-org/blueprints/blueprint.json)
+[![Try in Playground](https://img.shields.io/badge/Try%20in-WordPress%20Playground-3858e9?logo=wordpress&logoColor=white)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/refs/heads/main/.wordpress-org/blueprints/blueprint.json)
 
 [Documentation](https://github.com/Ultimate-Multisite/gratis-ai-agent/wiki)
 
@@ -309,8 +309,7 @@ composer test       # PHPUnit tests
 
 Test the plugin instantly in your browser without any local setup:
 
-- **Latest release**: [Open in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/.wordpress-org/blueprints/blueprint.json) (login: `admin` / `password`)
-- **Development branch**: [Open dev version](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/main/playground/blueprint-dev.json)
+- **Latest release**: [Open in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Ultimate-Multisite/gratis-ai-agent/refs/heads/main/.wordpress-org/blueprints/blueprint.json) (login: `admin` / `password`)
 
 The canonical blueprint lives at `.wordpress-org/blueprints/blueprint.json` — this is the path WordPress.org uses when displaying the plugin in the plugin directory.
 

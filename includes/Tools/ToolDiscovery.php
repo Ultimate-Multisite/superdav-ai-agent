@@ -66,6 +66,11 @@ class ToolDiscovery {
 		'gratis-ai-agent/file-list',
 		'gratis-ai-agent/db-query',
 		'gratis-ai-agent/run-php',
+		// `create-post` is the single most common WordPress operation the
+		// agent is ever asked for. Keeping it in cold-start so smaller
+		// local models don't fall back to `run-php` + positional-arg
+		// guesswork on `wp_insert_post`. See issue #831.
+		'ai-agent/create-post',
 	);
 
 	/**

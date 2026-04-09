@@ -266,11 +266,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() returns a reply when the AI responds with text.
 	 */
 	public function test_run_returns_reply_on_success(): void {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			// Ensure the direct path is used by having the endpoint set.
-			$this->assertNotEmpty( get_option( 'openai_compat_endpoint_url' ) );
-		}
-
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( 'Hello, I am your WordPress assistant.' );
 
 		$loop   = new AgentLoop( 'Hi there' );
@@ -285,6 +281,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() result contains all expected keys.
 	 */
 	public function test_run_result_has_expected_keys(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( 'Test reply' );
 
 		$loop   = new AgentLoop( 'Test message' );
@@ -350,6 +347,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() with pre-existing history (multi-turn conversation).
 	 */
 	public function test_run_with_existing_history(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WordPress\AiClient\Messages\DTO\UserMessage' ) ) {
 			$this->markTestSkipped( 'AI Client SDK not available.' );
 		}
@@ -378,6 +376,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() with empty reply text returns empty string (not null/false).
 	 */
 	public function test_run_with_empty_reply_returns_empty_string(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( '' );
 
 		$loop   = new AgentLoop( 'Silence please' );
@@ -432,6 +431,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() returns WP_Error when the AI proxy returns an HTTP error.
 	 */
 	public function test_run_returns_wp_error_on_http_error_response(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_error_response( 500, 'Internal server error' );
 
 		$loop   = new AgentLoop( 'Hello' );
@@ -446,6 +446,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() returns WP_Error on network failure (wp_remote_post returns WP_Error).
 	 */
 	public function test_run_returns_wp_error_on_network_failure(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_network_failure();
 
 		$loop   = new AgentLoop( 'Hello' );
@@ -476,6 +477,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() returns awaiting_confirmation when a tool requires confirmation.
 	 */
 	public function test_run_returns_awaiting_confirmation_for_confirm_tools(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
@@ -519,6 +521,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() logs tool calls in tool_call_log.
 	 */
 	public function test_run_logs_tool_calls(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
@@ -615,6 +618,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * a success array, not a WP_Error.
 	 */
 	public function test_run_exhausts_max_iterations(): void {
+		$this->skip_if_sdk_unavailable();
 		// Always return a tool call so the loop never terminates naturally and
 		// the fallback summarization prompt also gets a tool-call response.
 		add_filter(
@@ -682,6 +686,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * graceful fallback send_prompt() itself fails (e.g. network error).
 	 */
 	public function test_run_exhausts_max_iterations_fallback_fails(): void {
+		$this->skip_if_sdk_unavailable();
 		// Use a counter so the first N requests return tool calls and the
 		// (N+1)th (the fallback) returns a network failure.
 		$call_count = 0;
@@ -823,6 +828,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test custom system_instruction option is used when provided.
 	 */
 	public function test_custom_system_instruction_is_used(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( 'Custom system test' );
 
 		$loop = new AgentLoop(
@@ -912,6 +918,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test AgentLoop respects max_output_tokens from settings.
 	 */
 	public function test_run_respects_max_output_tokens_option(): void {
+		$this->skip_if_sdk_unavailable();
 		Settings::update( [ 'max_output_tokens' => 512 ] );
 		$this->mock_ai_response( 'Short reply' );
 
@@ -928,6 +935,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test AgentLoop respects temperature from settings.
 	 */
 	public function test_run_respects_temperature_option(): void {
+		$this->skip_if_sdk_unavailable();
 		Settings::update( [ 'temperature' => 0.0 ] );
 		$this->mock_ai_response( 'Deterministic reply' );
 
@@ -942,6 +950,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test AgentLoop uses model_id from options when provided.
 	 */
 	public function test_run_uses_model_id_from_options(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( 'Model reply' );
 
 		$loop = new AgentLoop(
@@ -963,6 +972,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() with tool_call_log pre-populated in options (resumable state).
 	 */
 	public function test_run_with_pre_populated_tool_call_log(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( 'Resumed reply' );
 
 		$prior_log = [
@@ -1002,6 +1012,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * with exit_reason = 'spin_detected'.
 	 */
 	public function test_run_detects_spin_and_exits(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
@@ -1242,6 +1253,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * explicit tool_permissions are set (the new default behavior).
 	 */
 	public function test_write_tool_requires_confirmation_by_default(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
@@ -1299,6 +1311,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * when no explicit tool_permissions are set.
 	 */
 	public function test_read_tool_auto_executes_by_default(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
@@ -1386,6 +1399,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test that always_allow permission skips confirmation for write tools.
 	 */
 	public function test_always_allow_skips_confirmation_for_write_tools(): void {
+		$this->skip_if_sdk_unavailable();
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}

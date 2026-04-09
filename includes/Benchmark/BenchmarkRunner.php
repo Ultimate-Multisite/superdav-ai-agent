@@ -346,9 +346,15 @@ class BenchmarkRunner {
 		if ( 'open_ended' === $question_type ) {
 			$category = (string) ( $question['category'] ?? '' );
 
-			// Code generation and multi-step questions need more room.
-			if ( in_array( $category, array( 'code_generation', 'multi_step' ), true ) ) {
+			// Site building and code generation need the most room for
+			// complete implementations with CSS, templates, and config.
+			if ( in_array( $category, array( 'site_building', 'code_generation', 'multi_step' ), true ) ) {
 				return 2048;
+			}
+
+			// Design questions need room for detailed specifications.
+			if ( 'design' === $category ) {
+				return 1800;
 			}
 
 			// Debugging, reasoning, and architecture need moderate room.
@@ -421,6 +427,8 @@ class BenchmarkRunner {
 			'reasoning'       => 'You are a senior WordPress consultant. Provide a structured, step-by-step analysis. Be specific about tools, functions, and queries you would use. Explain your reasoning at each step.',
 			'architecture'    => 'You are a senior WordPress architect. Design a robust solution considering scalability, performance, failure modes, and WordPress best practices. Discuss trade-offs explicitly.',
 			'multi_step'      => 'You are a senior WordPress developer performing a thorough technical analysis. Address every part of the question systematically. Provide specific code examples where appropriate.',
+			'site_building'   => 'You are a senior WordPress developer and web designer building complete websites. Provide detailed, production-ready implementation plans with specific theme setup, plugin choices, content architecture, custom code, and design specifications. Include concrete CSS, template structures, and block patterns where appropriate.',
+			'design'          => 'You are a senior WordPress designer and UX specialist. Provide detailed visual design specifications, layout strategies, typography choices, color systems, and responsive design approaches. Reference specific WordPress theme features, block editor capabilities, and CSS techniques. Be concrete about spacing, sizing, and visual hierarchy.',
 		);
 
 		$instruction = $category_instructions[ $category ] ?? $category_instructions['reasoning'];

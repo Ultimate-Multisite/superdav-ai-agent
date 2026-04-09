@@ -486,6 +486,8 @@ class BenchmarkSuite {
 	 * - reasoning:       Multi-step logical analysis
 	 * - architecture:    System design and trade-off decisions
 	 * - multi_step:      Tasks requiring sequential reasoning
+	 * - site_building:   Full website creation and implementation
+	 * - design:          Visual design, layout, and UX decisions
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -1401,6 +1403,634 @@ class BenchmarkSuite {
 						'keyword'     => 'wp_reset_postdata|wp_reset_query|global.*\$post',
 						'weight'      => 5,
 						'description' => 'Considers missing post data reset',
+					),
+				),
+			),
+
+			// ── Site Building ────────────────────────────────────────────
+
+			array(
+				'id'               => 'ac-016',
+				'category'         => 'site_building',
+				'type'             => 'open_ended',
+				'question'         => 'A local restaurant wants a WordPress website. They need: a homepage with a hero image and daily specials section, a full menu page organized by categories (appetizers, mains, desserts, drinks) with prices and dietary labels (vegan, gluten-free), an online reservation form that emails the owner and stores bookings in the database, a photo gallery page, an about page with a Google Maps embed, and a mobile-responsive design. Provide a complete implementation plan: which theme approach (block theme, classic, or starter theme and why), the exact page templates and block patterns needed, the custom post type and taxonomy registration code for menu items, the reservation form implementation with validation and storage, and the CSS approach for the responsive layout. Include actual code for the critical parts.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests ability to plan and implement a complete real-world WordPress site with custom post types, forms, responsive design, and content architecture.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'block.*theme|theme.json|FSE|full.*site.*edit|classic.*theme|starter.*theme',
+						'weight'      => 10,
+						'description' => 'Makes a deliberate theme approach choice with reasoning',
+					),
+					array(
+						'keyword'     => 'register_post_type|custom.*post.*type|CPT',
+						'weight'      => 10,
+						'description' => 'Creates custom post type for menu items',
+					),
+					array(
+						'keyword'     => 'register_taxonomy|taxonomy|category.*appetizer|menu.*category',
+						'weight'      => 10,
+						'description' => 'Creates taxonomy for menu categories',
+					),
+					array(
+						'keyword'     => 'wp_insert_post|wp_mail|sanitize|nonce|form',
+						'weight'      => 10,
+						'description' => 'Implements reservation form with security',
+					),
+					array(
+						'keyword'     => 'media_query|@media|responsive|mobile|breakpoint|viewport',
+						'weight'      => 10,
+						'description' => 'Addresses responsive/mobile design',
+					),
+					array(
+						'keyword'     => 'hero|banner|header.*image|cover.*block',
+						'weight'      => 5,
+						'description' => 'Implements hero/banner section',
+					),
+					array(
+						'keyword'     => 'gallery|lightbox|image.*grid|wp:gallery',
+						'weight'      => 5,
+						'description' => 'Implements photo gallery',
+					),
+					array(
+						'keyword'     => 'Google.*Map|iframe|embed|wp:html',
+						'weight'      => 5,
+						'description' => 'Includes Google Maps embed',
+					),
+					array(
+						'keyword'     => 'template|template_part|block.*pattern|pattern',
+						'weight'      => 10,
+						'description' => 'Defines page templates or block patterns',
+					),
+					array(
+						'keyword'     => 'vegan|gluten|dietary|allergen|label|tag|meta',
+						'weight'      => 5,
+						'description' => 'Handles dietary labels/tags for menu items',
+					),
+					array(
+						'keyword'     => 'price|_price|meta_key|number_format|woocommerce|custom.*field',
+						'weight'      => 5,
+						'description' => 'Stores and displays prices for menu items',
+					),
+					array(
+						'keyword'     => 'dbDelta|custom.*table|CREATE TABLE|\$wpdb',
+						'weight'      => 5,
+						'description' => 'Creates database storage for reservations',
+					),
+					array(
+						'keyword'     => 'validation|required|email|phone|date.*picker|datetime',
+						'weight'      => 5,
+						'description' => 'Validates reservation form inputs',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-017',
+				'category'         => 'site_building',
+				'type'             => 'open_ended',
+				'question'         => 'Build a complete WordPress theme setup for a freelance portfolio website. The site needs: a homepage with an animated hero section, a filterable portfolio grid (filter by category: web design, branding, illustration) with modal previews, a services page with pricing cards, a blog, a contact page with a form, and a sticky header that changes style on scroll. Provide: the theme.json configuration for typography (font families, sizes, fluid typography) and color palette, the block patterns for the homepage layout, the JavaScript for the portfolio filter and scroll-based header, the custom query for the portfolio grid, and the CSS custom properties approach. Use modern WordPress block theme conventions.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests ability to build a modern block theme with theme.json, custom JavaScript interactions, filterable content, and design system fundamentals.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'theme.json|theme\.json',
+						'weight'      => 15,
+						'description' => 'Uses theme.json for configuration',
+					),
+					array(
+						'keyword'     => 'fontFamil|typography|fontSize|fluid|clamp',
+						'weight'      => 10,
+						'description' => 'Configures typography system with fluid sizing',
+					),
+					array(
+						'keyword'     => 'palette|color.*preset|custom.*color|--wp--preset--color',
+						'weight'      => 10,
+						'description' => 'Defines a color palette/design tokens',
+					),
+					array(
+						'keyword'     => 'block.*pattern|register_block_pattern|registerBlockPattern',
+						'weight'      => 10,
+						'description' => 'Creates block patterns for layouts',
+					),
+					array(
+						'keyword'     => 'filter|isotope|masonry|data-category|querySelectorAll|classList',
+						'weight'      => 10,
+						'description' => 'Implements JavaScript portfolio filtering',
+					),
+					array(
+						'keyword'     => 'scroll|IntersectionObserver|addEventListener.*scroll|scrollY|sticky',
+						'weight'      => 10,
+						'description' => 'Implements scroll-based header behavior',
+					),
+					array(
+						'keyword'     => 'modal|lightbox|dialog|overlay|popup',
+						'weight'      => 5,
+						'description' => 'Implements modal/lightbox for portfolio previews',
+					),
+					array(
+						'keyword'     => 'WP_Query|query|post_type|portfolio',
+						'weight'      => 5,
+						'description' => 'Queries portfolio items correctly',
+					),
+					array(
+						'keyword'     => 'custom.*propert|--wp--|var\(--|CSS.*variable|design.*token',
+						'weight'      => 10,
+						'description' => 'Uses CSS custom properties for design system',
+					),
+					array(
+						'keyword'     => 'wp_enqueue_script|wp_enqueue_style|enqueue',
+						'weight'      => 5,
+						'description' => 'Properly enqueues scripts and styles',
+					),
+					array(
+						'keyword'     => 'animation|transition|transform|keyframe|animate',
+						'weight'      => 5,
+						'description' => 'Includes CSS animations for hero section',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-018',
+				'category'         => 'site_building',
+				'type'             => 'open_ended',
+				'question'         => 'A nonprofit organization needs a WordPress site for managing and promoting community events. Requirements: an events listing page with calendar and list views, individual event pages with date/time, location (with map), registration with attendee limits, a volunteer signup system linked to events, automated email reminders 24 hours before events, an admin dashboard widget showing upcoming events and registration counts, and social sharing meta tags for event pages. Design the complete data model (custom post types, taxonomies, meta fields), write the registration system with capacity enforcement, implement the email reminder cron job, and create the admin dashboard widget. Explain your architectural decisions.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests end-to-end site building: data modeling, user-facing features, admin UX, scheduled tasks, and SEO considerations for a real-world nonprofit use case.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'register_post_type|custom.*post.*type|event.*post.*type',
+						'weight'      => 10,
+						'description' => 'Creates custom post type for events',
+					),
+					array(
+						'keyword'     => 'register_taxonomy|event.*category|event.*type|taxonomy',
+						'weight'      => 5,
+						'description' => 'Creates taxonomies for event categorization',
+					),
+					array(
+						'keyword'     => 'meta.*field|post_meta|register_meta|_event_date|_event_location',
+						'weight'      => 10,
+						'description' => 'Defines meta fields for event data',
+					),
+					array(
+						'keyword'     => 'capacity|attendee.*limit|max.*registration|count|remaining',
+						'weight'      => 10,
+						'description' => 'Implements registration with capacity limits',
+					),
+					array(
+						'keyword'     => 'wp_schedule_event|wp_cron|Action Scheduler|cron|scheduled',
+						'weight'      => 10,
+						'description' => 'Implements scheduled email reminders',
+					),
+					array(
+						'keyword'     => 'wp_mail|email|reminder|notification|24.*hour',
+						'weight'      => 10,
+						'description' => 'Sends email reminders before events',
+					),
+					array(
+						'keyword'     => 'wp_dashboard_setup|wp_add_dashboard_widget|dashboard.*widget',
+						'weight'      => 10,
+						'description' => 'Creates admin dashboard widget',
+					),
+					array(
+						'keyword'     => 'og:|open.*graph|meta.*property|twitter:card|social.*shar',
+						'weight'      => 5,
+						'description' => 'Implements social sharing meta tags',
+					),
+					array(
+						'keyword'     => 'calendar|list.*view|date.*query|meta_query.*date|orderby.*date',
+						'weight'      => 10,
+						'description' => 'Implements calendar and list views with date queries',
+					),
+					array(
+						'keyword'     => 'volunteer|signup|relationship|link.*event',
+						'weight'      => 5,
+						'description' => 'Implements volunteer signup linked to events',
+					),
+					array(
+						'keyword'     => 'map|location|address|geocod|Google.*Map|Leaflet',
+						'weight'      => 5,
+						'description' => 'Handles event location with map display',
+					),
+					array(
+						'keyword'     => 'race.*condition|concurrent|lock|atomic|transaction',
+						'weight'      => 5,
+						'description' => 'Considers race conditions in registration',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-019',
+				'category'         => 'site_building',
+				'type'             => 'open_ended',
+				'question'         => 'A small e-commerce business wants to migrate from Shopify to WooCommerce. They have 500 products across 30 categories, 2,000 customer accounts, and 5,000 historical orders. Build the complete migration plan and implementation: write the WP-CLI import command that reads from a Shopify CSV export and creates WooCommerce products with images, variants, and inventory, handle customer account migration with password reset flows, set up the essential WooCommerce pages (shop, cart, checkout, my-account) with customized templates, configure shipping zones and payment gateways, implement 301 redirects from old Shopify URLs to new WooCommerce URLs, and create a pre-launch checklist. Include the actual import code with error handling and progress reporting.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests real-world migration planning, WooCommerce product API, URL redirect strategy, and production deployment considerations.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'WP_CLI|WP_CLI::add_command|wp.*cli|command',
+						'weight'      => 10,
+						'description' => 'Creates WP-CLI command for import',
+					),
+					array(
+						'keyword'     => 'wc_get_product|WC_Product|wc_create_product|product.*factory',
+						'weight'      => 10,
+						'description' => 'Uses WooCommerce product API correctly',
+					),
+					array(
+						'keyword'     => 'variant|variation|WC_Product_Variable|variable.*product',
+						'weight'      => 10,
+						'description' => 'Handles product variants/variations',
+					),
+					array(
+						'keyword'     => 'CSV|fgetcsv|SplFileObject|csv.*parse|import.*file',
+						'weight'      => 5,
+						'description' => 'Parses Shopify CSV export',
+					),
+					array(
+						'keyword'     => 'media_sideload_image|wp_insert_attachment|download.*image|image.*import',
+						'weight'      => 10,
+						'description' => 'Imports product images',
+					),
+					array(
+						'keyword'     => 'wp_create_user|wp_insert_user|customer|password.*reset|account.*migrat',
+						'weight'      => 10,
+						'description' => 'Migrates customer accounts with password reset',
+					),
+					array(
+						'keyword'     => '301|redirect|wp_redirect|.htaccess|rewrite.*rule|redirect.*map',
+						'weight'      => 10,
+						'description' => 'Implements 301 redirects from Shopify URLs',
+					),
+					array(
+						'keyword'     => 'shipping.*zone|payment.*gateway|WC_Shipping|WC_Payment',
+						'weight'      => 5,
+						'description' => 'Configures shipping and payment',
+					),
+					array(
+						'keyword'     => 'batch|chunk|progress|memory|offset',
+						'weight'      => 5,
+						'description' => 'Handles batch processing for large datasets',
+					),
+					array(
+						'keyword'     => 'inventory|stock|_stock|manage_stock|stock_quantity',
+						'weight'      => 5,
+						'description' => 'Migrates inventory/stock data',
+					),
+					array(
+						'keyword'     => 'checklist|pre.*launch|DNS|SSL|test|verify|go.*live',
+						'weight'      => 5,
+						'description' => 'Provides pre-launch checklist',
+					),
+					array(
+						'keyword'     => 'error|try|catch|log|skip|rollback|validation',
+						'weight'      => 5,
+						'description' => 'Includes error handling in import',
+					),
+				),
+			),
+
+			// ── Design ──────────────────────────────────────────────────
+
+			array(
+				'id'               => 'ac-020',
+				'category'         => 'design',
+				'type'             => 'open_ended',
+				'question'         => 'Design a complete visual system for a professional law firm WordPress website. Specify: the color palette (primary, secondary, accent, neutrals) with hex values and their psychological rationale for a legal context, the typography system (heading and body font pairings, size scale using clamp() for fluid typography, line heights, letter spacing), the spacing scale (consistent spacing tokens), the button styles (primary, secondary, ghost variants with hover/focus states), the card component design for attorney profiles and practice areas, and the responsive grid system. Provide the complete theme.json settings section and a CSS custom properties stylesheet that implements this design system. Explain why each choice is appropriate for a law firm.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests ability to create a cohesive design system with rationale, implement it in WordPress theme.json, and produce production CSS.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => '#[0-9a-fA-F]{3,6}|rgb|hsl|hex',
+						'weight'      => 10,
+						'description' => 'Provides specific color values',
+					),
+					array(
+						'keyword'     => 'trust|professional|authorit|credib|serious|conservat',
+						'weight'      => 10,
+						'description' => 'Explains color psychology for legal context',
+					),
+					array(
+						'keyword'     => 'serif|sans-serif|font-family|Google.*Font|typeface|Playfair|Merriweather|Lora',
+						'weight'      => 10,
+						'description' => 'Specifies font pairings with rationale',
+					),
+					array(
+						'keyword'     => 'clamp|fluid|min.*max|viewport|vw',
+						'weight'      => 10,
+						'description' => 'Uses fluid typography with clamp()',
+					),
+					array(
+						'keyword'     => 'line-height|letter-spacing|font-weight|font-size',
+						'weight'      => 5,
+						'description' => 'Specifies detailed typography properties',
+					),
+					array(
+						'keyword'     => 'spacing|gap|margin|padding|--spacing|rem|scale',
+						'weight'      => 10,
+						'description' => 'Defines a consistent spacing scale',
+					),
+					array(
+						'keyword'     => 'button|btn|hover|focus|active|variant|primary.*button|secondary.*button',
+						'weight'      => 10,
+						'description' => 'Designs button variants with states',
+					),
+					array(
+						'keyword'     => 'card|profile|attorney|practice.*area|component',
+						'weight'      => 5,
+						'description' => 'Designs card components for content types',
+					),
+					array(
+						'keyword'     => 'theme.json|settings|styles|custom',
+						'weight'      => 10,
+						'description' => 'Provides theme.json configuration',
+					),
+					array(
+						'keyword'     => '--wp--|var\(--|custom.*propert|CSS.*variable',
+						'weight'      => 10,
+						'description' => 'Uses CSS custom properties',
+					),
+					array(
+						'keyword'     => 'grid|flex|column|responsive|breakpoint|@media',
+						'weight'      => 5,
+						'description' => 'Defines responsive grid system',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-021',
+				'category'         => 'design',
+				'type'             => 'open_ended',
+				'question'         => 'A client wants their WordPress blog redesigned for maximum readability and engagement. The blog covers long-form technical articles (2,000-5,000 words) with code snippets, diagrams, and data tables. Design the article template layout: specify the optimal content width and why, the typography for body text (font, size, line-height, paragraph spacing for long-form reading), the code block styling (syntax highlighting approach, font, background, border treatment), the heading hierarchy with visual differentiation, the table of contents implementation (sticky sidebar vs inline), the progress indicator, the related posts section design, and the responsive behavior for all elements. Provide specific CSS with values, not just descriptions. Explain the UX reasoning behind each decision.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests deep understanding of reading UX, technical content presentation, and responsive design for long-form content.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => '60ch|65ch|70ch|680px|720px|max-width|content.*width|measure|optimal.*width',
+						'weight'      => 10,
+						'description' => 'Specifies optimal content width with reasoning',
+					),
+					array(
+						'keyword'     => 'line-height.*1\.[5-8]|1\.5|1\.6|1\.7|1\.8|leading',
+						'weight'      => 10,
+						'description' => 'Sets appropriate line-height for long-form reading',
+					),
+					array(
+						'keyword'     => 'font-size.*1[6-9]|font-size.*2[0-1]|18px|20px|1\.125rem|1\.25rem',
+						'weight'      => 5,
+						'description' => 'Uses readable body font size (16-21px range)',
+					),
+					array(
+						'keyword'     => 'syntax.*highlight|Prism|highlight.js|hljs|code.*block|monospace|pre.*code',
+						'weight'      => 10,
+						'description' => 'Implements code block styling with syntax highlighting',
+					),
+					array(
+						'keyword'     => 'table.*of.*content|TOC|toc|sidebar.*nav|heading.*link|anchor',
+						'weight'      => 10,
+						'description' => 'Implements table of contents navigation',
+					),
+					array(
+						'keyword'     => 'sticky|position.*sticky|fixed|scroll.*spy',
+						'weight'      => 5,
+						'description' => 'Uses sticky positioning for navigation elements',
+					),
+					array(
+						'keyword'     => 'progress|reading.*progress|scroll.*progress|indicator|bar',
+						'weight'      => 10,
+						'description' => 'Implements reading progress indicator',
+					),
+					array(
+						'keyword'     => 'h1|h2|h3|heading.*hierarch|heading.*scale|modular.*scale',
+						'weight'      => 10,
+						'description' => 'Defines clear heading hierarchy',
+					),
+					array(
+						'keyword'     => 'related.*post|recommendation|similar|read.*next|further.*reading',
+						'weight'      => 5,
+						'description' => 'Designs related posts section',
+					),
+					array(
+						'keyword'     => 'readab|legib|scan|cognitive|fatigue|UX|user.*experience',
+						'weight'      => 10,
+						'description' => 'Explains UX reasoning for design decisions',
+					),
+					array(
+						'keyword'     => 'responsive|mobile|@media|breakpoint|overflow.*x|scroll',
+						'weight'      => 10,
+						'description' => 'Handles responsive behavior for all elements',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-022',
+				'category'         => 'design',
+				'type'             => 'open_ended',
+				'question'         => 'Design the homepage for a SaaS product landing page built with WordPress blocks. The page should convert visitors into trial signups. Specify the complete layout from top to bottom: the navigation bar design (with CTA button placement), the hero section (headline hierarchy, subtext, CTA button design, hero image/illustration placement), the social proof section (logos, testimonials, or stats), the features section (icon + text cards layout, grid vs alternating rows), the pricing section (3-tier comparison table with a highlighted recommended plan), the FAQ section (accordion design), and the footer. For each section, provide: the block markup or pattern, the specific CSS (colors, spacing, sizing), and the conversion-focused UX reasoning. Include the mobile layout adaptations.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests conversion-focused design thinking, WordPress block patterns, and the ability to create a complete landing page with UX rationale.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'hero|above.*fold|headline|h1|value.*proposition',
+						'weight'      => 10,
+						'description' => 'Designs effective hero section with clear value proposition',
+					),
+					array(
+						'keyword'     => 'CTA|call.*to.*action|button|signup|trial|convert',
+						'weight'      => 10,
+						'description' => 'Places and designs conversion-focused CTAs',
+					),
+					array(
+						'keyword'     => 'social.*proof|testimonial|logo|trust|credib|stat|number',
+						'weight'      => 10,
+						'description' => 'Includes social proof elements',
+					),
+					array(
+						'keyword'     => 'pricing|tier|plan|recommend|highlight|popular|comparison',
+						'weight'      => 10,
+						'description' => 'Designs pricing comparison with highlighted plan',
+					),
+					array(
+						'keyword'     => 'FAQ|accordion|toggle|expand|collapse|details|summary',
+						'weight'      => 5,
+						'description' => 'Implements FAQ accordion section',
+					),
+					array(
+						'keyword'     => 'wp:group|wp:columns|wp:cover|wp:buttons|block.*markup|<!-- wp:',
+						'weight'      => 10,
+						'description' => 'Uses WordPress block markup',
+					),
+					array(
+						'keyword'     => 'contrast|whitespace|white.*space|visual.*hierarchy|F-pattern|Z-pattern',
+						'weight'      => 10,
+						'description' => 'Applies visual hierarchy and layout principles',
+					),
+					array(
+						'keyword'     => 'mobile|responsive|stack|column|@media|breakpoint',
+						'weight'      => 10,
+						'description' => 'Provides mobile layout adaptations',
+					),
+					array(
+						'keyword'     => 'color|background|gradient|border-radius|shadow|box-shadow',
+						'weight'      => 5,
+						'description' => 'Specifies visual styling details',
+					),
+					array(
+						'keyword'     => 'navigation|nav|header|sticky|menu|logo',
+						'weight'      => 5,
+						'description' => 'Designs navigation with CTA placement',
+					),
+					array(
+						'keyword'     => 'footer|copyright|link|sitemap|newsletter',
+						'weight'      => 5,
+						'description' => 'Designs footer section',
+					),
+					array(
+						'keyword'     => 'conversion|funnel|friction|scan|attention|engagement',
+						'weight'      => 5,
+						'description' => 'Explains conversion-focused UX reasoning',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-023',
+				'category'         => 'site_building',
+				'type'             => 'open_ended',
+				'question'         => 'Build a complete WordPress theme for an online learning platform. The site needs: a course catalog page with search and filter by category/difficulty/duration, individual course pages with curriculum outline (expandable modules and lessons), an instructor profile system, a student progress tracking dashboard, a review/rating system for courses, and a responsive video player section for lesson content. Provide: the custom post types and their relationships (courses, lessons, instructors), the meta fields schema, the REST API endpoints for the student dashboard (progress tracking, bookmarks), the template hierarchy for course and lesson pages, and the JavaScript for the curriculum accordion and progress tracking UI. Use WordPress block theme conventions where possible.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests ability to architect a complex multi-entity WordPress site with relationships, user-specific data, REST APIs, and interactive frontend components.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'register_post_type.*course|post.*type.*course|CPT.*course',
+						'weight'      => 10,
+						'description' => 'Creates course custom post type',
+					),
+					array(
+						'keyword'     => 'register_post_type.*lesson|post.*type.*lesson|CPT.*lesson',
+						'weight'      => 10,
+						'description' => 'Creates lesson custom post type',
+					),
+					array(
+						'keyword'     => 'relationship|parent|post_parent|p2p|meta.*link|connected',
+						'weight'      => 10,
+						'description' => 'Establishes relationships between content types',
+					),
+					array(
+						'keyword'     => 'register_rest_route|REST.*endpoint|api.*progress|api.*bookmark',
+						'weight'      => 10,
+						'description' => 'Creates REST API endpoints for student features',
+					),
+					array(
+						'keyword'     => 'user_meta|progress|completion|percent|track',
+						'weight'      => 10,
+						'description' => 'Implements student progress tracking',
+					),
+					array(
+						'keyword'     => 'search|WP_Query.*s=|filter|meta_query|tax_query',
+						'weight'      => 5,
+						'description' => 'Implements search and filtering for catalog',
+					),
+					array(
+						'keyword'     => 'accordion|expand|collapse|toggle|curriculum|module',
+						'weight'      => 5,
+						'description' => 'Implements expandable curriculum UI',
+					),
+					array(
+						'keyword'     => 'rating|review|star|comment|average.*rating',
+						'weight'      => 5,
+						'description' => 'Implements review/rating system',
+					),
+					array(
+						'keyword'     => 'video|player|embed|iframe|wp:video|responsive.*video',
+						'weight'      => 5,
+						'description' => 'Handles video player for lessons',
+					),
+					array(
+						'keyword'     => 'template|single-course|archive-course|template.*hierarchy',
+						'weight'      => 10,
+						'description' => 'Defines template hierarchy for course pages',
+					),
+					array(
+						'keyword'     => 'difficulty|level|duration|beginner|intermediate|advanced',
+						'weight'      => 5,
+						'description' => 'Handles course difficulty and duration metadata',
+					),
+					array(
+						'keyword'     => 'instructor|author|profile|avatar|bio',
+						'weight'      => 5,
+						'description' => 'Implements instructor profile system',
+					),
+				),
+			),
+
+			array(
+				'id'               => 'ac-024',
+				'category'         => 'design',
+				'type'             => 'open_ended',
+				'question'         => 'A healthcare clinic needs their WordPress website redesigned with accessibility as the top priority. The site must meet WCAG 2.1 AA compliance. Design the complete accessible component library: the color contrast system (ensure all text meets 4.5:1 ratio for normal text and 3:1 for large text, provide the specific color pairings), the focus indicator styles (visible focus rings that work on all backgrounds), the form design (labels, error states, required field indicators, help text associations using aria attributes), the navigation pattern (keyboard-navigable dropdown menu with proper ARIA roles), the skip navigation link, the announcement/alert component using aria-live regions, and the responsive table design that remains accessible on mobile. Provide the HTML structure with ARIA attributes and the CSS for each component. Explain the WCAG success criteria each decision satisfies.',
+				'correct_answer'   => '',
+				'explanation'      => 'Tests deep accessibility knowledge, WCAG compliance, ARIA implementation, and the ability to design inclusive components with specific technical requirements.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => '4\.5:1|4\.5.*ratio|contrast.*ratio|WCAG.*AA|AA.*contrast',
+						'weight'      => 10,
+						'description' => 'Specifies correct contrast ratios for WCAG AA',
+					),
+					array(
+						'keyword'     => 'focus|:focus|focus-visible|outline|focus.*ring|focus.*indicator',
+						'weight'      => 10,
+						'description' => 'Designs visible focus indicators',
+					),
+					array(
+						'keyword'     => 'aria-label|aria-describedby|aria-required|aria-invalid|for=|label',
+						'weight'      => 10,
+						'description' => 'Uses proper ARIA attributes for forms',
+					),
+					array(
+						'keyword'     => 'aria-expanded|aria-haspopup|role.*menu|role.*menuitem|keyboard.*nav',
+						'weight'      => 10,
+						'description' => 'Implements accessible dropdown navigation',
+					),
+					array(
+						'keyword'     => 'skip.*nav|skip.*link|skip.*to.*content|#main|#content',
+						'weight'      => 10,
+						'description' => 'Implements skip navigation link',
+					),
+					array(
+						'keyword'     => 'aria-live|polite|assertive|role.*alert|announcement',
+						'weight'      => 10,
+						'description' => 'Uses aria-live regions for dynamic content',
+					),
+					array(
+						'keyword'     => 'error|invalid|validation|error.*message|aria-invalid',
+						'weight'      => 5,
+						'description' => 'Designs accessible form error states',
+					),
+					array(
+						'keyword'     => 'table|responsive.*table|scope|caption|th|role.*grid',
+						'weight'      => 10,
+						'description' => 'Designs accessible responsive tables',
+					),
+					array(
+						'keyword'     => 'WCAG|success.*criter|1\.4\.3|2\.1\.1|2\.4\.7|4\.1\.2',
+						'weight'      => 10,
+						'description' => 'References specific WCAG success criteria',
+					),
+					array(
+						'keyword'     => 'screen.*reader|assistive|sr-only|visually.*hidden',
+						'weight'      => 5,
+						'description' => 'Considers screen reader experience',
+					),
+					array(
+						'keyword'     => 'keyboard|tab|Enter|Space|Escape|arrow.*key',
+						'weight'      => 5,
+						'description' => 'Addresses keyboard interaction patterns',
 					),
 				),
 			),

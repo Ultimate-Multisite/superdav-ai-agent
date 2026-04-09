@@ -146,10 +146,14 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 		}
 
 		// Top-level: empty schema → empty object schema.
+		// `properties` must be `(object) []` so JSON-encoding emits `{}` not
+		// `[]`; the latter violates JSON Schema and crashes Ollama's tool
+		// validator with "Value looks like object, but can't find closing
+		// '}' symbol" before the model is even invoked.
 		if ( empty( $schema ) ) {
 			return [
 				'type'       => 'object',
-				'properties' => [],
+				'properties' => (object) [],
 			];
 		}
 
@@ -165,7 +169,9 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 		if ( array_key_exists( 'properties', $schema ) ) {
 			$props = $schema['properties'];
 			if ( is_array( $props ) && empty( $props ) ) {
-				$schema['properties'] = [];
+				// Empty properties must encode as JSON `{}`, not `[]` — see
+				// note above.
+				$schema['properties'] = (object) [];
 			} elseif ( is_array( $props ) ) {
 				$promoted_required = [];
 				foreach ( $props as $k => $v ) {
@@ -189,9 +195,10 @@ if ( ! function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
 			}
 		}
 
-		// Object schemas must have a `properties` field.
+		// Object schemas must have a `properties` field. Use stdClass so
+		// JSON encoding emits `{}` instead of `[]` (see note above).
 		if ( isset( $schema['type'] ) && 'object' === $schema['type'] && ! isset( $schema['properties'] ) ) {
-			$schema['properties'] = [];
+			$schema['properties'] = (object) [];
 		}
 
 		// `items`: draft-2020-12 requires a schema object, never an array.

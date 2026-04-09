@@ -338,20 +338,20 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - EDIT: includes/Abilities/WordPressAbilities.php — add search_plugin_directory ability
   - Model on existing install_plugin ability pattern in same file
   - Verify: `composer phpcs -- includes/Abilities/WordPressAbilities.php && composer phpstan`
-- [ ] t162 Installable abilities registry and recommend-plugin ability #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#849
+- [ ] t171 Installable abilities registry and recommend-plugin ability #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#849
   - Curated registry of plugins known to register abilities (slug, ability count, categories)
   - recommend-plugin ability: given a need category, return ranked recommendations
   - Preference order: has abilities > has blocks > popular
   - EDIT: includes/Abilities/WordPressAbilities.php — add recommend_plugin ability
   - NEW: includes/Core/AbilityPluginRegistry.php — curated registry as PHP array constant
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t163 Register custom post type ability with persistence #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#850
+- [ ] t172 Register custom post type ability with persistence #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#850
   - register-custom-post-type: labels, supports, menu icon, REST API, rewrite rules
   - Persist via gratis_ai_agent_custom_post_types option, register on init
   - NEW: includes/Abilities/CustomPostTypeAbilities.php — model on PostAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan && wp plugin activate gratis-ai-agent`
-- [ ] t164 Register custom taxonomy ability with persistence #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#851
+- [ ] t173 Register custom taxonomy ability with persistence #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#851
   - register-custom-taxonomy: associate with post types, hierarchical, labels
   - Same persistence pattern as CPTs
   - EDIT: includes/Abilities/CustomPostTypeAbilities.php — add taxonomy abilities to same file
@@ -367,17 +367,17 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Blocklist for dangerous options (siteurl, home, active_plugins, etc.)
   - EDIT: includes/Abilities/WordPressAbilities.php — add get_option/update_option abilities
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t167 Global styles (theme.json) management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#852
+- [ ] t174 Global styles (theme.json) management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#852
   - Read and update theme.json global styles (colors, typography, spacing, layout)
   - Uses wp_global_styles CPT internally
   - NEW: includes/Abilities/GlobalStylesAbilities.php — model on BlockAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t168 Site builder orchestration v2: system prompt + multi-step builds #feature ~8h logged:2026-04-09 ref:GH#854
+- [ ] t175 Site builder orchestration v2: system prompt + multi-step builds #feature ~8h logged:2026-04-09 ref:GH#854
   - Rewrite site builder prompt to use new abilities + plugin discovery
   - Plan generation, progress tracking, error recovery
-  - Blocked by: t161-t167 (needs all abilities available first)
-- [ ] t169 Design system: custom CSS injection, block patterns, site logo, theme presets #feature #auto-dispatch ~6h logged:2026-04-09 ref:GH#853
+  - Blocked by: t161, t165-t166, t171-t174 (needs all abilities available first)
+- [ ] t176 Design system: custom CSS injection, block patterns, site logo, theme presets #feature #auto-dispatch ~6h logged:2026-04-09 ref:GH#853
   - inject-custom-css, curated block patterns, set-site-logo, theme.json presets
   - NEW: includes/Abilities/DesignAbilities.php — model on BlockAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class

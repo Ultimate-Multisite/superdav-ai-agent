@@ -203,7 +203,7 @@
 
 ## New Tasks
 
-- [ ] t167 Test debt cleanup: JS snapshot + PHPUnit failures carried over from t162 #testing #bug #auto-dispatch ~4h logged:2026-04-08
+- [x] t167 Test debt cleanup: JS snapshot + PHPUnit failures carried over from t162 #testing #bug #auto-dispatch ~4h logged:2026-04-08 pr:#828 completed:2026-04-09
   - Baseline on main post-#822: npm run test:js is 214 pass / 31 fail across 5 suites (MessageInput, ChatPanel, OnboardingWizard, ProviderSelector, ContextIndicator). vendor/bin/phpunit is 31 errors / 20 failures, all in AgentLoopTest and CredentialResolverTest. Red CI is masking real regressions — #815 shipped 3 runtime-fatal bugs despite PHPUnit passing because the failing tests hid the assertions that would have caught them.
   - Classify each failure: snapshot-stale (regen with diff review), assertion regression (fix component), or asserting dead behaviour (delete). For PHP, AgentLoopTest fixtures drifted after the WP 7.0 Abilities API shape changed — model fixes on AgentLoopClientToolsTest which is green. CredentialResolverTest failures are pinned to #805's openai_compat cleanup — absorb #805 into this task or skip with markTestSkipped. Brief: todo/tasks/t167-brief.md.
 

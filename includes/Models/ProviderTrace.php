@@ -212,13 +212,14 @@ class ProviderTrace {
 
 		$to_delete = $count - $max_rows;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table query; table name from internal method.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom table query; table name is from internal method, not user input.
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM {$table} ORDER BY id ASC LIMIT %d",
 				$to_delete
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $result !== false ? (int) $result : 0;
 	}
@@ -358,7 +359,7 @@ class ProviderTrace {
 		if ( is_array( $headers ) ) {
 			foreach ( $headers as $name => $value ) {
 				// Skip authorization headers — they're redacted anyway.
-				$parts[] = '-H ' . escapeshellarg( "{$name}: {$value}" );
+				$parts[] = '-H ' . escapeshellarg( "{$name}: " . (string) $value );
 			}
 		}
 

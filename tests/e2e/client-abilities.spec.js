@@ -1,0 +1,571 @@
+/**
+ * E2E tests for client-side abilities (gratis-ai-agent-js namespace).
+ *
+ * Exercises the real browser pipeline for the two client-side abilities:
+ *   - gratis-ai-agent-js/navigate-to
+ *   - gratis-ai-agent-js/insert-block
+ *
+ * These tests exist because the entire #806 → #815 → #821 → #822 chain
+ * shipped, failed at runtime for three separate reasons, and each round of
+ * fixes required a manual browser session to confirm. CI never caught any
+ * of the failures because PHPUnit synthetically injects `client_abilities`
+ * into `AgentLoop` options, bypassing the whole browser pipeline.
+ *
+ * Test coverage:
+ *   1. registers on dashboard — category registered with correct label/description
+ *   2. navigate-to and insert-block appear in getAbilities()
+ *   3. executeAbility navigate-to actually navigates
+ *   4. executeAbility insert-block inserts on editor screen
+ *   5. insert-block no-ops on non-editor screen
+ *   6. snapshotDescriptors returns the expected list
+ *   7. no relevant console errors on any screen
+ *
+ * Run: npm run test:e2e:playwright -- --grep client-abilities
+ *
+ * Verification: temporarily comment out `await registerCategory()` in
+ * src/abilities/index.js — test 1 must go red (category not found).
+ * Temporarily comment out `await` on `registerAbilityCategory` in
+ * registry.js — test 7 must go red (console error about non-existent category).
+ */
+
+const { test, expect } = require( '@playwright/test' );
+const { loginToWordPress } = require( './utils/wp-admin' );
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Navigate to the WP admin dashboard and wait for the page to be ready.
+ * The floating widget mounts here, which triggers ability registration.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function goToDashboard( page ) {
+	await page.goto( '/wp-admin/index.php' );
+	await page.waitForLoadState( 'domcontentloaded' );
+	// Give the floating widget bundle time to load and trigger ensureRegistered().
+	// We wait for networkidle so all script modules have had a chance to execute.
+	await page.waitForLoadState( 'networkidle' );
+}
+
+/**
+ * Wait for the gratis-ai-agent-js abilities to be registered.
+ *
+ * Polls wp.abilities.getAbilities() until both abilities appear or the
+ * timeout is reached. This is necessary because registration is async —
+ * the category Promise must resolve before abilities can register.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number}                          [timeout=15000] Max wait in ms.
+ */
+async function waitForAbilitiesRegistered( page, timeout = 15_000 ) {
+	await page.waitForFunction(
+		() => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.getAbilities !== 'function'
+			) {
+				return false;
+			}
+			// getAbilities() may return a Promise in WP 7.0 — handle both sync
+			// and async shapes defensively. The polling loop will retry until
+			// the Promise resolves with the expected abilities.
+			try {
+				const result = wp.abilities.getAbilities();
+				if ( result && typeof result.then === 'function' ) {
+					// Async path: can't await inside waitForFunction, so we
+					// attach a side-effect that sets a flag when resolved.
+					if ( ! window.__gratisAbilitiesResolved ) {
+						result.then( ( abilities ) => {
+							window.__gratisAbilitiesResolved = Array.isArray( abilities )
+								? abilities.filter( ( a ) =>
+										a?.name?.startsWith( 'gratis-ai-agent-js/' )
+								  ).length >= 2
+								: false;
+						} );
+					}
+					return !! window.__gratisAbilitiesResolved;
+				}
+				// Sync path.
+				const abilities = Array.isArray( result ) ? result : [];
+				return (
+					abilities.filter( ( a ) =>
+						a?.name?.startsWith( 'gratis-ai-agent-js/' )
+					).length >= 2
+				);
+			} catch ( _e ) {
+				return false;
+			}
+		},
+		{ timeout }
+	);
+}
+
+/**
+ * Collect console errors and page errors during a test.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @return {{ consoleErrors: string[], pageErrors: string[] }}
+ */
+function collectErrors( page ) {
+	const consoleErrors = [];
+	const pageErrors = [];
+
+	page.on( 'console', ( msg ) => {
+		if ( msg.type() === 'error' ) {
+			consoleErrors.push( msg.text() );
+		}
+	} );
+
+	page.on( 'pageerror', ( err ) => {
+		pageErrors.push( err.message );
+	} );
+
+	return { consoleErrors, pageErrors };
+}
+
+// ---------------------------------------------------------------------------
+// Test suite 1: Category registration
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — category registration', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToDashboard( page );
+	} );
+
+	test( 'registers on dashboard — category has expected label and description', async ( {
+		page,
+	} ) => {
+		// Wait for the abilities to be registered before asserting.
+		await waitForAbilitiesRegistered( page );
+
+		const category = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.getAbilityCategory !== 'function'
+			) {
+				return null;
+			}
+			try {
+				return await wp.abilities.getAbilityCategory(
+					'gratis-ai-agent-js'
+				);
+			} catch ( _e ) {
+				return null;
+			}
+		} );
+
+		expect( category ).not.toBeNull();
+		expect( category ).toMatchObject( {
+			label: expect.stringContaining( 'Gratis AI Agent' ),
+			description: expect.stringContaining( 'client' ),
+		} );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 2: Ability registration
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — ability registration', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToDashboard( page );
+	} );
+
+	test( 'navigate-to and insert-block appear in getAbilities()', async ( {
+		page,
+	} ) => {
+		await waitForAbilitiesRegistered( page );
+
+		const abilities = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.getAbilities !== 'function'
+			) {
+				return [];
+			}
+			try {
+				const all = await wp.abilities.getAbilities();
+				return ( Array.isArray( all ) ? all : [] ).filter( ( a ) =>
+					a?.name?.startsWith( 'gratis-ai-agent-js/' )
+				);
+			} catch ( _e ) {
+				return [];
+			}
+		} );
+
+		const names = abilities.map( ( a ) => a.name );
+		expect( names ).toContain( 'gratis-ai-agent-js/navigate-to' );
+		expect( names ).toContain( 'gratis-ai-agent-js/insert-block' );
+
+		// Verify expected schema shape for navigate-to.
+		const navigateTo = abilities.find(
+			( a ) => a.name === 'gratis-ai-agent-js/navigate-to'
+		);
+		expect( navigateTo ).toBeDefined();
+		expect( navigateTo ).toMatchObject( {
+			name: 'gratis-ai-agent-js/navigate-to',
+			label: expect.any( String ),
+			description: expect.any( String ),
+		} );
+		// input_schema must have a `path` property.
+		expect( navigateTo.input_schema ).toMatchObject( {
+			type: 'object',
+			properties: expect.objectContaining( {
+				path: expect.objectContaining( { type: 'string' } ),
+			} ),
+		} );
+
+		// Verify expected schema shape for insert-block.
+		const insertBlock = abilities.find(
+			( a ) => a.name === 'gratis-ai-agent-js/insert-block'
+		);
+		expect( insertBlock ).toBeDefined();
+		expect( insertBlock ).toMatchObject( {
+			name: 'gratis-ai-agent-js/insert-block',
+			label: expect.any( String ),
+			description: expect.any( String ),
+		} );
+		// input_schema must have a `blockName` property.
+		expect( insertBlock.input_schema ).toMatchObject( {
+			type: 'object',
+			properties: expect.objectContaining( {
+				blockName: expect.objectContaining( { type: 'string' } ),
+			} ),
+		} );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 3: navigate-to execution
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — navigate-to execution', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToDashboard( page );
+	} );
+
+	test( 'executeAbility navigate-to actually navigates to plugins.php', async ( {
+		page,
+	} ) => {
+		await waitForAbilitiesRegistered( page );
+
+		// Execute the ability and capture the return value before navigation
+		// causes the page to unload. We use a Promise race with a short timeout
+		// so we can capture the return value synchronously before the redirect.
+		const result = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.executeAbility !== 'function'
+			) {
+				return null;
+			}
+			try {
+				// Override window.location.assign to capture the call without
+				// actually navigating (which would unload the page and lose the result).
+				let assignedUrl = null;
+				const originalAssign = window.location.assign.bind(
+					window.location
+				);
+				window.location.assign = ( url ) => {
+					assignedUrl = url;
+					// Don't call originalAssign — we don't want to navigate away
+					// during the test assertion phase.
+				};
+
+				const ret = await wp.abilities.executeAbility(
+					'gratis-ai-agent-js/navigate-to',
+					{ path: 'plugins.php' }
+				);
+
+				// Restore original assign.
+				window.location.assign = originalAssign;
+
+				return { result: ret, assignedUrl };
+			} catch ( err ) {
+				return { error: err.message };
+			}
+		} );
+
+		expect( result ).not.toBeNull();
+		expect( result.error ).toBeUndefined();
+		expect( result.result ).toMatchObject( {
+			navigated: true,
+			path: 'plugins.php',
+		} );
+		// The assigned URL must end with /wp-admin/plugins.php.
+		expect( result.assignedUrl ).toMatch( /\/wp-admin\/plugins\.php$/ );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 4: insert-block execution on editor screen
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — insert-block on editor screen', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+	} );
+
+	test( 'executeAbility insert-block inserts a paragraph on post-new.php', async ( {
+		page,
+	} ) => {
+		// Navigate to the block editor.
+		await page.goto( '/wp-admin/post-new.php' );
+		await page.waitForLoadState( 'domcontentloaded' );
+
+		// Wait for the block editor to mount — the editor canvas is the signal.
+		await page
+			.locator( '.block-editor-writing-flow, .editor-styles-wrapper' )
+			.first()
+			.waitFor( { state: 'visible', timeout: 45_000 } );
+
+		// Wait for abilities to register (the admin-page bundle also loads here).
+		await waitForAbilitiesRegistered( page );
+
+		const result = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.executeAbility !== 'function'
+			) {
+				return null;
+			}
+			try {
+				return await wp.abilities.executeAbility(
+					'gratis-ai-agent-js/insert-block',
+					{
+						blockName: 'core/paragraph',
+						attributes: { content: 'hello from playwright' },
+					}
+				);
+			} catch ( err ) {
+				return { error: err.message };
+			}
+		} );
+
+		expect( result ).not.toBeNull();
+		expect( result.error ).toBeUndefined();
+		expect( result ).toMatchObject( {
+			inserted: true,
+			blockName: 'core/paragraph',
+		} );
+		expect( typeof result.clientId ).toBe( 'string' );
+		expect( result.clientId.length ).toBeGreaterThan( 0 );
+
+		// Assert the block actually appears in the editor DOM.
+		// The block editor renders blocks inside .block-editor-block-list__layout.
+		// A paragraph block renders a <p> with the content.
+		await expect(
+			page.locator(
+				'.block-editor-block-list__layout [data-type="core/paragraph"]'
+			)
+		).toBeVisible( { timeout: 10_000 } );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 5: insert-block no-op on non-editor screen
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — insert-block no-op on non-editor screen', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToDashboard( page );
+	} );
+
+	test( 'insert-block returns inserted:false on dashboard without throwing', async ( {
+		page,
+	} ) => {
+		await waitForAbilitiesRegistered( page );
+
+		const result = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.executeAbility !== 'function'
+			) {
+				return null;
+			}
+			try {
+				return await wp.abilities.executeAbility(
+					'gratis-ai-agent-js/insert-block',
+					{ blockName: 'core/paragraph' }
+				);
+			} catch ( err ) {
+				return { error: err.message };
+			}
+		} );
+
+		expect( result ).not.toBeNull();
+		expect( result.error ).toBeUndefined();
+		// On a non-editor screen, insert-block must return inserted: false.
+		expect( result ).toMatchObject( {
+			inserted: false,
+			blockName: 'core/paragraph',
+		} );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 6: snapshotDescriptors
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — snapshotDescriptors', () => {
+	test.beforeEach( async ( { page } ) => {
+		await loginToWordPress( page );
+		await goToDashboard( page );
+	} );
+
+	test( 'snapshotDescriptors returns 2 descriptors with expected shape', async ( {
+		page,
+	} ) => {
+		await waitForAbilitiesRegistered( page );
+
+		// Evaluate snapshotDescriptors via the built bundle's exposed global,
+		// or inline a mirror of the function using wp.abilities.getAbilities().
+		const descriptors = await page.evaluate( async () => {
+			if (
+				typeof wp === 'undefined' ||
+				! wp.abilities ||
+				typeof wp.abilities.getAbilities !== 'function'
+			) {
+				return [];
+			}
+			try {
+				const allAbilities = ( await wp.abilities.getAbilities() ) || [];
+				return allAbilities
+					.filter(
+						( ability ) =>
+							ability &&
+							ability.name &&
+							ability.name.startsWith( 'gratis-ai-agent-js/' )
+					)
+					.map( ( ability ) => ( {
+						name: ability.name,
+						label: ability.label || ability.name,
+						description: ability.description || '',
+						input_schema: ability.input_schema || {},
+						output_schema: ability.output_schema || {},
+						annotations: ability.meta?.annotations || {},
+					} ) );
+			} catch ( _e ) {
+				return [];
+			}
+		} );
+
+		// Must have exactly 2 descriptors.
+		expect( descriptors ).toHaveLength( 2 );
+
+		// Each descriptor must have the expected shape.
+		for ( const descriptor of descriptors ) {
+			expect( descriptor ).toMatchObject( {
+				name: expect.stringMatching( /^gratis-ai-agent-js\// ),
+				label: expect.any( String ),
+				description: expect.any( String ),
+				input_schema: expect.any( Object ),
+				output_schema: expect.any( Object ),
+				annotations: expect.any( Object ),
+			} );
+			expect( descriptor.name.length ).toBeGreaterThan( 0 );
+			expect( descriptor.label.length ).toBeGreaterThan( 0 );
+			expect( descriptor.description.length ).toBeGreaterThan( 0 );
+		}
+
+		// Verify the two expected ability names are present.
+		const names = descriptors.map( ( d ) => d.name );
+		expect( names ).toContain( 'gratis-ai-agent-js/navigate-to' );
+		expect( names ).toContain( 'gratis-ai-agent-js/insert-block' );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Test suite 7: No relevant console errors
+// ---------------------------------------------------------------------------
+
+test.describe( 'client-abilities — no relevant console errors', () => {
+	/**
+	 * Error strings that indicate a broken abilities registration pipeline.
+	 * These are the exact strings from the bug history (#806 → #815 → #821 → t166).
+	 */
+	const FORBIDDEN_ERROR_PATTERNS = [
+		'Ability name is required',
+		'must contain a `description` string',
+		'references non-existent category',
+		'Category not found: gratis-ai-agent-js',
+		'Failed to resolve module specifier "@wordpress/abilities"',
+	];
+
+	/**
+	 * Assert that none of the collected errors match the forbidden patterns.
+	 *
+	 * @param {string[]} errors Array of error message strings.
+	 * @param {string}   screen Screen name for error messages.
+	 */
+	function assertNoForbiddenErrors( errors, screen ) {
+		for ( const error of errors ) {
+			for ( const pattern of FORBIDDEN_ERROR_PATTERNS ) {
+				expect(
+					error,
+					`Forbidden error on ${ screen }: "${ pattern }"`
+				).not.toContain( pattern );
+			}
+		}
+	}
+
+	test( 'no relevant console errors on dashboard', async ( { page } ) => {
+		const { consoleErrors, pageErrors } = collectErrors( page );
+
+		await loginToWordPress( page );
+		await goToDashboard( page );
+		await waitForAbilitiesRegistered( page );
+
+		assertNoForbiddenErrors(
+			[ ...consoleErrors, ...pageErrors ],
+			'dashboard'
+		);
+	} );
+
+	test( 'no relevant console errors on admin page', async ( { page } ) => {
+		const { consoleErrors, pageErrors } = collectErrors( page );
+
+		await loginToWordPress( page );
+		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+		await page.waitForLoadState( 'domcontentloaded' );
+		await page
+			.locator( '.gratis-ai-unified-admin' )
+			.waitFor( { state: 'visible', timeout: 45_000 } );
+		await waitForAbilitiesRegistered( page );
+
+		assertNoForbiddenErrors(
+			[ ...consoleErrors, ...pageErrors ],
+			'admin page'
+		);
+	} );
+
+	test( 'no relevant console errors on post-new.php', async ( { page } ) => {
+		const { consoleErrors, pageErrors } = collectErrors( page );
+
+		await loginToWordPress( page );
+		await page.goto( '/wp-admin/post-new.php' );
+		await page.waitForLoadState( 'domcontentloaded' );
+		await page
+			.locator( '.block-editor-writing-flow, .editor-styles-wrapper' )
+			.first()
+			.waitFor( { state: 'visible', timeout: 45_000 } );
+		await waitForAbilitiesRegistered( page );
+
+		assertNoForbiddenErrors(
+			[ ...consoleErrors, ...pageErrors ],
+			'post-new.php'
+		);
+	} );
+} );

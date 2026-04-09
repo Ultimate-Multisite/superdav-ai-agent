@@ -105,7 +105,7 @@ class WordPressAbilities {
 			'gratis-ai-agent/run-php',
 			[
 				'label'       => __( 'Call WordPress Function', 'gratis-ai-agent' ),
-				'description' => __( 'Call a whitelisted WordPress function by name with arguments.', 'gratis-ai-agent' ),
+				'description' => __( 'Low-level fallback: call a whitelisted WordPress function directly. Use ONLY when no dedicated ability exists. For posts, users, options, plugins, themes, and other common operations, call `gratis-ai-agent/ability-search` first — dedicated abilities have typed schemas and better error recovery.', 'gratis-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -167,7 +167,7 @@ class WordPressAbilities {
 			'gratis-ai-agent/run-php',
 			[
 				'label'         => __( 'Call WordPress Function', 'gratis-ai-agent' ),
-				'description'   => __( 'Call a whitelisted WordPress function by name with arguments. Supports get_option, wp_insert_post, get_posts, do_shortcode, and many more.', 'gratis-ai-agent' ),
+				'description'   => __( 'Low-level fallback: call a whitelisted WordPress function directly. Use ONLY when no dedicated ability exists for the task. For posts (use `ai-agent/create-post`), users, options, plugins, themes, and other common operations, call `gratis-ai-agent/ability-search` first to find a purpose-built tool — dedicated abilities have typed schemas and better error recovery than passing positional args through `run-php`.', 'gratis-ai-agent' ),
 				'ability_class' => RunPhpAbility::class,
 			]
 		);
@@ -751,7 +751,7 @@ class RunPhpAbility extends AbstractAbility {
 	}
 
 	protected function description(): string {
-		return __( 'Call a whitelisted WordPress function by name with arguments. Supported functions include get_option(), wp_insert_post(), get_posts(), get_user_by(), do_shortcode(), and many more. Use the "function" parameter for the function name and "args" for an ordered array of arguments.', 'gratis-ai-agent' );
+		return __( 'Low-level fallback: call a whitelisted WordPress function directly. Use ONLY when no dedicated ability exists for the task. For posts (use `ai-agent/create-post`), users, options, plugins, themes, and other common operations, call `gratis-ai-agent/ability-search` first to find a purpose-built tool — dedicated abilities have typed schemas and better error recovery than guessing positional args here. When you do use this, pass the function name via `function` and an ordered array via `args`.', 'gratis-ai-agent' );
 	}
 
 	protected function input_schema(): array {

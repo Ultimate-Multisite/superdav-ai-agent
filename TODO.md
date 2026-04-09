@@ -330,6 +330,41 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
+### Complete Site Building Abilities (P0)
+
+- [ ] t161 Smart plugin discovery: search-plugin-directory ability #feature ~3h logged:2026-04-09
+  - Search WordPress.org by keyword, return results with active installs, rating, block support
+  - Completes the discover-then-install flow (install_plugin already exists)
+- [ ] t162 Installable abilities registry and recommend-plugin ability #feature ~3h logged:2026-04-09
+  - Curated registry of plugins known to register abilities (slug, ability count, categories)
+  - recommend-plugin ability: given a need category, return ranked recommendations
+  - Preference order: has abilities > has blocks > popular
+- [ ] t163 Register custom post type ability with persistence #feature ~4h logged:2026-04-09
+  - register-custom-post-type: labels, supports, menu icon, REST API, rewrite rules
+  - Persist via gratis_ai_agent_custom_post_types option, register on init
+- [ ] t164 Register custom taxonomy ability with persistence #feature ~3h logged:2026-04-09
+  - register-custom-taxonomy: associate with post types, hierarchical, labels
+  - Same persistence pattern as CPTs
+- [ ] t165 Navigation menu management ability #feature ~4h logged:2026-04-09
+  - Create menus, add/update/remove items, assign to theme locations
+  - Biggest ecosystem gap -- only bjornfix/mcp-expose-abilities has this
+- [ ] t166 Options management ability with safety blocklist #feature ~2h logged:2026-04-09
+  - Get/set WordPress options (site title, tagline, permalinks, timezone, date format)
+  - Blocklist for dangerous options (siteurl, home, active_plugins, etc.)
+- [ ] t167 Global styles (theme.json) management ability #feature ~4h logged:2026-04-09
+  - Read and update theme.json global styles (colors, typography, spacing, layout)
+  - Uses wp_global_styles CPT internally
+- [ ] t168 Site builder orchestration v2: system prompt + multi-step builds #feature ~8h logged:2026-04-09
+  - Rewrite site builder prompt to use new abilities + plugin discovery
+  - Plan generation, progress tracking, error recovery
+- [ ] t169 Design system: custom CSS injection, block patterns, site logo, theme presets #feature ~6h logged:2026-04-09
+  - inject-custom-css, curated block patterns, set-site-logo, theme.json presets
+- [ ] t170 Benchmark validation: ac-016 restaurant website end-to-end test #testing ~3h logged:2026-04-09
+  - Run full prompt on fresh WordPress install, document gaps
+  - Create follow-up issues for ac-017 through ac-024
+
+Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-complete-site-building-abilities)
+
 ### Onboarding & First-Run Experience (P0)
 
 - [x] t060 Detect fresh WordPress install and trigger site builder mode @superdav42 #feature ~3h logged:2026-03-15 pr:#454 completed:2026-03-16

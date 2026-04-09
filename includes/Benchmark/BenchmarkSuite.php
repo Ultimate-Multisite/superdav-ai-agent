@@ -1404,6 +1404,69 @@ class BenchmarkSuite {
 					),
 				),
 			),
+
+			// ── Agent Task: Restaurant Website ───────────────────────────────
+
+			array(
+				'id'               => 'ac-016',
+				'category'         => 'agent_task',
+				'type'             => 'open_ended',
+				'question'         => "You are a WordPress AI agent. Build a complete restaurant website for \"La Bella Cucina\", an Italian restaurant in Chicago. Complete all of the following steps:\n\n1. Set the site title to \"La Bella Cucina\" and tagline to \"Authentic Italian Cuisine in Chicago\"\n2. Create a Home page with a hero section (restaurant name, tagline, \"Reserve a Table\" CTA), an About section (founded 2010, family-owned, 20 years of culinary tradition), and a Featured Dishes section with at least 3 dishes\n3. Create a Menu page listing at least 6 dishes across categories (Antipasti, Primi, Secondi, Dolci) with descriptions and prices\n4. Create an About Us page with the restaurant story, chef bio, and awards\n5. Create a Contact page with address (123 N Michigan Ave, Chicago IL 60601), phone, hours (Mon-Thu 5pm-10pm, Fri-Sat 5pm-11pm, Sun 4pm-9pm), and a note about reservations\n6. Set the Home page as the static front page\n7. Create a navigation menu called \"Main Menu\" with links to all 4 pages and assign it to the primary menu location\n\nFor each step, describe what you did and confirm it was completed. If you cannot complete a step, explain why and what is missing.",
+				'correct_answer'   => '',
+				'explanation'      => 'End-to-end restaurant website build test. Validates the agent can execute a complete multi-step site build: site identity, multiple pages with structured content, navigation setup, and static front page configuration. Tests orchestration across PostAbilities, SiteBuilderAbilities, NavigationAbilities, and WordPressAbilities.',
+				'scoring_criteria' => array(
+					array(
+						'keyword'     => 'site.*title|blogname|La Bella Cucina',
+						'weight'      => 5,
+						'description' => 'Sets site title to La Bella Cucina',
+					),
+					array(
+						'keyword'     => 'tagline|blogdescription|Authentic Italian',
+						'weight'      => 5,
+						'description' => 'Sets site tagline',
+					),
+					array(
+						'keyword'     => 'Home|home.*page|front.*page|hero|Reserve a Table',
+						'weight'      => 15,
+						'description' => 'Creates Home page with hero, about, and featured dishes sections',
+					),
+					array(
+						'keyword'     => 'Menu|Antipasti|Primi|Secondi|Dolci|menu.*page',
+						'weight'      => 15,
+						'description' => 'Creates Menu page with dishes across categories',
+					),
+					array(
+						'keyword'     => 'About|chef|story|founded|culinary',
+						'weight'      => 10,
+						'description' => 'Creates About Us page with restaurant story and chef bio',
+					),
+					array(
+						'keyword'     => 'Contact|Michigan Ave|Chicago|hours|reservation',
+						'weight'      => 10,
+						'description' => 'Creates Contact page with address, phone, and hours',
+					),
+					array(
+						'keyword'     => 'front.*page|show_on_front|page_on_front|static.*front',
+						'weight'      => 10,
+						'description' => 'Sets Home page as static front page',
+					),
+					array(
+						'keyword'     => 'nav.*menu|navigation|Main Menu|wp_nav_menu|menu.*location|primary',
+						'weight'      => 15,
+						'description' => 'Creates navigation menu and assigns to primary location',
+					),
+					array(
+						'keyword'     => 'completed|created|set|done|confirmed|step',
+						'weight'      => 10,
+						'description' => 'Confirms completion of each step',
+					),
+					array(
+						'keyword'     => 'create.post|create-post|wp_insert_post|page.*type|post_type.*page',
+						'weight'      => 5,
+						'description' => 'Uses correct tool calls to create pages',
+					),
+				),
+			),
 		);
 	}
 }

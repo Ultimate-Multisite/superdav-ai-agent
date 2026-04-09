@@ -31,11 +31,11 @@ class ProviderTraceLogger {
 	 * @var array<string, string>
 	 */
 	private static array $provider_patterns = [
-		'api.anthropic.com'                       => 'anthropic',
-		'api.openai.com'                          => 'openai',
-		'generativelanguage.googleapis.com'       => 'google',
-		'localhost:11434'                         => 'ollama',
-		'127.0.0.1:11434'                        => 'ollama',
+		'api.anthropic.com'                 => 'anthropic',
+		'api.openai.com'                    => 'openai',
+		'generativelanguage.googleapis.com' => 'google',
+		'localhost:11434'                   => 'ollama',
+		'127.0.0.1:11434'                   => 'ollama',
 	];
 
 	/**
@@ -49,10 +49,10 @@ class ProviderTraceLogger {
 	/**
 	 * Hook: pre_http_request — capture outgoing request details.
 	 *
-	 * @param false|array|\WP_Error $response    A preemptive return value of an HTTP request. Default false.
-	 * @param array<string, mixed>  $parsed_args HTTP request arguments.
-	 * @param string                $url         The request URL.
-	 * @return false|array|\WP_Error Unchanged response (we never short-circuit).
+	 * @param false|array<string, mixed>|\WP_Error $response    A preemptive return value of an HTTP request. Default false.
+	 * @param array<string, mixed>                 $parsed_args HTTP request arguments.
+	 * @param string                               $url         The request URL.
+	 * @return false|array<string, mixed>|\WP_Error Unchanged response (we never short-circuit).
 	 */
 	public static function on_pre_http_request( $response, array $parsed_args, string $url ) {
 		if ( ! ProviderTrace::is_enabled() ) {
@@ -101,8 +101,8 @@ class ProviderTraceLogger {
 		$start_time  = (float) ( $inflight['start_time'] ?? microtime( true ) );
 		$duration_ms = (int) round( ( microtime( true ) - $start_time ) * 1000 );
 
-		$status_code     = (int) wp_remote_retrieve_response_code( $response );
-		$response_body   = wp_remote_retrieve_body( $response );
+		$status_code      = (int) wp_remote_retrieve_response_code( $response );
+		$response_body    = wp_remote_retrieve_body( $response );
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		// Extract model_id from request body if possible.
@@ -116,9 +116,8 @@ class ProviderTraceLogger {
 				// Anthropic error format.
 				if ( isset( $decoded['error']['message'] ) ) {
 					$error = (string) $decoded['error']['message'];
-				}
-				// OpenAI error format.
-				elseif ( isset( $decoded['error'] ) && is_string( $decoded['error'] ) ) {
+				} elseif ( isset( $decoded['error'] ) && is_string( $decoded['error'] ) ) {
+					// OpenAI error format.
 					$error = $decoded['error'];
 				}
 			}
@@ -129,25 +128,29 @@ class ProviderTraceLogger {
 
 		// Format response headers as JSON.
 		$response_headers_json = '{}';
-		if ( $response_headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary || $response_headers instanceof \Requests_Utility_CaseInsensitiveDictionary ) {
+		if ( $response_headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary
+			|| ( class_exists( 'Requests_Utility_CaseInsensitiveDictionary' ) && $response_headers instanceof \Requests_Utility_CaseInsensitiveDictionary )
+		) {
 			$response_headers_json = (string) wp_json_encode( $response_headers->getAll() );
 		} elseif ( is_array( $response_headers ) ) {
 			$response_headers_json = (string) wp_json_encode( $response_headers );
 		}
 
-		ProviderTrace::insert( [
-			'provider_id'      => $inflight['provider_id'] ?? '',
-			'model_id'         => $model_id,
-			'url'              => $inflight['url'] ?? $url,
-			'method'           => $inflight['method'] ?? 'POST',
-			'status_code'      => $status_code,
-			'duration_ms'      => $duration_ms,
-			'request_headers'  => $inflight['request_headers'] ?? '{}',
-			'request_body'     => $inflight['request_body'] ?? '',
-			'response_headers' => $response_headers_json,
-			'response_body'    => $response_body,
-			'error'            => $error,
-		] );
+		ProviderTrace::insert(
+			[
+				'provider_id'      => $inflight['provider_id'] ?? '',
+				'model_id'         => $model_id,
+				'url'              => $inflight['url'] ?? $url,
+				'method'           => $inflight['method'] ?? 'POST',
+				'status_code'      => $status_code,
+				'duration_ms'      => $duration_ms,
+				'request_headers'  => $inflight['request_headers'] ?? '{}',
+				'request_body'     => $inflight['request_body'] ?? '',
+				'response_headers' => $response_headers_json,
+				'response_body'    => $response_body,
+				'error'            => $error,
+			]
+		);
 
 		return $response;
 	}
@@ -198,7 +201,7 @@ class ProviderTraceLogger {
 	/**
 	 * Extract headers from the parsed args format to a JSON string.
 	 *
-	 * @param array<string, string>|string $headers Headers array or string.
+	 * @param mixed $headers Headers array or string.
 	 * @return string JSON-encoded headers.
 	 */
 	private static function extract_headers( $headers ): string {
@@ -210,7 +213,7 @@ class ProviderTraceLogger {
 			return '{}';
 		}
 
-		$result = (string) wp_json_encode( $headers );
+		$result = wp_json_encode( $headers );
 		return false !== $result ? $result : '{}';
 	}
 
@@ -230,6 +233,7 @@ class ProviderTraceLogger {
 			return '';
 		}
 
-		return (string) ( $decoded['model'] ?? '' );
+		$model = $decoded['model'] ?? '';
+		return is_string( $model ) ? $model : '';
 	}
 }

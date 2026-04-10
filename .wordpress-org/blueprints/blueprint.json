@@ -36,12 +36,28 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "zip",
-        "inner": {
-          "resource": "git:directory",
-          "url": "https://github.com/Ultimate-Multisite/ai-provider-for-anthropic-max",
-          "ref": "HEAD"
-        }
+        "resource": "wordpress.org/plugins",
+        "slug": "ai-provider-for-openai"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "wordpress.org/plugins",
+        "slug": "ai-provider-for-anthropic"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "wordpress.org/plugins",
+        "slug": "ai-provider-for-google"
       },
       "options": {
         "activate": true

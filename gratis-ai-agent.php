@@ -61,6 +61,7 @@ use GratisAiAgent\Abilities\MediaAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
 use GratisAiAgent\Abilities\MenuAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
+use GratisAiAgent\Abilities\OptionsAbilities;
 use GratisAiAgent\Abilities\PostAbilities;
 use GratisAiAgent\Abilities\UserAbilities;
 use GratisAiAgent\Abilities\SeoAbilities;
@@ -354,6 +355,9 @@ DatabaseAbilities::register();
 
 // WordPress management abilities (plugins, themes, install, run PHP).
 WordPressAbilities::register();
+
+// Options management abilities (get, update, delete, list options with safety blocklist).
+OptionsAbilities::register();
 
 // WooCommerce abilities (product CRUD, order queries, store stats) — only registers when WooCommerce is active.
 WooCommerceAbilities::register();

@@ -210,6 +210,11 @@ class ToolCapabilities {
 			'gratis-ai-agent/get-themes',
 			'gratis-ai-agent/install-plugin',
 			'gratis-ai-agent/run-php',
+			// Options management.
+			'gratis-ai-agent/get-option',
+			'gratis-ai-agent/update-option',
+			'gratis-ai-agent/delete-option',
+			'gratis-ai-agent/list-options',
 			// Navigation.
 			'gratis-ai-agent/navigate',
 			'gratis-ai-agent/get-page-html',

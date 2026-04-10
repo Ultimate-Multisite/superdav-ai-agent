@@ -44,6 +44,7 @@ use GratisAiAgent\Abilities\AiImageAbilities;
 use GratisAiAgent\Abilities\BlockAbilities;
 use GratisAiAgent\Abilities\ContentAbilities;
 use GratisAiAgent\Abilities\CustomPostTypeAbilities;
+use GratisAiAgent\Abilities\CustomTaxonomyAbilities;
 use GratisAiAgent\Abilities\DatabaseAbilities;
 use GratisAiAgent\Abilities\EditorialAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
@@ -366,6 +367,9 @@ PostAbilities::register();
 
 // Custom post type abilities (register, list, delete CPTs with persistence).
 CustomPostTypeAbilities::register();
+
+// Custom taxonomy abilities (register, list, delete taxonomies with persistence).
+CustomTaxonomyAbilities::register();
 
 // User management abilities (list, create, update role).
 UserAbilities::register();

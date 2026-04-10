@@ -362,7 +362,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - NEW: includes/Abilities/MenuAbilities.php — model on NavigationAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t179 Options management ability with safety blocklist #feature #auto-dispatch ~2h logged:2026-04-09 ref:GH#845
+- [x] t179 Options management ability with safety blocklist #feature #auto-dispatch ~2h logged:2026-04-09 ref:GH#845 pr:#859 completed:2026-04-10
   - Get/set WordPress options (site title, tagline, permalinks, timezone, date format)
   - Blocklist for dangerous options (siteurl, home, active_plugins, etc.)
   - EDIT: includes/Abilities/WordPressAbilities.php — add get_option/update_option abilities

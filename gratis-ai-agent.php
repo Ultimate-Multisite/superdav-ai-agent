@@ -81,6 +81,7 @@ use GratisAiAgent\REST\TraceController;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
+use GratisAiAgent\CLI\BenchmarkCommand;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\CLI\TraceCommand;
 use GratisAiAgent\Core\ChangeLogger;
@@ -431,10 +432,13 @@ ScreenMetaPanel::register();
 
 // WP-CLI commands.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	\WP_CLI::add_command( 'gratis-ai-agent', CliCommand::class );
-	// Backwards-compatible alias for the old command name.
-	\WP_CLI::add_command( 'ai-agent', CliCommand::class );
+	// Prompt subcommand: wp ai-agent prompt "hello".
+	\WP_CLI::add_command( 'ai-agent prompt', CliCommand::class );
+	\WP_CLI::add_command( 'gratis-ai-agent prompt', CliCommand::class );
 	// Provider trace CLI subcommands.
 	\WP_CLI::add_command( 'ai-agent trace', TraceCommand::class );
 	\WP_CLI::add_command( 'gratis-ai-agent trace', TraceCommand::class );
+	// Model benchmark CLI subcommands.
+	\WP_CLI::add_command( 'ai-agent benchmark', BenchmarkCommand::class );
+	\WP_CLI::add_command( 'gratis-ai-agent benchmark', BenchmarkCommand::class );
 }

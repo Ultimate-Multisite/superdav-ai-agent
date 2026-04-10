@@ -27,16 +27,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * ## EXAMPLES
  *
  *     # Simple prompt
- *     wp gratis-ai-agent "hello"
+ *     wp ai-agent prompt "hello"
  *
  *     # With a specific model
- *     wp gratis-ai-agent "how many sites we got??" --model=qwen3.5
+ *     wp ai-agent prompt "how many sites we got??" --model=qwen3.5
  *
  *     # With verbose output showing tool calls and token usage
- *     wp gratis-ai-agent "list all plugins" --verbose
+ *     wp ai-agent prompt "list all plugins" --verbose
  *
  *     # Skip all tool usage
- *     wp gratis-ai-agent "what day is it?" --skip-tools
+ *     wp ai-agent prompt "what day is it?" --skip-tools
  *
  * @since 1.1.0
  */
@@ -73,17 +73,17 @@ class CliCommand extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp gratis-ai-agent "how many sites we got??"
-	 *     wp gratis-ai-agent "how many sites we got??" --model=qwen3.5
-	 *     wp gratis-ai-agent "list all plugins" --max-iterations=5
-	 *     wp gratis-ai-agent "what day is it?" --skip-tools
+	 *     wp ai-agent prompt "how many sites we got??"
+	 *     wp ai-agent prompt "how many sites we got??" --model=qwen3.5
+	 *     wp ai-agent prompt "list all plugins" --max-iterations=5
+	 *     wp ai-agent prompt "what day is it?" --skip-tools
 	 *
 	 * @when after_wp_load
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
+	public function prompt( array $args, array $assoc_args ): void {
 		$prompt         = $args[0];
 		$model          = \WP_CLI\Utils\get_flag_value( $assoc_args, 'model', '' );
 		$provider       = \WP_CLI\Utils\get_flag_value( $assoc_args, 'provider', '' );

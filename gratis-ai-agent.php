@@ -57,6 +57,7 @@ use GratisAiAgent\Abilities\PluginDownloadAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
 use GratisAiAgent\Abilities\MediaAbilities;
 use GratisAiAgent\Abilities\MemoryAbilities;
+use GratisAiAgent\Abilities\MenuAbilities;
 use GratisAiAgent\Abilities\NavigationAbilities;
 use GratisAiAgent\Abilities\PostAbilities;
 use GratisAiAgent\Abilities\UserAbilities;
@@ -360,6 +361,9 @@ SiteHealthAbilities::register();
 
 // Navigation abilities (navigate, get page HTML).
 NavigationAbilities::register();
+
+// Menu management abilities (create, list, delete menus; add/update/remove items; assign to locations).
+MenuAbilities::register();
 
 // Post management abilities (get, create, update, delete posts).
 PostAbilities::register();

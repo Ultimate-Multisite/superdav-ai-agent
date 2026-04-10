@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 1.3.2
+Stable tag: 1.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -158,6 +158,24 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 
 == Changelog ==
 
+= 1.4.0 - Released on 2026-04-09 =
+* New: Agent Capabilities v1 benchmark suite for complex model evaluation
+* New: WP-CLI benchmark command for running benchmarks from the command line
+* New: Custom post type abilities — register, list, and delete custom post types with persistence
+* New: Custom taxonomy abilities — register, list, and delete custom taxonomies with persistence
+* New: Design system abilities — inject custom CSS, curated block patterns, set site logo, theme.json presets
+* New: Global styles abilities for theme.json management
+* New: Navigation menu management ability
+* New: Options management ability with safety blocklist
+* New: Installable abilities registry and recommend-plugin ability
+* New: Site builder orchestration v2 — plan generation, plugin discovery, progress tracking, error recovery
+* New: Restaurant website benchmark question and E2E tests
+* New: AI provider connector plugins added to WordPress Playground blueprints
+* Improved: README updated with AI provider connector documentation
+* Fix: 25 PHPUnit test failures on main resolved
+* Fix: GitHub releases URL format in blueprint.json
+* Fix: Task ID renumbering to avoid collisions with old IDs
+
 = 1.3.0 - Released on 2026-04-03 =
 * New: Unified admin menu — consolidates 4 separate admin_menu hooks into a single React SPA with hash-based routing
 * New: Model benchmark admin page with REST controller and benchmark engine for comparing AI provider performance
@@ -273,6 +291,9 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * WordPress 7.0 AI Client SDK integration (native core API)
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Major feature release: adds 8 new ability classes (custom post types, taxonomies, design system, global styles, navigation menus, options management, plugin recommendations), site builder orchestration v2, and Agent Capabilities benchmark suite. Database will upgrade automatically.
 
 = 1.3.0 =
 Quality and model update: PHPStan level 10, new models (o3, o4-mini, Claude Sonnet 4, Gemini 2.5 Flash), security hardening, and bug fixes. Database will upgrade automatically.

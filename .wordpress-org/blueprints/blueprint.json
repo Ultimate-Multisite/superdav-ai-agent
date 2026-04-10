@@ -22,9 +22,12 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip",
-        "caption": "Downloading AI Agent..."
+        "resource": "zip",
+        "inner": {
+          "resource": "git:directory",
+          "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent",
+          "ref": "HEAD"
+        }
       },
       "options": {
         "activate": true
@@ -33,9 +36,12 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/ai-provider-for-anthropic-max/releases/latest/download/ai-provider-for-anthropic-max.zip",
-        "caption": "Downloading AI Provider for Anthropic Max..."
+        "resource": "zip",
+        "inner": {
+          "resource": "git:directory",
+          "url": "https://github.com/Ultimate-Multisite/ai-provider-for-anthropic-max",
+          "ref": "HEAD"
+        }
       },
       "options": {
         "activate": true
@@ -44,9 +50,12 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-compatible-endpoints/releases/latest/download/ultimate-ai-connector-compatible-endpoints.zip",
-        "caption": "Downloading AI Provider for Any Compatible Endpoint..."
+        "resource": "zip",
+        "inner": {
+          "resource": "git:directory",
+          "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-compatible-endpoints",
+          "ref": "HEAD"
+        }
       },
       "options": {
         "activate": true
@@ -55,9 +64,12 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-webllm/releases/latest/download/ultimate-ai-connector-webllm.zip",
-        "caption": "Downloading Ultimate AI Connector WebLLM..."
+        "resource": "zip",
+        "inner": {
+          "resource": "git:directory",
+          "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-webllm",
+          "ref": "HEAD"
+        }
       },
       "options": {
         "activate": true

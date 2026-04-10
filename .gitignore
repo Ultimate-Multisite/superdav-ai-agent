@@ -1,6 +1,6 @@
 node_modules/
-# Composer dependencies — managed locally, not committed (see PR #770)
-vendor/
+# Composer dev dependencies are excluded — production vendor/ is committed
+# Run `composer install --no-dev` to regenerate
 .agents/loop-state/
 .phpunit.result.cache
 screenshots/

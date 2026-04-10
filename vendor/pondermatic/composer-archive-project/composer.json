@@ -1,0 +1,30 @@
+{
+    "name": "pondermatic/composer-archive-project",
+    "description": "Creates an archive of a composer package with a root project directory.",
+    "version": "1.1.0",
+    "homepage": "https://gitlab.com/pondermatic-llc/composer-archive-project",
+    "keywords": [
+        "archive",
+        "composer-plugin",
+        "project",
+        "wordpress"
+    ],
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "type": "composer-plugin",
+    "extra": {
+        "class": "Pondermatic\\ComposerArchiveProject\\Plugin"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pondermatic\\ComposerArchiveProject\\": "src/"
+        }
+    },
+    "require": {
+        "composer-plugin-api": "^2.3",
+        "ext-zip": "*"
+    },
+    "require-dev": {
+        "composer/composer": "^2.4"
+    }
+}

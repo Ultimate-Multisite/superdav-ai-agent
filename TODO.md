@@ -351,7 +351,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - NEW: includes/Abilities/CustomPostTypeAbilities.php — model on PostAbilities.php
   - EDIT: gratis-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan && wp plugin activate gratis-ai-agent`
-- [ ] t173 Register custom taxonomy ability with persistence #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#851
+- [x] t173 Register custom taxonomy ability with persistence #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#851 pr:#863 completed:2026-04-10
   - register-custom-taxonomy: associate with post types, hierarchical, labels
   - Same persistence pattern as CPTs
   - EDIT: includes/Abilities/CustomPostTypeAbilities.php — add taxonomy abilities to same file

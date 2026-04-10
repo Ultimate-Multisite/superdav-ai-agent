@@ -2,6 +2,7 @@
  * WordPress dependencies
  */
 import { useEffect, useCallback } from '@wordpress/element';
+import { createPortal } from 'react-dom';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { Button, Tooltip } from '@wordpress/components';
@@ -151,20 +152,31 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					/>
 					<TokenCounter />
 				</ErrorBoundary>
-				{ pendingConfirmation && ! yoloMode && (
-					<ToolConfirmationDialog
-						confirmation={ pendingConfirmation }
-						onConfirm={ ( alwaysAllow ) =>
-							confirmToolCall(
-								pendingConfirmation.jobId,
-								alwaysAllow
-							)
-						}
-						onReject={ () =>
-							rejectToolCall( pendingConfirmation.jobId )
-						}
-					/>
-				) }
+				{ pendingConfirmation &&
+					! yoloMode &&
+					( () => {
+						const dialog = (
+							<ToolConfirmationDialog
+								confirmation={ pendingConfirmation }
+								onConfirm={ ( alwaysAllow ) =>
+									confirmToolCall(
+										pendingConfirmation.jobId,
+										alwaysAllow
+									)
+								}
+								onReject={ () =>
+									rejectToolCall( pendingConfirmation.jobId )
+								}
+							/>
+						);
+						// In compact (floating widget) mode the panel has
+						// overflow:hidden which clips position:fixed children.
+						// Portal to document.body so the overlay covers the
+						// full viewport instead of being clipped inline.
+						return compact
+							? createPortal( dialog, document.body )
+							: dialog;
+					} )() }
 				{ yoloMode && (
 					<Tooltip
 						text={ __(

@@ -330,7 +330,10 @@ class UpdateOptionAbility extends AbstractAbility {
 		// update_option() returns false both when the value is unchanged and
 		// when the option does not exist yet (add_option path). Distinguish
 		// the two cases so the caller gets accurate feedback.
-		$exists = false !== get_option( $option_name, false );
+		// Use a sentinel object so options storing literal false are not
+		// misdetected as non-existent.
+		$sentinel = new \stdClass();
+		$exists   = get_option( $option_name, $sentinel ) !== $sentinel;
 
 		if ( $exists ) {
 			return [
@@ -437,7 +440,10 @@ class DeleteOptionAbility extends AbstractAbility {
 		}
 
 		// Check existence before deleting so we can report accurately.
-		$exists = false !== get_option( $option_name, false );
+		// Use a sentinel object so options storing literal false are not
+		// misdetected as non-existent.
+		$sentinel = new \stdClass();
+		$exists   = get_option( $option_name, $sentinel ) !== $sentinel;
 
 		if ( ! $exists ) {
 			return [

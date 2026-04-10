@@ -356,7 +356,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Same persistence pattern as CPTs
   - EDIT: includes/Abilities/CustomPostTypeAbilities.php — add taxonomy abilities to same file
   - Verify: `composer phpcs && composer phpstan`
-- [ ] t178 Navigation menu management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#844
+- [x] t178 Navigation menu management ability #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#844 pr:#860 completed:2026-04-10
   - Create menus, add/update/remove items, assign to theme locations
   - Biggest ecosystem gap — only bjornfix/mcp-expose-abilities has this
   - NEW: includes/Abilities/MenuAbilities.php — model on NavigationAbilities.php

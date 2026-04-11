@@ -64,7 +64,7 @@ function relativeTime( dateStr ) {
  * @param {Session} props.session      - Session data.
  * @param {boolean} props.isActive     - Whether this session is currently open.
  * @param {boolean} props.isOwner      - Whether the current user owns this session.
- * @param           props.hasActiveJob
+ * @param {boolean} props.hasActiveJob - Whether the session has an active job running.
  * @return {JSX.Element} The session item element.
  */
 function SessionItem( {

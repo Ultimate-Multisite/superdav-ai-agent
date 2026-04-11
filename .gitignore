@@ -28,3 +28,21 @@ skills-lock.json
 
 # Build artifacts
 *.zip
+# Dev-only composer packages (not needed in production)
+vendor/bin/
+vendor/dealerdirect/
+vendor/doctrine/
+vendor/myclabs/
+vendor/nikic/
+vendor/phar-io/
+vendor/php-stubs/
+vendor/phpcompatibility/
+vendor/phpcsstandards/
+vendor/phpstan/
+vendor/phpunit/
+vendor/sebastian/
+vendor/squizlabs/
+vendor/szepeviktor/
+vendor/theseer/
+vendor/wp-coding-standards/
+vendor/yoast/

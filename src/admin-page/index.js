@@ -20,7 +20,7 @@ import STORE_NAME from '../store';
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import SessionSidebar from '../components/session-sidebar';
-import ChatPanel from '../components/chat-panel';
+import ChatPanel from '../components/ChatPanel';
 import OnboardingWizard from '../components/onboarding-wizard';
 import OnboardingInterview from '../components/onboarding-interview';
 import ShortcutsHelp from '../components/shortcuts-help';

@@ -10,7 +10,7 @@ import { close, plus, reset, lineSolid } from '@wordpress/icons';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-import ChatPanel from '../components/chat-panel';
+import ChatPanel from '../components/ChatPanel';
 import SessionTabs from './session-tabs';
 import useDrag from './use-drag';
 import useResize from './use-resize';

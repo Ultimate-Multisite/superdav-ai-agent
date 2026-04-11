@@ -2,10 +2,14 @@
  * WordPress dependencies
  */
 import { useEffect, useCallback } from '@wordpress/element';
-import { createPortal } from 'react-dom';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { Button, Tooltip } from '@wordpress/components';
+
+/**
+ * External dependencies
+ */
+import { createPortal } from 'react-dom';
 
 /**
  * Internal dependencies

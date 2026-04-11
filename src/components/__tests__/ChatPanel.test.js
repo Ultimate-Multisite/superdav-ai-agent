@@ -1,5 +1,5 @@
 /**
- * Unit tests for components/chat-panel.js
+ * Unit tests for components/ChatPanel.js
  *
  * Tests cover:
  * - Snapshot rendering (default and compact modes)
@@ -27,7 +27,7 @@ import { renderToStaticMarkup } from 'react-dom/server.node';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { useSelect, useDispatch } from '@wordpress/data';
-import ChatPanel from '../chat-panel';
+import ChatPanel from '../ChatPanel';
 
 // Configure React act() environment for jsdom.
 global.IS_REACT_ACT_ENVIRONMENT = true;

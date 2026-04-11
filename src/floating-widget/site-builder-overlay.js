@@ -22,7 +22,7 @@ import apiFetch from '@wordpress/api-fetch';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-import ChatPanel from '../components/chat-panel';
+import ChatPanel from '../components/ChatPanel';
 
 /**
  * Metadata for the three official AI providers shown in the setup panel.

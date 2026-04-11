@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
+use GratisAiAgent\Abilities\InternetSearchAbilities;
 use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\Database;
@@ -275,6 +276,31 @@ class SettingsController {
 			)
 		);
 
+		// Brave Search API key endpoint.
+		register_rest_route(
+			self::NAMESPACE,
+			'/settings/brave-search-key',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( __CLASS__, 'handle_set_brave_search_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+					'args'                => array(
+						'api_key' => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( __CLASS__, 'handle_delete_brave_search_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+			)
+		);
+
 		// Usage endpoint.
 		register_rest_route(
 			self::NAMESPACE,
@@ -348,6 +374,10 @@ class SettingsController {
 			'type'             => $gsc_creds['type'] ?? null,
 			'default_site_url' => $gsc_creds['default_site_url'] ?? null,
 		);
+
+		// Indicate whether a Brave Search API key is configured (boolean only, no key value).
+		// @phpstan-ignore-next-line
+		$settings['_brave_search_key_configured'] = '' !== InternetSearchAbilities::get_brave_api_key();
 
 		return new WP_REST_Response( $settings, 200 );
 	}
@@ -817,6 +847,51 @@ class SettingsController {
 			array(
 				'deleted'         => true,
 				'has_credentials' => false,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Handle POST /settings/brave-search-key — save the Brave Search API key.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public static function handle_set_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
+		// @phpstan-ignore-next-line
+		$api_key = sanitize_text_field( (string) $request->get_param( 'api_key' ) );
+
+		if ( '' === $api_key ) {
+			return new WP_REST_Response( array( 'error' => 'api_key is required.' ), 400 );
+		}
+
+		$success = InternetSearchAbilities::set_brave_api_key( $api_key );
+
+		if ( ! $success ) {
+			return new WP_REST_Response( array( 'error' => 'Failed to save Brave Search API key.' ), 500 );
+		}
+
+		return new WP_REST_Response(
+			array(
+				'saved'      => true,
+				'configured' => true,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Handle DELETE /settings/brave-search-key — remove the Brave Search API key.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public static function handle_delete_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
+		InternetSearchAbilities::set_brave_api_key( '' );
+
+		return new WP_REST_Response(
+			array(
+				'deleted'    => true,
+				'configured' => false,
 			),
 			200
 		);

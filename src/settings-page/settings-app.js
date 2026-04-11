@@ -99,6 +99,12 @@ export default function SettingsApp() {
 	const [ gaSaving, setGaSaving ] = useState( false );
 	const [ gaNotice, setGaNotice ] = useState( null );
 
+	// Brave Search API key state.
+	const [ braveApiKey, setBraveApiKey ] = useState( '' );
+	const [ braveConfigured, setBraveConfigured ] = useState( false );
+	const [ braveSaving, setBraveSaving ] = useState( false );
+	const [ braveNotice, setBraveNotice ] = useState( null );
+
 	useEffect( () => {
 		fetchSettings();
 		fetchProviders();
@@ -113,6 +119,12 @@ export default function SettingsApp() {
 				if ( data?.property_id ) {
 					setGaPropertyId( data.property_id );
 				}
+			} )
+			.catch( () => {} );
+		// Fetch Brave Search key status from the general settings response.
+		apiFetch( { path: '/gratis-ai-agent/v1/settings' } )
+			.then( ( data ) => {
+				setBraveConfigured( !! data?._brave_search_key_configured );
 			} )
 			.catch( () => {} );
 	}, [ fetchSettings, fetchProviders ] );
@@ -190,6 +202,63 @@ export default function SettingsApp() {
 			} );
 		}
 		setGaSaving( false );
+	}, [] );
+
+	const handleBraveSave = useCallback( async () => {
+		setBraveSaving( true );
+		setBraveNotice( null );
+		try {
+			await apiFetch( {
+				path: '/gratis-ai-agent/v1/settings/brave-search-key',
+				method: 'POST',
+				data: { api_key: braveApiKey },
+			} );
+			setBraveConfigured( true );
+			setBraveApiKey( '' ); // Clear the field after saving.
+			setBraveNotice( {
+				status: 'success',
+				message: __( 'Brave Search API key saved.', 'gratis-ai-agent' ),
+			} );
+		} catch ( err ) {
+			setBraveNotice( {
+				status: 'error',
+				message:
+					err?.message ||
+					__(
+						'Failed to save Brave Search API key.',
+						'gratis-ai-agent'
+					),
+			} );
+		}
+		setBraveSaving( false );
+	}, [ braveApiKey ] );
+
+	const handleBraveClear = useCallback( async () => {
+		setBraveSaving( true );
+		setBraveNotice( null );
+		try {
+			await apiFetch( {
+				path: '/gratis-ai-agent/v1/settings/brave-search-key',
+				method: 'DELETE',
+			} );
+			setBraveConfigured( false );
+			setBraveNotice( {
+				status: 'success',
+				message: __(
+					'Brave Search API key removed.',
+					'gratis-ai-agent'
+				),
+			} );
+		} catch {
+			setBraveNotice( {
+				status: 'error',
+				message: __(
+					'Failed to remove Brave Search API key.',
+					'gratis-ai-agent'
+				),
+			} );
+		}
+		setBraveSaving( false );
 	}, [] );
 
 	useEffect( () => {
@@ -1763,6 +1832,119 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Disconnect',
+														'gratis-ai-agent'
+													) }
+												</Button>
+											) }
+										</div>
+
+										<h4 className="gratis-ai-agent-settings-subsection-title">
+											{ __(
+												'Internet Search (Brave Search API)',
+												'gratis-ai-agent'
+											) }
+										</h4>
+										<p className="description">
+											{ __(
+												'Enable richer internet search results by connecting a Brave Search API key. Without a key, the agent uses DuckDuckGo instant answers (free, no setup required). Get a free Brave Search API key at brave.com/search/api/',
+												'gratis-ai-agent'
+											) }
+										</p>
+										{ braveConfigured && (
+											<Notice
+												status="success"
+												isDismissible={ false }
+											>
+												{ __(
+													'Brave Search API key is configured. The agent will use Brave Search for internet searches.',
+													'gratis-ai-agent'
+												) }
+											</Notice>
+										) }
+										{ ! braveConfigured && (
+											<Notice
+												status="info"
+												isDismissible={ false }
+											>
+												{ __(
+													'No Brave Search API key configured. The agent will use DuckDuckGo instant answers (zero-config fallback).',
+													'gratis-ai-agent'
+												) }
+											</Notice>
+										) }
+										{ braveNotice && (
+											<Notice
+												status={ braveNotice.status }
+												isDismissible
+												onDismiss={ () =>
+													setBraveNotice( null )
+												}
+											>
+												{ braveNotice.message }
+											</Notice>
+										) }
+										<table className="form-table gratis-ai-agent-form-table">
+											<tbody>
+												<tr>
+													<th scope="row">
+														<label htmlFor="gratis-brave-api-key">
+															{ __(
+																'Brave Search API Key',
+																'gratis-ai-agent'
+															) }
+														</label>
+													</th>
+													<td>
+														<TextControl
+															id="gratis-brave-api-key"
+															type="password"
+															value={
+																braveApiKey
+															}
+															onChange={
+																setBraveApiKey
+															}
+															placeholder={
+																braveConfigured
+																	? __(
+																			'Key saved — enter a new key to replace it',
+																			'gratis-ai-agent'
+																	  )
+																	: 'BSA...'
+															}
+															help={ __(
+																'Get a free API key at brave.com/search/api/ — the free tier includes 2,000 queries/month.',
+																'gratis-ai-agent'
+															) }
+															__nextHasNoMarginBottom
+														/>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+										<div className="gratis-ai-agent-settings-row-actions">
+											<Button
+												variant="primary"
+												onClick={ handleBraveSave }
+												isBusy={ braveSaving }
+												disabled={
+													braveSaving || ! braveApiKey
+												}
+											>
+												{ __(
+													'Save Brave API Key',
+													'gratis-ai-agent'
+												) }
+											</Button>
+											{ braveConfigured && (
+												<Button
+													variant="secondary"
+													onClick={ handleBraveClear }
+													isBusy={ braveSaving }
+													disabled={ braveSaving }
+												>
+													{ __(
+														'Remove Key',
 														'gratis-ai-agent'
 													) }
 												</Button>

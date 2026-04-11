@@ -55,6 +55,7 @@ use GratisAiAgent\Abilities\GitAbilities;
 use GratisAiAgent\Abilities\GlobalStylesAbilities;
 use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
 use GratisAiAgent\Abilities\GscAbilities;
+use GratisAiAgent\Abilities\InternetSearchAbilities;
 use GratisAiAgent\Abilities\KnowledgeAbilities;
 use GratisAiAgent\Abilities\PluginDownloadAbilities;
 use GratisAiAgent\Abilities\MarketingAbilities;
@@ -328,6 +329,9 @@ StockImageAbilities::register();
 
 // AI image generation ability (DALL-E 3).
 AiImageAbilities::register();
+
+// Internet search ability (DuckDuckGo zero-config + optional Brave Search API).
+InternetSearchAbilities::register();
 
 // SEO, content, and marketing abilities.
 SeoAbilities::register();

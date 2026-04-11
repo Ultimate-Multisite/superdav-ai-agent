@@ -426,6 +426,19 @@ ChangeLogger::register();
 // Provider trace logger — captures LLM provider HTTP traffic when enabled.
 ProviderTraceLogger::register();
 
+// Raise the AI Client SDK request timeout to match the agent loop wall-clock
+// limit (120 s). The SDK default is 30 s, which is too short for agentic
+// workloads that involve research + long-form content generation (e.g.
+// "research AIDS and write a blog post" — the final generation call alone
+// can exceed 30 s). The filter is applied at construction time of the prompt
+// builder, so hooking it here (before any REST request is processed) is safe.
+add_filter(
+	'wp_ai_client_default_request_timeout',
+	static function (): int {
+		return AgentLoop::LOOP_TIMEOUT_SECONDS;
+	}
+);
+
 // Fresh install detection — registers cache-invalidation hooks.
 FreshInstallDetector::register();
 

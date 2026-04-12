@@ -628,7 +628,7 @@ describe( 'OnboardingProviderRow rendering', () => {
 		expect( html ).toContain( 'gratis-ai-agent-wizard' );
 	} );
 
-	test( 'provider row shows Configured badge when hasKey is true via settings', async () => {
+	test( 'step 1 renders Connectors page link instead of provider badge after refactor', async () => {
 		setupMocks( {
 			settings: { _provider_keys: { openai: true } },
 		} );
@@ -651,7 +651,16 @@ describe( 'OnboardingProviderRow rendering', () => {
 			nextBtn.click();
 		} );
 
-		expect( localContainer.innerHTML ).toContain( 'Configured' );
+		// Step 1 now directs users to the Connectors page instead of showing
+		// inline provider rows with Configured badges. Assert the link renders.
+		const connectorsLink = localContainer.querySelector(
+			'.gratis-ai-agent-wizard-connectors-link'
+		);
+		expect( connectorsLink ).not.toBeNull();
+		expect( connectorsLink.href ).toContain( 'options-connectors.php' );
+		expect( connectorsLink.textContent ).toContain(
+			'Open Connectors page to configure a provider'
+		);
 
 		await act( async () => {
 			localRoot.unmount();

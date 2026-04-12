@@ -189,8 +189,8 @@ function extractText( message ) {
  * background job is processing. Displays each tool call as it happens
  * so the user can see the agent is making progress.
  *
- * @param {Object} props           - Component props.
- * @param {Array}  props.toolCalls - Live tool call log from the job.
+ * @param {Object}     props           - Component props.
+ * @param {Array<{type: string, id?: string, name?: string, args?: Object, response?: unknown}>} props.toolCalls - Live tool call log from the job.
  * @return {JSX.Element} Progress indicator.
  */
 function LiveToolProgress( { toolCalls } ) {

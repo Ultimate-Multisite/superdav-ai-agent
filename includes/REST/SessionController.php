@@ -1264,7 +1264,21 @@ class SessionController {
 			$current = get_transient( RestController::JOB_PREFIX . $progress_job_id );
 			if ( is_array( $current ) && 'processing' === ( $current['status'] ?? '' ) ) {
 				$current['tool_calls'] = $tool_call_log;
-				set_transient( RestController::JOB_PREFIX . $progress_job_id, $current, RestController::JOB_TTL );
+				// Refresh TTL on each update to prevent mid-execution expiration.
+				// Adding 60s buffer ensures the transient outlasts the execution
+				// limit even when the callback fires near the end of the job.
+				set_transient( RestController::JOB_PREFIX . $progress_job_id, $current, RestController::JOB_TTL + 60 );
+			} elseif ( false === $current ) {
+				// Transient expired mid-execution; re-create a minimal entry so
+				// the final job result can still be persisted after completion.
+				set_transient(
+					RestController::JOB_PREFIX . $progress_job_id,
+					array(
+						'status'     => 'processing',
+						'tool_calls' => $tool_call_log,
+					),
+					RestController::JOB_TTL
+				);
 			}
 		};
 

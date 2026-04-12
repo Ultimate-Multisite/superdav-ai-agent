@@ -87,6 +87,7 @@ use GratisAiAgent\Automations\EventTriggerHandler;
 use GratisAiAgent\CLI\BenchmarkCommand;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\CLI\TraceCommand;
+use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\FreshInstallDetector;

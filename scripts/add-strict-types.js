@@ -34,7 +34,10 @@ function addStrictTypes( filePath ) {
 	}
 
 	// Insert the declaration immediately after `<?php`, preserving the rest.
-	const updated = content.replace( /^<\?php/, '<?php declare(strict_types=1);' );
+	const updated = content.replace(
+		/^<\?php/,
+		'<?php declare(strict_types=1);'
+	);
 	fs.writeFileSync( filePath, updated, 'utf8' );
 	console.log( `Updated: ${ path.relative( process.cwd(), filePath ) }` );
 }

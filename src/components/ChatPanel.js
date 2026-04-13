@@ -156,31 +156,29 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					/>
 					<TokenCounter />
 				</ErrorBoundary>
+				{ /* In compact (floating widget) mode the panel has
+				   overflow:hidden which clips position:fixed children.
+				   Portal to document.body so the overlay covers the
+				   full viewport instead of being clipped inline. */ }
 				{ pendingConfirmation &&
 					! yoloMode &&
-					( () => {
-						const dialog = (
-							<ToolConfirmationDialog
-								confirmation={ pendingConfirmation }
-								onConfirm={ ( alwaysAllow ) =>
-									confirmToolCall(
-										pendingConfirmation.jobId,
-										alwaysAllow
-									)
-								}
-								onReject={ () =>
-									rejectToolCall( pendingConfirmation.jobId )
-								}
-							/>
-						);
-						// In compact (floating widget) mode the panel has
-						// overflow:hidden which clips position:fixed children.
-						// Portal to document.body so the overlay covers the
-						// full viewport instead of being clipped inline.
-						return compact
+					( ( dialog ) =>
+						compact
 							? createPortal( dialog, document.body )
-							: dialog;
-					} )() }
+							: dialog )(
+						<ToolConfirmationDialog
+							confirmation={ pendingConfirmation }
+							onConfirm={ ( alwaysAllow ) =>
+								confirmToolCall(
+									pendingConfirmation.jobId,
+									alwaysAllow
+								)
+							}
+							onReject={ () =>
+								rejectToolCall( pendingConfirmation.jobId )
+							}
+						/>
+					) }
 				{ yoloMode && (
 					<Tooltip
 						text={ __(

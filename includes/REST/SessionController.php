@@ -1271,13 +1271,16 @@ class SessionController {
 			} elseif ( false === $current ) {
 				// Transient expired mid-execution; re-create a minimal entry so
 				// the final job result can still be persisted after completion.
+				// Use the same buffered TTL (+60s) as the primary path to
+				// prevent the recreated transient from expiring again before
+				// the job finishes.
 				set_transient(
 					RestController::JOB_PREFIX . $progress_job_id,
 					array(
 						'status'     => 'processing',
 						'tool_calls' => $tool_call_log,
 					),
-					RestController::JOB_TTL
+					RestController::JOB_TTL + 60
 				);
 			}
 		};

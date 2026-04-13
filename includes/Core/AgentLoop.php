@@ -384,6 +384,10 @@ class AgentLoop {
 					'source'   => 'client',
 				);
 			}
+
+			// Fire progress so the UI reflects the client tool responses
+			// immediately, matching the behaviour of server-side tool calls.
+			$this->fire_progress();
 		}
 
 		return $this->run_loop( $remaining_iterations );
@@ -1243,10 +1247,19 @@ class AgentLoop {
 
 	/**
 	 * Fire the progress callback with the current tool call log.
+	 *
+	 * Progress reporting is best-effort: if the callback throws, the exception
+	 * is swallowed so a broken progress handler cannot abort the agent loop.
 	 */
 	private function fire_progress(): void {
-		if ( null !== $this->progress_callback ) {
+		if ( null === $this->progress_callback ) {
+			return;
+		}
+
+		try {
 			call_user_func( $this->progress_callback, $this->tool_call_log );
+		} catch ( \Throwable $e ) {
+			// Progress reporting is best-effort and must not interrupt the agent loop.
 		}
 	}
 

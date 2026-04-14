@@ -141,7 +141,7 @@ class HookScanner {
 			foreach ( $matches as $match ) {
 				$func        = $match['func'];
 				$hook_name   = $match['name'];
-				$hook_type   = $function_map[ $func ] ?? 'unknown';
+				$hook_type   = $function_map[ $func ]; // key always present — regex matches only keys in $function_map.
 
 				$hooks[] = [
 					'type' => $hook_type,
@@ -159,7 +159,7 @@ class HookScanner {
 	 * Find all PHP files in a directory recursively.
 	 *
 	 * @param string $dir Directory path.
-	 * @return string[]
+	 * @return list<string>
 	 */
 	private static function find_php_files( string $dir ): array {
 		$files    = [];

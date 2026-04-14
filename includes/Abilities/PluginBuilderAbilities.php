@@ -285,7 +285,10 @@ class SandboxTestPluginAbility extends AbstractAbility {
 				'layer1_passed' => [ 'type' => 'boolean' ],
 				'layer2_passed' => [ 'type' => 'boolean' ],
 				'layer3_passed' => [ 'type' => 'boolean' ],
-				'errors'        => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+				'errors'        => [
+					'type'  => 'array',
+					'items' => [ 'type' => 'string' ],
+				],
 				'passed'        => [ 'type' => 'boolean' ],
 			],
 		];
@@ -442,6 +445,7 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ): array|\WP_Error {
 		$slug        = (string) ( $input['slug'] ?? '' );
+		/** @var array<string, string> $files */
 		$files       = (array) ( $input['files'] ?? [] );
 		$plugin_file = (string) ( $input['plugin_file'] ?? '' );
 

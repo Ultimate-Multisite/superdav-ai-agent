@@ -260,8 +260,9 @@ class PluginSandbox {
 	 * @return void
 	 */
 	public static function auto_deactivate_fatal_plugins(): void {
-		$active_plugins = get_option( 'active_plugins', [] );
+		$active_plugins = (array) get_option( 'active_plugins', [] );
 		foreach ( $active_plugins as $plugin_file ) {
+			$plugin_file   = (string) $plugin_file;
 			$transient_key = self::FATAL_TRANSIENT_PREFIX . md5( $plugin_file );
 			if ( get_transient( $transient_key ) ) {
 				deactivate_plugins( $plugin_file, true );
@@ -276,7 +277,7 @@ class PluginSandbox {
 	 * Find all PHP files in a directory recursively.
 	 *
 	 * @param string $dir Directory path.
-	 * @return string[]
+	 * @return list<string>
 	 */
 	private static function find_php_files( string $dir ): array {
 		$files    = [];

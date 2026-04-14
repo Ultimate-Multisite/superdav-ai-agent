@@ -163,10 +163,10 @@ class PluginInstaller {
 	/**
 	 * Update the status and sandbox result for a generated plugin record.
 	 *
-	 * @param int                  $id             Record ID.
-	 * @param string               $status         New status (installed, sandbox_passed, active, error).
-	 * @param array<string,mixed>  $sandbox_result Sandbox test result array.
-	 * @param string               $activation_error Error message if activation failed.
+	 * @param int                 $id               Record ID.
+	 * @param string              $status           New status (installed, sandbox_passed, active, error).
+	 * @param array<string,mixed> $sandbox_result   Sandbox test result array.
+	 * @param string              $activation_error Error message if activation failed.
 	 * @return bool
 	 */
 	public static function update_status(
@@ -204,12 +204,13 @@ class PluginInstaller {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin lookup.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- table_name() returns a safe, whitelisted table name with no user input.
 		$row = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM ' . self::table_name() . ' WHERE id = %d', $id ),
 			ARRAY_A
 		);
 
+		/** @var array<string, mixed>|null $row */
 		return $row ?? null;
 	}
 
@@ -223,7 +224,7 @@ class PluginInstaller {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- table_name() returns a safe, whitelisted table name with no user input.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT * FROM ' . self::table_name() . ' ORDER BY created_at DESC LIMIT %d',
@@ -232,6 +233,7 @@ class PluginInstaller {
 			ARRAY_A
 		);
 
+		/** @var array<int, array<string, mixed>> $rows */
 		return $rows ?: [];
 	}
 

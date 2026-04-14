@@ -21,17 +21,18 @@ module.exports = defineConfig( {
 	testMatch: '**/*.spec.js',
 
 	/* Maximum time one test can run for.
-	 * 60 s gives goToAgentPage (30 s wait for AdminPageApp) enough headroom
-	 * on CI runners under load with 2 parallel workers. The suite is split
-	 * across 3 shards in e2e.yml (--shard N/3), so each shard runs ~4-5 of
-	 * the 13 spec files within the 45-min per-shard timeout. */
-	timeout: 60_000,
+	 * 90 s gives loginToWordPress (60 s redirect wait) + goToAgentPage
+	 * (30 s SPA mount wait) enough headroom on CI runners. The 60 s
+	 * timeout was too tight — login + navigation alone consumed the full
+	 * budget, leaving no time for assertions. */
+	timeout: 90_000,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !! process.env.CI,
 
-	/* Retry on CI only — 1 retry keeps total time bounded. */
-	retries: process.env.CI ? 1 : 0,
+	/* Retry on CI only — 2 retries to handle CI flakiness from slow
+	 * Docker-based wp-env on GitHub Actions runners. */
+	retries: process.env.CI ? 2 : 0,
 
 	/* Worker count on CI is tunable via PLAYWRIGHT_WORKERS env var.
 	 * Both WP 6.9 and trunk use 2 workers (set in e2e.yml) to avoid
@@ -41,9 +42,13 @@ module.exports = defineConfig( {
 	 * per shard is sufficient to complete within the 45-min shard timeout. */
 	workers: process.env.CI ? getWorkerCount( ciWorkers ) : undefined,
 
-	/* Reporter to use. */
+	/* Reporter to use.
+	 * CI uses list + github + html: list outputs per-test names and errors
+	 * to the log (the github reporter only emits a compact progress line
+	 * and annotations on completion — if the job times out, no annotations
+	 * are created and errors are invisible). */
 	reporter: process.env.CI
-		? [ [ 'github' ], [ 'html', { open: 'never' } ] ]
+		? [ [ 'list' ], [ 'github' ], [ 'html', { open: 'never' } ] ]
 		: [ [ 'list' ], [ 'html', { open: 'on-failure' } ] ],
 
 	use: {

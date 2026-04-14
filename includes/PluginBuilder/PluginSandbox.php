@@ -286,7 +286,10 @@ class PluginSandbox {
 		);
 		foreach ( $iterator as $file ) {
 			if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
-				$files[] = $file->getRealPath();
+				$real_path = $file->getRealPath();
+				if ( false !== $real_path ) {
+					$files[] = $real_path;
+				}
 			}
 		}
 		return $files;

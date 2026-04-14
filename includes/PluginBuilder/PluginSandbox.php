@@ -278,7 +278,7 @@ class PluginSandbox {
 				deactivate_plugins( $plugin_file, true );
 				delete_transient( $transient_key );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional server-side logging of auto-deactivation events for admin diagnostics; not debug code.
-			error_log( 'GratisAiAgent: Auto-deactivated plugin after fatal: ' . $plugin_file );
+				error_log( 'GratisAiAgent: Auto-deactivated plugin after fatal: ' . $plugin_file );
 			}
 		}
 	}

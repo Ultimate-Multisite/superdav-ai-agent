@@ -2058,6 +2058,7 @@ class SwitchPluginAbility extends AbstractAbility {
 
 		$installed = get_plugins();
 
+		/** @var array<string, array<string, mixed>> $installed */
 		// Resolve activate target to plugin_file.
 		$activate_file = $this->resolve_plugin_file( $activate_target, $installed );
 		if ( null === $activate_file ) {

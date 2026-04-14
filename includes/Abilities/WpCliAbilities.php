@@ -364,6 +364,7 @@ class WpCliAbilities {
 			$proc_args[] = '--no-color';
 		}
 
+		/** @var list<string> $proc_args */
 		$result = self::run_process( $proc_args, $command_path );
 
 		// Auto-set current site context after site creation.
@@ -608,6 +609,7 @@ class WpCliAbilities {
 		}
 
 		// Try which.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_shell_exec -- shell_exec is required to locate the WP-CLI binary at runtime.
 		$which = trim( (string) shell_exec( 'which wp 2>/dev/null' ) );
 
 		if ( '' !== $which && is_executable( $which ) ) {
@@ -634,7 +636,8 @@ class WpCliAbilities {
 			2 => array( 'pipe', 'w' ),
 		);
 
-		// phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- proc_open is essential for executing WP-CLI commands via process pipes.
+		/** @var list<string> $args */
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open,Generic.PHP.ForbiddenFunctions.Found -- proc_open is essential for executing WP-CLI commands via process pipes.
 		$process = proc_open( $args, $descriptors, $pipes, ABSPATH );
 
 		if ( ! is_resource( $process ) ) {

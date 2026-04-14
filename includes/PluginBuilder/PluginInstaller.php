@@ -449,7 +449,7 @@ class PluginInstaller {
 				);
 			}
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Plugin installer writes generated PHP files; WP_Filesystem::put_contents is not available before the filesystem is initialised.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Plugin installation writes local files; WP_Filesystem not available at this stage.
 			$result = file_put_contents( $abs_path, $content );
 			if ( false === $result ) {
 				return new WP_Error(
@@ -547,12 +547,14 @@ class PluginInstaller {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin lookup.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Admin lookup; table name is a trusted internal constant, not user input.
 		$row = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', self::table_name(), $id ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name comes from a trusted internal method, not user input.
+			$wpdb->prepare( 'SELECT * FROM ' . self::table_name() . ' WHERE id = %d', $id ),
 			ARRAY_A
 		);
 
+		// get_row( ARRAY_A ) returns associative array with string keys; cast is safe.
 		/** @var array<string, mixed>|null $row */
 		return $row ?? null;
 	}
@@ -570,14 +572,15 @@ class PluginInstaller {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d',
-				self::table_name(),
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name comes from a trusted internal method, not user input.
+				'SELECT * FROM ' . self::table_name() . ' ORDER BY created_at DESC LIMIT %d',
 				$limit
 			),
 			ARRAY_A
 		);
 
-		/** @var array<int, array<string, mixed>> $rows */
+		// get_results( ARRAY_A ) returns rows with string keys; cast is safe.
+		/** @var array<int,array<string,mixed>> $rows */
 		return $rows ?: [];
 	}
 

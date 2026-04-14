@@ -445,23 +445,24 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ): array|\WP_Error {
 		$slug        = (string) ( $input['slug'] ?? '' );
-		$raw_files   = (array) ( $input['files'] ?? [] );
 		$plugin_file = (string) ( $input['plugin_file'] ?? '' );
+
+		// Coerce to array<string,string>: PluginUpdater::update() requires that shape.
+		$raw_files = is_array( $input['files'] ?? null ) ? $input['files'] : [];
+		/** @var array<string,string> $files */
+		$files = array_filter(
+			$raw_files,
+			static fn( $v ) => is_string( $v )
+		);
 
 		if ( empty( $slug ) ) {
 			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'slug is required.', 'gratis-ai-agent' ) );
 		}
-		if ( empty( $raw_files ) ) {
+		if ( empty( $files ) ) {
 			return new WP_Error( 'gratis_ai_agent_no_files', __( 'files must not be empty.', 'gratis-ai-agent' ) );
 		}
 		if ( empty( $plugin_file ) ) {
 			return new WP_Error( 'gratis_ai_agent_invalid_plugin_file', __( 'plugin_file is required.', 'gratis-ai-agent' ) );
-		}
-
-		// Normalise to array<string, string> — keys are relative paths, values are PHP source.
-		$files = [];
-		foreach ( $raw_files as $path => $content ) {
-			$files[ (string) $path ] = (string) $content;
 		}
 
 		return PluginUpdater::update( $slug, $files, $plugin_file );

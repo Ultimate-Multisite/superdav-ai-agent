@@ -1224,6 +1224,150 @@ class Database {
 		return $rows ?? [];
 	}
 
+	// ─── Generated Plugins ───────────────────────────────────────────────────
+
+	/**
+	 * Insert a new generated plugin record.
+	 *
+	 * @param array<string, mixed> $data Plugin data: slug, description, plan, plugin_file, files, status, sandbox_result, activation_error.
+	 * @return int|false Inserted row ID or false on failure.
+	 */
+	public static function insert_generated_plugin( array $data ): int|false {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$now = current_time( 'mysql', true );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table insert; caching not applicable.
+		$result = $wpdb->insert(
+			self::generated_plugins_table_name(),
+			[
+				'slug'             => $data['slug'] ?? '',
+				'description'      => $data['description'] ?? '',
+				'plan'             => $data['plan'] ?? '',
+				'plugin_file'      => $data['plugin_file'] ?? '',
+				'files'            => $data['files'] ?? '[]',
+				'status'           => $data['status'] ?? 'installed',
+				'sandbox_result'   => $data['sandbox_result'] ?? '',
+				'activation_error' => $data['activation_error'] ?? '',
+				'created_at'       => $data['created_at'] ?? $now,
+				'updated_at'       => $data['updated_at'] ?? $now,
+			],
+			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+		);
+
+		return $result ? (int) $wpdb->insert_id : false;
+	}
+
+	/**
+	 * Update fields for a generated plugin record by slug.
+	 *
+	 * @param string               $slug Plugin slug.
+	 * @param array<string, mixed> $data Fields to update.
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function update_generated_plugin( string $slug, array $data ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$data['updated_at'] = current_time( 'mysql', true );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update; caching not applicable.
+		$result = $wpdb->update(
+			self::generated_plugins_table_name(),
+			$data,
+			[ 'slug' => $slug ],
+			null,
+			[ '%s' ]
+		);
+
+		return $result !== false;
+	}
+
+	/**
+	 * Get a single generated plugin record by slug.
+	 *
+	 * @param string $slug Plugin slug.
+	 * @return object|null Plugin row or null.
+	 */
+	public static function get_generated_plugin( string $slug ): ?object {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE slug = %s',
+				self::generated_plugins_table_name(),
+				$slug
+			)
+		);
+	}
+
+	/**
+	 * List generated plugin records, optionally filtered by status.
+	 *
+	 * @param string $status Filter by status (e.g. 'installed', 'active'). Empty string = all.
+	 * @return list<object>
+	 */
+	public static function list_generated_plugins( string $status = '' ): array {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$table = self::generated_plugins_table_name();
+
+		if ( '' !== $status ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC',
+					$table,
+					$status
+				)
+			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i ORDER BY created_at DESC',
+					$table
+				)
+			);
+		}
+
+		return $rows ?? [];
+	}
+
+	/**
+	 * Update the status of a generated plugin by slug.
+	 *
+	 * @param string $slug   Plugin slug.
+	 * @param string $status New status value (e.g. 'installed', 'active', 'error').
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function update_generated_plugin_status( string $slug, string $status ): bool {
+		return self::update_generated_plugin( $slug, [ 'status' => $status ] );
+	}
+
+	/**
+	 * Delete a generated plugin record by slug.
+	 *
+	 * @param string $slug Plugin slug.
+	 * @return bool Whether the delete succeeded.
+	 */
+	public static function delete_generated_plugin_record( string $slug ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete; caching not applicable.
+		$result = $wpdb->delete(
+			self::generated_plugins_table_name(),
+			[ 'slug' => $slug ],
+			[ '%s' ]
+		);
+
+		return $result !== false;
+	}
+
 	/**
 	 * Extract the plugin slug (directory name) from a wp-content-relative path.
 	 *

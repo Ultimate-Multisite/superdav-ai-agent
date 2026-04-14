@@ -21,7 +21,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '14.0.0';
+	const DB_VERSION        = '15.0.0';
 
 	/**
 	 * Get the sessions table name.
@@ -183,6 +183,15 @@ class Database {
 	}
 
 	/**
+	 * Get the AI-generated plugins table name.
+	 */
+	public static function generated_plugins_table_name(): string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		return $wpdb->prefix . 'gratis_ai_agent_generated_plugins';
+	}
+
+	/**
 	 * Install or upgrade the database table.
 	 */
 	public static function install(): void {
@@ -215,6 +224,7 @@ class Database {
 		$benchmark_runs_table         = self::benchmark_runs_table_name();
 		$benchmark_results_table      = self::benchmark_results_table_name();
 		$provider_trace_table         = self::provider_trace_table_name();
+		$generated_plugins_table      = self::generated_plugins_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -529,6 +539,24 @@ class Database {
 			KEY created_at (created_at),
 			KEY provider_id (provider_id),
 			KEY status_code (status_code)
+		) {$charset};
+
+		CREATE TABLE {$generated_plugins_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			slug varchar(100) NOT NULL,
+			description text NOT NULL DEFAULT '',
+			plan longtext NOT NULL DEFAULT '',
+			plugin_file varchar(500) NOT NULL DEFAULT '',
+			files longtext NOT NULL DEFAULT '',
+			status varchar(30) NOT NULL DEFAULT 'installed',
+			sandbox_result longtext NOT NULL DEFAULT '',
+			activation_error text NOT NULL DEFAULT '',
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY slug (slug),
+			KEY status (status),
+			KEY created_at (created_at)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

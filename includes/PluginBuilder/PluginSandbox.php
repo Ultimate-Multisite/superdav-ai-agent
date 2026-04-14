@@ -261,7 +261,13 @@ class PluginSandbox {
 	 */
 	public static function auto_deactivate_fatal_plugins(): void {
 		$active_plugins = get_option( 'active_plugins', [] );
+		if ( ! is_array( $active_plugins ) ) {
+			return;
+		}
 		foreach ( $active_plugins as $plugin_file ) {
+			if ( ! is_string( $plugin_file ) ) {
+				continue;
+			}
 			$transient_key = self::FATAL_TRANSIENT_PREFIX . md5( $plugin_file );
 			if ( get_transient( $transient_key ) ) {
 				deactivate_plugins( $plugin_file, true );
@@ -276,16 +282,23 @@ class PluginSandbox {
 	 * Find all PHP files in a directory recursively.
 	 *
 	 * @param string $dir Directory path.
-	 * @return string[]
+	 * @return list<string>
 	 */
 	private static function find_php_files( string $dir ): array {
+		/** @var list<string> $files */
 		$files    = [];
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS )
 		);
 		foreach ( $iterator as $file ) {
+			if ( ! ( $file instanceof \SplFileInfo ) ) {
+				continue;
+			}
 			if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
-				$files[] = $file->getRealPath();
+				$real_path = $file->getRealPath();
+				if ( false !== $real_path ) {
+					$files[] = $real_path;
+				}
 			}
 		}
 		return $files;

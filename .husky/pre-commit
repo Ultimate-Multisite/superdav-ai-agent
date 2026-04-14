@@ -3,6 +3,29 @@
 # If node_modules is missing, fall back to running phpcs/phpcbf directly
 # so PHP indentation errors are caught even without a full npm install.
 
+# --- Guard: block dev-dependency references in committed vendor manifests ---
+# Dev packages (phpunit, phpstan, etc.) are gitignored under vendor/ but the
+# Jetpack autoloader manifests are tracked. If someone runs `composer install`
+# or `composer dump-autoload` (without --no-dev) and stages the result,
+# WordPress Playground and any git-clone-based install will crash.
+VENDOR_MANIFESTS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^vendor/composer/(jetpack_autoload_|autoload_|installed\.)' || true)
+if [ -n "$VENDOR_MANIFESTS" ]; then
+	# Gitignored dev vendor dirs — must not appear in committed manifests
+	DEV_PATHS="myclabs/\|phpunit/\|phpstan/\|phpcsstandards/\|squizlabs/\|sebastian/\|nikic/\|phar-io/\|doctrine/\|dealerdirect/\|phpcompatibility/\|php-stubs/\|szepeviktor/\|theseer/\|wp-coding-standards/\|yoast/"
+	for manifest in $VENDOR_MANIFESTS; do
+		if git show ":$manifest" 2>/dev/null | grep -q "$DEV_PATHS"; then
+			echo ""
+			echo "pre-commit: BLOCKED — staged $manifest contains dev-dependency references."
+			echo "These packages are gitignored and will crash WordPress Playground."
+			echo ""
+			echo "Fix: run 'composer install --no-dev', then 'git add vendor/', then commit."
+			echo "     (run 'composer install' afterwards to restore dev deps locally)"
+			echo ""
+			exit 1
+		fi
+	done
+fi
+
 if command -v npx >/dev/null 2>&1 && [ -d "node_modules/.bin" ]; then
 	npx lint-staged
 else

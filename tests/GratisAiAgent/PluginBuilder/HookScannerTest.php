@@ -221,10 +221,12 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() scans a fake plugin directory and returns full result envelope.
 	 */
 	public function test_scan_plugin_returns_full_result_envelope(): void {
-		// Create a fake plugin directory under wp-content/plugins/.
 		$slug       = 'gratis-test-hook-scanner-plugin-' . uniqid( '', true );
-		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
-		mkdir( $plugin_dir, 0777, true );
+		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
+
+		if ( ! wp_mkdir_p( $plugin_dir ) ) {
+			$this->markTestSkipped( 'Cannot create test plugin directory in WP_PLUGIN_DIR.' );
+		}
 
 		file_put_contents(
 			$plugin_dir . 'plugin.php',
@@ -256,8 +258,11 @@ class HookScannerTest extends WP_UnitTestCase {
 	 */
 	public function test_scan_plugin_skips_vendor_directory(): void {
 		$slug       = 'gratis-test-vendor-skip-' . uniqid( '', true );
-		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
-		mkdir( $plugin_dir . 'vendor/', 0777, true );
+		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
+
+		if ( ! wp_mkdir_p( $plugin_dir . 'vendor/' ) ) {
+			$this->markTestSkipped( 'Cannot create test plugin directory in WP_PLUGIN_DIR.' );
+		}
 
 		// Only put a hook in the vendor directory — it should be skipped.
 		file_put_contents(
@@ -291,8 +296,11 @@ class HookScannerTest extends WP_UnitTestCase {
 	 */
 	public function test_scan_theme_returns_full_result_envelope(): void {
 		$slug      = 'gratis-test-hook-scanner-theme-' . uniqid( '', true );
-		$theme_dir = WP_CONTENT_DIR . '/themes/' . $slug . '/';
-		mkdir( $theme_dir, 0777, true );
+		$theme_dir = trailingslashit( WP_CONTENT_DIR ) . 'themes/' . $slug . '/';
+
+		if ( ! wp_mkdir_p( $theme_dir ) ) {
+			$this->markTestSkipped( 'Cannot create test theme directory in WP_CONTENT_DIR/themes/.' );
+		}
 
 		file_put_contents(
 			$theme_dir . 'functions.php',

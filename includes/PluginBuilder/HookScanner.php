@@ -73,7 +73,7 @@ class HookScanner {
 	 */
 	public static function scan_plugin( string $slug, bool $force_refresh = false ): array|WP_Error {
 		$slug       = sanitize_title( $slug );
-		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
+		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
 
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(

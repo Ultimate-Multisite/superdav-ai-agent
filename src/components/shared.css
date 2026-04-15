@@ -570,6 +570,83 @@
 	border-top: 1px solid #dcdcde;
 }
 
+/* ── Feedback modal — payload preview / stats (t182) ──────────────────────── */
+.gratis-ai-agent-feedback-modal__stats {
+	margin: 8px 0;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.gratis-ai-agent-feedback-modal__stats-loading {
+	margin: 0;
+	color: #757575;
+	font-style: italic;
+}
+
+.gratis-ai-agent-feedback-modal__stats-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+}
+
+.gratis-ai-agent-feedback-modal__stats-list li {
+	margin: 0;
+	color: #3c434a;
+}
+
+.gratis-ai-agent-feedback-modal__strip-label {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	margin: 8px 0;
+	font-size: 13px;
+	color: #3c434a;
+	cursor: pointer;
+}
+
+.gratis-ai-agent-feedback-modal__strip-checkbox {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.gratis-ai-agent-feedback-modal__payload-section {
+	margin: 8px 0;
+}
+
+.gratis-ai-agent-feedback-modal__payload-toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	color: #2271b1;
+	font-size: 13px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.gratis-ai-agent-feedback-modal__payload-toggle:hover {
+	color: #135e96;
+}
+
+.gratis-ai-agent-feedback-modal__payload-json {
+	margin: 8px 0 0;
+	max-height: 200px;
+	overflow: auto;
+	padding: 10px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 11px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 /* ── Feedback banner (t183) ────────────────────────────────────────────────── */
 .gratis-ai-agent-feedback-banner {
 	margin: 4px 0;

@@ -356,7 +356,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - NEW: REST endpoint `POST /gratis-ai-agent/v1/feedback/send` — server-side proxy that builds, sanitizes, and forwards the report (keeps API key server-side)
   - Verify: modal renders, payload preview matches actual data, send succeeds against a mock endpoint, dismiss closes without side effects
 
-- [ ] t183 Auto-prompt feedback banner on exit_reason (spin/timeout/max_iterations) #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
+- [x] t183 Auto-prompt feedback banner on exit_reason (spin/timeout/max_iterations) #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182 pr:#951 completed:2026-04-15
   - EDIT: src/store/slices/sessionsSlice.js — when chat response includes exit_reason, set feedbackPromptVisible flag
   - EDIT: src/components/MessageList.js or ChatPanel.js — render inline banner below the error message: "The AI had trouble completing your request. Would you like to send a report to help us improve? [Send Report] [Dismiss]"
   - "Send Report" opens FeedbackConsentModal with report_type pre-set to the exit_reason value

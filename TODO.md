@@ -343,11 +343,6 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - EDIT: includes/Core/Settings.php — add feedback keys to defaults and sanitization
   - Verify: settings save/load round-trip in browser, key stored in separate option (not exposed via GET /settings)
 
-- [ ] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180
-  - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite). Also include plugin_version vs latest_available for "is this already fixed?" triage.
-  - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission
-  - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
-  - Verify: `composer phpstan && composer phpcs`
 
 - [x] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t181 pr:#952 completed:2026-04-15
   - NEW: src/components/FeedbackConsentModal.js — modal with: (1) summary stats (message count, tool call count, environment keys), (2) collapsible "View full payload" section showing the actual sanitized JSON that will be sent, (3) privacy notice: "No passwords, API keys, or credentials are included. Server paths are anonymized. Review the full payload below.", (4) optional user description textarea, (5) "Strip tool results" checkbox for aggressive privacy, (6) "Send Report" and "Dismiss" buttons
@@ -617,6 +612,11 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
 
 ## Done
 
+- [x] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180 pr:#953 completed:2026-04-15
+  - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite). Also include plugin_version vs latest_available for "is this already fixed?" triage.
+  - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission
+  - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
+  - Verify: `composer phpstan && composer phpcs`
 - [x] t000 Install dependencies and verify code quality baseline verified:2026-03-14 completed:2026-03-14
 - [x] t001 Set up dev environment: composer install, npm ci, wp-env config verified:2026-03-14 completed:2026-03-14
 - [x] t002 php-ai-client already at ^1.3 (latest) verified:2026-03-14 completed:2026-03-14

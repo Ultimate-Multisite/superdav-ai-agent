@@ -34,7 +34,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 */
 	public function set_up(): void {
 		parent::set_up();
-		$this->tmp_dir = sys_get_temp_dir() . '/gratis_hook_scanner_test_' . uniqid( '', true );
+		$this->tmp_dir = sys_get_temp_dir() . '/gratis_hook_scanner_test_' . uniqid( '' );
 		mkdir( $this->tmp_dir, 0777, true );
 	}
 
@@ -221,7 +221,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() scans a fake plugin directory and returns full result envelope.
 	 */
 	public function test_scan_plugin_returns_full_result_envelope(): void {
-		$slug       = 'gratis-test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug       = 'gratis-test-hook-scanner-plugin-' . uniqid( '' );
 		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
 
 		if ( ! wp_mkdir_p( $plugin_dir ) ) {
@@ -257,7 +257,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() skips vendor/ subdirectory.
 	 */
 	public function test_scan_plugin_skips_vendor_directory(): void {
-		$slug       = 'gratis-test-vendor-skip-' . uniqid( '', true );
+		$slug       = 'gratis-test-vendor-skip-' . uniqid( '' );
 		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
 
 		if ( ! wp_mkdir_p( $plugin_dir . 'vendor/' ) ) {
@@ -295,7 +295,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_theme() scans a fake theme directory and returns full result envelope.
 	 */
 	public function test_scan_theme_returns_full_result_envelope(): void {
-		$slug      = 'gratis-test-hook-scanner-theme-' . uniqid( '', true );
+		$slug      = 'gratis-test-hook-scanner-theme-' . uniqid( '' );
 		$theme_dir = trailingslashit( WP_CONTENT_DIR ) . 'themes/' . $slug . '/';
 
 		if ( ! wp_mkdir_p( $theme_dir ) ) {

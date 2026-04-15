@@ -5,7 +5,7 @@ import { useState, useCallback, useRef, useEffect } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
-import { Icon, copy, pencil, redo, check } from '@wordpress/icons';
+import { Icon, copy, pencil, redo, check, thumbsDown } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -13,18 +13,22 @@ import { Icon, copy, pencil, redo, check } from '@wordpress/icons';
 import STORE_NAME from '../store';
 
 /**
- * Per-message action buttons (Copy, Edit, Regenerate).
+ * Per-message action buttons (Copy, Edit, Regenerate, Thumbs-down).
  *
  * - Copy: available on all messages.
  * - Edit: available on user messages; opens an inline edit textarea.
  * - Regenerate: available on model messages; re-runs from the preceding user message.
+ * - Thumbs-down: available on model messages; opens the feedback consent modal (t186).
  *
- * @param {Object}                     props         - Component props.
- * @param {import('../types').Message} props.message - The message to act on.
- * @param {number}                     props.index   - Index of the message in the list.
+ * @param {Object}                     props                - Component props.
+ * @param {import('../types').Message} props.message        - The message to act on.
+ * @param {number}                     props.index          - Index of the message in the list.
+ * @param {Function}                   [props.onThumbsDown] - Called with no args when the
+ *                                                          thumbs-down button is clicked.
+ *                                                          Only rendered on model messages.
  * @return {JSX.Element} The message actions element.
  */
-export default function MessageActions( { message, index } ) {
+export default function MessageActions( { message, index, onThumbsDown } ) {
 	const [ copied, setCopied ] = useState( false );
 	const [ editing, setEditing ] = useState( false );
 	const [ editText, setEditText ] = useState( '' );
@@ -142,6 +146,20 @@ export default function MessageActions( { message, index } ) {
 					label={ __( 'Regenerate', 'gratis-ai-agent' ) }
 					showTooltip
 					icon={ <Icon icon={ redo } size={ 14 } /> }
+					size="small"
+				/>
+			) }
+			{ isModel && onThumbsDown && (
+				<Button
+					className="gratis-ai-agent-action-btn gratis-ai-agent-thumbs-down-btn"
+					onClick={ onThumbsDown }
+					disabled={ sending }
+					label={ __(
+						'Report an issue with this response',
+						'gratis-ai-agent'
+					) }
+					showTooltip
+					icon={ <Icon icon={ thumbsDown } size={ 14 } /> }
 					size="small"
 				/>
 			) }

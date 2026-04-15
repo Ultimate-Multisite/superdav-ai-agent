@@ -1109,6 +1109,13 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	cursor: default;
 }
 
+/* Thumbs-down feedback button — subtle negative hover (t186) */
+.gratis-ai-agent-thumbs-down-btn.components-button:hover {
+	background: #fef8f8;
+	color: #c0392b;
+	border-color: #e8b4b0;
+}
+
 /* Edit inline */
 .gratis-ai-agent-message-edit {
 	margin-top: 4px;

@@ -330,6 +330,11 @@ export default function MessageList() {
 	// Local state: whether the feedback consent modal is open (t183).
 	const [ feedbackModalOpen, setFeedbackModalOpen ] = useState( false );
 
+	// Local state: message index that triggered a thumbs-down (t186).
+	// null = no thumbs-down modal; number = open modal anchored to that message.
+	const [ thumbsDownMessageIndex, setThumbsDownMessageIndex ] =
+		useState( null );
+
 	const messagesRef = useRef( null );
 
 	// TTS hook — configured from store state.
@@ -449,6 +454,14 @@ export default function MessageList() {
 						<MessageActions
 							message={ msg }
 							index={ originalIndex }
+							onThumbsDown={
+								isModel
+									? () =>
+											setThumbsDownMessageIndex(
+												originalIndex
+											)
+									: undefined
+							}
 						/>
 						{ isModel && (
 							<MessageTokenAnnotation
@@ -570,6 +583,14 @@ export default function MessageList() {
 						setFeedbackModalOpen( false );
 						setFeedbackBanner( null );
 					} }
+				/>
+			) }
+			{ thumbsDownMessageIndex !== null && (
+				<FeedbackConsentModal
+					reportType="thumbs_down"
+					sessionId={ currentSessionId }
+					messageIndex={ thumbsDownMessageIndex }
+					onClose={ () => setThumbsDownMessageIndex( null ) }
 				/>
 			) }
 			{ sending && ! isStreaming && ! pendingActionCard && (

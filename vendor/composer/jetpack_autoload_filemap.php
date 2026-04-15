@@ -6,8 +6,24 @@ $vendorDir = dirname(__DIR__);
 $baseDir   = dirname($vendorDir);
 
 return array(
+	'6124b4c8570aa390c21fafd04a26c69f' => array(
+		'version' => '1.13.4.0',
+		'path'    => $vendorDir . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php'
+	),
+	'9b38cf48e83f5d8f60375221cd213eee' => array(
+		'version' => '2.1.44.0',
+		'path'    => $vendorDir . '/phpstan/phpstan/bootstrap.php'
+	),
+	'ec07570ca5a812141189b1fa81503674' => array(
+		'version' => '9.6.34.0',
+		'path'    => $vendorDir . '/phpunit/phpunit/src/Framework/Assert/Functions.php'
+	),
 	'0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => array(
 		'version' => '1.33.0.0',
 		'path'    => $vendorDir . '/symfony/polyfill-mbstring/bootstrap.php'
+	),
+	'7d3b315c4f303f2fc14aca642a738e50' => array(
+		'version' => '3.1.2.0',
+		'path'    => $vendorDir . '/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php'
 	),
 );

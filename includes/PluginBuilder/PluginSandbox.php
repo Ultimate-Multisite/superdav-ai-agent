@@ -99,7 +99,7 @@ class PluginSandbox {
 		foreach ( $php_files as $file ) {
 			$output    = [];
 			$exit_code = 0;
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox: php -l syntax check requires subprocess.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox requires exec for subprocess isolation.
 			exec( 'php -l ' . escapeshellarg( $file ) . ' 2>&1', $output, $exit_code );
 			if ( 0 !== $exit_code ) {
 				return new WP_Error(
@@ -140,10 +140,10 @@ class PluginSandbox {
 		}
 
 		// Build a tiny PHP script that attempts to include the plugin file.
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- Sandbox: var_export needed to safely embed path literal in generated PHP.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- var_export needed to safely embed path in PHP code string.
 		$test_php = '<?php @include_once ' . var_export( $main_file, true ) . '; echo "OK";';
 		$tmp_file = wp_tempnam( 'gratis_sandbox_' );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Sandbox: WP_Filesystem not available for temp file write before WP is fully loaded.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing temp file; WP_Filesystem not available at this stage.
 		file_put_contents( $tmp_file, $test_php );
 
 		$wp_path   = ABSPATH;
@@ -156,16 +156,16 @@ class PluginSandbox {
 			$cmd = $wp_cli . ' eval-file ' . escapeshellarg( $tmp_file )
 				. ' --skip-plugins --path=' . escapeshellarg( $wp_path )
 				. ' 2>&1';
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox: WP-CLI subprocess required for isolated plugin include test.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox requires subprocess isolation; exec is intentional here.
 			exec( $cmd, $output, $exit_code );
 		} else {
 			// WP-CLI not available — attempt a bare php subprocess instead.
 			$cmd = 'php ' . escapeshellarg( $tmp_file ) . ' 2>&1';
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox: PHP subprocess fallback for isolated plugin include test.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox fallback subprocess; exec is intentional here.
 			exec( $cmd, $output, $exit_code );
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Sandbox: temp file cleanup; wp_delete_file() is safe but @unlink used for silent failure on race condition.
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Temp file cleanup; safe to ignore if already deleted.
 		@unlink( $tmp_file );
 
 		$output_str = implode( "\n", $output );
@@ -266,13 +266,16 @@ class PluginSandbox {
 	 * @return void
 	 */
 	public static function auto_deactivate_fatal_plugins(): void {
-		$active_plugins = get_option( 'active_plugins', [] );
+		/** @var string[] $active_plugins */
+		$active_plugins = (array) get_option( 'active_plugins', [] );
 		foreach ( $active_plugins as $plugin_file ) {
+			$plugin_file   = (string) $plugin_file;
 			$transient_key = self::FATAL_TRANSIENT_PREFIX . md5( $plugin_file );
 			if ( get_transient( $transient_key ) ) {
-				deactivate_plugins( (string) $plugin_file, true );
+				deactivate_plugins( $plugin_file, true );
 				delete_transient( $transient_key );
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Sandbox: auto-deactivation event requires error_log; no WP hook available at init priority.
+				// Log the auto-deactivation.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Logging fatal deactivation is intentional operational telemetry.
 				error_log( 'GratisAiAgent: Auto-deactivated plugin after fatal: ' . $plugin_file );
 			}
 		}
@@ -293,7 +296,7 @@ class PluginSandbox {
 			/** @var \SplFileInfo $file */
 			if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
 				$real = $file->getRealPath();
-				if ( false !== $real ) {
+				if ( is_string( $real ) ) {
 					$files[] = $real;
 				}
 			}
@@ -318,7 +321,7 @@ class PluginSandbox {
 		foreach ( $candidates as $candidate ) {
 			$output    = [];
 			$exit_code = 0;
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Sandbox: `which` subprocess needed to locate wp-cli binary at runtime.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Locating WP-CLI binary requires exec; no WP alternative.
 			exec( 'which ' . escapeshellarg( $candidate ) . ' 2>/dev/null', $output, $exit_code );
 			if ( 0 === $exit_code && ! empty( $output[0] ) ) {
 				return trim( $output[0] );

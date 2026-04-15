@@ -607,13 +607,12 @@ PHP
 			'<?php /* Plugin Name: Test Updater */ // v1'
 		);
 
-		$new_files   = [ $slug . '.php' => '<?php /* Plugin Name: Test Updater */ // v2' ];
-		$plugin_file = $slug . '/' . $slug . '.php';
+		$new_files = [ $slug . '.php' => '<?php /* Plugin Name: Test Updater */ // v2' ];
 
-		$result = PluginUpdater::update( $slug, $new_files, $plugin_file );
+		$result = ( new PluginUpdater() )->update( $slug, $new_files );
 
 		$this->assertIsArray( $result );
-		$this->assertTrue( $result['updated'] );
+		$this->assertTrue( (bool) ( $result['swapped'] ?? false ) );
 		$this->assertArrayHasKey( 'backup_dir', $result );
 
 		$written = file_get_contents( $dir . $slug . '.php' );
@@ -637,10 +636,9 @@ PHP
 			'<?php /* Plugin Name: Test Rollback */ // original'
 		);
 
-		$new_files   = [ $slug . '.php' => '<?php $broken = "unclosed string' . PHP_EOL ];
-		$plugin_file = $slug . '/' . $slug . '.php';
+		$new_files = [ $slug . '.php' => '<?php $broken = "unclosed string' . PHP_EOL ];
 
-		$result = PluginUpdater::update( $slug, $new_files, $plugin_file );
+		$result = ( new PluginUpdater() )->update( $slug, $new_files );
 
 		$this->assertWPError( $result );
 
@@ -648,8 +646,8 @@ PHP
 		$current = file_get_contents( $dir . $slug . '.php' );
 		$this->assertStringContainsString( '// original', (string) $current );
 
-		// Clean up any backup directory left by the updater.
-		$backup_glob = glob( WP_CONTENT_DIR . '/plugins/' . $slug . '-backup-*' );
+		// Clean up any backup directory left by the updater (new path: gratis-ai-backups/).
+		$backup_glob = glob( WP_CONTENT_DIR . '/gratis-ai-backups/' . $slug . '-*', GLOB_ONLYDIR );
 		if ( is_array( $backup_glob ) ) {
 			foreach ( $backup_glob as $backup_dir ) {
 				$this->rmdir_recursive( $backup_dir );
@@ -661,10 +659,9 @@ PHP
 	 * update() returns WP_Error when the plugin slug does not exist.
 	 */
 	public function test_updater_returns_wp_error_for_missing_slug(): void {
-		$result = PluginUpdater::update(
+		$result = ( new PluginUpdater() )->update(
 			'gratis-pb-test-missing-' . uniqid(),
-			[ 'file.php' => '<?php // code' ],
-			'gratis-pb-test-missing/file.php'
+			[ 'file.php' => '<?php // code' ]
 		);
 
 		$this->assertWPError( $result );

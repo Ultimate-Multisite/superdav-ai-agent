@@ -124,7 +124,7 @@ class PluginBuilderAbilitiesTest extends WP_UnitTestCase {
 	public function test_update_plugin_sandboxed_returns_wp_error_for_empty_slug(): void {
 		$ability = new UpdatePluginSandboxedAbility( 'gratis-ai-agent/update-plugin-sandboxed' );
 
-		$result = $ability->run( [ 'slug' => '', 'files' => [ 'my-plugin.php' => '<?php' ], 'plugin_file' => 'my-plugin.php' ] );
+		$result = $ability->run( [ 'slug' => '', 'files' => [ 'my-plugin.php' => '<?php' ] ] );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'gratis_ai_agent_invalid_slug', $result->get_error_code() );
@@ -136,22 +136,25 @@ class PluginBuilderAbilitiesTest extends WP_UnitTestCase {
 	public function test_update_plugin_sandboxed_returns_wp_error_for_empty_files(): void {
 		$ability = new UpdatePluginSandboxedAbility( 'gratis-ai-agent/update-plugin-sandboxed' );
 
-		$result = $ability->run( [ 'slug' => 'my-plugin', 'files' => [], 'plugin_file' => 'my-plugin.php' ] );
+		$result = $ability->run( [ 'slug' => 'my-plugin', 'files' => [] ] );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'gratis_ai_agent_no_files', $result->get_error_code() );
 	}
 
 	/**
-	 * UpdatePluginSandboxedAbility returns WP_Error when plugin_file is empty.
+	 * UpdatePluginSandboxedAbility returns WP_Error when plugin directory does not exist.
+	 *
+	 * Since plugin_file is no longer required (derived from slug), verify the
+	 * ability correctly propagates the plugin_not_found error from PluginUpdater.
 	 */
-	public function test_update_plugin_sandboxed_returns_wp_error_for_empty_plugin_file(): void {
+	public function test_update_plugin_sandboxed_returns_wp_error_for_nonexistent_plugin(): void {
 		$ability = new UpdatePluginSandboxedAbility( 'gratis-ai-agent/update-plugin-sandboxed' );
 
-		$result = $ability->run( [ 'slug' => 'my-plugin', 'files' => [ 'my-plugin.php' => '<?php' ], 'plugin_file' => '' ] );
+		$result = $ability->run( [ 'slug' => 'non-existent-plugin-phpunit', 'files' => [ 'main.php' => '<?php' ] ] );
 
 		$this->assertWPError( $result );
-		$this->assertSame( 'gratis_ai_agent_invalid_plugin_file', $result->get_error_code() );
+		$this->assertSame( 'gratis_ai_agent_plugin_not_found', $result->get_error_code() );
 	}
 
 	// ── ScanPluginHooksAbility ─────────────────────────────────────────────

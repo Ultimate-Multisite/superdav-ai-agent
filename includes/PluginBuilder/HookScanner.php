@@ -78,7 +78,7 @@ class HookScanner {
 		$php_files = self::find_php_files( $dir );
 
 		foreach ( $php_files as $file ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Scanning local plugin files on disk, not a remote URL.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a local PHP file on disk, not a remote URL. wp_remote_get() is for HTTP requests only.
 			$contents = file_get_contents( $file );
 			if ( false === $contents ) {
 				continue;
@@ -163,16 +163,19 @@ class HookScanner {
 	 * @return list<string>
 	 */
 	private static function find_php_files( string $dir ): array {
+		/** @var list<string> $files */
 		$files    = [];
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS )
 		);
 		foreach ( $iterator as $file ) {
-			/** @var \SplFileInfo $file */
+			if ( ! ( $file instanceof \SplFileInfo ) ) {
+				continue;
+			}
 			if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
-				$real = $file->getRealPath();
-				if ( false !== $real ) {
-					$files[] = $real;
+				$real_path = $file->getRealPath();
+				if ( false !== $real_path ) {
+					$files[] = $real_path;
 				}
 			}
 		}

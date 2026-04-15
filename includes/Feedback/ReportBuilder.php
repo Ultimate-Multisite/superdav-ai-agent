@@ -19,6 +19,24 @@ use GratisAiAgent\Core\Database;
 class ReportBuilder {
 
 	/**
+	 * Slice the messages array to the targeted message ± 2 surrounding messages.
+	 *
+	 * Used to scope thumbs-down reports to a relevant context window rather than
+	 * sending the full conversation (t186).
+	 *
+	 * @param array<int, mixed> $messages     Full messages array.
+	 * @param int               $message_index Zero-based index of the target message.
+	 * @return array<int, mixed> Sliced array (values re-indexed).
+	 */
+	private static function slice_message_context( array $messages, int $message_index ): array {
+		$total = count( $messages );
+		$start = max( 0, $message_index - 2 );
+		$end   = min( $total - 1, $message_index + 2 );
+
+		return array_values( array_slice( $messages, $start, $end - $start + 1 ) );
+	}
+
+	/**
 	 * Build a feedback report payload from a session.
 	 *
 	 * @param int    $session_id        Session to report on.
@@ -26,6 +44,9 @@ class ReportBuilder {
 	 * @param string $user_description  Optional free-text description from the user.
 	 * @param bool   $strip_tool_results When true, tool result content is redacted but
 	 *                                  tool names/arguments are retained.
+	 * @param int    $message_index     When >= 0, only the targeted message ± 2
+	 *                                  surrounding messages are included. Pass -1 to
+	 *                                  include all messages (default).
 	 * @return array<string, mixed>|null Structured payload or null when the session does
 	 *                                  not exist or does not belong to the current user.
 	 */
@@ -33,7 +54,8 @@ class ReportBuilder {
 		int $session_id,
 		string $report_type,
 		string $user_description = '',
-		bool $strip_tool_results = false
+		bool $strip_tool_results = false,
+		int $message_index = -1
 	): ?array {
 		$current_user_id = get_current_user_id();
 		$session         = Database::get_session( $session_id );
@@ -44,6 +66,11 @@ class ReportBuilder {
 
 		$messages   = json_decode( $session->messages ?? '[]', true ) ?: [];
 		$tool_calls = json_decode( $session->tool_calls ?? '[]', true ) ?: [];
+
+		// Scope to a context window around the target message when requested (t186).
+		if ( $message_index >= 0 ) {
+			$messages = self::slice_message_context( $messages, $message_index );
+		}
 
 		if ( $strip_tool_results ) {
 			$tool_calls = self::strip_tool_results( $tool_calls );
@@ -75,9 +102,10 @@ class ReportBuilder {
 	 *
 	 * @param int  $session_id       Session to summarise.
 	 * @param bool $strip_tool_results When true, reflect stripped count.
+	 * @param int  $message_index    When >= 0, only count messages in the context window.
 	 * @return array<string, mixed>|null Summary or null when the session is not found.
 	 */
-	public static function build_summary( int $session_id, bool $strip_tool_results = false ): ?array {
+	public static function build_summary( int $session_id, bool $strip_tool_results = false, int $message_index = -1 ): ?array {
 		$current_user_id = get_current_user_id();
 		$session         = Database::get_session( $session_id );
 
@@ -88,13 +116,18 @@ class ReportBuilder {
 		$messages   = json_decode( $session->messages ?? '[]', true ) ?: [];
 		$tool_calls = json_decode( $session->tool_calls ?? '[]', true ) ?: [];
 
+		// Scope message count to the context window when a specific message is targeted.
+		if ( $message_index >= 0 ) {
+			$messages = self::slice_message_context( $messages, $message_index );
+		}
+
 		return array(
-			'message_count'    => count( $messages ),
-			'tool_call_count'  => count( $tool_calls ),
+			'message_count'      => count( $messages ),
+			'tool_call_count'    => count( $tool_calls ),
 			'strip_tool_results' => $strip_tool_results,
-			'environment_keys' => array_keys( self::collect_environment() ),
-			'model_id'         => $session->model_id ?? '',
-			'provider_id'      => $session->provider_id ?? '',
+			'environment_keys'   => array_keys( self::collect_environment() ),
+			'model_id'           => $session->model_id ?? '',
+			'provider_id'        => $session->provider_id ?? '',
 		);
 	}
 

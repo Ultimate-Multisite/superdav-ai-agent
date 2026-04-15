@@ -56,6 +56,12 @@ class FeedbackController {
 						'type'              => 'boolean',
 						'default'           => false,
 					),
+					'message_index'      => array(
+						'required'          => false,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+						'default'           => -1,
+					),
 				),
 			)
 		);
@@ -89,6 +95,12 @@ class FeedbackController {
 						'type'              => 'boolean',
 						'default'           => false,
 					),
+					'message_index'      => array(
+						'required'          => false,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+						'default'           => -1,
+					),
 				),
 			)
 		);
@@ -101,14 +113,18 @@ class FeedbackController {
 	 *   - summary  (message_count, tool_call_count, environment_keys, model_id, …)
 	 *   - payload  (full sanitized report, suitable for JSON display)
 	 *
+	 * When message_index >= 0, only the targeted message ± 2 surrounding messages
+	 * are included (thumbs-down scoped context, t186).
+	 *
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_preview( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$session_id         = (int) $request->get_param( 'session_id' );
 		$strip_tool_results = (bool) $request->get_param( 'strip_tool_results' );
+		$message_index      = (int) $request->get_param( 'message_index' );
 
-		$summary = ReportBuilder::build_summary( $session_id, $strip_tool_results );
+		$summary = ReportBuilder::build_summary( $session_id, $strip_tool_results, $message_index );
 
 		if ( null === $summary ) {
 			return new WP_Error(
@@ -118,12 +134,13 @@ class FeedbackController {
 			);
 		}
 
-		// Build the full sanitized payload for the collapsible preview section.
+		// Build the sanitized payload for the collapsible preview section.
 		$raw_payload = ReportBuilder::build(
 			$session_id,
 			'preview',
 			'',
-			$strip_tool_results
+			$strip_tool_results,
+			$message_index
 		);
 
 		if ( null === $raw_payload ) {
@@ -148,6 +165,9 @@ class FeedbackController {
 	/**
 	 * Handle POST /feedback/send — build, sanitize, and forward the report.
 	 *
+	 * When message_index >= 0, only the targeted message ± 2 surrounding messages
+	 * are included in the report (thumbs-down scoped context, t186).
+	 *
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -156,6 +176,7 @@ class FeedbackController {
 		$user_description   = (string) $request->get_param( 'user_description' );
 		$session_id         = (int) $request->get_param( 'session_id' );
 		$strip_tool_results = (bool) $request->get_param( 'strip_tool_results' );
+		$message_index      = (int) $request->get_param( 'message_index' );
 
 		// When a session_id is provided, build a rich payload; otherwise send a
 		// minimal report (for cases where no session is active yet, e.g. onboarding).
@@ -164,7 +185,8 @@ class FeedbackController {
 				$session_id,
 				$report_type,
 				$user_description,
-				$strip_tool_results
+				$strip_tool_results,
+				$message_index
 			);
 
 			if ( null === $payload ) {

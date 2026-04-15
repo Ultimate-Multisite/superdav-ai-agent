@@ -14,6 +14,7 @@ declare(strict_types=1);
  *   - ToolController       — custom-tools, abilities
  *   - ChangesController    — changes, modified-plugins, download
  *   - AgentController      — agents, conversation-templates
+ *   - FeedbackController   — feedback/preview, feedback/send
  *
  * This class retains:
  *   - The /chat endpoint that runs the agent loop and returns JSON
@@ -81,6 +82,7 @@ class RestController {
 		ToolController::register_routes();
 		ChangesController::register_routes();
 		AgentController::register_routes();
+		FeedbackController::register_routes();
 
 		$instance = new self();
 

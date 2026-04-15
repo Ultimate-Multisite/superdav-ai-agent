@@ -580,6 +580,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				<FeedbackConsentModal
 					reportType={ feedbackModal.reportType }
 					userDescription={ feedbackModal.userDescription }
+					sessionId={ currentSessionId }
 					onClose={ () =>
 						setFeedbackModal( ( prev ) => ( {
 							...prev,

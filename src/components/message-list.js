@@ -565,6 +565,7 @@ export default function MessageList() {
 			{ feedbackModalOpen && feedbackBanner && (
 				<FeedbackConsentModal
 					reportType={ feedbackBanner.exitReason }
+					sessionId={ currentSessionId }
 					onClose={ () => {
 						setFeedbackModalOpen( false );
 						setFeedbackBanner( null );

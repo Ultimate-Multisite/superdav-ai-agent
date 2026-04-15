@@ -209,32 +209,35 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 	} );
 
 	test( 'upload button is disabled while sending', async ( { page } ) => {
-		// Intercept the stream so it stays open long enough to check the button state.
-		let resolveStream;
-		const streamPending = new Promise( ( res ) => {
-			resolveStream = res;
+		// Intercept POST /run so the job stays "processing" long enough to
+		// check the button state. Hold the /run response until we resolve.
+		let resolveRun;
+		const runPending = new Promise( ( res ) => {
+			resolveRun = res;
 		} );
 
-		await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-			// Hold the route open until we resolve.
-			await streamPending;
-			await route.fulfill( {
-				status: 200,
-				headers: { 'Content-Type': 'text/event-stream' },
-				body: 'event: done\ndata: {}\n\n',
-			} );
-		} );
+		await page.route(
+			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+			async ( route ) => {
+				await runPending;
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( { job_id: 'e2e-upload-job-1' } ),
+				} );
+			}
+		);
 
 		const input = getMessageInput( page );
 		await input.fill( 'Test' );
 		await input.press( 'Enter' );
 
-		// While the stream is pending, the upload button should be disabled.
+		// While the /run response is pending, the upload button should be disabled.
 		const uploadBtn = getUploadButton( page );
 		await expect( uploadBtn ).toBeDisabled( { timeout: 5_000 } );
 
-		// Unblock the stream so the test can clean up.
-		resolveStream();
+		// Unblock the /run response so the test can clean up.
+		resolveRun();
 	} );
 
 	test( 'clicking upload button triggers the hidden file input', async ( {
@@ -511,26 +514,32 @@ test.describe( 'Chat Upload - Send Button State (t122)', () => {
 	test( 'attachments are cleared after sending a message', async ( {
 		page,
 	} ) => {
-		// Intercept the stream so it completes quickly.
-		await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-			const sseBody = [
-				'event: token',
-				`data: ${ JSON.stringify( { token: 'OK' } ) }`,
-				'',
-				'event: done',
-				`data: ${ JSON.stringify( { session_id: 1 } ) }`,
-				'',
-				'',
-			].join( '\n' );
-			await route.fulfill( {
-				status: 200,
-				headers: {
-					'Content-Type': 'text/event-stream',
-					'Cache-Control': 'no-cache',
-				},
-				body: sseBody,
-			} );
-		} );
+		// Intercept POST /run so the job completes quickly.
+		await page.route(
+			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+			async ( route ) => {
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( { job_id: 'e2e-upload-clear-job' } ),
+				} );
+			}
+		);
+		// Intercept GET /job/:id — return complete immediately.
+		await page.route(
+			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+			async ( route ) => {
+				await route.fulfill( {
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify( {
+						status: 'complete',
+						session_id: 1,
+						reply: 'OK',
+					} ),
+				} );
+			}
+		);
 
 		// Attach a file and type a message.
 		await attachPngViaInput( page );

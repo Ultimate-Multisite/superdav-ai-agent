@@ -54,7 +54,12 @@ async function interceptStream( page, options = {} ) {
 
 	// Intercept POST /run — the store sends the message here and receives a job_id.
 	// Capture session_id from the request body; return a synthetic job_id.
-	await page.route( /gratis-ai-agent\/v1\/run/, async ( route ) => {
+	// Use a predicate function instead of a regex because wp-env uses plain
+	// permalinks (?rest_route=%2F...) where slashes are URL-encoded — a regex
+	// against the raw URL would never match.
+	await page.route(
+		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+		async ( route ) => {
 		try {
 			const postBody = route.request().postDataJSON();
 			if ( postBody?.session_id ) {
@@ -78,7 +83,9 @@ async function interceptStream( page, options = {} ) {
 	// Return 'complete' immediately so tests don't wait for the poll interval.
 	// capturedSessionId is guaranteed set before the first poll: the browser
 	// sends POST /run synchronously before fetching GET /job/:id.
-	await page.route( /gratis-ai-agent\/v1\/job\//, async ( route ) => {
+	await page.route(
+		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+		async ( route ) => {
 		const result = {
 			status: 'complete',
 			session_id: capturedSessionId,

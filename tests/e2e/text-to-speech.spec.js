@@ -141,7 +141,11 @@ async function interceptStream( page ) {
 
 	// Intercept POST /run — capture session_id from the request body and
 	// return a synthetic job_id.
-	await page.route( /gratis-ai-agent\/v1\/run/, async ( route ) => {
+	// Use a predicate function instead of a regex because wp-env uses plain
+	// permalinks (?rest_route=%2F...) where slashes are URL-encoded.
+	await page.route(
+		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+		async ( route ) => {
 		try {
 			const postBody = route.request().postDataJSON();
 			if ( postBody?.session_id ) {
@@ -160,7 +164,9 @@ async function interceptStream( page ) {
 
 	// Intercept GET /job/:id — return complete with session_id so the store
 	// attempts a session reload (intercepted below to include the AI reply).
-	await page.route( /gratis-ai-agent\/v1\/job\//, async ( route ) => {
+	await page.route(
+		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+		async ( route ) => {
 		await route.fulfill( {
 			status: 200,
 			contentType: 'application/json',
@@ -178,7 +184,10 @@ async function interceptStream( page ) {
 	// mocked) and overwrite messages, leaving the last message as 'user' so
 	// the TTS effect's role check (`lastMsg.role !== 'model'`) returns early.
 	await page.route(
-		/gratis-ai-agent\/v1\/sessions\/\d+$/,
+		( url ) => {
+			const decoded = decodeURIComponent( url.toString() );
+			return /gratis-ai-agent\/v1\/sessions\/\d+$/.test( decoded );
+		},
 		async ( route ) => {
 			await route.fulfill( {
 				status: 200,

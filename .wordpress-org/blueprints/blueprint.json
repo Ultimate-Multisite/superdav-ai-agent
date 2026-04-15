@@ -26,7 +26,7 @@
         "inner": {
           "resource": "git:directory",
           "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent",
-          "ref": "HEAD"
+          "ref": "v1.5.0"
         }
       },
       "options": {

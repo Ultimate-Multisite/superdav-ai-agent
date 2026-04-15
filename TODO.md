@@ -384,7 +384,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Include the specific message + surrounding context (2 messages before/after) in the report payload, not the full conversation — user can opt into full conversation via checkbox in the modal
   - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
 
-- [ ] t187 AI-assisted triage automation for incoming feedback reports #feature ~6h logged:2026-04-14 blocked-by:t183
+- [x] t187 AI-assisted triage automation for incoming feedback reports #feature ~6h logged:2026-04-14 blocked-by:t183 pr:#949 completed:2026-04-15
   - Runs as an aidevops routine (r010) using deterministic script + AI agent split (modeled on /log-issue-aidevops pattern)
   - Deterministic script: `~/.aidevops/agents/custom/scripts/feedback-triage.sh` (already created) — `fetch` pulls new reports, `get <id>` pulls full payload, `dedup <keywords>` checks existing GitHub issues, `update <id> <status>` marks reports after triage
   - AI agent receives each report and judges: (1) real bug vs user error vs model limitation vs missing ability vs provider error, (2) checks dedup results — is this already reported?, (3) validates claims per log-issue-aidevops Step 3.6 (verify evidence, check data scale, detect template-driven findings), (4) composes structured GitHub issue body (Description, Expected Behavior, Steps to Reproduce from conversation, Environment, Report ID for backlink)

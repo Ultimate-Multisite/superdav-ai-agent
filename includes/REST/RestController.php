@@ -486,6 +486,10 @@ Assistant: %s',
 			$response['exit_reason'] = $result['exit_reason'];
 		}
 
+		if ( ! empty( $result['inability_reported'] ) ) {
+			$response['inability_reported'] = $result['inability_reported'];
+		}
+
 		return new WP_REST_Response( $response, 200 );
 	}
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Core;
 
+use GratisAiAgent\Abilities\FeedbackAbilities;
 use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\ChangeLogger;
@@ -493,13 +494,15 @@ class AgentLoop {
 					}
 				}
 
-				return array(
-					'reply'           => $reply,
-					'history'         => $this->serialize_history(),
-					'tool_calls'      => $this->tool_call_log,
-					'token_usage'     => $this->token_usage,
-					'iterations_used' => $this->iterations_used,
-					'model_id'        => $this->model_id,
+				return $this->inject_inability_data(
+					array(
+						'reply'           => $reply,
+						'history'         => $this->serialize_history(),
+						'tool_calls'      => $this->tool_call_log,
+						'token_usage'     => $this->token_usage,
+						'iterations_used' => $this->iterations_used,
+						'model_id'        => $this->model_id,
+					)
 				);
 			}
 
@@ -645,14 +648,16 @@ class AgentLoop {
 					$reply = '';
 				}
 
-				return [
-					'reply'           => $reply,
-					'history'         => $this->serialize_history(),
-					'tool_calls'      => $this->tool_call_log,
-					'token_usage'     => $this->token_usage,
-					'iterations_used' => $this->iterations_used,
-					'model_id'        => $this->model_id,
-				];
+				return $this->inject_inability_data(
+					[
+						'reply'           => $reply,
+						'history'         => $this->serialize_history(),
+						'tool_calls'      => $this->tool_call_log,
+						'token_usage'     => $this->token_usage,
+						'iterations_used' => $this->iterations_used,
+						'model_id'        => $this->model_id,
+					]
+				);
 			}
 		}
 
@@ -1292,6 +1297,21 @@ class AgentLoop {
 	}
 
 	/**
+	 * Inject inability_reported data into a loop result array if the
+	 * FeedbackAbilities::report-inability ability was called this request.
+	 *
+	 * @param array<string,mixed> $result The loop result to augment.
+	 * @return array<string,mixed> The result, potentially with inability_reported added.
+	 */
+	private function inject_inability_data( array $result ): array {
+		$inability = FeedbackAbilities::get_inability_data();
+		if ( null !== $inability ) {
+			$result['inability_reported'] = $inability;
+		}
+		return $result;
+	}
+
+	/**
 	 * Classify an ability as 'read' or 'write' based on its meta annotations.
 	 *
 	 * Uses the WordPress Abilities API `readonly` annotation:
@@ -1646,7 +1666,11 @@ class AgentLoop {
 			. "## Error Handling\n"
 			. "- If a tool call fails, try a different approach or skip it and continue with the next step.\n"
 			. "- Never stop after a single error — complete as many steps as possible.\n"
-			. "- If you've retried the same tool 2 times with similar args, move on.";
+			. "- If you've retried the same tool 2 times with similar args, move on.\n\n"
+			. "## Reporting Inability\n"
+			. "- If you have genuinely tried and cannot complete the user's request, call `gratis-ai-agent/report-inability` with a clear reason and the steps you attempted.\n"
+			. "- Use this only as a last resort — after at least 2 different approaches have failed.\n"
+			. '- Always provide a helpful text response explaining what you tried before calling the ability.';
 	}
 
 	/**

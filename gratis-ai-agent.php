@@ -43,6 +43,7 @@ if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 
 use GratisAiAgent\Abilities\AiImageAbilities;
 use GratisAiAgent\Abilities\BlockAbilities;
+use GratisAiAgent\Abilities\FeedbackAbilities;
 use GratisAiAgent\Abilities\ContentAbilities;
 use GratisAiAgent\Abilities\CustomPostTypeAbilities;
 use GratisAiAgent\Abilities\CustomTaxonomyAbilities;
@@ -315,6 +316,9 @@ add_filter(
 
 // Memory abilities.
 MemoryAbilities::register();
+
+// Feedback abilities (report-inability).
+FeedbackAbilities::register();
 
 // Skill abilities.
 SkillAbilities::register();

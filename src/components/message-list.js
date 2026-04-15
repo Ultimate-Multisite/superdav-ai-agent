@@ -284,6 +284,7 @@ export default function MessageList() {
 		liveToolCalls,
 		currentSessionId,
 		sessionJobs,
+		inabilityReported,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -303,6 +304,7 @@ export default function MessageList() {
 			liveToolCalls: store.getLiveToolCalls(),
 			currentSessionId: store.getCurrentSessionId(),
 			sessionJobs: store.getSessionJobs(),
+			inabilityReported: store.getInabilityReported(),
 		};
 	}, [] );
 
@@ -313,8 +315,13 @@ export default function MessageList() {
 		getBranding().greetingMessage ||
 		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
 
-	const { sendMessage, confirmToolCall, rejectToolCall, retryLastMessage } =
-		useDispatch( STORE_NAME );
+	const {
+		sendMessage,
+		confirmToolCall,
+		rejectToolCall,
+		retryLastMessage,
+		setInabilityReported,
+	} = useDispatch( STORE_NAME );
 	const messagesRef = useRef( null );
 
 	// TTS hook — configured from store state.
@@ -490,6 +497,29 @@ export default function MessageList() {
 							rejectToolCall( pendingActionCard.jobId )
 						}
 					/>
+				</div>
+			) }
+			{ inabilityReported && ! sending && (
+				<div className="gratis-ai-agent-message-row gratis-ai-agent-inability-banner">
+					<div className="gratis-ai-agent-inability-banner__content">
+						<p className="gratis-ai-agent-inability-banner__text">
+							{ __(
+								'The AI was unable to complete your request.',
+								'gratis-ai-agent'
+							) }
+						</p>
+						<Button
+							variant="link"
+							className="gratis-ai-agent-inability-banner__dismiss"
+							onClick={ () => setInabilityReported( null ) }
+							aria-label={ __(
+								'Dismiss inability notice',
+								'gratis-ai-agent'
+							) }
+						>
+							{ __( 'Dismiss', 'gratis-ai-agent' ) }
+						</Button>
+					</div>
 				</div>
 			) }
 			{ sending && ! isStreaming && ! pendingActionCard && (

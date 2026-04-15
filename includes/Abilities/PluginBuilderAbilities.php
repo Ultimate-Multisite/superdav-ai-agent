@@ -415,20 +415,16 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 		return [
 			'type'       => 'object',
 			'properties' => [
-				'slug'        => [
+				'slug'  => [
 					'type'        => 'string',
 					'description' => 'Plugin slug (directory name under wp-content/plugins/).',
 				],
-				'files'       => [
+				'files' => [
 					'type'        => 'object',
 					'description' => 'Map of relative file paths to new PHP source code.',
 				],
-				'plugin_file' => [
-					'type'        => 'string',
-					'description' => 'Main plugin file path relative to the plugins directory.',
-				],
 			],
-			'required'   => [ 'slug', 'files', 'plugin_file' ],
+			'required'   => [ 'slug', 'files' ],
 		];
 	}
 
@@ -436,16 +432,16 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 		return [
 			'type'       => 'object',
 			'properties' => [
-				'updated'     => [ 'type' => 'boolean' ],
+				'swapped'     => [ 'type' => 'boolean' ],
 				'plugin_file' => [ 'type' => 'string' ],
+				'was_active'  => [ 'type' => 'boolean' ],
 				'backup_dir'  => [ 'type' => 'string' ],
 			],
 		];
 	}
 
 	protected function execute_callback( $input ): array|\WP_Error {
-		$slug        = (string) ( $input['slug'] ?? '' );
-		$plugin_file = (string) ( $input['plugin_file'] ?? '' );
+		$slug = (string) ( $input['slug'] ?? '' );
 
 		// Coerce to array<string,string>: PluginUpdater::update() requires that shape.
 		$raw_files = is_array( $input['files'] ?? null ) ? $input['files'] : [];
@@ -461,11 +457,8 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 		if ( empty( $files ) ) {
 			return new WP_Error( 'gratis_ai_agent_no_files', __( 'files must not be empty.', 'gratis-ai-agent' ) );
 		}
-		if ( empty( $plugin_file ) ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_plugin_file', __( 'plugin_file is required.', 'gratis-ai-agent' ) );
-		}
 
-		return PluginUpdater::update( $slug, $files, $plugin_file );
+		return ( new PluginUpdater() )->update( $slug, $files );
 	}
 
 	protected function permission_callback( $input ): bool {

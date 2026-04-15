@@ -25,15 +25,15 @@ class ReportSanitizer {
 	 * @var array<string, string>
 	 */
 	private const CREDENTIAL_PATTERNS = array(
-		'bearer_token'     => '/\bBearer\s+[A-Za-z0-9\-._~+\/]+=*/i',
-		'basic_auth'       => '/\bBasic\s+[A-Za-z0-9+\/]+=*/i',
-		'api_key_param'    => '/\b(?:api[_-]?key|apikey|access[_-]?token|secret[_-]?key)\s*[=:]\s*[^\s&"\']{8,}/i',
-		'password_param'   => '/\b(?:password|passwd|pwd)\s*[=:]\s*[^\s&"\']{3,}/i',
-		'aws_key_id'       => '/\bAKIA[0-9A-Z]{16}\b/',
-		'aws_secret'       => '/\b[A-Za-z0-9\/+]{40}\b/',
-		'openai_key'       => '/\bsk-[A-Za-z0-9]{20,}\b/',
-		'anthropic_key'    => '/\bsk-ant-[A-Za-z0-9\-]{20,}\b/',
-		'jwt_token'        => '/\beyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b/',
+		'bearer_token'   => '/\bBearer\s+[A-Za-z0-9\-._~+\/]+=*/i',
+		'basic_auth'     => '/\bBasic\s+[A-Za-z0-9+\/]+=*/i',
+		'api_key_param'  => '/\b(?:api[_-]?key|apikey|access[_-]?token|secret[_-]?key)\s*[=:]\s*[^\s&"\']{8,}/i',
+		'password_param' => '/\b(?:password|passwd|pwd)\s*[=:]\s*[^\s&"\']{3,}/i',
+		'aws_key_id'     => '/\bAKIA[0-9A-Z]{16}\b/',
+		'aws_secret'     => '/\b[A-Za-z0-9\/+]{40}\b/',
+		'openai_key'     => '/\bsk-[A-Za-z0-9]{20,}\b/',
+		'anthropic_key'  => '/\bsk-ant-[A-Za-z0-9\-]{20,}\b/',
+		'jwt_token'      => '/\beyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b/',
 	);
 
 	/**
@@ -43,12 +43,19 @@ class ReportSanitizer {
 	 * @return array<string, mixed> Sanitized copy — the original is not mutated.
 	 */
 	public static function sanitize( array $payload ): array {
-		if ( isset( $payload['session']['messages'] ) && is_array( $payload['session']['messages'] ) ) {
-			$payload['session']['messages'] = self::sanitize_messages( $payload['session']['messages'] );
-		}
+		$session = $payload['session'] ?? null;
+		if ( is_array( $session ) ) {
+			if ( isset( $session['messages'] ) && is_array( $session['messages'] ) ) {
+				/** @var array<int, array<string, mixed>> $messages */
+				$messages                       = $session['messages'];
+				$payload['session']['messages'] = self::sanitize_messages( $messages );
+			}
 
-		if ( isset( $payload['session']['tool_calls'] ) && is_array( $payload['session']['tool_calls'] ) ) {
-			$payload['session']['tool_calls'] = self::sanitize_tool_calls( $payload['session']['tool_calls'] );
+			if ( isset( $session['tool_calls'] ) && is_array( $session['tool_calls'] ) ) {
+				/** @var array<int, array<string, mixed>> $tool_calls */
+				$tool_calls                       = $session['tool_calls'];
+				$payload['session']['tool_calls'] = self::sanitize_tool_calls( $tool_calls );
+			}
 		}
 
 		if ( isset( $payload['user_description'] ) && is_string( $payload['user_description'] ) ) {
@@ -71,7 +78,10 @@ class ReportSanitizer {
 					$msg['content'] = self::sanitize_string( $msg['content'] );
 				} elseif ( is_array( $msg['content'] ?? null ) ) {
 					$msg['content'] = array_map(
-						static function ( array $part ): array {
+						static function ( mixed $part ): mixed {
+							if ( ! is_array( $part ) ) {
+								return $part;
+							}
 							if ( is_string( $part['text'] ?? null ) ) {
 								$part['text'] = self::sanitize_string( $part['text'] );
 							}

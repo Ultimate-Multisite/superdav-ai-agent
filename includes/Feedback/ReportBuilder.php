@@ -42,8 +42,13 @@ class ReportBuilder {
 			return null;
 		}
 
-		$messages   = json_decode( $session->messages ?? '[]', true ) ?: [];
-		$tool_calls = json_decode( $session->tool_calls ?? '[]', true ) ?: [];
+		$decoded_messages   = json_decode( $session->messages ?? '[]', true );
+		$decoded_tool_calls = json_decode( $session->tool_calls ?? '[]', true );
+
+		/** @var array<int, array<string, mixed>> $messages */
+		$messages = is_array( $decoded_messages ) ? $decoded_messages : [];
+		/** @var array<int, array<string, mixed>> $tool_calls */
+		$tool_calls = is_array( $decoded_tool_calls ) ? $decoded_tool_calls : [];
 
 		if ( $strip_tool_results ) {
 			$tool_calls = self::strip_tool_results( $tool_calls );
@@ -54,16 +59,16 @@ class ReportBuilder {
 			'report_type'      => $report_type,
 			'user_description' => $user_description,
 			'session'          => array(
-				'id'               => $session_id,
-				'title'            => $session->title ?? '',
-				'provider_id'      => $session->provider_id ?? '',
-				'model_id'         => $session->model_id ?? '',
-				'prompt_tokens'    => (int) ( $session->prompt_tokens ?? 0 ),
+				'id'                => $session_id,
+				'title'             => $session->title ?? '',
+				'provider_id'       => $session->provider_id ?? '',
+				'model_id'          => $session->model_id ?? '',
+				'prompt_tokens'     => (int) ( $session->prompt_tokens ?? 0 ),
 				'completion_tokens' => (int) ( $session->completion_tokens ?? 0 ),
-				'messages'         => $messages,
-				'tool_calls'       => $tool_calls,
-				'message_count'    => count( $messages ),
-				'tool_call_count'  => count( $tool_calls ),
+				'messages'          => $messages,
+				'tool_calls'        => $tool_calls,
+				'message_count'     => count( $messages ),
+				'tool_call_count'   => count( $tool_calls ),
 			),
 			'environment'      => self::collect_environment(),
 			'generated_at'     => gmdate( 'c' ),
@@ -85,16 +90,18 @@ class ReportBuilder {
 			return null;
 		}
 
-		$messages   = json_decode( $session->messages ?? '[]', true ) ?: [];
-		$tool_calls = json_decode( $session->tool_calls ?? '[]', true ) ?: [];
+		$decoded_messages   = json_decode( $session->messages ?? '[]', true );
+		$decoded_tool_calls = json_decode( $session->tool_calls ?? '[]', true );
+		$messages           = is_array( $decoded_messages ) ? $decoded_messages : [];
+		$tool_calls         = is_array( $decoded_tool_calls ) ? $decoded_tool_calls : [];
 
 		return array(
-			'message_count'    => count( $messages ),
-			'tool_call_count'  => count( $tool_calls ),
+			'message_count'      => count( $messages ),
+			'tool_call_count'    => count( $tool_calls ),
 			'strip_tool_results' => $strip_tool_results,
-			'environment_keys' => array_keys( self::collect_environment() ),
-			'model_id'         => $session->model_id ?? '',
-			'provider_id'      => $session->provider_id ?? '',
+			'environment_keys'   => array_keys( self::collect_environment() ),
+			'model_id'           => $session->model_id ?? '',
+			'provider_id'        => $session->provider_id ?? '',
 		);
 	}
 
@@ -118,9 +125,9 @@ class ReportBuilder {
 		);
 
 		// Site URL: scheme + host only, no path.
-		$site_url     = get_site_url();
-		$parsed       = wp_parse_url( $site_url );
-		$site_host    = ( $parsed['scheme'] ?? 'https' ) . '://' . ( $parsed['host'] ?? '' );
+		$site_url  = get_site_url();
+		$parsed    = wp_parse_url( $site_url );
+		$site_host = ( $parsed['scheme'] ?? 'https' ) . '://' . ( $parsed['host'] ?? '' );
 
 		return array(
 			'wp_version'     => get_bloginfo( 'version' ),
@@ -170,7 +177,10 @@ class ReportBuilder {
 
 				if ( is_array( $msg['content'] ?? null ) ) {
 					$msg['content'] = array_map(
-						static function ( array $part ): array {
+						static function ( mixed $part ): mixed {
+							if ( ! is_array( $part ) ) {
+								return $part;
+							}
 							if ( ( $part['type'] ?? '' ) === 'tool_result' ) {
 								$part['content'] = '[redacted — strip_tool_results enabled]';
 							}

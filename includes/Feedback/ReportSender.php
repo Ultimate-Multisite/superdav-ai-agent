@@ -52,11 +52,16 @@ class ReportSender {
 			$headers['X-Feedback-Api-Key'] = $api_key;
 		}
 
+		$body = wp_json_encode( $payload );
+		if ( false === $body ) {
+			return new WP_Error( 'feedback_encode_error', 'Failed to JSON-encode the report payload.' );
+		}
+
 		$response = wp_remote_post(
 			$endpoint_url,
 			array(
 				'headers' => $headers,
-				'body'    => wp_json_encode( $payload ),
+				'body'    => $body,
 				'timeout' => 15,
 			)
 		);

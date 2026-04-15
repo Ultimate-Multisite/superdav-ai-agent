@@ -65,9 +65,12 @@ async function interceptStream( page, options = {} ) {
 		}
 
 		await route.fulfill( {
-			status: 200,
+			status: 202,
 			contentType: 'application/json',
-			body: JSON.stringify( { job_id: 'e2e-test-job-1' } ),
+			body: JSON.stringify( {
+				job_id: 'e2e-test-job-1',
+				status: 'processing',
+			} ),
 		} );
 	} );
 

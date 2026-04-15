@@ -120,16 +120,37 @@ async function injectTtsMock( page ) {
  * Intercept the agent job endpoints so the store completes the message and
  * TTS can fire.
  *
- * The store now uses POST /run (returns a job_id) + GET /job/:id polling
- * instead of a direct POST /stream SSE endpoint. We intercept both so that
- * the job completes immediately and the store dispatches the reply that
- * triggers TTS.
+ * The store uses POST /run (returns a job_id) + GET /job/:id polling.
+ * We intercept both, plus GET /sessions/:id so the session reload delivers
+ * the AI reply to the store and TTS fires once the response is in messages.
+ *
+ * Approach mirrors chat-interactions.spec.js:
+ *   1. Capture session_id from the POST /run body.
+ *   2. Return session_id in the GET /job/:id completion payload so the store
+ *      follows the session-reload code path (not local-append).
+ *   3. Intercept GET /sessions/:id to return a synthetic session that already
+ *      contains the AI reply — since the real PHP worker never ran, the DB
+ *      only has the user message and the reload would otherwise overwrite
+ *      messages with an empty assistant turn.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function interceptStream( page ) {
-	// Intercept POST /run — returns a synthetic job_id.
+	// Track the session_id created by the store before POST /run fires.
+	let capturedSessionId = null;
+
+	// Intercept POST /run — capture session_id from the request body and
+	// return a synthetic job_id.
 	await page.route( /gratis-ai-agent\/v1\/run/, async ( route ) => {
+		try {
+			const postBody = route.request().postDataJSON();
+			if ( postBody?.session_id ) {
+				capturedSessionId = postBody.session_id;
+			}
+		} catch {
+			// Ignore parse failures — capturedSessionId stays null, triggering
+			// the local-append fallback path in pollJob.
+		}
 		await route.fulfill( {
 			status: 200,
 			contentType: 'application/json',
@@ -137,22 +158,45 @@ async function interceptStream( page ) {
 		} );
 	} );
 
-	// Intercept GET /job/:id — returns complete immediately with AI reply.
-	// Omit session_id so the store takes the local-append path
-	// (dispatch.appendMessage) rather than fetching the real session from the
-	// server. The real session has no AI reply (the run was mocked), so
-	// including session_id would cause the store to reload from the DB and
-	// replace messages with only the user message — preventing TTS from firing.
+	// Intercept GET /job/:id — return complete with session_id so the store
+	// attempts a session reload (intercepted below to include the AI reply).
 	await page.route( /gratis-ai-agent\/v1\/job\//, async ( route ) => {
 		await route.fulfill( {
 			status: 200,
 			contentType: 'application/json',
 			body: JSON.stringify( {
 				status: 'complete',
+				session_id: capturedSessionId,
 				reply: 'Hello from the AI!',
 			} ),
 		} );
 	} );
+
+	// Intercept GET /sessions/:id — return a synthetic session that already
+	// contains both the user message and the AI reply. Without this, the store
+	// would load the real DB session (which has no AI reply since /run was
+	// mocked) and overwrite messages, leaving the last message as 'user' so
+	// the TTS effect's role check (`lastMsg.role !== 'model'`) returns early.
+	await page.route(
+		/gratis-ai-agent\/v1\/sessions\/\d+$/,
+		async ( route ) => {
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( {
+					id: capturedSessionId,
+					messages: [
+						{ role: 'user', parts: [ { text: 'Hello' } ] },
+						{
+							role: 'model',
+							parts: [ { text: 'Hello from the AI!' } ],
+						},
+					],
+					tool_calls: [],
+				} ),
+			} );
+		}
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,8 +291,7 @@ test.describe( 'TTS Settings Tab', () => {
 		// Wait for settings to finish loading so the TTS section is rendered.
 		await page
 			.locator( '.gratis-ai-agent-settings-loading' )
-			.waitFor( { state: 'hidden', timeout: 15_000 } )
-			.catch( () => {} );
+			.waitFor( { state: 'hidden', timeout: 15_000 } );
 	} );
 
 	test( 'Text-to-Speech settings are present in the General tab', async ( {

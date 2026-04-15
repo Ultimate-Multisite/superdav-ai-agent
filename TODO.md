@@ -349,7 +349,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t181
+- [x] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t181 pr:#952 completed:2026-04-15
   - NEW: src/components/FeedbackConsentModal.js — modal with: (1) summary stats (message count, tool call count, environment keys), (2) collapsible "View full payload" section showing the actual sanitized JSON that will be sent, (3) privacy notice: "No passwords, API keys, or credentials are included. Server paths are anonymized. Review the full payload below.", (4) optional user description textarea, (5) "Strip tool results" checkbox for aggressive privacy, (6) "Send Report" and "Dismiss" buttons
   - Wire to Redux store: dispatches sendFeedbackReport async thunk on confirm
   - EDIT: src/store/slices/sessionsSlice.js — add sendFeedbackReport thunk that calls ReportBuilder via new REST proxy endpoint

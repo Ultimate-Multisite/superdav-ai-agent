@@ -24,9 +24,9 @@ class ReportBuilder {
 	 * Used to scope thumbs-down reports to a relevant context window rather than
 	 * sending the full conversation (t186).
 	 *
-	 * @param array<int, mixed> $messages     Full messages array.
-	 * @param int               $message_index Zero-based index of the target message.
-	 * @return array<int, mixed> Sliced array (values re-indexed).
+	 * @param array<int, array<string, mixed>> $messages     Full messages array.
+	 * @param int                              $message_index Zero-based index of the target message.
+	 * @return array<int, array<string, mixed>> Sliced array (values re-indexed).
 	 */
 	private static function slice_message_context( array $messages, int $message_index ): array {
 		$total = count( $messages );

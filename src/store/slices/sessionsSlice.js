@@ -69,6 +69,10 @@ export const initialState = {
 	// round-trip returning "Untitled" from the server does not overwrite a title
 	// that was already delivered via the SSE done event.
 	pendingTitles: {},
+
+	// Inability-reported flag (t185) — set when the AI calls report-inability.
+	// { reason: string, attempted_steps: string[] } or null.
+	inabilityReported: null,
 };
 
 export const actions = {
@@ -322,6 +326,18 @@ export const actions = {
 	 */
 	setLastUserMessage( message ) {
 		return { type: 'SET_LAST_USER_MESSAGE', message };
+	},
+
+	/**
+	 * Set or clear the inability-reported data (t185).
+	 * Set to an object { reason, attempted_steps } when the AI calls
+	 * report-inability; set to null to dismiss the banner.
+	 *
+	 * @param {Object|null} data - Inability data or null.
+	 * @return {Object} Redux action.
+	 */
+	setInabilityReported( data ) {
+		return { type: 'SET_INABILITY_REPORTED', data };
 	},
 
 	/**
@@ -712,6 +728,7 @@ export const actions = {
 			dispatch.setIsStreaming( false );
 			dispatch.setStreamingText( '' );
 			dispatch.setStreamError( false );
+			dispatch.setInabilityReported( null );
 			dispatch.setLastUserMessage( message );
 
 			// Build message parts — text first, then image attachments.
@@ -1119,6 +1136,14 @@ export const actions = {
 							);
 						}
 
+						// Handle inability-reported flag (t185).
+						// Set when the AI called report-inability ability.
+						if ( result.inability_reported ) {
+							dispatch.setInabilityReported(
+								result.inability_reported
+							);
+						}
+
 						dispatch.fetchSessions();
 					}
 				} catch {
@@ -1418,6 +1443,17 @@ export const selectors = {
 	},
 
 	/**
+	 * Get inability-reported data (t185).
+	 * Returns the data object { reason, attempted_steps } or null.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {Object|null} Inability data or null.
+	 */
+	getInabilityReported( state ) {
+		return state.inabilityReported || null;
+	},
+
+	/**
 	 * @param {import('../../types').StoreState} state
 	 * @return {Session[]} Sessions shared with all admins.
 	 */
@@ -1564,6 +1600,8 @@ export function reducer( state, action ) {
 			return { ...state, streamError: action.error };
 		case 'SET_LAST_USER_MESSAGE':
 			return { ...state, lastUserMessage: action.message };
+		case 'SET_INABILITY_REPORTED':
+			return { ...state, inabilityReported: action.data };
 		case 'SET_SHARED_SESSIONS':
 			return {
 				...state,

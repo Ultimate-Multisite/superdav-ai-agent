@@ -6,6 +6,10 @@ $vendorDir = dirname(__DIR__);
 $baseDir   = dirname($vendorDir);
 
 return array(
+	'SzepeViktor\\PHPStan\\WordPress\\' => array(
+		'version' => '2.0.3.0',
+		'path'    => array( $vendorDir . '/szepeviktor/phpstan-wordpress/src' )
+	),
 	'Symfony\\Polyfill\\Mbstring\\' => array(
 		'version' => '1.33.0.0',
 		'path'    => array( $vendorDir . '/symfony/polyfill-mbstring' )
@@ -18,6 +22,14 @@ return array(
 		'version' => '1.1.0.0',
 		'path'    => array( $vendorDir . '/pondermatic/composer-archive-project/src' )
 	),
+	'PhpParser\\' => array(
+		'version' => '5.7.0.0',
+		'path'    => array( $vendorDir . '/nikic/php-parser/lib/PhpParser' )
+	),
+	'PHPCSStandards\\Composer\\Plugin\\Installers\\PHPCodeSniffer\\' => array(
+		'version' => '1.2.0.0',
+		'path'    => array( $vendorDir . '/dealerdirect/phpcodesniffer-composer-installer/src' )
+	),
 	'GratisAiAgent\\Tests\\' => array(
 		'version' => 'dev-main',
 		'path'    => array( $baseDir . '/tests/GratisAiAgent' )
@@ -25,6 +37,14 @@ return array(
 	'GratisAiAgent\\' => array(
 		'version' => 'dev-main',
 		'path'    => array( $baseDir . '/includes' )
+	),
+	'Doctrine\\Instantiator\\' => array(
+		'version' => '2.0.0.0',
+		'path'    => array( $vendorDir . '/doctrine/instantiator/src/Doctrine/Instantiator' )
+	),
+	'DeepCopy\\' => array(
+		'version' => '1.13.4.0',
+		'path'    => array( $vendorDir . '/myclabs/deep-copy/src/DeepCopy' )
 	),
 	'Automattic\\Jetpack\\Autoloader\\' => array(
 		'version' => '5.0.16',

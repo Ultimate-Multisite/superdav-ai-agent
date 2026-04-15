@@ -191,6 +191,19 @@ parameters:
 		  identifier: argument.type
 		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(string\): string given#'
 		  identifier: argument.type
+		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(array\): array given#'
+		  identifier: argument.type
+		# Feedback classes: typed typed-array parameters from json_decode output — safe at runtime
+		# array<mixed, mixed> variant: from raw json_decode without is_array guard
+		- message: '#expects array<int, array<string, mixed>>, array<mixed, mixed> given#'
+		  identifier: argument.type
+		# array<mixed> variant: from is_array() guarded json_decode (treatPhpDocTypesAsCertain: false)
+		- message: '#expects array<int, array<string, mixed>>, array<mixed> given#'
+		  identifier: argument.type
+		# wp_remote_post: our array shape is compatible at runtime — the stubs require a wider shape
+		# than our literal-type args provide (Content-Type: 'application/json' vs string).
+		- message: '#\$args of function wp_remote_post expects array\{method\?#'
+		  identifier: argument.type
 		# get_posts() with mixed args — safe when value is from trusted source
 		- message: '#\$args of function get_posts expects array#'
 		  identifier: argument.type

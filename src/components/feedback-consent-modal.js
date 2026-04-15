@@ -19,6 +19,11 @@ import apiFetch from '@wordpress/api-fetch';
  *   5. "Strip tool results" checkbox for aggressive privacy.
  *   6. "Send Report" and "Dismiss" buttons.
  *
+ * Features (t186):
+ *   7. Optional messageIndex prop: when set, the payload is scoped to the targeted
+ *      message ± 2 surrounding messages rather than the full conversation.
+ *   8. "Include full conversation" checkbox, visible only when messageIndex is set.
+ *
  * @param {Object}   props                      - Component props.
  * @param {string}   props.reportType           - Type of report sent in the
  *                                              payload: 'user_reported',
@@ -28,6 +33,12 @@ import apiFetch from '@wordpress/api-fetch';
  *                                              Editable by the user before sending.
  * @param {number}   [props.sessionId]          - Current session ID used to build
  *                                              the payload preview and the report.
+ * @param {number}   [props.messageIndex]       - Zero-based index of the specific
+ *                                              message that triggered the report.
+ *                                              When provided, the payload includes
+ *                                              only that message ± 2 context messages
+ *                                              unless the user opts into the full
+ *                                              conversation via the checkbox.
  * @param {Function} props.onClose              - Called when the modal should close.
  * @return {JSX.Element} The feedback consent modal element.
  */
@@ -35,10 +46,15 @@ export default function FeedbackConsentModal( {
 	reportType,
 	userDescription = '',
 	sessionId,
+	messageIndex,
 	onClose,
 } ) {
 	const [ description, setDescription ] = useState( userDescription );
 	const [ stripToolResults, setStripToolResults ] = useState( false );
+	// When messageIndex is provided, the payload is scoped to that message ± 2.
+	// The user can opt out of the scope restriction by checking this box (t186).
+	const [ includeFullConversation, setIncludeFullConversation ] =
+		useState( false );
 	const [ isSending, setIsSending ] = useState( false );
 	const [ isSent, setIsSent ] = useState( false );
 	const [ error, setError ] = useState( null );
@@ -76,7 +92,8 @@ export default function FeedbackConsentModal( {
 	}, [ onClose ] );
 
 	// Fetch payload preview from the server when sessionId is present.
-	// Re-fetch whenever stripToolResults changes so the preview stays accurate.
+	// Re-fetch whenever stripToolResults, includeFullConversation, or messageIndex
+	// changes so the preview stays accurate (t186: scoped vs full context).
 	useEffect( () => {
 		if ( ! sessionId ) {
 			return;
@@ -86,11 +103,21 @@ export default function FeedbackConsentModal( {
 		setPreviewLoading( true );
 		setPreview( null );
 
-		apiFetch( {
-			path: `/gratis-ai-agent/v1/feedback/preview?session_id=${ sessionId }&strip_tool_results=${
-				stripToolResults ? '1' : '0'
-			}`,
-		} )
+		// Build the preview query: include message_index only when the user has
+		// not opted into the full conversation and a specific message was targeted.
+		const useMessageScope =
+			messageIndex !== undefined &&
+			messageIndex !== null &&
+			! includeFullConversation;
+
+		let path = `/gratis-ai-agent/v1/feedback/preview?session_id=${ sessionId }&strip_tool_results=${
+			stripToolResults ? '1' : '0'
+		}`;
+		if ( useMessageScope ) {
+			path += `&message_index=${ messageIndex }`;
+		}
+
+		apiFetch( { path } )
 			.then( ( data ) => {
 				if ( ! cancelled ) {
 					setPreview( data );
@@ -111,21 +138,33 @@ export default function FeedbackConsentModal( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ sessionId, stripToolResults ] );
+	}, [ sessionId, stripToolResults, messageIndex, includeFullConversation ] );
 
 	const handleSend = useCallback( async () => {
 		setIsSending( true );
 		setError( null );
 		try {
+			// Include message_index when the payload should be scoped to the
+			// specific message and its surrounding context (t186).
+			const useMessageScope =
+				messageIndex !== undefined &&
+				messageIndex !== null &&
+				! includeFullConversation;
+
+			const postData = {
+				report_type: reportType,
+				user_description: description,
+				session_id: sessionId ?? 0,
+				strip_tool_results: stripToolResults,
+			};
+			if ( useMessageScope ) {
+				postData.message_index = messageIndex;
+			}
+
 			await apiFetch( {
 				path: '/gratis-ai-agent/v1/feedback/send',
 				method: 'POST',
-				data: {
-					report_type: reportType,
-					user_description: description,
-					session_id: sessionId ?? 0,
-					strip_tool_results: stripToolResults,
-				},
+				data: postData,
 			} );
 			setIsSent( true );
 			// Auto-close after a short confirmation delay.
@@ -139,7 +178,15 @@ export default function FeedbackConsentModal( {
 			);
 			setIsSending( false );
 		}
-	}, [ reportType, description, sessionId, stripToolResults, onClose ] );
+	}, [
+		reportType,
+		description,
+		sessionId,
+		stripToolResults,
+		messageIndex,
+		includeFullConversation,
+		onClose,
+	] );
 
 	const summary = preview?.summary;
 
@@ -238,6 +285,32 @@ export default function FeedbackConsentModal( {
 									) }
 								</div>
 							) }
+
+							{ /* Full conversation opt-in — only shown for thumbs-down (messageIndex is set) */ }
+							{ sessionId &&
+								messageIndex !== undefined &&
+								messageIndex !== null && (
+									<label
+										htmlFor="gratis-ai-agent-full-conversation"
+										className="gratis-ai-agent-feedback-modal__strip-label"
+									>
+										<input
+											id="gratis-ai-agent-full-conversation"
+											type="checkbox"
+											className="gratis-ai-agent-feedback-modal__strip-checkbox"
+											checked={ includeFullConversation }
+											onChange={ ( e ) =>
+												setIncludeFullConversation(
+													e.target.checked
+												)
+											}
+										/>
+										{ __(
+											'Include full conversation (by default only the selected response and 2 surrounding messages are sent)',
+											'gratis-ai-agent'
+										) }
+									</label>
+								) }
 
 							{ /* Strip tool results checkbox */ }
 							{ sessionId && (

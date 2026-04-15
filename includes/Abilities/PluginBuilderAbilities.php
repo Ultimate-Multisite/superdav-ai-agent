@@ -445,7 +445,6 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 
 	protected function execute_callback( $input ): array|\WP_Error {
 		$slug        = (string) ( $input['slug'] ?? '' );
-		/** @var array<string, string> $files */
 		$files       = (array) ( $input['files'] ?? [] );
 		$plugin_file = (string) ( $input['plugin_file'] ?? '' );
 
@@ -459,6 +458,7 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 			return new WP_Error( 'gratis_ai_agent_invalid_plugin_file', __( 'plugin_file is required.', 'gratis-ai-agent' ) );
 		}
 
+		/** @var array<string, string> $files */
 		return PluginUpdater::update( $slug, $files, $plugin_file );
 	}
 

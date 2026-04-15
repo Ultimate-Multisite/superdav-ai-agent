@@ -176,9 +176,9 @@ INSTRUCTION;
 		preg_match_all( $pattern, $raw, $matches, PREG_SET_ORDER );
 
 		foreach ( $matches as $match ) {
-			$path            = trim( $match[1] );
-			$code            = $match[2];
-			$files[ $path ]  = $code;
+			$path           = trim( $match[1] );
+			$code           = $match[2];
+			$files[ $path ] = $code;
 		}
 
 		// Fallback: if no blocks found, treat entire output as the main file.

@@ -285,6 +285,7 @@ class PluginSandbox {
 			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS )
 		);
 		foreach ( $iterator as $file ) {
+			/** @var \SplFileInfo $file */
 			if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
 				$real_path = $file->getRealPath();
 				if ( false !== $real_path ) {

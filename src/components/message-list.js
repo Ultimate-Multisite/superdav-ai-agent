@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useSelect, useDispatch } from '@wordpress/data';
-import { useRef, useEffect } from '@wordpress/element';
+import { useRef, useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Spinner } from '@wordpress/components';
 
@@ -15,6 +15,7 @@ import MarkdownMessage from './markdown-message';
 import MessageActions from './message-actions';
 import DebugPanel from './debug-panel';
 import ActionCard from './action-card';
+import FeedbackConsentModal from './feedback-consent-modal';
 import { getBranding } from '../utils/branding';
 import useTextToSpeech from './use-text-to-speech';
 import { MessageTokenAnnotation } from './token-counter';
@@ -285,6 +286,7 @@ export default function MessageList() {
 		currentSessionId,
 		sessionJobs,
 		inabilityReported,
+		feedbackBanner,
 	} = useSelect( ( select ) => {
 		const store = select( STORE_NAME );
 		return {
@@ -305,6 +307,7 @@ export default function MessageList() {
 			currentSessionId: store.getCurrentSessionId(),
 			sessionJobs: store.getSessionJobs(),
 			inabilityReported: store.getInabilityReported(),
+			feedbackBanner: store.getFeedbackBanner(),
 		};
 	}, [] );
 
@@ -321,7 +324,12 @@ export default function MessageList() {
 		rejectToolCall,
 		retryLastMessage,
 		setInabilityReported,
+		setFeedbackBanner,
 	} = useDispatch( STORE_NAME );
+
+	// Local state: whether the feedback consent modal is open (t183).
+	const [ feedbackModalOpen, setFeedbackModalOpen ] = useState( false );
+
 	const messagesRef = useRef( null );
 
 	// TTS hook — configured from store state.
@@ -521,6 +529,47 @@ export default function MessageList() {
 						</Button>
 					</div>
 				</div>
+			) }
+			{ feedbackBanner && ! sending && (
+				<div className="gratis-ai-agent-message-row gratis-ai-agent-feedback-banner">
+					<div className="gratis-ai-agent-feedback-banner__content">
+						<p className="gratis-ai-agent-feedback-banner__text">
+							{ __(
+								'The AI had trouble completing your request. Would you like to send a report to help us improve?',
+								'gratis-ai-agent'
+							) }
+						</p>
+						<div className="gratis-ai-agent-feedback-banner__actions">
+							<Button
+								variant="secondary"
+								className="gratis-ai-agent-feedback-banner__send-btn"
+								onClick={ () => setFeedbackModalOpen( true ) }
+							>
+								{ __( 'Send Report', 'gratis-ai-agent' ) }
+							</Button>
+							<Button
+								variant="link"
+								className="gratis-ai-agent-feedback-banner__dismiss"
+								onClick={ () => setFeedbackBanner( null ) }
+								aria-label={ __(
+									'Dismiss feedback notice',
+									'gratis-ai-agent'
+								) }
+							>
+								{ __( 'Dismiss', 'gratis-ai-agent' ) }
+							</Button>
+						</div>
+					</div>
+				</div>
+			) }
+			{ feedbackModalOpen && feedbackBanner && (
+				<FeedbackConsentModal
+					reportType={ feedbackBanner.exitReason }
+					onClose={ () => {
+						setFeedbackModalOpen( false );
+						setFeedbackBanner( null );
+					} }
+				/>
 			) }
 			{ sending && ! isStreaming && ! pendingActionCard && (
 				<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-thinking">

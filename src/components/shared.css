@@ -569,3 +569,46 @@
 	padding: 12px 20px 16px;
 	border-top: 1px solid #dcdcde;
 }
+
+/* ── Feedback banner (t183) ────────────────────────────────────────────────── */
+.gratis-ai-agent-feedback-banner {
+	margin: 4px 0;
+}
+
+.gratis-ai-agent-feedback-banner__content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	background: #fff8e5;
+	border: 1px solid #f0c540;
+	border-radius: 4px;
+	padding: 10px 14px;
+	font-size: 13px;
+}
+
+.gratis-ai-agent-feedback-banner__text {
+	margin: 0;
+	color: #1d2327;
+	flex: 1;
+}
+
+.gratis-ai-agent-feedback-banner__actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.gratis-ai-agent-feedback-banner__send-btn {
+	font-size: 12px !important;
+	padding: 4px 10px !important;
+	height: auto !important;
+	min-height: 0 !important;
+}
+
+.gratis-ai-agent-feedback-banner__dismiss {
+	font-size: 12px !important;
+	color: #646970 !important;
+	text-decoration: none !important;
+}

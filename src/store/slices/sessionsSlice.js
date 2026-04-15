@@ -73,6 +73,10 @@ export const initialState = {
 	// Inability-reported flag (t185) — set when the AI calls report-inability.
 	// { reason: string, attempted_steps: string[] } or null.
 	inabilityReported: null,
+
+	// Feedback banner (t183) — set when the AI exits due to spin/timeout/max_iterations.
+	// { exitReason: string } or null.
+	feedbackBanner: null,
 };
 
 export const actions = {
@@ -338,6 +342,18 @@ export const actions = {
 	 */
 	setInabilityReported( data ) {
 		return { type: 'SET_INABILITY_REPORTED', data };
+	},
+
+	/**
+	 * Set or clear the feedback banner (t183).
+	 * Set to an object { exitReason } when the AI exits due to
+	 * spin_detected, timeout, or max_iterations; set to null to dismiss.
+	 *
+	 * @param {Object|null} data - Banner data or null.
+	 * @return {Object} Redux action.
+	 */
+	setFeedbackBanner( data ) {
+		return { type: 'SET_FEEDBACK_BANNER', data };
 	},
 
 	/**
@@ -729,6 +745,7 @@ export const actions = {
 			dispatch.setStreamingText( '' );
 			dispatch.setStreamError( false );
 			dispatch.setInabilityReported( null );
+			dispatch.setFeedbackBanner( null );
 			dispatch.setLastUserMessage( message );
 
 			// Build message parts — text first, then image attachments.
@@ -1064,6 +1081,13 @@ export const actions = {
 								},
 							],
 						} );
+						// WP_Error max_iterations — show feedback banner (t183).
+						const errMsg = result.message || '';
+						if ( /max.?iteration/i.test( errMsg ) ) {
+							dispatch.setFeedbackBanner( {
+								exitReason: 'max_iterations',
+							} );
+						}
 					}
 
 					if ( result.status === 'complete' ) {
@@ -1142,6 +1166,23 @@ export const actions = {
 							dispatch.setInabilityReported(
 								result.inability_reported
 							);
+						}
+
+						// Show feedback banner on problematic exit reasons (t183).
+						// spin_detected and timeout arrive as exit_reason on the
+						// complete result; max_iterations may also arrive here
+						// (distinct from the WP_Error path above).
+						const FEEDBACK_EXIT_REASONS = [
+							'spin_detected',
+							'timeout',
+							'max_iterations',
+						];
+						if (
+							FEEDBACK_EXIT_REASONS.includes( result.exit_reason )
+						) {
+							dispatch.setFeedbackBanner( {
+								exitReason: result.exit_reason,
+							} );
 						}
 
 						dispatch.fetchSessions();
@@ -1454,6 +1495,17 @@ export const selectors = {
 	},
 
 	/**
+	 * Get feedback banner data (t183).
+	 * Returns { exitReason } when the AI exited due to spin/timeout/max_iterations, or null.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {Object|null} Feedback banner data or null.
+	 */
+	getFeedbackBanner( state ) {
+		return state.feedbackBanner || null;
+	},
+
+	/**
 	 * @param {import('../../types').StoreState} state
 	 * @return {Session[]} Sessions shared with all admins.
 	 */
@@ -1514,6 +1566,7 @@ export function reducer( state, action ) {
 				sessionTokens: 0,
 				sessionCost: 0,
 				messageTokens: [],
+				feedbackBanner: null,
 			};
 		case 'SET_SENDING':
 			return { ...state, sending: action.sending };
@@ -1602,6 +1655,8 @@ export function reducer( state, action ) {
 			return { ...state, lastUserMessage: action.message };
 		case 'SET_INABILITY_REPORTED':
 			return { ...state, inabilityReported: action.data };
+		case 'SET_FEEDBACK_BANNER':
+			return { ...state, feedbackBanner: action.data };
 		case 'SET_SHARED_SESSIONS':
 			return {
 				...state,

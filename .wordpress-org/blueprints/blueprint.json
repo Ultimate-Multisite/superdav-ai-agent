@@ -22,12 +22,9 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "zip",
-        "inner": {
-          "resource": "git:directory",
-          "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent",
-          "ref": "v1.5.0"
-        }
+        "resource": "url",
+        "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip",
+        "caption": "Downloading AI Agent..."
       },
       "options": {
         "activate": true
@@ -66,12 +63,9 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "zip",
-        "inner": {
-          "resource": "git:directory",
-          "url": "https://github.com/Ultimate-Multisite/ai-provider-for-anthropic-max",
-          "ref": "HEAD"
-        }
+        "resource": "url",
+        "url": "https://github.com/Ultimate-Multisite/ai-provider-for-anthropic-max/releases/latest/download/ai-provider-for-anthropic-max.zip",
+        "caption": "Downloading AI Provider for Anthropic Max..."
       },
       "options": {
         "activate": true
@@ -80,12 +74,9 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "zip",
-        "inner": {
-          "resource": "git:directory",
-          "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-compatible-endpoints",
-          "ref": "HEAD"
-        }
+        "resource": "url",
+        "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-compatible-endpoints/releases/latest/download/ultimate-ai-connector-compatible-endpoints.zip",
+        "caption": "Downloading AI Provider for Any Compatible Endpoint..."
       },
       "options": {
         "activate": true

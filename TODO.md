@@ -611,6 +611,10 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
 - [x] t058 Add WordPress Playground blueprint for instant demo @superdav42 #devops ~2h logged:2026-03-14 pr:#403 ref=GH#400
 - [x] t059 Update .distignore for clean plugin packaging @superdav42 #devops ~1h logged:2026-03-14 pr:#168 completed:2026-03-15
 
+## Routines
+
+- [x] r010 Triage incoming feedback reports repeat:daily(@09:00) ~15m agent:Build+ ref:GH#944
+
 ## Done
 
 - [x] t000 Install dependencies and verify code quality baseline verified:2026-03-14 completed:2026-03-14

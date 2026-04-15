@@ -235,7 +235,7 @@ async function goToGeneralTab( page ) {
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 
 	// The SettingsRoute outer TabPanel (class: gratis-ai-settings-tabs) has
@@ -264,7 +264,7 @@ async function goToGeneralTab( page ) {
 	// widget's "General" tab.
 	const innerGeneralTab = page
 		.locator(
-			'.gratis-ai-route-settings .gratis-ai-agent-settings-tab'
+			'.gratis-ai-agent-route-settings .gratis-ai-agent-settings-tab'
 		)
 		.filter( { hasText: /^general$/i } );
 	await innerGeneralTab.click();
@@ -526,7 +526,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 
 	/**
 	 * Navigate to the admin page and wait for the AdminPageApp to mount inside
-	 * #gratis-ai-chat-container. The unified admin's ChatRoute calls
+	 * #gratis-ai-agent-chat-container. The unified admin's ChatRoute calls
 	 * window.gratisAiAgentChat.mount() which renders AdminPageApp. AdminPageApp
 	 * returns null until settingsLoaded=true, then renders the chat UI including
 	 * BudgetIndicator. Wait for the non-compact chat panel to confirm hydration.
@@ -538,9 +538,9 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		await page.waitForLoadState( 'domcontentloaded' );
 		// Wait for the unified admin SPA to render.
 		await page
-			.locator( '.gratis-ai-unified-admin' )
+			.locator( '.gratis-ai-agent-unified-admin' )
 			.waitFor( { state: 'visible', timeout: 15_000 } );
-		// Wait for the AdminPageApp to mount inside #gratis-ai-chat-container.
+		// Wait for the AdminPageApp to mount inside #gratis-ai-agent-chat-container.
 		// The non-compact chat panel confirms the app has hydrated past the
 		// settingsLoaded=false null-return guard.
 		await page
@@ -566,7 +566,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// widget's hidden budget indicator (which also returns null when no caps).
 		await expect(
 			page.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-budget-indicator'
 			)
 		).toHaveCount( 0 );
 	} );
@@ -588,7 +588,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// the floating widget's hidden budget indicator.
 		const indicator = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-budget-indicator'
 			)
 			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
@@ -617,7 +617,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// Scope to the non-compact (admin page) chat panel.
 		const indicator = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-budget-indicator'
 			)
 			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
@@ -646,7 +646,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// Scope to the non-compact (admin page) chat panel.
 		const indicator = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-budget-indicator'
 			)
 			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );
@@ -676,7 +676,7 @@ test.describe( 'Spending Limits — Budget Indicator (GH#651)', () => {
 		// Scope to the non-compact (admin page) chat panel.
 		const indicator = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-budget-indicator'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-budget-indicator'
 			)
 			.first();
 		await expect( indicator ).toBeVisible( { timeout: 10_000 } );

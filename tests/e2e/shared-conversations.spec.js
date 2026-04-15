@@ -249,16 +249,16 @@ async function setupMocks( page, options = {} ) {
  * React render cycle that follows the intercepted sessions list response.
  * Even though goToAgentPage() waits for the sessions response, there is still
  * a brief async gap between the store receiving the data and React committing
- * the DOM update that produces .ai-agent-session-item nodes.
+ * the DOM update that produces .gratis-ai-agent-session-item nodes.
  *
  * @param {import('@playwright/test').Page} page
  */
 async function openFirstSessionContextMenu( page ) {
-	const sessionItem = page.locator( '.ai-agent-session-item' ).first();
+	const sessionItem = page.locator( '.gratis-ai-agent-session-item' ).first();
 	await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
 	// Hover to reveal the ⋯ button, then click it.
 	await sessionItem.hover();
-	await sessionItem.locator( '.ai-agent-session-more' ).click();
+	await sessionItem.locator( '.gratis-ai-agent-session-more' ).click();
 }
 
 /**
@@ -378,7 +378,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// Use a 10 s timeout to accommodate the async gap between the store
 			// receiving the sessions response and React committing the DOM update.
 			await expect(
-				page.locator( '.ai-agent-session-item' ).first()
+				page.locator( '.gratis-ai-agent-session-item' ).first()
 			).toBeVisible( {
 				timeout: 10_000,
 			} );
@@ -388,7 +388,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// to appear in case there is a brief re-render cycle.
 			const sharedIcon = page
 				.locator(
-					'.ai-agent-session-item.is-shared .ai-agent-shared-icon'
+					'.gratis-ai-agent-session-item.is-shared .gratis-ai-agent-shared-icon'
 				)
 				.first();
 			await expect( sharedIcon ).toBeVisible( { timeout: 10_000 } );
@@ -562,7 +562,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// Use a 10 s timeout to accommodate the async gap between the store
 			// receiving the response and React committing the DOM update.
 			const sessionTitle = page
-				.locator( '.ai-agent-session-item' )
+				.locator( '.gratis-ai-agent-session-item' )
 				.filter( {
 					hasText: MOCK_SESSION.title,
 				} );
@@ -584,7 +584,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await goToAgentPage( page );
 			await clickSharedTab( page );
 
-			const emptyState = page.locator( '.ai-agent-session-empty' );
+			const emptyState = page.locator( '.gratis-ai-agent-session-empty' );
 			await expect( emptyState ).toBeVisible();
 			await expect( emptyState ).toContainText(
 				/no shared conversations/i
@@ -603,7 +603,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// Create an isolated context for the second admin.
 			// Pass baseURL so relative URLs in loginToWordPress/goToAgentPage work.
 			const secondContext = await browser.newContext( {
-				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8890',
 			} );
 			const secondPage = await secondContext.newPage();
 
@@ -636,7 +636,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await sharedResponsePromise;
 
 				const sessionTitle = secondPage
-					.locator( '.ai-agent-session-item' )
+					.locator( '.gratis-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } );
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the response and React committing the DOM update.
@@ -654,7 +654,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			browser,
 		} ) => {
 			const secondContext = await browser.newContext( {
-				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8890',
 			} );
 			const secondPage = await secondContext.newPage();
 
@@ -694,7 +694,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// opening the context menu. The store update and React re-render
 				// happen asynchronously after the HTTP response is received.
 				await expect(
-					secondPage.locator( '.ai-agent-session-item' ).first()
+					secondPage.locator( '.gratis-ai-agent-session-item' ).first()
 				).toBeVisible( { timeout: 10_000 } );
 
 				// Open context menu for the shared session.
@@ -721,7 +721,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			browser,
 		} ) => {
 			const secondContext = await browser.newContext( {
-				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8890',
 			} );
 			const secondPage = await secondContext.newPage();
 
@@ -790,24 +790,24 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the shared sessions response and React committing the DOM update.
 				const sessionItem = secondPage
-					.locator( '.ai-agent-session-item' )
+					.locator( '.gratis-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } )
 					.first();
 				await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
 				await sessionItem.click();
 
 				// Type a message and send it.
-				const input = secondPage.locator( '.ai-agent-input' );
+				const input = secondPage.locator( '.gratis-ai-agent-input' );
 				await expect( input ).toBeVisible();
 				await input.fill( 'Hello from second admin!' );
 
-				const sendButton = secondPage.locator( '.ai-agent-send-btn' );
+				const sendButton = secondPage.locator( '.gratis-ai-agent-send-btn' );
 				await expect( sendButton ).toBeEnabled();
 				await sendButton.click();
 
 				// The user message row should appear (synchronous optimistic update).
 				const messageRow = secondPage
-					.locator( '.ai-agent-message-row' )
+					.locator( '.gratis-ai-agent-message-row' )
 					.first();
 				await expect( messageRow ).toBeVisible( { timeout: 5_000 } );
 			} finally {
@@ -819,7 +819,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			browser,
 		} ) => {
 			const secondContext = await browser.newContext( {
-				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8890',
 			} );
 			const secondPage = await secondContext.newPage();
 
@@ -857,7 +857,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// opening the context menu. The store update and React re-render
 				// happen asynchronously after the HTTP response is received.
 				await expect(
-					secondPage.locator( '.ai-agent-session-item' ).first()
+					secondPage.locator( '.gratis-ai-agent-session-item' ).first()
 				).toBeVisible( { timeout: 10_000 } );
 
 				await openFirstSessionContextMenu( secondPage );
@@ -878,7 +878,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			browser,
 		} ) => {
 			const secondContext = await browser.newContext( {
-				baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+				baseURL: process.env.WP_BASE_URL || 'http://localhost:8890',
 			} );
 			const secondPage = await secondContext.newPage();
 
@@ -916,7 +916,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the response and React committing the DOM update.
 				const sessionTitle = secondPage
-					.locator( '.ai-agent-session-item' )
+					.locator( '.gratis-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } );
 				await expect( sessionTitle.first() ).toBeVisible( {
 					timeout: 10_000,
@@ -941,7 +941,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				// Empty state should be shown.
 				const emptyState = secondPage.locator(
-					'.ai-agent-session-empty'
+					'.gratis-ai-agent-session-empty'
 				);
 				await expect( emptyState ).toBeVisible();
 			} finally {

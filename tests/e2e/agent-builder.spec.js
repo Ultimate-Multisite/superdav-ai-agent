@@ -139,7 +139,7 @@ const AGENT_FIXTURE_UPDATED = {
  *
  * wp-env uses the index.php?rest_route= format (pretty permalinks disabled),
  * so REST API paths appear URL-encoded in the URL string:
- *   http://localhost:8888/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fagents
+ *   http://localhost:8890/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fagents
  *
  * Playwright's page.route() regex matches against the raw (encoded) URL, so
  * literal-slash regexes like /gratis-ai-agent\/v1\/agents/ never match. Using
@@ -317,7 +317,7 @@ async function mockAgentsApi( page, opts = {} ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentBuilder( page ) {
-	return page.locator( '.gratis-ai-agent-agent-builder' );
+	return page.locator( '.gratis-ai-agent-builder' );
 }
 
 /**
@@ -337,7 +337,7 @@ function getAddAgentButton( page ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentForm( page ) {
-	return page.locator( '.gratis-ai-agent-agent-form' );
+	return page.locator( '.gratis-ai-agent-form' );
 }
 
 /**
@@ -377,7 +377,7 @@ function getCancelButton( page ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentCards( page ) {
-	return page.locator( '.gratis-ai-agent-agent-card' );
+	return page.locator( '.gratis-ai-agent-card' );
 }
 
 /**
@@ -404,7 +404,7 @@ function getDeleteButton( card ) {
  * Get the agent selector dropdown in the admin page chat panel.
  *
  * Scoped to the non-compact (admin page) chat panel to avoid matching the
- * floating widget's hidden agent selector (.gratis-ai-agent-agent-selector.is-compact).
+ * floating widget's hidden agent selector (.gratis-ai-agent-selector.is-compact).
  * The floating widget renders AgentSelector with compact=true, adding is-compact.
  *
  * @param {import('@playwright/test').Page} page
@@ -413,7 +413,7 @@ function getDeleteButton( card ) {
 function getAgentSelector( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-agent-selector'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-selector'
 		)
 		.first();
 }
@@ -440,14 +440,14 @@ async function goToAgentsTab( page ) {
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// Click the Agents tab (present in the unified settings route).
 	const tab = page.getByRole( 'tab', { name: /agents/i } );
 	await tab.click();
 	// Wait for the AgentBuilder container to be visible.
 	await page
-		.locator( '.gratis-ai-agent-agent-builder' )
+		.locator( '.gratis-ai-agent-builder' )
 		.waitFor( { state: 'visible', timeout: 15000 } );
 	// Wait for the loading spinner to disappear — signals agentsLoaded=true.
 	// Use a short timeout: if the spinner never appeared (agentsLoaded was
@@ -629,7 +629,7 @@ test.describe( 'Agent Builder - Agent List', () => {
 		// Use a generous timeout for the inner element — the card body renders
 		// asynchronously after the card itself becomes visible.
 		await expect(
-			card.locator( '.gratis-ai-agent-agent-prompt-preview' )
+			card.locator( '.gratis-ai-agent-prompt-preview' )
 		).toContainText( AGENT_FIXTURE.system_prompt.slice( 0, 40 ), {
 			timeout: 10000,
 		} );

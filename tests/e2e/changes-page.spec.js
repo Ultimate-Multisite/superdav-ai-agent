@@ -25,27 +25,27 @@ test.describe( 'Changes Page - Page Load', () => {
 
 	test( 'changes page loads the unified admin app', async ( { page } ) => {
 		// The UnifiedAdminMenu SPA mounts into #gratis-ai-agent-root and
-		// renders .gratis-ai-unified-admin as the top-level wrapper.
+		// renders .gratis-ai-agent-unified-admin as the top-level wrapper.
 		await expect(
 			page.locator( '#gratis-ai-agent-root' )
 		).toBeVisible();
 		await expect(
-			page.locator( '.gratis-ai-unified-admin' )
+			page.locator( '.gratis-ai-agent-unified-admin' )
 		).toBeVisible();
 	} );
 
 	test( 'changes route container is rendered', async ( { page } ) => {
-		// The Router renders ChangesRoute inside .gratis-ai-route-changes
+		// The Router renders ChangesRoute inside .gratis-ai-agent-route-changes
 		// when the hash is #/changes.
 		await expect(
-			page.locator( '.gratis-ai-route-changes' )
+			page.locator( '.gratis-ai-agent-route-changes' )
 		).toBeVisible();
 	} );
 
 	test( 'changes page shows the Changes heading', async ( { page } ) => {
 		// ChangesRoute renders an h2 with "Changes".
 		await expect(
-			page.locator( '.gratis-ai-route-changes' ).getByRole( 'heading', {
+			page.locator( '.gratis-ai-agent-route-changes' ).getByRole( 'heading', {
 				name: /changes/i,
 				level: 2,
 			} )
@@ -55,7 +55,7 @@ test.describe( 'Changes Page - Page Load', () => {
 	test( 'changes page shows descriptive content', async ( { page } ) => {
 		// ChangesRoute renders a description paragraph.
 		await expect(
-			page.locator( '.gratis-ai-route-changes' )
+			page.locator( '.gratis-ai-agent-route-changes' )
 		).toContainText( 'changes' );
 	} );
 

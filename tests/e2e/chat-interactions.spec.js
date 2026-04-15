@@ -173,7 +173,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 	} );
 
@@ -181,7 +181,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Core commands should be listed.
@@ -196,11 +196,11 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/rem' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Only /remember should match /rem.
-		const items = page.locator( '.ai-agent-slash-item' );
+		const items = page.locator( '.gratis-ai-agent-slash-item' );
 		const count = await items.count();
 		expect( count ).toBeGreaterThanOrEqual( 1 );
 
@@ -211,7 +211,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		await input.press( 'Escape' );
@@ -224,11 +224,11 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/new' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Click the /new item.
-		const newItem = page.locator( '.ai-agent-slash-item' ).filter( {
+		const newItem = page.locator( '.gratis-ai-agent-slash-item' ).filter( {
 			hasText: '/new',
 		} );
 		await newItem.click();
@@ -236,7 +236,7 @@ test.describe( 'Slash Command Menu', () => {
 		// Empty state should be visible. Scope to the non-compact chat panel to
 		// avoid matching the floating widget's hidden empty state element.
 		const emptyState = page.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-empty-state'
 		);
 		await expect( emptyState ).toBeVisible();
 	} );
@@ -245,16 +245,16 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/help' );
 
-		const slashMenu = page.locator( '.ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
-		const helpItem = page.locator( '.ai-agent-slash-item' ).filter( {
+		const helpItem = page.locator( '.gratis-ai-agent-slash-item' ).filter( {
 			hasText: '/help',
 		} );
 		await helpItem.click();
 
 		// Shortcuts dialog should open.
-		const shortcutsDialog = page.locator( '.ai-agent-shortcuts-overlay' );
+		const shortcutsDialog = page.locator( '.gratis-ai-agent-shortcuts-overlay' );
 		await expect( shortcutsDialog ).toBeVisible();
 	} );
 } );
@@ -272,7 +272,7 @@ test.describe( 'Provider Selector', () => {
 		// the floating widget's hidden provider selector (is-compact).
 		const providerSelector = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-provider-selector'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-provider-selector'
 			)
 			.first();
 		await expect( providerSelector ).toBeVisible();
@@ -317,7 +317,7 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// item has the is-active class and is the current session. Using
 		// .first() is unreliable when previous tests have left sessions in the
 		// sidebar — the current session may not be the first item.
-		const activeItem = page.locator( '.ai-agent-session-item.is-active' );
+		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
 
 		// The active sidebar item should now display the generated title.
@@ -343,12 +343,12 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.press( 'Enter' );
 
 		// Wait for the active session item.
-		const activeItem = page.locator( '.ai-agent-session-item.is-active' );
+		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
 
 		// The title element inside the active session item should not say "Untitled".
 		// The title arrives via the SSE done event, not a direct store dispatch.
-		const titleEl = activeItem.locator( '.ai-agent-session-title' );
+		const titleEl = activeItem.locator( '.gratis-ai-agent-session-title' );
 		await expect( titleEl ).not.toContainText( 'Untitled', {
 			timeout: 5_000,
 		} );
@@ -373,12 +373,12 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// Wait for the active session item to appear in the sidebar. fetchSessions()
 		// runs after the intercepted stream completes, so the session is in
 		// state.sessions at this point.
-		const activeItem = page.locator( '.ai-agent-session-item.is-active' );
+		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 15_000 } );
 
 		// The intercepted done event carries no generated_title, so the title
 		// should still be "Untitled" (or empty) at this point.
-		const titleEl = activeItem.locator( '.ai-agent-session-title' );
+		const titleEl = activeItem.locator( '.gratis-ai-agent-session-title' );
 		const titleText = await titleEl.textContent();
 		// Title is either empty or "Untitled" — no auto-title was injected.
 		expect(

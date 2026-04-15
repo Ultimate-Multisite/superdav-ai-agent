@@ -150,13 +150,13 @@ test.describe( 'Benchmark Page - Page Render', () => {
 		page,
 	} ) => {
 		// BenchmarkPageApp mounts into #gratis-ai-agent-benchmark-root and
-		// renders .gratis-ai-benchmark-page as its outer wrapper.
+		// renders .gratis-ai-agent-benchmark-page as its outer wrapper.
 		await expect(
 			page.locator( '#gratis-ai-agent-benchmark-root' )
 		).toBeVisible();
 
 		await expect(
-			page.locator( '.gratis-ai-benchmark-page' )
+			page.locator( '.gratis-ai-agent-benchmark-page' )
 		).toBeVisible();
 	} );
 
@@ -164,7 +164,7 @@ test.describe( 'Benchmark Page - Page Render', () => {
 		page,
 	} ) => {
 		// BenchmarkPageApp renders a WordPress TabPanel with two tabs.
-		const tabPanel = page.locator( '.gratis-ai-benchmark-tabs' );
+		const tabPanel = page.locator( '.gratis-ai-agent-benchmark-tabs' );
 		await expect( tabPanel ).toBeVisible();
 
 		// Tabs are rendered as role="tab" buttons.
@@ -237,9 +237,9 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 	test( 'Model Selector renders provider groups with checkboxes', async ( {
 		page,
 	} ) => {
-		// ModelSelector renders .gratis-ai-model-selector with provider groups.
+		// ModelSelector renders .gratis-ai-agent-model-selector with provider groups.
 		// The built-in "WordPress AI Client" group is always present.
-		const modelSelector = page.locator( '.gratis-ai-model-selector' );
+		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
 		await expect( modelSelector ).toBeVisible();
 
 		// At least one provider group heading should be visible.
@@ -275,7 +275,7 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		page,
 	} ) => {
 		// Click the first checkbox in the model selector to select a model.
-		const modelSelector = page.locator( '.gratis-ai-model-selector' );
+		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
 		const firstCheckbox = modelSelector
 			.locator( 'input[type="checkbox"]' )
 			.first();
@@ -289,7 +289,7 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		await expect( firstCheckbox ).toBeChecked();
 
 		// The "N models selected" counter should update to at least 1.
-		const counter = page.locator( '.gratis-ai-model-selector-actions span' );
+		const counter = page.locator( '.gratis-ai-agent-model-selector-actions span' );
 		await expect( counter ).toContainText( '1' );
 	} );
 
@@ -303,7 +303,7 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		await selectAllBtn.click();
 
 		// All checkboxes should now be checked.
-		const modelSelector = page.locator( '.gratis-ai-model-selector' );
+		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
 		const checkboxes = modelSelector.locator( 'input[type="checkbox"]' );
 		const count = await checkboxes.count();
 		expect( count ).toBeGreaterThan( 0 );
@@ -330,7 +330,7 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		await deselectAllBtn.click();
 
 		// All checkboxes should be unchecked.
-		const modelSelector = page.locator( '.gratis-ai-model-selector' );
+		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
 		const checkboxes = modelSelector.locator( 'input[type="checkbox"]' );
 		const count = await checkboxes.count();
 		expect( count ).toBeGreaterThan( 0 );
@@ -355,9 +355,9 @@ test.describe( 'Benchmark Page - Run List', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		// RunList renders .gratis-ai-benchmark-run-list when runs exist.
+		// RunList renders .gratis-ai-agent-benchmark-run-list when runs exist.
 		await expect(
-			page.locator( '.gratis-ai-benchmark-run-list' )
+			page.locator( '.gratis-ai-agent-benchmark-run-list' )
 		).toBeVisible( { timeout: 10_000 } );
 	} );
 
@@ -376,7 +376,7 @@ test.describe( 'Benchmark Page - Run List', () => {
 
 		// The mocked run "Test Run Alpha" should appear in the table.
 		await expect(
-			page.locator( '.gratis-ai-benchmark-run-list' )
+			page.locator( '.gratis-ai-agent-benchmark-run-list' )
 		).toContainText( 'Test Run Alpha', { timeout: 10_000 } );
 	} );
 
@@ -386,7 +386,7 @@ test.describe( 'Benchmark Page - Run List', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		const runList = page.locator( '.gratis-ai-benchmark-run-list' );
+		const runList = page.locator( '.gratis-ai-agent-benchmark-run-list' );
 		await expect( runList ).toBeVisible( { timeout: 10_000 } );
 
 		// Each run row has View and Delete buttons.
@@ -403,9 +403,9 @@ test.describe( 'Benchmark Page - Run List', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		// RunList renders a .gratis-ai-benchmark-status span for each run.
+		// RunList renders a .gratis-ai-agent-benchmark-status span for each run.
 		const statusBadge = page
-			.locator( '.gratis-ai-benchmark-status' )
+			.locator( '.gratis-ai-agent-benchmark-status' )
 			.first();
 		await expect( statusBadge ).toBeVisible( { timeout: 10_000 } );
 		await expect( statusBadge ).toContainText( 'completed' );
@@ -477,13 +477,13 @@ test.describe( 'Benchmark Page - Empty Run List', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		// RunList renders .gratis-ai-benchmark-empty with "No benchmark runs yet."
+		// RunList renders .gratis-ai-agent-benchmark-empty with "No benchmark runs yet."
 		await expect(
-			page.locator( '.gratis-ai-benchmark-empty' )
+			page.locator( '.gratis-ai-agent-benchmark-empty' )
 		).toBeVisible( { timeout: 10_000 } );
 
 		await expect(
-			page.locator( '.gratis-ai-benchmark-empty' )
+			page.locator( '.gratis-ai-agent-benchmark-empty' )
 		).toContainText( 'No benchmark runs yet.' );
 	} );
 } );

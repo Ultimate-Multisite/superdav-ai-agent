@@ -153,7 +153,7 @@ async function goToBrandingTab( page ) {
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// Click the Branding tab (present in the unified settings route).
 	const tab = page.getByRole( 'tab', { name: /branding/i } );

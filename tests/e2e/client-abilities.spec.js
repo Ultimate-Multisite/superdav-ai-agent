@@ -541,7 +541,7 @@ test.describe( 'client-abilities — no relevant console errors', () => {
 		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
 		await page.waitForLoadState( 'domcontentloaded' );
 		await page
-			.locator( '.gratis-ai-unified-admin' )
+			.locator( '.gratis-ai-agent-unified-admin' )
 			.waitFor( { state: 'visible', timeout: 45_000 } );
 		await waitForAbilitiesRegistered( page );
 

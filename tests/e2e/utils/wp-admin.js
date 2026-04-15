@@ -93,21 +93,21 @@ async function goToAgentPage( page ) {
 	await Promise.all( [ sessionsResponsePromise, sharedSessionsResponsePromise ] );
 
 	// Wait for the unified admin app root to be present. The SPA mounts into
-	// #gratis-ai-agent-root and renders .gratis-ai-unified-admin once React
+	// #gratis-ai-agent-root and renders .gratis-ai-agent-unified-admin once React
 	// has hydrated. This replaces the old .gratis-ai-agent-chat-panel wait which
 	// could time out under CI load when the admin-page bundle is slow to mount.
 	// Use 30 s — WP 6.9 CI runners can be slow to render the SPA even with
 	// 2 parallel workers.
 	await page
-		.locator( '.gratis-ai-unified-admin' )
+		.locator( '.gratis-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 30_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before app renders.
 
 	// Wait for the chat container to be present — ChatRoute mounts the chat
-	// app into #gratis-ai-chat-container. Either the container or the session
+	// app into #gratis-ai-agent-chat-container. Either the container or the session
 	// list / empty state must be visible before we return.
 	await page
-		.locator( '#gratis-ai-chat-container, .ai-agent-session-item, .ai-agent-session-empty' )
+		.locator( '#gratis-ai-agent-chat-container, .gratis-ai-agent-session-item, .gratis-ai-agent-session-empty' )
 		.first()
 		.waitFor( { state: 'visible', timeout: 10_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before list renders.
@@ -151,14 +151,14 @@ function getFloatingButton( page ) {
  * @return {import('@playwright/test').Locator} The floating panel locator.
  */
 function getFloatingPanel( page ) {
-	return page.locator( '.ai-agent-floating-panel' );
+	return page.locator( '.gratis-ai-agent-floating-panel' );
 }
 
 /**
  * Get the chat message input textarea.
  *
  * Scoped to the non-compact (admin page) chat panel to avoid matching the
- * floating widget's hidden .ai-agent-input element. The floating widget
+ * floating widget's hidden .gratis-ai-agent-input element. The floating widget
  * renders ChatPanel with compact=true (adds is-compact class), while the
  * admin page chat panel does not have is-compact.
  *
@@ -167,7 +167,7 @@ function getFloatingPanel( page ) {
  */
 function getMessageInput( page ) {
 	return page
-		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input' )
+		.locator( '.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-input' )
 		.first();
 }
 
@@ -183,7 +183,7 @@ function getMessageInput( page ) {
 function getSendButton( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-send-btn'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-send-btn'
 		)
 		.first();
 }
@@ -200,7 +200,7 @@ function getSendButton( page ) {
 function getStopButton( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-stop-btn'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-stop-btn'
 		)
 		.first();
 }
@@ -217,7 +217,7 @@ function getStopButton( page ) {
 function getMessageList( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-messages'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-messages'
 		)
 		.first();
 }
@@ -233,7 +233,7 @@ function getMessageList( page ) {
  */
 function getMessageRows( page ) {
 	return page.locator(
-		'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+		'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-message-row'
 	);
 }
 
@@ -273,7 +273,7 @@ async function goToChangesPage( page ) {
 	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
 	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.gratis-ai-route-changes' )
+		.locator( '.gratis-ai-agent-route-changes' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -300,7 +300,7 @@ async function goToSettingsPage( page, tabName ) {
 	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
 	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 
 	if ( tabName ) {
@@ -332,13 +332,13 @@ async function goToAbilitiesPage( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for AbilitiesExplorerApp to finish loading abilities.
-	// .ai-agent-abilities-manager is the outer wrapper rendered by
+	// .gratis-ai-agent-abilities-manager is the outer wrapper rendered by
 	// AbilitiesExplorerApp once the REST fetch completes.
 	// Use 45 s — the abilities REST fetch can be slow on CI runners under
 	// load. CI currently uses 2 parallel workers for both WP 6.9 and trunk
 	// to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.ai-agent-abilities-manager' )
+		.locator( '.gratis-ai-agent-abilities-manager' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -362,7 +362,7 @@ async function goToBenchmarkPage( page ) {
 	// Use 30 s to match the Playwright test timeout — the benchmark bundle
 	// can be slow to mount on CI runners under load.
 	await page
-		.locator( '#gratis-ai-agent-benchmark-root, .gratis-ai-benchmark-page' )
+		.locator( '#gratis-ai-agent-benchmark-root, .gratis-ai-agent-benchmark-page' )
 		.first()
 		.waitFor( { state: 'visible', timeout: 30_000 } )
 		.catch( () => {} ); // Non-fatal: some tests may assert on the wrap before React mounts.
@@ -389,7 +389,7 @@ async function waitForMessageSubmitted( page, timeout = 5_000 ) {
 	// floating widget's hidden message rows.
 	await page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-message-row'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-message-row'
 		)
 		.first()
 		.waitFor( { state: 'visible', timeout } );

@@ -175,7 +175,7 @@ test.describe( 'TTS Toggle Button', () => {
 		// the floating widget's hidden TTS button.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();
@@ -187,7 +187,7 @@ test.describe( 'TTS Toggle Button', () => {
 		// Scope to the non-compact (admin page) chat panel.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();
@@ -212,7 +212,7 @@ test.describe( 'TTS Toggle Button', () => {
 		// Scope to the non-compact (admin page) chat panel.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();
@@ -317,7 +317,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// chat panel to avoid matching the floating widget's hidden TTS button.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();
@@ -336,7 +336,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Send a message. Scope to the non-compact chat panel.
 		const input = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-input'
 			)
 			.first();
 		await input.fill( 'Hello' );
@@ -344,7 +344,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 
 		// Wait for the AI message to appear in the chat.
 		await page
-			.locator( '.ai-agent-bubble.ai-agent-assistant' )
+			.locator( '.gratis-ai-agent-bubble.gratis-ai-agent-assistant' )
 			.first()
 			.waitFor( { state: 'visible', timeout: 15_000 } );
 
@@ -370,7 +370,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Ensure TTS is disabled. Scope to the non-compact (admin page) chat panel.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();
@@ -389,7 +389,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Send a message. Scope to the non-compact chat panel.
 		const input = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-input'
 			)
 			.first();
 		await input.fill( 'Hello' );
@@ -397,7 +397,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 
 		// Wait for the AI message to appear.
 		await page
-			.locator( '.ai-agent-bubble.ai-agent-assistant' )
+			.locator( '.gratis-ai-agent-bubble.gratis-ai-agent-assistant' )
 			.first()
 			.waitFor( { state: 'visible', timeout: 15_000 } );
 
@@ -413,7 +413,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Enable TTS. Scope to the non-compact (admin page) chat panel.
 		const ttsBtn = page
 			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-tts-btn'
+				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-tts-btn'
 			)
 			.first();
 		await expect( ttsBtn ).toBeVisible();

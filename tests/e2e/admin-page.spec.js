@@ -31,14 +31,14 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'admin page loads with correct layout', async ( { page } ) => {
-		// The unified admin SPA renders .gratis-ai-unified-admin as the outer
+		// The unified admin SPA renders .gratis-ai-agent-unified-admin as the outer
 		// wrapper. The AdminPageApp (chat UI) is mounted inside
-		// #gratis-ai-chat-container by ChatRoute via window.gratisAiAgentChat.mount().
-		// Scope layout assertions to #gratis-ai-chat-container to avoid matching
+		// #gratis-ai-agent-chat-container by ChatRoute via window.gratisAiAgentChat.mount().
+		// Scope layout assertions to #gratis-ai-agent-chat-container to avoid matching
 		// the floating widget's hidden elements.
-		const chatContainer = page.locator( '#gratis-ai-chat-container' );
+		const chatContainer = page.locator( '#gratis-ai-agent-chat-container' );
 		await expect( chatContainer.locator( '.gratis-ai-agent-layout' ) ).toBeVisible();
-		await expect( chatContainer.locator( '.ai-agent-sidebar' ) ).toBeVisible();
+		await expect( chatContainer.locator( '.gratis-ai-agent-sidebar' ) ).toBeVisible();
 		await expect( chatContainer.locator( '.gratis-ai-agent-main' ) ).toBeVisible();
 	} );
 
@@ -63,7 +63,7 @@ test.describe( 'Admin Page - Chat UI', () => {
 		// Scope to the non-compact (admin page) chat panel to avoid matching
 		// the floating widget's hidden empty state element.
 		const emptyState = page.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-empty-state'
 		);
 		await expect( emptyState ).toBeVisible();
 	} );
@@ -101,7 +101,7 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'sidebar has new chat button', async ( { page } ) => {
-		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
+		const newChatButton = page.locator( '.gratis-ai-agent-new-chat-btn' );
 		await expect( newChatButton ).toBeVisible();
 	} );
 
@@ -131,13 +131,13 @@ test.describe( 'Admin Page - Session Management', () => {
 		await waitForMessageSubmitted( page );
 
 		// Click new chat.
-		const newChatButton = page.locator( '.ai-agent-new-chat-btn' );
+		const newChatButton = page.locator( '.gratis-ai-agent-new-chat-btn' );
 		await newChatButton.click();
 
 		// Empty state should reappear. Scope to the non-compact chat panel to
 		// avoid matching the floating widget's hidden empty state element.
 		const emptyState = page.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-empty-state'
 		);
 		await expect( emptyState ).toBeVisible( { timeout: 5_000 } );
 	} );
@@ -161,7 +161,7 @@ test.describe( 'Admin Page - Session Management', () => {
 		// Use toBeVisible() on the first item rather than toHaveCount(1) because
 		// prior tests in the same run may have created sessions that persist in
 		// the wp-env database across tests.
-		const sessionItems = page.locator( '.ai-agent-session-item' );
+		const sessionItems = page.locator( '.gratis-ai-agent-session-item' );
 		await expect( sessionItems.first() ).toBeVisible( { timeout: 10_000 } );
 	} );
 } );
@@ -190,7 +190,7 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 		// Scope to the non-compact chat panel to avoid matching the floating
 		// widget's hidden empty state element.
 		const emptyState = page.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-empty-state'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-empty-state'
 		);
 		await expect( emptyState ).toBeVisible( { timeout: 5_000 } );
 	} );
@@ -234,7 +234,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 * @return {Promise<number>} The total ability count shown in the UI.
 	 */
 	async function getTotalAbilityCount( page ) {
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toBeVisible();
 		const text = await countEl.textContent();
 		// "Showing X of N abilities" → capture N
@@ -257,7 +257,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 * @return {Promise<number>} The filtered (shown) ability count.
 	 */
 	async function getFilteredAbilityCount( page ) {
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		const text = await countEl.textContent();
 		const match = text.match( /Showing\s+(\d+)\s+of/ );
 		if ( match ) {
@@ -275,7 +275,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 */
 	async function getFirstCategoryOption( page ) {
 		const categorySelect = page
-			.locator( '.ai-agent-abilities-filters' )
+			.locator( '.gratis-ai-agent-abilities-filters' )
 			.locator( 'select' );
 		const options = await categorySelect.locator( 'option' ).all();
 		for ( const option of options ) {
@@ -292,18 +292,18 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// The AbilitiesManager toolbar contains a SearchControl and a
 		// SelectControl for category filtering.
-		const manager = page.locator( '.ai-agent-abilities-manager' );
+		const manager = page.locator( '.gratis-ai-agent-abilities-manager' );
 		await expect( manager ).toBeVisible();
 
-		// SearchControl renders an <input> inside .ai-agent-abilities-search.
+		// SearchControl renders an <input> inside .gratis-ai-agent-abilities-search.
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 		await expect( searchInput ).toBeVisible();
 
-		// Category SelectControl renders a <select> inside .ai-agent-abilities-filters.
+		// Category SelectControl renders a <select> inside .gratis-ai-agent-abilities-filters.
 		const categorySelect = page
-			.locator( '.ai-agent-abilities-filters' )
+			.locator( '.gratis-ai-agent-abilities-filters' )
 			.locator( 'select' );
 		await expect( categorySelect ).toBeVisible();
 	} );
@@ -313,7 +313,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// The count paragraph shows "N abilities" when all are visible.
 		// Assert the count is a positive number without hardcoding the value.
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toBeVisible();
 		const total = await getTotalAbilityCount( page );
 		expect( total ).toBeGreaterThan( 0 );
@@ -321,7 +321,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 
 	test( 'search input filters abilities by name', async ( { page } ) => {
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
@@ -331,14 +331,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await searchInput.fill( 'post' );
 
 		// Count paragraph should update to "Showing X of N abilities" where X < N.
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
 		expect( filtered ).toBeLessThan( total );
 
 		// At least one category section should be visible (has matching abilities).
-		const visibleSections = page.locator( '.ai-agent-abilities-category' );
+		const visibleSections = page.locator( '.gratis-ai-agent-abilities-category' );
 		await expect( visibleSections.first() ).toBeVisible();
 	} );
 
@@ -346,7 +346,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
@@ -356,27 +356,27 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await searchInput.fill( 'post' );
 
 		// Count paragraph should update to "Showing X of N abilities" where X < N.
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
 		expect( filtered ).toBeLessThan( total );
 
 		// At least one category section should be visible.
-		const visibleSections = page.locator( '.ai-agent-abilities-category' );
+		const visibleSections = page.locator( '.gratis-ai-agent-abilities-category' );
 		await expect( visibleSections.first() ).toBeVisible();
 	} );
 
 	test( 'clearing search restores full list', async ( { page } ) => {
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
 		const total = await getTotalAbilityCount( page );
 
 		await searchInput.fill( 'post' );
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 
 		// Clear the search — count should return to the original total.
@@ -389,7 +389,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		await searchInput.fill( 'xyzzy_nonexistent_ability' );
@@ -406,7 +406,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const categorySelect = page
-			.locator( '.ai-agent-abilities-filters' )
+			.locator( '.gratis-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -420,7 +420,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await categorySelect.selectOption( firstCategory );
 
 		// Count should show "Showing X of N" where X < N.
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
@@ -428,14 +428,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 
 		// The selected category section should be visible.
 		const selectedSection = page
-			.locator( '.ai-agent-abilities-category' )
+			.locator( '.gratis-ai-agent-abilities-category' )
 			.filter( { hasText: firstCategory } );
 		await expect( selectedSection ).toBeVisible();
 	} );
 
 	test( 'selecting All Categories restores full list', async ( { page } ) => {
 		const categorySelect = page
-			.locator( '.ai-agent-abilities-filters' )
+			.locator( '.gratis-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -446,7 +446,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		expect( firstCategory ).not.toBeNull();
 		await categorySelect.selectOption( firstCategory );
 
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 
 		// Reset to "All Categories" (value is empty string).
@@ -459,10 +459,10 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 		const categorySelect = page
-			.locator( '.ai-agent-abilities-filters' )
+			.locator( '.gratis-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -477,7 +477,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await categorySelect.selectOption( firstCategory );
 		await searchInput.fill( 'post' );
 
-		const countEl = page.locator( '.ai-agent-abilities-count' );
+		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
 		// Either "Showing X of N" (some match) or the no-results message.
 		// In both cases the filtered count must be less than the total.
 		const text = await countEl.textContent();
@@ -496,17 +496,17 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	test( 'category sections are collapsible', async ( { page } ) => {
 		// Use the first visible category header (environment-agnostic).
 		const firstHeader = page
-			.locator( '.ai-agent-abilities-category-header' )
+			.locator( '.gratis-ai-agent-abilities-category-header' )
 			.first();
 		await expect( firstHeader ).toBeVisible();
 
 		// Initially expanded (defaultOpen=true when allOpen=true).
 		// The category body contains the ability rows.
 		const firstCategory = page
-			.locator( '.ai-agent-abilities-category' )
+			.locator( '.gratis-ai-agent-abilities-category' )
 			.first();
 		const firstBody = firstCategory.locator(
-			'.ai-agent-abilities-category-body'
+			'.gratis-ai-agent-abilities-category-body'
 		);
 		await expect( firstBody ).toBeVisible();
 
@@ -530,7 +530,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Wait for at least one category body to be present before collapsing.
 		// Without this, the abilities may not have loaded yet and count() returns 0.
 		const categoryBodies = page.locator(
-			'.ai-agent-abilities-category-body'
+			'.gratis-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -549,7 +549,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Wait for at least one category body to be present before collapsing.
 		// Without this, the abilities may not have loaded yet and count() returns 0.
 		const categoryBodies = page.locator(
-			'.ai-agent-abilities-category-body'
+			'.gratis-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -591,7 +591,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// Wait for abilities to load before collapsing.
 		const categoryBodies = page.locator(
-			'.ai-agent-abilities-category-body'
+			'.gratis-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -612,7 +612,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Activate search — AbilitiesManager passes defaultOpen=true when
 		// isFiltering is truthy, which forces sections open.
 		const searchInput = page
-			.locator( '.ai-agent-abilities-search' )
+			.locator( '.gratis-ai-agent-abilities-search' )
 			.locator( 'input' );
 		await searchInput.fill( 'post' );
 
@@ -625,14 +625,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// Use the first visible category header (environment-agnostic).
 		const firstHeader = page
-			.locator( '.ai-agent-abilities-category-header' )
+			.locator( '.gratis-ai-agent-abilities-category-header' )
 			.first();
 		await expect( firstHeader ).toBeVisible();
 
 		// Each category header shows a count badge — assert it exists and is
 		// a positive number without hardcoding the value.
 		const countBadge = firstHeader.locator(
-			'.ai-agent-abilities-category-count'
+			'.gratis-ai-agent-abilities-category-count'
 		);
 		await expect( countBadge ).toBeVisible();
 		const badgeText = await countBadge.textContent();

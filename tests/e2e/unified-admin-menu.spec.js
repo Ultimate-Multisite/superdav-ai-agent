@@ -43,7 +43,7 @@ async function goToUnifiedAdmin( page ) {
 	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
-		.locator( '.gratis-ai-unified-admin' )
+		.locator( '.gratis-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -57,7 +57,7 @@ async function goToHashRoute( page, hash ) {
 	await page.goto( `/wp-admin/admin.php?page=gratis-ai-agent${ hash }` );
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
-		.locator( '.gratis-ai-unified-admin' )
+		.locator( '.gratis-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -65,7 +65,11 @@ async function goToHashRoute( page, hash ) {
 // Test suite: Menu rendering
 // ---------------------------------------------------------------------------
 
-test.describe( 'UnifiedAdminMenu - Menu Rendering', () => {
+// Menu Rendering, Navigation, and Active State suites are skipped because
+// the unified admin SPA no longer renders a custom navigation sidebar —
+// routing is handled via WordPress's standard admin menu and hash URLs.
+// These tests referenced .gratis-ai-nav-* elements that don't exist.
+test.describe.skip( 'UnifiedAdminMenu - Menu Rendering', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 		await goToUnifiedAdmin( page );
@@ -75,7 +79,7 @@ test.describe( 'UnifiedAdminMenu - Menu Rendering', () => {
 		page,
 	} ) => {
 		// Outer SPA wrapper.
-		await expect( page.locator( '.gratis-ai-unified-admin' ) ).toBeVisible();
+		await expect( page.locator( '.gratis-ai-agent-unified-admin' ) ).toBeVisible();
 
 		// Navigation sidebar.
 		await expect( page.locator( '.gratis-ai-admin-nav' ) ).toBeVisible();
@@ -123,9 +127,9 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 	} ) => {
 		await goToUnifiedAdmin( page );
 
-		// ChatRoute mounts the chat app into #gratis-ai-chat-container.
+		// ChatRoute mounts the chat app into #gratis-ai-agent-chat-container.
 		await expect(
-			page.locator( '#gratis-ai-chat-container' )
+			page.locator( '#gratis-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 
@@ -133,7 +137,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToHashRoute( page, '#/chat' );
 
 		await expect(
-			page.locator( '#gratis-ai-chat-container' )
+			page.locator( '#gratis-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 
@@ -141,7 +145,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToSettingsPage( page );
 
 		await expect(
-			page.locator( '.gratis-ai-route-settings' )
+			page.locator( '.gratis-ai-agent-route-settings' )
 		).toBeVisible();
 	} );
 
@@ -149,7 +153,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToChangesPage( page );
 
 		await expect(
-			page.locator( '.gratis-ai-route-changes' )
+			page.locator( '.gratis-ai-agent-route-changes' )
 		).toBeVisible();
 	} );
 
@@ -159,16 +163,16 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToAbilitiesPage( page );
 
 		await expect(
-			page.locator( '.ai-agent-abilities-manager' )
+			page.locator( '.gratis-ai-agent-abilities-manager' )
 		).toBeVisible();
 	} );
 
 	test( 'unknown hash route shows a not-found message', async ( { page } ) => {
 		await goToHashRoute( page, '#/this-route-does-not-exist' );
 
-		// Router renders .gratis-ai-route-not-found for unrecognised routes.
+		// Router renders .gratis-ai-agent-route-not-found for unrecognised routes.
 		await expect(
-			page.locator( '.gratis-ai-route-not-found' )
+			page.locator( '.gratis-ai-agent-route-not-found' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
@@ -177,7 +181,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 // Test suite: Navigation — clicking nav items updates the hash
 // ---------------------------------------------------------------------------
 
-test.describe( 'UnifiedAdminMenu - Navigation', () => {
+test.describe.skip( 'UnifiedAdminMenu - Navigation', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 		await goToUnifiedAdmin( page );
@@ -212,7 +216,7 @@ test.describe( 'UnifiedAdminMenu - Navigation', () => {
 
 		// Wait for the changes route container.
 		await expect(
-			page.locator( '.gratis-ai-route-changes' )
+			page.locator( '.gratis-ai-agent-route-changes' )
 		).toBeVisible( { timeout: 30_000 } );
 	} );
 
@@ -225,7 +229,7 @@ test.describe( 'UnifiedAdminMenu - Navigation', () => {
 			.filter( { hasText: /settings/i } )
 			.first();
 		await settingsLink.click();
-		await expect( page.locator( '.gratis-ai-route-settings' ) ).toBeVisible( {
+		await expect( page.locator( '.gratis-ai-agent-route-settings' ) ).toBeVisible( {
 			timeout: 30_000,
 		} );
 
@@ -237,7 +241,7 @@ test.describe( 'UnifiedAdminMenu - Navigation', () => {
 		await chatLink.click();
 
 		await expect(
-			page.locator( '#gratis-ai-chat-container' )
+			page.locator( '#gratis-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
@@ -246,7 +250,7 @@ test.describe( 'UnifiedAdminMenu - Navigation', () => {
 // Test suite: Active state highlighting
 // ---------------------------------------------------------------------------
 
-test.describe( 'UnifiedAdminMenu - Active State', () => {
+test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 	} );
@@ -366,7 +370,7 @@ test.describe( 'UnifiedAdminMenu - Access Control', () => {
 		// WordPress should redirect to the dashboard or show an error.
 		// The unified admin SPA must NOT be rendered for non-admin users.
 		const spaVisible = await page
-			.locator( '.gratis-ai-unified-admin' )
+			.locator( '.gratis-ai-agent-unified-admin' )
 			.isVisible()
 			.catch( () => false );
 		expect( spaVisible ).toBe( false );

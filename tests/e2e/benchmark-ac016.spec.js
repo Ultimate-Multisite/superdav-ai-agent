@@ -293,7 +293,7 @@ test.describe( 'ac-016 Benchmark - Run Creation', () => {
 		await suiteSelect.selectOption( { label: /agent capabilities/i } );
 
 		// Select a model so the run can be started.
-		const modelSelector = page.locator( '.gratis-ai-model-selector' );
+		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
 		const firstCheckbox = modelSelector
 			.locator( 'input[type="checkbox"]' )
 			.first();
@@ -336,7 +336,7 @@ test.describe( 'ac-016 Benchmark - Run History', () => {
 
 		// The mocked run "Restaurant Website Validation" should appear.
 		await expect(
-			page.locator( '.gratis-ai-benchmark-run-list' )
+			page.locator( '.gratis-ai-agent-benchmark-run-list' )
 		).toContainText( 'Restaurant Website Validation', { timeout: 10_000 } );
 	} );
 
@@ -346,7 +346,7 @@ test.describe( 'ac-016 Benchmark - Run History', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		const runList = page.locator( '.gratis-ai-benchmark-run-list' );
+		const runList = page.locator( '.gratis-ai-agent-benchmark-run-list' );
 		await expect( runList ).toBeVisible( { timeout: 10_000 } );
 
 		// The run list should show the suite name or slug.
@@ -364,7 +364,7 @@ test.describe( 'ac-016 Benchmark - Run History', () => {
 
 		// The status badge should show "completed".
 		const statusBadge = page
-			.locator( '.gratis-ai-benchmark-status' )
+			.locator( '.gratis-ai-agent-benchmark-status' )
 			.first();
 		await expect( statusBadge ).toBeVisible( { timeout: 10_000 } );
 		await expect( statusBadge ).toContainText( 'completed' );
@@ -376,7 +376,7 @@ test.describe( 'ac-016 Benchmark - Run History', () => {
 		const historyTab = page.getByRole( 'tab', { name: /history/i } );
 		await historyTab.click();
 
-		const runList = page.locator( '.gratis-ai-benchmark-run-list' );
+		const runList = page.locator( '.gratis-ai-agent-benchmark-run-list' );
 		await expect( runList ).toBeVisible( { timeout: 10_000 } );
 
 		await expect(
@@ -411,7 +411,7 @@ test.describe( 'ac-016 Benchmark - Scoring Criteria', () => {
 
 		// Navigate to the benchmark page and wait for it to load.
 		await expect(
-			page.locator( '.gratis-ai-benchmark-page' )
+			page.locator( '.gratis-ai-agent-benchmark-page' )
 		).toBeVisible();
 
 		// Select the agent-capabilities-v1 suite.

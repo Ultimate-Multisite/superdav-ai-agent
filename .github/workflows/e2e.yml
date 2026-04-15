@@ -15,9 +15,12 @@ jobs:
   e2e:
     name: Playwright E2E (WP ${{ matrix.wp }} shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
-    # Each shard runs ~1/3 of the 13 spec files. 45 min gives ample headroom
-    # (worst case: 5 specs × 60 s/test × 1 retry / 2 workers ≈ 25 min).
-    timeout-minutes: 45
+    # Each shard runs ~1/3 of the 13 spec files. 90 min accounts for setup
+    # overhead (~20 min: npm ci, composer, wp-env start) + worst-case test
+    # runtime (2 retries at 90 s/test × 3 attempts / 2 workers). The 60-min
+    # limit was exceeded after the per-test timeout increased from 60 s to
+    # 90 s in playwright.config.js — setup + test time could exceed 60 min.
+    timeout-minutes: 90
     # WP trunk may fail due to PSR namespace conflicts between our compat
     # layer and core's native AI Client SDK (see tests.yml for details).
     continue-on-error: ${{ matrix.wp == 'trunk' }}
@@ -26,18 +29,18 @@ jobs:
       fail-fast: false
       matrix:
         wp: ['6.9', 'trunk']
-        # 3 shards split 13 spec files into ~4-5 files each, keeping each
-        # shard well within the 45-min timeout even with retries.
+        # 3 shards split 13 spec files into ~4-5 files each. With the 90-min
+        # job timeout, each shard has ample headroom even with 2 retries.
         shard: [1, 2, 3]
         include:
           - wp: '6.9'
-            wp_env_port: '8888'
+            wp_env_port: '8890'
             wp_env_override: ''
             # 2 workers on WP 6.9: 3 workers cause resource contention that
             # manifests as login and SPA-render timeouts on CI runners.
             playwright_workers: '2'
           - wp: 'trunk'
-            wp_env_port: '8888'
+            wp_env_port: '8890'
             wp_env_override: '{"core":"WordPress/WordPress#master"}'
             # 2 workers on WP trunk: same resource contention as WP 6.9 —
             # 3 workers cause login and SPA-render timeouts on CI runners.
@@ -107,8 +110,8 @@ jobs:
         run: |
           ready=0
           for i in $(seq 1 30); do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8888/wp-login.php | grep -q "200"; then
-              echo "wp-env is ready"
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:${{ matrix.wp_env_port }}/wp-login.php | grep -q "200"; then
+              echo "wp-env is ready on port ${{ matrix.wp_env_port }}"
               ready=1
               break
             fi
@@ -116,9 +119,31 @@ jobs:
             sleep 5
           done
           if [ "$ready" -ne 1 ]; then
-            echo "wp-env did not become ready in time" >&2
+            echo "wp-env did not become ready in time on port ${{ matrix.wp_env_port }}" >&2
             exit 1
           fi
+
+      - name: Verify plugin health
+        run: |
+          echo "=== Plugin status ==="
+          npx wp-env run cli wp plugin list --format=table
+          echo ""
+          echo "=== Verify plugin is active ==="
+          npx wp-env run cli wp plugin is-active gratis-ai-agent && echo "Plugin is active" || echo "ERROR: Plugin is NOT active"
+          echo ""
+          echo "=== Check admin page loads (HTTP status) ==="
+          # Log in and fetch the admin page to verify the SPA renders.
+          # First get a login cookie, then check the plugin page.
+          LOGIN_COOKIE=$(curl -s -c - -d "log=admin&pwd=password&wp-submit=Log+In" \
+            "http://localhost:${{ matrix.wp_env_port }}/wp-login.php" | grep wordpress_logged_in | awk '{print $NF}')
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -b "wordpress_logged_in_=$(echo $LOGIN_COOKIE)" \
+            "http://localhost:${{ matrix.wp_env_port }}/wp-admin/admin.php?page=gratis-ai-agent")
+          echo "Admin page HTTP status: $STATUS"
+          echo ""
+          echo "=== PHP error log (last 30 lines) ==="
+          npx wp-env run cli cat /var/www/html/wp-content/debug.log 2>/dev/null | tail -30 || echo "(no error log)"
+        env:
+          WP_ENV_HOME: /tmp/wp-env
 
       - name: Configure plugin for E2E tests
         run: |
@@ -152,7 +177,7 @@ jobs:
       - name: Run Playwright E2E tests (shard ${{ matrix.shard }}/3)
         run: npx playwright test --shard=${{ matrix.shard }}/3
         env:
-          WP_BASE_URL: http://localhost:8888
+          WP_BASE_URL: http://localhost:${{ matrix.wp_env_port }}
           WP_ADMIN_USER: admin
           WP_ADMIN_PASSWORD: password
           CI: true
@@ -175,6 +200,14 @@ jobs:
           name: test-results-wp${{ matrix.wp }}-shard${{ matrix.shard }}
           path: test-results/
           retention-days: 7
+
+      - name: Dump PHP error log on failure
+        if: failure()
+        run: |
+          echo "=== PHP debug.log ==="
+          npx wp-env run cli cat /var/www/html/wp-content/debug.log 2>/dev/null | tail -100 || echo "(no error log)"
+        env:
+          WP_ENV_HOME: /tmp/wp-env
 
       - name: Stop wp-env
         if: always()

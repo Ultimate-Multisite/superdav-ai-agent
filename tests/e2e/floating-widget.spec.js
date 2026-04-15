@@ -48,7 +48,7 @@ test.describe( 'Floating Widget', () => {
 		const chatPanel = panel.locator( '.gratis-ai-agent-chat-panel' );
 		await expect( chatPanel ).toBeVisible();
 
-		const input = panel.locator( '.ai-agent-input' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
 		await expect( input ).toBeVisible();
 	} );
 
@@ -117,7 +117,7 @@ test.describe( 'Floating Widget', () => {
 		await fab.click();
 
 		const panel = getFloatingPanel( page );
-		const input = panel.locator( '.ai-agent-input' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
 		await input.fill( 'Hello, AI Agent!' );
 
 		await expect( input ).toHaveValue( 'Hello, AI Agent!' );
@@ -128,8 +128,8 @@ test.describe( 'Floating Widget', () => {
 		await fab.click();
 
 		const panel = getFloatingPanel( page );
-		const input = panel.locator( '.ai-agent-input' );
-		const sendButton = panel.locator( '.ai-agent-send-btn' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
+		const sendButton = panel.locator( '.gratis-ai-agent-send-btn' );
 
 		// Send button should be disabled (or absent) when input is empty.
 		await expect( sendButton ).toBeDisabled();
@@ -145,7 +145,7 @@ test.describe( 'Floating Widget', () => {
 		await fab.click();
 
 		const panel = getFloatingPanel( page );
-		const input = panel.locator( '.ai-agent-input' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
 		await input.fill( 'Test message via Enter' );
 		await input.press( 'Enter' );
 
@@ -158,11 +158,11 @@ test.describe( 'Floating Widget', () => {
 		await fab.click();
 
 		const panel = getFloatingPanel( page );
-		const input = panel.locator( '.ai-agent-input' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
 		await input.fill( '/' );
 
 		// Slash command menu should appear.
-		const slashMenu = panel.locator( '.ai-agent-slash-menu' );
+		const slashMenu = panel.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 	} );
 
@@ -173,10 +173,10 @@ test.describe( 'Floating Widget', () => {
 		await fab.click();
 
 		const panel = getFloatingPanel( page );
-		const input = panel.locator( '.ai-agent-input' );
+		const input = panel.locator( '.gratis-ai-agent-input' );
 		await input.fill( '/' );
 
-		const slashMenu = panel.locator( '.ai-agent-slash-menu' );
+		const slashMenu = panel.locator( '.gratis-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		await input.fill( '/remember something' );

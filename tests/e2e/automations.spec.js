@@ -24,7 +24,7 @@ const MOCK_AUTOMATION = {
 	id: 1,
 	// Use a name that does NOT match any built-in template name so that
 	// filter({ hasText }) always resolves to the automation card, never to
-	// a template card (templates also use .ai-agent-skill-card).
+	// a template card (templates also use .gratis-ai-agent-skill-card).
 	name: 'Test Scheduled Automation',
 	description: 'Run a test site health check.',
 	prompt: 'Check site health and report issues.',
@@ -398,12 +398,12 @@ async function goToAutomationsTab( page ) {
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	const manager = page.locator( '.ai-agent-automations-manager' );
+	const manager = page.locator( '.gratis-ai-agent-automations-manager' );
 	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
 	// Wait for the async fetchAll() to complete: the "Loading…" text is shown
 	// while loaded=false and disappears once fetchAll resolves or rejects.
@@ -434,12 +434,12 @@ async function goToEventsTab( page ) {
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-route-settings' )
+		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	const tab = page.getByRole( 'tab', { name: /events/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	const manager = page.locator( '.ai-agent-events-manager' );
+	const manager = page.locator( '.gratis-ai-agent-events-manager' );
 	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
 	// Wait for the async fetchAll() to complete.
 	await manager
@@ -463,7 +463,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 	test( 'automations tab renders the manager heading', async ( { page } ) => {
 		await goToAutomationsTab( page );
 
-		const manager = page.locator( '.ai-agent-automations-manager' );
+		const manager = page.locator( '.gratis-ai-agent-automations-manager' );
 		await expect( manager ).toBeVisible();
 
 		// Heading text.
@@ -477,7 +477,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 
 		// The mock returns one automation — its name should appear in a card.
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 		await expect( card ).toBeVisible();
 	} );
@@ -486,7 +486,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -494,7 +494,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// Schedule badge (e.g. "daily").
-		const badge = card.locator( '.ai-agent-skill-badge' ).first();
+		const badge = card.locator( '.gratis-ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_AUTOMATION.schedule );
 	} );
 
@@ -502,7 +502,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		await expect( card ).toContainText(
@@ -520,7 +520,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await addButton.click();
 
 		// Form fields should appear.
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		// Name and Prompt fields are required.
@@ -537,7 +537,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		const createButton = form.getByRole( 'button', { name: /^create$/i } );
 
 		// Both fields empty → disabled.
@@ -605,7 +605,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await form.getByLabel( /^name/i ).fill( 'My New Automation' );
 		await form.getByLabel( /prompt/i ).fill( 'Do something useful.' );
 
@@ -626,7 +626,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// The new automation should appear in the list after the GET refresh.
 		await expect(
 			page
-				.locator( '.ai-agent-skill-cards' )
+				.locator( '.gratis-ai-agent-skill-cards' )
 				.filter( { hasText: 'My New Automation' } )
 		).toBeVisible( { timeout: 10_000 } );
 	} );
@@ -706,7 +706,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -749,7 +749,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: disabledAutomation.name } );
 
 		await expect( card ).toHaveClass( /ai-agent-skill-card--disabled/ );
@@ -762,7 +762,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		await form.getByRole( 'button', { name: /cancel/i } ).click();
@@ -777,7 +777,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		const scheduleSelect = form.getByLabel( /schedule/i );
 
 		// Verify the four standard WP cron schedules are present.
@@ -801,10 +801,10 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		// No automation cards should be rendered (templates also use
-		// .ai-agent-skill-card, so we check the automations list container
+		// .gratis-ai-agent-skill-card, so we check the automations list container
 		// directly — it is only rendered when automations.length > 0).
 		await expect(
-			page.locator( '.ai-agent-automations-manager .ai-agent-skill-cards' )
+			page.locator( '.gratis-ai-agent-automations-manager .gratis-ai-agent-skill-cards' )
 		).toHaveCount( 0 );
 	} );
 
@@ -820,7 +820,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await useTemplateButton.click();
 
 		// Form should open pre-filled with the template name.
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		const nameInput = form.getByLabel( /^name/i );
@@ -843,7 +843,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 	test( 'events tab renders the manager heading', async ( { page } ) => {
 		await goToEventsTab( page );
 
-		const manager = page.locator( '.ai-agent-events-manager' );
+		const manager = page.locator( '.gratis-ai-agent-events-manager' );
 		await expect( manager ).toBeVisible();
 
 		await expect(
@@ -857,7 +857,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 		await expect( card ).toBeVisible();
 	} );
@@ -866,13 +866,13 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
-		const badge = card.locator( '.ai-agent-skill-badge' ).first();
+		const badge = card.locator( '.gratis-ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_EVENT.hook_name );
 	} );
 
@@ -880,7 +880,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		await expect( card ).toContainText( `${ MOCK_EVENT.run_count } runs` );
@@ -893,7 +893,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await expect( addButton ).toBeVisible();
 		await addButton.click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		// Required fields.
@@ -909,7 +909,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		const createButton = form.getByRole( 'button', { name: /^create$/i } );
 
 		// All empty → disabled.
@@ -976,7 +976,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await form.getByLabel( /^name/i ).fill( 'My New Event' );
 		await form
 			.getByLabel( /trigger hook/i )
@@ -1004,7 +1004,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		// The new event should appear in the list after the GET refresh.
 		await expect(
 			page
-				.locator( '.ai-agent-skill-cards' )
+				.locator( '.gratis-ai-agent-skill-cards' )
 				.filter( { hasText: 'My New Event' } )
 		).toBeVisible( { timeout: 10_000 } );
 	} );
@@ -1016,7 +1016,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		const hookSelect = form.getByLabel( /trigger hook/i );
 
 		// The mock trigger should appear as an option.
@@ -1033,13 +1033,13 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await form
 			.getByLabel( /trigger hook/i )
 			.selectOption( MOCK_TRIGGER.hook_name );
 
 		// Trigger info block should appear.
-		const triggerInfo = form.locator( '.ai-agent-trigger-info' );
+		const triggerInfo = form.locator( '.gratis-ai-agent-trigger-info' );
 		await expect( triggerInfo ).toBeVisible();
 		await expect( triggerInfo ).toContainText(
 			MOCK_TRIGGER.description
@@ -1131,7 +1131,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -1172,7 +1172,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.ai-agent-skill-card' )
+			.locator( '.gratis-ai-agent-skill-card' )
 			.filter( { hasText: disabledEvent.name } );
 
 		await expect( card ).toHaveClass( /ai-agent-skill-card--disabled/ );
@@ -1195,7 +1195,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.ai-agent-skill-form' );
+		const form = page.locator( '.gratis-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		await form.getByRole( 'button', { name: /cancel/i } ).click();

@@ -40,7 +40,7 @@ const {
 function getUploadButton( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-upload-btn'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-upload-btn'
 		)
 		.first();
 }
@@ -57,7 +57,7 @@ function getUploadButton( page ) {
 function getFileInput( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-file-input'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-file-input'
 		)
 		.first();
 }
@@ -73,7 +73,7 @@ function getFileInput( page ) {
 function getAttachmentPreviews( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-attachment-previews'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-attachment-previews'
 		)
 		.first();
 }
@@ -88,7 +88,7 @@ function getAttachmentPreviews( page ) {
  */
 function getAttachmentThumbs( page ) {
 	return page.locator(
-		'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-attachment-thumb'
+		'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-attachment-thumb'
 	);
 }
 
@@ -103,7 +103,7 @@ function getAttachmentThumbs( page ) {
 function getInputArea( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .ai-agent-input-area'
+			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-input-area'
 		)
 		.first();
 }
@@ -291,14 +291,14 @@ test.describe( 'Chat Upload - Drag-Drop Zone (t122)', () => {
 		await dispatchDragEvent( page, inputArea, 'dragover' );
 
 		// The drop overlay renders "Drop files here" text.
-		const dropOverlay = page.locator( '.ai-agent-drop-overlay' );
+		const dropOverlay = page.locator( '.gratis-ai-agent-drop-overlay' );
 		await expect( dropOverlay ).toBeVisible();
 		await expect( dropOverlay ).toContainText( 'Drop files here' );
 	} );
 
 	test( 'drop overlay is hidden when not dragging', async ( { page } ) => {
 		// On initial load, no drag is active — overlay should not be present.
-		const dropOverlay = page.locator( '.ai-agent-drop-overlay' );
+		const dropOverlay = page.locator( '.gratis-ai-agent-drop-overlay' );
 		await expect( dropOverlay ).not.toBeVisible();
 	} );
 } );
@@ -337,7 +337,7 @@ test.describe( 'Chat Upload - Thumbnail Preview (t122)', () => {
 		await attachPngViaInput( page );
 
 		const thumbImg = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__img'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__img'
 		);
 		await expect( thumbImg ).toBeVisible( { timeout: 5_000 } );
 
@@ -352,7 +352,7 @@ test.describe( 'Chat Upload - Thumbnail Preview (t122)', () => {
 		await attachTextViaInput( page );
 
 		const extBadge = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__ext'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__ext'
 		);
 		await expect( extBadge ).toBeVisible( { timeout: 5_000 } );
 		await expect( extBadge ).toContainText( 'TXT' );
@@ -362,7 +362,7 @@ test.describe( 'Chat Upload - Thumbnail Preview (t122)', () => {
 		await attachPngViaInput( page, 'my-screenshot.png' );
 
 		const thumbName = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__name'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__name'
 		);
 		await expect( thumbName ).toBeVisible( { timeout: 5_000 } );
 		await expect( thumbName ).toContainText( 'my-screenshot.png' );
@@ -398,7 +398,7 @@ test.describe( 'Chat Upload - Remove Button (t122)', () => {
 		await attachPngViaInput( page );
 
 		const removeBtn = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__remove'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__remove'
 		);
 		await expect( removeBtn ).toBeVisible( { timeout: 5_000 } );
 	} );
@@ -407,7 +407,7 @@ test.describe( 'Chat Upload - Remove Button (t122)', () => {
 		await attachPngViaInput( page );
 
 		const removeBtn = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__remove'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__remove'
 		);
 		await expect( removeBtn ).toBeVisible( { timeout: 5_000 } );
 
@@ -425,7 +425,7 @@ test.describe( 'Chat Upload - Remove Button (t122)', () => {
 
 		// Click the remove button.
 		const removeBtn = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__remove'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__remove'
 		);
 		await removeBtn.click();
 
@@ -460,7 +460,7 @@ test.describe( 'Chat Upload - Remove Button (t122)', () => {
 		// Remove the first thumbnail.
 		const firstRemoveBtn = page
 			.locator(
-				'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__remove'
+				'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__remove'
 			)
 			.first();
 		await firstRemoveBtn.click();
@@ -500,7 +500,7 @@ test.describe( 'Chat Upload - Send Button State (t122)', () => {
 
 		// Remove the attachment.
 		const removeBtn = page.locator(
-			'.ai-agent-attachment-thumb .ai-agent-attachment-thumb__remove'
+			'.gratis-ai-agent-attachment-thumb .gratis-ai-agent-attachment-thumb__remove'
 		);
 		await removeBtn.click();
 

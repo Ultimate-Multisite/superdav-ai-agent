@@ -336,7 +336,7 @@ Full plan: [todo/PLANS.md#customer-feedback-issue-reporting-system](todo/PLANS.m
 
 Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-feedback.
 
-- [ ] t180 Feedback settings UI: endpoint URL + API key fields in Settings > Advanced #feature #auto-dispatch ~2h logged:2026-04-14
+- [x] t180 Feedback settings UI: endpoint URL + API key fields in Settings > Advanced #feature #auto-dispatch ~2h logged:2026-04-14 pr:#946 completed:2026-04-15
   - Add "Feedback" section to Settings > Advanced tab with endpoint URL, API key (password field), and enable/disable toggle
   - EDIT: src/components/settings/AdvancedSettings.js — add feedback section below existing fields
   - EDIT: src/store/slices/settingsSlice.js — add feedback_endpoint_url, feedback_api_key, feedback_enabled to settings state

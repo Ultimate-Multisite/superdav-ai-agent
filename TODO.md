@@ -344,17 +344,17 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Verify: settings save/load round-trip in browser, key stored in separate option (not exposed via GET /settings)
 
 - [ ] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180
-  - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite)
+  - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite). Also include plugin_version vs latest_available for "is this already fixed?" triage.
   - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission
   - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t181
-  - NEW: src/components/FeedbackConsentModal.js — shows what will be sent (message count, tool call count, environment summary), "Send Report" and "Dismiss" buttons, optional user description textarea, "Strip tool results" checkbox
+- [ ] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t181
+  - NEW: src/components/FeedbackConsentModal.js — modal with: (1) summary stats (message count, tool call count, environment keys), (2) collapsible "View full payload" section showing the actual sanitized JSON that will be sent, (3) privacy notice: "No passwords, API keys, or credentials are included. Server paths are anonymized. Review the full payload below.", (4) optional user description textarea, (5) "Strip tool results" checkbox for aggressive privacy, (6) "Send Report" and "Dismiss" buttons
   - Wire to Redux store: dispatches sendFeedbackReport async thunk on confirm
   - EDIT: src/store/slices/sessionsSlice.js — add sendFeedbackReport thunk that calls ReportBuilder via new REST proxy endpoint
   - NEW: REST endpoint `POST /gratis-ai-agent/v1/feedback/send` — server-side proxy that builds, sanitizes, and forwards the report (keeps API key server-side)
-  - Verify: modal renders, send succeeds against a mock endpoint, dismiss closes without side effects
+  - Verify: modal renders, payload preview matches actual data, send succeeds against a mock endpoint, dismiss closes without side effects
 
 - [ ] t183 Auto-prompt feedback banner on exit_reason (spin/timeout/max_iterations) #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
   - EDIT: src/store/slices/sessionsSlice.js — when chat response includes exit_reason, set feedbackPromptVisible flag
@@ -385,14 +385,14 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
 
 - [ ] t187 AI-assisted triage automation for incoming feedback reports #feature ~6h logged:2026-04-14 blocked-by:t183
-  - Runs on the receiving site (gratis-ai-feedback plugin) or as an external automation
-  - Query new reports, feed conversation + environment to an LLM with triage prompt
-  - Classify: real bug vs user error vs model limitation vs missing ability vs provider error
-  - Deduplicate: compare against open GitHub issues in Ultimate-Multisite/gratis-ai-agent
-  - If real + not duplicate: create GitHub issue via `gh issue create` with structured report data
-  - If duplicate: link to existing issue, mark report as dismissed
-  - If not a bug: mark dismissed with reason
-  - Design decision needed: WP-CLI command, WP cron job, or external routine
+  - Runs as an aidevops routine (r010) using deterministic script + AI agent split (modeled on /log-issue-aidevops pattern)
+  - Deterministic script: `~/.aidevops/agents/custom/scripts/feedback-triage.sh` (already created) — `fetch` pulls new reports, `get <id>` pulls full payload, `dedup <keywords>` checks existing GitHub issues, `update <id> <status>` marks reports after triage
+  - AI agent receives each report and judges: (1) real bug vs user error vs model limitation vs missing ability vs provider error, (2) checks dedup results — is this already reported?, (3) validates claims per log-issue-aidevops Step 3.6 (verify evidence, check data scale, detect template-driven findings), (4) composes structured GitHub issue body (Description, Expected Behavior, Steps to Reproduce from conversation, Environment, Report ID for backlink)
+  - If real + not duplicate: `gh issue create -R Ultimate-Multisite/gratis-ai-agent` then `feedback-triage.sh update <id> issue_created <url>`
+  - If duplicate: `feedback-triage.sh update <id> dismissed` with link to existing issue
+  - If not a bug: `feedback-triage.sh update <id> dismissed` with reason
+  - Check plugin_version vs latest: if the report is from an outdated version where the issue is already fixed, dismiss with "fixed in vX.Y.Z"
+  - Routine entry: `r010 Triage incoming feedback reports repeat:daily(@09:00) ~15m agent:Build+`
 
 ### Complete Site Building Abilities (P0)
 

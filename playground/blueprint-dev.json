@@ -62,17 +62,6 @@
       }
     },
     {
-      "step": "installPlugin",
-      "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-webllm/releases/latest/download/ultimate-ai-connector-webllm.zip",
-        "caption": "Downloading Ultimate AI Connector WebLLM..."
-      },
-      "options": {
-        "activate": true
-      }
-    },
-    {
       "step": "setSiteOptions",
       "options": {
         "blogname": "AI Agent Dev Demo",

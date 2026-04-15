@@ -92,20 +92,6 @@
       }
     },
     {
-      "step": "installPlugin",
-      "pluginData": {
-        "resource": "zip",
-        "inner": {
-          "resource": "git:directory",
-          "url": "https://github.com/Ultimate-Multisite/ultimate-ai-connector-webllm",
-          "ref": "HEAD"
-        }
-      },
-      "options": {
-        "activate": true
-      }
-    },
-    {
       "step": "setSiteOptions",
       "options": {
         "blogname": "AI Agent Demo",

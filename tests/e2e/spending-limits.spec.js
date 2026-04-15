@@ -238,7 +238,7 @@ async function goToGeneralTab( page ) {
 		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 
-	// The SettingsRoute outer TabPanel (class: gratis-ai-settings-tabs) has
+	// The SettingsRoute outer TabPanel (inside .gratis-ai-agent-route-settings) has
 	// General/Providers/Advanced tabs. The outer "General" tab is active by
 	// default (initialTabName='general'), so SettingsApp renders immediately.
 	//

@@ -311,8 +311,9 @@ async function goToSettingsPage( page, tabName ) {
 		} );
 		await tabButton.click();
 		// Wait for the tab panel content to render after clicking.
+		// The settings route wraps tabs in .gratis-ai-agent-route-settings.
 		await page
-			.locator( '.gratis-ai-settings-tabs [role="tabpanel"]' )
+			.locator( '.gratis-ai-agent-route-settings [role="tabpanel"]' )
 			.waitFor( { state: 'visible', timeout: 10_000 } )
 			.catch( () => {} );
 	}

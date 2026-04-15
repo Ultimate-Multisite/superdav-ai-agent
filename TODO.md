@@ -330,6 +330,70 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
+### Customer Feedback & Issue Reporting System (P1)
+
+Full plan: [todo/PLANS.md#customer-feedback-issue-reporting-system](todo/PLANS.md#2026-04-14-customer-feedback--issue-reporting-system)
+
+Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-feedback.
+
+- [ ] t180 Feedback settings UI: endpoint URL + API key fields in Settings > Advanced #feature #auto-dispatch ~2h logged:2026-04-14
+  - Add "Feedback" section to Settings > Advanced tab with endpoint URL, API key (password field), and enable/disable toggle
+  - EDIT: src/components/settings/AdvancedSettings.js — add feedback section below existing fields
+  - EDIT: src/store/slices/settingsSlice.js — add feedback_endpoint_url, feedback_api_key, feedback_enabled to settings state
+  - EDIT: includes/Core/Settings.php — add feedback keys to defaults and sanitization
+  - Verify: settings save/load round-trip in browser, key stored in separate option (not exposed via GET /settings)
+
+- [ ] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180
+  - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite)
+  - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission
+  - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
+  - Verify: `composer phpstan && composer phpcs`
+
+- [ ] t182 Consent UI component: modal with payload preview + send/dismiss #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t181
+  - NEW: src/components/FeedbackConsentModal.js — shows what will be sent (message count, tool call count, environment summary), "Send Report" and "Dismiss" buttons, optional user description textarea, "Strip tool results" checkbox
+  - Wire to Redux store: dispatches sendFeedbackReport async thunk on confirm
+  - EDIT: src/store/slices/sessionsSlice.js — add sendFeedbackReport thunk that calls ReportBuilder via new REST proxy endpoint
+  - NEW: REST endpoint `POST /gratis-ai-agent/v1/feedback/send` — server-side proxy that builds, sanitizes, and forwards the report (keeps API key server-side)
+  - Verify: modal renders, send succeeds against a mock endpoint, dismiss closes without side effects
+
+- [ ] t183 Auto-prompt feedback banner on exit_reason (spin/timeout/max_iterations) #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
+  - EDIT: src/store/slices/sessionsSlice.js — when chat response includes exit_reason, set feedbackPromptVisible flag
+  - EDIT: src/components/MessageList.js or ChatPanel.js — render inline banner below the error message: "The AI had trouble completing your request. Would you like to send a report to help us improve? [Send Report] [Dismiss]"
+  - "Send Report" opens FeedbackConsentModal with report_type pre-set to the exit_reason value
+  - "Dismiss" hides the banner for this session
+  - Also handle WP_Error responses (max_iterations) — these come as error responses, not exit_reason in the JSON
+  - Verify: E2E test or manual test — trigger a spin_detected response, verify banner appears, clicking Send opens the consent modal
+
+- [ ] t184 /report-issue slash command in chat input #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
+  - EDIT: src/components/MessageInput.js — add `/report-issue` to the slash command list (pattern: `/report-issue [optional description]`)
+  - When invoked: open FeedbackConsentModal with report_type='user_reported', pre-fill user_description from the command argument
+  - Model on existing `/remember` and `/forget` slash command handling in the same file
+  - Verify: type `/report-issue something broke` in chat input, verify modal opens with description pre-filled
+
+- [ ] t185 report-inability ability: agent self-flags when it cannot complete a task #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t181
+  - NEW: includes/Abilities/FeedbackAbilities.php — single ability `report-inability` with schema: { reason: string, attempted_steps: string[] }
+  - Ability handler: sets a session-level flag (transient or session meta) that the frontend reads on next poll
+  - EDIT: gratis-ai-agent.php — register the new abilities class
+  - EDIT: system prompt (Settings.php build_system_instruction or agent prompt) — add instruction: "If you cannot complete the user's request after trying, call the report-inability ability with a reason."
+  - Frontend: when session response includes the inability flag, show the feedback consent banner with report_type='self_reported'
+  - Verify: `composer phpcs && composer phpstan`
+
+- [ ] t186 Thumbs-down button on assistant messages #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
+  - EDIT: src/components/MessageList.js — add a subtle thumbs-down icon button on assistant message hover (next to copy button if present)
+  - On click: open FeedbackConsentModal with report_type='thumbs_down', anchor to the specific message index
+  - Include the specific message + surrounding context (2 messages before/after) in the report payload, not the full conversation — user can opt into full conversation via checkbox in the modal
+  - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
+
+- [ ] t187 AI-assisted triage automation for incoming feedback reports #feature ~6h logged:2026-04-14 blocked-by:t183
+  - Runs on the receiving site (gratis-ai-feedback plugin) or as an external automation
+  - Query new reports, feed conversation + environment to an LLM with triage prompt
+  - Classify: real bug vs user error vs model limitation vs missing ability vs provider error
+  - Deduplicate: compare against open GitHub issues in Ultimate-Multisite/gratis-ai-agent
+  - If real + not duplicate: create GitHub issue via `gh issue create` with structured report data
+  - If duplicate: link to existing issue, mark report as dismissed
+  - If not a bug: mark dismissed with reason
+  - Design decision needed: WP-CLI command, WP cron job, or external routine
+
 ### Complete Site Building Abilities (P0)
 
 - [x] t177 Smart plugin discovery: search-plugin-directory ability #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#840 pr:#788 completed:2026-04-06

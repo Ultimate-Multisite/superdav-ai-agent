@@ -309,3 +309,114 @@ Tasks:
 #### Surprises & Discoveries
 
 (To be populated during implementation)
+
+---
+
+### [2026-04-14] Customer Feedback & Issue Reporting System
+
+**Status:** In Progress (Phase 1 complete)
+**Estimate:** ~25h (ai:20h test:3h read:2h)
+**Repo (receiving plugin):** [Ultimate-Multisite/gratis-ai-feedback](https://github.com/Ultimate-Multisite/gratis-ai-feedback)
+
+#### Purpose
+
+There is no mechanism for customers to report when the AI agent fails, loops, or
+produces bad results. The agent already detects spin (`exit_reason: spin_detected`)
+and timeout (`exit_reason: timeout`) but nothing acts on these signals. Without
+feedback from real-world usage, agent quality improvements are guesswork.
+
+This system has three layers: detection (in-plugin), transport (REST API on a
+central WordPress site), and processing (AI-assisted triage to GitHub issues).
+Every report requires explicit user consent — no silent telemetry.
+
+#### Architecture
+
+```
+Customer Site (gratis-ai-agent)         Central Site (gratis-ai-feedback)
+┌─────────────────────────────┐        ┌──────────────────────────────┐
+│ Detection triggers:          │        │ POST /gratis-feedback/v1/    │
+│  - exit_reason spin/timeout  │──POST──│      reports                 │
+│  - agent self-report ability │  +key  │  ↓                           │
+│  - /report-issue command     │        │ ReportSanitizer (defense     │
+│  - thumbs-down on message    │        │   in depth)                  │
+│                              │        │  ↓                           │
+│ ReportSanitizer (sender-side)│        │ DB: _feedback_reports        │
+│ Consent UI (per-report)      │        │  ↓                           │
+└─────────────────────────────┘        │ Triage automation            │
+                                        │  → GitHub issue creation     │
+                                        └──────────────────────────────┘
+```
+
+#### Progress
+
+- [x] (2026-04-14) Phase 1: Receiving plugin — REST endpoint, DB, sanitizer, API key CLI
+- [ ] Phase 2: Sender — settings UI, report builder, consent flow, auto-prompt on failures ~8h
+- [ ] Phase 3: Sender — /report-issue command, report-inability ability, thumbs-down UI ~6h
+- [ ] Phase 4: Triage automation — LLM review, dedup, GitHub issue creation ~6h
+
+#### Task Breakdown
+
+**Phase 1 — Receiving Plugin (COMPLETE)**
+Shipped to `Ultimate-Multisite/gratis-ai-feedback`:
+- Plugin bootstrap with PSR-4 autoloader (`GratisAiFeedback\` namespace)
+- `_feedback_reports` table + `_feedback_api_keys` table (dbDelta migrations)
+- `POST /gratis-feedback/v1/reports` — API key auth via `X-Feedback-Api-Key`, rate-limited
+- `GET/PATCH /reports` — admin listing and triage status updates
+- `ReportSanitizer` — strips API keys, passwords, emails, IPs, server paths, DB creds, auth headers
+- `strip_tool_results()` — aggressive mode that removes all tool output
+- WP-CLI: `wp gratis-feedback api-key generate/list/revoke`
+- `uninstall.php` for clean removal
+
+**Phase 2 — Sender: Settings + Consent + Auto-Prompt (t180-t183)**
+- t180: Settings UI — feedback endpoint URL + API key fields in Settings > Advanced
+- t181: Report payload builder — collects conversation, tool calls, env, sanitizes sender-side
+- t182: Consent UI component — reusable modal/banner with preview of what gets sent
+- t183: Auto-prompt on exit_reason — frontend reacts to spin_detected/timeout/max_iterations
+
+**Phase 3 — Sender: Manual Triggers (t184-t186)**
+- t184: `/report-issue` slash command in chat input
+- t185: `report-inability` ability — agent self-flags when it cannot complete a task
+- t186: Thumbs-down button on assistant messages
+
+**Phase 4 — Triage Automation (t187)**
+- t187: AI-assisted triage — LLM reviews new reports, classifies, deduplicates, creates GitHub issues
+
+#### Context from Discussion
+
+**Key design decisions:**
+- Receiving plugin lives on an existing WordPress site (not a standalone service)
+- Receiving plugin designed for expansion — `Plugin.php` singleton wires subsystems,
+  future services (license validation, usage analytics) register there
+- API key model: generated via WP-CLI on the receiving site, configured in the sender
+  plugin's settings. SHA-256 hashed in DB. `gaf_` prefix for easy identification.
+- Rate limiting: per API key, per hour (default 10, configurable per key)
+- Sensitive data stripping runs on BOTH sides: sender strips before transmission,
+  receiver strips again as defense-in-depth
+- `strip_tool_results` option: user can choose to send conversation flow without any
+  tool output (aggressive privacy mode). Keeps tool names/args but redacts responses.
+- Consent is per-report, not a blanket opt-in. Auto-detected failures show a banner;
+  user must click "Send Report" each time.
+- Environment allowlist: only safe keys are transmitted (wp_version, php_version,
+  plugin_version, theme, site_locale, is_multisite, active_plugins, etc.)
+- Active plugins list strips paths, keeps only folder names (slug-level granularity)
+- Site URL stripped to scheme+host only (no path)
+
+**Existing infrastructure leveraged:**
+- AgentLoop already returns `exit_reason` for `spin_detected` and `timeout` (lines 426, 609)
+- RestController already passes `exit_reason` to the frontend (line 485-486)
+- Frontend has slash command infrastructure in message input (`/remember`, `/forget`)
+- `IdenticalFailureTracker` already nudges the model on spin — the report triggers after
+  the nudge fails and the loop bails
+
+#### Decision Log
+
+- 2026-04-14: Chose WordPress plugin over Cloudflare Worker for receiving endpoint — keeps
+  everything in the ecosystem, simpler deployment, can leverage WP-CLI for key management
+- 2026-04-14: Chose API key auth over site-level tokens — allows per-site rate limiting and
+  revocation without affecting other sites
+- 2026-04-14: Chose separate `gratis-ai-feedback` repo over adding to `gratis-ai-agent` —
+  the receiving plugin runs on a different site (the central server), not on customer sites
+
+#### Surprises & Discoveries
+
+(To be populated during implementation)

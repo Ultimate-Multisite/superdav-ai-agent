@@ -146,7 +146,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() extracts do_action() calls from a plugin PHP file.
 	 */
 	public function test_scan_plugin_extracts_do_action_hooks(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -173,7 +173,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() extracts apply_filters() calls.
 	 */
 	public function test_scan_plugin_extracts_apply_filters_hooks(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -197,7 +197,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() extracts add_action() and add_filter() calls.
 	 */
 	public function test_scan_plugin_extracts_add_action_and_add_filter(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -226,7 +226,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() does not match dynamic (variable) hook names.
 	 */
 	public function test_scan_plugin_skips_dynamic_hook_names(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -250,7 +250,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() scans PHP files in subdirectories.
 	 */
 	public function test_scan_plugin_scans_subdirectories(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -270,7 +270,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() aggregates hooks from multiple PHP files.
 	 */
 	public function test_scan_plugin_aggregates_hooks_from_multiple_files(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file( $dir, 'main.php', "<?php\ndo_action( 'hook_from_main' );\n" );
@@ -289,7 +289,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() returns empty hooks array for a plugin with no hook calls.
 	 */
 	public function test_scan_plugin_returns_empty_hooks_for_no_hook_calls(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -309,7 +309,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_plugin() result includes relative file path and line number.
 	 */
 	public function test_scan_plugin_result_includes_file_and_line(): void {
-		$slug = 'test-hook-scanner-plugin-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-plugin-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_plugin( $slug );
 
 		$this->write_php_file(
@@ -347,7 +347,7 @@ class HookScannerTest extends WP_UnitTestCase {
 	 * scan_theme() extracts hooks from theme PHP files.
 	 */
 	public function test_scan_theme_extracts_hooks(): void {
-		$slug = 'test-hook-scanner-theme-' . uniqid( '', true );
+		$slug = 'test-hook-scanner-theme-' . str_replace( '.', '', uniqid( '', true ) );
 		$dir  = $this->make_temp_theme( $slug );
 
 		$this->write_php_file(

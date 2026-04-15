@@ -33,7 +33,15 @@ class HookScanner {
 	 */
 	public static function scan_plugin( string $plugin_slug ): array|\WP_Error {
 		$plugin_slug = sanitize_title( $plugin_slug );
-		$plugin_dir  = WP_CONTENT_DIR . '/plugins/' . $plugin_slug . '/';
+
+		if ( empty( $plugin_slug ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_plugin_not_found',
+				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+			);
+		}
+
+		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $plugin_slug . '/';
 
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
@@ -54,7 +62,15 @@ class HookScanner {
 	 */
 	public static function scan_theme( string $theme_slug ): array|\WP_Error {
 		$theme_slug = sanitize_title( $theme_slug );
-		$theme_dir  = WP_CONTENT_DIR . '/themes/' . $theme_slug . '/';
+
+		if ( empty( $theme_slug ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_theme_not_found',
+				__( 'Theme slug must not be empty.', 'gratis-ai-agent' )
+			);
+		}
+
+		$theme_dir = WP_CONTENT_DIR . '/themes/' . $theme_slug . '/';
 
 		if ( ! is_dir( $theme_dir ) ) {
 			return new WP_Error(

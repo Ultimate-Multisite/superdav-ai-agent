@@ -373,11 +373,6 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Frontend: when session response includes the inability flag, show the feedback consent banner with report_type='self_reported'
   - Verify: `composer phpcs && composer phpstan`
 
-- [ ] t186 Thumbs-down button on assistant messages #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182
-  - EDIT: src/components/MessageList.js — add a subtle thumbs-down icon button on assistant message hover (next to copy button if present)
-  - On click: open FeedbackConsentModal with report_type='thumbs_down', anchor to the specific message index
-  - Include the specific message + surrounding context (2 messages before/after) in the report payload, not the full conversation — user can opt into full conversation via checkbox in the modal
-  - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
 
 - [x] t187 AI-assisted triage automation for incoming feedback reports #feature ~6h logged:2026-04-14 blocked-by:t183 pr:#949 completed:2026-04-15
   - Runs as an aidevops routine (r010) using deterministic script + AI agent split (modeled on /log-issue-aidevops pattern)
@@ -612,6 +607,11 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
 
 ## Done
 
+- [x] t186 Thumbs-down button on assistant messages #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182 pr:#956 completed:2026-04-15
+  - EDIT: src/components/MessageList.js — add a subtle thumbs-down icon button on assistant message hover (next to copy button if present)
+  - On click: open FeedbackConsentModal with report_type='thumbs_down', anchor to the specific message index
+  - Include the specific message + surrounding context (2 messages before/after) in the report payload, not the full conversation — user can opt into full conversation via checkbox in the modal
+  - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
 - [x] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180 pr:#953 completed:2026-04-15
   - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite). Also include plugin_version vs latest_available for "is this already fixed?" triage.
   - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission

@@ -240,49 +240,50 @@ test.describe( 'TTS Settings Tab', () => {
 	test.beforeEach( async ( { page } ) => {
 		await injectTtsMock( page );
 		await loginToWordPress( page );
-		await goToSettingsPage( page );
+		// TTS settings live inside the General tab of the Settings page.
+		// There is no separate "Text-to-Speech" tab — the section is rendered
+		// as part of the General tab content under a "Text-to-Speech" heading.
+		await goToSettingsPage( page, 'general' );
+		// Wait for settings to finish loading so the TTS section is rendered.
+		await page
+			.locator( '.gratis-ai-agent-settings-loading' )
+			.waitFor( { state: 'hidden', timeout: 15_000 } )
+			.catch( () => {} );
 	} );
 
-	test( 'Text-to-Speech tab is present in settings', async ( { page } ) => {
-		const ttsTab = page.getByRole( 'tab', {
-			name: /text-to-speech/i,
-		} );
-		await expect( ttsTab ).toBeVisible();
-	} );
-
-	test( 'TTS enable toggle is visible in the Text-to-Speech settings tab', async ( {
+	test( 'Text-to-Speech settings are present in the General tab', async ( {
 		page,
 	} ) => {
-		// Click the TTS tab.
-		const ttsTab = page.getByRole( 'tab', {
+		// TTS settings are rendered under a "Text-to-Speech" section heading
+		// inside the General tab — there is no dedicated TTS tab.
+		const ttsHeading = page.getByRole( 'heading', {
 			name: /text-to-speech/i,
 		} );
-		await ttsTab.click();
-		await page.waitForLoadState( 'networkidle' );
+		await expect( ttsHeading ).toBeVisible();
+	} );
 
-		// The ToggleControl for "Enable Text-to-Speech" should be visible.
+	test( 'TTS enable toggle is visible in the Text-to-Speech settings section', async ( {
+		page,
+	} ) => {
+		// The ToggleControl for TTS auto-speak should be visible.
 		// WordPress ToggleControl renders a <label> containing the label text.
-		const ttsToggleLabel = page.getByText( 'Enable Text-to-Speech', {
-			exact: false,
-		} );
+		// The actual label is "Read AI responses aloud automatically".
+		const ttsToggleLabel = page.getByText(
+			'Read AI responses aloud automatically',
+			{ exact: false }
+		);
 		await expect( ttsToggleLabel ).toBeVisible();
 	} );
 
 	test( 'enabling TTS in settings persists the toggle state', async ( {
 		page,
 	} ) => {
-		// Click the TTS tab.
-		const ttsTab = page.getByRole( 'tab', {
-			name: /text-to-speech/i,
-		} );
-		await ttsTab.click();
-		await page.waitForLoadState( 'networkidle' );
-
-		// Find the toggle input for "Enable Text-to-Speech".
+		// Find the toggle input for the TTS auto-speak setting.
 		// WordPress ToggleControl renders a checkbox input inside a label.
+		// The actual label is "Read AI responses aloud automatically".
 		const ttsToggle = page
 			.locator( '.components-toggle-control' )
-			.filter( { hasText: 'Enable Text-to-Speech' } )
+			.filter( { hasText: 'Read AI responses aloud automatically' } )
 			.locator( 'input[type="checkbox"]' );
 
 		const wasChecked = await ttsToggle.isChecked();

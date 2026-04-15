@@ -19,21 +19,19 @@ const {
 /**
  * Set up interception for auto-title tests.
  *
- * How the auto-title flow works:
- *   1. The store POSTs to gratis-ai-agent/v1/stream and reads the SSE response.
- *   2. On the `done` event it calls updateSessionTitle(sessionId, generatedTitle)
- *      — an optimistic update that patches the session in state.sessions and
- *      records the title in state.pendingTitles.
- *   3. It then calls fetchSessions() which GETs gratis-ai-agent/v1/sessions and
- *      replaces state.sessions with the server response. The SET_SESSIONS reducer
- *      merges state.pendingTitles into the incoming list so the generated title
- *      survives even when the server still returns "Untitled".
+ * How the agent job flow works (current implementation):
+ *   1. The store POSTs to gratis-ai-agent/v1/run with the message and session_id.
+ *      The server enqueues the agent job and returns { job_id }.
+ *   2. The store polls gratis-ai-agent/v1/job/{job_id} every 3 s until the job
+ *      status is 'complete', 'error', or 'awaiting_confirmation'.
+ *   3. On 'complete' it reloads the session from the DB, optionally records
+ *      generated_title via updateSessionTitle(), and calls fetchSessions() to
+ *      refresh the sidebar. The SET_SESSIONS reducer merges pendingTitles into
+ *      the incoming list so the generated title survives any fetchSessions()
+ *      round-trip.
  *
- * When `options.generatedTitle` is provided the `done` SSE payload includes
- * `generated_title`, exercising the full SSE parsing path in the store. This
- * ensures regressions in stream-event handling (e.g. the store failing to read
- * `done.generated_title`) are caught by the test rather than masked by a direct
- * store dispatch.
+ * When `options.generatedTitle` is provided the job-complete payload includes
+ * `generated_title`, exercising the full job-result handling path in the store.
  *
  * No sessions stub is needed: the store's pendingTitles mechanism preserves the
  * optimistic title through any fetchSessions() round-trip, so the real server
@@ -42,58 +40,53 @@ const {
  * @param {import('@playwright/test').Page} page
  * @param {Object} [options]
  * @param {string} [options.generatedTitle] - When set, included as
- *   `generated_title` in the SSE `done` payload so the store's SSE parsing
- *   path is exercised end-to-end.
+ *   `generated_title` in the job-complete payload so the store's job-result
+ *   parsing path is exercised end-to-end.
  * @return {Promise<void>}
  */
 async function interceptStream( page, options = {} ) {
 	const { generatedTitle } = options;
 
-	// Intercept the stream endpoint and return a minimal SSE response.
-	// The store POSTs to {wpApiSettings.root}gratis-ai-agent/v1/stream.
-	// We return a token + done event so the store's reader loop completes
-	// and setSending(false) is called, which hides the stop button.
-	await page.route( /gratis-ai-agent\/v1\/stream/, async ( route ) => {
-		// Capture the session_id from the POST body so the done payload carries
-		// the correct session ID. The store always creates the session first via
-		// POST /sessions and passes the id here. Fall back to 1 if parsing fails.
-		let sessionId = 1;
+	// Track the session_id from the /run POST body so the job-complete payload
+	// carries the correct session ID. The store creates the session first via
+	// POST /sessions and passes the id in the /run body.
+	let capturedSessionId = null;
+
+	// Intercept POST /run — the store sends the message here and receives a job_id.
+	// Capture session_id from the request body; return a synthetic job_id.
+	await page.route( /gratis-ai-agent\/v1\/run/, async ( route ) => {
 		try {
 			const postBody = route.request().postDataJSON();
 			if ( postBody?.session_id ) {
-				sessionId = postBody.session_id;
+				capturedSessionId = postBody.session_id;
 			}
 		} catch {
-			// Fall back to 1 if body is not JSON.
+			// Ignore parse failures — capturedSessionId stays null.
 		}
-
-		// Build the done event payload. Include generated_title when provided
-		// so the store's SSE parsing path is exercised end-to-end.
-		const donePayload = {
-			session_id: sessionId,
-			...( generatedTitle ? { generated_title: generatedTitle } : {} ),
-		};
-
-		// Minimal SSE stream: one token chunk + done event.
-		// The store dispatches on `eventName` parsed from the `event:` line.
-		// Each SSE message is separated by a blank line (\n\n).
-		const sseBody = [
-			'event: token',
-			`data: ${ JSON.stringify( { token: 'Hello!' } ) }`,
-			'',
-			'event: done',
-			`data: ${ JSON.stringify( donePayload ) }`,
-			'',
-			'',
-		].join( '\n' );
 
 		await route.fulfill( {
 			status: 200,
-			headers: {
-				'Content-Type': 'text/event-stream',
-				'Cache-Control': 'no-cache',
-			},
-			body: sseBody,
+			contentType: 'application/json',
+			body: JSON.stringify( { job_id: 'e2e-test-job-1' } ),
+		} );
+	} );
+
+	// Intercept GET /job/:id — the store polls here every 3 s until 'complete'.
+	// Return 'complete' immediately so tests don't wait for the poll interval.
+	// capturedSessionId is guaranteed set before the first poll: the browser
+	// sends POST /run synchronously before fetching GET /job/:id.
+	await page.route( /gratis-ai-agent\/v1\/job\//, async ( route ) => {
+		const result = {
+			status: 'complete',
+			session_id: capturedSessionId,
+			reply: 'Hello from the AI!',
+			...( generatedTitle ? { generated_title: generatedTitle } : {} ),
+		};
+
+		await route.fulfill( {
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify( result ),
 		} );
 	} );
 }

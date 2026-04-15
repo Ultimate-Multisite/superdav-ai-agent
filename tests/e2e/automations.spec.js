@@ -416,10 +416,13 @@ async function goToAutomationsTab( page ) {
 }
 
 /**
- * Navigate to the Settings page and activate the Events tab.
+ * Navigate to the Settings page and activate the Automations tab to reach the
+ * EventsManager.
  *
- * Waits for the EventsManager container to be visible AND for the
- * initial data fetch to complete (loading spinner gone) before returning.
+ * The EventsManager is rendered inside the Automations tab (together with
+ * AutomationsManager) — there is no separate "Events" tab in the settings
+ * page. Waiting for .gratis-ai-agent-events-manager ensures the events
+ * section has rendered and the initial data fetch has completed.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
@@ -436,7 +439,8 @@ async function goToEventsTab( page ) {
 	await page
 		.locator( '.gratis-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
-	const tab = page.getByRole( 'tab', { name: /events/i } );
+	// EventsManager lives inside the Automations tab, not a separate Events tab.
+	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
 	const manager = page.locator( '.gratis-ai-agent-events-manager' );

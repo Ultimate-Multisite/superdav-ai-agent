@@ -209,7 +209,7 @@ test.describe( 'ac-016 Benchmark - Suite Listing', () => {
 		await expect( suiteSelect ).toBeVisible();
 
 		// Select the agent-capabilities-v1 suite.
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// The suite should now be selected.
 		await expect( suiteSelect ).toHaveValue( 'agent-capabilities-v1' );
@@ -234,7 +234,7 @@ test.describe( 'ac-016 Benchmark - Run Creation', () => {
 
 		// Select the agent-capabilities-v1 suite.
 		const suiteSelect = page.getByLabel( /test suite/i );
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// Verify the suite is selected.
 		await expect( suiteSelect ).toHaveValue( 'agent-capabilities-v1' );
@@ -248,7 +248,7 @@ test.describe( 'ac-016 Benchmark - Run Creation', () => {
 	} ) => {
 		// Select the agent-capabilities-v1 suite.
 		const suiteSelect = page.getByLabel( /test suite/i );
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// The Start Benchmark button should be enabled.
 		const startBtn = page.getByRole( 'button', {
@@ -290,7 +290,7 @@ test.describe( 'ac-016 Benchmark - Run Creation', () => {
 		// Fill in run name and select suite.
 		await page.getByLabel( /run name/i ).fill( 'ac-016 Test Run' );
 		const suiteSelect = page.getByLabel( /test suite/i );
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// Select a model so the run can be started.
 		const modelSelector = page.locator( '.gratis-ai-agent-model-selector' );
@@ -416,7 +416,7 @@ test.describe( 'ac-016 Benchmark - Scoring Criteria', () => {
 
 		// Select the agent-capabilities-v1 suite.
 		const suiteSelect = page.getByLabel( /test suite/i );
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// No critical JS errors should have occurred.
 		const criticalErrors = consoleErrors.filter(
@@ -438,7 +438,7 @@ test.describe( 'ac-016 Benchmark - Scoring Criteria', () => {
 
 		// Select the agent-capabilities-v1 suite.
 		const suiteSelect = page.getByLabel( /test suite/i );
-		await suiteSelect.selectOption( { label: /agent capabilities/i } );
+		await suiteSelect.selectOption( 'agent-capabilities-v1' );
 
 		// The form should still be visible after selecting the suite.
 		await expect(

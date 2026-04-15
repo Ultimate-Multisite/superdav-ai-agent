@@ -16,6 +16,7 @@ import {
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { trash, pencil, plus } from '@wordpress/icons';
+import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Internal dependencies
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
 	system_prompt: '',
 	provider_id: '',
 	model_id: '',
+	tool_profile: '',
 	temperature: '',
 	max_iterations: '',
 	greeting: '',
@@ -61,9 +63,18 @@ export default function AgentBuilder() {
 	const [ form, setForm ] = useState( { ...EMPTY_FORM } );
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
+	const [ toolProfiles, setToolProfiles ] = useState( [] );
 	useEffect( () => {
 		fetchAgents();
 		fetchProviders();
+		// Fetch tool profiles for the form dropdown.
+		apiFetch( { path: '/gratis-ai-agent/v1/tool-profiles' } )
+			.then( ( profiles ) => {
+				if ( Array.isArray( profiles ) ) {
+					setToolProfiles( profiles );
+				}
+			} )
+			.catch( () => {} );
 	}, [ fetchAgents, fetchProviders ] );
 
 	const resetForm = useCallback( () => {
@@ -86,6 +97,7 @@ export default function AgentBuilder() {
 			system_prompt: agent.system_prompt || '',
 			provider_id: agent.provider_id || '',
 			model_id: agent.model_id || '',
+			tool_profile: agent.tool_profile || '',
 			temperature:
 				null !== agent.temperature ? String( agent.temperature ) : '',
 			max_iterations:
@@ -125,6 +137,7 @@ export default function AgentBuilder() {
 				system_prompt: form.system_prompt,
 				provider_id: form.provider_id,
 				model_id: form.model_id,
+				tool_profile: form.tool_profile,
 				greeting: form.greeting,
 				avatar_icon: form.avatar_icon,
 			};
@@ -409,6 +422,27 @@ export default function AgentBuilder() {
 							'Message shown when this agent starts a conversation. Leave empty for the global default.',
 							'gratis-ai-agent'
 						) }
+					/>
+
+					<SelectControl
+						label={ __( 'Tool Profile', 'gratis-ai-agent' ) }
+						value={ form.tool_profile }
+						options={ [
+							{
+								label: __( '(global default)', 'gratis-ai-agent' ),
+								value: '',
+							},
+							...toolProfiles.map( ( p ) => ( {
+								label: p.name,
+								value: p.slug,
+							} ) ),
+						] }
+						onChange={ ( v ) => updateField( 'tool_profile', v ) }
+						help={ __(
+							'Restrict which tools this agent can use. Leave empty to allow all tools.',
+							'gratis-ai-agent'
+						) }
+						__nextHasNoMarginBottom
 					/>
 
 					<SelectControl

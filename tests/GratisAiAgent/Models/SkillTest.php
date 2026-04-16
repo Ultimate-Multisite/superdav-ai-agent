@@ -462,4 +462,154 @@ class SkillTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( '## Available Skills', $result );
 		$this->assertStringContainsString( 'prompt-index-skill', $result );
 	}
+
+	/**
+	 * get_index_for_prompt() instructs the AI to use the skill-load tool.
+	 */
+	public function test_get_index_for_prompt_instructs_skill_load_tool(): void {
+		// Ensure at least one skill is enabled.
+		$this->create_skill( [
+			'slug'    => 'tool-instruction-skill',
+			'name'    => 'Tool Instruction Skill',
+			'enabled' => true,
+		] );
+
+		$result = Skill::get_index_for_prompt();
+		$this->assertStringContainsString( 'skill-load', $result );
+	}
+
+	/**
+	 * get_index_for_prompt() excludes disabled skills.
+	 */
+	public function test_get_index_for_prompt_excludes_disabled_skills(): void {
+		$this->create_skill( [
+			'slug'    => 'included-in-prompt',
+			'name'    => 'Included Skill',
+			'enabled' => true,
+		] );
+		$this->create_skill( [
+			'slug'    => 'excluded-from-prompt',
+			'name'    => 'Excluded Skill',
+			'enabled' => false,
+		] );
+
+		$result = Skill::get_index_for_prompt();
+
+		$this->assertStringContainsString( 'included-in-prompt', $result );
+		$this->assertStringNotContainsString( 'excluded-from-prompt', $result );
+	}
+
+	// ─── Built-in Skill Content Quality ──────────────────────────────────────
+
+	/**
+	 * Each built-in skill has content longer than 100 characters.
+	 */
+	public function test_builtin_skills_have_substantial_content(): void {
+		$definitions = Skill::get_builtin_definitions();
+
+		foreach ( $definitions as $slug => $definition ) {
+			$this->assertGreaterThan(
+				100,
+				strlen( $definition['content'] ),
+				"Built-in skill '$slug' content is too short."
+			);
+		}
+	}
+
+	/**
+	 * Each built-in skill content contains markdown headings.
+	 */
+	public function test_builtin_skills_have_markdown_headings(): void {
+		$definitions = Skill::get_builtin_definitions();
+
+		foreach ( $definitions as $slug => $definition ) {
+			$has_heading = str_contains( $definition['content'], '## ' )
+				|| str_contains( $definition['content'], '# ' );
+			$this->assertTrue(
+				$has_heading,
+				"Built-in skill '$slug' is missing markdown headings."
+			);
+		}
+	}
+
+	/**
+	 * Each built-in skill content contains a "When to Use" section.
+	 */
+	public function test_builtin_skills_have_when_to_use_section(): void {
+		$definitions = Skill::get_builtin_definitions();
+
+		foreach ( $definitions as $slug => $definition ) {
+			$this->assertStringContainsStringIgnoringCase(
+				'When to Use',
+				$definition['content'],
+				"Built-in skill '$slug' is missing a 'When to Use' section."
+			);
+		}
+	}
+
+	/**
+	 * Each built-in skill has a non-empty description.
+	 */
+	public function test_builtin_skills_have_non_empty_description(): void {
+		$definitions = Skill::get_builtin_definitions();
+
+		foreach ( $definitions as $slug => $definition ) {
+			$this->assertNotEmpty(
+				$definition['description'],
+				"Built-in skill '$slug' has an empty description."
+			);
+		}
+	}
+
+	/**
+	 * Built-in skill descriptions cover key domain terms for AI matching.
+	 *
+	 * Verifies that each skill's description contains at least one expected
+	 * keyword so the AI model can match user prompts to the right skill.
+	 *
+	 * @dataProvider provide_builtin_skill_keywords
+	 *
+	 * @param string   $slug     Skill slug.
+	 * @param string[] $keywords At least one of these must appear in the description.
+	 */
+	public function test_builtin_skill_description_contains_domain_keywords( string $slug, array $keywords ): void {
+		$definitions = Skill::get_builtin_definitions();
+
+		$this->assertArrayHasKey( $slug, $definitions, "Built-in skill '$slug' not found." );
+
+		$desc  = strtolower( $definitions[ $slug ]['description'] );
+		$found = false;
+		foreach ( $keywords as $kw ) {
+			if ( str_contains( $desc, strtolower( $kw ) ) ) {
+				$found = true;
+				break;
+			}
+		}
+
+		$this->assertTrue(
+			$found,
+			"Skill '$slug' description should contain at least one of: " . implode( ', ', $keywords )
+		);
+	}
+
+	/**
+	 * Data provider: built-in skill slugs with expected domain keywords.
+	 *
+	 * @return array<string, array{0: string, 1: string[]}>
+	 */
+	public static function provide_builtin_skill_keywords(): array {
+		return [
+			'wordpress-admin'      => [ 'wordpress-admin', [ 'settings', 'users', 'updates', 'administration', 'options' ] ],
+			'content-management'   => [ 'content-management', [ 'posts', 'pages', 'media', 'taxonomies', 'managing' ] ],
+			'woocommerce'          => [ 'woocommerce', [ 'products', 'orders', 'store', 'woocommerce' ] ],
+			'site-troubleshooting' => [ 'site-troubleshooting', [ 'errors', 'debug', 'health', 'performance', 'diagnosis' ] ],
+			'multisite-management' => [ 'multisite-management', [ 'multisite', 'network' ] ],
+			'seo-optimization'     => [ 'seo-optimization', [ 'seo', 'meta', 'optimization', 'on-page' ] ],
+			'content-marketing'    => [ 'content-marketing', [ 'strategy', 'editorial', 'content', 'audit' ] ],
+			'competitive-analysis' => [ 'competitive-analysis', [ 'competitor', 'analysis', 'tech stack' ] ],
+			'analytics-reporting'  => [ 'analytics-reporting', [ 'performance', 'metrics', 'analytics', 'reporting' ] ],
+			'gutenberg-blocks'     => [ 'gutenberg-blocks', [ 'blocks', 'gutenberg', 'markdown', 'layouts' ] ],
+			'full-site-editing'    => [ 'full-site-editing', [ 'template', 'block theme', 'site editing', 'layout' ] ],
+		];
+	}
 }

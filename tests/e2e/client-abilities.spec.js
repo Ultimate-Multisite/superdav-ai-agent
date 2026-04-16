@@ -68,6 +68,18 @@ async function goToDashboard( page ) {
  * timeout is reached. This is necessary because registration is async —
  * the category Promise must resolve before abilities can register.
  *
+ * On slow CI runners, the @wordpress/core-abilities script module may load
+ * well after the plugin's floating-widget bundle has called
+ * ensureRegistered(). The source-side fix (registry.js waitForAbilitiesApi
+ * increased to 30 s, index.js retry logic) handles the root cause. This
+ * test-side timeout is set to 45 s (matching other long waits in this file)
+ * to accommodate the full registration chain: 30 s API poll + category
+ * registration + 2 ability registrations + React render time.
+ *
+ * The previous 15 s timeout was consistently too short on CI runners under
+ * load — the abilities API loaded at ~12-18 s but registration added
+ * another 2-5 s, pushing total time past the 15 s budget.
+ *
  * Note: page.waitForFunction(fn, arg?, options?) — the second argument is
  * `arg` (data passed to the function), not the options object. Passing
  * `{ timeout }` as the second argument treats it as `arg` and uses the
@@ -75,9 +87,9 @@ async function goToDashboard( page ) {
  * `arg` and `{ timeout }` as the third argument.
  *
  * @param {import('@playwright/test').Page} page
- * @param {number}                          [timeout=15000] Max wait in ms.
+ * @param {number}                          [timeout=45000] Max wait in ms.
  */
-async function waitForAbilitiesRegistered( page, timeout = 15_000 ) {
+async function waitForAbilitiesRegistered( page, timeout = 45_000 ) {
 	await page.waitForFunction(
 		() => {
 			if (
@@ -342,10 +354,12 @@ test.describe( 'client-abilities — insert-block on editor screen', () => {
 		await page.waitForLoadState( 'domcontentloaded' );
 
 		// Wait for the block editor to mount — the editor canvas is the signal.
+		// 60 s accommodates slow CI runners where the block editor can take
+		// 45-55 s to initialise (Gutenberg script modules + React hydration).
 		await page
 			.locator( '.block-editor-writing-flow, .editor-styles-wrapper' )
 			.first()
-			.waitFor( { state: 'visible', timeout: 45_000 } );
+			.waitFor( { state: 'visible', timeout: 60_000 } );
 
 		// Wait for abilities to register (the admin-page bundle also loads here).
 		await waitForAbilitiesRegistered( page );
@@ -576,10 +590,15 @@ test.describe( 'client-abilities — no relevant console errors', () => {
 		await loginToWordPress( page );
 		await page.goto( '/wp-admin/post-new.php' );
 		await page.waitForLoadState( 'domcontentloaded' );
+		// The block editor is notoriously slow to initialise on CI runners,
+		// especially on WP trunk where Gutenberg loads additional script
+		// modules. 60 s accommodates the worst-case load time observed in
+		// CI (45-55 s) with headroom. The previous 45 s timeout failed
+		// consistently on both WP 6.9 and trunk CI matrices.
 		await page
 			.locator( '.block-editor-writing-flow, .editor-styles-wrapper' )
 			.first()
-			.waitFor( { state: 'visible', timeout: 45_000 } );
+			.waitFor( { state: 'visible', timeout: 60_000 } );
 		await waitForAbilitiesRegistered( page );
 
 		assertNoForbiddenErrors(

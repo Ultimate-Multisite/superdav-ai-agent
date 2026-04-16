@@ -85,10 +85,10 @@ function abilitiesApiAvailable() {
  * no retry path. Now we poll every 100 ms until the API appears or the
  * deadline passes.
  *
- * @param {number} maxWaitMs Maximum milliseconds to wait (default 10 000).
+ * @param {number} maxWaitMs Maximum milliseconds to wait (default 30 000).
  * @return {Promise<void>} Resolves when the API is available or the deadline passes.
  */
-async function waitForAbilitiesApi( maxWaitMs = 10_000 ) {
+async function waitForAbilitiesApi( maxWaitMs = 30_000 ) {
 	if ( abilitiesApiAvailable() ) {
 		return;
 	}

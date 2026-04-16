@@ -38,6 +38,21 @@ import { registerEditorAbility } from './editor';
 let registrationPromise = null;
 
 /**
+ * Whether registration actually completed (abilities API was available).
+ * When false, registrationPromise resolved but did nothing because the
+ * WP 7.0 abilities API was not yet loaded. In that case ensureRegistered()
+ * resets registrationPromise so a later call can retry. This handles the
+ * race condition where the floating-widget bundle loads and calls
+ * ensureRegistered() before @wordpress/core-abilities has populated
+ * wp.abilities — the initial attempt silently no-ops, but a subsequent
+ * call (e.g. triggered by the E2E test polling or by user interaction)
+ * retries registration after the API has loaded.
+ *
+ * @type {boolean}
+ */
+let registrationSucceeded = false;
+
+/**
  * Ensure all client-side abilities are registered.
  *
  * Idempotent — calling this multiple times within a single bundle returns
@@ -45,13 +60,20 @@ let registrationPromise = null;
  * because the underlying registry helpers in registry.js dedupe at the
  * `@wordpress/abilities` API level.
  *
+ * If the previous attempt completed but the abilities API was not yet
+ * available (registrationSucceeded === false), the Promise is reset so
+ * a fresh attempt can be made. This prevents the scenario where a single
+ * early timeout permanently blocks all future registration attempts.
+ *
  * @return {Promise<void>}
  */
 export function ensureRegistered() {
-	if ( registrationPromise ) {
+	if ( registrationPromise && registrationSucceeded ) {
 		return registrationPromise;
 	}
 
+	// Reset for retry — previous attempt either hasn't started or silently
+	// skipped because the API wasn't available yet.
 	registrationPromise = ( async () => {
 		// Category MUST come first AND its Promise MUST resolve before
 		// abilities can register into it.
@@ -59,6 +81,12 @@ export function ensureRegistered() {
 		// Now safe to register abilities — the category exists in the store.
 		await registerNavigationAbility();
 		await registerEditorAbility();
+
+		// Check if registration actually happened (API was available).
+		registrationSucceeded =
+			typeof wp !== 'undefined' &&
+			!! wp.abilities &&
+			typeof wp.abilities.getAbilities === 'function';
 	} )();
 
 	return registrationPromise;

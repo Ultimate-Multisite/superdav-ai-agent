@@ -417,15 +417,21 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// item has the is-active class and is the current session. Using
 		// .first() is unreliable when previous tests have left sessions in the
 		// sidebar — the current session may not be the first item.
+		//
+		// 20 s timeout: the full chain (POST /sessions → POST /run → job poll
+		// at 3 s interval → fetchSessions → React re-render) takes 8-15 s on
+		// CI runners under load. The previous 10 s timeout was borderline —
+		// the third auto-title test (which uses 15 s) passed while these two
+		// (at 10 s) failed consistently.
 		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
-		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
+		await expect( activeItem ).toBeVisible( { timeout: 20_000 } );
 
 		// The active sidebar item should now display the generated title.
 		// The title arrives via the SSE done event (generated_title field),
 		// not via a direct store dispatch, so this assertion validates the
 		// full stream-event handling path.
 		await expect( activeItem ).toContainText( expectedTitle, {
-			timeout: 5_000,
+			timeout: 10_000,
 		} );
 	} );
 
@@ -442,18 +448,18 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.fill( 'How do I build a WordPress plugin?' );
 		await input.press( 'Enter' );
 
-		// Wait for the active session item.
+		// Wait for the active session item (see timeout rationale in first test).
 		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
-		await expect( activeItem ).toBeVisible( { timeout: 10_000 } );
+		await expect( activeItem ).toBeVisible( { timeout: 20_000 } );
 
 		// The title element inside the active session item should not say "Untitled".
 		// The title arrives via the SSE done event, not a direct store dispatch.
 		const titleEl = activeItem.locator( '.gratis-ai-agent-session-title' );
 		await expect( titleEl ).not.toContainText( 'Untitled', {
-			timeout: 5_000,
+			timeout: 10_000,
 		} );
 		await expect( titleEl ).toContainText( expectedTitle, {
-			timeout: 5_000,
+			timeout: 10_000,
 		} );
 	} );
 

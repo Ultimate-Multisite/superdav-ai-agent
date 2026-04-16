@@ -330,6 +330,12 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
+- [ ] t188 Replace provider dropdown with connectors link when no providers defined #enhancement #auto-dispatch ~1h logged:2026-04-16
+  - `src/components/provider-selector.js:43-48` renders a disabled `(no providers)` SelectControl when `providers` is empty — useless UX that gives no path forward
+  - EDIT: src/components/provider-selector.js — when `providers.length === 0`, return early with a `<p>` or `<div>` containing a link: `<a href="/wp-admin/options-connectors.php">{ __( 'Configure a provider', 'gratis-ai-agent' ) }</a>` instead of the two SelectControl dropdowns
+  - Update snapshot: `npm run test:js -- --updateSnapshot` (ProviderSelector.test.js snapshot will need regenerating)
+  - Verify: render ProviderSelector with empty providers array, assert link renders and points to `options-connectors.php`; render with providers, assert dropdowns render normally
+
 ### Customer Feedback & Issue Reporting System (P1)
 
 Full plan: [todo/PLANS.md#customer-feedback-issue-reporting-system](todo/PLANS.md#2026-04-14-customer-feedback--issue-reporting-system)

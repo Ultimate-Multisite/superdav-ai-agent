@@ -523,10 +523,9 @@ class SkillTest extends WP_UnitTestCase {
 		$definitions = Skill::get_builtin_definitions();
 
 		foreach ( $definitions as $slug => $definition ) {
-			$has_heading = str_contains( $definition['content'], '## ' )
-				|| str_contains( $definition['content'], '# ' );
-			$this->assertTrue(
-				$has_heading,
+			$this->assertSame(
+				1,
+				preg_match( '/^#{1,6}\s+/m', $definition['content'] ),
 				"Built-in skill '$slug' is missing markdown headings."
 			);
 		}

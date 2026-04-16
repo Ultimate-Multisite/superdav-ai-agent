@@ -38,21 +38,6 @@ import { registerEditorAbility } from './editor';
 let registrationPromise = null;
 
 /**
- * Whether registration actually completed (abilities API was available).
- * When false, registrationPromise resolved but did nothing because the
- * WP 7.0 abilities API was not yet loaded. In that case ensureRegistered()
- * resets registrationPromise so a later call can retry. This handles the
- * race condition where the floating-widget bundle loads and calls
- * ensureRegistered() before @wordpress/core-abilities has populated
- * wp.abilities — the initial attempt silently no-ops, but a subsequent
- * call (e.g. triggered by the E2E test polling or by user interaction)
- * retries registration after the API has loaded.
- *
- * @type {boolean}
- */
-let registrationSucceeded = false;
-
-/**
  * Ensure all client-side abilities are registered.
  *
  * Idempotent — calling this multiple times within a single bundle returns
@@ -60,20 +45,21 @@ let registrationSucceeded = false;
  * because the underlying registry helpers in registry.js dedupe at the
  * `@wordpress/abilities` API level.
  *
- * If the previous attempt completed but the abilities API was not yet
- * available (registrationSucceeded === false), the Promise is reset so
- * a fresh attempt can be made. This prevents the scenario where a single
- * early timeout permanently blocks all future registration attempts.
+ * If the abilities API was not available when the attempt ran (e.g. the
+ * `@wordpress/core-abilities` script module hadn't loaded yet),
+ * registerCategory() silently no-ops and the promise resolves without
+ * registering anything. In that case registrationPromise is reset to null
+ * AFTER the attempt completes so a future call can retry. Concurrent
+ * callers during the in-flight attempt all receive the same promise —
+ * the reset only happens once the promise has settled.
  *
  * @return {Promise<void>}
  */
 export function ensureRegistered() {
-	if ( registrationPromise && registrationSucceeded ) {
+	if ( registrationPromise ) {
 		return registrationPromise;
 	}
 
-	// Reset for retry — previous attempt either hasn't started or silently
-	// skipped because the API wasn't available yet.
 	registrationPromise = ( async () => {
 		// Category MUST come first AND its Promise MUST resolve before
 		// abilities can register into it.
@@ -82,11 +68,18 @@ export function ensureRegistered() {
 		await registerNavigationAbility();
 		await registerEditorAbility();
 
-		// Check if registration actually happened (API was available).
-		registrationSucceeded =
+		// If the abilities API was not available (e.g. script module not
+		// yet loaded), the registration calls above silently no-oped.
+		// Reset the promise so a future call can retry after the API loads.
+		// This MUST happen after the await chain settles — resetting during
+		// the in-flight attempt would break concurrent callers' dedup.
+		const apiAvailable =
 			typeof wp !== 'undefined' &&
 			!! wp.abilities &&
 			typeof wp.abilities.getAbilities === 'function';
+		if ( ! apiAvailable ) {
+			registrationPromise = null;
+		}
 	} )();
 
 	return registrationPromise;

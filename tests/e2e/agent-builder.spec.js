@@ -271,26 +271,6 @@ async function mockAgentsApi( page, opts = {} ) {
 		}
 	);
 
-	// Stub tool-profiles endpoint (used by the form dropdown).
-	// Slugs must match the built-in profiles defined in ToolProfiles::get_builtins()
-	// so that selectOption() calls in tests use values that actually exist in the
-	// real implementation (avoids "did not find some options" failures in CI).
-	// Use a function matcher so wp-env's URL-encoded paths (%2F) are decoded first.
-	await page.route(
-		( url ) =>
-			decodeUrl( url ).includes( 'gratis-ai-agent/v1/tool-profiles' ),
-		async ( route ) => {
-			await route.fulfill( {
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify( [
-					{ slug: 'wp-read-only', name: 'WP Read Only' },
-					{ slug: 'wp-full-management', name: 'WP Full Management' },
-				] ),
-			} );
-		}
-	);
-
 	// Stub providers endpoint (used by the provider/model dropdowns).
 	// Use a function matcher so wp-env's URL-encoded paths (%2F) are decoded first.
 	await page.route(
@@ -509,7 +489,6 @@ test.describe( 'Agent Builder - Create Agent', () => {
 		await expect( form.getByLabel( /Slug/i ) ).toBeVisible();
 		await expect( form.getByLabel( /^Name/i ) ).toBeVisible();
 		await expect( form.getByLabel( /System Prompt/i ) ).toBeVisible();
-		await expect( form.getByLabel( /Tool Profile/i ) ).toBeVisible();
 	} );
 
 	test( 'submitting without a name shows a validation error', async ( {
@@ -562,33 +541,6 @@ test.describe( 'Agent Builder - Create Agent', () => {
 		const cards = getAgentCards( page );
 		await expect( cards ).toHaveCount( 1 );
 		await expect( cards.first() ).toContainText( AGENT_FIXTURE.name );
-	} );
-
-	test( 'assigns a tool profile (abilities) when creating an agent', async ( {
-		page,
-	} ) => {
-		await getAddAgentButton( page ).click();
-
-		const form = getAgentForm( page );
-		await form.getByLabel( /Slug/i ).fill( 'tool-agent' );
-		await form.getByLabel( /^Name/i ).fill( 'Tool Agent' );
-
-		// Wait for the tool-profiles API response to populate the dropdown
-		// before attempting to select an option.
-		const toolProfileSelect = form.getByLabel( /Tool Profile/i );
-		await expect(
-			toolProfileSelect.locator( 'option', { hasText: 'WP Read Only' } )
-		).toBeAttached();
-
-		// Select the "WP Read Only" tool profile by value. The slug 'wp-read-only'
-		// matches the built-in profile defined in ToolProfiles::get_builtins().
-		await toolProfileSelect.selectOption( 'wp-read-only' );
-
-		await getCreateAgentButton( page ).click();
-
-		// Form closes and card appears — the create succeeded.
-		await expect( getAgentForm( page ) ).not.toBeVisible();
-		await expect( getAgentCards( page ) ).toHaveCount( 1 );
 	} );
 
 	test( '"Cancel" button hides the form without saving', async ( {
@@ -907,15 +859,6 @@ test.describe( 'Agent Builder - Full Lifecycle', () => {
 		await form
 			.getByLabel( /System Prompt/i )
 			.fill( AGENT_FIXTURE.system_prompt );
-
-		// Wait for tool-profile options to load before selecting.
-		const toolProfileSelect = form.getByLabel( /Tool Profile/i );
-		await expect(
-			toolProfileSelect.locator( 'option', { hasText: 'WP Read Only' } )
-		).toBeAttached();
-		// Select the "WP Read Only" profile by value — matches the built-in
-		// slug in ToolProfiles::get_builtins().
-		await toolProfileSelect.selectOption( 'wp-read-only' );
 
 		await getCreateAgentButton( page ).click();
 

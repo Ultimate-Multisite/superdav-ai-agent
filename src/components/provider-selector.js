@@ -35,17 +35,22 @@ export default function ProviderSelector( { compact = false } ) {
 
 	const { setSelectedProvider, setSelectedModel } = useDispatch( STORE_NAME );
 
+	if ( ! providers.length ) {
+		return (
+			<div className="gratis-ai-agent-provider-selector">
+				<p>
+					<a href="/wp-admin/options-connectors.php">
+						{ __( 'Configure a provider', 'gratis-ai-agent' ) }
+					</a>
+				</p>
+			</div>
+		);
+	}
+
 	const providerOptions = providers.map( ( p ) => ( {
 		label: p.name,
 		value: p.id,
 	} ) );
-
-	if ( ! providerOptions.length ) {
-		providerOptions.push( {
-			label: __( '(no providers)', 'gratis-ai-agent' ),
-			value: '',
-		} );
-	}
 
 	const modelOptions = models.length
 		? models.map( ( m ) => ( {

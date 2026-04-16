@@ -180,12 +180,22 @@ describe( 'ProviderSelector rendering', () => {
 		expect( html ).toContain( 'GPT-4o Mini' );
 	} );
 
-	test( 'shows "(no providers)" when providers list is empty', () => {
+	test( 'shows configure-provider link when providers list is empty', () => {
 		setupMocks( { providers: [], models: [] } );
 		const html = renderToStaticMarkup(
 			createElement( ProviderSelector, {} )
 		);
-		expect( html ).toContain( '(no providers)' );
+		expect( html ).toContain( 'Configure a provider' );
+		expect( html ).toContain( 'options-connectors.php' );
+	} );
+
+	test( 'does not render dropdowns when providers list is empty', () => {
+		setupMocks( { providers: [], models: [] } );
+		const html = renderToStaticMarkup(
+			createElement( ProviderSelector, {} )
+		);
+		expect( html ).not.toContain( '(no providers)' );
+		expect( html ).not.toContain( '<select' );
 	} );
 
 	test( 'shows "(default)" model option when no models available', () => {

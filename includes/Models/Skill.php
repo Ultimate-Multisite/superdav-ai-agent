@@ -114,8 +114,10 @@ class Skill {
 				'name'        => sanitize_text_field( $data['name'] ?? '' ),
 				// @phpstan-ignore-next-line
 				'description' => sanitize_textarea_field( $data['description'] ?? '' ),
+				// Skill content is markdown for AI consumption, not HTML for browser rendering.
+				// It is stored verbatim; SQL injection is prevented by $wpdb->insert() parameterisation.
 				// @phpstan-ignore-next-line
-				'content'     => wp_kses_post( $data['content'] ?? '' ),
+				'content'     => $data['content'] ?? '',
 				'is_builtin'  => ! empty( $data['is_builtin'] ) ? 1 : 0,
 				'enabled'     => isset( $data['enabled'] ) ? ( $data['enabled'] ? 1 : 0 ) : 1,
 				'created_at'  => $now,
@@ -149,10 +151,10 @@ class Skill {
 			// @phpstan-ignore-next-line
 			$data['description'] = sanitize_textarea_field( $data['description'] );
 		}
-		if ( isset( $data['content'] ) ) {
-			// @phpstan-ignore-next-line
-			$data['content'] = wp_kses_post( $data['content'] );
-		}
+		// Skill content is markdown for AI consumption, not HTML for browser rendering.
+		// Stored verbatim; SQL injection is prevented by $wpdb->update() parameterisation.
+		// No sanitization needed: content only flows through REST/admin, never rendered as raw HTML.
+
 		if ( isset( $data['enabled'] ) ) {
 			$data['enabled'] = $data['enabled'] ? 1 : 0;
 		}

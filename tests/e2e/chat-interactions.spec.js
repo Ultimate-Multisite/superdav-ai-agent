@@ -42,10 +42,15 @@ const {
  * @param {string} [options.generatedTitle] - When set, included as
  *   `generated_title` in the job-complete payload so the store's job-result
  *   parsing path is exercised end-to-end.
+ * @param {number} [options.processingPolls=0] - Number of polls that return
+ *   `status: 'processing'` before the handler switches to `status: 'complete'`.
+ *   Use `processingPolls: 1` in the stop-button test so `sending` stays true
+ *   long enough for the assertion to observe the stop button.
  * @return {Promise<void>}
  */
 async function interceptStream( page, options = {} ) {
-	const { generatedTitle } = options;
+	const { generatedTitle, processingPolls = 0 } = options;
+	let jobPollCount = 0;
 
 	// Track the session_id from the /run POST body so the job-complete payload
 	// carries the correct session ID. The store creates the session first via
@@ -80,12 +85,24 @@ async function interceptStream( page, options = {} ) {
 	} );
 
 	// Intercept GET /job/:id — the store polls here every 3 s until 'complete'.
-	// Return 'complete' immediately so tests don't wait for the poll interval.
+	// Return 'processing' for the first `processingPolls` polls so tests that
+	// need to observe transient UI state (e.g., the stop button) have a window
+	// to do so. After that, return 'complete' immediately.
 	// capturedSessionId is guaranteed set before the first poll: the browser
 	// sends POST /run synchronously before fetching GET /job/:id.
 	await page.route(
 		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
 		async ( route ) => {
+		jobPollCount += 1;
+		if ( jobPollCount <= processingPolls ) {
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( { status: 'processing' } ),
+			} );
+			return;
+		}
+
 		const result = {
 			status: 'complete',
 			session_id: capturedSessionId,
@@ -154,7 +171,11 @@ test.describe( 'Chat Input Interactions', () => {
 		// in-flight long enough for the stop button to be visible. Without this
 		// mock the backend returns an error immediately (no AI provider in CI),
 		// setting sending=false before the 5 s assertion window.
-		await interceptStream( page );
+		// processingPolls: 1 ensures the first job poll returns 'processing',
+		// keeping sending=true (and the stop button visible) until the second
+		// poll returns 'complete'. This prevents a race where an immediate
+		// 'complete' response clears sending state before the assertion fires.
+		await interceptStream( page, { processingPolls: 1 } );
 
 		const input = getMessageInput( page );
 		await input.fill( 'Trigger a response' );

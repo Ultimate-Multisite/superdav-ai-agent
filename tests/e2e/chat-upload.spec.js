@@ -208,7 +208,12 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 		expect( label.toLowerCase() ).toContain( 'attach' );
 	} );
 
-	test( 'upload button is disabled while sending', async ( { page } ) => {
+	test( 'upload button stays enabled while sending (always-on input)', async ( {
+		page,
+	} ) => {
+		// The always-on message input (message-queue feature) keeps the upload
+		// button enabled even while the agent is processing. Users can attach
+		// files to a queued message while a job is in-flight.
 		// Intercept POST /run so the job stays "processing" long enough to
 		// check the button state. Hold the /run response until we resolve.
 		let resolveRun;
@@ -217,7 +222,10 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 		} );
 
 		await page.route(
-			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+			( url ) =>
+				decodeURIComponent( url.toString() ).includes(
+					'gratis-ai-agent/v1/run'
+				),
 			async ( route ) => {
 				await runPending;
 				await route.fulfill( {
@@ -232,9 +240,10 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 		await input.fill( 'Test' );
 		await input.press( 'Enter' );
 
-		// While the /run response is pending, the upload button should be disabled.
+		// While the /run response is pending, the upload button should remain
+		// ENABLED — users can attach files to messages queued during processing.
 		const uploadBtn = getUploadButton( page );
-		await expect( uploadBtn ).toBeDisabled( { timeout: 5_000 } );
+		await expect( uploadBtn ).toBeEnabled( { timeout: 5_000 } );
 
 		// Unblock the /run response so the test can clean up.
 		resolveRun();

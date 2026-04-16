@@ -141,6 +141,18 @@ class AgentLoop {
 	 */
 	private $progress_callback = null;
 
+	/**
+	 * Optional callback that checks for interrupt messages from the user.
+	 *
+	 * Signature: function(): ?array{ message: string, timestamp: int }
+	 * Returns the next unprocessed interrupt, or null if none pending.
+	 * Used by the job system to read interrupts from the job transient
+	 * so the agent loop can incorporate new user context mid-execution.
+	 *
+	 * @var callable|null
+	 */
+	private $interrupt_checker = null;
+
 	// ── Spin Detection State ─────────────────────────────────────────────
 
 	/** @var int Consecutive rounds with identical tool signatures. */
@@ -225,6 +237,11 @@ class AgentLoop {
 		// Progress callback for live tool-call reporting (used by job system).
 		if ( isset( $options['progress_callback'] ) && is_callable( $options['progress_callback'] ) ) {
 			$this->progress_callback = $options['progress_callback'];
+		}
+
+		// Interrupt checker for mid-loop user message injection (used by job system).
+		if ( isset( $options['interrupt_checker'] ) && is_callable( $options['interrupt_checker'] ) ) {
+			$this->interrupt_checker = $options['interrupt_checker'];
 		}
 
 		// Validate and store client-side ability descriptors.
@@ -427,6 +444,11 @@ class AgentLoop {
 					'exit_reason'     => 'timeout',
 				);
 			}
+
+			// Check for user interrupts — messages sent while the loop runs.
+			// Inject them into the conversation history so the model is
+			// aware of the new context on this iteration.
+			$this->check_and_inject_interrupts();
 
 			// Smart conversation trimming before each LLM call.
 			// @phpstan-ignore-next-line
@@ -921,23 +943,22 @@ class AgentLoop {
 			}
 
 			// 2. No explicit permission — use annotation-based classification.
-			// Look up the ability's readonly annotation.
 			$ability = $all_abilities[ $ability_name ] ?? null;
 
 			if ( null !== $ability ) {
 				$classification = self::classify_ability( $ability );
 
-				if ( 'write' === $classification ) {
+				if ( 'destructive' === $classification ) {
 					$confirm[] = array(
 						'id'   => $call->getId(),
 						'name' => $fn_name,
 						'args' => $call->getArgs(),
 					);
 				}
-				// 'read' → auto-execute.
-			} elseif ( null === $ability ) {
-				// If ability not found in registry (e.g. custom tool), default to
-				// requiring confirmation for safety.
+				// 'read' and 'write' → auto-execute.
+			} else {
+				// Ability not found in registry (e.g. custom tool) — default
+				// to requiring confirmation for safety.
 				$confirm[] = array(
 					'id'   => $call->getId(),
 					'name' => $fn_name,
@@ -1269,6 +1290,54 @@ class AgentLoop {
 	}
 
 	/**
+	 * Check for user interrupt messages and inject them into the conversation.
+	 *
+	 * Called at the start of each loop iteration. If the interrupt_checker
+	 * callback returns an interrupt, it's appended to the history as a
+	 * UserMessage prefixed with "[User interrupt]" so the model knows
+	 * the user has provided new context mid-execution.
+	 */
+	private function check_and_inject_interrupts(): void {
+		if ( null === $this->interrupt_checker ) {
+			return;
+		}
+
+		try {
+			$interrupt = call_user_func( $this->interrupt_checker );
+			if ( null === $interrupt || ! is_array( $interrupt ) ) {
+				return;
+			}
+
+			$message_text = (string) ( $interrupt['message'] ?? '' );
+			if ( '' === $message_text ) {
+				return;
+			}
+
+			// Inject the interrupt as a user message so the model sees it.
+			$this->history[] = new UserMessage(
+				array(
+					new MessagePart(
+						'[User interrupt — the user has sent a new message while you were working. '
+						. 'Read it carefully. If it changes the task, adapt accordingly. '
+						. "If it's additional context, incorporate it and continue.]\n\n"
+						. $message_text
+					),
+				)
+			);
+
+			// Log the interrupt for transparency.
+			$this->tool_call_log[] = array(
+				'type'    => 'interrupt',
+				'message' => $message_text,
+			);
+
+			$this->fire_progress();
+		} catch ( \Throwable $e ) {
+			// Interrupt checking is best-effort and must not crash the loop.
+		}
+	}
+
+	/**
 	 * Build a deterministic signature of the tool calls in a message.
 	 *
 	 * Used for spin detection: if two consecutive rounds produce the same
@@ -1312,28 +1381,45 @@ class AgentLoop {
 	}
 
 	/**
-	 * Classify an ability as 'read' or 'write' based on its meta annotations.
+	 * Classify an ability as 'read', 'write', or 'destructive' based on its
+	 * meta annotations.
 	 *
-	 * Uses the WordPress Abilities API `readonly` annotation:
-	 * - readonly=true  → 'read' (auto-execute, no confirmation needed)
-	 * - readonly=false → 'write' (needs confirmation unless always-allowed)
-	 * - readonly=null  → 'write' (default to safe — require confirmation)
+	 * Uses the WordPress Abilities API annotations:
+	 * - readonly=true                → 'read'        (auto-execute)
+	 * - destructive=false            → 'write'       (safe write, auto-execute)
+	 * - destructive=true             → 'destructive' (needs confirmation)
+	 * - destructive=null & !readonly → 'destructive' (unknown risk, confirm)
+	 *
+	 * The confirmation dialog in get_tools_needing_confirmation() only fires
+	 * for 'destructive'. Both 'read' and 'write' auto-execute. This means
+	 * non-destructive writes (saving a memory, creating a post, installing a
+	 * plugin) proceed immediately while destructive operations (deletions,
+	 * resets) still require user approval.
 	 *
 	 * @param \WP_Ability $ability The ability to classify.
-	 * @return string 'read' or 'write'.
+	 * @return string 'read', 'write', or 'destructive'.
 	 */
 	public static function classify_ability( \WP_Ability $ability ): string {
-		$meta = $ability->get_meta();
+		$meta        = $ability->get_meta();
+		$annotations = ( isset( $meta['annotations'] ) && is_array( $meta['annotations'] ) )
+			? $meta['annotations']
+			: array();
 
-		// Check the annotations.readonly field.
-		if ( isset( $meta['annotations'] ) && is_array( $meta['annotations'] ) ) {
-			if ( true === ( $meta['annotations']['readonly'] ?? null ) ) {
-				return 'read';
-			}
+		$readonly    = $annotations['readonly'] ?? null;
+		$destructive = $annotations['destructive'] ?? null;
+
+		// Explicitly read-only → always auto-execute.
+		if ( true === $readonly ) {
+			return 'read';
 		}
 
-		// Default to 'write' — safe by default.
-		return 'write';
+		// Explicitly non-destructive → safe write, auto-execute.
+		if ( false === $destructive ) {
+			return 'write';
+		}
+
+		// Destructive or unknown → require confirmation.
+		return 'destructive';
 	}
 
 	/**

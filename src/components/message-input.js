@@ -180,6 +180,10 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		( select ) => select( STORE_NAME ).isDebugMode(),
 		[]
 	);
+	const queueCount = useSelect(
+		( select ) => select( STORE_NAME ).getMessageQueue().length,
+		[]
+	);
 	const {
 		sendMessage,
 		stopGeneration,
@@ -337,7 +341,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 
 	const handleSend = useCallback( () => {
 		const trimmed = text.trim();
-		if ( ( ! trimmed && ! attachments.length ) || sending ) {
+		if ( ! trimmed && ! attachments.length ) {
 			return;
 		}
 
@@ -450,7 +454,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			() => textareaRef.current?.focus( { preventScroll: true } ),
 			0
 		);
-	}, [ text, attachments, sending, sendMessage, onSlashCommand ] );
+	}, [ text, attachments, sendMessage, onSlashCommand ] );
 
 	const handleSlashSelect = useCallback(
 		( cmd ) => {
@@ -557,8 +561,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		[ handleSend, showSlash ]
 	);
 
-	const canSend =
-		( text.trim().length > 0 || attachments.length > 0 ) && ! sending;
+	const canSend = text.trim().length > 0 || attachments.length > 0;
 
 	return (
 		<div
@@ -598,6 +601,16 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					{ __( 'Drop files here', 'gratis-ai-agent' ) }
 				</div>
 			) }
+			{ queueCount > 0 && (
+				<div className="gratis-ai-agent-queue-indicator">
+					{ queueCount === 1
+						? __( '1 message queued', 'gratis-ai-agent' )
+						: `${ queueCount } ${ __(
+								'messages queued',
+								'gratis-ai-agent'
+						  ) }` }
+				</div>
+			) }
 			<div className="gratis-ai-agent-input-row">
 				{ /* Hidden file input */ }
 				<input
@@ -617,23 +630,28 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					className="gratis-ai-agent-upload-btn"
 					label={ __( 'Attach file', 'gratis-ai-agent' ) }
 					icon={ <PaperclipIcon /> }
-					disabled={ sending }
 				/>
 				<textarea
 					ref={ textareaRef }
 					className="gratis-ai-agent-input"
 					rows={ 1 }
-					placeholder={ __(
-						'Type a message or / for commands…',
-						'gratis-ai-agent'
-					) }
+					placeholder={
+						sending
+							? __(
+									'Type to queue a message…',
+									'gratis-ai-agent'
+							  )
+							: __(
+									'Type a message or / for commands…',
+									'gratis-ai-agent'
+							  )
+					}
 					value={ text }
 					onChange={ ( e ) => setText( e.target.value ) }
 					onKeyDown={ handleKeyDown }
 					onPaste={ handlePaste }
-					disabled={ sending }
 				/>
-				{ isSpeechSupported && ! sending && (
+				{ isSpeechSupported && (
 					<Button
 						onClick={ toggleListening }
 						className={ `gratis-ai-agent-mic-btn${
@@ -665,25 +683,32 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 						}
 					/>
 				) }
-				{ sending ? (
-					<Button
-						onClick={ stopGeneration }
-						className="gratis-ai-agent-stop-btn"
-						label={ __( 'Stop generation', 'gratis-ai-agent' ) }
-						showTooltip
-						icon={ <Icon icon={ closeSmall } size={ 18 } /> }
-					/>
-				) : (
-					<Button
-						variant="primary"
-						onClick={ handleSend }
-						disabled={ ! canSend }
-						className="gratis-ai-agent-send-btn"
-						label={ __( 'Send message', 'gratis-ai-agent' ) }
-						aria-label={ __( 'Send message', 'gratis-ai-agent' ) }
-						icon={ <Icon icon={ arrowUp } /> }
-					/>
-				) }
+			{ sending && (
+				<Button
+					onClick={ stopGeneration }
+					className="gratis-ai-agent-stop-btn"
+					label={ __( 'Stop generation', 'gratis-ai-agent' ) }
+					showTooltip
+					icon={ <Icon icon={ closeSmall } size={ 18 } /> }
+				/>
+			) }
+				<Button
+					variant="primary"
+					onClick={ handleSend }
+					disabled={ ! canSend }
+					className="gratis-ai-agent-send-btn"
+					label={
+						sending
+							? __( 'Queue message', 'gratis-ai-agent' )
+							: __( 'Send message', 'gratis-ai-agent' )
+					}
+					aria-label={
+						sending
+							? __( 'Queue message', 'gratis-ai-agent' )
+							: __( 'Send message', 'gratis-ai-agent' )
+					}
+					icon={ <Icon icon={ arrowUp } /> }
+				/>
 			</div>
 		</div>
 	);

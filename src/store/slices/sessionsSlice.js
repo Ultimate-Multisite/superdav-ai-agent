@@ -77,6 +77,11 @@ export const initialState = {
 	// Feedback banner (t183) — set when the AI exits due to spin/timeout/max_iterations.
 	// { exitReason: string } or null.
 	feedbackBanner: null,
+
+	// Message queue — messages typed while the agent is processing.
+	// Each entry: { text: string, attachments: [], timestamp: number }
+	// Drained automatically when the current job completes.
+	messageQueue: [],
 };
 
 export const actions = {
@@ -354,6 +359,42 @@ export const actions = {
 	 */
 	setFeedbackBanner( data ) {
 		return { type: 'SET_FEEDBACK_BANNER', data };
+	},
+
+	// ─── Message queue (always-on input) ────────────────────────
+
+	/**
+	 * Enqueue a message to be processed after the current job finishes.
+	 *
+	 * @param {string} text        - Message text.
+	 * @param {Array}  attachments - Optional attachment objects.
+	 * @return {Object} Redux action.
+	 */
+	enqueueMessage( text, attachments ) {
+		return {
+			type: 'ENQUEUE_MESSAGE',
+			text,
+			attachments: attachments || [],
+			timestamp: Date.now(),
+		};
+	},
+
+	/**
+	 * Remove the first message from the queue (after it's been sent).
+	 *
+	 * @return {Object} Redux action.
+	 */
+	dequeueMessage() {
+		return { type: 'DEQUEUE_MESSAGE' };
+	},
+
+	/**
+	 * Clear the entire message queue.
+	 *
+	 * @return {Object} Redux action.
+	 */
+	clearMessageQueue() {
+		return { type: 'CLEAR_MESSAGE_QUEUE' };
 	},
 
 	/**
@@ -734,11 +775,15 @@ export const actions = {
 	 * Uses the Fetch API with a ReadableStream reader to consume the
 	 * text/event-stream response from POST /gratis-ai-agent/v1/stream.
 	 *
-	 * @param {string} message     The user message to send.
-	 * @param {Array}  attachments Optional array of attachment objects with
-	 *                             { name, type, dataUrl, isImage } shape.
+	 * @param {string}  message           The user message to send.
+	 * @param {Array}   attachments       Optional array of attachment objects with
+	 *                                    { name, type, dataUrl, isImage } shape.
+	 * @param {Object}  options           Optional flags.
+	 * @param {boolean} options.fromQueue When true, the user message is already
+	 *                                    visible in the message list (queued earlier)
+	 *                                    so we skip appending it again.
 	 */
-	streamMessage( message, attachments = [] ) {
+	streamMessage( message, attachments = [], options = {} ) {
 		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
 			dispatch.setIsStreaming( false );
@@ -758,12 +803,15 @@ export const actions = {
 				parts.push( { image_url: att.dataUrl, image_name: att.name } );
 			} );
 
-			// Append user message immediately (with attachment previews).
-			dispatch.appendMessage( {
-				role: 'user',
-				parts: parts.length ? parts : [ { text: '' } ],
-				attachments: imageAttachments,
-			} );
+			// Append user message immediately (with attachment previews),
+			// unless this message came from the queue (already visible).
+			if ( ! options.fromQueue ) {
+				dispatch.appendMessage( {
+					role: 'user',
+					parts: parts.length ? parts : [ { text: '' } ],
+					attachments: imageAttachments,
+				} );
+			}
 
 			let sessionId = select.getCurrentSessionId();
 
@@ -980,10 +1028,13 @@ export const actions = {
 	},
 
 	/**
-	 * Send a message to the synchronous /chat endpoint.
-	 * Delegates to streamMessage, which now performs a single POST to /chat
-	 * (streaming was removed when chat routing was delegated to the WP AI
-	 * Client SDK, which does not expose a streaming interface).
+	 * Send a message or enqueue it if the agent is currently processing.
+	 *
+	 * When the agent is idle, dispatches streamMessage immediately.
+	 * When the agent is busy (sending === true), the message is added to
+	 * the queue and will be sent automatically when the current job
+	 * completes. The user message is still appended to the message list
+	 * immediately with a "queued" flag so it appears in the chat.
 	 *
 	 * @param {string} message     - User message text.
 	 * @param {Array}  attachments - Optional array of attachment objects with
@@ -991,8 +1042,98 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	sendMessage( message, attachments = [] ) {
-		return ( { dispatch } ) => {
-			dispatch.streamMessage( message, attachments );
+		return ( { dispatch, select } ) => {
+			const isBusy = select.isSending();
+
+			if ( ! isBusy ) {
+				dispatch.streamMessage( message, attachments );
+			} else {
+				// Enqueue the message for later processing.
+				dispatch.enqueueMessage( message, attachments );
+
+				// Show the user message in the chat immediately with a
+				// "queued" marker so the user sees their message was accepted.
+				const parts = [];
+				if ( message ) {
+					parts.push( { text: message } );
+				}
+				const imageAttachments = ( attachments || [] ).filter(
+					( a ) => a.isImage
+				);
+				imageAttachments.forEach( ( att ) => {
+					parts.push( {
+						image_url: att.dataUrl,
+						image_name: att.name,
+					} );
+				} );
+				dispatch.appendMessage( {
+					role: 'user',
+					parts: parts.length ? parts : [ { text: '' } ],
+					attachments: imageAttachments,
+					queued: true,
+				} );
+			}
+		};
+	},
+
+	/**
+	 * Process the next message in the queue.
+	 *
+	 * Called automatically when a job completes and the queue is non-empty.
+	 * Dequeues the first message and sends it via streamMessage.
+	 *
+	 * @return {Function} Redux thunk.
+	 */
+	drainMessageQueue() {
+		return ( { dispatch, select } ) => {
+			const queue = select.getMessageQueue();
+			if ( ! queue.length ) {
+				return;
+			}
+
+			const next = queue[ 0 ];
+			dispatch.dequeueMessage();
+			// Pass fromQueue: true so streamMessage doesn't re-append
+			// the user message that was already shown when enqueued.
+			dispatch.streamMessage( next.text, next.attachments, {
+				fromQueue: true,
+			} );
+		};
+	},
+
+	/**
+	 * Send an interrupt message to the currently running agent job.
+	 *
+	 * The message is injected into the running agent loop's context
+	 * so the AI becomes aware of the new information immediately.
+	 * The user message is also shown in the chat.
+	 *
+	 * @param {string} message - The interrupt message text.
+	 * @return {Function} Redux thunk.
+	 */
+	interruptAgent( message ) {
+		return async ( { dispatch, select } ) => {
+			const jobId = select.getCurrentJobId();
+			if ( ! jobId ) {
+				return;
+			}
+
+			// Show the interrupt message in the chat.
+			dispatch.appendMessage( {
+				role: 'user',
+				parts: [ { text: message } ],
+				interrupt: true,
+			} );
+
+			try {
+				await apiFetch( {
+					path: `/gratis-ai-agent/v1/job/${ jobId }/interrupt`,
+					method: 'POST',
+					data: { message },
+				} );
+			} catch {
+				// Best-effort — the message is already visible in the chat.
+			}
 		};
 	},
 
@@ -1199,6 +1340,10 @@ export const actions = {
 				if ( jobSessionId ) {
 					dispatch.setSessionJob( jobSessionId, null );
 				}
+
+				// Auto-drain the message queue: if the user sent messages
+				// while the agent was processing, send the next one now.
+				dispatch.drainMessageQueue();
 			};
 
 			setTimeout( poll, 2000 );
@@ -1520,6 +1665,28 @@ export const selectors = {
 	getSharedSessionsLoaded( state ) {
 		return state.sharedSessionsLoaded;
 	},
+
+	// ─── Message queue ──────────────────────────────────────────
+
+	/**
+	 * Get the current message queue.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {Array} Queued messages: { text, attachments, timestamp }.
+	 */
+	getMessageQueue( state ) {
+		return state.messageQueue;
+	},
+
+	/**
+	 * Whether there are messages waiting in the queue.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {boolean} True when the queue is non-empty.
+	 */
+	hasQueuedMessages( state ) {
+		return state.messageQueue.length > 0;
+	},
 };
 
 /**
@@ -1567,6 +1734,7 @@ export function reducer( state, action ) {
 				sessionCost: 0,
 				messageTokens: [],
 				feedbackBanner: null,
+				messageQueue: [],
 			};
 		case 'SET_SENDING':
 			return { ...state, sending: action.sending };
@@ -1702,6 +1870,29 @@ export function reducer( state, action ) {
 				},
 			};
 		}
+		// ─── Message queue ──────────────────────────────────────
+		case 'ENQUEUE_MESSAGE':
+			return {
+				...state,
+				messageQueue: [
+					...state.messageQueue,
+					{
+						text: action.text,
+						attachments: action.attachments,
+						timestamp: action.timestamp,
+					},
+				],
+			};
+		case 'DEQUEUE_MESSAGE':
+			return {
+				...state,
+				messageQueue: state.messageQueue.slice( 1 ),
+			};
+		case 'CLEAR_MESSAGE_QUEUE':
+			return {
+				...state,
+				messageQueue: [],
+			};
 		default:
 			return state;
 	}

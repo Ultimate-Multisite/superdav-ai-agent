@@ -96,7 +96,7 @@ function MessageAttachments( { attachments } ) {
  * @param {Array}  props.attachments - Optional image attachments for user messages.
  * @return {JSX.Element} The message bubble element.
  */
-function MessageBubble( { role, text, attachments } ) {
+function MessageBubble( { role, text, attachments, queued } ) {
 	const classMap = {
 		user: 'gratis-ai-agent-bubble gratis-ai-agent-user',
 		model: 'gratis-ai-agent-bubble gratis-ai-agent-assistant',
@@ -113,9 +113,18 @@ function MessageBubble( { role, text, attachments } ) {
 
 	if ( role === 'user' ) {
 		return (
-			<div className={ classMap.user }>
+			<div
+				className={ `${ classMap.user }${
+					queued ? ' is-queued' : ''
+				}` }
+			>
 				<MessageAttachments attachments={ attachments } />
 				{ text }
+				{ queued && (
+					<span className="gratis-ai-agent-queued-badge">
+						{ __( 'Queued', 'gratis-ai-agent' ) }
+					</span>
+				) }
 			</div>
 		);
 	}
@@ -446,11 +455,12 @@ export default function MessageList() {
 						{ msg.toolCalls?.length > 0 && (
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
-						<MessageBubble
-							role={ msg.role }
-							text={ cleanText }
-							attachments={ msg.attachments }
-						/>
+					<MessageBubble
+						role={ msg.role }
+						text={ cleanText }
+						attachments={ msg.attachments }
+						queued={ msg.queued }
+					/>
 						<MessageActions
 							message={ msg }
 							index={ originalIndex }

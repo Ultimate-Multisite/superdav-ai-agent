@@ -1197,6 +1197,32 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	cursor: not-allowed;
 }
 
+/* ── Message queue indicator ─────────────────────────────────── */
+
+.gratis-ai-agent-queue-indicator {
+	font-size: 11px;
+	color: #8c8f94;
+	padding: 2px 0 4px;
+	text-align: center;
+	line-height: 1.4;
+}
+
+/* ── Queued message badge ────────────────────────────────────── */
+
+.gratis-ai-agent-bubble.gratis-ai-agent-user.is-queued {
+	opacity: 0.7;
+	border-style: dashed;
+}
+
+.gratis-ai-agent-queued-badge {
+	display: inline-block;
+	font-size: 10px;
+	color: #8c8f94;
+	margin-left: 8px;
+	font-style: italic;
+	vertical-align: middle;
+}
+
 /* ── Shared icon-button sizing for input row ─────────────────── */
 .gratis-ai-agent-send-btn.components-button,
 .gratis-ai-agent-mic-btn.components-button,

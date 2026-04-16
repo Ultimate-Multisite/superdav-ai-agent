@@ -173,7 +173,7 @@ class SkillAbilitiesTest extends WP_UnitTestCase {
 
 		$definitions = Skill::get_builtin_definitions();
 
-		foreach ( $definitions as $slug => $definition ) {
+		foreach ( array_keys( $definitions ) as $slug ) {
 			$result = SkillAbilities::handle_skill_load( [ 'slug' => $slug ] );
 
 			$this->assertIsArray(
@@ -283,17 +283,17 @@ class SkillAbilitiesTest extends WP_UnitTestCase {
 		$definitions = Skill::get_builtin_definitions();
 		$this->assertArrayHasKey( $expected, $definitions );
 
-		// Score each skill's (name + description) against the prompt.
+		// Score each skill's index entry (slug: description) against the prompt,
+		// matching the format produced by Skill::get_index_for_prompt().
 		$scores = [];
 		foreach ( $definitions as $slug => $def ) {
 			$scores[ $slug ] = self::keyword_overlap_score(
 				$prompt,
-				$def['name'] . ' ' . $def['description']
+				$slug . ': ' . $def['description']
 			);
 		}
 
 		arsort( $scores );
-		$top_slug = array_key_first( $scores );
 
 		// The expected skill must have a positive score.
 		$this->assertGreaterThan(
@@ -302,13 +302,16 @@ class SkillAbilitiesTest extends WP_UnitTestCase {
 			"Skill '$expected' should have positive keyword overlap with: \"$prompt\""
 		);
 
-		// The expected skill should be the top match (or tied for top).
-		$this->assertSame(
+		// The expected skill should be the top match, or tied for top if multiple
+		// skills share the same highest score.
+		$top_score = reset( $scores );
+		$top_slugs = array_keys( array_filter( $scores, fn( $s ) => $s === $top_score ) );
+		$this->assertContains(
 			$expected,
-			$top_slug,
-			"Expected '$expected' to rank first for \"$prompt\", but '$top_slug' ranked higher. "
-			. "Scores: $expected=" . round( $scores[ $expected ], 3 )
-			. ", $top_slug=" . round( $scores[ $top_slug ], 3 )
+			$top_slugs,
+			"Expected '$expected' to rank first (or tied) for \"$prompt\", "
+			. "but top slug(s) were: " . implode( ', ', $top_slugs )
+			. ". Scores: $expected=" . round( $scores[ $expected ], 3 )
 		);
 	}
 

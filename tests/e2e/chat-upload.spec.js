@@ -534,7 +534,6 @@ test.describe( 'Chat Upload - Send Button State (t122)', () => {
 					contentType: 'application/json',
 					body: JSON.stringify( {
 						status: 'complete',
-						session_id: 1,
 						reply: 'OK',
 					} ),
 				} );

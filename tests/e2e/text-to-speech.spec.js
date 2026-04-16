@@ -390,6 +390,17 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Intercept the stream so the AI response completes quickly.
 		await interceptStream( page );
 
+		// Count existing assistant bubbles BEFORE sending so we can detect
+		// the NEW bubble that appears from THIS response. If a previous test
+		// (or a prior session reload) already showed an assistant bubble,
+		// waiting for `.first()` would resolve immediately and TTS polling
+		// would start before the new response is processed — causing a race
+		// where speak() is called after the 10 s window expires.
+		const assistantBubbleLocator = page.locator(
+			'.gratis-ai-agent-bubble.gratis-ai-agent-assistant'
+		);
+		const initialBubbleCount = await assistantBubbleLocator.count();
+
 		// Send a message. Scope to the non-compact chat panel.
 		const input = page
 			.locator(
@@ -399,11 +410,18 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		await input.fill( 'Hello' );
 		await input.press( 'Enter' );
 
-		// Wait for the AI message to appear in the chat.
-		await page
-			.locator( '.gratis-ai-agent-bubble.gratis-ai-agent-assistant' )
-			.first()
-			.waitFor( { state: 'visible', timeout: 15_000 } );
+		// Wait for a NEW assistant bubble to appear (count must exceed the
+		// initial count). This avoids the false-positive from pre-existing
+		// assistant bubbles and ensures TTS polling starts only after the
+		// response from THIS message is in the store.
+		await page.waitForFunction(
+			( count ) =>
+				document.querySelectorAll(
+					'.gratis-ai-agent-bubble.gratis-ai-agent-assistant'
+				).length > count,
+			initialBubbleCount,
+			{ timeout: 20_000 }
+		);
 
 		// Verify that speak() was called on the mock.
 		// TTS fires asynchronously after the stream completes, so poll until
@@ -416,7 +434,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 					);
 					return calls.filter( ( c ) => c.type === 'speak' ).length;
 				},
-				{ timeout: 10_000 }
+				{ timeout: 15_000 }
 			)
 			.toBeGreaterThanOrEqual( 1 );
 	} );

@@ -69,10 +69,7 @@ abstract class AbstractAbility extends \WP_Ability {
 	 * @param array<string,mixed> $properties Optional overrides. Supports 'label' and 'description'.
 	 */
 	public function __construct( string $name, array $properties = array() ) {
-		$input_schema = $this->input_schema();
-		if ( function_exists( 'gratis_ai_agent_normalize_ability_schema' ) ) {
-			$input_schema = gratis_ai_agent_normalize_ability_schema( $input_schema );
-		}
+		$input_schema = \GratisAiAgent\Infrastructure\Schema\SchemaNormalizer::normalize( $this->input_schema() );
 
 		parent::__construct(
 			$name,

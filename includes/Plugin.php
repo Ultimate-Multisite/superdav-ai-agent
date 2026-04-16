@@ -19,6 +19,11 @@ declare(strict_types=1);
 
 namespace GratisAiAgent;
 
+use GratisAiAgent\Bootstrap\CliHandler;
+use GratisAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
+use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
+use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
+use GratisAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
 use XWP\DI\Decorators\Module;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -42,7 +47,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	hook: 'plugins_loaded',
 	priority: 1,
 	imports: array(),
-	handlers: array(),
+	handlers: array(
+		AbilitySchemaFilter::class,
+		AbilityCategoryRegistrar::class,
+		UsageInstructionsFilter::class,
+		RequestTimeoutFilter::class,
+		CliHandler::class,
+	),
 	extendable: true,
 )]
 final class Plugin {

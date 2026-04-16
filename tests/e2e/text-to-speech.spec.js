@@ -554,6 +554,13 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Intercept the stream.
 		await interceptStream( page );
 
+		// Capture the current assistant-bubble count so we can wait for a
+		// genuinely NEW response (avoids matching a pre-existing bubble).
+		const assistantBubbleLocator = page.locator(
+			'.gratis-ai-agent-bubble.gratis-ai-agent-assistant'
+		);
+		const initialBubbleCount = await assistantBubbleLocator.count();
+
 		// Send a message. Scope to the non-compact chat panel.
 		const input = page
 			.locator(
@@ -563,11 +570,15 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		await input.fill( 'Hello' );
 		await input.press( 'Enter' );
 
-		// Wait for the AI message to appear.
-		await page
-			.locator( '.gratis-ai-agent-bubble.gratis-ai-agent-assistant' )
-			.first()
-			.waitFor( { state: 'visible', timeout: 30_000 } );
+		// Wait for a NEW assistant bubble (count must exceed the initial).
+		await page.waitForFunction(
+			( count ) =>
+				document.querySelectorAll(
+					'.gratis-ai-agent-bubble.gratis-ai-agent-assistant'
+				).length > count,
+			initialBubbleCount,
+			{ timeout: 30_000 }
+		);
 
 		// Wait a short period for any async TTS effects to fire —
 		// we want to confirm speak was NOT called even after settling.

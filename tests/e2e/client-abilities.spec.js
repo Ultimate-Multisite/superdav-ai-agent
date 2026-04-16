@@ -76,7 +76,7 @@ async function goToDashboard( page ) {
  * or the module is registered but not enqueued by core).
  *
  * @param {import('@playwright/test').Page} page
- * @return {Promise<boolean>} True when wp.abilities.getAbilities exists.
+ * @return {Promise<boolean>} True when all required wp.abilities methods exist.
  */
 async function isAbilitiesApiAvailable( page ) {
 	return page.evaluate( () => {
@@ -84,7 +84,8 @@ async function isAbilitiesApiAvailable( page ) {
 			typeof wp !== 'undefined' &&
 			!! wp.abilities &&
 			typeof wp.abilities.getAbilities === 'function' &&
-			typeof wp.abilities.registerAbility === 'function'
+			typeof wp.abilities.registerAbility === 'function' &&
+			typeof wp.abilities.registerAbilityCategory === 'function'
 		);
 	} );
 }

@@ -41,22 +41,8 @@ require_once "{$_tests_dir}/includes/functions.php";
 
 /**
  * Manually load the plugin being tested.
- *
- * Sets $_SERVER['REQUEST_URI'] to a REST URL so the x-wp/di context detector
- * (XWP_Context) recognizes the PHPUnit environment as CTX_REST. Without this,
- * handlers decorated with `context: CTX_REST` (including all REST_Handler and
- * Handler-based REST controllers) are silently skipped during plugins_loaded,
- * and routes return 404 in tests.
- *
- * The WP test bootstrap hardcodes REQUEST_URI = '/' before muplugins_loaded,
- * which makes XWP_Context::rest() return false. We override it here — before
- * the plugin calls xwp_load_app() — so the context is correct when the DI
- * Module processes handlers on plugins_loaded.
  */
 function _manually_load_plugin() {
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Test bootstrap only; not user input.
-	$_SERVER['REQUEST_URI'] = '/wp-json/gratis-ai-agent/v1/';
-
 	require dirname(__DIR__) . '/gratis-ai-agent.php';
 
 	// Install database tables (normally done on activation).
@@ -65,6 +51,31 @@ function _manually_load_plugin() {
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
+
+/**
+ * Force XWP_Context to CTX_REST so the x-wp/di container loads REST handlers.
+ *
+ * The WP test bootstrap defines WP_ADMIN = true, making is_admin() return true.
+ * XWP_Context::get() checks admin() BEFORE rest() in its match statement, so
+ * the context resolves to Admin (2) — silently skipping every CTX_REST (16)
+ * handler and producing 404 on all REST route tests.
+ *
+ * We override the private static $current property via reflection BEFORE the DI
+ * container processes handlers on plugins_loaded. The ??= assignment in get()
+ * then preserves our value instead of computing it from the environment.
+ *
+ * Registered on plugins_loaded at PHP_INT_MIN (same as xwp_load_app), but added
+ * BEFORE the plugin's add_action call, so it fires first in PHP's FIFO ordering
+ * for same-priority callbacks.
+ */
+tests_add_filter(
+	'plugins_loaded',
+	static function (): void {
+		$refl = new ReflectionProperty( XWP_Context::class, 'current' );
+		$refl->setValue( null, XWP_Context::REST );
+	},
+	PHP_INT_MIN
+);
 
 // Start up the WP testing environment.
 require "{$_tests_dir}/includes/bootstrap.php";

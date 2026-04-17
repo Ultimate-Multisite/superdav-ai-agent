@@ -369,7 +369,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - Keep static methods as deprecated wrappers during transition
   - Verify: `composer phpstan && composer phpcs && npm run test:php`
 
-- [ ] t193 Extract AgentLoop subresponsibilities into focused classes #refactor #auto-dispatch ~8h logged:2026-04-16 blocked-by:t192
+- [x] t193 Extract AgentLoop subresponsibilities into focused classes #refactor #auto-dispatch ~8h logged:2026-04-16 blocked-by:t192 pr:#1008 completed:2026-04-17
   - AgentLoop is ~1,500 lines handling 8+ concerns: orchestration, prompts, permissions, spin detection, client abilities, history, tokens, interrupts
   - NEW: includes/Core/SystemInstructionBuilder.php — build_system_instruction() + memory/skill assembly
   - NEW: includes/Core/ProviderCredentialLoader.php — ensure_provider_credentials_static()

@@ -387,7 +387,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - Register new handlers in Plugin.php handlers array
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t195 Clean up phpstan.neon — deduplicate ignores and write WP 7.0 AI Client stubs #quality #auto-dispatch ~3h logged:2026-04-16 blocked-by:t191
+- [x] t195 Clean up phpstan.neon — deduplicate ignores and write WP 7.0 AI Client stubs #quality #auto-dispatch ~3h logged:2026-04-16 blocked-by:t191 pr:#1011 completed:2026-04-17
   - phpstan.neon has 300 lines of ignoreErrors with ~40 duplicates
   - Deduplicate patterns, add count: annotations where supported
   - EDIT: stubs/wordpress-7-runtime.php — add WP_AI_Client_Prompt_Builder class with method stubs

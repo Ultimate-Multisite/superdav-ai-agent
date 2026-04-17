@@ -19,19 +19,6 @@ use WP_UnitTestCase;
  */
 class PluginDownloadAbilitiesTest extends WP_UnitTestCase {
 
-	// ── register ──────────────────────────────────────────────────────────
-
-	/**
-	 * register() hooks register_abilities to wp_abilities_api_init.
-	 */
-	public function test_register_hooks_register_abilities(): void {
-		PluginDownloadAbilities::register();
-
-		$this->assertNotFalse(
-			has_action( 'wp_abilities_api_init', [ PluginDownloadAbilities::class, 'register_abilities' ] )
-		);
-	}
-
 	// ── handle_list_modified_plugins ──────────────────────────────────────
 
 	/**

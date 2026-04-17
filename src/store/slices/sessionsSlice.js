@@ -16,6 +16,109 @@ import { __ } from '@wordpress/i18n';
 import { snapshotDescriptors } from '../../abilities/registry';
 import { ensureRegistered as ensureClientAbilitiesRegistered } from '../../abilities';
 
+/**
+ * Associate tool call log entries with the correct model text messages.
+ *
+ * The DB stores tool calls as a flat chronological array and messages separately.
+ * This function walks through both, matching tool call IDs found in model message
+ * function-call parts to entries in the tool_calls log, and attaches them to the
+ * next model message that contains text content.
+ *
+ * @param {Message[]}  messages  - Messages from the session DB row.
+ * @param {ToolCall[]} toolCalls - Flat tool call log from the session DB row.
+ * @return {Message[]} Messages with toolCalls property attached to model text messages.
+ */
+function associateToolCallsWithMessages( messages, toolCalls ) {
+	if ( ! toolCalls?.length || ! messages?.length ) {
+		return messages;
+	}
+
+	// Build a map of callId → { call entry, response entry } from the flat log.
+	const callMap = {};
+	for ( const tc of toolCalls ) {
+		if ( tc.type === 'call' && tc.id ) {
+			callMap[ tc.id ] = { call: tc };
+		} else if ( tc.type === 'response' && tc.id && callMap[ tc.id ] ) {
+			callMap[ tc.id ].response = tc;
+		}
+	}
+
+	// Walk through messages, collecting function call IDs from model messages
+	// and attaching the matched tool call entries to visible model messages.
+	const result = [];
+	let pendingCallIds = [];
+
+	for ( const msg of messages ) {
+		if ( msg.role === 'model' && msg.parts?.length ) {
+			// Collect function call IDs from this message's parts.
+			for ( const part of msg.parts ) {
+				if ( part.functionCall?.id ) {
+					pendingCallIds.push( part.functionCall.id );
+				}
+			}
+
+			// Check if this model message has text content (visible message).
+			const hasText = msg.parts.some( ( p ) => p.text );
+			if ( hasText && pendingCallIds.length > 0 ) {
+				// Build the toolCalls array for this message from matched pairs.
+				const msgToolCalls = [];
+				for ( const id of pendingCallIds ) {
+					const pair = callMap[ id ];
+					if ( pair?.call ) {
+						msgToolCalls.push( pair.call );
+						if ( pair.response ) {
+							msgToolCalls.push( pair.response );
+						}
+					}
+				}
+				if ( msgToolCalls.length > 0 ) {
+					result.push( { ...msg, toolCalls: msgToolCalls } );
+				} else {
+					result.push( msg );
+				}
+				pendingCallIds = [];
+				continue;
+			}
+		}
+
+		result.push( msg );
+	}
+
+	// If there are unmatched tool calls (e.g. model never produced text after
+	// the last round of tool calls), attach them to the last model message
+	// that has text, if any.
+	if ( pendingCallIds.length > 0 ) {
+		const unmatched = [];
+		for ( const id of pendingCallIds ) {
+			const pair = callMap[ id ];
+			if ( pair?.call ) {
+				unmatched.push( pair.call );
+				if ( pair.response ) {
+					unmatched.push( pair.response );
+				}
+			}
+		}
+		if ( unmatched.length > 0 ) {
+			// Find last model message with text.
+			for ( let i = result.length - 1; i >= 0; i-- ) {
+				if (
+					result[ i ].role === 'model' &&
+					result[ i ].parts?.some( ( p ) => p.text )
+				) {
+					const existing = result[ i ].toolCalls || [];
+					result[ i ] = {
+						...result[ i ],
+						toolCalls: [ ...existing, ...unmatched ],
+					};
+					break;
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
 export const initialState = {
 	sessions: [],
 	sessionsLoaded: false,
@@ -1720,7 +1823,10 @@ export function reducer( state, action ) {
 			return {
 				...state,
 				currentSessionId: action.sessionId,
-				currentSessionMessages: action.messages,
+				currentSessionMessages: associateToolCallsWithMessages(
+					action.messages,
+					action.toolCalls
+				),
 				currentSessionToolCalls: action.toolCalls,
 			};
 		case 'CLEAR_CURRENT_SESSION':

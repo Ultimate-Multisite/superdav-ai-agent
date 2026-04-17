@@ -37,17 +37,6 @@ class CustomTaxonomyAbilities {
 	const OPTION_KEY = 'gratis_ai_agent_custom_taxonomies';
 
 	/**
-	 * Register the abilities and the persistent taxonomy re-registration hook.
-	 */
-	public static function register(): void {
-		// Re-register persisted taxonomies on every init so they survive page reloads.
-		add_action( 'init', [ __CLASS__, 'restore_persisted_taxonomies' ], 5 );
-
-		// Register the AI abilities.
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Re-register all taxonomies that were previously persisted via the register ability.
 	 *
 	 * Runs on `init` with priority 5 (before most plugins) so the taxonomies are

@@ -11,6 +11,7 @@ import apiFetch from '@wordpress/api-fetch';
 export const initialState = {
 	settings: null,
 	settingsLoaded: false,
+	settingsLoading: false,
 };
 
 export const actions = {
@@ -27,10 +28,21 @@ export const actions = {
 	/**
 	 * Fetch plugin settings from the REST API.
 	 *
+	 * Deduplicates concurrent in-flight calls: if a fetch is already in-flight
+	 * (tracked via the shared Redux store, so cross-bundle dedup works too),
+	 * the call is a no-op. This prevents duplicate REST requests when multiple
+	 * plugin bundles mount components that each call fetchSettings() on mount.
+	 * Intentional refreshes are not blocked once the in-flight fetch settles.
+	 *
 	 * @return {Function} Redux thunk.
 	 */
 	fetchSettings() {
-		return async ( { dispatch } ) => {
+		return async ( { dispatch, select } ) => {
+			// Skip if a fetch is already in-flight.
+			if ( select.getSettingsLoading() ) {
+				return;
+			}
+			dispatch( { type: 'SET_SETTINGS_LOADING', loading: true } );
 			try {
 				const settings = await apiFetch( {
 					path: '/gratis-ai-agent/v1/settings',
@@ -38,6 +50,8 @@ export const actions = {
 				dispatch.setSettings( settings );
 			} catch {
 				dispatch.setSettings( {} );
+			} finally {
+				dispatch( { type: 'SET_SETTINGS_LOADING', loading: false } );
 			}
 		};
 	},
@@ -82,6 +96,14 @@ export const selectors = {
 		return state.settingsLoaded;
 	},
 
+	/**
+	 * @param {import('../../types').StoreState} state
+	 * @return {boolean} Whether a settings fetch is currently in-flight.
+	 */
+	getSettingsLoading( state ) {
+		return state.settingsLoading;
+	},
+
 	// YOLO mode (skip all confirmations)
 	isYoloMode( state ) {
 		return state.settings?.yolo_mode ?? false;
@@ -101,6 +123,8 @@ export function reducer( state, action ) {
 				settings: action.settings,
 				settingsLoaded: true,
 			};
+		case 'SET_SETTINGS_LOADING':
+			return { ...state, settingsLoading: action.loading };
 		default:
 			return state;
 	}

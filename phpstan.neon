@@ -25,33 +25,6 @@ parameters:
 		- '#Binary operation "\." between .* and mixed results in an error#'
 		# WordPress functions that may not be stubbed
 		- '#Function _wp_connectors_get_real_api_key not found#'
-		# WP 7.0 AI Client SDK — provided by WordPress core at runtime, not in stubs
-		# wp_ai_client_prompt() returns a PromptBuilder but PHPStan sees it as mixed
-		- '#Function wp_ai_client_prompt not found#'
-		- '#unknown class WP_AI_Client_Prompt_Builder#'
-		- '#Instantiated class WP_AI_Client_Prompt_Builder not found#'
-		- '#has invalid return type WP_AI_Client_Prompt_Builder#'
-		- '#Call to method .* on an unknown class WP_AI_Client_Prompt_Builder#'
-		- '#PHPDoc tag .* contains unknown class WP_AI_Client_Prompt_Builder#'
-		- '#Parameter .* has invalid type WP_AI_Client_Prompt_Builder#'
-		# wp_ai_client_prompt() return type is mixed until WP stubs include it;
-		# callers chain methods on the result which PHPStan cannot type-check
-		- '#Cannot call method (using_system_instruction|using_temperature|using_candidate_count|using_model_preference|using_model|using_provider|using_abilities|using_max_tokens|with_history|with_file|generate_text|generate_texts|generate_text_result|as_json_response)\(\) on mixed#'
-		- message: '#Method .*AgentLoop::send_prompt\(\) should return .* but returns mixed#'
-		  identifier: return.type
-		# Compat layer classes loaded conditionally (kept for reportUnmatchedIgnoredErrors: false)
-		- '#unknown class WP_AI_Client_Ability_Function_Resolver#'
-		- '#Instantiated class WP_AI_Client_Ability_Function_Resolver not found#'
-		- '#has invalid return type WP_AI_Client_Ability_Function_Resolver#'
-		# WP AI Client SDK — wp_ai_client_prompt() and WP_AI_Client_Prompt_Builder are
-		# WordPress 7.0+ core functions/classes not available in PHPStan stubs. The compat
-		# layer stubs were removed when WP 6.9 support was dropped; suppress until upstream
-		# phpstan-wordpress provides stubs for the WP 7.0 AI Client SDK.
-		- '#Function wp_ai_client_prompt not found#'
-		- '#Call to method .* on an unknown class WP_AI_Client_Prompt_Builder#'
-		- '#PHPDoc tag @var for variable .* contains unknown class WP_AI_Client_Prompt_Builder#'
-		- '#has invalid type WP_AI_Client_Prompt_Builder#'
-		- '#Parameter \$builder of method .* has invalid type WP_AI_Client_Prompt_Builder#'
 		# WordPress\AiClient\* SDK — the php-ai-client package was removed from vendor/ in
 		# commit 7b10461 (issue #769) because WordPress 7.0 bundles it as a core component.
 		# PHPStan cannot resolve these classes without the vendor stubs; suppress all errors
@@ -75,16 +48,11 @@ parameters:
 		- '#Cannot access property \$value on class-string\|object#'
 		- '#Cannot call method (getValue|getText|getType|getFunctionCall|getFunctionResponse)\(\) on class-string\|object#'
 		- '#Cannot call static method (metadata|modelMetadataDirectory)\(\) on mixed#'
-		# wp_ai_client_prompt() returns mixed (no stubs); method chains on the builder are safe
+		# Mixed-type calls — configure_model() parameter is untyped; other mixed values from
+		# WP DB rows and request params flow through methods without explicit type annotations.
 		- '#Cannot call method .* on mixed#'
-		# Return type inferred as mixed when wp_ai_client_prompt() result is returned directly
+		# Return type inferred as mixed — DB row accessors and other untyped WP APIs.
 		- '#Method .* should return .* but returns mixed#'
-		# array_map with typed Closure on mixed array (result of wp_ai_client_prompt())
-		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(string\): string given#'
-		  identifier: argument.type
-		# AdminPage class was deleted in t146 (dead code removal); ScreenMetaPanel still
-		# references AdminPage::SLUG — suppress until the reference is cleaned up.
-		- '#Access to constant SLUG on an unknown class GratisAiAgent\\\\Admin\\\\AdminPage#'
 		# WP_Block_Type properties may be empty strings
 		- '#Property WP_Block_Type::.* on left side of \?\? is not nullable#'
 		- '#Property WP_Block_Template::.* on left side of \?\? is not nullable#'
@@ -213,38 +181,6 @@ parameters:
 		# wpdb::insert() format array — safe when value is from trusted source
 		- message: '#\$format of method wpdb::insert\(\) expects array<string>\|string\|null#'
 		  identifier: argument.type
-		# WP 7.0+ AI Client SDK — wp_ai_client_prompt() and WP_AI_Client_Prompt_Builder are
-		# runtime-provided by WordPress 7.0+. PHPStan cannot resolve them from vendor stubs
-		# because the SDK ships as a WordPress core component, not a standalone Composer package.
-		- '#Function wp_ai_client_prompt not found#'
-		- '#unknown class WP_AI_Client_Prompt_Builder#'
-		- '#Instantiated class WP_AI_Client_Prompt_Builder not found#'
-		- '#has invalid type WP_AI_Client_Prompt_Builder#'
-		- '#PHPDoc tag `@var` for variable \$builder contains unknown class WP_AI_Client_Prompt_Builder#'
-		- '#Call to method .* on an unknown class WP_AI_Client_Prompt_Builder#'
-		- '#Parameter \$builder of method .* has invalid type WP_AI_Client_Prompt_Builder#'
-		# wp_ai_client_prompt() returns mixed (unresolved WP 7.0 SDK type) — all callers chain
-		# fluent builder methods on the result; safe at runtime when WP 7.0+ is present.
-		- '#Cannot call method using_system_instruction\(\) on mixed#'
-		- '#Cannot call method using_temperature\(\) on mixed#'
-		- '#Cannot call method using_candidate_count\(\) on mixed#'
-		- '#Cannot call method using_model_preference\(\) on mixed#'
-		- '#Cannot call method using_model\(\) on mixed#'
-		- '#Cannot call method using_provider\(\) on mixed#'
-		- '#Cannot call method using_max_tokens\(\) on mixed#'
-		- '#Cannot call method using_abilities\(\) on mixed#'
-		- '#Cannot call method with_history\(\) on mixed#'
-		- '#Cannot call method with_file\(\) on mixed#'
-		- '#Cannot call method generate_text\(\) on mixed#'
-		- '#Cannot call method generate_texts\(\) on mixed#'
-		- '#Cannot call method generate_text_result\(\) on mixed#'
-		- '#Cannot call method as_json_response\(\) on mixed#'
-		# send_prompt() returns the result of the WP AI Client SDK chain — mixed at analysis time
-		- '#Method GratisAiAgent\\Core\\AgentLoop::send_prompt\(\) should return .* but returns mixed#'
-		# array_map with typed Closure on mixed-typed array — safe at runtime
-		# Note: cannot use #1 in pattern (# is the PCRE delimiter); match broadly on the identifier instead
-		- message: '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(string\): string given#'
-		  identifier: argument.type
 		# GratisAiAgent\Admin\AdminPage — referenced in ScreenMetaPanel for SLUG constant;
 		# class was removed/renamed but the reference remains. Suppress until class is restored.
 		- '#Access to constant SLUG on an unknown class GratisAiAgent\\Admin\\AdminPage#'
@@ -264,6 +200,14 @@ parameters:
 		# intentional defensive code for runtime compatibility.
 		- message: '#Call to function method_exists\(\) with WP_Ability and .get_input_schema. will always evaluate to true#'
 		  identifier: function.alreadyNarrowedType
+		# WP_AI_Client_Prompt_Builder methods are defined in stubs; method_exists() guards are
+		# intentional defensive code for runtime compatibility with WP builds that may differ.
+		- message: '#Call to function method_exists\(\) with WP_AI_Client_Prompt_Builder and .* will always evaluate to true#'
+		  identifier: function.alreadyNarrowedType
+		# GenerativeAiResult instanceof check — after is_wp_error() guard the result is always
+		# GenerativeAiResult; intentional defensive code for runtime compatibility.
+		- message: '#Instanceof between WordPress\\AiClient\\Results\\DTO\\GenerativeAiResult and WordPress\\AiClient\\Results\\DTO\\GenerativeAiResult will always evaluate to true#'
+		  identifier: instanceof.alwaysTrue
 		# AgentLoop: $settings comes from Settings::get() which returns mixed; build_system_instruction
 		# expects array<string, mixed>. The value is always an array at runtime.
 		- message: '#\$settings of method GratisAiAgent\\Core\\AgentLoop::build_system_instruction\(\) expects array<string, mixed>, mixed given#'

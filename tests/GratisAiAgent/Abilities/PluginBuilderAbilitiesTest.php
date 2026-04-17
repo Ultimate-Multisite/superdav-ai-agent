@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace GratisAiAgent\Tests\Abilities;
 
 use GratisAiAgent\Abilities\GeneratePluginAbility;
-use GratisAiAgent\Abilities\PluginBuilderAbilities;
 use GratisAiAgent\Abilities\SandboxActivatePluginAbility;
 use GratisAiAgent\Abilities\SandboxTestPluginAbility;
 use GratisAiAgent\Abilities\ScanPluginHooksAbility;
@@ -24,19 +23,6 @@ use WP_UnitTestCase;
  * Test PluginBuilderAbilities functionality.
  */
 class PluginBuilderAbilitiesTest extends WP_UnitTestCase {
-
-	// ── register ──────────────────────────────────────────────────────────
-
-	/**
-	 * register() hooks register_abilities to wp_abilities_api_init.
-	 */
-	public function test_register_hooks_register_abilities(): void {
-		PluginBuilderAbilities::register();
-
-		$this->assertNotFalse(
-			has_action( 'wp_abilities_api_init', [ PluginBuilderAbilities::class, 'register_abilities' ] )
-		);
-	}
 
 	// ── GeneratePluginAbility ─────────────────────────────────────────────
 

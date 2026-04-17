@@ -7,6 +7,15 @@ declare(strict_types=1);
  * Sends a prompt, checks for tool calls, executes them,
  * feeds results back, and repeats until the model is done.
  *
+ * Sub-responsibilities are delegated to focused service classes:
+ *
+ * - {@see SystemInstructionBuilder}   — build_system_instruction()
+ * - {@see ProviderCredentialLoader}   — ensure_provider_credentials_static()
+ * - {@see ToolPermissionResolver}     — get_tools_needing_confirmation(), classify_ability()
+ * - {@see SpinDetector}               — spin detection & build_tool_signature()
+ * - {@see ClientAbilityRouter}        — partition_tool_calls(), client ability stubs
+ * - {@see ConversationSerializer}     — serialize/deserialize history
+ *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
  */
@@ -14,12 +23,8 @@ declare(strict_types=1);
 namespace GratisAiAgent\Core;
 
 use GratisAiAgent\Abilities\FeedbackAbilities;
-use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\ChangeLogger;
-use GratisAiAgent\Knowledge\Knowledge;
-use GratisAiAgent\Models\Memory;
-use GratisAiAgent\Models\Skill;
 use GratisAiAgent\Tools\ModelHealthTracker;
 use GratisAiAgent\Tools\ToolDiscovery;
 use GratisAiAgent\Core\RolePermissions;
@@ -153,13 +158,19 @@ class AgentLoop {
 	 */
 	private $interrupt_checker = null;
 
-	// ── Spin Detection State ─────────────────────────────────────────────
+	// ── Focused service objects ───────────────────────────────────────────
 
-	/** @var int Consecutive rounds with identical tool signatures. */
-	private int $idle_rounds = 0;
+	/** @var SystemInstructionBuilder Builds the per-turn system instruction. */
+	private SystemInstructionBuilder $instruction_builder;
 
-	/** @var string Hash of the previous round's tool calls for spin detection. */
-	private string $last_tool_signature = '';
+	/** @var ToolPermissionResolver Checks tool confirmation requirements. */
+	private ToolPermissionResolver $permission_resolver;
+
+	/** @var SpinDetector Tracks consecutive identical tool-call rounds. */
+	private SpinDetector $spin_detector;
+
+	/** @var ClientAbilityRouter Partitions tool calls to PHP or JS handlers. */
+	private ClientAbilityRouter $client_router;
 
 	/**
 	 * @param string               $user_message     The user's prompt.
@@ -209,13 +220,6 @@ class AgentLoop {
 		// (and any other dynamic blocks) reach the model on subsequent turns.
 		// @phpstan-ignore-next-line
 		$this->settings_for_prompt = $settings;
-		if ( isset( $options['system_instruction'] ) ) {
-			// @phpstan-ignore-next-line
-			$this->system_instruction        = $options['system_instruction'];
-			$this->system_instruction_locked = true;
-		} else {
-			$this->system_instruction = $this->build_system_instruction( $settings );
-		}
 
 		// Tool permissions, YOLO mode, and resumable state.
 		// Options override settings for tool_permissions and yolo_mode so
@@ -244,23 +248,43 @@ class AgentLoop {
 			$this->interrupt_checker = $options['interrupt_checker'];
 		}
 
-		// Validate and store client-side ability descriptors.
-		// Only accept names that exist in JsAbilityCatalog to prevent the
-		// client from injecting arbitrary ability names into the model's tool list.
+		// ── Initialise focused service objects ───────────────────────────
+
+		// SystemInstructionBuilder needs the model_id for weak-model nudges
+		// and user_message for knowledge RAG, both resolved above.
+		$this->instruction_builder = new SystemInstructionBuilder(
+			(string) $this->model_id,
+			$this->user_message,
+			$this->page_context
+		);
+
+		// ToolPermissionResolver encapsulates yolo_mode and tool_permissions.
+		$this->permission_resolver = new ToolPermissionResolver(
+			$this->yolo_mode,
+			$this->tool_permissions
+		);
+
+		// SpinDetector tracks consecutive identical tool-call rounds.
+		$this->spin_detector = new SpinDetector();
+
+		// ClientAbilityRouter validates and routes client-side ability calls.
 		// @phpstan-ignore-next-line
 		$raw_client_abilities = $options['client_abilities'] ?? array();
 		if ( is_array( $raw_client_abilities ) ) {
-			$catalog = JsAbilityCatalog::get_descriptors_by_name();
-			foreach ( $raw_client_abilities as $descriptor ) {
-				if ( ! is_array( $descriptor ) ) {
-					continue;
-				}
-				$name = (string) ( $descriptor['name'] ?? '' );
-				if ( '' !== $name && isset( $catalog[ $name ] ) ) {
-					/** @var array<string, mixed> $descriptor */
-					$this->client_abilities[] = $descriptor;
-				}
-			}
+			$this->client_router    = ClientAbilityRouter::from_raw( $raw_client_abilities );
+			$this->client_abilities = $this->client_router->get_descriptors();
+		} else {
+			$this->client_router    = new ClientAbilityRouter();
+			$this->client_abilities = array();
+		}
+
+		// Build or lock the initial system instruction.
+		if ( isset( $options['system_instruction'] ) ) {
+			// @phpstan-ignore-next-line
+			$this->system_instruction        = $options['system_instruction'];
+			$this->system_instruction_locked = true;
+		} else {
+			$this->system_instruction = $this->instruction_builder->build( $settings );
 		}
 	}
 
@@ -289,7 +313,7 @@ class AgentLoop {
 		ModelHealthTracker::set_current_model( $this->model_id );
 
 		// Ensure provider auth is available (critical for loopback requests).
-		self::ensure_provider_credentials_static();
+		ProviderCredentialLoader::load();
 
 		// Append the new user message to history.
 		$this->history[] = new UserMessage( array( new MessagePart( $this->user_message ) ) );
@@ -312,7 +336,7 @@ class AgentLoop {
 			);
 		}
 
-		self::ensure_provider_credentials_static();
+		ProviderCredentialLoader::load();
 
 		if ( $confirmed ) {
 			// The last message in history is the model's tool call message.
@@ -362,7 +386,7 @@ class AgentLoop {
 			);
 		}
 
-		self::ensure_provider_credentials_static();
+		ProviderCredentialLoader::load();
 
 		// Build a tool-response message from the client results.
 		$parts = array();
@@ -537,14 +561,14 @@ class AgentLoop {
 			// Partition tool calls into PHP-executable and JS-pending sets.
 			// PHP calls execute inline; JS calls are returned as pending so
 			// the browser can dispatch them and POST results back.
-			$client_names = $this->get_client_ability_names();
+			$client_names = $this->client_router->get_names();
 			if ( ! empty( $client_names ) ) {
-				$partition = $this->partition_tool_calls( $assistant_message, $client_names );
+				$partition = $this->client_router->partition( $assistant_message, $client_names );
 
 				if ( ! empty( $partition['client'] ) ) {
 					// Execute any PHP-side calls inline first.
 					if ( ! empty( $partition['php'] ) ) {
-						$php_message = $this->build_message_from_parts( $assistant_message, $partition['php'] );
+						$php_message = ClientAbilityRouter::build_message_from_parts( $assistant_message, $partition['php'] );
 						ChangeLogger::begin( $this->session_id );
 						try {
 							$php_response = $this->get_ability_resolver()->execute_abilities( $php_message );
@@ -585,7 +609,7 @@ class AgentLoop {
 			}
 			// ── End client-side routing ───────────────────────────────────
 
-			$confirm_needed = $this->get_tools_needing_confirmation( $assistant_message );
+			$confirm_needed = $this->permission_resolver->get_tools_needing_confirmation( $assistant_message );
 
 			if ( ! empty( $confirm_needed ) ) {
 				return array(
@@ -615,29 +639,22 @@ class AgentLoop {
 			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $response_message );
 
-			// Spin detection: if this round's tool calls are identical to the
-			// previous round's, the model is looping without making progress.
-			$current_signature = $this->build_tool_signature( $assistant_message );
-			if ( '' !== $current_signature && $current_signature === $this->last_tool_signature ) {
-				++$this->idle_rounds;
-				if ( $this->idle_rounds >= self::MAX_IDLE_ROUNDS ) {
-					return array(
-						'reply'           => __(
-							'I\'ve been repeating the same operations without making progress. Here\'s what I found so far. Try rephrasing your request or providing more specifics.',
-							'gratis-ai-agent'
-						),
-						'history'         => $this->serialize_history(),
-						'tool_calls'      => $this->tool_call_log,
-						'token_usage'     => $this->token_usage,
-						'iterations_used' => $this->iterations_used,
-						'model_id'        => $this->model_id,
-						'exit_reason'     => 'spin_detected',
-					);
-				}
-			} else {
-				$this->idle_rounds = 0;
+			// Spin detection: delegate to SpinDetector which encapsulates
+			// the idle-round state (last_tool_signature + idle_rounds counter).
+			if ( $this->spin_detector->record( $assistant_message, self::MAX_IDLE_ROUNDS ) ) {
+				return array(
+					'reply'           => __(
+						'I\'ve been repeating the same operations without making progress. Here\'s what I found so far. Try rephrasing your request or providing more specifics.',
+						'gratis-ai-agent'
+					),
+					'history'         => $this->serialize_history(),
+					'tool_calls'      => $this->tool_call_log,
+					'token_usage'     => $this->token_usage,
+					'iterations_used' => $this->iterations_used,
+					'model_id'        => $this->model_id,
+					'exit_reason'     => 'spin_detected',
+				);
 			}
-			$this->last_tool_signature = $current_signature;
 		}
 
 		// Exhausted iterations. If the last AI turn was a tool call (not text),
@@ -740,7 +757,7 @@ class AgentLoop {
 		// override. This lets the manifest's "recently fetched ability
 		// schemas" block reach the model on subsequent turns.
 		if ( ! $this->system_instruction_locked ) {
-			$this->system_instruction = $this->build_system_instruction( $this->settings_for_prompt );
+			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt );
 		}
 		$builder->using_system_instruction( $this->system_instruction );
 		$this->configure_model( $builder );
@@ -826,190 +843,112 @@ class AgentLoop {
 		}
 	}
 
+	// ── Backward-compatible static delegation stubs ───────────────────────
+	// These preserve the public API so existing callers continue to work
+	// unchanged while the implementation now lives in focused service classes.
+
 	/**
 	 * Ensure AI provider credentials are loaded from the database.
 	 *
-	 * In loopback/background requests the AI Experiments plugin's init
-	 * chain may not fully pass credentials to the registry. This method
-	 * reads the stored credentials option and sets auth on any provider
-	 * that doesn't already have it configured.
+	 * @deprecated Implementation moved to ProviderCredentialLoader::load().
 	 */
 	public static function ensure_provider_credentials_static(): void {
-		try {
-			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
-		} catch ( \Throwable $e ) {
-			return;
-		}
-
-		$auth_class = '\\WordPress\\AiClient\\Providers\\Http\\DTO\\ApiKeyRequestAuthentication';
-
-		if ( ! class_exists( $auth_class ) ) {
-			return;
-		}
-
-		// Source 1: WordPress 7.0 Connectors API (connectors_ai_*_api_key options).
-		if ( function_exists( '_wp_connectors_get_provider_settings' ) ) {
-			foreach ( _wp_connectors_get_provider_settings() as $setting_name => $config ) {
-				$api_key = _wp_connectors_get_real_api_key( $setting_name, $config['mask'] );
-
-				if ( '' === $api_key || ! $registry->hasProvider( $config['provider'] ) ) {
-					continue;
-				}
-
-				$registry->setProviderRequestAuthentication(
-					$config['provider'],
-					new $auth_class( $api_key )
-				);
-			}
-		}
-
-		// Source 2: AI Experiments plugin credentials option.
-		$credentials = CredentialResolver::getAiExperimentsCredentials();
-
-		if ( ! empty( $credentials ) ) {
-			foreach ( $credentials as $provider_id => $api_key ) {
-				if ( ! is_string( $api_key ) || '' === $api_key ) {
-					continue;
-				}
-
-				if ( ! $registry->hasProvider( $provider_id ) ) {
-					continue;
-				}
-
-				$registry->setProviderRequestAuthentication(
-					$provider_id,
-					new $auth_class( $api_key )
-				);
-			}
-		}
-	}
-
-	/**
-	 * Check which tool calls in an assistant message require user confirmation.
-	 *
-	 * Permission resolution order (first match wins):
-	 * 1. YOLO mode → skip all confirmations.
-	 * 2. Explicit tool_permissions setting ('auto'|'confirm'|'disabled'|'always_allow') → use it.
-	 * 3. Annotation-based classification:
-	 *    - readonly=true  → auto-execute (read-only, safe).
-	 *    - readonly=false or null → require confirmation (write operation).
-	 *
-	 * This means by default (no tool_permissions configured), read-only tools
-	 * execute automatically and write tools pause for user approval — matching
-	 * the PressArk-style "Preview → Approve → Execute" pattern.
-	 *
-	 * @param Message $message The assistant's tool-call message.
-	 * @return list<array<string, mixed>> Array of tool details needing confirmation (empty if none).
-	 */
-	private function get_tools_needing_confirmation( Message $message ): array {
-		// YOLO mode: skip all confirmations and execute immediately.
-		if ( $this->yolo_mode ) {
-			return array();
-		}
-
-		$confirm       = array();
-		$all_abilities = function_exists( 'wp_get_abilities' ) ? wp_get_abilities() : array();
-
-		foreach ( $message->getParts() as $part ) {
-			$call = $part->getFunctionCall();
-			if ( ! $call ) {
-				continue;
-			}
-
-			$fn_name = (string) $call->getName();
-
-			// Convert function name to ability name for lookups.
-			$ability_name = $fn_name;
-			if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
-				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
-			}
-
-			// 1. Check explicit tool_permissions setting first.
-			if ( ! empty( $this->tool_permissions ) ) {
-				$permission = $this->tool_permissions[ $ability_name ] ?? null;
-
-				if ( null !== $permission ) {
-					// Explicit permission set for this tool.
-					if ( 'confirm' === $permission ) {
-						$confirm[] = array(
-							'id'   => $call->getId(),
-							'name' => $fn_name,
-							'args' => $call->getArgs(),
-						);
-					}
-					// 'auto', 'always_allow', 'disabled' → no confirmation needed.
-					continue;
-				}
-			}
-
-			// 2. No explicit permission — use annotation-based classification.
-			$ability = $all_abilities[ $ability_name ] ?? null;
-
-			if ( null !== $ability ) {
-				$classification = self::classify_ability( $ability );
-
-				if ( 'destructive' === $classification ) {
-					$confirm[] = array(
-						'id'   => $call->getId(),
-						'name' => $fn_name,
-						'args' => $call->getArgs(),
-					);
-				}
-				// 'read' and 'write' → auto-execute.
-			} else {
-				// Ability not found in registry (e.g. custom tool) — default
-				// to requiring confirmation for safety.
-				$confirm[] = array(
-					'id'   => $call->getId(),
-					'name' => $fn_name,
-					'args' => $call->getArgs(),
-				);
-			}
-		}
-
-		return $confirm;
+		ProviderCredentialLoader::load();
 	}
 
 	/**
 	 * Persist an "always allow" permission for a specific ability.
 	 *
-	 * Called when the user approves a write tool and chooses "Always Allow".
-	 * Stores the permission in the tool_permissions setting so future calls
-	 * to this ability skip confirmation.
-	 *
 	 * @param string $ability_name The ability name (e.g. 'gratis-ai-agent/memory-save').
+	 * @deprecated Implementation moved to ToolPermissionResolver::set_always_allow().
 	 */
 	public static function set_always_allow( string $ability_name ): void {
-		$all   = Settings::get();
-		$perms = $all['tool_permissions'] ?? array();
-
-		// @phpstan-ignore-next-line
-		$perms[ $ability_name ] = 'always_allow';
-
-		Settings::update( array( 'tool_permissions' => $perms ) );
+		ToolPermissionResolver::set_always_allow( $ability_name );
 	}
 
 	/**
 	 * Get the list of abilities that have been set to "always allow".
 	 *
 	 * @return string[] Ability names with always_allow permission.
+	 * @deprecated Implementation moved to ToolPermissionResolver::get_always_allowed().
 	 */
 	public static function get_always_allowed(): array {
-		$perms = Settings::get( 'tool_permissions' );
-
-		if ( ! is_array( $perms ) ) {
-			return array();
-		}
-
-		$always = array();
-		foreach ( $perms as $name => $level ) {
-			if ( 'always_allow' === $level ) {
-				$always[] = $name;
-			}
-		}
-
-		return $always;
+		return ToolPermissionResolver::get_always_allowed();
 	}
+
+	/**
+	 * Classify an ability as 'read', 'write', or 'destructive' based on its meta annotations.
+	 *
+	 * @param \WP_Ability $ability The ability to classify.
+	 * @return string 'read', 'write', or 'destructive'.
+	 * @deprecated Implementation moved to ToolPermissionResolver::classify_ability().
+	 */
+	public static function classify_ability( \WP_Ability $ability ): string {
+		return ToolPermissionResolver::classify_ability( $ability );
+	}
+
+	/**
+	 * Deserialize conversation history from arrays back to Message objects.
+	 *
+	 * @param list<array<string, mixed>> $data Serialized history arrays.
+	 * @return list<Message>
+	 * @deprecated Implementation moved to ConversationSerializer::deserialize().
+	 */
+	public static function deserialize_history( array $data ): array {
+		return ConversationSerializer::deserialize( $data );
+	}
+
+	/**
+	 * Default system instruction for the agent.
+	 *
+	 * @return string
+	 * @deprecated Implementation moved to SystemInstructionBuilder::default_system_instruction().
+	 */
+	public static function get_default_system_prompt(): string {
+		return SystemInstructionBuilder::default_system_instruction();
+	}
+
+	/**
+	 * Site builder system prompt v2.
+	 *
+	 * @return string
+	 * @deprecated Implementation moved to SystemInstructionBuilder::get_site_builder_system_prompt().
+	 */
+	public static function get_site_builder_system_prompt(): string {
+		return SystemInstructionBuilder::get_site_builder_system_prompt();
+	}
+
+	// ── Private delegation helpers ────────────────────────────────────────
+
+	/**
+	 * Serialize conversation history to transportable arrays.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function serialize_history(): array {
+		return ConversationSerializer::serialize( $this->history );
+	}
+
+	/**
+	 * Append a tool-response message to history.
+	 *
+	 * @param Message $message Tool-response message returned by the resolver.
+	 */
+	private function append_tool_response_to_history( Message $message ): void {
+		ConversationSerializer::append_tool_response( $this->history, $message );
+	}
+
+	/**
+	 * Truncate large tool results in a response message.
+	 *
+	 * @param Message $message The tool response message.
+	 * @return Message A new message with truncated results.
+	 */
+	private static function truncate_tool_results( Message $message ): Message {
+		return ConversationSerializer::truncate_tool_results( $message );
+	}
+
+	// ── Resolve abilities ─────────────────────────────────────────────────
 
 	/**
 	 * Resolve which abilities should be loaded as direct (Tier-1) tools for
@@ -1046,7 +985,7 @@ class AgentLoop {
 				}
 			}
 			// Append client ability stubs even in explicit-abilities mode.
-			return array_merge( $resolved, $this->build_client_ability_stubs() );
+			return array_merge( $resolved, $this->client_router->build_stubs() );
 		}
 
 		$tier_1 = ToolDiscovery::tier_1_for_run();
@@ -1075,146 +1014,7 @@ class AgentLoop {
 		}
 
 		// Append synthetic stubs for validated client-side abilities.
-		return array_merge( $resolved, $this->build_client_ability_stubs() );
-	}
-
-	/**
-	 * Build synthetic WP_Ability stubs for validated client-side descriptors.
-	 *
-	 * These stubs expose the client ability schemas to the model's tool list.
-	 * The loop intercepts calls to these names and returns them as
-	 * pending_client_tool_calls instead of executing them server-side.
-	 *
-	 * @return \WP_Ability[]
-	 */
-	private function build_client_ability_stubs(): array {
-		if ( empty( $this->client_abilities ) ) {
-			return array();
-		}
-
-		if ( ! function_exists( 'wp_register_ability' ) ) {
-			return array();
-		}
-
-		$stubs = array();
-		foreach ( $this->client_abilities as $descriptor ) {
-			$name = (string) ( $descriptor['name'] ?? '' );
-			if ( '' === $name ) {
-				continue;
-			}
-
-			// Check if already registered in the global registry.
-			// @phpstan-ignore-next-line
-			$existing = function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
-			if ( $existing instanceof \WP_Ability ) {
-				$stubs[] = $existing;
-				continue;
-			}
-
-			// Register a transient stub for this request only.
-			// The stub has a no-op callback — the loop never actually calls it.
-			// @phpstan-ignore-next-line
-			wp_register_ability(
-				$name,
-				array(
-					'label'        => (string) ( $descriptor['label'] ?? $name ),
-					'description'  => (string) ( $descriptor['description'] ?? '' ),
-					'category'     => 'gratis-ai-agent-js',
-					'callback'     => static function ( array $args ): array {
-						// No-op: client-side abilities are never executed server-side.
-						return array( 'error' => 'Client-side ability cannot be executed server-side.' );
-					},
-					'input_schema' => $descriptor['input_schema'] ?? array(),
-					'annotations'  => array(
-						'readonly' => (bool) ( $descriptor['annotations']['readonly'] ?? true ),
-					),
-				)
-			);
-
-			// @phpstan-ignore-next-line
-			$stub = wp_get_ability( $name );
-			if ( $stub instanceof \WP_Ability ) {
-				$stubs[] = $stub;
-			}
-		}
-
-		return $stubs;
-	}
-
-	/**
-	 * Return the set of client ability names validated for this run.
-	 *
-	 * @return string[]
-	 */
-	private function get_client_ability_names(): array {
-		return array_map(
-			static function ( array $d ): string {
-				return (string) ( $d['name'] ?? '' );
-			},
-			$this->client_abilities
-		);
-	}
-
-	/**
-	 * Partition the tool calls in an assistant message into PHP-executable
-	 * and client-side (JS) sets.
-	 *
-	 * Returns an array with two keys:
-	 * - 'php':    list of MessagePart objects for PHP-executable calls.
-	 * - 'client': list of pending call descriptors for JS execution.
-	 *
-	 * @param Message  $message      The assistant message containing tool calls.
-	 * @param string[] $client_names Names of client-side abilities.
-	 * @return array{php: list<\WordPress\AiClient\Messages\DTO\MessagePart>, client: list<array<string, mixed>>}
-	 */
-	private function partition_tool_calls( Message $message, array $client_names ): array {
-		$php_parts = array();
-		$client    = array();
-
-		foreach ( $message->getParts() as $part ) {
-			$call = $part->getFunctionCall();
-			if ( ! $call ) {
-				$php_parts[] = $part;
-				continue;
-			}
-
-			$fn_name      = (string) $call->getName();
-			$ability_name = $fn_name;
-			if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
-				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
-			}
-
-			if ( in_array( $ability_name, $client_names, true ) ) {
-				$client[] = array(
-					'id'   => (string) $call->getId(),
-					'name' => $ability_name,
-					'args' => $call->getArgs() ?: array(),
-				);
-			} else {
-				$php_parts[] = $part;
-			}
-		}
-
-		return array(
-			'php'    => $php_parts,
-			'client' => $client,
-		);
-	}
-
-	/**
-	 * Build a new Message containing only the given MessagePart objects.
-	 *
-	 * Used to construct a PHP-only sub-message when a mixed assistant message
-	 * contains both PHP and JS tool calls.
-	 *
-	 * @param Message                                            $original Original message (for role/type).
-	 * @param list<\WordPress\AiClient\Messages\DTO\MessagePart> $parts    Parts to include.
-	 * @return Message
-	 */
-	// phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- Generic list<T> not supported by PHPCS.
-	private function build_message_from_parts( Message $original, array $parts ): Message {
-		// Reconstruct as a ModelMessage with the filtered parts.
-		return new ModelMessage( $parts );
+		return array_merge( $resolved, $this->client_router->build_stubs() );
 	}
 
 	/**
@@ -1229,6 +1029,8 @@ class AgentLoop {
 		}
 		return $this->ability_resolver;
 	}
+
+	// ── Tool call logging ─────────────────────────────────────────────────
 
 	/**
 	 * Log tool calls from an assistant message for transparency.
@@ -1289,6 +1091,8 @@ class AgentLoop {
 		}
 	}
 
+	// ── Interrupt handling ────────────────────────────────────────────────
+
 	/**
 	 * Check for user interrupt messages and inject them into the conversation.
 	 *
@@ -1337,427 +1141,7 @@ class AgentLoop {
 		}
 	}
 
-	/**
-	 * Build a deterministic signature of the tool calls in a message.
-	 *
-	 * Used for spin detection: if two consecutive rounds produce the same
-	 * signature, the model is calling the same tools with the same args
-	 * and making no progress.
-	 *
-	 * @param Message $message The assistant message containing tool calls.
-	 * @return string A hash signature, or empty string if no tool calls.
-	 */
-	private function build_tool_signature( Message $message ): string {
-		$parts = array();
-
-		foreach ( $message->getParts() as $part ) {
-			$call = $part->getFunctionCall();
-			if ( $call ) {
-				$parts[] = (string) $call->getName() . ':' . wp_json_encode( $call->getArgs() ?: array() );
-			}
-		}
-
-		if ( empty( $parts ) ) {
-			return '';
-		}
-
-		sort( $parts );
-		return md5( implode( '|', $parts ) );
-	}
-
-	/**
-	 * Inject inability_reported data into a loop result array if the
-	 * FeedbackAbilities::report-inability ability was called this request.
-	 *
-	 * @param array<string,mixed> $result The loop result to augment.
-	 * @return array<string,mixed> The result, potentially with inability_reported added.
-	 */
-	private function inject_inability_data( array $result ): array {
-		$inability = FeedbackAbilities::get_inability_data();
-		if ( null !== $inability ) {
-			$result['inability_reported'] = $inability;
-		}
-		return $result;
-	}
-
-	/**
-	 * Classify an ability as 'read', 'write', or 'destructive' based on its
-	 * meta annotations.
-	 *
-	 * Uses the WordPress Abilities API annotations:
-	 * - readonly=true                → 'read'        (auto-execute)
-	 * - destructive=false            → 'write'       (safe write, auto-execute)
-	 * - destructive=true             → 'destructive' (needs confirmation)
-	 * - destructive=null & !readonly → 'destructive' (unknown risk, confirm)
-	 *
-	 * The confirmation dialog in get_tools_needing_confirmation() only fires
-	 * for 'destructive'. Both 'read' and 'write' auto-execute. This means
-	 * non-destructive writes (saving a memory, creating a post, installing a
-	 * plugin) proceed immediately while destructive operations (deletions,
-	 * resets) still require user approval.
-	 *
-	 * @param \WP_Ability $ability The ability to classify.
-	 * @return string 'read', 'write', or 'destructive'.
-	 */
-	public static function classify_ability( \WP_Ability $ability ): string {
-		$meta        = $ability->get_meta();
-		$annotations = ( isset( $meta['annotations'] ) && is_array( $meta['annotations'] ) )
-			? $meta['annotations']
-			: array();
-
-		$readonly    = $annotations['readonly'] ?? null;
-		$destructive = $annotations['destructive'] ?? null;
-
-		// Explicitly read-only → always auto-execute.
-		if ( true === $readonly ) {
-			return 'read';
-		}
-
-		// Explicitly non-destructive → safe write, auto-execute.
-		if ( false === $destructive ) {
-			return 'write';
-		}
-
-		// Destructive or unknown → require confirmation.
-		return 'destructive';
-	}
-
-	/**
-	 * Serialize conversation history to transportable arrays.
-	 *
-	 * @return array
-	 */
-	private function serialize_history(): array {
-		return array_map(
-			function ( Message $msg ) {
-				return $msg->toArray();
-			},
-			$this->history
-		);
-	}
-
-	/**
-	 * Deserialize conversation history from arrays back to Message objects.
-	 *
-	 * @param list<array<string, mixed>> $data Serialized history arrays.
-	 * @return list<Message>
-	 */
-	public static function deserialize_history( array $data ): array {
-		$messages = [];
-		foreach ( $data as $item ) {
-			$messages[] = Message::fromArray( $item );
-		}
-		return $messages;
-	}
-
-	/**
-	 * Build the system instruction, incorporating custom prompt and memories.
-	 *
-	 * @param array<string, mixed> $settings Plugin settings.
-	 * @return string
-	 */
-	private function build_system_instruction( array $settings ): string {
-		// Site builder mode: use the site builder interview prompt instead of the default.
-		if ( ! empty( $settings['site_builder_mode'] ) ) {
-			$base = self::get_site_builder_system_prompt();
-
-			// Still append memories so the agent knows what was collected in prior turns.
-			$memory_text = Memory::get_formatted_for_prompt();
-			if ( ! empty( $memory_text ) ) {
-				$base .= "\n\n" . $memory_text;
-			}
-
-			return $base;
-		}
-
-		// Use custom system prompt if set, otherwise the built-in default.
-		$custom = $settings['system_prompt'] ?? '';
-		$base   = ! empty( $custom ) ? $custom : self::default_system_instruction();
-
-		// Append memory section if memories exist.
-		$memory_text = Memory::get_formatted_for_prompt();
-		if ( ! empty( $memory_text ) ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . $memory_text;
-		}
-
-		// Append skill index if skills are available.
-		$skill_index = Skill::get_index_for_prompt();
-		if ( ! empty( $skill_index ) ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . $skill_index;
-		}
-
-		// If auto-memory is enabled, tell the agent about memory abilities.
-		$auto_memory = $settings['auto_memory'] ?? true;
-		if ( $auto_memory ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n## Memory Instructions\n"
-				. "You have access to persistent memory tools. Use them proactively:\n"
-				. "- Use **gratis-ai-agent/memory-save** to remember important information the user tells you (preferences, site details, workflows).\n"
-				. "- Use **gratis-ai-agent/memory-list** to recall what you've previously stored.\n"
-				. "- Use **gratis-ai-agent/memory-delete** to remove outdated memories.\n"
-				. "- Use **gratis-ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
-				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
-		}
-
-		// Inject knowledge context if enabled and user message is available.
-		$knowledge_enabled = $settings['knowledge_enabled'] ?? true;
-		if ( $knowledge_enabled && ! empty( $this->user_message ) ) {
-			$context = Knowledge::get_context_for_query( $this->user_message );
-			if ( ! empty( $context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n## Relevant Knowledge\n"
-					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
-					. $context
-					. "\n\nUse this information to provide accurate, contextual responses. "
-					. 'Cite the source when using specific facts from the knowledge base.';
-			}
-		}
-
-		// Inject structured context from providers.
-		$context_data = ContextProviders::gather( $this->page_context );
-		if ( ! empty( $context_data ) ) {
-			$formatted_context = ContextProviders::format_for_prompt( $context_data );
-			if ( ! empty( $formatted_context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $formatted_context;
-			}
-		}
-
-		// Append the Tier-2 ability manifest so the model knows what's
-		// reachable via ability-search / ability-call. This is the heart of
-		// the auto-discovery layer.
-		$manifest = ToolDiscovery::build_manifest_section();
-		if ( '' !== $manifest ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . $manifest;
-		}
-
-		// If the configured model is known to be weak at tool use (either
-		// by name heuristic or by accumulated telemetry), append explicit
-		// guidance about reading schemas and not retrying with the same
-		// arguments. Strong models don't get this — keeps their context lean.
-		if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . ModelHealthTracker::weak_model_prompt_nudge();
-		}
-
-		// Suggestion chips: instruct the AI to append follow-up suggestions.
-		// @phpstan-ignore-next-line
-		$suggestion_count = (int) ( $settings['suggestion_count'] ?? 3 );
-		if ( $suggestion_count > 0 ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n## Follow-up Suggestions\n"
-				. sprintf(
-					'After each response, include exactly %d brief follow-up suggestions the user might want to ask next. '
-					. "Format them on the LAST lines of your response, one per line, each prefixed with `[suggestion]`. Example:\n"
-					. "[suggestion] Show me recent posts\n"
-					. "[suggestion] Check plugin updates\n"
-					. "[suggestion] Optimize the database\n"
-					. 'Keep suggestions relevant, actionable, and under 60 characters each. '
-					. 'Do NOT include suggestions when you are asking the user a question or waiting for input.',
-					$suggestion_count
-				);
-		}
-
-		// @phpstan-ignore-next-line
-		return $base;
-	}
-
-	/**
-	 * Default system instruction for the agent.
-	 *
-	 * @return string
-	 */
-	public static function get_default_system_prompt(): string {
-		return self::default_system_instruction();
-	}
-
-	/**
-	 * Site builder system prompt v2.
-	 *
-	 * Used when site_builder_mode is active. The agent interviews the user,
-	 * generates a structured plan for confirmation, then builds the complete
-	 * site using all available abilities — including plugin discovery for
-	 * capabilities not built in.
-	 *
-	 * @return string
-	 */
-	public static function get_site_builder_system_prompt(): string {
-		$wp_path  = ABSPATH;
-		$site_url = get_site_url();
-
-		return "You are a WordPress site builder assistant. Your job is to interview the user, generate a build plan for their approval, then build their complete website automatically using all available tools.\n\n"
-			. "## WordPress Environment\n"
-			. "- WordPress path: {$wp_path}\n"
-			. "- Site URL: {$site_url}\n\n"
-			. "## Site Builder Workflow\n\n"
-			. "### Phase 1 — Interview (ask ONE question at a time)\n"
-			. "Collect the following information through a friendly, conversational interview. Ask one question at a time and wait for the answer before proceeding:\n\n"
-			. "1. **Business name** — What is the name of your business or website?\n"
-			. "2. **Business type** — What kind of business or website is this? (e.g. restaurant, portfolio, blog, e-commerce, service business, non-profit)\n"
-			. "3. **Target audience** — Who are your customers or visitors?\n"
-			. "4. **Key goals** — What do you want visitors to do on your site? (e.g. contact you, buy products, read your blog, book appointments)\n"
-			. "5. **Pages needed** — Which pages do you need? (suggest: Home, About, Services/Products, Contact — ask if they want more)\n"
-			. "6. **Tone and style** — How would you describe the tone? (e.g. professional, friendly, creative, minimal, bold)\n"
-			. "7. **Any specific content** — Do you have a tagline, description, or any specific text you want included?\n\n"
-			. "### Phase 2 — Plan Generation (present before building)\n"
-			. "Once you have all interview answers, generate a structured build plan and present it to the user for confirmation before executing.\n\n"
-			. "**Format the plan as:**\n"
-			. "```\n"
-			. "## Your Site Build Plan\n\n"
-			. "**Site:** [Business Name] — [Business Type]\n"
-			. "**Tagline:** [Generated tagline]\n\n"
-			. "### Pages to Create\n"
-			. "1. Home — [brief description]\n"
-			. "2. About — [brief description]\n"
-			. "... (all pages)\n\n"
-			. "### Plugins to Install (if needed)\n"
-			. "- [Plugin name] — [reason, e.g. \"contact forms\"]\n"
-			. "  (or: \"No additional plugins needed\")\n\n"
-			. "### Configuration\n"
-			. "- Site title, tagline, homepage, navigation menu\n"
-			. "- [Any CPTs, taxonomies, or special features]\n\n"
-			. "**Ready to build? This will take about 2-3 minutes.**\n"
-			. "```\n\n"
-			. "Wait for the user to confirm (\"yes\", \"go ahead\", \"build it\", etc.) before proceeding to Phase 3.\n\n"
-			. "### Phase 3 — Plugin Discovery (before building)\n"
-			. "Before building, check whether any needed capabilities require plugins:\n\n"
-			. "1. **Check available abilities** — Use `gratis-ai-agent/ability-search` to find abilities for each needed feature.\n"
-			. "   - Search for: \"menu\", \"nav\", \"options\", \"custom post type\", \"form\", \"seo\", etc.\n"
-			. "2. **Identify gaps** — If a needed capability has no ability, check installed plugins:\n"
-			. "   - Use `gratis-ai-agent/get-plugins` to list installed and active plugins.\n"
-			. "3. **Recommend plugins for gaps** — If a plugin can fill the gap:\n"
-			. "   - Use `gratis-ai-agent/recommend-plugin` (if available) to get ranked recommendations.\n"
-			. "   - Or use `gratis-ai-agent/search-plugin-directory` (if available) to search WordPress.org.\n"
-			. "   - Prefer plugins with Abilities API support > block-based plugins > popular plugins.\n"
-			. "4. **Install needed plugins** — Use `gratis-ai-agent/install-plugin` to install and activate.\n"
-			. "   - Only install plugins that are genuinely needed for the site type.\n"
-			. "   - Common needs by site type:\n"
-			. "     - Contact forms: WPForms Lite (slug: wpforms-lite)\n"
-			. "     - SEO: Yoast SEO (slug: wordpress-seo) or Rank Math (slug: seo-by-rank-math)\n"
-			. "     - E-commerce: WooCommerce (slug: woocommerce)\n"
-			. "     - Booking/appointments: Amelia (slug: ameliabooking)\n\n"
-			. "### Phase 4 — Build (execute with progress updates)\n"
-			. "Build the complete site in this order. After each major step, output a progress update:\n"
-			. "\"**Progress:** [step description] ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 1 — Site identity**\n"
-			. "- If `gratis-ai-agent/manage-options` is available: use it to set blogname and blogdescription.\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `update_option('blogname', '...')` and `update_option('blogdescription', '...')`.\n"
-			. "- Output: \"**Progress:** Site identity set ✓ (1/[total] steps done)\"\n\n"
-			. "**Step 2 — Create all pages**\n"
-			. "- Use `ai-agent/create-post` with `post_type: page`, `status: publish`.\n"
-			. "- Write substantial, realistic content for each page (3+ paragraphs minimum).\n"
-			. "- Home page: hero section, value proposition, call to action.\n"
-			. "- About page: story, mission, team (if applicable).\n"
-			. "- Services/Products page: detailed descriptions.\n"
-			. "- Contact page: contact info, form instructions or embedded form block.\n"
-			. "- Any additional pages the user requested.\n"
-			. "- After each page: \"**Progress:** [Page name] page created ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 3 — Set static homepage**\n"
-			. "- If `gratis-ai-agent/manage-options` is available: set show_on_front=page and page_on_front=[home_page_id].\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `update_option('show_on_front', 'page')` and `update_option('page_on_front', [id])`.\n"
-			. "- Output: \"**Progress:** Homepage configured ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 4 — Navigation menu**\n"
-			. "- If `gratis-ai-agent/manage-nav-menu` is available: use it to create menu, add pages, assign to primary location.\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `wp_create_nav_menu('Main Menu')`, `wp_update_nav_menu_item()` for each page, and `set_theme_mod('nav_menu_locations', ...)`.\n"
-			. "- Output: \"**Progress:** Navigation menu created ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 5 — Hero image** (optional but recommended)\n"
-			. "- Use `gratis-ai-agent/import-stock-image` with a keyword matching the business type.\n"
-			. "- Set as featured image on the home page using `ai-agent/update-post`.\n"
-			. "- Output: \"**Progress:** Hero image imported ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 6 — Custom post types / taxonomies** (if needed for the site type)\n"
-			. "- If `gratis-ai-agent/register-custom-post-type` is available and the site needs CPTs (e.g. restaurant menu items, portfolio projects, team members): register them.\n"
-			. "- If `gratis-ai-agent/register-custom-taxonomy` is available and needed: register taxonomies.\n"
-			. "- Output: \"**Progress:** Custom post types registered ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 7 — Global styles** (if available)\n"
-			. "- If `gratis-ai-agent/manage-global-styles` is available: apply a color palette and typography matching the site tone.\n"
-			. "- Output: \"**Progress:** Global styles applied ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 8 — Save site info to memory**\n"
-			. "- Use `gratis-ai-agent/memory-save` to store: business name, type, goals, page IDs, installed plugins.\n"
-			. "- Output: \"**Progress:** Site info saved to memory ✓ ([N]/[total] steps done)\"\n\n"
-			. "**Step 9 — Mark site builder complete**\n"
-			. "- Call `gratis-ai-agent/complete-site-builder` to disable site builder mode.\n"
-			. "- Output: \"**Progress:** Site builder complete ✓ ([total]/[total] steps done)\"\n\n"
-			. "### Phase 5 — Summary\n"
-			. "After building, provide a complete summary:\n\n"
-			. "```\n"
-			. "## Your Site is Ready! 🎉\n\n"
-			. "**[Business Name]** — [Site URL]\n\n"
-			. "### Pages Created\n"
-			. "- [Page name]: [URL]\n"
-			. "... (all pages with links)\n\n"
-			. "### What Was Configured\n"
-			. "- Site title and tagline\n"
-			. "- Static homepage\n"
-			. "- Navigation menu\n"
-			. "- [Any plugins installed]\n"
-			. "- [Any CPTs/taxonomies registered]\n\n"
-			. "### What Needs Attention\n"
-			. "- [Any steps that failed or were skipped]\n"
-			. "- [Any manual steps needed]\n\n"
-			. "### Suggested Next Steps\n"
-			. "- [Relevant follow-up actions]\n"
-			. "```\n\n"
-			. "## Error Recovery Rules\n"
-			. "- **Never stop on a single error.** Log the failure and continue with the next step.\n"
-			. "- **Retry once** with a different approach before skipping a step.\n"
-			. "- **Track failures** — keep a mental list of what failed to include in the summary.\n"
-			. "- **Fallback chain for options:** manage-options → run-php with update_option → skip with note.\n"
-			. "- **Fallback chain for menus:** manage-nav-menu → run-php with wp_create_nav_menu → skip with note.\n"
-			. "- **Fallback chain for pages:** ai-agent/create-post → gratis-ai-agent/run-php with wp_insert_post → skip with note.\n"
-			. "- If you've retried the same tool twice with similar arguments, move on.\n\n"
-			. "## Important Rules\n"
-			. "- **Never use placeholder text.** Write real, specific content based on what the user told you.\n"
-			. "- **One question at a time** during the interview phase.\n"
-			. "- **Wait for plan confirmation** before starting Phase 4.\n"
-			. "- **No further questions** during the build phase — just build it.\n"
-			. "- **Use ability-search first** when you need a capability — don't assume a tool doesn't exist.\n"
-			. '- **Target: 5-page site built in under 3 minutes** after plan confirmation.';
-	}
-
-	/**
-	 * Internal default system instruction builder.
-	 *
-	 * @return string
-	 */
-	private static function default_system_instruction(): string {
-		$wp_path  = ABSPATH;
-		$site_url = get_site_url();
-
-		return "You are a WordPress assistant that ACTS — you execute tasks immediately using your tools.\n\n"
-			. "## WordPress Environment\n"
-			. "- WordPress path: {$wp_path}\n"
-			. "- Site URL: {$site_url}\n\n"
-			. "## Core Principles\n"
-			. "1. **Act, don't ask.** Execute the task right away. Don't ask \"shall I proceed?\" or request confirmation unless the task is destructive (deleting data, dropping tables).\n"
-			. "2. **Generate real content.** When creating pages or posts, write substantial, realistic content (3+ paragraphs). Never use placeholder text like \"Lorem ipsum\" or \"Content goes here\".\n"
-			. "3. **Use tools directly.** Call tools immediately — don't describe what you would do.\n"
-			. "4. **Call all needed tools in one response.** When a task requires multiple tools (e.g. create a post AND find an image), call them all at once.\n"
-			. "5. **After receiving tool results, ALWAYS provide a text response summarizing the results for the user.** Never return an empty response after tool calls.\n\n"
-			. "## Content Creation (IMPORTANT)\n"
-			. "To create any page or blog post, use `ai-agent/create-post`. This is the ONLY tool you need.\n"
-			. "- For pages: set `post_type` to `page`.\n"
-			. "- For blog posts: set `post_type` to `post`.\n"
-			. "- Write content directly in the `content` field using markdown (## headings, **bold**, - lists) or HTML. Markdown is automatically converted to Gutenberg blocks.\n"
-			. "- Set `status` to `publish` to make it live, or `draft` to save without publishing.\n"
-			. "- Include `categories` and `tags` arrays for blog posts.\n"
-			. "- Include `excerpt` for SEO meta descriptions.\n"
-			. "- To create a post WITH a stock image in one step, use `ai-agent/create-post-with-image` instead.\n"
-			. "- For WooCommerce products, use `gratis-ai-agent/woo-create-product` instead.\n\n"
-			. "## Tips\n"
-			. "- Chain operations: create content first, then configure settings.\n"
-			. "- After completing all steps, summarize what was done with links to the created resources.\n\n"
-			. "## Error Handling\n"
-			. "- If a tool call fails, try a different approach or skip it and continue with the next step.\n"
-			. "- Never stop after a single error — complete as many steps as possible.\n"
-			. "- If you've retried the same tool 2 times with similar args, move on.\n\n"
-			. "## Reporting Inability\n"
-			. "- If you have genuinely tried and cannot complete the user's request, call `gratis-ai-agent/report-inability` with a clear reason and the steps you attempted.\n"
-			. "- Use this only as a last resort — after at least 2 different approaches have failed.\n"
-			. '- Always provide a helpful text response explaining what you tried before calling the ability.';
-	}
+	// ── Token accounting ──────────────────────────────────────────────────
 
 	/**
 	 * Accumulate token usage from an AI result.
@@ -1786,85 +1170,20 @@ class AgentLoop {
 		}
 	}
 
-	/**
-	 * Append a tool-response message to history, splitting multi-part
-	 * function-response messages into one UserMessage per part.
-	 *
-	 * Anthropic accepts a single user message containing N function_response
-	 * parts; OpenAI-compatible providers (synthetic.new, Ollama, LM Studio,
-	 * etc.) require one `tool` role message per `tool_call_id`. The SDK's
-	 * OpenAI adapter only special-cases the single-part shape, so we have
-	 * to split here for portability.
-	 *
-	 * @param Message $message Tool-response message returned by the resolver.
-	 * @return void
-	 */
-	private function append_tool_response_to_history( Message $message ): void {
-		$parts = $message->getParts();
-
-		$has_function_response = false;
-		foreach ( $parts as $part ) {
-			$fr = method_exists( $part, 'getFunctionResponse' ) ? $part->getFunctionResponse() : null;
-			if ( $fr ) {
-				$has_function_response = true;
-				break;
-			}
-		}
-
-		if ( ! $has_function_response || count( $parts ) <= 1 ) {
-			$this->history[] = $message;
-			return;
-		}
-
-		foreach ( $parts as $part ) {
-			$this->history[] = new UserMessage( array( $part ) );
-		}
-	}
+	// ── Inability data injection ──────────────────────────────────────────
 
 	/**
-	 * Truncate large tool results in a response message.
+	 * Inject inability_reported data into a loop result array if the
+	 * FeedbackAbilities::report-inability ability was called this request.
 	 *
-	 * @param Message $message The tool response message.
-	 * @return Message A new message with truncated results.
+	 * @param array<string,mixed> $result The loop result to augment.
+	 * @return array<string,mixed> The result, potentially with inability_reported added.
 	 */
-	private static function truncate_tool_results( Message $message ): Message {
-		$new_parts = array();
-		$modified  = false;
-
-		foreach ( $message->getParts() as $part ) {
-			$fr = method_exists( $part, 'getFunctionResponse' ) ? $part->getFunctionResponse() : null;
-			if ( ! $fr ) {
-				$new_parts[] = $part;
-				continue;
-			}
-
-			$original_result = $fr->getResponse();
-			$tool_name       = (string) $fr->getName();
-			$ability_name    = $tool_name;
-			if ( str_starts_with( $tool_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
-				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $tool_name );
-			}
-
-			$truncated = ToolResultTruncator::truncate( $original_result, $ability_name );
-
-			if ( $truncated !== $original_result ) {
-				$modified    = true;
-				$new_parts[] = new MessagePart(
-					new \WordPress\AiClient\Tools\DTO\FunctionResponse(
-						(string) $fr->getId(),
-						(string) $fr->getName(),
-						$truncated
-					)
-				);
-			} else {
-				$new_parts[] = $part;
-			}
+	private function inject_inability_data( array $result ): array {
+		$inability = FeedbackAbilities::get_inability_data();
+		if ( null !== $inability ) {
+			$result['inability_reported'] = $inability;
 		}
-
-		if ( ! $modified ) {
-			return $message;
-		}
-
-		return new UserMessage( $new_parts );
+		return $result;
 	}
 }

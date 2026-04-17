@@ -349,7 +349,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - Update all callers (REST controllers, AgentLoop, Bootstrap handlers)
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t190 Remove dead register() methods from ~35 ability classes #refactor #auto-dispatch ~1h logged:2026-04-16
+- [x] t190 Remove dead register() methods from ~35 ability classes #refactor #auto-dispatch ~1h logged:2026-04-16 pr:#1005 completed:2026-04-17
   - DI AbilitiesHandler calls register_abilities() directly — the register() methods that add_action('wp_abilities_api_init') are dead code
   - Remove register() from: MemoryAbilities, FeedbackAbilities, SkillAbilities, KnowledgeAbilities, and ~30 more
   - Verify: `git grep '::register()' includes/Abilities/` returns zero hits, `composer phpstan`

@@ -41,13 +41,6 @@ class GscAbilities {
 	const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 	/**
-	 * Register abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register GSC abilities.
 	 */
 	public static function register_abilities(): void {

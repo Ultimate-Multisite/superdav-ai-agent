@@ -5,8 +5,14 @@
  * Replaces the 35 inline `XxxAbilities::register()` calls in
  * `gratis-ai-agent.php` with a single DI-managed handler. Each ability
  * class's `register_abilities()` method is called on the
- * `wp_abilities_api_init` hook — bypassing the intermediate `register()`
- * → `add_action()` layer since the DI system handles hook attachment.
+ * `wp_abilities_api_init` hook — bypassing the now-removed `register()`
+ * stub layer since the DI system handles hook attachment directly.
+ *
+ * Also owns the `init`-time hooks previously embedded in the three ability
+ * classes that needed extra wiring beyond abilities registration:
+ *  - CustomPostTypeAbilities::restore_persisted_post_types() at priority 5
+ *  - CustomTaxonomyAbilities::restore_persisted_taxonomies() at priority 5
+ *  - PluginSandbox::auto_deactivate_fatal_plugins() at priority 10
  *
  * @package GratisAiAgent\Bootstrap
  * @license GPL-2.0-or-later
@@ -41,6 +47,7 @@ use GratisAiAgent\Abilities\NavigationAbilities;
 use GratisAiAgent\Abilities\OptionsAbilities;
 use GratisAiAgent\Abilities\PluginBuilderAbilities;
 use GratisAiAgent\Abilities\PluginDownloadAbilities;
+use GratisAiAgent\PluginBuilder\PluginSandbox;
 use GratisAiAgent\Abilities\PostAbilities;
 use GratisAiAgent\Abilities\SeoAbilities;
 use GratisAiAgent\Abilities\SiteBuilderAbilities;
@@ -59,10 +66,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers all 35 ability groups on `wp_abilities_api_init`.
+ * Registers all ability groups on `wp_abilities_api_init` and wires
+ * the `init`-time hooks that were previously inside the per-class
+ * `register()` stubs.
  *
- * Uses `INIT_IMMEDIATELY` so the `wp_abilities_api_init` callback is
- * queued during `plugins_loaded` — well before `init` fires the hook.
+ * Uses `INIT_IMMEDIATELY` so all callbacks are queued during
+ * `plugins_loaded` — well before `init` or `wp_abilities_api_init` fires.
  */
 #[Handler(
 	container: 'gratis-ai-agent',
@@ -125,5 +134,31 @@ final class AbilitiesHandler {
 	#[Action( tag: 'wp_abilities_api_categories_init', priority: 10 )]
 	public function register_wpcli_category(): void {
 		WpCliAbilities::register_category();
+	}
+
+	/**
+	 * Re-register persisted custom post types and taxonomies on `init`.
+	 *
+	 * Runs at priority 5 (before most plugins) so AI-created CPTs and
+	 * taxonomies are available to the rest of WordPress on every request.
+	 * Previously wired by CustomPostTypeAbilities::register() and
+	 * CustomTaxonomyAbilities::register() via add_action() — those
+	 * register() stubs have been removed.
+	 */
+	#[Action( tag: 'init', priority: 5 )]
+	public function restore_persisted_types(): void {
+		CustomPostTypeAbilities::restore_persisted_post_types();
+		CustomTaxonomyAbilities::restore_persisted_taxonomies();
+	}
+
+	/**
+	 * Auto-deactivate plugins that triggered a fatal error on a previous activation.
+	 *
+	 * Previously wired by PluginBuilderAbilities::register() via add_action() —
+	 * that register() stub has been removed.
+	 */
+	#[Action( tag: 'init', priority: 10 )]
+	public function auto_deactivate_fatal_plugins(): void {
+		PluginSandbox::auto_deactivate_fatal_plugins();
 	}
 }

@@ -1,0 +1,211 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * Routes tool calls to PHP or client-side (JS) handlers.
+ *
+ * Extracted from AgentLoop so the client-ability partitioning concern lives
+ * in one focused class. Handles stub registration, name resolution, and
+ * message partitioning.
+ *
+ * @package GratisAiAgent\Core
+ * @license GPL-2.0-or-later
+ */
+
+namespace GratisAiAgent\Core;
+
+use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
+use WordPress\AiClient\Messages\DTO\Message;
+use WordPress\AiClient\Messages\DTO\ModelMessage;
+
+class ClientAbilityRouter {
+
+	/**
+	 * @param list<array<string, mixed>> $client_abilities Validated client-side ability descriptors.
+	 */
+	public function __construct( private array $client_abilities = array() ) {}
+
+	/**
+	 * Validate and filter raw client ability descriptors against JsAbilityCatalog.
+	 *
+	 * Only accepts names that exist in JsAbilityCatalog to prevent the client
+	 * from injecting arbitrary ability names into the model's tool list.
+	 *
+	 * @param list<array<string, mixed>> $raw_descriptors Unvalidated descriptors from the request.
+	 * @return static A new instance with validated descriptors.
+	 */
+	public static function from_raw( array $raw_descriptors ): static {
+		$catalog   = JsAbilityCatalog::get_descriptors_by_name();
+		$validated = array();
+
+		foreach ( $raw_descriptors as $descriptor ) {
+			if ( ! is_array( $descriptor ) ) {
+				continue;
+			}
+			$name = (string) ( $descriptor['name'] ?? '' );
+			if ( '' !== $name && isset( $catalog[ $name ] ) ) {
+				/** @var array<string, mixed> $descriptor */
+				$validated[] = $descriptor;
+			}
+		}
+
+		return new static( $validated );
+	}
+
+	/**
+	 * Return the set of client ability names validated for this run.
+	 *
+	 * @return string[]
+	 */
+	public function get_names(): array {
+		return array_map(
+			static function ( array $d ): string {
+				return (string) ( $d['name'] ?? '' );
+			},
+			$this->client_abilities
+		);
+	}
+
+	/**
+	 * Return whether there are any client abilities configured.
+	 *
+	 * @return bool
+	 */
+	public function has_client_abilities(): bool {
+		return ! empty( $this->client_abilities );
+	}
+
+	/**
+	 * Build synthetic WP_Ability stubs for validated client-side descriptors.
+	 *
+	 * These stubs expose the client ability schemas to the model's tool list.
+	 * The loop intercepts calls to these names and returns them as
+	 * pending_client_tool_calls instead of executing them server-side.
+	 *
+	 * @return \WP_Ability[]
+	 */
+	public function build_stubs(): array {
+		if ( empty( $this->client_abilities ) ) {
+			return array();
+		}
+
+		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return array();
+		}
+
+		$stubs = array();
+		foreach ( $this->client_abilities as $descriptor ) {
+			$name = (string) ( $descriptor['name'] ?? '' );
+			if ( '' === $name ) {
+				continue;
+			}
+
+			// Check if already registered in the global registry.
+			// @phpstan-ignore-next-line
+			$existing = function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
+			if ( $existing instanceof \WP_Ability ) {
+				$stubs[] = $existing;
+				continue;
+			}
+
+			// Register a transient stub for this request only.
+			// The stub has a no-op callback — the loop never actually calls it.
+			// @phpstan-ignore-next-line
+			wp_register_ability(
+				$name,
+				array(
+					'label'        => (string) ( $descriptor['label'] ?? $name ),
+					'description'  => (string) ( $descriptor['description'] ?? '' ),
+					'category'     => 'gratis-ai-agent-js',
+					'callback'     => static function ( array $args ): array {
+						// No-op: client-side abilities are never executed server-side.
+						return array( 'error' => 'Client-side ability cannot be executed server-side.' );
+					},
+					'input_schema' => $descriptor['input_schema'] ?? array(),
+					'annotations'  => array(
+						'readonly' => (bool) ( $descriptor['annotations']['readonly'] ?? true ),
+					),
+				)
+			);
+
+			// @phpstan-ignore-next-line
+			$stub = wp_get_ability( $name );
+			if ( $stub instanceof \WP_Ability ) {
+				$stubs[] = $stub;
+			}
+		}
+
+		return $stubs;
+	}
+
+	/**
+	 * Partition the tool calls in an assistant message into PHP-executable
+	 * and client-side (JS) sets.
+	 *
+	 * Returns an array with two keys:
+	 * - 'php':    list of MessagePart objects for PHP-executable calls.
+	 * - 'client': list of pending call descriptors for JS execution.
+	 *
+	 * @param Message  $message      The assistant message containing tool calls.
+	 * @param string[] $client_names Names of client-side abilities.
+	 * @return array{php: list<\WordPress\AiClient\Messages\DTO\MessagePart>, client: list<array<string, mixed>>}
+	 */
+	public function partition( Message $message, array $client_names ): array {
+		$php_parts = array();
+		$client    = array();
+
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				$php_parts[] = $part;
+				continue;
+			}
+
+			$fn_name      = (string) $call->getName();
+			$ability_name = $fn_name;
+			if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
+				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
+			}
+
+			if ( in_array( $ability_name, $client_names, true ) ) {
+				$client[] = array(
+					'id'   => (string) $call->getId(),
+					'name' => $ability_name,
+					'args' => $call->getArgs() ?: array(),
+				);
+			} else {
+				$php_parts[] = $part;
+			}
+		}
+
+		return array(
+			'php'    => $php_parts,
+			'client' => $client,
+		);
+	}
+
+	/**
+	 * Build a new Message containing only the given MessagePart objects.
+	 *
+	 * Used to construct a PHP-only sub-message when a mixed assistant message
+	 * contains both PHP and JS tool calls.
+	 *
+	 * @param Message                                            $original Original message (for role/type).
+	 * @param list<\WordPress\AiClient\Messages\DTO\MessagePart> $parts    Parts to include.
+	 * @return Message
+	 */
+	// phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- Generic list<T> not supported by PHPCS.
+	public static function build_message_from_parts( Message $original, array $parts ): Message {
+		// Reconstruct as a ModelMessage with the filtered parts.
+		return new ModelMessage( $parts );
+	}
+
+	/**
+	 * Return the validated client ability descriptors.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function get_descriptors(): array {
+		return $this->client_abilities;
+	}
+}

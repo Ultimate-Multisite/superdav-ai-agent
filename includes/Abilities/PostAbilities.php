@@ -24,13 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PostAbilities {
 
 	/**
-	 * Register post abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register all post management abilities.
 	 */
 	public static function register_abilities(): void {

@@ -133,6 +133,7 @@
  * @typedef {Object} StoreState
  * @property {Provider[]}               providers               - Available AI providers.
  * @property {boolean}                  providersLoaded         - Whether providers have been fetched.
+ * @property {boolean}                  providersLoading        - Whether a providers fetch is in-flight.
  * @property {Session[]}                sessions                - Session list.
  * @property {boolean}                  sessionsLoaded          - Whether sessions have been fetched.
  * @property {number|null}              currentSessionId        - Active session ID.
@@ -152,6 +153,7 @@
  * @property {boolean}                  foldersLoaded           - Whether folders have been fetched.
  * @property {Settings|null}            settings                - Plugin settings.
  * @property {boolean}                  settingsLoaded          - Whether settings have been fetched.
+ * @property {boolean}                  settingsLoading         - Whether a settings fetch is in-flight.
  * @property {Memory[]}                 memories                - Memory entries.
  * @property {boolean}                  memoriesLoaded          - Whether memories have been fetched.
  * @property {Skill[]}                  skills                  - Skill entries.

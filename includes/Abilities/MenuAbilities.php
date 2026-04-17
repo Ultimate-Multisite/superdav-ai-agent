@@ -21,13 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MenuAbilities {
 
 	/**
-	 * Register menu abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register all navigation menu management abilities.
 	 */
 	public static function register_abilities(): void {

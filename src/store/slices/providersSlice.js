@@ -11,6 +11,7 @@ import apiFetch from '@wordpress/api-fetch';
 export const initialState = {
 	providers: [],
 	providersLoaded: false,
+	providersLoading: false,
 	selectedProviderId: localStorage.getItem( 'gratisAiAgentProvider' ) || '',
 	selectedModelId: localStorage.getItem( 'gratisAiAgentModel' ) || '',
 };
@@ -53,10 +54,25 @@ export const actions = {
 	 * Auto-selects the first provider/model when none is saved or the saved
 	 * provider is no longer available.
 	 *
+	 * Deduplicates concurrent in-flight calls: if a fetch is already in-flight
+	 * (tracked via the shared Redux store, so cross-bundle dedup works too),
+	 * the call is a no-op. This prevents duplicate REST requests when multiple
+	 * plugin bundles (e.g. floating-widget.js and screen-meta.js) are loaded on
+	 * the same admin page and each mount a component that calls fetchProviders()
+	 * on mount. Intentional refreshes (e.g. after saving API credentials) are
+	 * not blocked — once the in-flight fetch settles, the next call starts a
+	 * new request.
+	 *
 	 * @return {Function} Redux thunk.
 	 */
 	fetchProviders() {
-		return async ( { dispatch } ) => {
+		return async ( { dispatch, select } ) => {
+			// Skip if a fetch is already in-flight. The store is shared across
+			// all bundles on the page, so this guard is cross-bundle.
+			if ( select.getProvidersLoading() ) {
+				return;
+			}
+			dispatch( { type: 'SET_PROVIDERS_LOADING', loading: true } );
 			try {
 				const providers = await apiFetch( {
 					path: '/gratis-ai-agent/v1/providers',
@@ -81,6 +97,8 @@ export const actions = {
 				}
 			} catch {
 				dispatch.setProviders( [] );
+			} finally {
+				dispatch( { type: 'SET_PROVIDERS_LOADING', loading: false } );
 			}
 		};
 	},
@@ -101,6 +119,14 @@ export const selectors = {
 	 */
 	getProvidersLoaded( state ) {
 		return state.providersLoaded;
+	},
+
+	/**
+	 * @param {import('../../types').StoreState} state
+	 * @return {boolean} Whether a providers fetch is currently in-flight.
+	 */
+	getProvidersLoading( state ) {
+		return state.providersLoading;
 	},
 
 	/**
@@ -144,6 +170,8 @@ export function reducer( state, action ) {
 				providers: action.providers,
 				providersLoaded: true,
 			};
+		case 'SET_PROVIDERS_LOADING':
+			return { ...state, providersLoading: action.loading };
 		case 'SET_SELECTED_PROVIDER':
 			return { ...state, selectedProviderId: action.providerId };
 		case 'SET_SELECTED_MODEL':

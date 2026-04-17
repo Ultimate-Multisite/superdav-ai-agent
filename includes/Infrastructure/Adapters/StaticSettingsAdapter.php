@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Transitional adapter: exposes the Settings singleton as an injectable
  * instance implementing SettingsProviderInterface.
  *
- * t192 has converted Settings to instance methods; this adapter delegates to
+ * After t192, Settings methods are instance-only; this adapter delegates to
  * Settings::instance() so non-DI legacy code and DI-managed callers share the
  * same singleton. Update Plugin::configure() to \DI\autowire(Settings::class)
  * and remove this adapter once all callers receive Settings via DI injection.

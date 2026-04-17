@@ -99,7 +99,7 @@ final class AbilitiesHandler {
 		PluginBuilderAbilities::register_abilities();
 		DatabaseAbilities::register_abilities();
 		WordPressAbilities::register_abilities();
-		WpCliAbilities::register_abilities();
+		WpCliAbilities::register_ability();
 		OptionsAbilities::register_abilities();
 		WooCommerceAbilities::register_abilities();
 		SiteHealthAbilities::register_abilities();
@@ -114,5 +114,16 @@ final class AbilitiesHandler {
 		ImageAbilities::register_abilities();
 		SiteBuilderAbilities::register_abilities();
 		DesignSystemAbilities::register_abilities();
+	}
+
+	/**
+	 * Register the WP-CLI ability category.
+	 *
+	 * WpCliAbilities uses a separate hook (`wp_abilities_api_categories_init`)
+	 * for its category registration, unlike the other ability classes.
+	 */
+	#[Action( tag: 'wp_abilities_api_categories_init', priority: 10 )]
+	public function register_wpcli_category(): void {
+		WpCliAbilities::register_category();
 	}
 }

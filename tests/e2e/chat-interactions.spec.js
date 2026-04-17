@@ -396,24 +396,29 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 	test.beforeEach( async ( { page } ) => {
 		// Stub the WP 7.0 abilities API so ensureClientAbilitiesRegistered()
 		// (called by the store's streamMessage thunk before POST /run) resolves
-		// immediately instead of polling for up to 30 s via
-		// waitForAbilitiesApi(). Without this stub, the send-message pipeline
-		// hangs for 30 s when the @wordpress/core-abilities script module
-		// hasn't loaded in wp-env CI — exceeding the 20 s sidebar assertion
-		// timeout. Pattern mirrors text-to-speech.spec.js beforeAll.
+		// immediately instead of making REST calls to /wp-abilities/v1/abilities.
+		// In WP 7.0-RC2 wp-env, these REST calls can take 15-30 s, causing the
+		// 20 s sidebar-assertion timeout to expire. Locked with
+		// Object.defineProperty (writable: false) so WordPress's classic scripts
+		// cannot override the stub via simple assignment. See the matching fix in
+		// text-to-speech.spec.js injectTtsMock() for the full rationale.
 		await page.addInitScript( () => {
 			if ( typeof window.wp === 'undefined' ) {
 				window.wp = {};
 			}
-			if ( ! window.wp.abilities ) {
-				window.wp.abilities = {
-					registerAbility: async () => {},
-					registerAbilityCategory: async () => {},
-					getAbilities: async () => [],
-					getAbilityCategory: async () => null,
-					executeAbility: async () => null,
-				};
-			}
+			const abilitiesStub = {
+				registerAbility: async () => {},
+				registerAbilityCategory: async () => {},
+				getAbilities: async () => [],
+				getAbilityCategory: async () => null,
+				executeAbility: async () => null,
+			};
+			Object.defineProperty( window.wp, 'abilities', {
+				value: abilitiesStub,
+				writable: false,
+				configurable: true,
+				enumerable: true,
+			} );
 		} );
 
 		await loginToWordPress( page );

@@ -116,23 +116,37 @@ async function injectTtsMock( page ) {
 
 		// Stub the WP 7.0 abilities API so ensureClientAbilitiesRegistered()
 		// (called by the store's streamMessage thunk before POST /run) resolves
-		// immediately instead of polling for up to 30 s via
-		// waitForAbilitiesApi(). In wp-env CI, the @wordpress/core-abilities
-		// script module may not load in time, causing the send-message pipeline
-		// to hang for 30 s with sending=true — which blocks the TTS effect
-		// from firing. The stub resolves all registration calls as no-ops.
+		// immediately instead of making REST calls to /wp-abilities/v1/abilities.
+		//
+		// In WP 7.0-RC2 wp-env, wp.abilities.registerAbilityCategory() and
+		// getAbilities() trigger REST fetches that can take 15-30 s, blocking
+		// the send-message pipeline and delaying setSending(false) past the
+		// test's polling windows.
+		//
+		// This stub is set unconditionally AND locked with Object.defineProperty
+		// (writable: false, configurable: true) so that WordPress's classic
+		// scripts cannot override it with the real implementation via simple
+		// assignment (window.wp.abilities = realImpl would fail silently).
+		// configurable: true is preserved so Playwright can redefine it across
+		// tests. This init script runs before any other script on the page, so
+		// the stub is always in place when the chat bundle evaluates.
 		if ( typeof window.wp === 'undefined' ) {
 			window.wp = {};
 		}
-		if ( ! window.wp.abilities ) {
-			window.wp.abilities = {
-				registerAbility: async () => {},
-				registerAbilityCategory: async () => {},
-				getAbilities: async () => [],
-				getAbilityCategory: async () => null,
-				executeAbility: async () => null,
-			};
-		}
+		const abilitiesStub = {
+			registerAbility: async () => {},
+			registerAbilityCategory: async () => {},
+			getAbilities: async () => [],
+			getAbilityCategory: async () => null,
+			executeAbility: async () => null,
+		};
+		// Use Object.defineProperty so simple assignment can't override the stub.
+		Object.defineProperty( window.wp, 'abilities', {
+			value: abilitiesStub,
+			writable: false,
+			configurable: true,
+			enumerable: true,
+		} );
 	} );
 }
 

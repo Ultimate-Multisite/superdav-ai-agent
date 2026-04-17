@@ -426,20 +426,30 @@ export default function AbilitiesExplorerApp() {
 		} ) );
 	}, [] );
 
+	// Render the outer wrapper immediately so E2E tests can detect the
+	// abilities route has mounted. Loading and error states appear inside
+	// the wrapper so the .gratis-ai-agent-abilities-manager selector is
+	// always present once the route renders, regardless of fetch status.
 	if ( loading ) {
 		return (
-			<div className="gratis-ai-agent-abilities-loading">
-				<Spinner />
-				<span>{ __( 'Loading abilities…', 'gratis-ai-agent' ) }</span>
+			<div className="gratis-ai-agent-abilities-manager">
+				<div className="gratis-ai-agent-abilities-loading">
+					<Spinner />
+					<span>
+						{ __( 'Loading abilities…', 'gratis-ai-agent' ) }
+					</span>
+				</div>
 			</div>
 		);
 	}
 
 	if ( error ) {
 		return (
-			<Notice status="error" isDismissible={ false }>
-				{ error }
-			</Notice>
+			<div className="gratis-ai-agent-abilities-manager">
+				<Notice status="error" isDismissible={ false }>
+					{ error }
+				</Notice>
+			</div>
 		);
 	}
 

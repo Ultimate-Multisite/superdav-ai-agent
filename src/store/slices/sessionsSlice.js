@@ -997,7 +997,15 @@ export const actions = {
 				// Registration failure must never block the user's chat
 				// message — fall through with an empty descriptor list.
 			}
-			const clientAbilities = await snapshotDescriptors();
+			let clientAbilities = [];
+			try {
+				clientAbilities = await snapshotDescriptors();
+			} catch ( _err ) {
+				// snapshotDescriptors() calls wp.abilities.getAbilities()
+				// which may throw or reject if the WP 7.0 abilities API is
+				// not available or returns an error. Fall through with an
+				// empty descriptor list so the message is still sent.
+			}
 			if (
 				Array.isArray( clientAbilities ) &&
 				clientAbilities.length > 0

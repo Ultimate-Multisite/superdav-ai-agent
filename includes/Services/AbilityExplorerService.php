@@ -125,7 +125,7 @@ final class AbilityExplorerService {
 	private static function get_configured_providers(): array {
 		$configured = array();
 		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
-			$key = Settings::get_provider_key( $provider_id );
+			$key = Settings::instance()->get_provider_key( $provider_id );
 			if ( '' !== $key ) {
 				$configured[] = $provider_id;
 			}

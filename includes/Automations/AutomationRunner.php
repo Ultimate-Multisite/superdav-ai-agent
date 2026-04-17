@@ -98,7 +98,7 @@ class AutomationRunner {
 		AgentLoop::ensure_provider_credentials_static();
 
 		// Build agent loop options.
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 		$options  = [
 			// @phpstan-ignore-next-line
 			'max_iterations' => $automation['max_iterations'] ?: ( $settings['max_iterations'] ?: 10 ),

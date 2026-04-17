@@ -150,13 +150,13 @@ class ToolPermissionResolver {
 	 * @param string $ability_name The ability name (e.g. 'gratis-ai-agent/memory-save').
 	 */
 	public static function set_always_allow( string $ability_name ): void {
-		$all   = Settings::get();
+		$all   = Settings::instance()->get();
 		$perms = $all['tool_permissions'] ?? array();
 
 		// @phpstan-ignore-next-line
 		$perms[ $ability_name ] = 'always_allow';
 
-		Settings::update( array( 'tool_permissions' => $perms ) );
+		Settings::instance()->update( array( 'tool_permissions' => $perms ) );
 	}
 
 	/**
@@ -165,7 +165,7 @@ class ToolPermissionResolver {
 	 * @return string[] Ability names with always_allow permission.
 	 */
 	public static function get_always_allowed(): array {
-		$perms = Settings::get( 'tool_permissions' );
+		$perms = Settings::instance()->get( 'tool_permissions' );
 
 		if ( ! is_array( $perms ) ) {
 			return array();

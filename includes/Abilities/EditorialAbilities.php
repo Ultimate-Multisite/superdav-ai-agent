@@ -773,8 +773,8 @@ INSTRUCTION;
 	 * @return string Model ID or empty string.
 	 */
 	private static function get_configured_model(): string {
-		if ( class_exists( \AiAgent\Core\Settings::class ) ) {
-			$model = \AiAgent\Core\Settings::get( 'default_model' );
+		if ( class_exists( \GratisAiAgent\Core\Settings::class ) ) {
+			$model = \GratisAiAgent\Core\Settings::instance()->get( 'default_model' );
 			return is_string( $model ) ? $model : '';
 		}
 		return '';

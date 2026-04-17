@@ -16,9 +16,16 @@ gratis-ai-agent.php
                  ├─ SessionController          # #[Handler] + #[Action] — multi-basename REST
                  ├─ AbilitiesHandler           # #[Handler] + #[Action] — abilities
                  ├─ AdminHandler               # #[Handler] CTX_ADMIN — admin hooks
-                 ├─ CoreServicesHandler        # #[Handler] — on_initialize() delegation
+                 ├─ ChangeLoggingHandler       # #[Handler] CTX_GLOBAL — change-log hooks
+                 ├─ HttpTraceHandler           # #[Handler] CTX_GLOBAL — provider trace filters
+                 ├─ KnowledgeHooksHandler      # #[Handler] CTX_GLOBAL — knowledge sync hooks
+                 ├─ ToolDiscoveryHandler       # #[Handler] — tool discovery abilities
+                 ├─ AutomationsHandler         # #[Handler] CTX_GLOBAL — cron + event hooks
+                 ├─ GitTrackingHandler         # #[Handler] CTX_GLOBAL — file-change hooks
+                 ├─ OnboardingHandler          # #[Handler] CTX_GLOBAL — onboarding hooks
+                 ├─ FreshInstallHandler        # #[Handler] CTX_GLOBAL — cache-clear hooks
                  ├─ FrontendAssetsHandler      # #[Handler] CTX_FRONTEND — public assets
-                 └─ ... (24 handlers total)
+                 └─ ... (31 handlers total)
 ```
 
 ## Core Concepts
@@ -184,23 +191,34 @@ final class AbilitySchemaFilter {
 }
 ```
 
-### on_initialize() delegation
+### on_initialize() delegation (legacy pattern)
 
-For wrapping existing static `register()` methods that internally add many hooks:
+`on_initialize()` is called automatically by the DI system during handler loading and can be used to call static `register()` methods that internally add many hooks:
 
 ```php
 #[Handler(container: 'gratis-ai-agent', strategy: Handler::INIT_IMMEDIATELY)]
-final class CoreServicesHandler {
+final class SomeHandler {
 
     public function on_initialize(): void {
-        ChangeLogger::register();      // adds 5 hooks internally
-        ProviderTraceLogger::register(); // adds 2 filters internally
-        // ...
+        SomeService::register();  // adds hooks internally
     }
 }
 ```
 
-`on_initialize()` is called automatically by the DI system during handler loading. It works on ANY handler class (not just `XWP_REST_Controller` subclasses).
+This pattern is valid but opaque — the DI container doesn't know which hooks each service registers, making it harder to audit hook wiring at a glance. **Prefer the `#[Action]` / `#[Filter]` attribute pattern** (see above) so every hook is declared explicitly on the handler method that owns it.
+
+```php
+// Preferred — hooks are explicit and auditable.
+#[Handler(container: 'gratis-ai-agent', context: Handler::CTX_GLOBAL, strategy: Handler::INIT_IMMEDIATELY)]
+final class ChangeLoggingHandler {
+
+    #[Action( tag: 'post_updated', priority: 10 )]
+    public function on_post_updated( int $post_id, \WP_Post $post_after, \WP_Post $post_before ): void {
+        ChangeLogger::on_post_updated( $post_id, $post_after, $post_before );
+    }
+    // ...
+}
+```
 
 ### Context-scoped handlers
 
@@ -283,13 +301,20 @@ The pre-commit hook runs `composer install --no-dev` before staging `vendor/`, t
 
 ```
 includes/
-├── Plugin.php                          # #[Module] — handler registry (24 handlers)
+├── Plugin.php                          # #[Module] — handler registry (31 handlers)
 ├── Bootstrap/
 │   ├── LifecycleHandler.php            # Activation/deactivation (pre-DI, static)
 │   ├── CliHandler.php                  # WP-CLI context handler
 │   ├── AbilitiesHandler.php            # 35 ability registrations
 │   ├── AdminHandler.php                # Admin menus, capabilities, admin assets
-│   ├── CoreServicesHandler.php         # Background services (logging, automations, etc.)
+│   ├── ChangeLoggingHandler.php        # AI change-log hooks (CTX_GLOBAL)
+│   ├── HttpTraceHandler.php            # LLM provider HTTP trace filters (CTX_GLOBAL)
+│   ├── KnowledgeHooksHandler.php       # Knowledge-base content sync (CTX_GLOBAL)
+│   ├── ToolDiscoveryHandler.php        # Tool discovery + custom tool executor abilities
+│   ├── AutomationsHandler.php          # Automation cron + event-trigger hooks (CTX_GLOBAL)
+│   ├── GitTrackingHandler.php          # File-change git tracking hooks (CTX_GLOBAL)
+│   ├── OnboardingHandler.php           # Smart onboarding + site scanner (CTX_GLOBAL)
+│   ├── FreshInstallHandler.php         # Fresh-install cache invalidation (CTX_GLOBAL)
 │   └── FrontendAssetsHandler.php       # Frontend widget assets
 ├── Infrastructure/
 │   ├── AiClient/

@@ -1,0 +1,66 @@
+<?php
+/**
+ * DI handler for smart onboarding and site-scanner hooks.
+ *
+ * Replaces the `OnboardingManager::register()` call in CoreServicesHandler
+ * (which internally called `SiteScanner::register()` plus two `add_action()`
+ * calls) by wiring each hook directly via `#[Action]` attributes.
+ *
+ * @package GratisAiAgent\Bootstrap
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace GratisAiAgent\Bootstrap;
+
+use GratisAiAgent\Core\OnboardingManager;
+use GratisAiAgent\Core\SiteScanner;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Wires the smart-onboarding flow and background site-scanner cron job.
+ *
+ * CTX_GLOBAL is required because the handler spans multiple contexts:
+ * - `admin_init` fires in CTX_ADMIN.
+ * - `rest_api_init` fires in CTX_REST.
+ * - The site-scanner cron hook fires in CTX_CRON.
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_GLOBAL,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class OnboardingHandler {
+
+	/**
+	 * Run the background site-scanner cron job.
+	 *
+	 * Scheduled as a one-time event via {@see SiteScanner::schedule()}.
+	 */
+	#[Action( tag: SiteScanner::CRON_HOOK, priority: 10 )]
+	public function run_site_scan(): void {
+		SiteScanner::run();
+	}
+
+	/**
+	 * Trigger the onboarding flow on admin_init if conditions are met.
+	 */
+	#[Action( tag: 'admin_init', priority: 10 )]
+	public function maybe_trigger_onboarding(): void {
+		OnboardingManager::maybe_trigger();
+	}
+
+	/**
+	 * Register the onboarding REST endpoint on rest_api_init.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_onboarding_rest_routes(): void {
+		OnboardingManager::register_rest_routes();
+	}
+}

@@ -16,7 +16,7 @@ use WP_UnitTestCase;
 /**
  * Test GscAbilities handler methods.
  *
- * All handlers require GSC credentials stored via Settings::set_gsc_credentials().
+ * All handlers require GSC credentials stored via Settings::instance()->set_gsc_credentials().
  * In the test environment no credentials are configured, so every handler must
  * return a WP_Error describing the missing configuration.
  */
@@ -27,14 +27,14 @@ class GscAbilitiesTest extends WP_UnitTestCase {
 	 */
 	public function setUp(): void {
 		parent::setUp();
-		Settings::set_gsc_credentials( [] );
+		Settings::instance()->set_gsc_credentials( [] );
 	}
 
 	/**
 	 * Clear GSC credentials after each test.
 	 */
 	public function tearDown(): void {
-		Settings::set_gsc_credentials( [] );
+		Settings::instance()->set_gsc_credentials( [] );
 		parent::tearDown();
 	}
 
@@ -54,7 +54,7 @@ class GscAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_top_queries with access_token credential type but empty token.
 	 */
 	public function test_handle_top_queries_empty_access_token_returns_wp_error() {
-		Settings::set_gsc_credentials( [
+		Settings::instance()->set_gsc_credentials( [
 			'type'         => 'access_token',
 			'access_token' => '',
 		] );
@@ -69,7 +69,7 @@ class GscAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_top_queries with unknown credential type returns WP_Error.
 	 */
 	public function test_handle_top_queries_unknown_credential_type_returns_wp_error() {
-		Settings::set_gsc_credentials( [
+		Settings::instance()->set_gsc_credentials( [
 			'type' => 'unknown_type',
 		] );
 
@@ -83,7 +83,7 @@ class GscAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_top_queries with service_account but missing private_key.
 	 */
 	public function test_handle_top_queries_service_account_missing_key_returns_wp_error() {
-		Settings::set_gsc_credentials( [
+		Settings::instance()->set_gsc_credentials( [
 			'type'         => 'service_account',
 			'client_email' => 'test@project.iam.gserviceaccount.com',
 			'private_key'  => '',
@@ -111,7 +111,7 @@ class GscAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_page_performance with unknown credential type returns WP_Error.
 	 */
 	public function test_handle_page_performance_unknown_type_returns_wp_error() {
-		Settings::set_gsc_credentials( [
+		Settings::instance()->set_gsc_credentials( [
 			'type' => 'oauth2',
 		] );
 

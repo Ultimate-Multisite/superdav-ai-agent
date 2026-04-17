@@ -67,7 +67,7 @@ class FloatingWidget {
 	 * Only loads for logged-in users with manage_options capability.
 	 */
 	public static function enqueue_assets_frontend(): void {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		// Only when the frontend display setting is enabled.
 		// @phpstan-ignore-next-line
@@ -154,11 +154,11 @@ class FloatingWidget {
 
 		// Detect fresh install and pass site-builder context to the widget.
 		$is_fresh     = FreshInstallDetector::isFreshInstall();
-		$site_builder = (bool) Settings::get( 'site_builder_mode' );
+		$site_builder = (bool) Settings::instance()->get( 'site_builder_mode' );
 
 		// Auto-enable site_builder_mode on first detection of a fresh install.
 		if ( $is_fresh && ! $site_builder ) {
-			Settings::update( [ 'site_builder_mode' => true ] );
+			Settings::instance()->update( [ 'site_builder_mode' => true ] );
 			$site_builder = true;
 		}
 
@@ -172,7 +172,7 @@ class FloatingWidget {
 		);
 
 		// Pass white-label branding values to the widget (t075).
-		$branding = Settings::get();
+		$branding = Settings::instance()->get();
 		wp_localize_script(
 			'gratis-ai-agent-floating-widget',
 			'gratisAiAgentBranding',

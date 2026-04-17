@@ -430,7 +430,7 @@ class SiteScanner {
 	 * @param array<string, mixed> $data Collected site data.
 	 */
 	private static function seed_knowledge_base( array $data ): void {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		// Only seed if the knowledge base feature is enabled.
 		if ( empty( $settings['knowledge_enabled'] ) ) {

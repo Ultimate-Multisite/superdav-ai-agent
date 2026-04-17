@@ -12,6 +12,9 @@ namespace GratisAiAgent\Core;
 
 use GratisAiAgent\Knowledge\KnowledgeDatabase;
 use GratisAiAgent\Models\ConversationTemplate;
+use GratisAiAgent\Models\DTO\GeneratedPluginRow;
+use GratisAiAgent\Models\DTO\SessionRow;
+use GratisAiAgent\Models\DTO\SharedSessionRow;
 use GratisAiAgent\Models\ProviderTrace;
 use GratisAiAgent\Models\Skill;
 use GratisAiAgent\REST\ResaleApiDatabase;
@@ -616,20 +619,22 @@ class Database {
 	 * Get a single session by ID.
 	 *
 	 * @param int $session_id Session ID.
-	 * @return object|null Session row or null.
+	 * @return SessionRow|null Typed session DTO or null when not found.
 	 */
-	public static function get_session( int $session_id ) {
+	public static function get_session( int $session_id ): ?SessionRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$session_id
 			)
 		);
+
+		return $row instanceof \stdClass ? SessionRow::from_row( $row ) : null;
 	}
 
 	/**
@@ -991,8 +996,7 @@ class Database {
 			return null;
 		}
 
-		// @phpstan-ignore-next-line
-		$raw = $session->paused_state ?? null;
+		$raw = $session->paused_state;
 
 		if ( empty( $raw ) ) {
 			return null;
@@ -1287,20 +1291,22 @@ class Database {
 	 * Get a single generated plugin record by slug.
 	 *
 	 * @param string $slug Plugin slug.
-	 * @return object|null Plugin row or null.
+	 * @return GeneratedPluginRow|null Typed plugin DTO or null when not found.
 	 */
-	public static function get_generated_plugin( string $slug ): ?object {
+	public static function get_generated_plugin( string $slug ): ?GeneratedPluginRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE slug = %s',
 				self::generated_plugins_table_name(),
 				$slug
 			)
 		);
+
+		return $row instanceof \stdClass ? GeneratedPluginRow::from_row( $row ) : null;
 	}
 
 	/**
@@ -1443,20 +1449,22 @@ class Database {
 	 * Check whether a session is shared.
 	 *
 	 * @param int $session_id Session ID.
-	 * @return object|null Shared session row (with shared_by, shared_at) or null.
+	 * @return SharedSessionRow|null Typed shared-session DTO or null when not found.
 	 */
-	public static function get_shared_session( int $session_id ) {
+	public static function get_shared_session( int $session_id ): ?SharedSessionRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE session_id = %d',
 				self::shared_sessions_table_name(),
 				$session_id
 			)
 		);
+
+		return $row instanceof \stdClass ? SharedSessionRow::from_row( $row ) : null;
 	}
 
 	/**

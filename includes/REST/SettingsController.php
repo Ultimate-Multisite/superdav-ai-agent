@@ -52,14 +52,14 @@ final class SettingsController {
 	private Database $database;
 
 	/**
-	 * Constructor — accepts injected dependencies for testability.
+	 * Constructor — receives injected dependencies from the DI container.
 	 *
-	 * @param Settings|null $settings  Settings service (defaults to new Settings()).
-	 * @param Database|null $database  Database service (defaults to new Database()).
+	 * @param Settings $settings  Injected Settings service.
+	 * @param Database $database  Injected Database service.
 	 */
-	public function __construct( ?Settings $settings = null, ?Database $database = null ) {
-		$this->settings = $settings ?? new Settings();
-		$this->database = $database ?? new Database();
+	public function __construct( Settings $settings, Database $database ) {
+		$this->settings = $settings;
+		$this->database = $database;
 	}
 
 	/**
@@ -146,7 +146,7 @@ final class SettingsController {
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( __CLASS__, 'handle_set_provider_key' ),
+					'callback'            => array( $this, 'handle_set_provider_key' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 					'args'                => array(
 						'provider' => array(
@@ -171,7 +171,7 @@ final class SettingsController {
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( __CLASS__, 'handle_test_provider_key' ),
+					'callback'            => array( $this, 'handle_test_provider_key' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 					'args'                => array(
 						'provider' => array(
@@ -232,8 +232,76 @@ final class SettingsController {
 			'/fresh-install',
 			array(
 				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( __CLASS__, 'handle_fresh_install_status' ),
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_clear_ga_credentials' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+			)
+		);
+
+		// Google Search Console credentials endpoint.
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/settings/gsc-credentials',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_set_gsc_credentials' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_gsc_credentials' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+			)
+		);
+
+		// Brave Search API key endpoint.
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/settings/brave-search-key',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_set_brave_search_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+					'args'                => array(
+						'api_key' => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_brave_search_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+			)
+		);
+
+		// Feedback receiver API key endpoint (t180).
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/settings/feedback-api-key',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_set_feedback_api_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+					'args'                => array(
+						'api_key' => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_feedback_api_key' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 				),
 			)
@@ -246,12 +314,12 @@ final class SettingsController {
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( __CLASS__, 'handle_get_ga_credentials' ),
+					'callback'            => array( $this, 'handle_get_ga_credentials' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( __CLASS__, 'handle_set_ga_credentials' ),
+					'callback'            => array( $this, 'handle_set_ga_credentials' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 					'args'                => array(
 						'property_id'          => array(
@@ -396,21 +464,21 @@ final class SettingsController {
 
 		// Indicate whether a Claude Max token is stored without exposing the token itself.
 		// @phpstan-ignore-next-line
-		$settings['_has_claude_max_token'] = '' !== Settings::get_claude_max_token();
+		$settings['_has_claude_max_token'] = '' !== $this->settings->get_claude_max_token();
 
 		// Indicate which direct provider keys are configured (boolean per provider, no values).
 		$provider_keys = array();
 		foreach ( array_keys( Settings::DIRECT_PROVIDERS ) as $provider_id ) {
-			$provider_keys[ $provider_id ] = '' !== Settings::get_provider_key( $provider_id );
+			$provider_keys[ $provider_id ] = '' !== $this->settings->get_provider_key( $provider_id );
 		}
 		// @phpstan-ignore-next-line
 		$settings['_provider_keys'] = $provider_keys;
 
 		// Indicate whether GSC credentials are configured (boolean + type only, no credential values).
-		$gsc_creds = Settings::get_gsc_credentials();
+		$gsc_creds = $this->settings->get_gsc_credentials();
 		// @phpstan-ignore-next-line
 		$settings['_gsc_credentials'] = array(
-			'configured'       => Settings::has_gsc_credentials(),
+			'configured'       => $this->settings->has_gsc_credentials(),
 			'type'             => $gsc_creds['type'] ?? null,
 			'default_site_url' => $gsc_creds['default_site_url'] ?? null,
 		);
@@ -421,7 +489,7 @@ final class SettingsController {
 
 		// Indicate whether a feedback-report receiver API key is configured (boolean only, no key value — t180).
 		// @phpstan-ignore-next-line
-		$settings['_feedback_api_key_configured'] = Settings::has_feedback_api_key();
+		$settings['_feedback_api_key_configured'] = $this->settings->has_feedback_api_key();
 
 		return new WP_REST_Response( $settings, 200 );
 	}
@@ -516,7 +584,7 @@ final class SettingsController {
 		// Allow clearing the token by passing an empty string.
 		$token = is_string( $token ) ? trim( $token ) : '';
 
-		$success = Settings::set_claude_max_token( $token );
+		$success = $this->settings->set_claude_max_token( $token );
 
 		if ( ! $success && ! empty( $token ) ) {
 			return new WP_REST_Response( array( 'error' => 'Failed to save token.' ), 500 );
@@ -537,7 +605,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_set_provider_key( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_set_provider_key( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
 		$provider = (string) $request->get_param( 'provider' );
 		// @phpstan-ignore-next-line
@@ -548,7 +616,7 @@ final class SettingsController {
 			return new WP_REST_Response( array( 'error' => 'Unknown provider.' ), 400 );
 		}
 
-		$success = Settings::set_provider_key( $provider, $api_key );
+		$success = $this->settings->set_provider_key( $provider, $api_key );
 
 		if ( ! $success && ! empty( $api_key ) ) {
 			return new WP_REST_Response( array( 'error' => 'Failed to save API key.' ), 500 );
@@ -568,7 +636,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_test_provider_key( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_test_provider_key( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
 		$provider = (string) $request->get_param( 'provider' );
 		// @phpstan-ignore-next-line
@@ -586,7 +654,7 @@ final class SettingsController {
 		}
 
 		// Use the provided key or fall back to the stored key.
-		$key_to_test = '' !== $api_key ? $api_key : Settings::get_provider_key( $provider );
+		$key_to_test = '' !== $api_key ? $api_key : $this->settings->get_provider_key( $provider );
 
 		if ( '' === $key_to_test ) {
 			return new WP_REST_Response(
@@ -715,14 +783,14 @@ final class SettingsController {
 	/**
 	 * Handle GET /fresh-install — return fresh-install detection status.
 	 */
-	public static function handle_fresh_install_status(): WP_REST_Response {
+	public function handle_fresh_install_status(): WP_REST_Response {
 		$status                      = FreshInstallDetector::getStatus();
-		$status['site_builder_mode'] = (bool) Settings::get( 'site_builder_mode' );
+		$status['site_builder_mode'] = (bool) $this->settings->get( 'site_builder_mode' );
 
 		// Auto-enable site_builder_mode when a fresh install is detected and
 		// the flag has not been explicitly set by the user yet.
 		if ( $status['is_fresh_install'] && ! $status['site_builder_mode'] ) {
-			Settings::update( array( 'site_builder_mode' => true ) );
+			$this->settings->update( array( 'site_builder_mode' => true ) );
 			$status['site_builder_mode'] = true;
 		}
 
@@ -732,7 +800,7 @@ final class SettingsController {
 	/**
 	 * Handle GET /settings/google-analytics — return whether credentials are configured.
 	 */
-	public static function handle_get_ga_credentials(): WP_REST_Response {
+	public function handle_get_ga_credentials(): WP_REST_Response {
 		$creds = GoogleAnalyticsAbilities::get_credentials();
 		return new WP_REST_Response(
 			array(
@@ -750,7 +818,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_set_ga_credentials( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_set_ga_credentials( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
 		$property_id = (string) $request->get_param( 'property_id' );
 		// @phpstan-ignore-next-line
@@ -789,7 +857,7 @@ final class SettingsController {
 	/**
 	 * Handle DELETE /settings/google-analytics — clear GA4 credentials.
 	 */
-	public static function handle_clear_ga_credentials(): WP_REST_Response {
+	public function handle_clear_ga_credentials(): WP_REST_Response {
 		GoogleAnalyticsAbilities::clear_credentials();
 		return new WP_REST_Response( array( 'cleared' => true ), 200 );
 	}
@@ -799,7 +867,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_set_gsc_credentials( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_set_gsc_credentials( WP_REST_Request $request ): WP_REST_Response {
 		$params = $request->get_json_params();
 
 		if ( empty( $params ) || ! is_array( $params ) ) {
@@ -862,7 +930,7 @@ final class SettingsController {
 			);
 		}
 
-		$success = Settings::set_gsc_credentials( $creds );
+		$success = $this->settings->set_gsc_credentials( $creds );
 
 		if ( ! $success ) {
 			return new WP_REST_Response( array( 'error' => 'Failed to save GSC credentials.' ), 500 );
@@ -884,8 +952,8 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_delete_gsc_credentials( WP_REST_Request $request ): WP_REST_Response {
-		Settings::set_gsc_credentials( array() );
+	public function handle_delete_gsc_credentials( WP_REST_Request $request ): WP_REST_Response {
+		$this->settings->set_gsc_credentials( array() );
 
 		return new WP_REST_Response(
 			array(
@@ -901,7 +969,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_set_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_set_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
 		$api_key = sanitize_text_field( (string) $request->get_param( 'api_key' ) );
 
@@ -929,7 +997,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_delete_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_delete_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
 		InternetSearchAbilities::set_brave_api_key( '' );
 
 		return new WP_REST_Response(
@@ -950,7 +1018,7 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_set_feedback_api_key( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_set_feedback_api_key( WP_REST_Request $request ): WP_REST_Response {
 		// @phpstan-ignore-next-line
 		$api_key = sanitize_text_field( (string) $request->get_param( 'api_key' ) );
 
@@ -958,7 +1026,7 @@ final class SettingsController {
 			return new WP_REST_Response( array( 'error' => 'api_key is required.' ), 400 );
 		}
 
-		$success = Settings::set_feedback_api_key( $api_key );
+		$success = $this->settings->set_feedback_api_key( $api_key );
 
 		if ( ! $success ) {
 			return new WP_REST_Response( array( 'error' => 'Failed to save feedback API key.' ), 500 );
@@ -978,8 +1046,8 @@ final class SettingsController {
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 */
-	public static function handle_delete_feedback_api_key( WP_REST_Request $request ): WP_REST_Response {
-		Settings::set_feedback_api_key( '' );
+	public function handle_delete_feedback_api_key( WP_REST_Request $request ): WP_REST_Response {
+		$this->settings->set_feedback_api_key( '' );
 
 		return new WP_REST_Response(
 			array(
@@ -1000,7 +1068,7 @@ final class SettingsController {
 
 		// Direct providers (OpenAI, Anthropic, Google) — listed first, no WP SDK required.
 		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $meta ) {
-			$key = Settings::get_provider_key( $provider_id );
+			$key = $this->settings->get_provider_key( $provider_id );
 			if ( '' === $key ) {
 				continue;
 			}
@@ -1162,7 +1230,7 @@ final class SettingsController {
 
 		// Direct providers (API key stored in plugin options).
 		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $meta ) {
-			if ( '' !== Settings::get_provider_key( $provider_id ) ) {
+			if ( '' !== $this->settings->get_provider_key( $provider_id ) ) {
 				$has_provider = true;
 				break;
 			}

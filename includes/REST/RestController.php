@@ -286,7 +286,7 @@ Assistant: %s',
 
 			$effective_provider = $provider_id;
 			if ( empty( $effective_provider ) ) {
-				$settings = Settings::get();
+				$settings = Settings::instance()->get();
 				// @phpstan-ignore-next-line
 				$effective_provider = (string) ( $settings['default_provider'] ?? '' );
 			}

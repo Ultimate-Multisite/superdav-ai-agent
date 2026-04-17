@@ -45,7 +45,7 @@ class BudgetManager {
 	 * @return true|WP_Error
 	 */
 	public static function check_budget(): true|WP_Error {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		// @phpstan-ignore-next-line
 		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );
@@ -188,7 +188,7 @@ class BudgetManager {
 	 * @return string 'ok' | 'warning' | 'exceeded'
 	 */
 	public static function get_warning_level(): string {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		// @phpstan-ignore-next-line
 		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );
@@ -230,7 +230,7 @@ class BudgetManager {
 	 * @return array<string, mixed>
 	 */
 	public static function get_status(): array {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		// @phpstan-ignore-next-line
 		$daily_cap = (float) ( $settings['budget_daily_cap'] ?? 0 );

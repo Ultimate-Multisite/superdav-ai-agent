@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Empty-object placeholder for JSON Schema properties/items.
  *
  * @implements \ArrayAccess<string, mixed>
+ * @implements \IteratorAggregate<string, mixed>
  */
 final class EmptyJsonObject implements \JsonSerializable, \ArrayAccess, \Countable, \IteratorAggregate {
 

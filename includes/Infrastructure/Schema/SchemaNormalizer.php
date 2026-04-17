@@ -164,6 +164,13 @@ final class SchemaNormalizer {
 		return $schema;
 	}
 
+	/**
+	 * Normalise a schema's `properties` map and promote per-property
+	 * `required: true` flags into the parent `required` array.
+	 *
+	 * @param array<string, mixed> $schema Normalised schema node.
+	 * @return array<string, mixed>
+	 */
 	private static function normalize_properties( array $schema ): array {
 		$props = $schema['properties'];
 

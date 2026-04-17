@@ -99,15 +99,6 @@ class GoogleAnalyticsAbilities {
 		return $ability->run( $input );
 	}
 
-	// ─── Registration ────────────────────────────────────────────────────────
-
-	/**
-	 * Register abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
 	/**
 	 * Register Google Analytics abilities.
 	 */

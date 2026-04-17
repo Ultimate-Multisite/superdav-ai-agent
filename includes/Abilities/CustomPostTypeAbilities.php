@@ -37,17 +37,6 @@ class CustomPostTypeAbilities {
 	const OPTION_KEY = 'gratis_ai_agent_custom_post_types';
 
 	/**
-	 * Register the abilities and the persistent CPT re-registration hook.
-	 */
-	public static function register(): void {
-		// Re-register persisted CPTs on every init so they survive page reloads.
-		add_action( 'init', [ __CLASS__, 'restore_persisted_post_types' ], 5 );
-
-		// Register the AI abilities.
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Re-register all CPTs that were previously persisted via the register ability.
 	 *
 	 * Runs on `init` with priority 5 (before most plugins) so the CPTs are

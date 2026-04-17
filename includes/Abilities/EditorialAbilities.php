@@ -34,15 +34,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EditorialAbilities {
 
 	/**
-	 * Register abilities on the wp_abilities_api_init hook.
-	 *
-	 * @since 1.1.0
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register all editorial abilities.
 	 *
 	 * @since 1.1.0

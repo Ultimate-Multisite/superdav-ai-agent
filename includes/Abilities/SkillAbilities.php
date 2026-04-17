@@ -19,13 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SkillAbilities {
 
 	/**
-	 * Register skill abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register the skill-load and skill-list abilities.
 	 */
 	public static function register_abilities(): void {

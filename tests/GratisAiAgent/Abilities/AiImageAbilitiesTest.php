@@ -119,21 +119,4 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 		$this->assertNotSame( 'cartoon', $result->get_error_code() );
 	}
 
-	// ─── register ────────────────────────────────────────────────
-
-	/**
-	 * Test register adds the wp_abilities_api_init action hook.
-	 *
-	 * Calling register() should attach register_abilities to the
-	 * wp_abilities_api_init action without throwing.
-	 */
-	public function test_register_adds_action_hook() {
-		AiImageAbilities::register();
-
-		$this->assertGreaterThan(
-			0,
-			has_action( 'wp_abilities_api_init', [ AiImageAbilities::class, 'register_abilities' ] ),
-			'register() should add register_abilities to wp_abilities_api_init.'
-		);
-	}
 }

@@ -149,16 +149,6 @@ class WpCliAbilities {
 	private static string $current_site_url = '';
 
 	/**
-	 * Register the wp-cli/execute ability.
-	 *
-	 * @return void
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_categories_init', array( __CLASS__, 'register_category' ) );
-		add_action( 'wp_abilities_api_init', array( __CLASS__, 'register_ability' ) );
-	}
-
-	/**
 	 * Register the wp-cli ability category.
 	 *
 	 * @return void

@@ -48,13 +48,6 @@ class AiImageAbilities {
 	}
 
 	/**
-	 * Register abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register all AI image abilities with the WordPress Abilities API.
 	 */
 	public static function register_abilities(): void {

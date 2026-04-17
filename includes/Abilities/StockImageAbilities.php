@@ -20,13 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class StockImageAbilities {
 
 	/**
-	 * Register abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-	}
-
-	/**
 	 * Register the import-stock-image ability.
 	 */
 	public static function register_abilities(): void {

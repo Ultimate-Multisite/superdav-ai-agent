@@ -38,15 +38,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PluginBuilderAbilities {
 
 	/**
-	 * Register abilities on init.
-	 */
-	public static function register(): void {
-		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
-		// Auto-deactivate any plugins that triggered a fatal on a previous activation.
-		add_action( 'init', [ PluginSandbox::class, 'auto_deactivate_fatal_plugins' ] );
-	}
-
-	/**
 	 * Register all plugin builder abilities with the WordPress Abilities API.
 	 */
 	public static function register_abilities(): void {

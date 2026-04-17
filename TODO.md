@@ -380,6 +380,12 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - AgentLoop becomes ~400-line orchestrator composing these services
   - Verify: `composer phpstan && npm run test:php` (existing AgentLoop tests must still pass)
 
+- [ ] t194 Complete DI migration — convert CoreServicesHandler static calls to real handlers #refactor #auto-dispatch ~4h logged:2026-04-16
+  - CoreServicesHandler::on_initialize() calls 10 static ::register() methods — thin veneer, not real DI
+  - Convert ChangeLogger, ProviderTraceLogger, KnowledgeHooks, ToolDiscovery, CustomToolExecutor, AutomationRunner, EventTriggerHandler, GitTrackerManager, OnboardingManager, FreshInstallDetector into #[Handler] classes with #[Action] decorators
+  - Remove CoreServicesHandler once empty
+  - Register new handlers in Plugin.php handlers array
+  - Verify: `composer phpstan && composer phpcs`
 
 - [ ] t195 Clean up phpstan.neon — deduplicate ignores and write WP 7.0 AI Client stubs #quality #auto-dispatch ~3h logged:2026-04-16 blocked-by:t191
   - phpstan.neon has 300 lines of ignoreErrors with ~40 duplicates
@@ -685,12 +691,6 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
 
 ## Done
 
-- [x] t194 Complete DI migration — convert CoreServicesHandler static calls to real handlers #refactor #auto-dispatch ~4h logged:2026-04-16 pr:#1007 completed:2026-04-17
-  - CoreServicesHandler::on_initialize() calls 10 static ::register() methods — thin veneer, not real DI
-  - Convert ChangeLogger, ProviderTraceLogger, KnowledgeHooks, ToolDiscovery, CustomToolExecutor, AutomationRunner, EventTriggerHandler, GitTrackerManager, OnboardingManager, FreshInstallDetector into #[Handler] classes with #[Action] decorators
-  - Remove CoreServicesHandler once empty
-  - Register new handlers in Plugin.php handlers array
-  - Verify: `composer phpstan && composer phpcs`
 - [x] t186 Thumbs-down button on assistant messages #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182 pr:#956 completed:2026-04-15
   - EDIT: src/components/MessageList.js — add a subtle thumbs-down icon button on assistant message hover (next to copy button if present)
   - On click: open FeedbackConsentModal with report_type='thumbs_down', anchor to the specific message index

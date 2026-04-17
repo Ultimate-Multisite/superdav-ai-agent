@@ -161,7 +161,7 @@ class EventTriggerHandler {
 		// Ensure credentials are available.
 		AgentLoop::ensure_provider_credentials_static();
 
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 		$options  = [
 			'max_iterations' => (int) ( $event['max_iterations'] ?? 5 ) ?: 5,
 			'provider_id'    => (string) ( $settings['default_provider'] ?? '' ),

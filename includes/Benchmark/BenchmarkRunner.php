@@ -518,7 +518,7 @@ class BenchmarkRunner {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_anthropic( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::get_provider_key( 'anthropic' );
+		$api_key = Settings::instance()->get_provider_key( 'anthropic' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
 				'benchmark_no_anthropic_key',
@@ -582,7 +582,7 @@ class BenchmarkRunner {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_openai( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::get_provider_key( 'openai' );
+		$api_key = Settings::instance()->get_provider_key( 'openai' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
 				'benchmark_no_openai_key',
@@ -645,7 +645,7 @@ class BenchmarkRunner {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function call_google( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::get_provider_key( 'google' );
+		$api_key = Settings::instance()->get_provider_key( 'google' );
 		if ( empty( $api_key ) ) {
 			return new \WP_Error(
 				'benchmark_no_google_key',

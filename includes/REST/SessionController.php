@@ -53,14 +53,14 @@ final class SessionController {
 	private Database $database;
 
 	/**
-	 * Constructor — accepts injected dependencies for testability.
+	 * Constructor — receives injected dependencies from the DI container.
 	 *
-	 * @param Settings|null $settings  Settings service (defaults to new Settings()).
-	 * @param Database|null $database  Database service (defaults to new Database()).
+	 * @param Settings $settings  Injected Settings service.
+	 * @param Database $database  Injected Database service.
 	 */
-	public function __construct( ?Settings $settings = null, ?Database $database = null ) {
-		$this->settings = $settings ?? new Settings();
-		$this->database = $database ?? new Database();
+	public function __construct( Settings $settings, Database $database ) {
+		$this->settings = $settings;
+		$this->database = $database;
 	}
 
 	/**

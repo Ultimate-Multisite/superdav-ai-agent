@@ -27,8 +27,8 @@ class ReportSender {
 	 * @return true|WP_Error True on success (2xx response), WP_Error on failure.
 	 */
 	public static function send( array $payload ): true|WP_Error {
-		$endpoint_url = (string) ( Settings::get( 'feedback_endpoint_url' ) ?? '' );
-		$enabled      = (bool) ( Settings::get( 'feedback_enabled' ) ?? false );
+		$endpoint_url = (string) ( Settings::instance()->get( 'feedback_endpoint_url' ) ?? '' );
+		$enabled      = (bool) ( Settings::instance()->get( 'feedback_enabled' ) ?? false );
 
 		if ( ! $enabled ) {
 			return new WP_Error( 'feedback_disabled', 'Feedback reporting is not enabled in Settings.' );
@@ -42,7 +42,7 @@ class ReportSender {
 			return new WP_Error( 'feedback_invalid_url', 'Configured feedback endpoint URL is not valid.' );
 		}
 
-		$api_key = Settings::get_feedback_api_key();
+		$api_key = Settings::instance()->get_feedback_api_key();
 
 		$headers = array(
 			'Content-Type' => 'application/json',

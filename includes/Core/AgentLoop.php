@@ -177,7 +177,7 @@ class AgentLoop {
 	 * @param string[]             $abilities         Ability names to enable (empty = all).
 	 * @param Message[]            $history           Prior messages for multi-turn.
 	 * @param array<string, mixed> $options           Optional overrides: system_instruction, max_iterations, provider_id, model_id, temperature, max_output_tokens, page_context.
-	 * @param Settings|null        $settings_service  Injected Settings service (uses static Settings::get() when null).
+	 * @param Settings|null        $settings_service  Injected Settings service (uses Settings::instance() when null).
 	 */
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
 		$this->user_message = $user_message;

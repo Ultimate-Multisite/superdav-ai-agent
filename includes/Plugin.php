@@ -5,11 +5,10 @@
  * This class is decorated with `#[Module]` so the `x-wp/di` library discovers
  * it when bootstrapping the container via `xwp_load_app()`.
  *
- * PR 1 scope: the module intentionally imports no submodules and registers no
- * handlers — its sole purpose in this first phase is to stand up a functioning
- * PHP-DI container (see `configure()` for available definitions) so subsequent
- * refactor PRs can incrementally migrate the legacy `XxxAbilities::register()`
- * style wiring in `gratis-ai-agent.php` into real DI-managed handlers.
+ * All hook wiring flows through DI-managed handler classes listed in the
+ * `#[Module]` handlers array. Each handler uses `#[Action]` / `#[Filter]`
+ * attributes to declare its hooks declaratively — no `add_action()` /
+ * `add_filter()` calls appear outside of the handler classes themselves.
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -21,9 +20,16 @@ namespace GratisAiAgent;
 
 use GratisAiAgent\Bootstrap\AbilitiesHandler;
 use GratisAiAgent\Bootstrap\AdminHandler;
+use GratisAiAgent\Bootstrap\AutomationsHandler;
+use GratisAiAgent\Bootstrap\ChangeLoggingHandler;
 use GratisAiAgent\Bootstrap\CliHandler;
-use GratisAiAgent\Bootstrap\CoreServicesHandler;
+use GratisAiAgent\Bootstrap\FreshInstallHandler;
 use GratisAiAgent\Bootstrap\FrontendAssetsHandler;
+use GratisAiAgent\Bootstrap\GitTrackingHandler;
+use GratisAiAgent\Bootstrap\HttpTraceHandler;
+use GratisAiAgent\Bootstrap\KnowledgeHooksHandler;
+use GratisAiAgent\Bootstrap\OnboardingHandler;
+use GratisAiAgent\Bootstrap\ToolDiscoveryHandler;
 use GratisAiAgent\Contracts\BudgetCheckerInterface;
 use GratisAiAgent\Contracts\SessionRepositoryInterface;
 use GratisAiAgent\Contracts\SettingsProviderInterface;
@@ -81,7 +87,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		CliHandler::class,
 		AbilitiesHandler::class,
 		AdminHandler::class,
-		CoreServicesHandler::class,
+		// Core background service handlers (replaced CoreServicesHandler).
+		ChangeLoggingHandler::class,
+		HttpTraceHandler::class,
+		KnowledgeHooksHandler::class,
+		ToolDiscoveryHandler::class,
+		AutomationsHandler::class,
+		GitTrackingHandler::class,
+		OnboardingHandler::class,
+		FreshInstallHandler::class,
 		FrontendAssetsHandler::class,
 		MemoryController::class,
 		SkillController::class,

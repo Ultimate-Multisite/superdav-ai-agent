@@ -73,7 +73,7 @@ class AiImageAbilities {
  * and imports it into the WordPress media library. Returns the attachment ID,
  * URL, and revised prompt (DALL-E may rewrite the prompt for safety).
  *
- * Settings used (from Settings::get()):
+ * Settings used (from Settings::instance()->get()):
  *   - image_generation_size    : '1024x1024' | '1792x1024' | '1024x1792'
  *   - image_generation_quality : 'standard' | 'hd'
  *   - image_generation_style   : 'vivid' | 'natural'
@@ -158,7 +158,7 @@ class GenerateImageAbility extends AbstractAbility {
 		}
 
 		// Resolve size/quality/style: per-call input overrides site setting.
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 		$size     = $this->resolve_enum(
 			// @phpstan-ignore-next-line
 			$input['size'] ?? '',
@@ -258,7 +258,7 @@ class GenerateImageAbility extends AbstractAbility {
 	 * @return array<string,string>|\WP_Error Array with 'url' and 'revised_prompt', or WP_Error.
 	 */
 	private function call_dalle( string $prompt, string $size, string $quality, string $style ) {
-		$api_key = Settings::get_provider_key( 'openai' );
+		$api_key = Settings::instance()->get_provider_key( 'openai' );
 
 		if ( '' === $api_key ) {
 			return new WP_Error(

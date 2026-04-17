@@ -579,7 +579,7 @@ class GscAbilities {
 	 * @return string|WP_Error Access token string or WP_Error.
 	 */
 	private static function get_access_token(): string|WP_Error {
-		$creds = Settings::get_gsc_credentials();
+		$creds = Settings::instance()->get_gsc_credentials();
 
 		if ( empty( $creds ) || empty( $creds['type'] ) ) {
 			return new WP_Error(
@@ -872,7 +872,7 @@ class GscAbilities {
 		}
 
 		// Check stored default GSC site URL.
-		$creds = Settings::get_gsc_credentials();
+		$creds = Settings::instance()->get_gsc_credentials();
 		if ( ! empty( $creds['default_site_url'] ) ) {
 			// @phpstan-ignore-next-line
 			return (string) $creds['default_site_url'];

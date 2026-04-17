@@ -7,6 +7,10 @@ declare(strict_types=1);
  * Stores all Gratis AI Agent settings in a single WordPress option and provides
  * a React-based settings page under Tools > Gratis AI Agent Settings.
  *
+ * This class is designed as an injectable DI service. Use constructor injection
+ * to receive a Settings instance in DI-managed handlers. For non-DI code, use
+ * the static {@see Settings::instance()} factory as a bridge.
+ *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
  */
@@ -185,12 +189,33 @@ class Settings {
 		),
 	);
 
+	// ── Static factory (bridge for non-DI code) ───────────────────────────────
+
+	/**
+	 * Return the shared Settings instance for use in non-DI-managed code.
+	 *
+	 * DI-managed handlers should receive Settings via constructor injection
+	 * instead of calling this method. This factory exists as a bridge for
+	 * legacy static callers during the transition period.
+	 *
+	 * @return self
+	 */
+	public static function instance(): self {
+		static $instance = null;
+		if ( null === $instance ) {
+			$instance = new self();
+		}
+		return $instance;
+	}
+
+	// ── Instance methods ──────────────────────────────────────────────────────
+
 	/**
 	 * Default settings.
 	 *
 	 * @return array<string, mixed>
 	 */
-	public static function get_defaults(): array {
+	public function get_defaults(): array {
 		return array(
 			'default_provider'         => '',
 			'default_model'            => '',
@@ -243,7 +268,7 @@ class Settings {
 	 * @param string $provider_id One of 'openai', 'anthropic', 'google'.
 	 * @return string Empty string when not configured.
 	 */
-	public static function get_provider_key( string $provider_id ): string {
+	public function get_provider_key( string $provider_id ): string {
 		$keys = get_option( self::PROVIDER_KEYS_OPTION, array() );
 		// @phpstan-ignore-next-line
 		return isset( $keys[ $provider_id ] ) ? (string) $keys[ $provider_id ] : '';
@@ -258,7 +283,7 @@ class Settings {
 	 * @param string $api_key     The API key value.
 	 * @return bool True on success.
 	 */
-	public static function set_provider_key( string $provider_id, string $api_key ): bool {
+	public function set_provider_key( string $provider_id, string $api_key ): bool {
 		if ( ! array_key_exists( $provider_id, self::DIRECT_PROVIDERS ) ) {
 			return false;
 		}
@@ -284,10 +309,10 @@ class Settings {
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function get_configured_direct_providers(): array {
+	public function get_configured_direct_providers(): array {
 		$result = array();
 		foreach ( self::DIRECT_PROVIDERS as $id => $meta ) {
-			$key      = self::get_provider_key( $id );
+			$key      = $this->get_provider_key( $id );
 			$result[] = array(
 				'id'         => $id,
 				'name'       => $meta['name'],
@@ -312,7 +337,7 @@ class Settings {
 	 *
 	 * @return array<string, mixed> Credential array or empty array.
 	 */
-	public static function get_gsc_credentials(): array {
+	public function get_gsc_credentials(): array {
 		$creds = get_option( self::GSC_CREDENTIALS_OPTION, array() );
 		/** @var array<string, mixed> $result */
 		$result = is_array( $creds ) ? $creds : array();
@@ -327,7 +352,7 @@ class Settings {
 	 * @param array<string, mixed> $credentials Credential array (see get_gsc_credentials() for shape).
 	 * @return bool True on success.
 	 */
-	public static function set_gsc_credentials( array $credentials ): bool {
+	public function set_gsc_credentials( array $credentials ): bool {
 		if ( empty( $credentials ) ) {
 			return delete_option( self::GSC_CREDENTIALS_OPTION );
 		}
@@ -340,8 +365,8 @@ class Settings {
 	 *
 	 * @return bool
 	 */
-	public static function has_gsc_credentials(): bool {
-		$creds = self::get_gsc_credentials();
+	public function has_gsc_credentials(): bool {
+		$creds = $this->get_gsc_credentials();
 		return ! empty( $creds['type'] );
 	}
 
@@ -353,7 +378,7 @@ class Settings {
 	 *
 	 * @return string Empty string when not configured.
 	 */
-	public static function get_claude_max_token(): string {
+	public function get_claude_max_token(): string {
 		return CredentialResolver::getClaudeMaxToken();
 	}
 
@@ -366,7 +391,7 @@ class Settings {
 	 * @param string $token The OAuth access token (sk-ant-oat01-… or similar).
 	 * @return bool True on success.
 	 */
-	public static function set_claude_max_token( string $token ): bool {
+	public function set_claude_max_token( string $token ): bool {
 		return CredentialResolver::setClaudeMaxToken( $token );
 	}
 
@@ -387,8 +412,8 @@ class Settings {
 	 *
 	 * @return string Non-empty model ID.
 	 */
-	public static function get_default_model(): string {
-		$settings = self::get();
+	public function get_default_model(): string {
+		$settings = $this->get();
 		// @phpstan-ignore-next-line
 		$model = (string) ( $settings['default_model'] ?? '' );
 
@@ -412,9 +437,9 @@ class Settings {
 	 * @param string|null $key Optional key to retrieve.
 	 * @return mixed
 	 */
-	public static function get( ?string $key = null ) {
+	public function get( ?string $key = null ) {
 		$saved    = get_option( self::OPTION_NAME, array() );
-		$defaults = self::get_defaults();
+		$defaults = $this->get_defaults();
 		// @phpstan-ignore-next-line
 		$merged = wp_parse_args( $saved, $defaults );
 
@@ -431,9 +456,9 @@ class Settings {
 	 * @param array<string, mixed> $data Key-value pairs to update.
 	 * @return bool
 	 */
-	public static function update( array $data ): bool {
+	public function update( array $data ): bool {
 		$current  = get_option( self::OPTION_NAME, array() );
-		$defaults = self::get_defaults();
+		$defaults = $this->get_defaults();
 
 		// Only allow known keys.
 		$allowed = array_keys( $defaults );
@@ -453,7 +478,7 @@ class Settings {
 	 *
 	 * @return string Empty string when not configured.
 	 */
-	public static function get_feedback_api_key(): string {
+	public function get_feedback_api_key(): string {
 		$key = get_option( self::FEEDBACK_API_KEY_OPTION, '' );
 		return is_string( $key ) ? $key : '';
 	}
@@ -466,7 +491,7 @@ class Settings {
 	 * @param string $api_key The API key value.
 	 * @return bool True on success.
 	 */
-	public static function set_feedback_api_key( string $api_key ): bool {
+	public function set_feedback_api_key( string $api_key ): bool {
 		if ( '' === $api_key ) {
 			return delete_option( self::FEEDBACK_API_KEY_OPTION );
 		}
@@ -479,7 +504,7 @@ class Settings {
 	 *
 	 * @return bool
 	 */
-	public static function has_feedback_api_key(): bool {
-		return '' !== self::get_feedback_api_key();
+	public function has_feedback_api_key(): bool {
+		return '' !== $this->get_feedback_api_key();
 	}
 }

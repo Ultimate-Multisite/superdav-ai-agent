@@ -725,7 +725,7 @@ class ToolDiscovery {
 	 * @return array<string, string>
 	 */
 	private static function tool_permissions(): array {
-		$perms = Settings::get( 'tool_permissions' );
+		$perms = Settings::instance()->get( 'tool_permissions' );
 		if ( ! is_array( $perms ) ) {
 			return array();
 		}

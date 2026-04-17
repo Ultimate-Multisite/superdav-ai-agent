@@ -256,7 +256,7 @@ abstract class AbstractAbility extends \WP_Ability {
 	 */
 	protected function get_configured_model(): string {
 		if ( class_exists( \GratisAiAgent\Core\Settings::class ) ) {
-			$model = \GratisAiAgent\Core\Settings::get( 'default_model' );
+			$model = \GratisAiAgent\Core\Settings::instance()->get( 'default_model' );
 			return is_string( $model ) ? $model : '';
 		}
 		return '';

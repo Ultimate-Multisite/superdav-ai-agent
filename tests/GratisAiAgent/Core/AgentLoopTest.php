@@ -248,7 +248,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test AgentLoop reads max_iterations from settings when not provided.
 	 */
 	public function test_constructor_reads_max_iterations_from_settings(): void {
-		Settings::update( [ 'max_iterations' => 7 ] );
+		Settings::instance()->update( [ 'max_iterations' => 7 ] );
 
 		// We can't directly inspect private properties, but we can verify the
 		// loop exhausts after 7 iterations by providing a mock that always
@@ -483,7 +483,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 
 		// Set a tool permission to 'confirm'.
-		Settings::update(
+		Settings::instance()->update(
 			[
 				'tool_permissions' => [
 					'gratis-ai-agent/memory-save' => 'confirm',
@@ -857,7 +857,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 
 		// Step 1: trigger a confirmation pause.
-		Settings::update(
+		Settings::instance()->update(
 			[
 				'tool_permissions' => [
 					'gratis-ai-agent/memory-save' => 'confirm',
@@ -919,7 +919,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 */
 	public function test_run_respects_max_output_tokens_option(): void {
 		$this->skip_if_sdk_unavailable();
-		Settings::update( [ 'max_output_tokens' => 512 ] );
+		Settings::instance()->update( [ 'max_output_tokens' => 512 ] );
 		$this->mock_ai_response( 'Short reply' );
 
 		$loop   = new AgentLoop( 'Be brief' );
@@ -936,7 +936,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 */
 	public function test_run_respects_temperature_option(): void {
 		$this->skip_if_sdk_unavailable();
-		Settings::update( [ 'temperature' => 0.0 ] );
+		Settings::instance()->update( [ 'temperature' => 0.0 ] );
 		$this->mock_ai_response( 'Deterministic reply' );
 
 		$loop   = new AgentLoop( 'Be deterministic' );
@@ -1214,7 +1214,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test get_always_allowed returns abilities with always_allow permission.
 	 */
 	public function test_get_always_allowed_returns_correct_abilities(): void {
-		Settings::update(
+		Settings::instance()->update(
 			[
 				'tool_permissions' => [
 					'gratis-ai-agent/memory-save'   => 'always_allow',
@@ -1408,7 +1408,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 
 		// Set the write tool to always_allow.
-		Settings::update(
+		Settings::instance()->update(
 			[
 				'tool_permissions' => [
 					'gratis-ai-agent/memory-save' => 'always_allow',

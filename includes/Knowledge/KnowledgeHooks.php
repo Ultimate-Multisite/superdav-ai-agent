@@ -54,7 +54,7 @@ class KnowledgeHooks {
 			return;
 		}
 
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 		if ( empty( $settings['knowledge_enabled'] ) || empty( $settings['knowledge_auto_index'] ) ) {
 			return;
 		}
@@ -110,7 +110,7 @@ class KnowledgeHooks {
 	 * Handle the hourly cron re-index of auto-index collections.
 	 */
 	public static function handle_cron_reindex(): void {
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 
 		if ( empty( $settings['knowledge_enabled'] ) ) {
 			return;

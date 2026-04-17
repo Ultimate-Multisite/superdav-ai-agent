@@ -140,7 +140,7 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 		wp_set_current_user( $this->admin_id );
 
 		// Default settings have show_on_frontend disabled.
-		Settings::update( [ 'show_on_frontend' => false ] );
+		Settings::instance()->update( [ 'show_on_frontend' => false ] );
 
 		FloatingWidget::enqueue_assets_frontend();
 
@@ -153,7 +153,7 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_frontend_skips_non_admin(): void {
 		wp_set_current_user( $this->subscriber_id );
 
-		Settings::update( [ 'show_on_frontend' => true ] );
+		Settings::instance()->update( [ 'show_on_frontend' => true ] );
 
 		FloatingWidget::enqueue_assets_frontend();
 
@@ -166,7 +166,7 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 	public function test_enqueue_assets_frontend_skips_missing_asset_file(): void {
 		wp_set_current_user( $this->admin_id );
 
-		Settings::update( [ 'show_on_frontend' => true ] );
+		Settings::instance()->update( [ 'show_on_frontend' => true ] );
 
 		// Override build dir to a path that does not exist so file_exists() returns false.
 		add_filter( 'gratis_ai_agent_build_dir', static fn() => '/nonexistent/path' );

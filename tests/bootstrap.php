@@ -11,6 +11,35 @@
 $plugin_dir = dirname( __DIR__ );
 require_once $plugin_dir . '/vendor/autoload.php';
 
+/*
+ * Force XWP_Context to CTX_REST so the x-wp/di container loads REST handlers.
+ *
+ * Problem: the WP test bootstrap defines WP_ADMIN=true before loading
+ * wp-settings.php. XWP_Context::get() uses a match(true) that checks
+ * admin() BEFORE rest(), so the context resolves to Admin (2) — silently
+ * skipping every CTX_REST (16) handler and producing 404 on all REST route
+ * tests. Setting $_SERVER['REQUEST_URI'] to /wp-json/... doesn't help because
+ * the admin() branch short-circuits before rest() is evaluated.
+ *
+ * Fix: pre-set the private static XWP_Context::$current via reflection BEFORE
+ * WordPress boots. The ??= assignment in get() preserves our value, so the
+ * match expression is never reached. This runs at file-scope before the WP
+ * test bootstrap is even loaded — no hook ordering issues.
+ *
+ * Trade-off: setting CTX_REST globally means handlers gated on CTX_ADMIN,
+ * CTX_CLI, CTX_CRON, or CTX_FRONTEND will silently not register during the
+ * full test run. In practice, almost all of our tested code paths go through
+ * REST routes, so the risk of masking non-REST regressions is low today.
+ * Future improvement: introduce a WpContextTestTrait that resets $current
+ * per-test, allowing individual test classes to declare their target context
+ * without affecting the global bootstrap. Tracked in t197 test-infrastructure
+ * improvements.
+ */
+( static function (): void {
+	$refl = new ReflectionProperty( XWP_Context::class, 'current' );
+	$refl->setValue( null, XWP_Context::REST );
+} )();
+
 $_tests_dir = getenv('WP_TESTS_DIR');
 if ( ! $_tests_dir ) {
 	// wp-env places the test suite at /wordpress-phpunit.
@@ -41,22 +70,8 @@ require_once "{$_tests_dir}/includes/functions.php";
 
 /**
  * Manually load the plugin being tested.
- *
- * Sets $_SERVER['REQUEST_URI'] to a REST URL so the x-wp/di context detector
- * (XWP_Context) recognizes the PHPUnit environment as CTX_REST. Without this,
- * handlers decorated with `context: CTX_REST` (including all REST_Handler and
- * Handler-based REST controllers) are silently skipped during plugins_loaded,
- * and routes return 404 in tests.
- *
- * The WP test bootstrap hardcodes REQUEST_URI = '/' before muplugins_loaded,
- * which makes XWP_Context::rest() return false. We override it here — before
- * the plugin calls xwp_load_app() — so the context is correct when the DI
- * Module processes handlers on plugins_loaded.
  */
 function _manually_load_plugin() {
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Test bootstrap only; not user input.
-	$_SERVER['REQUEST_URI'] = '/wp-json/gratis-ai-agent/v1/';
-
 	require dirname(__DIR__) . '/gratis-ai-agent.php';
 
 	// Install database tables (normally done on activation).

@@ -40,6 +40,9 @@ class EventTriggerHandler {
 	public static function register(): void {
 		// Register all hooks for enabled event automations after init.
 		add_action( 'init', [ __CLASS__, 'attach_hooks' ], 99 );
+
+		// Register the cron action that executes an event automation run.
+		add_action( 'gratis_ai_agent_run_event_automation', [ __CLASS__, 'execute_event_run' ] );
 	}
 
 	/**
@@ -158,7 +161,7 @@ class EventTriggerHandler {
 		// Ensure credentials are available.
 		AgentLoop::ensure_provider_credentials_static();
 
-		$settings = Settings::get();
+		$settings = Settings::instance()->get();
 		$options  = [
 			'max_iterations' => (int) ( $event['max_iterations'] ?? 5 ) ?: 5,
 			'provider_id'    => (string) ( $settings['default_provider'] ?? '' ),

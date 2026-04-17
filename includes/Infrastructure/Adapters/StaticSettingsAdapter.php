@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 /**
- * Transitional adapter: exposes the static Settings class as an injectable
+ * Transitional adapter: exposes the Settings singleton as an injectable
  * instance implementing SettingsProviderInterface.
  *
- * Remove this class once t192 adds instance methods directly to Settings
- * and registers it as a DI singleton — at that point, just update the
- * Plugin::configure() binding to point to Settings::class.
+ * t192 has converted Settings to instance methods; this adapter delegates to
+ * Settings::instance() so non-DI legacy code and DI-managed callers share the
+ * same singleton. Update Plugin::configure() to \DI\autowire(Settings::class)
+ * and remove this adapter once all callers receive Settings via DI injection.
  *
  * @package GratisAiAgent\Infrastructure\Adapters
  * @license GPL-2.0-or-later
@@ -24,11 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Thin wrapper that satisfies SettingsProviderInterface by delegating every
- * call to the existing static Settings methods.
+ * call to the Settings singleton instance.
  *
- * This bridge exists so code can depend on the interface (and receive a fake
- * in tests) while the underlying storage layer stays unchanged until t192
- * converts Settings to a proper DI singleton.
+ * Uses Settings::instance() so DI-managed callers receive the same singleton
+ * as non-DI legacy code.
  */
 class StaticSettingsAdapter implements SettingsProviderInterface {
 
@@ -36,20 +36,20 @@ class StaticSettingsAdapter implements SettingsProviderInterface {
 	 * {@inheritdoc}
 	 */
 	public function get( ?string $key = null ): mixed {
-		return Settings::get( $key );
+		return Settings::instance()->get( $key );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function update( array $data ): bool {
-		return Settings::update( $data );
+		return Settings::instance()->update( $data );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function get_defaults(): array {
-		return Settings::get_defaults();
+		return Settings::instance()->get_defaults();
 	}
 }

@@ -27,11 +27,13 @@ class ConversationSerializer {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function serialize( array $history ): array {
-		return array_map(
-			static function ( Message $msg ): array {
-				return $msg->toArray();
-			},
-			$history
+		return array_values(
+			array_map(
+				static function ( Message $msg ): array {
+					return $msg->toArray();
+				},
+				$history
+			)
 		);
 	}
 

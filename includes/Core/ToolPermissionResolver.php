@@ -18,8 +18,8 @@ use WordPress\AiClient\Messages\DTO\Message;
 class ToolPermissionResolver {
 
 	/**
-	 * @param bool                 $yolo_mode        When true, skip all confirmations.
-	 * @param array<string,string> $tool_permissions Tool permission levels from settings.
+	 * @param bool                     $yolo_mode        When true, skip all confirmations.
+	 * @param array<int|string, mixed> $tool_permissions Tool permission levels from settings.
 	 */
 	public function __construct(
 		private bool $yolo_mode = false,

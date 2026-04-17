@@ -108,13 +108,13 @@ class AgentLoop {
 		'completion' => 0,
 	);
 
-	/** @var array<string, string> Tool permission levels from settings. */
+	/** @var array<int|string, mixed> Tool permission levels from settings. */
 	private $tool_permissions = array();
 
 	/** @var bool When true, skip all tool confirmations (YOLO mode). */
 	private $yolo_mode = false;
 
-	/** @var array<string, mixed> Page context from the widget. */
+	/** @var array<int|string, mixed> Page context from the widget. */
 	private $page_context = array();
 
 	/** @var WP_AI_Client_Ability_Function_Resolver|null */
@@ -180,15 +180,16 @@ class AgentLoop {
 	 * @param Settings|null        $settings_service  Injected Settings service (uses static Settings::get() when null).
 	 */
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
-		$this->user_message = $user_message;
-		$this->abilities    = $abilities;
-		$this->history      = $history;
-		// @phpstan-ignore-next-line
-		$this->page_context     = $options['page_context'] ?? array();
+		$this->user_message     = $user_message;
+		$this->abilities        = $abilities;
+		$this->history          = $history;
+		$raw_page_ctx           = $options['page_context'] ?? null;
+		$this->page_context     = is_array( $raw_page_ctx ) ? $raw_page_ctx : array();
 		$this->settings_service = $settings_service ?? new Settings();
 
 		// Merge explicit options with saved settings as fallbacks.
-		$settings = $this->settings_service->get();
+		$raw_settings = $this->settings_service->get();
+		$settings     = is_array( $raw_settings ) ? $raw_settings : array();
 
 		// @phpstan-ignore-next-line
 		$this->provider_id = $options['provider_id'] ?? ( $settings['default_provider'] ?: '' );
@@ -224,8 +225,8 @@ class AgentLoop {
 		// Tool permissions, YOLO mode, and resumable state.
 		// Options override settings for tool_permissions and yolo_mode so
 		// callers (e.g. CLI, automations) can inject per-run overrides.
-		// @phpstan-ignore-next-line
-		$this->tool_permissions = $options['tool_permissions'] ?? ( $settings['tool_permissions'] ?? array() );
+		$raw_perms              = $options['tool_permissions'] ?? ( $settings['tool_permissions'] ?? null );
+		$this->tool_permissions = is_array( $raw_perms ) ? $raw_perms : array();
 		// @phpstan-ignore-next-line
 		$this->yolo_mode = (bool) ( $options['yolo_mode'] ?? ( $settings['yolo_mode'] ?? false ) );
 		// @phpstan-ignore-next-line

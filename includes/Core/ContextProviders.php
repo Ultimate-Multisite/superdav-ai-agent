@@ -46,7 +46,7 @@ class ContextProviders {
 	/**
 	 * Gather context from all registered providers.
 	 *
-	 * @param array<string, mixed> $page_context Page context from the widget JS (URL, admin page, post ID, etc.).
+	 * @param array<int|string, mixed> $page_context Page context from the widget JS (URL, admin page, post ID, etc.).
 	 * @return array<string, mixed> Keyed array of context sections.
 	 */
 	public static function gather( array $page_context = [] ): array {

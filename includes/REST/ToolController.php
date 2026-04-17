@@ -10,9 +10,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\REST;
 
-use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Services\AbilityExplorerService;
 use GratisAiAgent\Tools\CustomToolExecutor;
 use GratisAiAgent\Tools\CustomTools;
 use WP_Error;
@@ -29,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Manages custom-tools and abilities endpoints via REST.
  *
+ * Ability listing domain logic is delegated to AbilityExplorerService.
+ *
  * Uses #[Handler] + #[Action] instead of #[REST_Handler] because this
  * controller serves multiple basenames (/abilities, /custom-tools) and
  * the REST_Handler decorator supports only a single basename per class.
@@ -41,18 +41,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class ToolController {
 
 	use PermissionTrait;
-
-	/** @var Settings Injected settings dependency. */
-	private Settings $settings;
-
-	/**
-	 * Constructor — accepts injected Settings for testability.
-	 *
-	 * @param Settings|null $settings Settings service (defaults to new Settings()).
-	 */
-	public function __construct( ?Settings $settings = null ) {
-		$this->settings = $settings ?? new Settings();
-	}
 
 	/**
 	 * Register REST routes.
@@ -198,30 +186,7 @@ final class ToolController {
 	 * @return WP_REST_Response
 	 */
 	public function handle_abilities(): WP_REST_Response {
-		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return new WP_REST_Response( array(), 200 );
-		}
-
-		$abilities = wp_get_abilities();
-		$list      = array();
-
-		foreach ( $abilities as $ability ) {
-			$description = $ability->get_description();
-
-			// Truncate long descriptions for the settings UI.
-			if ( strlen( $description ) > 200 ) {
-				$description = substr( $description, 0, 197 ) . '...';
-			}
-
-			$list[] = array(
-				'name'        => $ability->get_name(),
-				'label'       => $ability->get_label(),
-				'description' => $description,
-				'category'    => $ability->get_category(),
-			);
-		}
-
-		return new WP_REST_Response( $list, 200 );
+		return new WP_REST_Response( AbilityExplorerService::get_abilities_list(), 200 );
 	}
 
 	/**
@@ -230,114 +195,7 @@ final class ToolController {
 	 * @return WP_REST_Response
 	 */
 	public function handle_abilities_explorer(): WP_REST_Response {
-		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return new WP_REST_Response( array(), 200 );
-		}
-
-		$abilities = wp_get_abilities();
-		$list      = array();
-
-		// Build a map of configured provider IDs for configuration status checks.
-		$configured_providers = array();
-		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
-			$key = $this->settings->get_provider_key( $provider_id );
-			if ( '' !== $key ) {
-				$configured_providers[] = $provider_id;
-			}
-		}
-
-		foreach ( $abilities as $ability ) {
-			$input_schema = $ability->get_input_schema();
-			$meta         = $ability->get_meta();
-			$annotations  = $meta['annotations'] ?? array();
-
-			// Count required parameters from input schema.
-			$required_params = array();
-			if ( ! empty( $input_schema['required'] ) && is_array( $input_schema['required'] ) ) {
-				$required_params = $input_schema['required'];
-			}
-
-			$param_count = 0;
-			if ( ! empty( $input_schema['properties'] ) && is_array( $input_schema['properties'] ) ) {
-				$param_count = count( $input_schema['properties'] );
-			}
-
-			// Derive configuration status from ability name/category.
-			$ability_name      = $ability->get_name();
-			$is_configured     = true;
-			$required_api_keys = array();
-
-			// Check for provider-specific abilities by name pattern.
-			foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
-				if ( str_contains( $ability_name, $provider_id ) ) {
-					$required_api_keys[] = $provider_meta['name'] . ' API Key';
-					if ( ! in_array( $provider_id, $configured_providers, true ) ) {
-						$is_configured = false;
-					}
-				}
-			}
-
-			$list[] = array(
-				'name'              => $ability_name,
-				'label'             => $ability->get_label(),
-				'description'       => $ability->get_description(),
-				'category'          => $ability->get_category(),
-				'param_count'       => $param_count,
-				'required_params'   => $required_params,
-				'is_configured'     => $is_configured,
-				'required_api_keys' => $required_api_keys,
-				'annotations'       => array(
-					// @phpstan-ignore-next-line
-					'readonly'    => (bool) ( $annotations['readonly'] ?? false ),
-					// @phpstan-ignore-next-line
-					'destructive' => (bool) ( $annotations['destructive'] ?? false ),
-					// @phpstan-ignore-next-line
-					'idempotent'  => (bool) ( $annotations['idempotent'] ?? false ),
-				),
-				'output_schema'     => $ability->get_output_schema(),
-				'show_in_rest'      => (bool) ( $meta['show_in_rest'] ?? false ),
-			);
-		}
-
-		// Append client-side (JS) abilities from the catalog.
-		foreach ( JsAbilityCatalog::get_descriptors() as $descriptor ) {
-			$input_schema    = $descriptor['input_schema'] ?? array();
-			$required_params = $input_schema['required'] ?? array();
-			$param_count     = isset( $input_schema['properties'] ) ? count( $input_schema['properties'] ) : 0;
-			$annotations     = $descriptor['annotations'] ?? array();
-
-			$list[] = array(
-				'name'              => $descriptor['name'],
-				'label'             => $descriptor['label'],
-				'description'       => $descriptor['description'],
-				'category'          => $descriptor['category'],
-				'param_count'       => $param_count,
-				'required_params'   => $required_params,
-				'is_configured'     => true,
-				'required_api_keys' => array(),
-				'annotations'       => array(
-					'readonly'    => (bool) ( $annotations['readonly'] ?? false ),
-					'destructive' => false,
-					'idempotent'  => false,
-				),
-				'output_schema'     => $descriptor['output_schema'] ?? array(),
-				'show_in_rest'      => false,
-			);
-		}
-
-		// Sort by category then label for consistent display.
-		usort(
-			$list,
-			static function ( array $a, array $b ): int {
-				$cat_cmp = strcmp( $a['category'], $b['category'] );
-				if ( 0 !== $cat_cmp ) {
-					return $cat_cmp;
-				}
-				return strcmp( $a['label'], $b['label'] );
-			}
-		);
-
-		return new WP_REST_Response( $list, 200 );
+		return new WP_REST_Response( AbilityExplorerService::get_explorer_list(), 200 );
 	}
 
 	/**

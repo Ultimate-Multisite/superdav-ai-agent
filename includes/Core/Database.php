@@ -4,6 +4,17 @@ declare(strict_types=1);
 /**
  * Database table management for AI Agent sessions.
  *
+ * This class owns:
+ * - DB version constants and schema installation.
+ * - Table-name registry (referenced by repository classes and external code).
+ * - Thin static delegates to domain repositories for backward compatibility.
+ *
+ * Business logic has been extracted into:
+ * - GratisAiAgent\Repositories\SessionRepository  — session + shared-session CRUD
+ * - GratisAiAgent\Repositories\UsageRepository    — usage logging
+ * - GratisAiAgent\Repositories\ModifiedFilesRepository — file-modification audit
+ * - GratisAiAgent\Repositories\GeneratedPluginsRepository — AI plugin builder records
+ *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
  */
@@ -14,6 +25,10 @@ use GratisAiAgent\Knowledge\KnowledgeDatabase;
 use GratisAiAgent\Models\ConversationTemplate;
 use GratisAiAgent\Models\ProviderTrace;
 use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Repositories\GeneratedPluginsRepository;
+use GratisAiAgent\Repositories\ModifiedFilesRepository;
+use GratisAiAgent\Repositories\SessionRepository;
+use GratisAiAgent\Repositories\UsageRepository;
 use GratisAiAgent\REST\ResaleApiDatabase;
 use GratisAiAgent\REST\WebhookDatabase;
 use GratisAiAgent\Tools\CustomTools;
@@ -22,6 +37,8 @@ class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
 	const DB_VERSION        = '15.0.0';
+
+	// ─── Table Name Registry ──────────────────────────────────────────────────
 
 	/**
 	 * Get the sessions table name.
@@ -59,9 +76,6 @@ class Database {
 		return $wpdb->prefix . 'gratis_ai_agent_skills';
 	}
 
-	/**
-	 * Install or upgrade the database table.
-	 */
 	/**
 	 * Get the custom tools table name.
 	 */
@@ -190,6 +204,8 @@ class Database {
 		/** @var \wpdb $wpdb */
 		return $wpdb->prefix . 'gratis_ai_agent_generated_plugins';
 	}
+
+	// ─── Schema Installation ──────────────────────────────────────────────────
 
 	/**
 	 * Install or upgrade the database table.
@@ -582,6 +598,8 @@ class Database {
 		update_option( self::DB_VERSION_OPTION, self::DB_VERSION );
 	}
 
+	// ─── Session Delegates ────────────────────────────────────────────────────
+
 	/**
 	 * Create a new session.
 	 *
@@ -589,27 +607,7 @@ class Database {
 	 * @return int|false Inserted row ID or false on failure.
 	 */
 	public static function create_session( array $data ) {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$now = current_time( 'mysql', true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
-		$result = $wpdb->insert(
-			self::table_name(),
-			[
-				'user_id'     => $data['user_id'],
-				'title'       => $data['title'] ?? '',
-				'provider_id' => $data['provider_id'] ?? '',
-				'model_id'    => $data['model_id'] ?? '',
-				'messages'    => '[]',
-				'tool_calls'  => '[]',
-				'created_at'  => $now,
-				'updated_at'  => $now,
-			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
-		);
-
-		return $result ? (int) $wpdb->insert_id : false;
+		return SessionRepository::create( $data );
 	}
 
 	/**
@@ -619,17 +617,7 @@ class Database {
 	 * @return object|null Session row or null.
 	 */
 	public static function get_session( int $session_id ) {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE id = %d',
-				self::table_name(),
-				$session_id
-			)
-		);
+		return SessionRepository::get( $session_id );
 	}
 
 	/**
@@ -640,45 +628,7 @@ class Database {
 	 * @return list<object>|null Array of session summary objects.
 	 */
 	public static function list_sessions( int $user_id, array $filters = [] ): ?array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::table_name();
-
-		$where = [ $wpdb->prepare( 'user_id = %d', $user_id ) ];
-
-		$status  = $filters['status'] ?? 'active';
-		$where[] = $wpdb->prepare( 'status = %s', $status );
-
-		if ( ! empty( $filters['folder'] ) ) {
-			$where[] = $wpdb->prepare( 'folder = %s', $filters['folder'] );
-		}
-
-		if ( isset( $filters['pinned'] ) ) {
-			$where[] = $wpdb->prepare( 'pinned = %d', $filters['pinned'] ? 1 : 0 );
-		}
-
-		if ( ! empty( $filters['search'] ) ) {
-			$like    = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$where[] = $wpdb->prepare( '(title LIKE %s OR messages LIKE %s)', $like, $like );
-		}
-
-		$where_sql    = implode( ' AND ', $where );
-		$shared_table = self::shared_sessions_table_name();
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; built from prepared fragments; table names from internal methods.
-		return $wpdb->get_results(
-			"SELECT s.id, s.user_id, s.title, s.provider_id, s.model_id, s.status,
-				s.pinned, s.folder, s.created_at, s.updated_at,
-				JSON_LENGTH(s.messages) AS message_count,
-				CASE WHEN ss.session_id IS NOT NULL THEN 1 ELSE 0 END AS is_shared,
-				ss.shared_by
-			FROM {$table} s
-			LEFT JOIN {$shared_table} ss ON ss.session_id = s.id
-			WHERE {$where_sql}
-			ORDER BY s.pinned DESC, s.updated_at DESC"
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		return SessionRepository::list( $user_id, $filters );
 	}
 
 	/**
@@ -688,21 +638,7 @@ class Database {
 	 * @return array Array of folder name strings.
 	 */
 	public static function list_folders( int $user_id ): array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$results = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT DISTINCT folder FROM %i WHERE user_id = %d AND folder != '' ORDER BY folder ASC",
-				$table,
-				$user_id
-			)
-		);
-
-		return $results ?: [];
+		return SessionRepository::list_folders( $user_id );
 	}
 
 	/**
@@ -714,38 +650,7 @@ class Database {
 	 * @return int Number of rows affected.
 	 */
 	public static function bulk_update_sessions( array $session_ids, int $user_id, array $data ): int {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		if ( empty( $session_ids ) || empty( $data ) ) {
-			return 0;
-		}
-
-		$table              = self::table_name();
-		$data['updated_at'] = current_time( 'mysql', true );
-
-		$set_parts = [];
-		$values    = [];
-
-		foreach ( $data as $key => $value ) {
-			$set_parts[] = "{$key} = %s";
-			$values[]    = $value;
-		}
-
-		$set_sql      = implode( ', ', $set_parts );
-		$placeholders = implode( ',', array_fill( 0, count( $session_ids ), '%d' ) );
-		$values       = array_merge( $values, $session_ids, [ $user_id ] );
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; dynamic columns from internal method, not user input.
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$table} SET {$set_sql} WHERE id IN ({$placeholders}) AND user_id = %d",
-				...$values
-			)
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-
-		return $result !== false ? (int) $result : 0;
+		return SessionRepository::bulk_update( $session_ids, $user_id, $data );
 	}
 
 	/**
@@ -755,124 +660,7 @@ class Database {
 	 * @return int Number of rows deleted.
 	 */
 	public static function empty_trash( int $user_id ): int {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM %i WHERE user_id = %d AND status = 'trash'",
-				$table,
-				$user_id
-			)
-		);
-
-		return $result !== false ? (int) $result : 0;
-	}
-
-	/**
-	 * Log a usage record.
-	 *
-	 * @param array<string, mixed> $data Usage data: user_id, session_id, provider_id, model_id, prompt_tokens, completion_tokens, cost_usd.
-	 * @return int|false Inserted row ID or false.
-	 */
-	public static function log_usage( array $data ) {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
-		$result = $wpdb->insert(
-			self::usage_table_name(),
-			[
-				'user_id'           => $data['user_id'] ?? 0,
-				'session_id'        => $data['session_id'] ?? 0,
-				'provider_id'       => $data['provider_id'] ?? '',
-				'model_id'          => $data['model_id'] ?? '',
-				'prompt_tokens'     => $data['prompt_tokens'] ?? 0,
-				'completion_tokens' => $data['completion_tokens'] ?? 0,
-				'cost_usd'          => $data['cost_usd'] ?? 0,
-				'created_at'        => current_time( 'mysql', true ),
-			],
-			[ '%d', '%d', '%s', '%s', '%d', '%d', '%f', '%s' ]
-		);
-
-		return $result ? (int) $wpdb->insert_id : false;
-	}
-
-	/**
-	 * Get usage summary with optional filters.
-	 *
-	 * @param array<string, mixed> $filters Optional: user_id, period (7d, 30d, all), start_date, end_date.
-	 * @return array<string, mixed> Summary with totals and per-model breakdown.
-	 */
-	public static function get_usage_summary( array $filters = [] ): array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::usage_table_name();
-		$where = [];
-
-		if ( ! empty( $filters['user_id'] ) ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', $filters['user_id'] );
-		}
-
-		if ( ! empty( $filters['start_date'] ) ) {
-			$where[] = $wpdb->prepare( 'created_at >= %s', $filters['start_date'] );
-		}
-
-		if ( ! empty( $filters['end_date'] ) ) {
-			$where[] = $wpdb->prepare( 'created_at <= %s', $filters['end_date'] );
-		}
-
-		if ( ! empty( $filters['period'] ) ) {
-			switch ( $filters['period'] ) {
-				case '7d':
-					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
-					break;
-				case '30d':
-					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
-					break;
-				case '90d':
-					$where[] = 'created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)';
-					break;
-			}
-		}
-
-		$where_sql = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table name from internal method.
-
-		// Totals.
-		$totals = $wpdb->get_row(
-			"SELECT
-				COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,
-				COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
-				COALESCE(SUM(cost_usd), 0) AS cost_usd,
-				COUNT(*) AS request_count
-			FROM {$table} {$where_sql}"
-		);
-
-		// Per-model breakdown.
-		$by_model = $wpdb->get_results(
-			"SELECT
-				model_id,
-				provider_id,
-				COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,
-				COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
-				COALESCE(SUM(cost_usd), 0) AS cost_usd,
-				COUNT(*) AS request_count
-			FROM {$table} {$where_sql}
-			GROUP BY model_id, provider_id
-			ORDER BY cost_usd DESC"
-		);
-
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-
-		return [
-			'totals'   => $totals,
-			'by_model' => $by_model,
-		];
+		return SessionRepository::empty_trash( $user_id );
 	}
 
 	/**
@@ -883,30 +671,7 @@ class Database {
 	 * @return bool Whether the update succeeded.
 	 */
 	public static function update_session( int $session_id, array $data ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$data['updated_at'] = current_time( 'mysql', true );
-
-		$formats = [];
-		foreach ( $data as $key => $value ) {
-			if ( in_array( $key, [ 'user_id', 'id' ], true ) ) {
-				$formats[] = '%d';
-			} else {
-				$formats[] = '%s';
-			}
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$result = $wpdb->update(
-			self::table_name(),
-			$data,
-			[ 'id' => $session_id ],
-			$formats,
-			[ '%d' ]
-		);
-
-		return $result !== false;
+		return SessionRepository::update( $session_id, $data );
 	}
 
 	/**
@@ -916,17 +681,7 @@ class Database {
 	 * @return bool Whether the delete succeeded.
 	 */
 	public static function delete_session( int $session_id ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$result = $wpdb->delete(
-			self::table_name(),
-			[ 'id' => $session_id ],
-			[ '%d' ]
-		);
-
-		return $result !== false;
+		return SessionRepository::delete( $session_id );
 	}
 
 	/**
@@ -938,83 +693,32 @@ class Database {
 	 * @return bool
 	 */
 	public static function update_session_tokens( int $session_id, int $prompt_tokens, int $completion_tokens ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				'UPDATE %i SET prompt_tokens = prompt_tokens + %d, completion_tokens = completion_tokens + %d, updated_at = %s WHERE id = %d',
-				$table,
-				$prompt_tokens,
-				$completion_tokens,
-				current_time( 'mysql', true ),
-				$session_id
-			)
-		);
-
-		return $result !== false;
+		return SessionRepository::update_tokens( $session_id, $prompt_tokens, $completion_tokens );
 	}
 
 	/**
 	 * Persist the paused agent-loop state for a session.
-	 *
-	 * Called by AgentLoop when it pauses to wait for client-side tool results.
-	 * The state is loaded by the /chat/tool-result endpoint to resume the loop.
 	 *
 	 * @param int                  $session_id Session ID.
 	 * @param array<string, mixed> $state      Serializable loop state.
 	 * @return bool Whether the update succeeded.
 	 */
 	public static function save_paused_state( int $session_id, array $state ): bool {
-		return self::update_session(
-			$session_id,
-			array( 'paused_state' => wp_json_encode( $state ) )
-		);
+		return SessionRepository::save_paused_state( $session_id, $state );
 	}
 
 	/**
 	 * Load and clear the paused agent-loop state for a session.
 	 *
-	 * Returns the state array and clears the column so a second resume
-	 * attempt cannot replay the same state.
-	 *
 	 * @param int $session_id Session ID.
 	 * @return array<string, mixed>|null Paused state, or null if none.
 	 */
 	public static function load_and_clear_paused_state( int $session_id ): ?array {
-		$session = self::get_session( $session_id );
-
-		if ( ! $session ) {
-			return null;
-		}
-
-		// @phpstan-ignore-next-line
-		$raw = $session->paused_state ?? null;
-
-		if ( empty( $raw ) ) {
-			return null;
-		}
-
-		$state = json_decode( (string) $raw, true );
-
-		if ( ! is_array( $state ) ) {
-			return null;
-		}
-
-		// Clear the paused state so it cannot be replayed.
-		self::update_session( $session_id, array( 'paused_state' => null ) );
-
-		/** @var array<string, mixed> $state */
-		return $state;
+		return SessionRepository::load_and_clear_paused_state( $session_id );
 	}
 
 	/**
 	 * Append messages and tool calls to a session.
-	 *
-	 * Loads current data, merges new entries, and saves back.
 	 *
 	 * @param int   $session_id Session ID.
 	 * @param array $messages   New message arrays to append.
@@ -1025,28 +729,182 @@ class Database {
 	 * @phpstan-param list<array<string, mixed>> $tool_calls
 	 */
 	public static function append_to_session( int $session_id, array $messages, array $tool_calls = [] ): bool {
-		$session = self::get_session( $session_id );
-
-		if ( ! $session ) {
-			return false;
-		}
-
-		$existing_messages   = json_decode( $session->messages, true ) ?: [];
-		$existing_tool_calls = json_decode( $session->tool_calls, true ) ?: [];
-
-		// @phpstan-ignore-next-line
-		$merged_messages = array_merge( $existing_messages, $messages );
-		// @phpstan-ignore-next-line
-		$merged_tool_calls = array_merge( $existing_tool_calls, $tool_calls );
-
-		return self::update_session(
-			$session_id,
-			[
-				'messages'   => wp_json_encode( $merged_messages ),
-				'tool_calls' => wp_json_encode( $merged_tool_calls ),
-			]
-		);
+		return SessionRepository::append( $session_id, $messages, $tool_calls );
 	}
+
+	// ─── Usage Delegates ──────────────────────────────────────────────────────
+
+	/**
+	 * Log a usage record.
+	 *
+	 * @param array<string, mixed> $data Usage data: user_id, session_id, provider_id, model_id, prompt_tokens, completion_tokens, cost_usd.
+	 * @return int|false Inserted row ID or false.
+	 */
+	public static function log_usage( array $data ) {
+		return UsageRepository::log( $data );
+	}
+
+	/**
+	 * Get usage summary with optional filters.
+	 *
+	 * @param array<string, mixed> $filters Optional: user_id, period (7d, 30d, all), start_date, end_date.
+	 * @return array<string, mixed> Summary with totals and per-model breakdown.
+	 */
+	public static function get_usage_summary( array $filters = [] ): array {
+		return UsageRepository::get_summary( $filters );
+	}
+
+	// ─── Modified Files Delegates ─────────────────────────────────────────────
+
+	/**
+	 * Record a file modification by the AI agent.
+	 *
+	 * @param string $file_path  Relative path from wp-content (e.g. "plugins/my-plugin/file.php").
+	 * @param string $action     The action performed: 'write' or 'edit'.
+	 * @param int    $session_id Session ID (0 if not in a session).
+	 * @param int    $user_id    User ID performing the action.
+	 * @return int|false Inserted row ID or false on failure.
+	 */
+	public static function record_modified_file( string $file_path, string $action = 'write', int $session_id = 0, int $user_id = 0 ) {
+		return ModifiedFilesRepository::record( $file_path, $action, $session_id, $user_id );
+	}
+
+	/**
+	 * Get a list of plugins that have been modified by the AI agent.
+	 *
+	 * @return list<object>
+	 */
+	public static function get_modified_plugins(): array {
+		return ModifiedFilesRepository::get_modified_plugins();
+	}
+
+	/**
+	 * Get all modified file records for a specific plugin slug.
+	 *
+	 * @param string $plugin_slug Plugin directory slug.
+	 * @return list<object>
+	 */
+	public static function get_modified_files_for_plugin( string $plugin_slug ): array {
+		return ModifiedFilesRepository::get_files_for_plugin( $plugin_slug );
+	}
+
+	/**
+	 * Extract the plugin slug (directory name) from a wp-content-relative path.
+	 *
+	 * @param string $file_path Path relative to wp-content.
+	 * @return string Plugin slug, or empty string if not inside a plugin directory.
+	 */
+	public static function extract_plugin_slug( string $file_path ): string {
+		return ModifiedFilesRepository::extract_plugin_slug( $file_path );
+	}
+
+	// ─── Generated Plugins Delegates ─────────────────────────────────────────
+
+	/**
+	 * Insert a new generated plugin record.
+	 *
+	 * @param array<string, mixed> $data Plugin data: slug, description, plan, plugin_file, files, status, sandbox_result, activation_error.
+	 * @return int|false Inserted row ID or false on failure.
+	 */
+	public static function insert_generated_plugin( array $data ): int|false {
+		return GeneratedPluginsRepository::insert( $data );
+	}
+
+	/**
+	 * Update fields for a generated plugin record by slug.
+	 *
+	 * @param string               $slug Plugin slug.
+	 * @param array<string, mixed> $data Fields to update.
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function update_generated_plugin( string $slug, array $data ): bool {
+		return GeneratedPluginsRepository::update( $slug, $data );
+	}
+
+	/**
+	 * Get a single generated plugin record by slug.
+	 *
+	 * @param string $slug Plugin slug.
+	 * @return object|null Plugin row or null.
+	 */
+	public static function get_generated_plugin( string $slug ): ?object {
+		return GeneratedPluginsRepository::get( $slug );
+	}
+
+	/**
+	 * List generated plugin records, optionally filtered by status.
+	 *
+	 * @param string $status Filter by status (e.g. 'installed', 'active'). Empty string = all.
+	 * @return list<object>
+	 */
+	public static function list_generated_plugins( string $status = '' ): array {
+		return GeneratedPluginsRepository::list( $status );
+	}
+
+	/**
+	 * Update the status of a generated plugin by slug.
+	 *
+	 * @param string $slug   Plugin slug.
+	 * @param string $status New status value.
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function update_generated_plugin_status( string $slug, string $status ): bool {
+		return GeneratedPluginsRepository::update_status( $slug, $status );
+	}
+
+	/**
+	 * Delete a generated plugin record by slug.
+	 *
+	 * @param string $slug Plugin slug.
+	 * @return bool Whether the delete succeeded.
+	 */
+	public static function delete_generated_plugin_record( string $slug ): bool {
+		return GeneratedPluginsRepository::delete( $slug );
+	}
+
+	// ─── Shared Sessions Delegates ────────────────────────────────────────────
+
+	/**
+	 * Share a session (make it visible to all admins).
+	 *
+	 * @param int $session_id Session ID to share.
+	 * @param int $shared_by  User ID of the admin sharing the session.
+	 * @return bool Whether the insert succeeded.
+	 */
+	public static function share_session( int $session_id, int $shared_by ): bool {
+		return SessionRepository::share( $session_id, $shared_by );
+	}
+
+	/**
+	 * Unshare a session (remove from shared sessions).
+	 *
+	 * @param int $session_id Session ID to unshare.
+	 * @return bool Whether the delete succeeded.
+	 */
+	public static function unshare_session( int $session_id ): bool {
+		return SessionRepository::unshare( $session_id );
+	}
+
+	/**
+	 * Check whether a session is shared.
+	 *
+	 * @param int $session_id Session ID.
+	 * @return object|null Shared session row (with shared_by, shared_at) or null.
+	 */
+	public static function get_shared_session( int $session_id ) {
+		return SessionRepository::get_shared( $session_id );
+	}
+
+	/**
+	 * List all shared sessions (full session rows + sharing metadata).
+	 *
+	 * @return list<object>|null Array of session rows with is_shared=1 and shared_by fields.
+	 */
+	public static function list_shared_sessions(): ?array {
+		return SessionRepository::list_shared();
+	}
+
+	// ─── Legacy Migration ──────────────────────────────────────────────────────
 
 	/**
 	 * Migrate database tables, options, and cron hooks from the old "ai_agent" naming.
@@ -1130,361 +988,5 @@ class Database {
 
 		// Mark migration as complete.
 		update_option( 'gratis_ai_agent_migrated_from_ai_agent', '1' );
-	}
-
-	/**
-	 * Record a file modification by the AI agent.
-	 *
-	 * @param string $file_path  Relative path from wp-content (e.g. "plugins/my-plugin/file.php").
-	 * @param string $action     The action performed: 'write' or 'edit'.
-	 * @param int    $session_id Session ID (0 if not in a session).
-	 * @param int    $user_id    User ID performing the action.
-	 * @return int|false Inserted row ID or false on failure.
-	 */
-	public static function record_modified_file( string $file_path, string $action = 'write', int $session_id = 0, int $user_id = 0 ) {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// Extract plugin slug from path like "plugins/my-plugin/..." → "my-plugin".
-		$plugin_slug = self::extract_plugin_slug( $file_path );
-
-		// Only track files inside a plugin directory.
-		if ( '' === $plugin_slug ) {
-			return false;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table insert; caching not applicable.
-		$result = $wpdb->insert(
-			self::modified_files_table_name(),
-			[
-				'plugin_slug' => $plugin_slug,
-				'file_path'   => $file_path,
-				'action'      => $action,
-				'session_id'  => $session_id,
-				'user_id'     => $user_id,
-				'modified_at' => current_time( 'mysql', true ),
-			],
-			[ '%s', '%s', '%s', '%d', '%d', '%s' ]
-		);
-
-		return $result ? (int) $wpdb->insert_id : false;
-	}
-
-	/**
-	 * Get a list of plugins that have been modified by the AI agent.
-	 *
-	 * Returns one row per plugin slug with the modification count and
-	 * the timestamp of the most recent modification.
-	 *
-	 * @return list<object>
-	 */
-	public static function get_modified_plugins(): array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::modified_files_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; table name from internal method.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT plugin_slug,
-				        COUNT(*) AS modification_count,
-				        MAX(modified_at) AS last_modified
-				 FROM %i
-				 GROUP BY plugin_slug
-				 ORDER BY last_modified DESC',
-				$table
-			)
-		);
-
-		return $rows ?? [];
-	}
-
-	/**
-	 * Get all modified file records for a specific plugin slug.
-	 *
-	 * @param string $plugin_slug Plugin directory slug.
-	 * @return list<object>
-	 */
-	public static function get_modified_files_for_plugin( string $plugin_slug ): array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::modified_files_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; table name from internal method.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE plugin_slug = %s ORDER BY modified_at DESC',
-				$table,
-				$plugin_slug
-			)
-		);
-
-		return $rows ?? [];
-	}
-
-	// ─── Generated Plugins ───────────────────────────────────────────────────
-
-	/**
-	 * Insert a new generated plugin record.
-	 *
-	 * @param array<string, mixed> $data Plugin data: slug, description, plan, plugin_file, files, status, sandbox_result, activation_error.
-	 * @return int|false Inserted row ID or false on failure.
-	 */
-	public static function insert_generated_plugin( array $data ): int|false {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$now = current_time( 'mysql', true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table insert; caching not applicable.
-		$result = $wpdb->insert(
-			self::generated_plugins_table_name(),
-			[
-				'slug'             => $data['slug'] ?? '',
-				'description'      => $data['description'] ?? '',
-				'plan'             => $data['plan'] ?? '',
-				'plugin_file'      => $data['plugin_file'] ?? '',
-				'files'            => $data['files'] ?? '[]',
-				'status'           => $data['status'] ?? 'installed',
-				'sandbox_result'   => $data['sandbox_result'] ?? '',
-				'activation_error' => $data['activation_error'] ?? '',
-				'created_at'       => $data['created_at'] ?? $now,
-				'updated_at'       => $data['updated_at'] ?? $now,
-			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
-		);
-
-		return $result ? (int) $wpdb->insert_id : false;
-	}
-
-	/**
-	 * Update fields for a generated plugin record by slug.
-	 *
-	 * @param string               $slug Plugin slug.
-	 * @param array<string, mixed> $data Fields to update.
-	 * @return bool Whether the update succeeded.
-	 */
-	public static function update_generated_plugin( string $slug, array $data ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$data['updated_at'] = current_time( 'mysql', true );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update; caching not applicable.
-		$result = $wpdb->update(
-			self::generated_plugins_table_name(),
-			$data,
-			[ 'slug' => $slug ],
-			null,
-			[ '%s' ]
-		);
-
-		return $result !== false;
-	}
-
-	/**
-	 * Get a single generated plugin record by slug.
-	 *
-	 * @param string $slug Plugin slug.
-	 * @return object|null Plugin row or null.
-	 */
-	public static function get_generated_plugin( string $slug ): ?object {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE slug = %s',
-				self::generated_plugins_table_name(),
-				$slug
-			)
-		);
-	}
-
-	/**
-	 * List generated plugin records, optionally filtered by status.
-	 *
-	 * @param string $status Filter by status (e.g. 'installed', 'active'). Empty string = all.
-	 * @return list<object>
-	 */
-	public static function list_generated_plugins( string $status = '' ): array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$table = self::generated_plugins_table_name();
-
-		if ( '' !== $status ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC',
-					$table,
-					$status
-				)
-			);
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT * FROM %i ORDER BY created_at DESC',
-					$table
-				)
-			);
-		}
-
-		return $rows ?? [];
-	}
-
-	/**
-	 * Update the status of a generated plugin by slug.
-	 *
-	 * @param string $slug   Plugin slug.
-	 * @param string $status New status value (e.g. 'installed', 'active', 'error').
-	 * @return bool Whether the update succeeded.
-	 */
-	public static function update_generated_plugin_status( string $slug, string $status ): bool {
-		return self::update_generated_plugin( $slug, [ 'status' => $status ] );
-	}
-
-	/**
-	 * Delete a generated plugin record by slug.
-	 *
-	 * @param string $slug Plugin slug.
-	 * @return bool Whether the delete succeeded.
-	 */
-	public static function delete_generated_plugin_record( string $slug ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete; caching not applicable.
-		$result = $wpdb->delete(
-			self::generated_plugins_table_name(),
-			[ 'slug' => $slug ],
-			[ '%s' ]
-		);
-
-		return $result !== false;
-	}
-
-	/**
-	 * Extract the plugin slug (directory name) from a wp-content-relative path.
-	 *
-	 * E.g. "plugins/my-plugin/includes/file.php" → "my-plugin"
-	 *      "themes/my-theme/style.css"            → "" (not a plugin)
-	 *
-	 * @param string $file_path Path relative to wp-content.
-	 * @return string Plugin slug, or empty string if not inside a plugin directory.
-	 */
-	public static function extract_plugin_slug( string $file_path ): string {
-		$file_path = ltrim( $file_path, '/\\' );
-
-		// Must start with "plugins/".
-		if ( strpos( $file_path, 'plugins/' ) !== 0 ) {
-			return '';
-		}
-
-		// Strip the "plugins/" prefix and get the first path segment.
-		$remainder = substr( $file_path, strlen( 'plugins/' ) );
-		$parts     = explode( '/', $remainder, 2 );
-
-		return $parts[0] ?? '';
-	}
-
-	// ─── Shared Sessions ─────────────────────────────────────────────────────
-
-	/**
-	 * Share a session (make it visible to all admins).
-	 *
-	 * @param int $session_id Session ID to share.
-	 * @param int $shared_by  User ID of the admin sharing the session.
-	 * @return bool Whether the insert succeeded.
-	 */
-	public static function share_session( int $session_id, int $shared_by ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write (REPLACE); caching not applicable to mutations.
-		$result = $wpdb->replace(
-			self::shared_sessions_table_name(),
-			[
-				'session_id' => $session_id,
-				'shared_by'  => $shared_by,
-				'shared_at'  => current_time( 'mysql', true ),
-			],
-			[ '%d', '%d', '%s' ]
-		);
-
-		return $result !== false;
-	}
-
-	/**
-	 * Unshare a session (remove from shared sessions).
-	 *
-	 * @param int $session_id Session ID to unshare.
-	 * @return bool Whether the delete succeeded.
-	 */
-	public static function unshare_session( int $session_id ): bool {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		$result = $wpdb->delete(
-			self::shared_sessions_table_name(),
-			[ 'session_id' => $session_id ],
-			[ '%d' ]
-		);
-
-		return $result !== false;
-	}
-
-	/**
-	 * Check whether a session is shared.
-	 *
-	 * @param int $session_id Session ID.
-	 * @return object|null Shared session row (with shared_by, shared_at) or null.
-	 */
-	public static function get_shared_session( int $session_id ) {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE session_id = %d',
-				self::shared_sessions_table_name(),
-				$session_id
-			)
-		);
-	}
-
-	/**
-	 * List all shared sessions (full session rows + sharing metadata).
-	 *
-	 * Returns sessions that have been shared by any admin, ordered by most recently updated.
-	 *
-	 * @return list<object>|null Array of session rows with is_shared=1 and shared_by fields.
-	 */
-	public static function list_shared_sessions(): ?array {
-		global $wpdb;
-		/** @var \wpdb $wpdb */
-
-		$sessions_table = self::table_name();
-		$shared_table   = self::shared_sessions_table_name();
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table query; table names from internal methods.
-		return $wpdb->get_results(
-			"SELECT s.id, s.user_id, s.title, s.provider_id, s.model_id, s.status,
-				s.pinned, s.folder, s.created_at, s.updated_at,
-				JSON_LENGTH(s.messages) AS message_count,
-				1 AS is_shared,
-				ss.shared_by, ss.shared_at
-			FROM {$sessions_table} s
-			INNER JOIN {$shared_table} ss ON ss.session_id = s.id
-			WHERE s.status = 'active'
-			ORDER BY s.updated_at DESC"
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 }

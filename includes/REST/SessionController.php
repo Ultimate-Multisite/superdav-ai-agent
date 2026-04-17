@@ -23,12 +23,28 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class SessionController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages sessions, messages, folders, sharing, export/import, site-builder,
+ * job-status, process, and tool confirmation via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/sessions, /run, /process, /job, /site-builder).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class SessionController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/** @var Settings Injected settings dependency. */
 	private Settings $settings;
@@ -50,18 +66,18 @@ class SessionController {
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Sessions endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_sessions' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_sessions' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'status' => array(
 							'required'          => false,
@@ -87,8 +103,8 @@ class SessionController {
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_session' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_session' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'title'       => array(
 							'required'          => false,
@@ -120,22 +136,22 @@ class SessionController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/folders',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_folders' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_folders' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/bulk',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_bulk_sessions' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_bulk_sessions' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'ids'    => array(
 						'required' => true,
@@ -156,23 +172,23 @@ class SessionController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/trash',
 			array(
 				'methods'             => WP_REST_Server::DELETABLE,
-				'callback'            => array( $instance, 'handle_empty_trash' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_empty_trash' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_session' ),
-					'permission_callback' => array( $instance, 'check_session_permission' ),
+					'callback'            => array( $this, 'handle_get_session' ),
+					'permission_callback' => array( $this, 'check_session_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -183,8 +199,8 @@ class SessionController {
 				),
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_session' ),
-					'permission_callback' => array( $instance, 'check_session_permission' ),
+					'callback'            => array( $this, 'handle_update_session' ),
+					'permission_callback' => array( $this, 'check_session_permission' ),
 					'args'                => array(
 						'id'     => array(
 							'required'          => true,
@@ -214,8 +230,8 @@ class SessionController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_session' ),
-					'permission_callback' => array( $instance, 'check_session_permission' ),
+					'callback'            => array( $this, 'handle_delete_session' ),
+					'permission_callback' => array( $this, 'check_session_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -229,12 +245,12 @@ class SessionController {
 
 		// Export endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/(?P<id>\d+)/export',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_export_session' ),
-				'permission_callback' => array( $instance, 'check_session_permission' ),
+				'callback'            => array( $this, 'handle_export_session' ),
+				'permission_callback' => array( $this, 'check_session_permission' ),
 				'args'                => array(
 					'id'     => array(
 						'required'          => true,
@@ -253,35 +269,35 @@ class SessionController {
 
 		// Import endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/import',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_import_session' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_import_session' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Shared sessions list endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/shared',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_shared_sessions' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_shared_sessions' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Share / unshare a session.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/sessions/(?P<id>\d+)/share',
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_share_session' ),
-					'permission_callback' => array( $instance, 'check_session_owner_permission' ),
+					'callback'            => array( $this, 'handle_share_session' ),
+					'permission_callback' => array( $this, 'check_session_owner_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -292,8 +308,8 @@ class SessionController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_unshare_session' ),
-					'permission_callback' => array( $instance, 'check_session_owner_permission' ),
+					'callback'            => array( $this, 'handle_unshare_session' ),
+					'permission_callback' => array( $this, 'check_session_owner_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -307,12 +323,12 @@ class SessionController {
 
 		// Job status endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/job/(?P<id>[a-f0-9-]+)',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_job_status' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_job_status' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -325,12 +341,12 @@ class SessionController {
 
 		// Process endpoint (background worker).
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/process',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_process' ),
-				'permission_callback' => array( $instance, 'check_process_permission' ),
+				'callback'            => array( $this, 'handle_process' ),
+				'permission_callback' => array( $this, 'check_process_permission' ),
 				'args'                => array(
 					'job_id' => array(
 						'required'          => true,
@@ -348,12 +364,12 @@ class SessionController {
 
 		// Run endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/run',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_run' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_run' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'message'            => array(
 						'required'          => true,
@@ -423,12 +439,12 @@ class SessionController {
 
 		// Tool confirmation endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/job/(?P<id>[a-f0-9-]+)/confirm',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_confirm_tool' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_confirm_tool' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id'           => array(
 						'required'          => true,
@@ -445,12 +461,12 @@ class SessionController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/job/(?P<id>[a-f0-9-]+)/reject',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_reject_tool' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_reject_tool' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -463,12 +479,12 @@ class SessionController {
 
 		// Interrupt endpoint — inject a user message into a running job.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/job/(?P<id>[a-f0-9-]+)/interrupt',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_interrupt' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_interrupt' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id'      => array(
 						'required'          => true,
@@ -486,22 +502,22 @@ class SessionController {
 
 		// Site builder endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/site-builder/start',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_site_builder_start' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_site_builder_start' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/site-builder/status',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_site_builder_status' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_site_builder_status' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 	}
@@ -1117,7 +1133,7 @@ class SessionController {
 
 		// Spawn background worker.
 		wp_remote_post(
-			rest_url( self::NAMESPACE . '/process' ),
+			rest_url( RestController::NAMESPACE . '/process' ),
 			array(
 				'timeout'  => 0.01,
 				'blocking' => false,
@@ -1148,9 +1164,9 @@ class SessionController {
 	 * Creates a job, spawns a background worker, and returns immediately.
 	 *
 	 * @param WP_REST_Request $request The request object.
-	 * @return WP_REST_Response|WP_Error
+	 * @return WP_REST_Response
 	 */
-	public function handle_run( WP_REST_Request $request ) {
+	public function handle_run( WP_REST_Request $request ): WP_REST_Response {
 		$job_id = wp_generate_uuid4();
 		$token  = wp_generate_password( 40, false );
 
@@ -1186,7 +1202,7 @@ class SessionController {
 
 		// Spawn background worker via non-blocking loopback.
 		wp_remote_post(
-			rest_url( self::NAMESPACE . '/process' ),
+			rest_url( RestController::NAMESPACE . '/process' ),
 			array(
 				'timeout'  => 0.01,
 				'blocking' => false,

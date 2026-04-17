@@ -92,7 +92,6 @@ use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Core\OnboardingManager;
 use GratisAiAgent\Core\ProviderTraceLogger;
 use GratisAiAgent\Knowledge\KnowledgeHooks;
-use GratisAiAgent\REST\RestController;
 use GratisAiAgent\Tools\CustomToolExecutor;
 use GratisAiAgent\Tools\ToolDiscovery;
 
@@ -144,8 +143,8 @@ add_action(
 	}
 );
 
-add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
-// BenchmarkController, TraceController, McpController are now DI-managed #[REST_Handler] classes.
+// All REST controllers are now DI-managed #[Handler] / #[REST_Handler] classes
+// registered in Plugin.php — no manual rest_api_init wiring needed.
 
 // Unified admin menu — single top-level menu with hash-based React routing.
 add_action( 'admin_menu', [ UnifiedAdminMenu::class, 'register' ] );

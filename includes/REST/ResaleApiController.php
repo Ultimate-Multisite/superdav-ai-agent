@@ -37,25 +37,37 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class ResaleApiController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
-	const NAMESPACE = 'gratis-ai-agent/v1';
+/**
+ * Manages resale API clients and proxy endpoint via REST.
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class ResaleApiController {
 
 	/**
 	 * Register all resale API REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// ─── Proxy endpoint ──────────────────────────────────────────
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/proxy',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ $instance, 'handle_proxy' ],
-				'permission_callback' => [ $instance, 'check_resale_permission' ],
+				'callback'            => [ $this, 'handle_proxy' ],
+				'permission_callback' => [ $this, 'check_resale_permission' ],
 				'args'                => [
 					'model'       => [
 						'required'          => false,
@@ -86,18 +98,18 @@ class ResaleApiController {
 
 		// ─── Admin CRUD endpoints ────────────────────────────────────
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/clients',
 			[
 				[
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $instance, 'handle_list_clients' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_list_clients' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 				],
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $instance, 'handle_create_client' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_create_client' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'name'                => [
 							'required'          => true,
@@ -137,13 +149,13 @@ class ResaleApiController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/clients/(?P<id>\d+)',
 			[
 				[
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $instance, 'handle_get_client' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_get_client' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -154,8 +166,8 @@ class ResaleApiController {
 				],
 				[
 					'methods'             => 'PATCH',
-					'callback'            => [ $instance, 'handle_update_client' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_update_client' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -166,8 +178,8 @@ class ResaleApiController {
 				],
 				[
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => [ $instance, 'handle_delete_client' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_delete_client' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -180,12 +192,12 @@ class ResaleApiController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/clients/(?P<id>\d+)/rotate-key',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ $instance, 'handle_rotate_key' ],
-				'permission_callback' => [ $instance, 'check_admin_permission' ],
+				'callback'            => [ $this, 'handle_rotate_key' ],
+				'permission_callback' => [ $this, 'check_admin_permission' ],
 				'args'                => [
 					'id' => [
 						'required'          => true,
@@ -197,12 +209,12 @@ class ResaleApiController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/clients/(?P<id>\d+)/usage',
 			[
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => [ $instance, 'handle_get_usage' ],
-				'permission_callback' => [ $instance, 'check_admin_permission' ],
+				'callback'            => [ $this, 'handle_get_usage' ],
+				'permission_callback' => [ $this, 'check_admin_permission' ],
 				'args'                => [
 					'id'     => [
 						'required'          => true,
@@ -226,12 +238,12 @@ class ResaleApiController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/resale/clients/(?P<id>\d+)/usage/summary',
 			[
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => [ $instance, 'handle_get_usage_summary' ],
-				'permission_callback' => [ $instance, 'check_admin_permission' ],
+				'callback'            => [ $this, 'handle_get_usage_summary' ],
+				'permission_callback' => [ $this, 'check_admin_permission' ],
 				'args'                => [
 					'id'         => [
 						'required'          => true,
@@ -591,7 +603,7 @@ class ResaleApiController {
 		// Return the API key on creation only — it is never returned again.
 		$response              = $this->sanitize_client_for_response( $client );
 		$response['api_key']   = $api_key;
-		$response['proxy_url'] = rest_url( self::NAMESPACE . '/resale/proxy' );
+		$response['proxy_url'] = rest_url( RestController::NAMESPACE . '/resale/proxy' );
 
 		return new WP_REST_Response( $response, 201 );
 	}
@@ -616,7 +628,7 @@ class ResaleApiController {
 		}
 
 		$response              = $this->sanitize_client_for_response( $client );
-		$response['proxy_url'] = rest_url( self::NAMESPACE . '/resale/proxy' );
+		$response['proxy_url'] = rest_url( RestController::NAMESPACE . '/resale/proxy' );
 
 		return new WP_REST_Response( $response, 200 );
 	}
@@ -688,7 +700,7 @@ class ResaleApiController {
 		}
 
 		$response              = $this->sanitize_client_for_response( $client );
-		$response['proxy_url'] = rest_url( self::NAMESPACE . '/resale/proxy' );
+		$response['proxy_url'] = rest_url( RestController::NAMESPACE . '/resale/proxy' );
 
 		return new WP_REST_Response( $response, 200 );
 	}

@@ -24,12 +24,22 @@ use GratisAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
+use GratisAiAgent\REST\AgentController;
+use GratisAiAgent\REST\AutomationController;
 use GratisAiAgent\REST\BenchmarkController;
+use GratisAiAgent\REST\ChangesController;
 use GratisAiAgent\REST\FeedbackController;
+use GratisAiAgent\REST\KnowledgeController;
 use GratisAiAgent\REST\McpController;
 use GratisAiAgent\REST\MemoryController;
+use GratisAiAgent\REST\ResaleApiController;
+use GratisAiAgent\REST\RestController;
+use GratisAiAgent\REST\SessionController;
+use GratisAiAgent\REST\SettingsController;
 use GratisAiAgent\REST\SkillController;
+use GratisAiAgent\REST\ToolController;
 use GratisAiAgent\REST\TraceController;
+use GratisAiAgent\REST\WebhookController;
 use XWP\DI\Decorators\Module;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -65,6 +75,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		TraceController::class,
 		McpController::class,
 		BenchmarkController::class,
+		RestController::class,
+		ToolController::class,
+		AgentController::class,
+		ChangesController::class,
+		AutomationController::class,
+		KnowledgeController::class,
+		SessionController::class,
+		SettingsController::class,
+		WebhookController::class,
+		ResaleApiController::class,
 	),
 	extendable: true,
 )]

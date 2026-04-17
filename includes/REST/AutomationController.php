@@ -21,33 +21,48 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class AutomationController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages automations, event-automations, logs, and triggers via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/automations, /event-automations, /automation-logs, etc.).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class AutomationController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Automations endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automations',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_automations' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_automations' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'name'     => array(
 							'required'          => true,
@@ -70,13 +85,13 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automations/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -87,8 +102,8 @@ class AutomationController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -101,12 +116,12 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automations/(?P<id>\d+)/run',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_run_automation' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_run_automation' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -118,12 +133,12 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automations/(?P<id>\d+)/logs',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_automation_logs' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_automation_logs' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -135,29 +150,29 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automation-templates',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_automation_templates' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_automation_templates' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Event Automations endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/event-automations',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_event_automations' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_event_automations' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_event_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_event_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'name'            => array(
 							'required'          => true,
@@ -179,13 +194,13 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/event-automations/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_event_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_event_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -196,8 +211,8 @@ class AutomationController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_event_automation' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_event_automation' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -210,32 +225,32 @@ class AutomationController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/event-triggers',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_event_triggers' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_event_triggers' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automation-logs',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_all_logs' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_all_logs' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/automations/test-notification',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_test_notification' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_test_notification' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'type'        => array(
 						'required'          => true,

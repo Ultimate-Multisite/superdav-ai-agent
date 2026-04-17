@@ -37,10 +37,25 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class WebhookController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
-	const NAMESPACE = 'gratis-ai-agent/v1';
+/**
+ * Manages webhook CRUD and public trigger endpoint via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/webhooks, /webhook/trigger, /process).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class WebhookController {
 
 	/**
 	 * Transient prefix for webhook jobs (reuses the main job pattern).
@@ -55,17 +70,17 @@ class WebhookController {
 	/**
 	 * Register all webhook REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// ─── Public trigger endpoint ────────────────────────────────
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/webhook/trigger',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ $instance, 'handle_trigger' ],
-				'permission_callback' => [ $instance, 'check_webhook_permission' ],
+				'callback'            => [ $this, 'handle_trigger' ],
+				'permission_callback' => [ $this, 'check_webhook_permission' ],
 				'args'                => [
 					'webhook_id'         => [
 						'required'          => false,
@@ -114,18 +129,18 @@ class WebhookController {
 
 		// ─── Admin CRUD endpoints ────────────────────────────────────
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/webhooks',
 			[
 				[
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $instance, 'handle_list' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_list' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 				],
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $instance, 'handle_create' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_create' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'name'               => [
 							'required'          => true,
@@ -179,13 +194,13 @@ class WebhookController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/webhooks/(?P<id>\d+)',
 			[
 				[
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $instance, 'handle_get' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_get' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -196,8 +211,8 @@ class WebhookController {
 				],
 				[
 					'methods'             => 'PATCH',
-					'callback'            => [ $instance, 'handle_update' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_update' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -208,8 +223,8 @@ class WebhookController {
 				],
 				[
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => [ $instance, 'handle_delete' ],
-					'permission_callback' => [ $instance, 'check_admin_permission' ],
+					'callback'            => [ $this, 'handle_delete' ],
+					'permission_callback' => [ $this, 'check_admin_permission' ],
 					'args'                => [
 						'id' => [
 							'required'          => true,
@@ -222,12 +237,12 @@ class WebhookController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/webhooks/(?P<id>\d+)/logs',
 			[
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => [ $instance, 'handle_logs' ],
-				'permission_callback' => [ $instance, 'check_admin_permission' ],
+				'callback'            => [ $this, 'handle_logs' ],
+				'permission_callback' => [ $this, 'check_admin_permission' ],
 				'args'                => [
 					'id'     => [
 						'required'          => true,
@@ -251,12 +266,12 @@ class WebhookController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/webhooks/(?P<id>\d+)/rotate-secret',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ $instance, 'handle_rotate_secret' ],
-				'permission_callback' => [ $instance, 'check_admin_permission' ],
+				'callback'            => [ $this, 'handle_rotate_secret' ],
+				'permission_callback' => [ $this, 'check_admin_permission' ],
 				'args'                => [
 					'id' => [
 						'required'          => true,
@@ -379,7 +394,7 @@ class WebhookController {
 		// Return the secret on creation only — it is never returned again.
 		$response                = $this->sanitize_webhook_for_response( $webhook );
 		$response['secret']      = $secret;
-		$response['trigger_url'] = rest_url( self::NAMESPACE . '/webhook/trigger' );
+		$response['trigger_url'] = rest_url( RestController::NAMESPACE . '/webhook/trigger' );
 
 		return new WP_REST_Response( $response, 201 );
 	}
@@ -404,7 +419,7 @@ class WebhookController {
 		}
 
 		$response                = $this->sanitize_webhook_for_response( $webhook );
-		$response['trigger_url'] = rest_url( self::NAMESPACE . '/webhook/trigger' );
+		$response['trigger_url'] = rest_url( RestController::NAMESPACE . '/webhook/trigger' );
 
 		return new WP_REST_Response( $response, 200 );
 	}
@@ -472,7 +487,7 @@ class WebhookController {
 		}
 
 		$response                = $this->sanitize_webhook_for_response( $webhook );
-		$response['trigger_url'] = rest_url( self::NAMESPACE . '/webhook/trigger' );
+		$response['trigger_url'] = rest_url( RestController::NAMESPACE . '/webhook/trigger' );
 
 		return new WP_REST_Response( $response, 200 );
 	}
@@ -697,7 +712,7 @@ class WebhookController {
 		set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 
 		wp_remote_post(
-			rest_url( self::NAMESPACE . '/process' ),
+			rest_url( RestController::NAMESPACE . '/process' ),
 			[
 				'timeout'  => 0.01,
 				'blocking' => false,

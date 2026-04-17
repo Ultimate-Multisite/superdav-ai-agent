@@ -16,27 +16,42 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class ChangesController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages changes, modified-plugins, and download endpoints via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/changes, /modified-plugins, /download-plugin, /plugins).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class ChangesController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Changes log endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/changes',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_changes' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_changes' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'session_id'  => array(
 						'required'          => false,
@@ -67,13 +82,13 @@ class ChangesController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/changes/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_change' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_get_change' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -84,8 +99,8 @@ class ChangesController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_change' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_change' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -98,12 +113,12 @@ class ChangesController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/changes/(?P<id>\d+)/diff',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_get_change_diff' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_get_change_diff' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -115,12 +130,12 @@ class ChangesController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/changes/(?P<id>\d+)/revert',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_revert_change' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_revert_change' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -132,12 +147,12 @@ class ChangesController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/changes/export',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_export_changes' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_export_changes' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'ids' => array(
 						'required' => true,
@@ -150,22 +165,22 @@ class ChangesController {
 
 		// Plugin download endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/modified-plugins',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_modified_plugins' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_modified_plugins' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/download-plugin/(?P<slug>[a-z0-9\-_]+)',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_download_plugin' ),
-				'permission_callback' => array( $instance, 'check_download_permission' ),
+				'callback'            => array( $this, 'handle_download_plugin' ),
+				'permission_callback' => array( $this, 'check_download_permission' ),
 				'args'                => array(
 					'slug' => array(
 						'required'          => true,
@@ -441,7 +456,7 @@ class ChangesController {
 		foreach ( $rows as $row ) {
 			$slug         = $row->plugin_slug ?? '';
 			$nonce        = wp_create_nonce( 'gratis_ai_agent_download_plugin_' . $slug );
-			$rest_url     = rest_url( self::NAMESPACE . '/download-plugin/' . rawurlencode( $slug ) );
+			$rest_url     = rest_url( RestController::NAMESPACE . '/download-plugin/' . rawurlencode( $slug ) );
 			$download_url = add_query_arg( '_wpnonce', $nonce, $rest_url );
 
 			$plugins[] = array(
@@ -465,9 +480,9 @@ class ChangesController {
 	 * Stream a zip archive of an AI-modified plugin directory.
 	 *
 	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @return WP_Error
 	 */
-	public function handle_download_plugin( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	public function handle_download_plugin( WP_REST_Request $request ): WP_Error {
 		// @phpstan-ignore-next-line
 		$slug = sanitize_key( $request->get_param( 'slug' ) );
 

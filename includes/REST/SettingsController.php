@@ -23,12 +23,27 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class SettingsController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages settings, providers, budget, usage, roles, and alerts via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/settings, /providers, /budget, /usage, /role-permissions, etc.).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class SettingsController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/** @var Settings Injected settings dependency. */
 	private Settings $settings;
@@ -50,69 +65,69 @@ class SettingsController {
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Providers endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/providers',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_providers' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_providers' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Alerts endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/alerts',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_alerts' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_alerts' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// WooCommerce store status endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/woocommerce/status',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_woocommerce_status' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_woocommerce_status' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Settings endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_settings' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_get_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_update_settings' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 			)
 		);
 
 		// Claude Max token endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/claude-max-token',
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_set_claude_max_token' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_set_claude_max_token' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'token' => array(
 							'required'          => true,
@@ -126,7 +141,7 @@ class SettingsController {
 
 		// Direct provider API key endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/provider-key',
 			array(
 				array(
@@ -151,7 +166,7 @@ class SettingsController {
 
 		// Direct provider API key test endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/provider-key/test',
 			array(
 				array(
@@ -176,18 +191,18 @@ class SettingsController {
 
 		// Role permissions endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/role-permissions',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_role_permissions' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_get_role_permissions' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_update_role_permissions' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_role_permissions' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'permissions' => array(
 							'required' => true,
@@ -200,20 +215,20 @@ class SettingsController {
 
 		// Role permissions — available roles list.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/role-permissions/roles',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_roles' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_get_roles' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 			)
 		);
 
 		// Fresh install detection endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/fresh-install',
 			array(
 				array(
@@ -226,7 +241,7 @@ class SettingsController {
 
 		// Google Analytics credentials endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/google-analytics',
 			array(
 				array(
@@ -260,7 +275,7 @@ class SettingsController {
 
 		// Google Search Console credentials endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/gsc-credentials',
 			array(
 				array(
@@ -278,7 +293,7 @@ class SettingsController {
 
 		// Brave Search API key endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/brave-search-key',
 			array(
 				array(
@@ -303,7 +318,7 @@ class SettingsController {
 
 		// Feedback receiver API key endpoint (t180).
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/settings/feedback-api-key',
 			array(
 				array(
@@ -328,12 +343,12 @@ class SettingsController {
 
 		// Usage endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/usage',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_get_usage' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_get_usage' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'period'     => array(
 						'required'          => false,
@@ -356,12 +371,12 @@ class SettingsController {
 
 		// Budget status endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/budget',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_get_budget' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_get_budget' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 	}

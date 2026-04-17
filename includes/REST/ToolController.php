@@ -19,55 +19,71 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class ToolController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages custom-tools and abilities endpoints via REST.
+ *
+ * Uses #[Handler] + #[Action] instead of #[REST_Handler] because this
+ * controller serves multiple basenames (/abilities, /custom-tools) and
+ * the REST_Handler decorator supports only a single basename per class.
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class ToolController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Abilities endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/abilities',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_abilities' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_abilities' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Abilities Explorer endpoint.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/abilities/explorer',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_abilities_explorer' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_abilities_explorer' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		// Custom Tools endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/custom-tools',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_custom_tools' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_custom_tools' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_custom_tool' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_custom_tool' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'name'         => array(
 							'required'          => true,
@@ -111,13 +127,13 @@ class ToolController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/custom-tools/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_custom_tool' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_custom_tool' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -128,8 +144,8 @@ class ToolController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_custom_tool' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_custom_tool' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -142,12 +158,12 @@ class ToolController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/custom-tools/(?P<id>\d+)/test',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_test_custom_tool' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_test_custom_tool' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id'    => array(
 						'required'          => true,

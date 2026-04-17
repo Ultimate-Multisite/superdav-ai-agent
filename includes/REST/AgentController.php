@@ -16,33 +16,48 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class AgentController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages agents and conversation templates via REST.
+ *
+ * Uses #[Handler] + #[Action] because this controller serves multiple
+ * basenames (/agents, /conversation-templates).
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class AgentController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Agents endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/agents',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_agents' ),
-					'permission_callback' => array( $instance, 'check_chat_permission' ),
+					'callback'            => array( $this, 'handle_list_agents' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_agent' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_agent' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'slug'           => array(
 							'required'          => true,
@@ -110,13 +125,13 @@ class AgentController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/agents/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_agent' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_get_agent' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -127,8 +142,8 @@ class AgentController {
 				),
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_agent' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_agent' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id'             => array(
 							'required'          => true,
@@ -191,8 +206,8 @@ class AgentController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_agent' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_agent' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -206,13 +221,13 @@ class AgentController {
 
 		// Conversation Templates endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/conversation-templates',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_conversation_templates' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_conversation_templates' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'category' => array(
 							'required'          => false,
@@ -223,8 +238,8 @@ class AgentController {
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_conversation_template' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_conversation_template' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'name'   => array(
 							'required'          => true,
@@ -241,13 +256,13 @@ class AgentController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/conversation-templates/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_conversation_template' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_conversation_template' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -258,8 +273,8 @@ class AgentController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_conversation_template' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_conversation_template' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,

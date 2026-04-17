@@ -16,33 +16,45 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class KnowledgeController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages knowledge collections, sources, search, stats, and upload via REST.
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class KnowledgeController {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
 
 	/**
 	 * Register REST routes.
 	 */
-	public static function register_routes(): void {
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Knowledge endpoints.
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/collections',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_collections' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_list_collections' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_collection' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_create_collection' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'name'          => array(
 							'required'          => true,
@@ -76,13 +88,13 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/collections/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_collection' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_update_collection' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id'            => array(
 							'required'          => true,
@@ -111,8 +123,8 @@ class KnowledgeController {
 				),
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_collection' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
+					'callback'            => array( $this, 'handle_delete_collection' ),
+					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -125,12 +137,12 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/collections/(?P<id>\d+)/sources',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list_sources' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_list_sources' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -142,12 +154,12 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/collections/(?P<id>\d+)/index',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_index_collection' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_index_collection' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -159,22 +171,22 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/upload',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_knowledge_upload' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_knowledge_upload' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/sources/(?P<id>\d+)',
 			array(
 				'methods'             => WP_REST_Server::DELETABLE,
-				'callback'            => array( $instance, 'handle_delete_source' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_delete_source' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -186,12 +198,12 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/search',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_knowledge_search' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_knowledge_search' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
 					'q'          => array(
 						'required'          => true,
@@ -208,12 +220,12 @@ class KnowledgeController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			RestController::NAMESPACE,
 			'/knowledge/stats',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_knowledge_stats' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
+				'callback'            => array( $this, 'handle_knowledge_stats' ),
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 	}

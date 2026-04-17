@@ -38,8 +38,24 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
-class RestController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Core REST controller — holds the shared NAMESPACE constant and the
+ * /chat/tool-result endpoint. All domain controllers are now DI-managed
+ * and self-register via their own #[Handler] / #[REST_Handler] attributes.
+ */
+#[Handler(
+	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
+)]
+final class RestController {
 
 	use PermissionTrait;
 
@@ -55,34 +71,14 @@ class RestController {
 	 */
 	const JOB_TTL = 600;
 
-
-
 	/**
-	 * Register REST routes.
+	 * Register the /chat/tool-result endpoint.
 	 *
-	 * Delegates to domain controllers and registers the /chat endpoint here.
+	 * All domain controllers are now DI-managed and register their own
+	 * routes via #[REST_Handler] or #[Handler] + #[Action(rest_api_init)].
 	 */
-	public static function register_routes(): void {
-		// McpController and BenchmarkController are now DI-managed #[REST_Handler] classes.
-
-		// Webhook API endpoints.
-		WebhookController::register_routes();
-
-		// Resale API endpoints.
-		ResaleApiController::register_routes();
-
-		// Domain controllers — migrating to DI-managed #[REST_Handler] classes.
-		// Already migrated: MemoryController, SkillController, FeedbackController,
-		// McpController, BenchmarkController, TraceController.
-		SessionController::register_routes();
-		SettingsController::register_routes();
-		AutomationController::register_routes();
-		KnowledgeController::register_routes();
-		ToolController::register_routes();
-		ChangesController::register_routes();
-		AgentController::register_routes();
-
-		$instance = new self();
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
 
 		// Client tool result endpoint — resumes the agent loop after the browser
 		// has executed client-side tool calls and POSTs the results back.
@@ -92,7 +88,7 @@ class RestController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'handle_tool_result' ),
-				'permission_callback' => array( $instance, 'check_chat_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'session_id'   => array(
 						'required'          => true,

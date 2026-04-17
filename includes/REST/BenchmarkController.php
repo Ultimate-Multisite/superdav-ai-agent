@@ -12,14 +12,12 @@ namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Benchmark\BenchmarkRunner;
 use GratisAiAgent\Benchmark\BenchmarkSuite;
-use GratisAiAgent\Core\Database;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,13 +35,100 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  POST   /benchmark/runs/{id}/run-next   — run next question
  *  DELETE /benchmark/runs/{id}            — delete a run
  *  POST   /benchmark/compare              — compare multiple runs
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'benchmark',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class BenchmarkController extends XWP_REST_Controller {
+final class BenchmarkController {
+
+	/**
+	 * Register REST routes for the benchmark endpoints.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/suites',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_list_suites' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/suites/(?P<slug>[a-z0-9\-_]+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_get_suite' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_slug_args(),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/runs',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_list_runs' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_list_runs_args(),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_create_run' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_create_run_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/runs/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_get_run' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_id_args(),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_run' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_id_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/runs/(?P<id>\d+)/run-next',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_run_next' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_id_args(),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/benchmark/compare',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_compare' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_compare_args(),
+			)
+		);
+	}
 
 	/**
 	 * Permission check — admin only.
@@ -59,11 +144,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 *
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: 'suites',
-		methods: WP_REST_Server::READABLE,
-		guard: 'check_permission',
-	)]
 	public function handle_list_suites(): WP_REST_Response {
 		$suites = BenchmarkSuite::list_suites();
 		return new WP_REST_Response( $suites );
@@ -75,12 +155,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'suites/(?P<slug>[a-z0-9\-_]+)',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_slug_args',
-		guard: 'check_permission',
-	)]
 	public function handle_get_suite( WP_REST_Request $request ) {
 		$slug  = $request->get_param( 'slug' );
 		$suite = BenchmarkSuite::get_suite( $slug );
@@ -102,12 +176,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: 'runs',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_list_runs_args',
-		guard: 'check_permission',
-	)]
 	public function handle_list_runs( WP_REST_Request $request ): WP_REST_Response {
 		$per_page = (int) $request->get_param( 'per_page' );
 		$page     = (int) $request->get_param( 'page' );
@@ -123,12 +191,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'runs/(?P<id>\d+)',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_get_run( WP_REST_Request $request ) {
 		$run_id = absint( $request->get_param( 'id' ) );
 		$run    = BenchmarkRunner::get_run( $run_id );
@@ -152,12 +214,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'runs',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_create_run_args',
-		guard: 'check_permission',
-	)]
 	public function handle_create_run( WP_REST_Request $request ) {
 		$name         = $request->get_param( 'name' );
 		$description  = $request->get_param( 'description' );
@@ -201,12 +257,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'runs/(?P<id>\d+)/run-next',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_run_next( WP_REST_Request $request ) {
 		$run_id = absint( $request->get_param( 'id' ) );
 
@@ -265,12 +315,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'runs/(?P<id>\d+)',
-		methods: WP_REST_Server::DELETABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_delete_run( WP_REST_Request $request ) {
 		$run_id = absint( $request->get_param( 'id' ) );
 
@@ -293,12 +337,6 @@ final class BenchmarkController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'compare',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_compare_args',
-		guard: 'check_permission',
-	)]
 	public function handle_compare( WP_REST_Request $request ) {
 		$run_ids = $request->get_param( 'run_ids' );
 

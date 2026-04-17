@@ -15,9 +15,8 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,26 +31,78 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  PATCH  /skills/{id}       — update a skill
  *  DELETE /skills/{id}       — delete a custom skill
  *  POST   /skills/{id}/reset — reset a built-in skill to defaults
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'skills',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class SkillController extends XWP_REST_Controller {
+final class SkillController {
 
 	use PermissionTrait;
+
+	/**
+	 * Register REST routes for skill management.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/skills',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_list_skills' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_create_skill' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_create_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/skills/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => 'PATCH',
+					'callback'            => array( $this, 'handle_update_skill' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_update_args(),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_skill' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_id_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/skills/(?P<id>\d+)/reset',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_reset_skill' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_id_args(),
+			)
+		);
+	}
 
 	/**
 	 * Handle GET /skills — list all skills.
 	 *
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::READABLE,
-		guard: 'check_permission',
-	)]
 	public function handle_list_skills(): WP_REST_Response {
 		$skills = Skill::get_all();
 
@@ -92,12 +143,6 @@ final class SkillController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_create_args',
-		guard: 'check_permission',
-	)]
 	public function handle_create_skill( WP_REST_Request $request ) {
 		$slug = $request->get_param( 'slug' );
 
@@ -160,12 +205,6 @@ final class SkillController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)',
-		methods: 'PATCH',
-		vars: 'get_update_args',
-		guard: 'check_permission',
-	)]
 	public function handle_update_skill( WP_REST_Request $request ) {
 		$id   = self::get_int_param( $request, 'id' );
 		$data = array();
@@ -222,12 +261,6 @@ final class SkillController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)',
-		methods: WP_REST_Server::DELETABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_delete_skill( WP_REST_Request $request ) {
 		$id     = self::get_int_param( $request, 'id' );
 		$result = Skill::delete( $id );
@@ -257,12 +290,6 @@ final class SkillController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)/reset',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_reset_skill( WP_REST_Request $request ) {
 		$id    = self::get_int_param( $request, 'id' );
 		$reset = Skill::reset_builtin( $id );

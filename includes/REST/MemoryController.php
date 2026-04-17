@@ -15,9 +15,8 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,15 +31,72 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  PATCH  /memory/{id}   — update a memory
  *  DELETE /memory/{id}   — delete a memory
  *  POST   /memory/forget — bulk-delete by topic
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'memory',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class MemoryController extends XWP_REST_Controller {
+final class MemoryController {
 
 	use PermissionTrait;
+
+	/**
+	 * Register REST routes for memory management.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/memory',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_list_memory' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_create_memory' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_create_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/memory/forget',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_forget_memory' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_forget_args(),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/memory/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => 'PATCH',
+					'callback'            => array( $this, 'handle_update_memory' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_update_args(),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_memory' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_delete_args(),
+				),
+			)
+		);
+	}
 
 	/**
 	 * Handle GET /memory — list memories.
@@ -48,11 +104,6 @@ final class MemoryController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::READABLE,
-		guard: 'check_permission',
-	)]
 	public function handle_list_memory( WP_REST_Request $request ): WP_REST_Response {
 		$category = $request->get_param( 'category' );
 		// @phpstan-ignore-next-line
@@ -85,12 +136,6 @@ final class MemoryController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_create_args',
-		guard: 'check_permission',
-	)]
 	public function handle_create_memory( WP_REST_Request $request ) {
 		$category = $request->get_param( 'category' );
 		$content  = $request->get_param( 'content' );
@@ -118,12 +163,6 @@ final class MemoryController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)',
-		methods: 'PATCH',
-		vars: 'get_update_args',
-		guard: 'check_permission',
-	)]
 	public function handle_update_memory( WP_REST_Request $request ) {
 		$id   = self::get_int_param( $request, 'id' );
 		$data = array();
@@ -156,12 +195,6 @@ final class MemoryController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)',
-		methods: WP_REST_Server::DELETABLE,
-		vars: 'get_delete_args',
-		guard: 'check_permission',
-	)]
 	public function handle_delete_memory( WP_REST_Request $request ) {
 		$id      = self::get_int_param( $request, 'id' );
 		$deleted = Memory::delete( $id );
@@ -179,12 +212,6 @@ final class MemoryController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: 'forget',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_forget_args',
-		guard: 'check_permission',
-	)]
 	public function handle_forget_memory( WP_REST_Request $request ): WP_REST_Response {
 		$topic = $request->get_param( 'topic' );
 		// @phpstan-ignore-next-line

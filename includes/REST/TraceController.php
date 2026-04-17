@@ -18,9 +18,8 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,13 +35,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  DELETE /trace             — clear all traces
  *  GET    /trace/settings    — get trace settings
  *  POST   /trace/settings    — update trace settings
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'trace',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class TraceController extends XWP_REST_Controller {
+final class TraceController {
 
 	/**
 	 * Permission check — admin only.
@@ -54,17 +58,72 @@ final class TraceController extends XWP_REST_Controller {
 	}
 
 	/**
+	 * Register REST routes for provider trace endpoints.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/trace',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_list' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_list_args(),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_clear' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/trace/settings',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_get_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_update_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_settings_args(),
+				),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/trace/(?P<id>\d+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_get' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_id_args(),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/trace/(?P<id>\d+)/curl',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_curl' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_id_args(),
+			)
+		);
+	}
+
+	/**
 	 * Handle GET /trace — list trace records.
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_list_args',
-		guard: 'check_permission',
-	)]
 	public function handle_list( WP_REST_Request $request ): WP_REST_Response {
 		$filters = [];
 
@@ -102,12 +161,6 @@ final class TraceController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_get( WP_REST_Request $request ) {
 		$id    = absint( $request->get_param( 'id' ) );
 		$trace = ProviderTrace::get( $id );
@@ -129,12 +182,6 @@ final class TraceController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '(?P<id>\d+)/curl',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_id_args',
-		guard: 'check_permission',
-	)]
 	public function handle_curl( WP_REST_Request $request ) {
 		$id    = absint( $request->get_param( 'id' ) );
 		$trace = ProviderTrace::get( $id );
@@ -159,11 +206,6 @@ final class TraceController extends XWP_REST_Controller {
 	 *
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::DELETABLE,
-		guard: 'check_permission',
-	)]
 	public function handle_clear(): WP_REST_Response {
 		ProviderTrace::clear();
 
@@ -177,11 +219,6 @@ final class TraceController extends XWP_REST_Controller {
 	 *
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: 'settings',
-		methods: WP_REST_Server::READABLE,
-		guard: 'check_permission',
-	)]
 	public function handle_get_settings(): WP_REST_Response {
 		return new WP_REST_Response(
 			array(
@@ -201,12 +238,6 @@ final class TraceController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
-	#[REST_Route(
-		route: 'settings',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_settings_args',
-		guard: 'check_permission',
-	)]
 	public function handle_update_settings( WP_REST_Request $request ): WP_REST_Response {
 		$enabled  = $request->get_param( 'enabled' );
 		$max_rows = $request->get_param( 'max_rows' );

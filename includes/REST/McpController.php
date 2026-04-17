@@ -27,9 +27,8 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,18 +36,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Implements the MCP protocol over a single WordPress REST endpoint.
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'mcp',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class McpController extends XWP_REST_Controller {
+final class McpController {
 
 	/**
 	 * MCP protocol version advertised in responses.
 	 */
 	const MCP_PROTOCOL_VERSION = '2024-11-05';
+
+	/**
+	 * Register the MCP REST route.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/mcp',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_request' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_mcp_args(),
+			)
+		);
+	}
 
 	/**
 	 * Permission check — requires manage_options capability.
@@ -65,12 +86,6 @@ final class McpController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request The REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: '',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_mcp_args',
-		guard: 'check_permission',
-	)]
 	public function handle_request( WP_REST_Request $request ) {
 		$method = $request->get_param( 'method' );
 		$params = $request->get_param( 'params' );

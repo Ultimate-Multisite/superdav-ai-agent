@@ -23,9 +23,8 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
-use XWP\DI\Decorators\REST_Handler;
-use XWP\DI\Decorators\REST_Route;
-use XWP_REST_Controller;
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Handler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -33,15 +32,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Manages feedback report preview and submission.
+ *
+ * Uses #[Handler] + INIT_IMMEDIATELY so register_routes() is called directly
+ * on rest_api_init, which is the only strategy that works in the PHPUnit test
+ * environment (the #[REST_Handler] INIT_DEFFERED path fails to fire its
+ * do_action chain when rest_api_init is manually triggered by test setUp()).
  */
-#[REST_Handler(
-	namespace: RestController::NAMESPACE,
-	basename: 'feedback',
+#[Handler(
 	container: 'gratis-ai-agent',
+	context: Handler::CTX_REST,
+	strategy: Handler::INIT_IMMEDIATELY,
 )]
-final class FeedbackController extends XWP_REST_Controller {
+final class FeedbackController {
 
 	use PermissionTrait;
+
+	/**
+	 * Register REST routes for feedback endpoints.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_routes(): void {
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/feedback/preview',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_preview' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
+				'args'                => $this->get_preview_args(),
+			)
+		);
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/feedback/send',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_send' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
+				'args'                => $this->get_send_args(),
+			)
+		);
+	}
 
 	/**
 	 * Handle GET /feedback/preview — return the sanitized payload for modal preview.
@@ -52,12 +83,6 @@ final class FeedbackController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'preview',
-		methods: WP_REST_Server::READABLE,
-		vars: 'get_preview_args',
-		guard: 'check_chat_permission',
-	)]
 	public function handle_preview( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$session_id         = (int) $request->get_param( 'session_id' );
 		$strip_tool_results = (bool) $request->get_param( 'strip_tool_results' );
@@ -109,12 +134,6 @@ final class FeedbackController extends XWP_REST_Controller {
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	#[REST_Route(
-		route: 'send',
-		methods: WP_REST_Server::CREATABLE,
-		vars: 'get_send_args',
-		guard: 'check_chat_permission',
-	)]
 	public function handle_send( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$report_type        = (string) $request->get_param( 'report_type' );
 		$user_description   = (string) $request->get_param( 'user_description' );

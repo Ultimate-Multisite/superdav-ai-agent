@@ -990,38 +990,191 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	color: #50575e;
 }
 
-/* Tool calls */
+/* Tool calls — outer container */
 .gratis-ai-agent-tool-calls {
 	align-self: flex-start;
 	max-width: 85%;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-tool-calls details {
+.gratis-ai-agent-tool-calls > details {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
-	border-radius: 4px;
+	border-radius: 6px;
 }
 
-.gratis-ai-agent-tool-calls summary {
+.gratis-ai-agent-tool-calls > details > summary {
 	padding: 8px 12px;
 	cursor: pointer;
 	color: #50575e;
 	font-weight: 500;
 	user-select: none;
+	font-size: 12px;
+	list-style: none;
 }
 
-.gratis-ai-agent-tool-calls summary:hover {
+.gratis-ai-agent-tool-calls > details > summary::before {
+	content: "\25B6";
+	display: inline-block;
+	margin-right: 6px;
+	font-size: 9px;
+	transition: transform 0.15s;
+}
+
+.gratis-ai-agent-tool-calls > details[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.gratis-ai-agent-tool-calls > details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.gratis-ai-agent-tool-calls > details > summary:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
+/* Tool list inside the outer details */
 .gratis-ai-agent-tool-list {
-	padding: 0 12px 12px;
+	padding: 4px 10px 10px;
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 6px;
 }
 
+/* Individual tool call pair */
+.gratis-ai-agent-tool-pair {
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.gratis-ai-agent-tool-pair--skill {
+	border-left: 3px solid #a36ec5;
+}
+
+.gratis-ai-agent-tool-pair-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 10px;
+	background: #fafafa;
+	border-bottom: 1px solid #f0f0f0;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.gratis-ai-agent-tool-pair-icon {
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+.gratis-ai-agent-tool-pair-name {
+	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+	font-size: 12px;
+	font-weight: 600;
+	color: #1d2327;
+	background: none;
+	padding: 0;
+}
+
+.gratis-ai-agent-tool-pair-status {
+	margin-left: auto;
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+.gratis-ai-agent-tool-pair-status--ok {
+	color: #00a32a;
+}
+
+/* Badge styling */
+.gratis-ai-agent-tool-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 5px;
+	border-radius: 2px;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 16px;
+	border-width: 1px;
+	border-style: solid;
+	flex-shrink: 0;
+}
+
+/* Expandable content (args / response) */
+.gratis-ai-agent-tool-expandable {
+	border-top: 1px solid #f0f0f0;
+}
+
+.gratis-ai-agent-tool-expandable-toggle {
+	padding: 5px 10px;
+	cursor: pointer;
+	color: #646970;
+	font-size: 11px;
+	font-weight: 500;
+	user-select: none;
+	list-style: none;
+}
+
+.gratis-ai-agent-tool-expandable-toggle::before {
+	content: "\25B6";
+	display: inline-block;
+	margin-right: 4px;
+	font-size: 8px;
+	transition: transform 0.15s;
+}
+
+details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
+	transform: rotate(90deg);
+}
+
+.gratis-ai-agent-tool-expandable-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.gratis-ai-agent-tool-expandable-toggle:hover {
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+
+.gratis-ai-agent-tool-expandable-size {
+	color: #a7aaad;
+	font-weight: 400;
+}
+
+.gratis-ai-agent-tool-expandable-content {
+	margin: 0;
+	padding: 8px 10px;
+	background: #f9f9f9;
+	border-top: 1px solid #f0f0f0;
+	font-size: 11px;
+	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+	line-height: 1.5;
+	overflow-x: auto;
+	max-height: 300px;
+	overflow-y: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	color: #1d2327;
+}
+
+.gratis-ai-agent-tool-expand-btn {
+	display: block;
+	margin-top: 4px;
+	background: none;
+	border: none;
+	padding: 0;
+	color: var(--wp-admin-theme-color, #2271b1);
+	font-size: 11px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.gratis-ai-agent-tool-expand-btn:hover {
+	color: #135e96;
+}
+
+/* Legacy flat entries (backwards compat) */
 .gratis-ai-agent-tool-entry {
 	font-size: 12px;
 	line-height: 1.4;
@@ -1030,14 +1183,6 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 .gratis-ai-agent-tool-label {
 	font-weight: 600;
 	color: #50575e;
-}
-
-.gratis-ai-agent-tool-call .gratis-ai-agent-tool-label {
-	color: var(--wp-admin-theme-color, #2271b1);
-}
-
-.gratis-ai-agent-tool-response .gratis-ai-agent-tool-label {
-	color: #00a32a;
 }
 
 .gratis-ai-agent-tool-entry code {

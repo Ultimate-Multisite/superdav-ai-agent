@@ -455,19 +455,22 @@
 	font-size: 12px;
 }
 
-.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls details {
-	background: #f6f7f7;
-	border: 1px solid #dcdcde;
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls > details {
 	border-radius: 4px;
 }
 
-.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls summary {
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-calls > details > summary {
 	padding: 6px 10px;
-	font-size: 12px;
+	font-size: 11px;
 }
 
-.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-entry pre {
-	max-height: 120px;
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-pair-header {
+	padding: 5px 8px;
+	font-size: 11px;
+}
+
+.gratis-ai-agent-floating-panel .gratis-ai-agent-tool-expandable-content {
+	max-height: 150px;
 	font-size: 10px;
 }
 

@@ -107,13 +107,19 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		}
 
 		$args = $call->getArgs();
-		if ( ! is_array( $args ) ) {
+
+		// The AI Client SDK's FunctionCall::getArgs() returns `mixed`.
+		// Provider JSON decoders may return a top-level stdClass for
+		// object-typed arguments. Convert it to an array instead of
+		// discarding all arguments (the previous `array()` fallback).
+		if ( $args instanceof \stdClass ) {
+			$args = (array) $args;
+		} elseif ( ! is_array( $args ) ) {
 			$args = array();
 		}
 
-		// Recursively convert stdClass objects to associative arrays.
-		// The AI client library may decode JSON function-call arguments
-		// as stdClass objects, but abilities expect plain PHP arrays.
+		// Recursively convert any remaining nested stdClass objects to
+		// associative arrays. Abilities expect plain PHP arrays throughout.
 		$args = self::normalize_args( $args );
 
 		// @phpstan-ignore-next-line — execute() exists at runtime in WP 7.0.

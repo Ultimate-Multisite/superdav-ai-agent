@@ -989,6 +989,12 @@ final class SessionController {
 		if ( 'error' === $job['status'] && isset( $job['error'] ) ) {
 			$response['message'] = $job['error'];
 
+			// Forward backtrace context so the frontend can display
+			// actionable debugging details (file, line, abbreviated stack).
+			if ( ! empty( $job['error_context'] ) ) {
+				$response['error_context'] = $job['error_context'];
+			}
+
 			// Clean up.
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 		}
@@ -1419,6 +1425,23 @@ final class SessionController {
 
 			$job['status'] = 'error';
 			$job['error']  = $e->getMessage();
+
+			// Include backtrace context so the frontend can display
+			// actionable debugging info instead of a bare message.
+			$trace_frames = array();
+			foreach ( array_slice( $e->getTrace(), 0, 10 ) as $frame ) {
+				$trace_frames[] = ( $frame['file'] ?? '?' )
+					. ':' . ( $frame['line'] ?? '?' )
+					. ' ' . ( $frame['class'] ?? '' )
+					. ( $frame['type'] ?? '' )
+					. ( $frame['function'] ?? '' ) . '()';
+			}
+			$job['error_context'] = array(
+				'file'  => $e->getFile(),
+				'line'  => $e->getLine(),
+				'trace' => $trace_frames,
+			);
+
 			unset( $job['token'] );
 			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 			return new WP_REST_Response( array( 'ok' => false ), 200 );

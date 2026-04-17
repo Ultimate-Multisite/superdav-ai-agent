@@ -1315,15 +1315,27 @@ export const actions = {
 					}
 
 					if ( result.status === 'error' ) {
+						// Build an error message that includes backtrace
+						// context when available (file, line, stack trace).
+						let errorText = `Error: ${
+							result.message || 'Unknown error'
+						}`;
+						if ( result.error_context ) {
+							const ctx = result.error_context;
+							errorText += `\n\n**Location:** \`${ ctx.file }:${ ctx.line }\``;
+							if (
+								Array.isArray( ctx.trace ) &&
+								ctx.trace.length > 0
+							) {
+								errorText +=
+									'\n\n**Stack trace:**\n```\n' +
+									ctx.trace.join( '\n' ) +
+									'\n```';
+							}
+						}
 						dispatch.appendMessage( {
 							role: 'system',
-							parts: [
-								{
-									text: `Error: ${
-										result.message || 'Unknown error'
-									}`,
-								},
-							],
+							parts: [ { text: errorText } ],
 						} );
 						// WP_Error max_iterations — show feedback banner (t183).
 						const errMsg = result.message || '';

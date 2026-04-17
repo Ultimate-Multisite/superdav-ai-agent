@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Infrastructure\WordPress\Abilities;
 
+use GratisAiAgent\Infrastructure\Schema\EmptyJsonObject;
 use GratisAiAgent\Infrastructure\Schema\SchemaNormalizer;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -48,7 +49,7 @@ final class AbilitySchemaFilter {
 		if ( ! isset( $args['input_schema'] ) ) {
 			$args['input_schema'] = array(
 				'type'       => 'object',
-				'properties' => (object) array(),
+				'properties' => new EmptyJsonObject(),
 			);
 			return $args;
 		}

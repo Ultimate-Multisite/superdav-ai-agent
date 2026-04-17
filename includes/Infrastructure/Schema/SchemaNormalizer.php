@@ -59,7 +59,7 @@ final class SchemaNormalizer {
 		if ( empty( $schema ) ) {
 			return array(
 				'type'       => 'object',
-				'properties' => (object) array(),
+				'properties' => new EmptyJsonObject(),
 			);
 		}
 
@@ -72,19 +72,23 @@ final class SchemaNormalizer {
 		}
 
 		if ( isset( $schema['type'] ) && 'object' === $schema['type'] && ! isset( $schema['properties'] ) ) {
-			$schema['properties'] = (object) array();
+			$schema['properties'] = new EmptyJsonObject();
 		}
 
-		if ( array_key_exists( 'items', $schema ) && is_array( $schema['items'] ) ) {
-			if ( empty( $schema['items'] ) || array_is_list( $schema['items'] ) ) {
-				$schema['items'] = (object) array();
-			} else {
-				$schema['items'] = self::normalize( $schema['items'] );
+		if ( array_key_exists( 'items', $schema ) && ! ( $schema['items'] instanceof EmptyJsonObject ) ) {
+			$items = $schema['items'];
+			if ( $items instanceof \stdClass ) {
+				$items = (array) $items;
+			}
+			if ( is_array( $items ) && ( empty( $items ) || array_is_list( $items ) ) ) {
+				$schema['items'] = new EmptyJsonObject();
+			} elseif ( is_array( $items ) ) {
+				$schema['items'] = self::normalize( $items );
 			}
 		}
 
 		if ( isset( $schema['type'] ) && 'array' === $schema['type'] && ! array_key_exists( 'items', $schema ) ) {
-			$schema['items'] = (object) array();
+			$schema['items'] = new EmptyJsonObject();
 		}
 
 		if ( isset( $schema['default'] ) && is_array( $schema['default'] ) && empty( $schema['default'] ) ) {
@@ -113,11 +117,71 @@ final class SchemaNormalizer {
 	 * @return array<string,mixed> Schema with normalised properties and an
 	 *                             updated `required` array if applicable.
 	 */
+	/**
+	 * Convert a normalised schema to JSON-safe form.
+	 *
+	 * Empty `properties` and `items` arrays are coerced to `stdClass` so that
+	 * `wp_json_encode()` emits `{}` instead of `[]` — required by Anthropic,
+	 * OpenAI and Ollama tool-use validators. Call this ONLY at JSON
+	 * serialization time (ToolDiscovery manifests, MCP schemas, etc.),
+	 * never for schemas stored in WP_Ability (those must stay as arrays
+	 * because WP core's `rest_validate_value_from_schema()` uses array
+	 * bracket access on them).
+	 *
+	 * @param mixed $schema Normalised schema node.
+	 * @return mixed Schema with stdClass empty objects.
+	 */
+	public static function to_json_safe( mixed $schema ): mixed {
+		if ( ! is_array( $schema ) ) {
+			return $schema;
+		}
+
+		// Empty `properties` → stdClass for JSON `{}`.
+		if ( array_key_exists( 'properties', $schema ) && is_array( $schema['properties'] ) && empty( $schema['properties'] ) ) {
+			$schema['properties'] = new \stdClass();
+		} elseif ( array_key_exists( 'properties', $schema ) && is_array( $schema['properties'] ) ) {
+			foreach ( $schema['properties'] as $k => $v ) {
+				$schema['properties'][ $k ] = self::to_json_safe( $v );
+			}
+		}
+
+		// Empty `items` → stdClass for JSON `{}`.
+		if ( array_key_exists( 'items', $schema ) && is_array( $schema['items'] ) && empty( $schema['items'] ) ) {
+			$schema['items'] = new \stdClass();
+		} elseif ( array_key_exists( 'items', $schema ) && is_array( $schema['items'] ) ) {
+			$schema['items'] = self::to_json_safe( $schema['items'] );
+		}
+
+		// Recurse into combiners.
+		foreach ( array( 'anyOf', 'oneOf', 'allOf' ) as $combiner ) {
+			if ( isset( $schema[ $combiner ] ) && is_array( $schema[ $combiner ] ) ) {
+				foreach ( $schema[ $combiner ] as $k => $sub ) {
+					$schema[ $combiner ][ $k ] = self::to_json_safe( $sub );
+				}
+			}
+		}
+
+		return $schema;
+	}
+
 	private static function normalize_properties( array $schema ): array {
 		$props = $schema['properties'];
 
+		// stdClass from `(object) []` or already-empty arrays → EmptyJsonObject.
+		if ( $props instanceof \stdClass ) {
+			$props_array = (array) $props;
+			if ( empty( $props_array ) ) {
+				$schema['properties'] = new EmptyJsonObject();
+				return $schema;
+			}
+			// Non-empty stdClass — convert to array and continue normalising.
+			$props = $props_array;
+		} elseif ( $props instanceof EmptyJsonObject ) {
+			return $schema;
+		}
+
 		if ( is_array( $props ) && empty( $props ) ) {
-			$schema['properties'] = (object) array();
+			$schema['properties'] = new EmptyJsonObject();
 			return $schema;
 		}
 

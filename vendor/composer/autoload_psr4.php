@@ -17,7 +17,6 @@ return array(
     'Pondermatic\\ComposerArchiveProject\\' => array($vendorDir . '/pondermatic/composer-archive-project/src'),
     'Laravel\\SerializableClosure\\' => array($vendorDir . '/laravel/serializable-closure/src'),
     'Invoker\\' => array($vendorDir . '/php-di/invoker/src'),
-    'GratisAiAgent\\Tests\\' => array($baseDir . '/tests/GratisAiAgent'),
     'GratisAiAgent\\' => array($baseDir . '/includes'),
     'DI\\' => array($vendorDir . '/php-di/php-di/src'),
     'Automattic\\Jetpack\\Autoloader\\' => array($vendorDir . '/automattic/jetpack-autoloader/src'),

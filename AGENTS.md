@@ -65,6 +65,18 @@
 - **REST routes**: `/gratis-ai-agent/v1/{endpoint}` namespace
 - **CSS classes**: Prefixed with `gratis-ai-agent-` (e.g., `gratis-ai-agent-chat-panel`)
 
+## Dependency Injection (x-wp/di)
+
+All hook wiring flows through an `x-wp/di` container. `gratis-ai-agent.php` is ~70 lines — just constants, autoloader, and `xwp_load_app()`. The 24 `#[Handler]` classes in `Plugin.php` manage everything.
+
+**Read [`docs/x-wp-di.md`](docs/x-wp-di.md)** before:
+- Adding new handlers or REST controllers
+- Converting legacy `add_action()` calls to DI
+- Debugging handler loading, context, or route registration issues
+- Working with the DI cache (`build/di-cache/`)
+
+Key gotchas: `compile_class` required for hyphenated IDs, `REST_Handler` supports only one basename, `CTX_REST` doesn't load in PHPUnit (see doc for workaround).
+
 ## WordPress SDK Integration
 - Use `wp_ai_client_prompt()` for AI calls (WordPress 7.0+ AI Client SDK)
 - Register abilities via `wp_register_ability()` (Abilities API)

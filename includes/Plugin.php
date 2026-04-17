@@ -19,7 +19,11 @@ declare(strict_types=1);
 
 namespace GratisAiAgent;
 
+use GratisAiAgent\Bootstrap\AbilitiesHandler;
+use GratisAiAgent\Bootstrap\AdminHandler;
 use GratisAiAgent\Bootstrap\CliHandler;
+use GratisAiAgent\Bootstrap\CoreServicesHandler;
+use GratisAiAgent\Bootstrap\FrontendAssetsHandler;
 use GratisAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
@@ -69,6 +73,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		UsageInstructionsFilter::class,
 		RequestTimeoutFilter::class,
 		CliHandler::class,
+		AbilitiesHandler::class,
+		AdminHandler::class,
+		CoreServicesHandler::class,
+		FrontendAssetsHandler::class,
 		MemoryController::class,
 		SkillController::class,
 		FeedbackController::class,

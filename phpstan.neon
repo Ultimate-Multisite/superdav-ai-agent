@@ -249,4 +249,12 @@ parameters:
 		# mixed because the @phpstan-ignore-next-line suppresses the assignment type check.
 		- message: '#\$tool_permissions of class GratisAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
 		  identifier: argument.type
+		# AgentLoop: $raw_client_abilities is array<mixed, mixed> after is_array() narrowing;
+		# from_raw() accepts list<array<string, mixed>> but validates descriptors internally.
+		- message: '#\$raw_descriptors of static method GratisAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
+		  identifier: argument.type
+		# AgentLoop: $this->settings_for_prompt comes from Settings::get() which returns mixed;
+		# SystemInstructionBuilder::build() expects array<string, mixed> — always an array at runtime.
+		- message: '#\$settings of method GratisAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
+		  identifier: argument.type
 

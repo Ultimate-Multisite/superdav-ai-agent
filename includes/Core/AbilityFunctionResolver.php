@@ -122,8 +122,39 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		// associative arrays. Abilities expect plain PHP arrays throughout.
 		$args = self::normalize_args( $args );
 
-		// @phpstan-ignore-next-line — execute() exists at runtime in WP 7.0.
-		$result = $ability->execute( $args );
+		// Wrap execute() in a try/catch to capture errors that occur
+		// OUTSIDE WP core's invoke_callback() — e.g. in validate_input()
+		// or validate_output(). Our AbstractAbility::do_execute() override
+		// handles errors inside the callback itself.
+		try {
+			// @phpstan-ignore-next-line — execute() exists at runtime in WP 7.0.
+			$result = $ability->execute( $args );
+		} catch ( \Throwable $e ) {
+			// Errors in schema validation (validate_input/validate_output)
+			// are not caught by WP core's invoke_callback(). Capture them
+			// here with full context so the model can report the location.
+			$trace_frames = array();
+			foreach ( array_slice( $e->getTrace(), 0, 5 ) as $frame ) {
+				$trace_frames[] = ( $frame['file'] ?? '?' )
+					. ':' . ( $frame['line'] ?? '?' )
+					. ' ' . ( $frame['function'] ?? '' ) . '()';
+			}
+
+			return new FunctionResponse(
+				$function_id,
+				$function_name,
+				array(
+					'error'         => $e->getMessage(),
+					'code'          => 'ability_exception',
+					'error_context' => sprintf(
+						'%s:%d — %s',
+						$e->getFile(),
+						$e->getLine(),
+						implode( ' → ', array_slice( $trace_frames, 0, 3 ) )
+					),
+				)
+			);
+		}
 
 		if ( is_wp_error( $result ) ) {
 			$error_code    = (string) $result->get_error_code();
@@ -131,6 +162,22 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				'error' => $result->get_error_message(),
 				'code'  => $error_code,
 			);
+
+			// When our AbstractAbility::do_execute() catches an exception,
+			// it stores file/line/trace in the WP_Error's error_data.
+			// Extract it here so the model can report the error location
+			// to the user instead of a bare message.
+			$error_data = $result->get_error_data();
+			if ( is_array( $error_data ) && isset( $error_data['exception_file'] ) ) {
+				$response_data['error_context'] = sprintf(
+					'%s:%d',
+					$error_data['exception_file'],
+					$error_data['exception_line'] ?? 0
+				);
+				if ( ! empty( $error_data['exception_trace'] ) && is_array( $error_data['exception_trace'] ) ) {
+					$response_data['error_trace'] = array_slice( $error_data['exception_trace'], 0, 5 );
+				}
+			}
 
 			// For input-validation failures, inline the input_schema so the
 			// model can self-correct on the next turn instead of guessing

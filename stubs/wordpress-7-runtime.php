@@ -71,8 +71,13 @@ namespace WordPress\AiClient\Tools\DTO {
 		/** @return string */
 		public function getName(): string { return ''; }
 
-		/** @return array<string, mixed> */
-		public function getArgs(): array { return array(); }
+		/**
+		 * Provider JSON decoders may return a top-level stdClass for
+		 * object-typed arguments, or mixed when the decoder is permissive.
+		 *
+		 * @return array<string, mixed>|\stdClass|mixed
+		 */
+		public function getArgs(): mixed { return array(); }
 	}
 
 	/**

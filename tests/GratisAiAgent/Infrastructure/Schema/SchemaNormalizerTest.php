@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Tests\Infrastructure\Schema;
 
+use GratisAiAgent\Infrastructure\Schema\EmptyJsonObject;
 use GratisAiAgent\Infrastructure\Schema\SchemaNormalizer;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 /**
  * Pure-PHP tests — no WordPress bootstrap required.
@@ -28,7 +28,7 @@ final class SchemaNormalizerTest extends TestCase {
 		$result = SchemaNormalizer::normalize( array() );
 
 		$this->assertSame( 'object', $result['type'] );
-		$this->assertInstanceOf( stdClass::class, $result['properties'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['properties'] );
 	}
 
 	public function test_scalar_is_returned_unchanged(): void {
@@ -65,20 +65,20 @@ final class SchemaNormalizerTest extends TestCase {
 			)
 		);
 
-		$this->assertInstanceOf( stdClass::class, $result['properties'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['properties'] );
 		$this->assertSame( '{"type":"object","properties":{}}', wp_json_encode( $result ) );
 	}
 
 	public function test_object_schema_without_properties_backfills_stdclass(): void {
 		$result = SchemaNormalizer::normalize( array( 'type' => 'object' ) );
 
-		$this->assertInstanceOf( stdClass::class, $result['properties'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['properties'] );
 	}
 
 	public function test_array_schema_without_items_backfills_permissive_items(): void {
 		$result = SchemaNormalizer::normalize( array( 'type' => 'array' ) );
 
-		$this->assertInstanceOf( stdClass::class, $result['items'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['items'] );
 	}
 
 	public function test_list_items_array_is_replaced_with_permissive_object(): void {
@@ -89,7 +89,7 @@ final class SchemaNormalizerTest extends TestCase {
 			)
 		);
 
-		$this->assertInstanceOf( stdClass::class, $result['items'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['items'] );
 	}
 
 	public function test_object_items_is_recursively_normalised(): void {
@@ -101,7 +101,7 @@ final class SchemaNormalizerTest extends TestCase {
 		);
 
 		$this->assertSame( 'object', $result['items']['type'] );
-		$this->assertInstanceOf( stdClass::class, $result['items']['properties'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['items']['properties'] );
 	}
 
 	public function test_draft_04_boolean_required_is_promoted_to_parent_required(): void {
@@ -179,7 +179,7 @@ final class SchemaNormalizerTest extends TestCase {
 			)
 		);
 
-		$this->assertInstanceOf( stdClass::class, $result['anyOf'][0]['properties'] );
+		$this->assertInstanceOf( EmptyJsonObject::class, $result['anyOf'][0]['properties'] );
 		$this->assertSame( 'object', $result['anyOf'][1]['type'] );
 	}
 

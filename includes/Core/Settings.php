@@ -19,6 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin settings — injectable DI service.
+ *
+ * All public static methods are preserved as backward-compatible callers.
+ * Prefer injecting `Settings` via DI and using instance methods, e.g.
+ * `$this->settings->get()` instead of `Settings::get()`.
+ */
 class Settings {
 
 	/**
@@ -188,6 +195,7 @@ class Settings {
 	/**
 	 * Default settings.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_defaults()
 	 * @return array<string, mixed>
 	 */
 	public static function get_defaults(): array {
@@ -240,6 +248,7 @@ class Settings {
 	 * Keys are stored in a dedicated option, never in the general settings blob,
 	 * so they are not exposed through GET /settings.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_provider_key()
 	 * @param string $provider_id One of 'openai', 'anthropic', 'google'.
 	 * @return string Empty string when not configured.
 	 */
@@ -254,6 +263,7 @@ class Settings {
 	 *
 	 * Pass an empty string to clear the credential.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->set_provider_key()
 	 * @param string $provider_id One of 'openai', 'anthropic', 'google'.
 	 * @param string $api_key     The API key value.
 	 * @return bool True on success.
@@ -282,6 +292,7 @@ class Settings {
 	 * Returns an array of provider metadata arrays, each with:
 	 *   - id, name, configured (bool), models (array), has_key (bool)
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_configured_direct_providers()
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_configured_direct_providers(): array {
@@ -310,6 +321,7 @@ class Settings {
 	 *   Service account: ['type' => 'service_account', 'client_email' => '...', 'private_key' => '...', 'default_site_url' => '...']
 	 *   Access token:    ['type' => 'access_token', 'access_token' => '...', 'default_site_url' => '...']
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_gsc_credentials()
 	 * @return array<string, mixed> Credential array or empty array.
 	 */
 	public static function get_gsc_credentials(): array {
@@ -324,6 +336,7 @@ class Settings {
 	 *
 	 * Pass an empty array to clear the credentials.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->set_gsc_credentials()
 	 * @param array<string, mixed> $credentials Credential array (see get_gsc_credentials() for shape).
 	 * @return bool True on success.
 	 */
@@ -338,6 +351,7 @@ class Settings {
 	/**
 	 * Check whether GSC credentials are configured.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->has_gsc_credentials()
 	 * @return bool
 	 */
 	public static function has_gsc_credentials(): bool {
@@ -351,6 +365,7 @@ class Settings {
 	 * Delegates to {@see CredentialResolver::getClaudeMaxToken()} so that all
 	 * credential reads are centralised in one place.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_claude_max_token()
 	 * @return string Empty string when not configured.
 	 */
 	public static function get_claude_max_token(): string {
@@ -363,6 +378,7 @@ class Settings {
 	 * Delegates to {@see CredentialResolver::setClaudeMaxToken()}.
 	 * Pass an empty string to clear the credential.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->set_claude_max_token()
 	 * @param string $token The OAuth access token (sk-ant-oat01-… or similar).
 	 * @return bool True on success.
 	 */
@@ -385,6 +401,7 @@ class Settings {
 	 *       return 'gpt-4o';
 	 *   } );
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_default_model()
 	 * @return string Non-empty model ID.
 	 */
 	public static function get_default_model(): string {
@@ -409,6 +426,7 @@ class Settings {
 	/**
 	 * Get a single setting or all settings merged with defaults.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get()
 	 * @param string|null $key Optional key to retrieve.
 	 * @return mixed
 	 */
@@ -428,6 +446,7 @@ class Settings {
 	/**
 	 * Partial-update settings (merge incoming data with existing).
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->update()
 	 * @param array<string, mixed> $data Key-value pairs to update.
 	 * @return bool
 	 */
@@ -451,6 +470,7 @@ class Settings {
 	 * The key is intentionally stored in a dedicated option so it is never
 	 * returned by GET /settings and cannot leak through the JSON response.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->get_feedback_api_key()
 	 * @return string Empty string when not configured.
 	 */
 	public static function get_feedback_api_key(): string {
@@ -463,6 +483,7 @@ class Settings {
 	 *
 	 * Pass an empty string to clear the credential.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->set_feedback_api_key()
 	 * @param string $api_key The API key value.
 	 * @return bool True on success.
 	 */
@@ -477,6 +498,7 @@ class Settings {
 	/**
 	 * Check whether a feedback-report receiver API key is configured.
 	 *
+	 * @deprecated Prefer DI-injected Settings instance: $this->settings->has_feedback_api_key()
 	 * @return bool
 	 */
 	public static function has_feedback_api_key(): bool {

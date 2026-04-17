@@ -61,6 +61,18 @@ final class RestController {
 
 	const NAMESPACE = 'gratis-ai-agent/v1';
 
+	/** @var Settings Injected settings dependency. */
+	private Settings $settings;
+
+	/**
+	 * Constructor — accepts injected Settings for testability.
+	 *
+	 * @param Settings|null $settings Settings service (defaults to new Settings()).
+	 */
+	public function __construct( ?Settings $settings = null ) {
+		$this->settings = $settings ?? new Settings();
+	}
+
 	/**
 	 * Transient prefix for job data.
 	 */

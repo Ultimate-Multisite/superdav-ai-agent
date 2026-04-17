@@ -42,6 +42,18 @@ final class ToolController {
 
 	use PermissionTrait;
 
+	/** @var Settings Injected settings dependency. */
+	private Settings $settings;
+
+	/**
+	 * Constructor — accepts injected Settings for testability.
+	 *
+	 * @param Settings|null $settings Settings service (defaults to new Settings()).
+	 */
+	public function __construct( ?Settings $settings = null ) {
+		$this->settings = $settings ?? new Settings();
+	}
+
 	/**
 	 * Register REST routes.
 	 */
@@ -228,7 +240,7 @@ final class ToolController {
 		// Build a map of configured provider IDs for configuration status checks.
 		$configured_providers = array();
 		foreach ( Settings::DIRECT_PROVIDERS as $provider_id => $provider_meta ) {
-			$key = Settings::get_provider_key( $provider_id );
+			$key = $this->settings->get_provider_key( $provider_id );
 			if ( '' !== $key ) {
 				$configured_providers[] = $provider_id;
 			}

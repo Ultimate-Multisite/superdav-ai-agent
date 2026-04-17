@@ -44,6 +44,7 @@ use GratisAiAgent\REST\SkillController;
 use GratisAiAgent\REST\ToolController;
 use GratisAiAgent\REST\TraceController;
 use GratisAiAgent\REST\WebhookController;
+use GratisAiAgent\Core\Settings;
 use XWP\DI\Decorators\Module;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -114,6 +115,9 @@ final class Plugin {
 			'plugin.version' => \DI\value( GRATIS_AI_AGENT_VERSION ),
 			'plugin.dir'     => \DI\value( GRATIS_AI_AGENT_DIR ),
 			'plugin.url'     => \DI\value( GRATIS_AI_AGENT_URL ),
+			// Register Settings as an explicit singleton so all DI-managed handlers
+			// and controllers share the same instance rather than creating new ones.
+			Settings::class  => \DI\create( Settings::class ),
 		);
 	}
 }

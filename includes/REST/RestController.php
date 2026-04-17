@@ -304,7 +304,7 @@ Assistant: %s',
 				$builder->using_max_tokens( 20 );
 			}
 
-			$result    = $builder->generate_text_result();
+			$result = $builder->generate_text_result();
 			if ( is_wp_error( $result ) ) {
 				return $fallback;
 			}

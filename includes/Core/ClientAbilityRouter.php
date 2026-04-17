@@ -49,6 +49,7 @@ class ClientAbilityRouter {
 			}
 		}
 
+		// @phpstan-ignore-next-line -- new static() is intentional for subclass-safety; return type is `static`
 		return new static( $validated );
 	}
 

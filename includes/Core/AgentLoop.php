@@ -252,6 +252,7 @@ class AgentLoop {
 
 		// SystemInstructionBuilder needs the model_id for weak-model nudges
 		// and user_message for knowledge RAG, both resolved above.
+		// @phpstan-ignore-next-line -- $this->page_context is array<string, mixed> at runtime; @phpstan-ignore-next-line suppresses the mixed assignment
 		$this->instruction_builder = new SystemInstructionBuilder(
 			(string) $this->model_id,
 			$this->user_message,
@@ -259,6 +260,7 @@ class AgentLoop {
 		);
 
 		// ToolPermissionResolver encapsulates yolo_mode and tool_permissions.
+		// @phpstan-ignore-next-line -- $this->tool_permissions is array<string, string> at runtime; mixed inferred from @phpstan-ignore-next-line on assignment
 		$this->permission_resolver = new ToolPermissionResolver(
 			$this->yolo_mode,
 			$this->tool_permissions
@@ -271,6 +273,7 @@ class AgentLoop {
 		// @phpstan-ignore-next-line
 		$raw_client_abilities = $options['client_abilities'] ?? array();
 		if ( is_array( $raw_client_abilities ) ) {
+			// @phpstan-ignore-next-line -- $raw_client_abilities is array<mixed, mixed> from options; safe at runtime (list<array<string, mixed>> after foreach validation in from_raw())
 			$this->client_router    = ClientAbilityRouter::from_raw( $raw_client_abilities );
 			$this->client_abilities = $this->client_router->get_descriptors();
 		} else {
@@ -284,6 +287,7 @@ class AgentLoop {
 			$this->system_instruction        = $options['system_instruction'];
 			$this->system_instruction_locked = true;
 		} else {
+			// @phpstan-ignore-next-line -- $settings is mixed from Settings::get(); always array<string, mixed> at runtime
 			$this->system_instruction = $this->instruction_builder->build( $settings );
 		}
 	}

@@ -380,7 +380,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - AgentLoop becomes ~400-line orchestrator composing these services
   - Verify: `composer phpstan && npm run test:php` (existing AgentLoop tests must still pass)
 
-- [ ] t194 Complete DI migration — convert CoreServicesHandler static calls to real handlers #refactor #auto-dispatch ~4h logged:2026-04-16
+- [x] t194 Complete DI migration — convert CoreServicesHandler static calls to real handlers #refactor #auto-dispatch ~4h logged:2026-04-16 pr:#1007 completed:2026-04-17
   - CoreServicesHandler::on_initialize() calls 10 static ::register() methods — thin veneer, not real DI
   - Convert ChangeLogger, ProviderTraceLogger, KnowledgeHooks, ToolDiscovery, CustomToolExecutor, AutomationRunner, EventTriggerHandler, GitTrackerManager, OnboardingManager, FreshInstallDetector into #[Handler] classes with #[Action] decorators
   - Remove CoreServicesHandler once empty

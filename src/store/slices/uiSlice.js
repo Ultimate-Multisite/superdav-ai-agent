@@ -182,10 +182,31 @@ export const actions = {
 	/**
 	 * Clear the boot error and re-attempt initial data fetches.
 	 *
+	 * Before retrying, refresh the REST nonce via wp.apiFetch's built-in
+	 * nonce endpoint so that expired-nonce 403s resolve without a page reload.
+	 *
 	 * @return {Function} Redux thunk.
 	 */
 	retryBoot() {
 		return async ( { dispatch } ) => {
+			// Refresh nonce if the apiFetch middleware exposes one.
+			// wp.apiFetch.nonceMiddleware.nonce holds the current token and
+			// nonceEndpoint holds the URL to fetch a fresh one from.
+			try {
+				const nonceEndpoint = window.wp?.apiFetch?.nonceEndpoint;
+				const nonceMiddleware = window.wp?.apiFetch?.nonceMiddleware;
+				if ( nonceEndpoint && nonceMiddleware ) {
+					const response = await window.fetch( nonceEndpoint );
+					if ( response.ok ) {
+						const newNonce = await response.text();
+						nonceMiddleware.nonce = newNonce.trim();
+					}
+				}
+			} catch {
+				// Nonce refresh failure is non-fatal — the fetch attempts
+				// below may still succeed if the session is still valid.
+			}
+
 			dispatch.setBootError( null );
 			dispatch.fetchProviders();
 			dispatch.fetchSessions();

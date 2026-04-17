@@ -54,19 +54,19 @@ export default function BootError() {
 						  ) }
 				</p>
 				<div className="gratis-ai-agent-boot-error__actions">
-					<Button variant="primary" onClick={ retryBoot }>
-						{ __( 'Try Again', 'gratis-ai-agent' ) }
-					</Button>
 					<Button
-						variant="secondary"
+						variant="primary"
 						onClick={ () => window.location.reload() }
 					>
 						{ __( 'Reload Page', 'gratis-ai-agent' ) }
 					</Button>
+					<Button variant="secondary" onClick={ retryBoot }>
+						{ __( 'Try Again', 'gratis-ai-agent' ) }
+					</Button>
 				</div>
 				<p className="gratis-ai-agent-boot-error__hint">
 					{ __(
-						'If this keeps happening, try logging out and back in.',
+						'Reloading the page refreshes your session. If the error persists, try logging out and back in.',
 						'gratis-ai-agent'
 					) }
 				</p>

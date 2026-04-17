@@ -60,6 +60,7 @@ const { reducer, actions, selectors } = capturedConfig;
 const DEFAULT_STATE = {
 	providers: [],
 	providersLoaded: false,
+	providersLoading: false,
 	sessions: [],
 	sessionsLoaded: false,
 	currentSessionId: null,
@@ -79,6 +80,7 @@ const DEFAULT_STATE = {
 	foldersLoaded: false,
 	settings: null,
 	settingsLoaded: false,
+	settingsLoading: false,
 	memories: [],
 	memoriesLoaded: false,
 	skills: [],
@@ -327,6 +329,20 @@ describe( 'reducer', () => {
 		expect( state.providersLoaded ).toBe( true );
 	} );
 
+	test( 'SET_PROVIDERS_LOADING sets providersLoading flag', () => {
+		const loading = reducer( DEFAULT_STATE, {
+			type: 'SET_PROVIDERS_LOADING',
+			loading: true,
+		} );
+		expect( loading.providersLoading ).toBe( true );
+
+		const done = reducer( loading, {
+			type: 'SET_PROVIDERS_LOADING',
+			loading: false,
+		} );
+		expect( done.providersLoading ).toBe( false );
+	} );
+
 	test( 'SET_SESSIONS sets sessions and marks loaded', () => {
 		const sessions = [ { id: 1 } ];
 		const state = reducer( DEFAULT_STATE, {
@@ -507,6 +523,20 @@ describe( 'reducer', () => {
 		expect( state.settingsLoaded ).toBe( true );
 	} );
 
+	test( 'SET_SETTINGS_LOADING sets settingsLoading flag', () => {
+		const loading = reducer( DEFAULT_STATE, {
+			type: 'SET_SETTINGS_LOADING',
+			loading: true,
+		} );
+		expect( loading.settingsLoading ).toBe( true );
+
+		const done = reducer( loading, {
+			type: 'SET_SETTINGS_LOADING',
+			loading: false,
+		} );
+		expect( done.settingsLoading ).toBe( false );
+	} );
+
 	test( 'SET_MEMORIES sets memories and marks loaded', () => {
 		const memories = [ { id: 1 } ];
 		const state = reducer( DEFAULT_STATE, {
@@ -663,6 +693,10 @@ describe( 'selectors', () => {
 		expect( selectors.getProvidersLoaded( state ) ).toBe( true );
 	} );
 
+	test( 'getProvidersLoading returns false when not loading', () => {
+		expect( selectors.getProvidersLoading( state ) ).toBe( false );
+	} );
+
 	test( 'getSessions returns sessions array', () => {
 		expect( selectors.getSessions( state ) ).toEqual( state.sessions );
 	} );
@@ -734,6 +768,10 @@ describe( 'selectors', () => {
 
 	test( 'getSettingsLoaded returns true when loaded', () => {
 		expect( selectors.getSettingsLoaded( state ) ).toBe( true );
+	} );
+
+	test( 'getSettingsLoading returns false when not loading', () => {
+		expect( selectors.getSettingsLoading( state ) ).toBe( false );
 	} );
 
 	test( 'getMemories returns memories', () => {

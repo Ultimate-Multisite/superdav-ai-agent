@@ -16,16 +16,37 @@
  * `@wordpress/abilities` library throwing
  * "Ability references non-existent category" errors. (Fix landed in t166.)
  *
- * Each entry-point bundle has its own webpack-bundled module instance of
- * this file (and therefore its own `registrationPromise`), so we additionally
- * dedupe at the `@wordpress/abilities` API level inside registry.js — both
- * `registerCategory()` and `registerClientAbility()` swallow "already
- * registered" errors as a safe no-op.
+ * Cross-bundle deduplication (GH#990):
+ * Each webpack entry-point bundle has its own module scope and therefore its
+ * own `registrationPromise`. When multiple bundles (e.g. floating-widget.js
+ * and screen-meta.js) are enqueued on the same admin page, each bundle
+ * previously ran the full registration pipeline independently. This caused
+ * `wp.abilities.registerAbilityCategory()` to be called once per bundle,
+ * which in WP 7.0-RC2 triggers a REST fetch to `/wp-json/wp-abilities/v1/abilities`
+ * for each call — resulting in duplicate simultaneous requests, one of which
+ * was aborted and logged a console error.
+ *
+ * The fix: `ensureRegistered()` checks a page-level window global
+ * (`window.__gratisAiAgentAbilitiesRegistering`) before creating a new
+ * Promise. If another bundle on the same page has already started or
+ * completed the pipeline, the second bundle awaits the same Promise instead
+ * of launching a duplicate registration.
  */
 
 import { registerCategory } from './registry';
 import { registerNavigationAbility } from './navigation';
 import { registerEditorAbility } from './editor';
+
+/**
+ * Window-global key used to share the registration Promise across all
+ * webpack bundles on the same page. The first bundle to run
+ * `ensureRegistered()` creates and stores the Promise; every subsequent
+ * bundle (in any other webpack scope) reads and awaits it instead of
+ * starting a new registration pipeline.
+ *
+ * @type {string}
+ */
+const WIN_REGISTRATION_KEY = '__gratisAiAgentAbilitiesRegistering';
 
 /**
  * Single in-flight registration Promise for this module instance, so
@@ -41,26 +62,40 @@ let registrationPromise = null;
  * Ensure all client-side abilities are registered.
  *
  * Idempotent — calling this multiple times within a single bundle returns
- * the same in-flight Promise. Safe to import from multiple entry points
- * because the underlying registry helpers in registry.js dedupe at the
- * `@wordpress/abilities` API level.
+ * the same in-flight Promise. Cross-bundle dedup is provided by the
+ * page-level `window.__gratisAiAgentAbilitiesRegistering` key: if another
+ * bundle on the same page has already started or completed registration,
+ * this call returns the existing Promise without re-running the pipeline.
  *
  * If the abilities API was not available when the attempt ran (e.g. the
  * `@wordpress/core-abilities` script module hadn't loaded yet),
  * registerCategory() silently no-ops and the promise resolves without
- * registering anything. In that case registrationPromise is reset to null
- * AFTER the attempt completes so a future call can retry. Concurrent
- * callers during the in-flight attempt all receive the same promise —
- * the reset only happens once the promise has settled.
+ * registering anything. In that case both the module-level promise and the
+ * window global are reset to null AFTER the attempt completes so a future
+ * call can retry. Concurrent callers during the in-flight attempt all
+ * receive the same promise — the reset only happens once the promise settles.
  *
  * @return {Promise<void>}
  */
 export function ensureRegistered() {
+	// Cross-bundle dedup: another webpack bundle on this page may have
+	// already started or completed the registration pipeline. Reuse its
+	// Promise so we don't call wp.abilities.registerAbilityCategory() a
+	// second time (each call can trigger a REST fetch in WP 7.0-RC2).
+	if ( window[ WIN_REGISTRATION_KEY ] ) {
+		registrationPromise = window[ WIN_REGISTRATION_KEY ];
+		return registrationPromise;
+	}
+
+	// Same-bundle dedup: a concurrent caller within this bundle.
 	if ( registrationPromise ) {
 		return registrationPromise;
 	}
 
-	registrationPromise = ( async () => {
+	// Set both caches before any await so concurrent callers from this
+	// bundle and from other bundles that load immediately after see the
+	// in-flight Promise rather than starting a new one.
+	registrationPromise = window[ WIN_REGISTRATION_KEY ] = ( async () => {
 		// Category MUST come first AND its Promise MUST resolve before
 		// abilities can register into it.
 		await registerCategory();
@@ -70,7 +105,7 @@ export function ensureRegistered() {
 
 		// If the abilities API was not available (e.g. script module not
 		// yet loaded), the registration calls above silently no-oped.
-		// Reset the promise so a future call can retry after the API loads.
+		// Reset both caches so a future call can retry after the API loads.
 		// This MUST happen after the await chain settles — resetting during
 		// the in-flight attempt would break concurrent callers' dedup.
 		const apiAvailable =
@@ -79,6 +114,7 @@ export function ensureRegistered() {
 			typeof wp.abilities.getAbilities === 'function';
 		if ( ! apiAvailable ) {
 			registrationPromise = null;
+			window[ WIN_REGISTRATION_KEY ] = null;
 		}
 	} )();
 

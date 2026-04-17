@@ -22,6 +22,7 @@ import STORE_NAME from '../store';
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import ChatPanel from '../components/ChatPanel';
+import '../components/shared.css';
 import './style.css';
 
 /**

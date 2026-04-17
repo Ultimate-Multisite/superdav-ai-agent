@@ -592,4 +592,150 @@ namespace {
 	 * @return string
 	 */
 	function _wp_connectors_get_real_api_key( string $setting_name, string $mask ): string { return ''; }
+
+	/**
+	 * WordPress 7.0+ AI Client prompt builder (stub).
+	 *
+	 * Returned by wp_ai_client_prompt(). All configuration methods return
+	 * `static` to support fluent chaining.
+	 *
+	 * @since 7.0.0
+	 */
+	class WP_AI_Client_Prompt_Builder {
+
+		/**
+		 * Constructor.
+		 *
+		 * @param string $prompt Initial prompt text.
+		 */
+		public function __construct( string $prompt = '' ) {}
+
+		/**
+		 * Set the system instruction for this prompt.
+		 *
+		 * @param string $instruction System instruction text.
+		 * @return static
+		 */
+		public function using_system_instruction( string $instruction ): static { return $this; }
+
+		/**
+		 * Set the sampling temperature.
+		 *
+		 * @param float $temperature Temperature value (0.0–1.0).
+		 * @return static
+		 */
+		public function using_temperature( float $temperature ): static { return $this; }
+
+		/**
+		 * Set the number of response candidates to generate.
+		 *
+		 * @param int $count Candidate count.
+		 * @return static
+		 */
+		public function using_candidate_count( int $count ): static { return $this; }
+
+		/**
+		 * Set a model preference by model ID string.
+		 *
+		 * @param string $model_id Model identifier.
+		 * @return static
+		 */
+		public function using_model_preference( string $model_id ): static { return $this; }
+
+		/**
+		 * Set the model object (from ModelRegistry::getProviderModel()).
+		 *
+		 * @param mixed $model Model instance.
+		 * @return static
+		 */
+		public function using_model( mixed $model ): static { return $this; }
+
+		/**
+		 * Set the provider by provider ID.
+		 *
+		 * @param string $provider_id Provider identifier.
+		 * @return static
+		 */
+		public function using_provider( string $provider_id ): static { return $this; }
+
+		/**
+		 * Set the maximum number of output tokens.
+		 *
+		 * @param int $tokens Token limit.
+		 * @return static
+		 */
+		public function using_max_tokens( int $tokens ): static { return $this; }
+
+		/**
+		 * Register abilities (tools) available to the model.
+		 *
+		 * @param WP_Ability ...$abilities Ability instances.
+		 * @return static
+		 */
+		public function using_abilities( WP_Ability ...$abilities ): static { return $this; }
+
+		/**
+		 * Provide conversation history.
+		 *
+		 * @param \WordPress\AiClient\Messages\DTO\Message ...$history History messages.
+		 * @return static
+		 */
+		public function with_history( \WordPress\AiClient\Messages\DTO\Message ...$history ): static { return $this; }
+
+		/**
+		 * Attach a file (data URI) to the prompt.
+		 *
+		 * @param string $file Data URI string.
+		 * @return static
+		 */
+		public function with_file( string $file ): static { return $this; }
+
+		/**
+		 * Request a structured JSON response conforming to the given schema.
+		 *
+		 * @param mixed $schema JSON Schema array or object.
+		 * @return static
+		 */
+		public function as_json_response( mixed $schema ): static { return $this; }
+
+		/**
+		 * Generate a single text response.
+		 *
+		 * @return string|\WP_Error
+		 */
+		public function generate_text(): string|\WP_Error { return ''; }
+
+		/**
+		 * Generate multiple candidate text responses.
+		 *
+		 * @return string[]|\WP_Error
+		 */
+		public function generate_texts(): array|\WP_Error { return array(); }
+
+		/**
+		 * Generate a response and return the full GenerativeAiResult object.
+		 *
+		 * @return \WordPress\AiClient\Results\DTO\GenerativeAiResult|\WP_Error
+		 */
+		public function generate_text_result(): \WordPress\AiClient\Results\DTO\GenerativeAiResult|\WP_Error {
+			return new \WordPress\AiClient\Results\DTO\GenerativeAiResult();
+		}
+	}
+
+	/**
+	 * Create a new WP AI Client prompt builder.
+	 *
+	 * Returns a fluent WP_AI_Client_Prompt_Builder instance pre-configured
+	 * with the given prompt text. Call configuration methods and then one
+	 * of the generate_*() methods to send the request.
+	 *
+	 * @since 7.0.0
+	 *
+	 * @param string $prompt Initial prompt text (optional — may also be set
+	 *                       via using_system_instruction()).
+	 * @return WP_AI_Client_Prompt_Builder
+	 */
+	function wp_ai_client_prompt( string $prompt = '' ): WP_AI_Client_Prompt_Builder {
+		return new WP_AI_Client_Prompt_Builder( $prompt );
+	}
 }

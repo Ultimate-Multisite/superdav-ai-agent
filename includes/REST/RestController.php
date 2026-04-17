@@ -305,6 +305,9 @@ Assistant: %s',
 			}
 
 			$result    = $builder->generate_text_result();
+			if ( is_wp_error( $result ) ) {
+				return $fallback;
+			}
 			$raw_title = $result->toText();
 		} catch ( \Throwable $e ) {
 			return $fallback;

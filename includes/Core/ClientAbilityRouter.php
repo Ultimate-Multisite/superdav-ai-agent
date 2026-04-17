@@ -18,7 +18,7 @@ use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
 
-class ClientAbilityRouter {
+final class ClientAbilityRouter {
 
 	/**
 	 * @param list<array<string, mixed>> $client_abilities Validated client-side ability descriptors.
@@ -34,7 +34,7 @@ class ClientAbilityRouter {
 	 * @param list<array<string, mixed>> $raw_descriptors Unvalidated descriptors from the request.
 	 * @return static A new instance with validated descriptors.
 	 */
-	public static function from_raw( array $raw_descriptors ): static {
+	public static function from_raw( array $raw_descriptors ): self {
 		$catalog   = JsAbilityCatalog::get_descriptors_by_name();
 		$validated = array();
 
@@ -49,7 +49,7 @@ class ClientAbilityRouter {
 			}
 		}
 
-		return new static( $validated );
+		return new self( $validated );
 	}
 
 	/**

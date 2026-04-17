@@ -212,6 +212,17 @@ parameters:
 		# expects array<string, mixed>. The value is always an array at runtime.
 		- message: '#\$settings of method GratisAiAgent\\Core\\AgentLoop::build_system_instruction\(\) expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
+		# AgentLoop (t193 extraction): focused service objects receive properties assigned from
+		# Settings::get() (returns mixed) and $options[] accesses (mixed). All values are correctly
+		# typed arrays at runtime — Settings::get() returns array<string,mixed> when called with no key.
+		- message: '#\$page_context of class GratisAiAgent\\Core\\SystemInstructionBuilder constructor expects array<string, mixed>, mixed given#'
+		  identifier: argument.type
+		- message: '#\$tool_permissions of class GratisAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
+		  identifier: argument.type
+		- message: '#\$raw_descriptors of static method GratisAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
+		  identifier: argument.type
+		- message: '#\$settings of method GratisAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
+		  identifier: argument.type
 		# McpController: $arguments is array<mixed> from request params; execute() expects
 		# array<string, mixed>|null. Keys are always strings at runtime (JSON object keys).
 		- message: '#\$args of method WP_Ability::execute\(\) expects array<string, mixed>\|null, array<mixed>\|null given#'

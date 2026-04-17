@@ -511,6 +511,19 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 			{ timeout: 30_000 }
 		);
 
+		// Wait for the store to finish sending (sending=false). The TTS
+		// effect only fires when sending is false, so we need to ensure the
+		// full job-completion state transition (setCurrentSession →
+		// setSending(false)) has been processed by React before polling for
+		// speak calls. The message input being enabled is a reliable proxy.
+		await expect(
+			page
+				.locator(
+					'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-input'
+				)
+				.first()
+		).toBeEnabled( { timeout: 15_000 } );
+
 		// Verify that speak() was called on the mock.
 		// TTS fires asynchronously after the stream completes (the useEffect
 		// in MessageList waits for sending=false + last message role=model),

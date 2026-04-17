@@ -29,6 +29,10 @@ require_once $plugin_dir . '/vendor/autoload.php';
 ( static function (): void {
 	$refl = new ReflectionProperty( XWP_Context::class, 'current' );
 	$refl->setValue( null, XWP_Context::REST );
+
+	// Debug: verify the override sticks.
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Temporary debug.
+	error_log( 'BOOTSTRAP: XWP_Context pre-set to ' . XWP_Context::get() . ' (expected ' . XWP_Context::REST . ')' );
 } )();
 
 $_tests_dir = getenv('WP_TESTS_DIR');
@@ -74,3 +78,7 @@ tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 
 // Start up the WP testing environment.
 require "{$_tests_dir}/includes/bootstrap.php";
+
+// Debug: verify context survived WP bootstrap.
+// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Temporary debug.
+error_log( 'POST-BOOT: XWP_Context::get() = ' . XWP_Context::get() . ', validate(REST) = ' . ( XWP_Context::validate( XWP_Context::REST ) ? 'true' : 'false' ) . ', is_admin() = ' . ( is_admin() ? 'true' : 'false' ) );

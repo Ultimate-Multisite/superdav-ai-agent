@@ -3,7 +3,7 @@
         'name' => 'ultimate-multisite/ai-agent',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '29a8fd8bce47423975cd6618b2aad18d9f77de39',
+        'reference' => 'bd19dba2eafed072d5e53dc13bcf68298dd77f60',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -119,7 +119,7 @@
         'ultimate-multisite/ai-agent' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '29a8fd8bce47423975cd6618b2aad18d9f77de39',
+            'reference' => 'bd19dba2eafed072d5e53dc13bcf68298dd77f60',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -31,10 +31,10 @@ class ClientAbilityRouter {
 	 * Only accepts names that exist in JsAbilityCatalog to prevent the client
 	 * from injecting arbitrary ability names into the model's tool list.
 	 *
-	 * @param list<array<string, mixed>> $raw_descriptors Unvalidated descriptors from the request.
-	 * @return static A new instance with validated descriptors.
+	 * @param array<int|string, mixed> $raw_descriptors Unvalidated descriptors from the request.
+	 * @return self A new instance with validated descriptors.
 	 */
-	public static function from_raw( array $raw_descriptors ): static {
+	public static function from_raw( array $raw_descriptors ): self {
 		$catalog   = JsAbilityCatalog::get_descriptors_by_name();
 		$validated = array();
 
@@ -49,7 +49,7 @@ class ClientAbilityRouter {
 			}
 		}
 
-		return new static( $validated );
+		return new self( $validated );
 	}
 
 	/**

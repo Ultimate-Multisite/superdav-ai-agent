@@ -23,9 +23,9 @@ use GratisAiAgent\Tools\ToolDiscovery;
 class SystemInstructionBuilder {
 
 	/**
-	 * @param string               $model_id     Current AI model ID (for weak-model nudges).
-	 * @param string               $user_message User's message (for knowledge context RAG).
-	 * @param array<string, mixed> $page_context Page context from the widget.
+	 * @param string                   $model_id     Current AI model ID (for weak-model nudges).
+	 * @param string                   $user_message User's message (for knowledge context RAG).
+	 * @param array<int|string, mixed> $page_context Page context from the widget.
 	 */
 	public function __construct(
 		private string $model_id = '',

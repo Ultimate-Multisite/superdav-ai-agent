@@ -6,10 +6,7 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    '6124b4c8570aa390c21fafd04a26c69f' => $vendorDir . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
     'b33e3d135e5d9e47d845c576147bda89' => $vendorDir . '/php-di/php-di/src/functions.php',
-    '9b38cf48e83f5d8f60375221cd213eee' => $vendorDir . '/phpstan/phpstan/bootstrap.php',
-    'ec07570ca5a812141189b1fa81503674' => $vendorDir . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
     '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => $vendorDir . '/symfony/polyfill-mbstring/bootstrap.php',
     '23c18046f52bef3eea034657bafda50f' => $vendorDir . '/symfony/polyfill-php81/bootstrap.php',
     'e7e6bab1ed2be1042591496e1ad3e230' => $vendorDir . '/x-wp/helper-functions/xwp-helper-fns-arr.php',
@@ -19,5 +16,4 @@ return array(
     '6c427d7d289e1cfc9c7756e71133bee6' => $vendorDir . '/x-wp/helper-functions/xwp-helper-fns.php',
     '89887658aecc79fae17e75f8e6949680' => $vendorDir . '/x-wp/di/src/Functions/xwp-di-container-fns.php',
     '289d5db207f260edee5d940f2b0874b1' => $vendorDir . '/x-wp/di/src/Functions/xwp-di-helper-fns.php',
-    '7d3b315c4f303f2fc14aca642a738e50' => $vendorDir . '/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php',
 );

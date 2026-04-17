@@ -18,7 +18,7 @@ use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
 
-class ClientAbilityRouter {
+final class ClientAbilityRouter {
 
 	/**
 	 * @param list<array<string, mixed>> $client_abilities Validated client-side ability descriptors.

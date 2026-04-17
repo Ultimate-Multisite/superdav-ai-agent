@@ -109,8 +109,8 @@ class SkillTest extends WP_UnitTestCase {
 		$this->assertSame( 'Stored Skill', $skill->name );
 		$this->assertSame( 'A stored description', $skill->description );
 		$this->assertSame( 'Stored content', $skill->content );
-		$this->assertSame( '1', (string) $skill->enabled );
-		$this->assertSame( '0', (string) $skill->is_builtin );
+		$this->assertTrue( $skill->enabled );
+		$this->assertFalse( $skill->is_builtin );
 	}
 
 	/**
@@ -121,7 +121,7 @@ class SkillTest extends WP_UnitTestCase {
 		$skill = Skill::get( $id );
 
 		$this->assertNotNull( $skill );
-		$this->assertSame( '1', (string) $skill->enabled );
+		$this->assertTrue( $skill->enabled );
 	}
 
 	// ─── get() ───────────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ class SkillTest extends WP_UnitTestCase {
 
 		$skill = Skill::get( $id );
 		$this->assertNotNull( $skill );
-		$this->assertSame( '0', (string) $skill->enabled );
+		$this->assertFalse( $skill->enabled );
 	}
 
 	// ─── delete() ────────────────────────────────────────────────────────────

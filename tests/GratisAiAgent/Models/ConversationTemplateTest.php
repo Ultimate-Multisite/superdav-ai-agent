@@ -184,7 +184,7 @@ class ConversationTemplateTest extends WP_UnitTestCase {
 		$this->assertSame( 'Custom prompt text', $template->prompt );
 		$this->assertSame( 'writing', $template->category );
 		$this->assertSame( 'edit', $template->icon );
-		$this->assertSame( '0', (string) $template->is_builtin );
+		$this->assertFalse( $template->is_builtin );
 	}
 
 	/**

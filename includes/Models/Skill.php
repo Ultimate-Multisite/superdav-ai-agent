@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Models;
 
+use GratisAiAgent\Models\DTO\SkillRow;
+
 class Skill {
 
 	/**
@@ -25,7 +27,7 @@ class Skill {
 	 * Get all skills, optionally filtered by enabled status.
 	 *
 	 * @param bool|null $enabled Filter by enabled status (null = all).
-	 * @return list<object>|null
+	 * @return list<SkillRow>|null
 	 */
 	public static function get_all( ?bool $enabled = null ): ?array {
 		global $wpdb;
@@ -35,62 +37,72 @@ class Skill {
 
 		if ( null !== $enabled ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			return $wpdb->get_results(
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i WHERE enabled = %d ORDER BY name ASC',
 					$table,
 					$enabled ? 1 : 0
 				)
 			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i ORDER BY name ASC',
+					$table
+				)
+			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i ORDER BY name ASC',
-				$table
-			)
-		);
+		if ( null === $rows ) {
+			return null;
+		}
+
+		return array_map( [ SkillRow::class, 'from_row' ], $rows );
 	}
 
 	/**
 	 * Get a single skill by ID.
 	 *
 	 * @param int $id Skill ID.
-	 * @return object|null
+	 * @return SkillRow|null
 	 */
-	public static function get( int $id ) {
+	public static function get( int $id ): ?SkillRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$id
 			)
 		);
+
+		return $row instanceof \stdClass ? SkillRow::from_row( $row ) : null;
 	}
 
 	/**
 	 * Get a single skill by slug.
 	 *
 	 * @param string $slug Skill slug.
-	 * @return object|null
+	 * @return SkillRow|null
 	 */
-	public static function get_by_slug( string $slug ) {
+	public static function get_by_slug( string $slug ): ?SkillRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE slug = %s',
 				self::table_name(),
 				$slug
 			)
 		);
+
+		return $row instanceof \stdClass ? SkillRow::from_row( $row ) : null;
 	}
 
 	/**
@@ -198,7 +210,7 @@ class Skill {
 			return false;
 		}
 
-		if ( (int) $skill->is_builtin === 1 ) {
+		if ( $skill->is_builtin ) {
 			return 'builtin';
 		}
 
@@ -221,7 +233,7 @@ class Skill {
 	public static function reset_builtin( int $id ): bool {
 		$skill = self::get( $id );
 
-		if ( ! $skill || (int) $skill->is_builtin !== 1 ) {
+		if ( ! $skill || ! $skill->is_builtin ) {
 			return false;
 		}
 
@@ -260,7 +272,6 @@ class Skill {
 
 		$lines = [];
 		foreach ( $skills as $skill ) {
-			// @phpstan-ignore-next-line
 			$lines[] = "- {$skill->slug}: {$skill->description}";
 		}
 

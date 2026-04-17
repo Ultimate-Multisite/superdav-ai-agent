@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Models;
 
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Models\DTO\ProviderTraceRow;
 
 class ProviderTrace {
 
@@ -228,27 +229,29 @@ class ProviderTrace {
 	 * Get a single trace record by ID.
 	 *
 	 * @param int $id Trace ID.
-	 * @return object|null Trace row or null.
+	 * @return ProviderTraceRow|null Typed DTO or null when not found.
 	 */
-	public static function get( int $id ) {
+	public static function get( int $id ): ?ProviderTraceRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$id
 			)
 		);
+
+		return $row instanceof \stdClass ? ProviderTraceRow::from_row( $row ) : null;
 	}
 
 	/**
 	 * List trace records with optional filters.
 	 *
 	 * @param array<string, mixed> $filters Optional: provider_id, status_code, errors_only, limit, offset.
-	 * @return list<object> Array of trace rows.
+	 * @return list<ProviderTraceRow> Array of trace row DTOs.
 	 */
 	public static function list( array $filters = [] ): array {
 		global $wpdb;
@@ -289,7 +292,7 @@ class ProviderTrace {
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
-		return $rows ?? [];
+		return array_map( [ ProviderTraceRow::class, 'from_row' ], $rows ?? [] );
 	}
 
 	/**
@@ -343,19 +346,19 @@ class ProviderTrace {
 	/**
 	 * Generate a curl command for reproducing a trace request.
 	 *
-	 * @param object $trace Trace row object.
+	 * @param ProviderTraceRow $trace Typed trace DTO.
 	 * @return string Curl command string.
 	 */
-	public static function to_curl( object $trace ): string {
+	public static function to_curl( ProviderTraceRow $trace ): string {
 		$parts = [ 'curl' ];
 
-		$method = strtoupper( $trace->method ?? 'POST' );
+		$method = strtoupper( $trace->method );
 		if ( 'GET' !== $method ) {
 			$parts[] = '-X ' . escapeshellarg( $method );
 		}
 
 		// Parse headers (stored as JSON).
-		$headers = json_decode( $trace->request_headers ?? '{}', true );
+		$headers = json_decode( $trace->request_headers, true );
 		if ( is_array( $headers ) ) {
 			foreach ( $headers as $name => $value ) {
 				// Skip authorization headers — they're redacted anyway.
@@ -364,7 +367,7 @@ class ProviderTrace {
 		}
 
 		// Add body if present.
-		$body = $trace->request_body ?? '';
+		$body = $trace->request_body;
 		if ( '' !== $body ) {
 			// Try to pretty-print JSON for readability.
 			$decoded = json_decode( $body, true );
@@ -374,7 +377,7 @@ class ProviderTrace {
 			$parts[] = '-d ' . escapeshellarg( $body );
 		}
 
-		$parts[] = escapeshellarg( $trace->url ?? '' );
+		$parts[] = escapeshellarg( $trace->url );
 
 		return implode( " \\\n  ", $parts );
 	}

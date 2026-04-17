@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Models;
 
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Models\DTO\ChangesLogRow;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -120,20 +121,22 @@ class ChangesLog {
 	 * Get a single change record by ID.
 	 *
 	 * @param int $id Change log ID.
-	 * @return object|null Row object or null.
+	 * @return ChangesLogRow|null Typed DTO or null when not found.
 	 */
-	public static function get( int $id ): ?object {
+	public static function get( int $id ): ?ChangesLogRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				Database::changes_log_table_name(),
 				$id
 			)
-		) ?: null;
+		);
+
+		return $row instanceof \stdClass ? ChangesLogRow::from_row( $row ) : null;
 	}
 
 	/**

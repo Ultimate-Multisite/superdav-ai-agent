@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Models;
 
+use GratisAiAgent\Models\DTO\ConversationTemplateRow;
+
 class ConversationTemplate {
 
 	/**
@@ -195,20 +197,22 @@ class ConversationTemplate {
 	 * Get a single template by ID.
 	 *
 	 * @param int $id Template ID.
-	 * @return object|null
+	 * @return ConversationTemplateRow|null
 	 */
-	public static function get( int $id ) {
+	public static function get( int $id ): ?ConversationTemplateRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$id
 			)
 		);
+
+		return $row instanceof \stdClass ? ConversationTemplateRow::from_row( $row ) : null;
 	}
 
 	/**
@@ -304,7 +308,7 @@ class ConversationTemplate {
 		}
 
 		// Prevent deletion of built-in templates.
-		if ( (int) $template->is_builtin === 1 ) {
+		if ( $template->is_builtin ) {
 			return false;
 		}
 

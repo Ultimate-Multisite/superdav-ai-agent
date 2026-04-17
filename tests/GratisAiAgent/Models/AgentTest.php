@@ -102,7 +102,7 @@ class AgentTest extends WP_UnitTestCase {
 		$this->assertSame( 'default', $agent->tool_profile );
 		$this->assertSame( 'Hello!', $agent->greeting );
 		$this->assertSame( 'admin-users', $agent->avatar_icon );
-		$this->assertSame( '1', (string) $agent->enabled );
+		$this->assertTrue( $agent->enabled );
 	}
 
 	/**
@@ -114,7 +114,7 @@ class AgentTest extends WP_UnitTestCase {
 
 		$agent = Agent::get( $id );
 		$this->assertNotNull( $agent );
-		$this->assertSame( '1', (string) $agent->enabled );
+		$this->assertTrue( $agent->enabled );
 	}
 
 	// ─── get() ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ class AgentTest extends WP_UnitTestCase {
 
 		$agent = Agent::get( $id );
 		$this->assertNotNull( $agent );
-		$this->assertSame( '0', (string) $agent->enabled );
+		$this->assertFalse( $agent->enabled );
 	}
 
 	// ─── delete() ────────────────────────────────────────────────────────────

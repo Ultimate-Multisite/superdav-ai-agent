@@ -105,7 +105,7 @@ class ChangesLogTest extends WP_UnitTestCase {
 		$this->assertSame( 'post_title', $record->field_name );
 		$this->assertSame( 'Old Title', $record->before_value );
 		$this->assertSame( 'New Title', $record->after_value );
-		$this->assertSame( '0', (string) $record->reverted );
+		$this->assertFalse( $record->reverted );
 	}
 
 	// ─── get() ───────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ class ChangesLogTest extends WP_UnitTestCase {
 
 		$record = ChangesLog::get( $id );
 		$this->assertNotNull( $record );
-		$this->assertSame( '1', (string) $record->reverted );
+		$this->assertTrue( $record->reverted );
 	}
 
 	/**

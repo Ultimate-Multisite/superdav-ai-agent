@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Models;
 
+use GratisAiAgent\Models\DTO\MemoryRow;
+
 class Memory {
 
 	/**
@@ -30,7 +32,7 @@ class Memory {
 	 * Get all memories, optionally filtered by category.
 	 *
 	 * @param string|null $category Optional category filter.
-	 * @return list<object>|null
+	 * @return list<MemoryRow>|null
 	 */
 	public static function get_all( ?string $category = null ): ?array {
 		global $wpdb;
@@ -40,29 +42,35 @@ class Memory {
 
 		if ( $category ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			return $wpdb->get_results(
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i WHERE category = %s ORDER BY updated_at DESC',
 					$table,
 					$category
 				)
 			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i ORDER BY category ASC, updated_at DESC',
+					$table
+				)
+			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i ORDER BY category ASC, updated_at DESC',
-				$table
-			)
-		);
+		if ( null === $rows ) {
+			return null;
+		}
+
+		return array_map( [ MemoryRow::class, 'from_row' ], $rows );
 	}
 
 	/**
 	 * Get memories by category.
 	 *
 	 * @param string $category Category name.
-	 * @return list<object>|null
+	 * @return list<MemoryRow>|null
 	 */
 	public static function get_by_category( string $category ): ?array {
 		return self::get_all( $category );
@@ -156,7 +164,7 @@ class Memory {
 	 *
 	 * @param string $query Search query.
 	 * @param int    $limit Max results.
-	 * @return list<object>
+	 * @return list<MemoryRow>
 	 */
 	public static function search( string $query, int $limit = 20 ): array {
 		global $wpdb;
@@ -195,7 +203,7 @@ class Memory {
 			)
 		);
 
-		return $results ?: [];
+		return array_map( [ MemoryRow::class, 'from_row' ], $results ?: [] );
 	}
 
 	/**
@@ -213,8 +221,7 @@ class Memory {
 
 		$deleted = 0;
 		foreach ( $matches as $memory ) {
-			// @phpstan-ignore-next-line
-			if ( self::delete( (int) $memory->id ) ) {
+			if ( self::delete( $memory->id ) ) {
 				++$deleted;
 			}
 		}
@@ -240,7 +247,6 @@ class Memory {
 		// Group by category.
 		$grouped = [];
 		foreach ( $all as $memory ) {
-			// @phpstan-ignore-next-line
 			$grouped[ $memory->category ][] = $memory->content;
 		}
 

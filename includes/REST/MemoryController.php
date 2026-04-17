@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Models\Memory;
+use GratisAiAgent\Models\DTO\MemoryRow;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -55,21 +56,15 @@ final class MemoryController extends XWP_REST_Controller {
 	)]
 	public function handle_list_memory( WP_REST_Request $request ): WP_REST_Response {
 		$category = $request->get_param( 'category' );
-		// @phpstan-ignore-next-line
-		$memories = Memory::get_all( $category ?: null );
+		$memories = Memory::get_all( is_string( $category ) ? $category : null ) ?? [];
 
 		$list = array_map(
-			function ( $m ) {
+			function ( MemoryRow $m ) {
 				return array(
-					// @phpstan-ignore-next-line
-					'id'         => (int) $m->id,
-					// @phpstan-ignore-next-line
+					'id'         => $m->id,
 					'category'   => $m->category,
-					// @phpstan-ignore-next-line
 					'content'    => $m->content,
-					// @phpstan-ignore-next-line
 					'created_at' => $m->created_at,
-					// @phpstan-ignore-next-line
 					'updated_at' => $m->updated_at,
 				);
 			},

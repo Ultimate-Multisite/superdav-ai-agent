@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Models;
 
+use GratisAiAgent\Models\DTO\AgentRow;
+
 class Agent {
 
 	/**
@@ -31,7 +33,7 @@ class Agent {
 	 * Get all agents, optionally filtered by enabled status.
 	 *
 	 * @param bool|null $enabled Filter by enabled status (null = all).
-	 * @return array<int, object>
+	 * @return list<AgentRow>
 	 */
 	public static function get_all( ?bool $enabled = null ): array {
 		global $wpdb;
@@ -41,7 +43,7 @@ class Agent {
 
 		if ( null !== $enabled ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			$results = $wpdb->get_results(
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i WHERE enabled = %d ORDER BY name ASC',
 					$table,
@@ -50,7 +52,7 @@ class Agent {
 			);
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-			$results = $wpdb->get_results(
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i ORDER BY name ASC',
 					$table
@@ -58,47 +60,51 @@ class Agent {
 			);
 		}
 
-		return $results ?: [];
+		return array_map( [ AgentRow::class, 'from_row' ], $rows ?: [] );
 	}
 
 	/**
 	 * Get a single agent by ID.
 	 *
 	 * @param int $id Agent ID.
-	 * @return object|null
+	 * @return AgentRow|null
 	 */
-	public static function get( int $id ): ?object {
+	public static function get( int $id ): ?AgentRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				self::table_name(),
 				$id
 			)
-		) ?: null;
+		);
+
+		return $row instanceof \stdClass ? AgentRow::from_row( $row ) : null;
 	}
 
 	/**
 	 * Get a single agent by slug.
 	 *
 	 * @param string $slug Agent slug.
-	 * @return object|null
+	 * @return AgentRow|null
 	 */
-	public static function get_by_slug( string $slug ): ?object {
+	public static function get_by_slug( string $slug ): ?AgentRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE slug = %s',
 				self::table_name(),
 				$slug
 			)
-		) ?: null;
+		);
+
+		return $row instanceof \stdClass ? AgentRow::from_row( $row ) : null;
 	}
 
 	/**
@@ -277,7 +283,7 @@ class Agent {
 	public static function get_loop_options( int $agent_id ): array {
 		$agent = self::get( $agent_id );
 
-		if ( ! $agent || ! (int) $agent->enabled ) {
+		if ( ! $agent || ! $agent->enabled ) {
 			return [];
 		}
 
@@ -292,11 +298,11 @@ class Agent {
 		if ( ! empty( $agent->model_id ) ) {
 			$options['model_id'] = $agent->model_id;
 		}
-		if ( null !== $agent->temperature && '' !== $agent->temperature ) {
-			$options['temperature'] = (float) $agent->temperature;
+		if ( null !== $agent->temperature ) {
+			$options['temperature'] = $agent->temperature;
 		}
-		if ( null !== $agent->max_iterations && '' !== $agent->max_iterations ) {
-			$options['max_iterations'] = (int) $agent->max_iterations;
+		if ( null !== $agent->max_iterations ) {
+			$options['max_iterations'] = $agent->max_iterations;
 		}
 
 		return $options;
@@ -305,12 +311,12 @@ class Agent {
 	/**
 	 * Serialize an agent row for REST API output.
 	 *
-	 * @param object $agent Raw DB row.
+	 * @param AgentRow $agent Typed agent DTO.
 	 * @return array<string, mixed>
 	 */
-	public static function to_array( object $agent ): array {
+	public static function to_array( AgentRow $agent ): array {
 		return [
-			'id'             => (int) $agent->id,
+			'id'             => $agent->id,
 			'slug'           => $agent->slug,
 			'name'           => $agent->name,
 			'description'    => $agent->description,
@@ -318,11 +324,11 @@ class Agent {
 			'provider_id'    => $agent->provider_id,
 			'model_id'       => $agent->model_id,
 			'tool_profile'   => $agent->tool_profile,
-			'temperature'    => null !== $agent->temperature ? (float) $agent->temperature : null,
-			'max_iterations' => null !== $agent->max_iterations ? (int) $agent->max_iterations : null,
+			'temperature'    => $agent->temperature,
+			'max_iterations' => $agent->max_iterations,
 			'greeting'       => $agent->greeting,
 			'avatar_icon'    => $agent->avatar_icon,
-			'enabled'        => (bool) $agent->enabled,
+			'enabled'        => $agent->enabled,
 			'created_at'     => $agent->created_at,
 			'updated_at'     => $agent->updated_at,
 		];

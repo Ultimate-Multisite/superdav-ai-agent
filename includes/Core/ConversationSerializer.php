@@ -24,7 +24,7 @@ class ConversationSerializer {
 	 * Serialize conversation history to transportable arrays.
 	 *
 	 * @param Message[] $history The conversation history.
-	 * @return array<int, array<string, mixed>>
+	 * @return list<array<string, mixed>>
 	 */
 	public static function serialize( array $history ): array {
 		return array_values(

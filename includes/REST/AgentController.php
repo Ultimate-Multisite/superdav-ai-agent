@@ -12,6 +12,8 @@ namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Models\Agent;
 use GratisAiAgent\Models\ConversationTemplate;
+use GratisAiAgent\Models\DTO\AgentRow;
+use GratisAiAgent\Models\DTO\ConversationTemplateRow;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -298,15 +300,15 @@ final class AgentController {
 	public function handle_list_agents(): WP_REST_Response {
 		$agents = Agent::get_all();
 		$list   = array_map(
-			static function ( object $agent ): array {
+			static function ( AgentRow $agent ): array {
 				return array(
-					'id'          => (int) $agent->id,
+					'id'          => $agent->id,
 					'slug'        => $agent->slug,
 					'name'        => $agent->name,
 					'description' => $agent->description,
 					'avatar_icon' => $agent->avatar_icon,
 					'greeting'    => $agent->greeting,
-					'enabled'     => (bool) $agent->enabled,
+					'enabled'     => $agent->enabled,
 				);
 			},
 			$agents

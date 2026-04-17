@@ -12,6 +12,7 @@ namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Models\ChangesLog;
+use GratisAiAgent\Services\ChangeRevertService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -25,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Manages changes, modified-plugins, and download endpoints via REST.
+ *
+ * Revert domain logic is delegated to ChangeRevertService.
  *
  * Uses #[Handler] + #[Action] because this controller serves multiple
  * basenames (/changes, /modified-plugins, /download-plugin, /plugins).
@@ -301,7 +304,7 @@ final class ChangesController {
 			return new WP_Error( 'already_reverted', __( 'This change has already been reverted.', 'gratis-ai-agent' ), array( 'status' => 409 ) );
 		}
 
-		$result = $this->apply_revert( $change );
+		$result = ChangeRevertService::apply_revert( $change );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -317,78 +320,6 @@ final class ChangesController {
 			),
 			200
 		);
-	}
-
-	/**
-	 * Apply the revert operation for a change record.
-	 *
-	 * @param object $change Change record row.
-	 * @return true|WP_Error True on success, WP_Error on failure.
-	 */
-	private function apply_revert( object $change ) {
-		switch ( $change->object_type ) {
-			case 'post':
-				$result = wp_update_post(
-					array(
-						'ID'                => (int) $change->object_id,
-						$change->field_name => $change->before_value,
-					),
-					true
-				);
-				if ( is_wp_error( $result ) ) {
-					return $result;
-				}
-				return true;
-
-			case 'option':
-				update_option( $change->field_name, $change->before_value );
-				return true;
-
-			case 'term':
-				$result = wp_update_term(
-					(int) $change->object_id,
-					$change->field_name,
-					array( 'name' => $change->before_value )
-				);
-				if ( is_wp_error( $result ) ) {
-					return $result;
-				}
-				return true;
-
-			case 'user':
-				$result = wp_update_user(
-					array(
-						'ID'                => (int) $change->object_id,
-						$change->field_name => $change->before_value,
-					)
-				);
-				if ( is_wp_error( $result ) ) {
-					return $result;
-				}
-				return true;
-
-			default:
-				/**
-				 * Allow third-party code to handle revert for custom object types.
-				 *
-				 * @param true|WP_Error $result  Default WP_Error (unhandled).
-				 * @param object        $change  Change record row.
-				 */
-				$result = apply_filters(
-					'gratis_ai_agent_revert_change',
-					new WP_Error(
-						'unsupported_object_type',
-						sprintf(
-							/* translators: %s: object type slug */
-							__( 'Revert is not supported for object type "%s".', 'gratis-ai-agent' ),
-							$change->object_type
-						),
-						array( 'status' => 422 )
-					),
-					$change
-				);
-				return $result;
-		}
 	}
 
 	/**

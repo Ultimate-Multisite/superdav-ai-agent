@@ -15,135 +15,43 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\REST_Handler;
+use XWP\DI\Decorators\REST_Route;
+use XWP_REST_Controller;
 
-class SkillController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages agent skills via REST.
+ *
+ * Endpoints:
+ *  GET    /skills            — list all skills
+ *  POST   /skills            — create a custom skill
+ *  PATCH  /skills/{id}       — update a skill
+ *  DELETE /skills/{id}       — delete a custom skill
+ *  POST   /skills/{id}/reset — reset a built-in skill to defaults
+ */
+#[REST_Handler(
+	namespace: RestController::NAMESPACE,
+	basename: 'skills',
+	container: 'gratis-ai-agent',
+)]
+final class SkillController extends XWP_REST_Controller {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
-
-	/**
-	 * Register REST routes.
-	 */
-	public static function register_routes(): void {
-		$instance = new self();
-
-		// Skills endpoints.
-		register_rest_route(
-			self::NAMESPACE,
-			'/skills',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_skills' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_skill' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'slug'        => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_title',
-						),
-						'name'        => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'description' => array(
-							'required'          => false,
-							'type'              => 'string',
-							'default'           => '',
-							'sanitize_callback' => 'sanitize_textarea_field',
-						),
-						'content'     => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'wp_kses_post',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/skills/(?P<id>\d+)',
-			array(
-				array(
-					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_skill' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'id'          => array(
-							'required'          => true,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-						'name'        => array(
-							'required'          => false,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'description' => array(
-							'required'          => false,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_textarea_field',
-						),
-						'content'     => array(
-							'required'          => false,
-							'type'              => 'string',
-							'sanitize_callback' => 'wp_kses_post',
-						),
-						'enabled'     => array(
-							'required' => false,
-							'type'     => 'boolean',
-						),
-					),
-				),
-				array(
-					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_skill' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'id' => array(
-							'required'          => true,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/skills/(?P<id>\d+)/reset',
-			array(
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_reset_skill' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'id' => array(
-							'required'          => true,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-					),
-				),
-			)
-		);
-	}
 
 	/**
 	 * Handle GET /skills — list all skills.
 	 *
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::READABLE,
+		guard: 'check_permission',
+	)]
 	public function handle_list_skills(): WP_REST_Response {
 		$skills = Skill::get_all();
 
@@ -184,6 +92,12 @@ class SkillController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_create_args',
+		guard: 'check_permission',
+	)]
 	public function handle_create_skill( WP_REST_Request $request ) {
 		$slug = $request->get_param( 'slug' );
 
@@ -246,6 +160,12 @@ class SkillController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)',
+		methods: 'PATCH',
+		vars: 'get_update_args',
+		guard: 'check_permission',
+	)]
 	public function handle_update_skill( WP_REST_Request $request ) {
 		$id   = self::get_int_param( $request, 'id' );
 		$data = array();
@@ -302,6 +222,12 @@ class SkillController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)',
+		methods: WP_REST_Server::DELETABLE,
+		vars: 'get_id_args',
+		guard: 'check_permission',
+	)]
 	public function handle_delete_skill( WP_REST_Request $request ) {
 		$id     = self::get_int_param( $request, 'id' );
 		$result = Skill::delete( $id );
@@ -331,6 +257,12 @@ class SkillController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)/reset',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_id_args',
+		guard: 'check_permission',
+	)]
 	public function handle_reset_skill( WP_REST_Request $request ) {
 		$id    = self::get_int_param( $request, 'id' );
 		$reset = Skill::reset_builtin( $id );
@@ -363,6 +295,86 @@ class SkillController {
 				'updated_at'  => $skill->updated_at,
 			),
 			200
+		);
+	}
+
+	/**
+	 * Schema arguments for POST /skills (create).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_create_args(): array {
+		return array(
+			'slug'        => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_title',
+			),
+			'name'        => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'description' => array(
+				'required'          => false,
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+			'content'     => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'wp_kses_post',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for PATCH /skills/{id} (update).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_update_args(): array {
+		return array(
+			'id'          => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'name'        => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'description' => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+			'content'     => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'wp_kses_post',
+			),
+			'enabled'     => array(
+				'required' => false,
+				'type'     => 'boolean',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for routes that only need an ID parameter.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_id_args(): array {
+		return array(
+			'id' => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
 		);
 	}
 }

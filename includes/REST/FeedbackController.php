@@ -5,10 +5,8 @@ declare(strict_types=1);
  * REST API controller for feedback report sending.
  *
  * Provides two endpoints:
- *   GET  /gratis-ai-agent/v1/feedback/preview — returns sanitized payload for
- *        the consent modal's collapsible "View full payload" section.
- *   POST /gratis-ai-agent/v1/feedback/send    — builds, sanitizes, and forwards
- *        the report to the configured feedback receiver endpoint.
+ *   GET  /feedback/preview — returns sanitized payload for the consent modal.
+ *   POST /feedback/send    — builds, sanitizes, and forwards the report.
  *
  * The API key is held server-side and never exposed to the browser.
  *
@@ -25,100 +23,41 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\REST_Handler;
+use XWP\DI\Decorators\REST_Route;
+use XWP_REST_Controller;
 
-class FeedbackController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages feedback report preview and submission.
+ */
+#[REST_Handler(
+	namespace: RestController::NAMESPACE,
+	basename: 'feedback',
+	container: 'gratis-ai-agent',
+)]
+final class FeedbackController extends XWP_REST_Controller {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
-
-	/**
-	 * Register REST routes.
-	 */
-	public static function register_routes(): void {
-		$instance = new self();
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/feedback/preview',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_preview' ),
-				'permission_callback' => array( $instance, 'check_chat_permission' ),
-				'args'                => array(
-					'session_id'         => array(
-						'required'          => true,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-					),
-					'strip_tool_results' => array(
-						'required' => false,
-						'type'     => 'boolean',
-						'default'  => false,
-					),
-					'message_index'      => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-						'default'           => -1,
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/feedback/send',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_send' ),
-				'permission_callback' => array( $instance, 'check_chat_permission' ),
-				'args'                => array(
-					'report_type'        => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'user_description'   => array(
-						'required'          => false,
-						'type'              => 'string',
-						'default'           => '',
-						'sanitize_callback' => 'sanitize_textarea_field',
-					),
-					'session_id'         => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-					),
-					'strip_tool_results' => array(
-						'required' => false,
-						'type'     => 'boolean',
-						'default'  => false,
-					),
-					'message_index'      => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-						'default'           => -1,
-					),
-				),
-			)
-		);
-	}
 
 	/**
 	 * Handle GET /feedback/preview — return the sanitized payload for modal preview.
 	 *
-	 * Returns:
-	 *   - summary  (message_count, tool_call_count, environment_keys, model_id, …)
-	 *   - payload  (full sanitized report, suitable for JSON display)
-	 *
-	 * When message_index >= 0, only the targeted message ± 2 surrounding messages
+	 * When message_index >= 0, only the targeted message +/- 2 surrounding messages
 	 * are included (thumbs-down scoped context, t186).
 	 *
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: 'preview',
+		methods: WP_REST_Server::READABLE,
+		vars: 'get_preview_args',
+		guard: 'check_chat_permission',
+	)]
 	public function handle_preview( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$session_id         = (int) $request->get_param( 'session_id' );
 		$strip_tool_results = (bool) $request->get_param( 'strip_tool_results' );
@@ -134,7 +73,6 @@ class FeedbackController {
 			);
 		}
 
-		// Build the sanitized payload for the collapsible preview section.
 		$raw_payload = ReportBuilder::build(
 			$session_id,
 			'preview',
@@ -165,12 +103,18 @@ class FeedbackController {
 	/**
 	 * Handle POST /feedback/send — build, sanitize, and forward the report.
 	 *
-	 * When message_index >= 0, only the targeted message ± 2 surrounding messages
+	 * When message_index >= 0, only the targeted message +/- 2 surrounding messages
 	 * are included in the report (thumbs-down scoped context, t186).
 	 *
 	 * @param WP_REST_Request $request REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: 'send',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_send_args',
+		guard: 'check_chat_permission',
+	)]
 	public function handle_send( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$report_type        = (string) $request->get_param( 'report_type' );
 		$user_description   = (string) $request->get_param( 'user_description' );
@@ -178,8 +122,6 @@ class FeedbackController {
 		$strip_tool_results = (bool) $request->get_param( 'strip_tool_results' );
 		$message_index      = (int) $request->get_param( 'message_index' );
 
-		// When a session_id is provided, build a rich payload; otherwise send a
-		// minimal report (for cases where no session is active yet, e.g. onboarding).
 		if ( $session_id > 0 ) {
 			$payload = ReportBuilder::build(
 				$session_id,
@@ -210,7 +152,6 @@ class FeedbackController {
 		$result    = ReportSender::send( $sanitized );
 
 		if ( is_wp_error( $result ) ) {
-			// Map well-known error codes to appropriate HTTP status codes.
 			$http_status = 500;
 			$error_code  = $result->get_error_code();
 
@@ -226,5 +167,68 @@ class FeedbackController {
 		}
 
 		return new WP_REST_Response( array( 'success' => true ), 200 );
+	}
+
+	/**
+	 * Schema arguments for GET /feedback/preview.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_preview_args(): array {
+		return array(
+			'session_id'         => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'strip_tool_results' => array(
+				'required' => false,
+				'type'     => 'boolean',
+				'default'  => false,
+			),
+			'message_index'      => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+				'default'           => -1,
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for POST /feedback/send.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_send_args(): array {
+		return array(
+			'report_type'        => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'user_description'   => array(
+				'required'          => false,
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+			'session_id'         => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'strip_tool_results' => array(
+				'required' => false,
+				'type'     => 'boolean',
+				'default'  => false,
+			),
+			'message_index'      => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+				'default'           => -1,
+			),
+		);
 	}
 }

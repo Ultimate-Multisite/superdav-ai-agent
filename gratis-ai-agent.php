@@ -83,8 +83,6 @@ use GratisAiAgent\Admin\FloatingWidget;
 use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Admin\UnifiedAdminMenu;
-use GratisAiAgent\REST\BenchmarkController;
-use GratisAiAgent\REST\TraceController;
 use GratisAiAgent\Automations\AutomationRunner;
 use GratisAiAgent\Models\GitTrackerManager;
 use GratisAiAgent\Automations\EventTriggerHandler;
@@ -147,8 +145,7 @@ add_action(
 );
 
 add_action( 'rest_api_init', [ RestController::class, 'register_routes' ] );
-add_action( 'rest_api_init', [ BenchmarkController::class, 'register_routes' ] );
-add_action( 'rest_api_init', [ TraceController::class, 'register_routes' ] );
+// BenchmarkController, TraceController, McpController are now DI-managed #[REST_Handler] classes.
 
 // Unified admin menu — single top-level menu with hash-based React routing.
 add_action( 'admin_menu', [ UnifiedAdminMenu::class, 'register' ] );

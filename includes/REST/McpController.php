@@ -27,13 +27,23 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\REST_Handler;
+use XWP\DI\Decorators\REST_Route;
+use XWP_REST_Controller;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
- * McpController class
- *
  * Implements the MCP protocol over a single WordPress REST endpoint.
  */
-class McpController {
+#[REST_Handler(
+	namespace: RestController::NAMESPACE,
+	basename: 'mcp',
+	container: 'gratis-ai-agent',
+)]
+final class McpController extends XWP_REST_Controller {
 
 	/**
 	 * MCP protocol version advertised in responses.
@@ -41,44 +51,11 @@ class McpController {
 	const MCP_PROTOCOL_VERSION = '2024-11-05';
 
 	/**
-	 * Register the /mcp REST route.
-	 */
-	public static function register_routes(): void {
-		register_rest_route(
-			RestController::NAMESPACE,
-			'/mcp',
-			[
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ __CLASS__, 'handle_request' ],
-				'permission_callback' => [ __CLASS__, 'check_permission' ],
-				'args'                => [
-					'method' => [
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-						'description'       => 'MCP method: list_tools or call_tool.',
-					],
-					'params' => [
-						'required' => false,
-						'type'     => 'object',
-						'default'  => [],
-					],
-				],
-			]
-		);
-	}
-
-	/**
 	 * Permission check — requires manage_options capability.
-	 *
-	 * Satisfied by:
-	 *   - Cookie + nonce (browser / admin-ajax)
-	 *   - Application Password (HTTP Basic Auth)
-	 *   - Any other WP auth mechanism that sets the current user
 	 *
 	 * @return bool
 	 */
-	public static function check_permission(): bool {
+	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
 	}
 
@@ -88,7 +65,13 @@ class McpController {
 	 * @param WP_REST_Request $request The REST request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	public static function handle_request( WP_REST_Request $request ) {
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_mcp_args',
+		guard: 'check_permission',
+	)]
+	public function handle_request( WP_REST_Request $request ) {
 		$method = $request->get_param( 'method' );
 		$params = $request->get_param( 'params' );
 
@@ -119,11 +102,28 @@ class McpController {
 	}
 
 	/**
-	 * Handle the list_tools MCP method.
+	 * Schema arguments for POST /mcp.
 	 *
-	 * Returns all registered WordPress abilities as MCP tool definitions.
-	 * Each tool definition includes name, description, and inputSchema
-	 * following the JSON Schema / OpenAI function-calling format.
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_mcp_args(): array {
+		return array(
+			'method' => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+				'description'       => 'MCP method: list_tools or call_tool.',
+			),
+			'params' => array(
+				'required' => false,
+				'type'     => 'object',
+				'default'  => array(),
+			),
+		);
+	}
+
+	/**
+	 * Handle the list_tools MCP method.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -141,9 +141,6 @@ class McpController {
 
 	/**
 	 * Handle the call_tool MCP method.
-	 *
-	 * Executes a named ability with the provided arguments and returns
-	 * the result in MCP tool-result format.
 	 *
 	 * @param array<string, mixed> $params MCP params: { name: string, arguments?: object }.
 	 * @return WP_REST_Response|WP_Error
@@ -171,8 +168,6 @@ class McpController {
 			);
 		}
 
-		// MCP tool names use underscores; ability names use slashes and hyphens.
-		// Convert back: e.g. "ai_agent__memory_save" → "ai-agent/memory-save".
 		$ability_name = self::mcp_name_to_ability_name( $tool_name );
 		$ability      = wp_get_ability( $ability_name );
 
@@ -188,8 +183,6 @@ class McpController {
 			);
 		}
 
-		// execute() checks the ability's own permission_callback internally
-		// and returns WP_Error( 'ability_invalid_permissions', ... ) on failure.
 		$result = $ability->execute( ! empty( $arguments ) ? $arguments : null );
 
 		if ( is_wp_error( $result ) ) {
@@ -209,7 +202,6 @@ class McpController {
 			);
 		}
 
-		// Normalise result to a scalar or JSON-serialisable value.
 		$text = is_string( $result ) ? $result : wp_json_encode( $result );
 
 		return new WP_REST_Response(
@@ -246,18 +238,15 @@ class McpController {
 			$description  = $ability->get_description();
 			$input_schema = $ability->get_input_schema();
 
-			// Ensure inputSchema is a valid JSON Schema object.
 			if ( empty( $input_schema ) || ! is_array( $input_schema ) ) {
 				$input_schema = [
 					'type'       => 'object',
 					'properties' => new \stdClass(),
 				];
 			} else {
-				// Normalise empty properties arrays to objects (JSON Schema requires {}).
 				if ( isset( $input_schema['properties'] ) && $input_schema['properties'] === [] ) {
 					$input_schema['properties'] = new \stdClass();
 				}
-				// Remove empty required arrays (some clients reject them).
 				if ( isset( $input_schema['required'] ) && is_array( $input_schema['required'] ) && empty( $input_schema['required'] ) ) {
 					unset( $input_schema['required'] );
 				}
@@ -276,12 +265,6 @@ class McpController {
 	/**
 	 * Convert a WordPress ability name to an MCP-safe tool name.
 	 *
-	 * MCP tool names must match [a-zA-Z0-9_-]+.
-	 * Ability names use the format "namespace/tool-name" (slash + hyphens).
-	 *
-	 * Conversion: "ai-agent/memory-save" → "ai-agent__memory-save"
-	 * (slash replaced with double-underscore; hyphens preserved)
-	 *
 	 * @param string $ability_name WordPress ability name.
 	 * @return string MCP tool name.
 	 */
@@ -291,9 +274,6 @@ class McpController {
 
 	/**
 	 * Convert an MCP tool name back to a WordPress ability name.
-	 *
-	 * Reverses ability_name_to_mcp_name():
-	 * "ai-agent__memory-save" → "ai-agent/memory-save"
 	 *
 	 * @param string $mcp_name MCP tool name.
 	 * @return string WordPress ability name.

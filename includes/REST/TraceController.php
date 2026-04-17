@@ -18,136 +18,36 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\REST_Handler;
+use XWP\DI\Decorators\REST_Route;
+use XWP_REST_Controller;
 
-class TraceController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
-	const NAMESPACE = 'gratis-ai-agent/v1';
-
-	/**
-	 * Register REST routes for provider tracing.
-	 */
-	public static function register_routes(): void {
-		$instance = new self();
-
-		// List trace records.
-		register_rest_route(
-			self::NAMESPACE,
-			'/trace',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_list' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-				'args'                => array(
-					'limit'       => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'default'           => 50,
-						'sanitize_callback' => 'absint',
-					),
-					'offset'      => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'default'           => 0,
-						'sanitize_callback' => 'absint',
-					),
-					'provider'    => array(
-						'required'          => false,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'status_code' => array(
-						'required'          => false,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-					),
-					'errors_only' => array(
-						'required' => false,
-						'type'     => 'boolean',
-						'default'  => false,
-					),
-				),
-			)
-		);
-
-		// Get a single trace record.
-		register_rest_route(
-			self::NAMESPACE,
-			'/trace/(?P<id>\d+)',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_get' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-				'args'                => array(
-					'id' => array(
-						'required'          => true,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-					),
-				),
-			)
-		);
-
-		// Get curl command for a trace record.
-		register_rest_route(
-			self::NAMESPACE,
-			'/trace/(?P<id>\d+)/curl',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $instance, 'handle_curl' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-				'args'                => array(
-					'id' => array(
-						'required'          => true,
-						'type'              => 'integer',
-						'sanitize_callback' => 'absint',
-					),
-				),
-			)
-		);
-
-		// Clear all trace records.
-		register_rest_route(
-			self::NAMESPACE,
-			'/trace',
-			array(
-				'methods'             => WP_REST_Server::DELETABLE,
-				'callback'            => array( $instance, 'handle_clear' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-			)
-		);
-
-		// Trace settings (enable/disable, max rows).
-		register_rest_route(
-			self::NAMESPACE,
-			'/trace/settings',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_get_settings' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_update_settings' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'enabled'  => array(
-							'required' => false,
-							'type'     => 'boolean',
-						),
-						'max_rows' => array(
-							'required'          => false,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-					),
-				),
-			)
-		);
-	}
+/**
+ * Manages provider trace records via REST.
+ *
+ * Endpoints:
+ *  GET    /trace             — list trace records
+ *  GET    /trace/{id}        — get a single trace record
+ *  GET    /trace/{id}/curl   — get curl command for a trace
+ *  DELETE /trace             — clear all traces
+ *  GET    /trace/settings    — get trace settings
+ *  POST   /trace/settings    — update trace settings
+ */
+#[REST_Handler(
+	namespace: RestController::NAMESPACE,
+	basename: 'trace',
+	container: 'gratis-ai-agent',
+)]
+final class TraceController extends XWP_REST_Controller {
 
 	/**
 	 * Permission check — admin only.
+	 *
+	 * @return bool
 	 */
 	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
@@ -159,6 +59,12 @@ class TraceController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::READABLE,
+		vars: 'get_list_args',
+		guard: 'check_permission',
+	)]
 	public function handle_list( WP_REST_Request $request ): WP_REST_Response {
 		$filters = [];
 
@@ -196,6 +102,12 @@ class TraceController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)',
+		methods: WP_REST_Server::READABLE,
+		vars: 'get_id_args',
+		guard: 'check_permission',
+	)]
 	public function handle_get( WP_REST_Request $request ) {
 		$id    = absint( $request->get_param( 'id' ) );
 		$trace = ProviderTrace::get( $id );
@@ -217,6 +129,12 @@ class TraceController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)/curl',
+		methods: WP_REST_Server::READABLE,
+		vars: 'get_id_args',
+		guard: 'check_permission',
+	)]
 	public function handle_curl( WP_REST_Request $request ) {
 		$id    = absint( $request->get_param( 'id' ) );
 		$trace = ProviderTrace::get( $id );
@@ -241,6 +159,11 @@ class TraceController {
 	 *
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::DELETABLE,
+		guard: 'check_permission',
+	)]
 	public function handle_clear(): WP_REST_Response {
 		ProviderTrace::clear();
 
@@ -254,6 +177,11 @@ class TraceController {
 	 *
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: 'settings',
+		methods: WP_REST_Server::READABLE,
+		guard: 'check_permission',
+	)]
 	public function handle_get_settings(): WP_REST_Response {
 		return new WP_REST_Response(
 			array(
@@ -273,6 +201,12 @@ class TraceController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: 'settings',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_settings_args',
+		guard: 'check_permission',
+	)]
 	public function handle_update_settings( WP_REST_Request $request ): WP_REST_Response {
 		$enabled  = $request->get_param( 'enabled' );
 		$max_rows = $request->get_param( 'max_rows' );
@@ -294,6 +228,77 @@ class TraceController {
 					? __( 'Provider tracing is enabled. Logs may contain prompt content. Disable on shared environments.', 'gratis-ai-agent' )
 					: '',
 			)
+		);
+	}
+
+	/**
+	 * Schema arguments for GET /trace (list).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_list_args(): array {
+		return array(
+			'limit'       => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'default'           => 50,
+				'sanitize_callback' => 'absint',
+			),
+			'offset'      => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'default'           => 0,
+				'sanitize_callback' => 'absint',
+			),
+			'provider'    => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'status_code' => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'errors_only' => array(
+				'required' => false,
+				'type'     => 'boolean',
+				'default'  => false,
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for routes that only need an ID parameter.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_id_args(): array {
+		return array(
+			'id' => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for POST /trace/settings.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_settings_args(): array {
+		return array(
+			'enabled'  => array(
+				'required' => false,
+				'type'     => 'boolean',
+			),
+			'max_rows' => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
 		);
 	}
 }

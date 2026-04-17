@@ -24,6 +24,12 @@ use GratisAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
 use GratisAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
+use GratisAiAgent\REST\BenchmarkController;
+use GratisAiAgent\REST\FeedbackController;
+use GratisAiAgent\REST\McpController;
+use GratisAiAgent\REST\MemoryController;
+use GratisAiAgent\REST\SkillController;
+use GratisAiAgent\REST\TraceController;
 use XWP\DI\Decorators\Module;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,6 +59,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		UsageInstructionsFilter::class,
 		RequestTimeoutFilter::class,
 		CliHandler::class,
+		MemoryController::class,
+		SkillController::class,
+		FeedbackController::class,
+		TraceController::class,
+		McpController::class,
+		BenchmarkController::class,
 	),
 	extendable: true,
 )]

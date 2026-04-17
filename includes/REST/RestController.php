@@ -63,8 +63,7 @@ class RestController {
 	 * Delegates to domain controllers and registers the /chat endpoint here.
 	 */
 	public static function register_routes(): void {
-		// MCP (Model Context Protocol) endpoint.
-		McpController::register_routes();
+		// McpController and BenchmarkController are now DI-managed #[REST_Handler] classes.
 
 		// Webhook API endpoints.
 		WebhookController::register_routes();
@@ -72,17 +71,16 @@ class RestController {
 		// Resale API endpoints.
 		ResaleApiController::register_routes();
 
-		// Domain controllers.
+		// Domain controllers — migrating to DI-managed #[REST_Handler] classes.
+		// Already migrated: MemoryController, SkillController, FeedbackController,
+		// McpController, BenchmarkController, TraceController.
 		SessionController::register_routes();
 		SettingsController::register_routes();
-		MemoryController::register_routes();
-		SkillController::register_routes();
 		AutomationController::register_routes();
 		KnowledgeController::register_routes();
 		ToolController::register_routes();
 		ChangesController::register_routes();
 		AgentController::register_routes();
-		FeedbackController::register_routes();
 
 		$instance = new self();
 

@@ -15,114 +15,44 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use XWP\DI\Decorators\REST_Handler;
+use XWP\DI\Decorators\REST_Route;
+use XWP_REST_Controller;
 
-class MemoryController {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Manages agent memories via REST.
+ *
+ * Endpoints:
+ *  GET    /memory        — list all memories (optionally filtered by category)
+ *  POST   /memory        — create a memory
+ *  PATCH  /memory/{id}   — update a memory
+ *  DELETE /memory/{id}   — delete a memory
+ *  POST   /memory/forget — bulk-delete by topic
+ */
+#[REST_Handler(
+	namespace: RestController::NAMESPACE,
+	basename: 'memory',
+	container: 'gratis-ai-agent',
+)]
+final class MemoryController extends XWP_REST_Controller {
 
 	use PermissionTrait;
-
-	const NAMESPACE = 'gratis-ai-agent/v1';
-
-	/**
-	 * Register REST routes.
-	 */
-	public static function register_routes(): void {
-		$instance = new self();
-
-		// Memory endpoints.
-		register_rest_route(
-			self::NAMESPACE,
-			'/memory',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $instance, 'handle_list_memory' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $instance, 'handle_create_memory' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'category' => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'content'  => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_textarea_field',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/memory/(?P<id>\d+)',
-			array(
-				array(
-					'methods'             => 'PATCH',
-					'callback'            => array( $instance, 'handle_update_memory' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'id'       => array(
-							'required'          => true,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-						'category' => array(
-							'required'          => false,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-						'content'  => array(
-							'required'          => false,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_textarea_field',
-						),
-					),
-				),
-				array(
-					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $instance, 'handle_delete_memory' ),
-					'permission_callback' => array( $instance, 'check_permission' ),
-					'args'                => array(
-						'id' => array(
-							'required'          => true,
-							'type'              => 'integer',
-							'sanitize_callback' => 'absint',
-						),
-					),
-				),
-			)
-		);
-
-		// Memory forget endpoint.
-		register_rest_route(
-			self::NAMESPACE,
-			'/memory/forget',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $instance, 'handle_forget_memory' ),
-				'permission_callback' => array( $instance, 'check_permission' ),
-				'args'                => array(
-					'topic' => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-				),
-			)
-		);
-	}
 
 	/**
 	 * Handle GET /memory — list memories.
 	 *
 	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::READABLE,
+		guard: 'check_permission',
+	)]
 	public function handle_list_memory( WP_REST_Request $request ): WP_REST_Response {
 		$category = $request->get_param( 'category' );
 		// @phpstan-ignore-next-line
@@ -155,6 +85,12 @@ class MemoryController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_create_args',
+		guard: 'check_permission',
+	)]
 	public function handle_create_memory( WP_REST_Request $request ) {
 		$category = $request->get_param( 'category' );
 		$content  = $request->get_param( 'content' );
@@ -182,6 +118,12 @@ class MemoryController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)',
+		methods: 'PATCH',
+		vars: 'get_update_args',
+		guard: 'check_permission',
+	)]
 	public function handle_update_memory( WP_REST_Request $request ) {
 		$id   = self::get_int_param( $request, 'id' );
 		$data = array();
@@ -214,6 +156,12 @@ class MemoryController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
+	#[REST_Route(
+		route: '(?P<id>\d+)',
+		methods: WP_REST_Server::DELETABLE,
+		vars: 'get_delete_args',
+		guard: 'check_permission',
+	)]
 	public function handle_delete_memory( WP_REST_Request $request ) {
 		$id      = self::get_int_param( $request, 'id' );
 		$deleted = Memory::delete( $id );
@@ -231,6 +179,12 @@ class MemoryController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response
 	 */
+	#[REST_Route(
+		route: 'forget',
+		methods: WP_REST_Server::CREATABLE,
+		vars: 'get_forget_args',
+		guard: 'check_permission',
+	)]
 	public function handle_forget_memory( WP_REST_Request $request ): WP_REST_Response {
 		$topic = $request->get_param( 'topic' );
 		// @phpstan-ignore-next-line
@@ -242,6 +196,81 @@ class MemoryController {
 				'topic'   => $topic,
 			),
 			200
+		);
+	}
+
+	/**
+	 * Schema arguments for POST /memory (create).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_create_args(): array {
+		return array(
+			'category' => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'content'  => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for PATCH /memory/{id} (update).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_update_args(): array {
+		return array(
+			'id'       => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+			'category' => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'content'  => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_textarea_field',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for DELETE /memory/{id}.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_delete_args(): array {
+		return array(
+			'id' => array(
+				'required'          => true,
+				'type'              => 'integer',
+				'sanitize_callback' => 'absint',
+			),
+		);
+	}
+
+	/**
+	 * Schema arguments for POST /memory/forget.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function get_forget_args(): array {
+		return array(
+			'topic' => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
 		);
 	}
 }

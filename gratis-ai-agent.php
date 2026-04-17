@@ -37,8 +37,22 @@ define( 'GRATIS_AI_AGENT_DEFAULT_MODEL', 'claude-sonnet-4' );
 // Jetpack Autoloader ensures the newest version of shared packages (like php-ai-client) is used.
 if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 	require_once GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php';
-} else {
+} elseif ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload.php' ) ) {
 	require_once GRATIS_AI_AGENT_DIR . '/vendor/autoload.php';
+} else {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			printf(
+				'<div class="notice notice-error"><p>%s</p></div>',
+				esc_html__(
+					'Gratis AI Agent is missing its vendor dependencies. Please run "composer install" in the plugin directory.',
+					'gratis-ai-agent',
+				),
+			);
+		},
+	);
+	return;
 }
 
 use GratisAiAgent\Bootstrap\LifecycleHandler;

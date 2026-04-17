@@ -567,7 +567,10 @@ export const actions = {
 					dispatch.setBootError( {
 						message:
 							err?.message ||
-							'Unable to connect to the AI Agent API.',
+							__(
+								'Unable to connect to the AI Agent API.',
+								'gratis-ai-agent'
+							),
 						status,
 					} );
 				}

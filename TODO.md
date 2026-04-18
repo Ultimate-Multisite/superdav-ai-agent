@@ -367,7 +367,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - EDIT: src/store/slices/jobSlice.js — integrate visibility manager: `pollJob` reads visibility state to determine interval.
   - Verify: `npm run lint:js && npm run build`; manually test: start job, switch browser tabs, verify Network tab shows slower polls; switch back, verify immediate poll fires
 
-- [ ] t205 Browser notifications for permission prompts (Phase 3) #feature #auto-dispatch ~3h For #t199 blocked-by:t204 ref:GH#1033 logged:2026-04-17
+- [x] t205 Browser notifications for permission prompts (Phase 3) #feature #auto-dispatch ~3h For #t199 blocked-by:t204 ref:GH#1033 logged:2026-04-17 pr:#1050 completed:2026-04-18
   - NEW: src/utils/notification-manager.js — `requestPermission()` (call on first tool confirmation or from settings), `notifyConfirmationNeeded(jobId, toolName)` (fires `new Notification()` with `requireInteraction: true`, `tag: job-confirm-${jobId}`), `clearNotification(jobId)`, title flash manager (toggle document.title with "Approval needed" when `document.hidden`, clear on focus)
   - EDIT: src/store/slices/jobSlice.js — in `pollJob()`, when status === 'awaiting_confirmation' and `document.hidden`: call `notifyConfirmationNeeded()`. When confirmation resolved: call `clearNotification()`.
   - EDIT: src/components/session-sidebar.js — SessionItem: when `sessionJobs[session.id]?.status === 'awaiting_confirmation'`, render a pulsing warning dot badge. Model on existing `hasActiveJob` prop (line 74).

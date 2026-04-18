@@ -247,6 +247,22 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	50% { opacity: 0.3; }
 }
 
+/* Warning badge for sessions with a pending tool confirmation */
+.gratis-ai-agent-session-confirm-badge {
+	display: inline-block;
+	color: #d63638;
+	font-size: 14px;
+	line-height: 1;
+	margin-left: 4px;
+	vertical-align: middle;
+	animation: gratis-ai-agent-confirm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes gratis-ai-agent-confirm-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.6; transform: scale(1.2); }
+}
+
 .gratis-ai-agent-session-meta {
 	font-size: 11px;
 	color: #8c8f94;

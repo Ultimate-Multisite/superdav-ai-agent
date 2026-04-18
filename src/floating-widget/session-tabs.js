@@ -20,10 +20,11 @@ import STORE_NAME from '../store';
  * @return {JSX.Element|null} The session tabs element, or null when empty.
  */
 export default function SessionTabs() {
-	const { sessions, currentSessionId } = useSelect(
+	const { sessions, currentSessionId, sessionJobs } = useSelect(
 		( select ) => ( {
 			sessions: select( STORE_NAME ).getSessions(),
 			currentSessionId: select( STORE_NAME ).getCurrentSessionId(),
+			sessionJobs: select( STORE_NAME ).getSessionJobs(),
 		} ),
 		[]
 	);
@@ -50,18 +51,35 @@ export default function SessionTabs() {
 			{ recentSessions.map( ( session ) => {
 				const id = parseInt( session.id, 10 );
 				const isActive = currentSessionId === id;
+				const jobState = sessionJobs[ id ];
+				const needsApproval =
+					jobState?.status === 'awaiting_confirmation';
 				return (
 					<button
 						key={ session.id }
 						className={ `gratis-ai-agent-tab-item ${
 							isActive ? 'is-active' : ''
-						}` }
+						} ${ needsApproval ? 'needs-approval' : '' }` }
 						onClick={ () => openSession( id ) }
 						title={
-							session.title || __( 'Untitled', 'gratis-ai-agent' )
+							needsApproval
+								? __(
+										'Approval needed',
+										'gratis-ai-agent'
+								  )
+								: session.title ||
+								  __( 'Untitled', 'gratis-ai-agent' )
 						}
 						type="button"
 					>
+						{ needsApproval && (
+							<span
+								className="gratis-ai-agent-tab-confirm-dot"
+								aria-hidden="true"
+							>
+								{ '\u26A0' }
+							</span>
+						) }
 						{ truncateTitle( session.title ) }
 					</button>
 				);

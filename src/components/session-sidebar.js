@@ -60,11 +60,12 @@ function relativeTime( dateStr ) {
  * Clicking the row opens the session. The ⋯ button opens a context menu
  * with rename, pin, folder, export, archive, trash, and share actions.
  *
- * @param {Object}  props              - Component props.
- * @param {Session} props.session      - Session data.
- * @param {boolean} props.isActive     - Whether this session is currently open.
- * @param {boolean} props.isOwner      - Whether the current user owns this session.
- * @param {boolean} props.hasActiveJob - Whether the session has an active job running.
+ * @param {Object}  props                        - Component props.
+ * @param {Session} props.session                - Session data.
+ * @param {boolean} props.isActive               - Whether this session is currently open.
+ * @param {boolean} props.isOwner                - Whether the current user owns this session.
+ * @param {boolean} props.hasActiveJob           - Whether the session has an active job running.
+ * @param {boolean} props.hasPendingConfirmation - Whether the session job is awaiting tool confirmation.
  * @return {JSX.Element} The session item element.
  */
 function SessionItem( {
@@ -72,6 +73,7 @@ function SessionItem( {
 	isActive,
 	isOwner = true,
 	hasActiveJob = false,
+	hasPendingConfirmation = false,
 } ) {
 	const [ showMenu, setShowMenu ] = useState( false );
 	const { openSession } = useDispatch( STORE_NAME );
@@ -117,7 +119,22 @@ function SessionItem( {
 					</span>
 				) }
 				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
-				{ hasActiveJob && ! isActive && (
+				{ hasPendingConfirmation && ! isActive && (
+					<span
+						className="gratis-ai-agent-session-confirm-badge"
+						title={ __(
+							'Approval needed',
+							'gratis-ai-agent'
+						) }
+						aria-label={ __(
+							'Approval needed',
+							'gratis-ai-agent'
+						) }
+					>
+						{ '\u26A0' }
+					</span>
+				) }
+				{ hasActiveJob && ! hasPendingConfirmation && ! isActive && (
 					<span
 						className="gratis-ai-agent-session-job-badge"
 						title={ __( 'Agent is working', 'gratis-ai-agent' ) }
@@ -424,6 +441,10 @@ export default function SessionSidebar( { onClose } ) {
 						}
 						hasActiveJob={
 							!! sessionJobs[ parseInt( session.id, 10 ) ]
+						}
+						hasPendingConfirmation={
+							sessionJobs[ parseInt( session.id, 10 ) ]
+								?.status === 'awaiting_confirmation'
 						}
 					/>
 				) ) }

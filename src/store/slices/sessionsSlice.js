@@ -15,6 +15,10 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { snapshotDescriptors } from '../../abilities/registry';
 import { ensureRegistered as ensureClientAbilitiesRegistered } from '../../abilities';
+import {
+	notifyConfirmationNeeded,
+	clearNotification,
+} from '../../utils/notification-manager';
 
 /**
  * Associate tool call log entries with the correct model text messages.
@@ -1098,6 +1102,8 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
 			dispatch.setPendingActionCard( null );
+			// Dismiss any browser notification that was fired for this job.
+			clearNotification( jobId );
 			try {
 				await apiFetch( {
 					path: `/gratis-ai-agent/v1/job/${ jobId }/confirm`,
@@ -1132,6 +1138,8 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			dispatch.setPendingConfirmation( null );
 			dispatch.setPendingActionCard( null );
+			// Dismiss any browser notification that was fired for this job.
+			clearNotification( jobId );
 			try {
 				await apiFetch( {
 					path: `/gratis-ai-agent/v1/job/${ jobId }/reject`,
@@ -1335,6 +1343,18 @@ export const actions = {
 						};
 						dispatch.setPendingConfirmation( cardData );
 						dispatch.setPendingActionCard( cardData );
+
+						// Fire a browser notification when the user is not
+						// looking at the page so they know approval is needed.
+						if ( document.hidden ) {
+							const firstTool = result.pending_tools?.[ 0 ];
+							const toolName =
+								firstTool?.function?.name ||
+								firstTool?.name ||
+								'';
+							notifyConfirmationNeeded( jobId, toolName );
+						}
+
 						// Don't clear sending — we're still waiting.
 						return;
 					}

@@ -220,6 +220,25 @@
 	color: #fff;
 }
 
+.gratis-ai-agent-tab-item.needs-approval {
+	border-color: #d63638;
+}
+
+/* Warning icon inside tab for pending tool confirmation */
+.gratis-ai-agent-tab-confirm-dot {
+	display: inline-block;
+	color: #d63638;
+	font-size: 12px;
+	margin-right: 3px;
+	vertical-align: middle;
+	animation: gratis-ai-agent-confirm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes gratis-ai-agent-confirm-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.6; transform: scale(1.2); }
+}
+
 .gratis-ai-agent-tab-new.components-button {
 	padding: 2px;
 	min-width: auto;

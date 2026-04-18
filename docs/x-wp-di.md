@@ -268,6 +268,23 @@ $refl->setValue( null, XWP_Context::REST );
 
 **Outstanding issue:** Even with correct context, deferred handlers mark hooks as `$loaded` after first fire. When test `setUp()` creates a fresh `WP_REST_Server` and re-fires `rest_api_init`, routes don't re-register on the new server. Tracked in GitHub issues.
 
+### 5a. `CTX_REST` handlers don't load with plain permalinks (wp-env / CI)
+
+`XWP_Context::rest()` only detects REST context when `$_SERVER['REQUEST_URI']` contains the `wp-json/` prefix. When WordPress uses plain permalinks (the default in fresh wp-env installs), REST requests use `?rest_route=/...` in the query string. `REQUEST_URI` is then `/?rest_route=...` which does **not** contain `wp-json/`, so `XWP_Context::rest()` returns false, context is misdetected as `CTX_FRONTEND`, and all `CTX_REST` handlers fail to load — every REST endpoint returns 404.
+
+**Fix (applied in `gratis-ai-agent.php`):** Before calling `xwp_load_app()`, the plugin normalises `REQUEST_URI` for plain-permalink REST requests:
+
+```php
+if ( ! empty( $_GET['rest_route'] ) ) {
+    $prefix = rest_get_url_prefix(); // 'wp-json'
+    if ( false === strpos( $_SERVER['REQUEST_URI'] ?? '', $prefix ) ) {
+        $_SERVER['REQUEST_URI'] = '/' . $prefix . $_GET['rest_route'];
+    }
+}
+```
+
+This runs before `xwp_load_app()` queues the container build at `plugins_loaded:PHP_INT_MIN`, so `XWP_Context::get()` caches the correct `CTX_REST` value when the container initialises.
+
 ### 6. PHPStan cache corruption on PHP 8.4
 
 Occasionally `/tmp/phpstan/cache/` fatals with class-not-found errors. Fix: `rm -rf /tmp/phpstan && composer install` before re-running.

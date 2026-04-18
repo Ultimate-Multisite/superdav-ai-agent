@@ -64,6 +64,31 @@ use GratisAiAgent\Plugin;
 register_activation_hook( __FILE__, [ LifecycleHandler::class, 'activate' ] );
 register_deactivation_hook( __FILE__, [ LifecycleHandler::class, 'deactivate' ] );
 
+// Normalize REQUEST_URI for plain-permalink REST requests.
+//
+// `XWP_Context::rest()` detects REST context by checking if REQUEST_URI
+// contains the wp-json prefix (e.g. `/wp-json/`). WordPress also routes REST
+// requests via `?rest_route=/...` when pretty permalinks are disabled (the
+// default in fresh wp-env installs and many CI environments).
+//
+// Without this normalisation, `XWP_Context::rest()` returns false for
+// `?rest_route=` requests, so all DI handlers with `context: CTX_REST` are
+// never initialised and every REST endpoint returns 404.
+//
+// The normalisation runs before `xwp_load_app()` queues the container build
+// at `plugins_loaded:PHP_INT_MIN`, so XWP_Context::get() caches the correct
+// REST context when the container actually initialises.
+// phpcs:disable WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+if ( ! empty( $_GET['rest_route'] ) ) {
+	$_rest_prefix = function_exists( 'rest_get_url_prefix' ) ? rest_get_url_prefix() : 'wp-json';
+	$_request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+	if ( false === strpos( (string) $_request_uri, $_rest_prefix ) ) {
+		$_SERVER['REQUEST_URI'] = '/' . $_rest_prefix . wp_unslash( $_GET['rest_route'] );
+	}
+	unset( $_rest_prefix, $_request_uri );
+}
+// phpcs:enable WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+
 // Bootstrap the DI container.
 //
 // `xwp_load_app()` schedules the container build at its default

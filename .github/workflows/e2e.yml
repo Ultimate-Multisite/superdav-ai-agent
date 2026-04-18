@@ -81,6 +81,25 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Patch @wordpress/env phpunit constraint
+        # @wordpress/env's CLI.Dockerfile installs phpunit globally with a
+        # constraint that excludes v11+. Composer now blocks all v5–v10 via
+        # security advisories (PKSA-5jz8-6tcw-pbk4, PKSA-z3gr-8qht-p93v),
+        # causing the Docker build to fail. This patch extends the constraint
+        # to include ^11.0 and disables the Composer audit for that install.
+        # Remove once @wordpress/env ships a fix upstream.
+        run: |
+          node -e "
+            const fs = require('fs');
+            const f = require.resolve('@wordpress/env/lib/runtime/docker/docker-config.js');
+            let c = fs.readFileSync(f, 'utf8');
+            const before = 'RUN composer global require --dev phpunit/phpunit:\"^5.7.21 || ^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0\"';
+            const after  = 'RUN COMPOSER_NO_AUDIT=1 composer global require --dev phpunit/phpunit:\"^5.7.21 || ^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0 || ^11.0\"';
+            if (!c.includes(before)) { console.log('Pattern not found — already patched or @wordpress/env updated'); process.exit(0); }
+            fs.writeFileSync(f, c.replace(before, after));
+            console.log('Patched @wordpress/env/lib/runtime/docker/docker-config.js');
+          "
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 

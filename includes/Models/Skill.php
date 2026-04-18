@@ -106,6 +106,29 @@ class Skill {
 	}
 
 	/**
+	 * Get skill content by slug (convenience method for auto-injection).
+	 *
+	 * Returns the content of an enabled skill, or null if the skill
+	 * doesn't exist or is disabled.
+	 *
+	 * @param string $slug Skill slug.
+	 * @return string|null Skill content or null.
+	 */
+	public static function get_content_by_slug( string $slug ): ?string {
+		$skill = self::get_by_slug( $slug );
+
+		if ( ! $skill ) {
+			return null;
+		}
+
+		if ( ! (int) $skill->enabled ) {
+			return null;
+		}
+
+		return $skill->content;
+	}
+
+	/**
 	 * Create a new skill.
 	 *
 	 * @param array<string, mixed> $data Skill data: slug, name, description, content, is_builtin, enabled.

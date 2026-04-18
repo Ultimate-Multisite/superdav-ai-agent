@@ -770,10 +770,11 @@ class PostAbilities {
 	 * Detect whether content looks like markdown and convert to Gutenberg blocks.
 	 *
 	 * Handles three cases:
-	 * 1. Pure non-block content: apply markdown signal detection and convert if needed.
-	 * 2. Pure block markup (no markdown): return as-is.
-	 * 3. Mixed content (block markup + raw markdown): parse blocks, convert freeform
-	 *    markdown segments individually, and reassemble.
+	 * 1. Pure block markup (<!-- wp: ... -->) — returned as-is.
+	 * 2. Pure markdown — converted entirely via MarkdownToBlocks.
+	 * 3. Mixed content (blocks + markdown) — parsed with parse_blocks(),
+	 *    freeform segments containing markdown signals are converted
+	 *    individually, real blocks are preserved.
 	 *
 	 * @param string $content Raw content from the model.
 	 * @return string Content ready for post_content (blocks HTML or original).
@@ -783,18 +784,23 @@ class PostAbilities {
 			return $content;
 		}
 
-		// Mixed or pure block content: parse blocks and handle freeform segments.
-		if ( str_contains( $content, '<!-- wp:' ) ) {
+		$has_blocks = str_contains( $content, '<!-- wp:' );
+
+		// Mixed content: blocks + potential markdown in freeform segments.
+		if ( $has_blocks ) {
 			return self::convert_mixed_content( $content );
 		}
 
-		// Pure non-block content: bail early if it looks like HTML.
+		// Pure HTML (3+ block-level tags) — leave as-is.
 		$html_block_tags = preg_match_all( '/<(?:p|h[1-6]|div|section|ul|ol|table|blockquote|figure|header|footer|article|nav)\b/i', $content );
 		if ( $html_block_tags >= 3 ) {
 			return $content;
 		}
 
-		if ( self::count_markdown_signals( $content ) < 2 ) {
+		// Check for markdown signals.
+		$markdown_signals = self::count_markdown_signals( $content );
+
+		if ( $markdown_signals < 2 ) {
 			return $content;
 		}
 
@@ -802,72 +808,82 @@ class PostAbilities {
 	}
 
 	/**
-	 * Handle content that contains Gutenberg block markup and possibly raw markdown.
+	 * Count markdown formatting signals in a string.
 	 *
-	 * Parses the content into blocks. Named blocks are preserved; freeform blocks
-	 * (null blockName) that contain markdown signals are converted with
-	 * MarkdownToBlocks::convert() before the blocks are reassembled.
-	 *
-	 * @param string $content Content containing block markup and possibly markdown.
-	 * @return string Reassembled content with freeform markdown segments converted.
+	 * @param string $text Text to check for markdown patterns.
+	 * @return int Number of distinct markdown patterns found.
 	 */
-	private static function convert_mixed_content( string $content ): string {
-		// @phpstan-ignore-next-line
-		$parsed_blocks = parse_blocks( $content );
-		$output_parts  = [];
+	private static function count_markdown_signals( string $text ): int {
+		$signals = 0;
 
-		foreach ( $parsed_blocks as $block ) {
-			// Named block — preserve exactly as serialized.
-			if ( null !== $block['blockName'] ) {
-				// @phpstan-ignore-next-line
-				$output_parts[] = serialize_block( $block );
-				continue;
-			}
-
-			// Freeform block (null blockName): inner HTML is raw text/markdown.
-			$freeform_content = trim( (string) $block['innerHTML'] );
-			if ( '' === $freeform_content ) {
-				continue;
-			}
-
-			if ( self::count_markdown_signals( $freeform_content ) >= 2 ) {
-				$output_parts[] = MarkdownToBlocks::convert( $freeform_content );
-			} else {
-				// @phpstan-ignore-next-line
-				$output_parts[] = serialize_block( $block );
-			}
+		if ( preg_match( '/^#{1,6}\s+\S/m', $text ) ) {
+			++$signals;
+		}
+		if ( preg_match( '/\*{1,2}[^*\n]+\*{1,2}/', $text ) || preg_match( '/_{1,2}[^_\n]+_{1,2}/', $text ) ) {
+			++$signals;
+		}
+		if ( preg_match( '/^[\-\*]\s+\S/m', $text ) ) {
+			++$signals;
+		}
+		if ( preg_match( '/^\d+\.\s+\S/m', $text ) ) {
+			++$signals;
+		}
+		if ( preg_match( '/\[[^\]]+\]\([^)]+\)/', $text ) ) {
+			++$signals;
+		}
+		if ( str_contains( $text, '```' ) ) {
+			++$signals;
 		}
 
-		return trim( implode( "\n\n", $output_parts ) );
+		return $signals;
 	}
 
 	/**
-	 * Count the number of distinct markdown signals present in a string.
+	 * Handle mixed content: real blocks are preserved, freeform segments
+	 * containing markdown are converted to blocks individually.
 	 *
-	 * @param string $content Content to analyse.
-	 * @return int Number of detected markdown signals (0–6).
+	 * Uses WordPress core's parse_blocks() to split the content. Freeform
+	 * blocks (blockName === null) that contain markdown signals get their
+	 * innerHTML converted via MarkdownToBlocks. Everything else is
+	 * re-serialized as-is.
+	 *
+	 * @param string $content Mixed block + markdown content.
+	 * @return string Fully blockified content.
 	 */
-	private static function count_markdown_signals( string $content ): int {
-		$signals = 0;
-		if ( preg_match( '/^#{1,6}\s+\S/m', $content ) ) {
-			++$signals;
+	private static function convert_mixed_content( string $content ): string {
+		$parsed = parse_blocks( $content );
+		$output = '';
+
+		foreach ( $parsed as $block ) {
+			$block_name  = $block['blockName'] ?? null;
+			$block_inner = $block['innerHTML'] ?? '';
+
+			// Real block — serialize as-is.
+			if ( null !== $block_name ) {
+				// @phpstan-ignore-next-line
+				$output .= serialize_block( $block ) . "\n\n";
+				continue;
+			}
+
+			// Freeform block — check if it contains markdown worth converting.
+			$trimmed = trim( (string) $block_inner );
+			if ( '' === $trimmed ) {
+				continue;
+			}
+
+			$signals = self::count_markdown_signals( $trimmed );
+			if ( $signals >= 1 ) {
+				// Convert the freeform markdown segment to blocks.
+				$output .= MarkdownToBlocks::convert( $trimmed ) . "\n\n";
+			} elseif ( '' !== trim( wp_strip_all_tags( $trimmed ) ) ) {
+				// Plain text without markdown — wrap in a paragraph block.
+				// Only if it has actual visible content (not just whitespace/newlines).
+				// @phpstan-ignore-next-line
+				$output .= serialize_block( MarkdownToBlocks::make_paragraph( $trimmed ) ) . "\n\n";
+			}
 		}
-		if ( preg_match( '/\*{1,2}[^*\n]+\*{1,2}/', $content ) || preg_match( '/_{1,2}[^_\n]+_{1,2}/', $content ) ) {
-			++$signals;
-		}
-		if ( preg_match( '/^[\-\*]\s+\S/m', $content ) ) {
-			++$signals;
-		}
-		if ( preg_match( '/^\d+\.\s+\S/m', $content ) ) {
-			++$signals;
-		}
-		if ( preg_match( '/\[[^\]]+\]\([^)]+\)/', $content ) ) {
-			++$signals;
-		}
-		if ( str_contains( $content, '```' ) ) {
-			++$signals;
-		}
-		return $signals;
+
+		return trim( $output );
 	}
 
 	/**

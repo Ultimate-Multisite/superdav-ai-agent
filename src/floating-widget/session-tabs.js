@@ -49,9 +49,8 @@ export default function SessionTabs() {
 	return (
 		<div className="gratis-ai-agent-session-tabs">
 			{ recentSessions.map( ( session ) => {
-				const id = parseInt( session.id, 10 );
-				const isActive = currentSessionId === id;
-				const jobState = sessionJobs[ id ];
+				const isActive = currentSessionId === session.id;
+				const jobState = sessionJobs[ session.id ];
 				const needsApproval =
 					jobState?.status === 'awaiting_confirmation';
 				return (
@@ -60,7 +59,7 @@ export default function SessionTabs() {
 						className={ `gratis-ai-agent-tab-item ${
 							isActive ? 'is-active' : ''
 						} ${ needsApproval ? 'needs-approval' : '' }` }
-						onClick={ () => openSession( id ) }
+						onClick={ () => openSession( session.id ) }
 						title={
 							needsApproval
 								? __( 'Approval needed', 'gratis-ai-agent' )

@@ -21,6 +21,25 @@ import { ensureRegistered as ensureClientAbilitiesRegistered } from '../../abili
 import { clearNotification } from '../../utils/notification-manager';
 
 /**
+ * Coerce session-like objects from the REST API so that `id` is always an
+ * integer.  The WP REST API serialises numeric columns as strings; normalising
+ * at the store boundary eliminates the need for `parseInt(session.id, 10)` in
+ * every consumer component.
+ *
+ * @param {Object} session - Raw session object from the API.
+ * @return {Object} Session with `id` coerced to a number.
+ */
+function normalizeSession( session ) {
+	return {
+		...session,
+		id:
+			typeof session.id === 'string'
+				? parseInt( session.id, 10 )
+				: session.id,
+	};
+}
+
+/**
  * Associate tool call log entries with the correct model text messages.
  *
  * The DB stores tool calls as a flat chronological array and messages separately.
@@ -141,11 +160,6 @@ export const initialState = {
 	// message position. Populated when a done event arrives.
 	messageTokens: [],
 
-	// Streaming state — token buffer for the in-progress assistant message.
-	// Kept for potential future SSE use; currently reset at send time.
-	streamingText: '',
-	isStreaming: false,
-
 	// Stream error state — true when the last send attempt failed.
 	// Used to show a "Try again" button in the message list.
 	streamError: false,
@@ -227,18 +241,10 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	clearCurrentSession() {
-		return async ( { dispatch, select } ) => {
-			// Cancel any active SSE stream.
-			const controller = select.getStreamAbortController();
-			if ( controller ) {
-				controller.abort();
-				dispatch.setStreamAbortController( null );
-			}
+		return async ( { dispatch } ) => {
 			// Stop polling / sending state so the empty state renders immediately.
 			dispatch.setCurrentJobId( null );
 			dispatch.setSending( false );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 			// Clear the session.
 			dispatch( { type: 'CLEAR_CURRENT_SESSION' } );
 		};
@@ -334,46 +340,6 @@ export const actions = {
 	 */
 	setSendTimestamp( ts ) {
 		return { type: 'SET_SEND_TIMESTAMP', ts };
-	},
-
-	/**
-	 * Replace the streaming text buffer.
-	 *
-	 * @param {string} text - Full accumulated streaming text.
-	 * @return {Object} Redux action.
-	 */
-	setStreamingText( text ) {
-		return { type: 'SET_STREAMING_TEXT', text };
-	},
-
-	/**
-	 * Append a token to the streaming text buffer.
-	 *
-	 * @param {string} token - Token string to append.
-	 * @return {Object} Redux action.
-	 */
-	appendStreamingText( token ) {
-		return { type: 'APPEND_STREAMING_TEXT', token };
-	},
-
-	/**
-	 * Set whether an SSE stream is currently active.
-	 *
-	 * @param {boolean} streaming - Whether streaming is in progress.
-	 * @return {Object} Redux action.
-	 */
-	setIsStreaming( streaming ) {
-		return { type: 'SET_IS_STREAMING', streaming };
-	},
-
-	/**
-	 * Store the AbortController for the active SSE stream.
-	 *
-	 * @param {AbortController|null} controller - Controller, or null to clear.
-	 * @return {Object} Redux action.
-	 */
-	setStreamAbortController( controller ) {
-		return { type: 'SET_STREAM_ABORT_CONTROLLER', controller };
 	},
 
 	/**
@@ -604,7 +570,12 @@ export const actions = {
 				// Reset live counter when switching sessions.
 				dispatch.resetSessionTokens();
 				// Auto-add to the tab bar so opened sessions appear as tabs (t207).
-				dispatch.addOpenTab( parseInt( session.id, 10 ) );
+				// Session ID is normalized to an integer by setCurrentSession.
+				const openSessionId =
+					typeof session.id === 'string'
+						? parseInt( session.id, 10 )
+						: session.id;
+				dispatch.addOpenTab( openSessionId );
 
 				// Resume polling for any active background job on this session (t202).
 				try {
@@ -886,17 +857,9 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	stopGeneration() {
-		return async ( { dispatch, select } ) => {
-			// Abort any active SSE stream.
-			const controller = select.getStreamAbortController();
-			if ( controller ) {
-				controller.abort();
-				dispatch.setStreamAbortController( null );
-			}
+		return async ( { dispatch } ) => {
 			dispatch.setCurrentJobId( null );
 			dispatch.setSending( false );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 		};
 	},
 
@@ -940,8 +903,6 @@ export const actions = {
 	streamMessage( message, attachments = [], options = {} ) {
 		return async ( { dispatch, select } ) => {
 			dispatch.setSending( true );
-			dispatch.setIsStreaming( false );
-			dispatch.setStreamingText( '' );
 			dispatch.setStreamError( false );
 			dispatch.setInabilityReported( null );
 			dispatch.setFeedbackBanner( null );
@@ -1498,30 +1459,6 @@ export const selectors = {
 
 	/**
 	 * @param {import('../../types').StoreState} state
-	 * @return {string} Accumulated streaming text buffer.
-	 */
-	getStreamingText( state ) {
-		return state.streamingText;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
-	 * @return {boolean} Whether an SSE stream is currently active.
-	 */
-	isStreamingActive( state ) {
-		return state.isStreaming;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
-	 * @return {AbortController|null} Controller for the active stream, or null.
-	 */
-	getStreamAbortController( state ) {
-		return state.streamAbortController || null;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
 	 * @return {boolean} Whether the last stream attempt failed with an error.
 	 */
 	hasStreamError( state ) {
@@ -1617,17 +1554,14 @@ export const selectors = {
 export function reducer( state, action ) {
 	switch ( action.type ) {
 		case 'SET_SESSIONS': {
-			// Merge any pending optimistic titles into the incoming sessions list.
-			// When updateSessionTitle() fires before fetchSessions() returns, the
-			// server response may still carry "Untitled" (the AI title is generated
-			// client-side from the SSE done event and never written back to the DB
-			// in the same request). Preserving the optimistic title here ensures the
-			// sidebar reflects the generated title even after the fetchSessions()
-			// round-trip completes.
+			// Normalize IDs to integers and merge any pending optimistic titles.
 			const pending = state.pendingTitles || {};
 			const sessions = action.sessions.map( ( s ) => {
-				const optimistic = pending[ s.id ];
-				return optimistic ? { ...s, title: optimistic } : s;
+				const normalized = normalizeSession( s );
+				const optimistic = pending[ normalized.id ];
+				return optimistic
+					? { ...normalized, title: optimistic }
+					: normalized;
 			} );
 			return {
 				...state,
@@ -1639,7 +1573,10 @@ export function reducer( state, action ) {
 		case 'SET_CURRENT_SESSION':
 			return {
 				...state,
-				currentSessionId: action.sessionId,
+				currentSessionId:
+					typeof action.sessionId === 'string'
+						? parseInt( action.sessionId, 10 )
+						: action.sessionId,
 				currentSessionMessages: associateToolCallsWithMessages(
 					action.messages,
 					action.toolCalls
@@ -1707,17 +1644,6 @@ export function reducer( state, action ) {
 			};
 		case 'SET_SEND_TIMESTAMP':
 			return { ...state, sendTimestamp: action.ts };
-		case 'SET_STREAMING_TEXT':
-			return { ...state, streamingText: action.text };
-		case 'APPEND_STREAMING_TEXT':
-			return {
-				...state,
-				streamingText: state.streamingText + action.token,
-			};
-		case 'SET_IS_STREAMING':
-			return { ...state, isStreaming: action.streaming };
-		case 'SET_STREAM_ABORT_CONTROLLER':
-			return { ...state, streamAbortController: action.controller };
 		case 'SET_STREAM_ERROR':
 			return { ...state, streamError: action.error };
 		case 'SET_LAST_USER_MESSAGE':
@@ -1729,12 +1655,16 @@ export function reducer( state, action ) {
 		case 'SET_SHARED_SESSIONS':
 			return {
 				...state,
-				sharedSessions: action.sessions,
+				sharedSessions: action.sessions.map( normalizeSession ),
 				sharedSessionsLoaded: true,
 			};
 		case 'UPDATE_SESSION_TITLE': {
+			const titleSessionId =
+				typeof action.sessionId === 'string'
+					? parseInt( action.sessionId, 10 )
+					: action.sessionId;
 			const exists = state.sessions.some(
-				( s ) => parseInt( s.id, 10 ) === action.sessionId
+				( s ) => s.id === titleSessionId
 			);
 			// If the session is already in the list, update its title in place.
 			// If it is not yet in the list (e.g. a brand-new session whose
@@ -1743,13 +1673,13 @@ export function reducer( state, action ) {
 			// immediately without waiting for the fetchSessions round-trip.
 			const updatedSessions = exists
 				? state.sessions.map( ( s ) =>
-						parseInt( s.id, 10 ) === action.sessionId
+						s.id === titleSessionId
 							? { ...s, title: action.title }
 							: s
 				  )
 				: [
 						{
-							id: action.sessionId,
+							id: titleSessionId,
 							title: action.title,
 							created_at: new Date().toISOString(),
 							updated_at: new Date().toISOString(),
@@ -1767,7 +1697,7 @@ export function reducer( state, action ) {
 				sessions: updatedSessions,
 				pendingTitles: {
 					...( state.pendingTitles || {} ),
-					[ action.sessionId ]: action.title,
+					[ titleSessionId ]: action.title,
 				},
 			};
 		}

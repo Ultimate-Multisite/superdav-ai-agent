@@ -269,7 +269,7 @@ function LiveToolProgress( { toolCalls } ) {
  * Scrollable list of chat messages for the current session.
  *
  * Renders user/model/system bubbles, tool call details, message actions,
- * debug panels, suggestion chips, and the streaming text indicator.
+ * debug panels, and suggestion chips.
  * Auto-scrolls to the bottom on new messages.
  *
  * When text-to-speech is enabled, each new model response is spoken aloud
@@ -282,8 +282,6 @@ export default function MessageList() {
 		messages,
 		sending,
 		debugMode,
-		streamingText,
-		isStreaming,
 		pendingActionCard,
 		settingsGreeting,
 		ttsEnabled,
@@ -303,8 +301,6 @@ export default function MessageList() {
 			messages: store.getCurrentSessionMessages(),
 			sending: store.isSending(),
 			debugMode: store.isDebugMode(),
-			streamingText: store.getStreamingText(),
-			isStreaming: store.isStreamingActive(),
 			pendingActionCard: store.getPendingActionCard(),
 			settingsGreeting: store.getSettings()?.greeting_message || '',
 			ttsEnabled: store.isTtsEnabled(),
@@ -368,13 +364,13 @@ export default function MessageList() {
 				window.scrollTo( 0, savedY );
 			}
 		}
-	}, [ messages, sending, streamingText ] );
+	}, [ messages, sending ] );
 
 	// Speak new model messages when TTS is enabled and a response completes.
 	// We only speak when: TTS is on, not currently streaming, not sending,
 	// and the last message is a model message we haven't spoken yet.
 	useEffect( () => {
-		if ( ! ttsEnabled || isStreaming || sending ) {
+		if ( ! ttsEnabled || sending ) {
 			return;
 		}
 
@@ -400,7 +396,7 @@ export default function MessageList() {
 
 		lastSpokenIndexRef.current = lastIdx;
 		speak( text );
-	}, [ messages, ttsEnabled, isStreaming, sending, speak ] );
+	}, [ messages, ttsEnabled, sending, speak ] );
 
 	// Cancel speech when TTS is disabled mid-conversation.
 	useEffect( () => {
@@ -504,17 +500,6 @@ export default function MessageList() {
 					</div>
 				);
 			} ) }
-			{ isStreaming && streamingText && (
-				<div className="gratis-ai-agent-message-row gratis-ai-agent-message-row--streaming">
-					<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-streaming">
-						<MarkdownMessage content={ streamingText } />
-						<span
-							className="gratis-ai-agent-streaming-cursor"
-							aria-hidden="true"
-						/>
-					</div>
-				</div>
-			) }
 			{ pendingActionCard && (
 				<div className="gratis-ai-agent-message-row gratis-ai-agent-message-row-action-card">
 					<ActionCard
@@ -604,7 +589,7 @@ export default function MessageList() {
 					onClose={ () => setThumbsDownMessageIndex( null ) }
 				/>
 			) }
-			{ sending && ! isStreaming && ! pendingActionCard && (
+			{ sending && ! pendingActionCard && (
 				<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-thinking">
 					<Spinner />
 					{ ( () => {

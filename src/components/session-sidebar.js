@@ -89,10 +89,10 @@ function SessionItem( {
 			} ${ isPinned ? 'is-pinned' : '' } ${
 				isShared ? 'is-shared' : ''
 			}` }
-			onClick={ () => openSession( parseInt( session.id, 10 ) ) }
+			onClick={ () => openSession( session.id ) }
 			onKeyDown={ ( e ) => {
 				if ( e.key === 'Enter' ) {
-					openSession( parseInt( session.id, 10 ) );
+					openSession( session.id );
 				}
 			} }
 			role="button"
@@ -429,19 +429,15 @@ export default function SessionSidebar( { onClose } ) {
 					<SessionItem
 						key={ session.id }
 						session={ session }
-						isActive={
-							currentSessionId === parseInt( session.id, 10 )
-						}
+						isActive={ currentSessionId === session.id }
 						isOwner={
 							! isSharedTab ||
 							parseInt( session.user_id, 10 ) === currentUserId
 						}
-						hasActiveJob={
-							!! sessionJobs[ parseInt( session.id, 10 ) ]
-						}
+						hasActiveJob={ !! sessionJobs[ session.id ] }
 						hasPendingConfirmation={
-							sessionJobs[ parseInt( session.id, 10 ) ]
-								?.status === 'awaiting_confirmation'
+							sessionJobs[ session.id ]?.status ===
+							'awaiting_confirmation'
 						}
 					/>
 				) ) }

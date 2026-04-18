@@ -383,6 +383,29 @@ describe( 'reducer', () => {
 		expect( state.pendingTitles ).toEqual( {} );
 	} );
 
+	test( 'SET_SESSIONS normalizes string IDs to integers', () => {
+		const sessions = [
+			{ id: '42', title: 'Test' },
+			{ id: 7, title: 'Already int' },
+		];
+		const state = reducer( DEFAULT_STATE, {
+			type: 'SET_SESSIONS',
+			sessions,
+		} );
+		expect( state.sessions[ 0 ].id ).toBe( 42 );
+		expect( state.sessions[ 1 ].id ).toBe( 7 );
+	} );
+
+	test( 'SET_CURRENT_SESSION normalizes string sessionId to integer', () => {
+		const state = reducer( DEFAULT_STATE, {
+			type: 'SET_CURRENT_SESSION',
+			sessionId: '15',
+			messages: [],
+			toolCalls: [],
+		} );
+		expect( state.currentSessionId ).toBe( 15 );
+	} );
+
 	test( 'UPDATE_SESSION_TITLE records title in pendingTitles', () => {
 		const state = reducer( DEFAULT_STATE, {
 			type: 'UPDATE_SESSION_TITLE',

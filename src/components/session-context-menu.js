@@ -56,14 +56,12 @@ export default function SessionContextMenu( {
 	const isShared = useSelect(
 		( select ) => {
 			const sharedSessions = select( STORE_NAME ).getSharedSessions();
-			return sharedSessions.some(
-				( s ) => parseInt( s.id, 10 ) === parseInt( session.id, 10 )
-			);
+			return sharedSessions.some( ( s ) => s.id === session.id );
 		},
 		[ session.id ]
 	);
 
-	const sessionId = parseInt( session.id, 10 );
+	const sessionId = session.id;
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
 	const isArchived = session.status === 'archived';
 	const isTrashed = session.status === 'trash';

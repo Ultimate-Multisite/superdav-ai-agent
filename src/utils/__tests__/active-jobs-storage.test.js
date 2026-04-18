@@ -96,7 +96,9 @@ describe( 'clearActiveJob', () => {
 	test( 'removes the key entirely when the map becomes empty', () => {
 		setActiveJob( 7, 'job_seven' );
 		clearActiveJob( 7 );
-		expect( sessionStorage.getItem( 'gratisAiAgent_activeJobs' ) ).toBeNull();
+		expect(
+			sessionStorage.getItem( 'gratisAiAgent_activeJobs' )
+		).toBeNull();
 	} );
 
 	test( 'is a no-op when sessionStorage is empty', () => {

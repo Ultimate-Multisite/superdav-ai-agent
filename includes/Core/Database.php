@@ -36,7 +36,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '15.0.0';
+	const DB_VERSION        = '16.0.0';
 
 	// ─── Table Name Registry ──────────────────────────────────────────────────
 
@@ -205,6 +205,15 @@ class Database {
 		return $wpdb->prefix . 'gratis_ai_agent_generated_plugins';
 	}
 
+	/**
+	 * Get the active jobs table name.
+	 */
+	public static function active_jobs_table_name(): string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		return $wpdb->prefix . 'gratis_ai_agent_active_jobs';
+	}
+
 	// ─── Schema Installation ──────────────────────────────────────────────────
 
 	/**
@@ -241,6 +250,7 @@ class Database {
 		$benchmark_results_table      = self::benchmark_results_table_name();
 		$provider_trace_table         = self::provider_trace_table_name();
 		$generated_plugins_table      = self::generated_plugins_table_name();
+		$active_jobs_table            = self::active_jobs_table_name();
 		$charset                      = $wpdb->get_charset_collate();
 
 		// Knowledge tables.
@@ -573,6 +583,22 @@ class Database {
 			KEY slug (slug),
 			KEY status (status),
 			KEY created_at (created_at)
+		) {$charset};
+
+		CREATE TABLE {$active_jobs_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			session_id bigint(20) unsigned NOT NULL,
+			job_id varchar(36) NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			status varchar(30) NOT NULL DEFAULT 'processing',
+			pending_tools longtext NOT NULL,
+			tool_calls longtext NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY job_id (job_id),
+			KEY session_id (session_id),
+			KEY user_id_status (user_id, status)
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

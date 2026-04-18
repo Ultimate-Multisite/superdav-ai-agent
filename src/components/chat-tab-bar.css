@@ -16,6 +16,7 @@
 	overflow-y: hidden;
 	flex-shrink: 0;
 	background: #f6f7f7;
+
 	/* Hide scrollbar on all browsers while keeping scroll behaviour */
 	scrollbar-width: none; /* Firefox */
 	-ms-overflow-style: none; /* IE / Edge legacy */

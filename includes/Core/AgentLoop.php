@@ -482,6 +482,12 @@ class AgentLoop {
 				$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
 			}
 
+			// Safety net: validate tool_use/tool_result pairing even when
+			// trimming is disabled. Deserialization round-trips or history
+			// corruption from session storage could leave orphaned tool
+			// calls that cause API 400 errors.
+			$this->history = ConversationTrimmer::validate_tool_pairs( $this->history );
+
 			$result = $this->send_prompt();
 
 			if ( is_wp_error( $result ) ) {

@@ -90,11 +90,127 @@ class ConversationTrimmer {
 			]
 		);
 
-		return array_merge( $first_turn, [ $marker ], $kept_history );
+		$merged = array_merge( $first_turn, [ $marker ], $kept_history );
+
+		// Safety net: validate tool_use/tool_result pairing after trimming.
+		// Even with correct boundary detection, edge cases (serialization
+		// round-trips, history corruption) could leave orphaned tool calls.
+		return self::validate_tool_pairs( $merged );
+	}
+
+	/**
+	 * Validate and repair tool_use/tool_result pairing in conversation history.
+	 *
+	 * Scans for assistant messages containing FunctionCall parts and verifies
+	 * that the immediately following message(s) contain matching FunctionResponse
+	 * parts. If a tool_use has no matching tool_result, the assistant message is
+	 * removed (along with any orphaned tool_results) to prevent API 400 errors.
+	 *
+	 * This is a defensive safety net — the primary fix is in find_turn_boundaries()
+	 * which avoids cutting mid-tool-cycle. This method catches edge cases.
+	 *
+	 * @param Message[] $history The conversation history to validate.
+	 * @return Message[] The validated history with orphaned tool cycles removed.
+	 */
+	public static function validate_tool_pairs( array $history ): array {
+		$result = [];
+		$count  = count( $history );
+		$i      = 0;
+
+		while ( $i < $count ) {
+			$message = $history[ $i ];
+
+			// Check if this is an assistant message with tool calls.
+			$tool_call_ids = self::extract_tool_call_ids( $message );
+
+			if ( empty( $tool_call_ids ) ) {
+				// Not a tool-call message — keep it.
+				$result[] = $message;
+				++$i;
+				continue;
+			}
+
+			// Collect the tool-response messages that follow.
+			$response_ids   = [];
+			$response_start = $i + 1;
+			$response_end   = $response_start;
+
+			while ( $response_end < $count ) {
+				$next = $history[ $response_end ];
+				if ( self::is_tool_response_message( $next ) ) {
+					foreach ( self::extract_tool_response_ids( $next ) as $rid ) {
+						$response_ids[] = $rid;
+					}
+					++$response_end;
+				} else {
+					break;
+				}
+			}
+
+			// Check if ALL tool_call IDs have matching responses.
+			$missing = array_diff( $tool_call_ids, $response_ids );
+
+			if ( empty( $missing ) ) {
+				// All tool calls have responses — keep the entire cycle.
+				$result[] = $message;
+				for ( $j = $response_start; $j < $response_end; $j++ ) {
+					$result[] = $history[ $j ];
+				}
+			}
+			// else: orphaned tool calls — skip the entire cycle (assistant
+			// message + any partial responses) to prevent the API error.
+
+			$i = $response_end;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Extract FunctionCall IDs from a message.
+	 *
+	 * @param Message $message The message to inspect.
+	 * @return string[] Array of tool call IDs.
+	 */
+	private static function extract_tool_call_ids( Message $message ): array {
+		$ids = [];
+		foreach ( $message->getParts() as $part ) {
+			if ( method_exists( $part, 'getFunctionCall' ) ) {
+				$fc = $part->getFunctionCall();
+				if ( $fc ) {
+					$ids[] = (string) $fc->getId();
+				}
+			}
+		}
+		return $ids;
+	}
+
+	/**
+	 * Extract FunctionResponse IDs from a message.
+	 *
+	 * @param Message $message The message to inspect.
+	 * @return string[] Array of tool response IDs.
+	 */
+	private static function extract_tool_response_ids( Message $message ): array {
+		$ids = [];
+		foreach ( $message->getParts() as $part ) {
+			if ( method_exists( $part, 'getFunctionResponse' ) ) {
+				$fr = $part->getFunctionResponse();
+				if ( $fr ) {
+					$ids[] = (string) $fr->getId();
+				}
+			}
+		}
+		return $ids;
 	}
 
 	/**
 	 * Find indices in the history array where user messages start a new turn.
+	 *
+	 * Tool-response messages (UserMessage containing FunctionResponse parts)
+	 * are NOT turn boundaries — they are part of a tool-call cycle that must
+	 * stay paired with the preceding assistant message. Only genuine user
+	 * text messages count as turn boundaries.
 	 *
 	 * @param Message[] $history Conversation history.
 	 * @return int[] Array of indices.
@@ -115,15 +231,43 @@ class ConversationTrimmer {
 					$role_str = (string) $role;
 				}
 
-				if ( 'user' === $role_str ) {
-					$boundaries[] = $i;
+				if ( 'user' !== $role_str ) {
+					continue;
 				}
+
+				// Skip tool-response messages — they contain FunctionResponse
+				// parts and must stay paired with the preceding tool_use.
+				if ( self::is_tool_response_message( $message ) ) {
+					continue;
+				}
+
+				$boundaries[] = $i;
 			} catch ( \Throwable $e ) {
 				continue;
 			}
 		}
 
 		return $boundaries;
+	}
+
+	/**
+	 * Check whether a message is a tool-response (contains FunctionResponse parts).
+	 *
+	 * Tool-response messages are UserMessage objects with FunctionResponse parts
+	 * created by ConversationSerializer::append_tool_response(). They look like
+	 * user messages by role but are actually tool results that must stay paired
+	 * with their preceding assistant tool_use message.
+	 *
+	 * @param Message $message The message to check.
+	 * @return bool True if the message contains any FunctionResponse parts.
+	 */
+	private static function is_tool_response_message( Message $message ): bool {
+		foreach ( $message->getParts() as $part ) {
+			if ( method_exists( $part, 'getFunctionResponse' ) && $part->getFunctionResponse() ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

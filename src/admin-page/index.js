@@ -44,6 +44,7 @@ function AdminPageApp() {
 		fetchSessions,
 		fetchSettings,
 		clearCurrentSession,
+		restoreActiveJobs,
 	} = useDispatch( STORE_NAME );
 	const { settings, settingsLoaded, bootError } = useSelect(
 		( select ) => ( {
@@ -63,7 +64,8 @@ function AdminPageApp() {
 		fetchProviders();
 		fetchSessions();
 		fetchSettings();
-	}, [ fetchProviders, fetchSessions, fetchSettings ] );
+		restoreActiveJobs();
+	}, [ fetchProviders, fetchSessions, fetchSettings, restoreActiveJobs ] );
 
 	useEffect( () => {
 		if ( settingsLoaded && settings ) {

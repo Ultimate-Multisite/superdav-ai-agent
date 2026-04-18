@@ -503,6 +503,34 @@ final class SessionController {
 			)
 		);
 
+		// Active-job reconnection endpoints (t202).
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/sessions/active-jobs',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_list_active_jobs' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/sessions/(?P<id>\d+)/active-job',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_session_active_job' ),
+				'permission_callback' => array( $this, 'check_session_permission' ),
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
 		// Site builder endpoints.
 		register_rest_route(
 			RestController::NAMESPACE,
@@ -1701,6 +1729,65 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * Handle GET /sessions/{id}/active-job — return the active job for a session (t202).
+	 *
+	 * Returns the same shape as /job/{id} for processing/awaiting_confirmation states.
+	 * Returns 404 if the session has no active job.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_session_active_job( WP_REST_Request $request ) {
+		$session_id = (int) $request->get_param( 'id' );
+		$db_row     = ActiveJobRepository::get_by_session_id( $session_id );
+
+		if ( null === $db_row ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_active_job',
+				__( 'No active job for this session.', 'gratis-ai-agent' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$response = array(
+			'job_id' => $db_row->job_id,
+			'status' => $db_row->status,
+		);
+
+		$response['tool_calls'] = json_decode( $db_row->tool_calls, true ) ?: [];
+
+		if ( 'awaiting_confirmation' === $db_row->status ) {
+			$response['pending_tools'] = json_decode( $db_row->pending_tools, true ) ?: [];
+		}
+
+		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Handle GET /sessions/active-jobs — list all active jobs for the current user (t202).
+	 *
+	 * Returns an array of { session_id, job_id, status }.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_list_active_jobs(): WP_REST_Response {
+		$rows = ActiveJobRepository::get_active_for_user( get_current_user_id() );
+
+		$data = array_map(
+			static function ( $row ) {
+				return array(
+					'session_id' => $row->session_id,
+					'job_id'     => $row->job_id,
+					'status'     => $row->status,
+				);
+			},
+			$rows
+		);
+
+		return new WP_REST_Response( array_values( $data ), 200 );
 	}
 
 	/**

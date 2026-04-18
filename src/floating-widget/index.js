@@ -42,6 +42,7 @@ function FloatingWidget() {
 		setSiteBuilderMode,
 		setFloatingOpen,
 		pollJob,
+		restoreActiveJobs,
 	} = useDispatch( STORE_NAME );
 
 	const { isOpen, isSiteBuilderMode, settings, bootError } = useSelect(
@@ -64,7 +65,8 @@ function FloatingWidget() {
 	useEffect( () => {
 		fetchProviders();
 		fetchSessions();
-	}, [ fetchProviders, fetchSessions ] );
+		restoreActiveJobs();
+	}, [ fetchProviders, fetchSessions, restoreActiveJobs ] );
 
 	// Cross-page navigation survival (Phase 4 / t206):
 	// Restore any active poll loops from sessionStorage. If the user navigated

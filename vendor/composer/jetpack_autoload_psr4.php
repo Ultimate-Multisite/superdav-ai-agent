@@ -63,11 +63,11 @@ return array(
 		'path'    => array( $vendorDir . '/php-di/invoker/src' )
 	),
 	'GratisAiAgent\\Tests\\' => array(
-		'version' => 'dev-main',
+		'version' => '1.0.0.0',
 		'path'    => array( $baseDir . '/tests/GratisAiAgent' )
 	),
 	'GratisAiAgent\\' => array(
-		'version' => 'dev-main',
+		'version' => '1.0.0.0',
 		'path'    => array( $baseDir . '/includes' )
 	),
 	'Doctrine\\Instantiator\\' => array(

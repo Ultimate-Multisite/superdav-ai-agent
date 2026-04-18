@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'ultimate-multisite/ai-agent',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '16100b8b6f6162dc5705c0fcffaa4912794ed819',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -468,9 +468,9 @@
             'dev_requirement' => true,
         ),
         'ultimate-multisite/ai-agent' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '16100b8b6f6162dc5705c0fcffaa4912794ed819',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

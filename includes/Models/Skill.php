@@ -106,10 +106,26 @@ class Skill {
 	}
 
 	/**
+	 * Skills whose parent plugin must be active for auto-injection.
+	 *
+	 * When a skill slug appears here and the corresponding plugin is active,
+	 * the skill is treated as enabled for auto-injection regardless of the
+	 * DB `enabled` flag. This means admins don't have to manually enable
+	 * the WooCommerce skill after installing WooCommerce — it just works.
+	 *
+	 * @var array<string, string> slug => plugin file (relative to plugins dir).
+	 */
+	private const PLUGIN_SKILL_MAP = [
+		'woocommerce'          => 'woocommerce/woocommerce.php',
+		'multisite-management' => '', // No plugin dependency — enabled via is_multisite().
+	];
+
+	/**
 	 * Get skill content by slug (convenience method for auto-injection).
 	 *
 	 * Returns the content of an enabled skill, or null if the skill
-	 * doesn't exist or is disabled.
+	 * doesn't exist or is disabled. Skills with a known plugin dependency
+	 * are auto-enabled when the plugin is active.
 	 *
 	 * @param string $slug Skill slug.
 	 * @return string|null Skill content or null.
@@ -121,11 +137,43 @@ class Skill {
 			return null;
 		}
 
-		if ( ! (int) $skill->enabled ) {
-			return null;
+		// Check explicit enabled flag first.
+		if ( (int) $skill->enabled ) {
+			return $skill->content;
 		}
 
-		return $skill->content;
+		// Auto-enable skills whose parent plugin is active.
+		if ( self::is_skill_auto_enabled( $slug ) ) {
+			return $skill->content;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if a disabled skill should be auto-enabled based on environment.
+	 *
+	 * @param string $slug Skill slug.
+	 * @return bool True if the skill should be treated as enabled.
+	 */
+	private static function is_skill_auto_enabled( string $slug ): bool {
+		if ( ! isset( self::PLUGIN_SKILL_MAP[ $slug ] ) ) {
+			return false;
+		}
+
+		$plugin_file = self::PLUGIN_SKILL_MAP[ $slug ];
+
+		// Multisite skill: auto-enable on multisite installs.
+		if ( '' === $plugin_file ) {
+			return 'multisite-management' === $slug && is_multisite();
+		}
+
+		// Plugin-dependent skill: check if plugin is active.
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		return is_plugin_active( $plugin_file );
 	}
 
 	/**

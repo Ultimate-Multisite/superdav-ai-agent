@@ -470,7 +470,11 @@
         'ultimate-multisite/ai-agent' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
+<<<<<<< HEAD
             'reference' => '3f1367a14883b87123ab0e4436743cbf2971b524',
+=======
+            'reference' => '01e34cf054971e9ef8dfb8a08fe9802426e75f6d',
+>>>>>>> ed814d3 (t209: auto-enable skills when parent plugin is active)
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

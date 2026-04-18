@@ -696,3 +696,57 @@ Phase 1 (foundation) → Phase 2 (polling refactor) → Phase 4 (sessionStorage,
 #### Surprises & Discoveries
 
 (To be populated during implementation)
+
+---
+
+### [2026-04-17] Improve Block Editor Content Quality — Auto-inject Skills + Rich Gutenberg Skill {#improve-block-editor-content-quality}
+
+**Status:** Planning
+**Estimate:** ~20h (ai:16h test:3h read:1h)
+
+#### Purpose
+
+Pages created by the AI agent look awful — raw markdown mixed with block markup, no layout sophistication, no columns/groups/covers/buttons. The root cause is threefold: (1) skills are opt-in and the LLM never loads them, (2) the gutenberg-blocks skill is too thin to be useful even if loaded (73 lines, zero block markup examples), and (3) the system prompt actively steers the LLM toward markdown-only output. This plan fixes the skill delivery mechanism, enriches the skill content, and fixes the mixed-content rendering bug.
+
+#### Progress
+
+- [ ] (2026-04-17) Phase 1: Fix `maybe_convert_markdown()` mixed-content bug ~2h
+- [ ] (2026-04-17) Phase 2: Auto-inject skills based on task intent ~4h
+- [ ] (2026-04-17) Phase 3: Rewrite gutenberg-blocks skill with comprehensive block markup reference ~6h
+- [ ] (2026-04-17) Phase 4: Unhide block abilities + update system prompt + add validate-block-content ability ~8h
+
+#### Context from Discussion
+
+**Investigation findings (raising-cows-for-beef page):**
+- Page content is a mix of proper `<!-- wp:image -->` blocks and raw markdown (`## headings`, `**bold**`, `- lists`)
+- `PostAbilities::maybe_convert_markdown()` short-circuits when it finds `<!-- wp:` anywhere in content — even if 90% of the content is still raw markdown
+- The LLM produced hybrid content (image blocks from stock image ability + markdown for text) and the converter never touched the markdown portions
+
+**Skills system architecture gaps identified:**
+1. **Skills are passive/opt-in** — `Skill::get_index_for_prompt()` injects a one-line index telling the LLM to "use skill-load tool when a request matches." The LLM ignores this because the system prompt already says "just write markdown."
+2. **Block tools are hidden** — `markdown-to-blocks` and `create-block-content` have `'ai_hidden' => true`, so `resolve_abilities()` filters them out. The LLM literally cannot call them.
+3. **System prompt contradiction** — Default system instruction (line 173) says "Write content directly using markdown" which conflicts with any skill that says "use block tools for layouts."
+4. **Skill content is too thin** — `gutenberg-blocks.md` is 73 lines with zero actual serialized block markup examples. Without examples, even a loaded skill doesn't teach the LLM how to produce correct output.
+5. **No skill auto-injection** — Knowledge base has RAG-based auto-injection (`Knowledge::get_context_for_query()`). Skills have nothing equivalent — they're purely manual.
+
+**Key files:**
+- `includes/Core/SystemInstructionBuilder.php` — builds system prompt, injects skill index
+- `includes/Models/Skill.php` — skill model, `get_index_for_prompt()` produces the passive index
+- `includes/Abilities/BlockAbilities.php` — block tools (markdown-to-blocks, create-block-content, etc.)
+- `includes/Abilities/PostAbilities.php` — `maybe_convert_markdown()` bug location (line 775-813)
+- `includes/Models/MarkdownToBlocks.php` — markdown-to-blocks converter (text-only, no layout blocks)
+- `includes/Models/skills/gutenberg-blocks.md` — current skill content (73 lines, too thin)
+
+**Design decisions:**
+- Auto-inject skills into system prompt (like knowledge RAG) rather than relying on LLM to call skill-load
+- Keyword matching for skill injection is sufficient — no need for semantic search
+- Keep `create-block-content` as the primary tool for complex layouts, teach raw block markup for simple content
+- `maybe_convert_markdown()` should handle the "freeform blocks between real blocks" case gracefully
+
+#### Decision Log
+
+(To be populated during implementation)
+
+#### Surprises & Discoveries
+
+(To be populated during implementation)

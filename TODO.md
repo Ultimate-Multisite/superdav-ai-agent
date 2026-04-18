@@ -393,6 +393,44 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - EDIT: includes/REST/SettingsController.php — in the providers/models endpoint response, include `context_window` field per model from a static lookup (move the PHP-side equivalent of the hardcoded map into CostCalculator or Settings, where model metadata already lives)
   - Verify: `npm run lint:js && npm run build && composer phpstan`
 
+- [ ] t209 Improve block editor content quality #parent #feature → [todo/PLANS.md#improve-block-editor-content-quality] ~20h logged:2026-04-17
+
+- [ ] t210 Fix `maybe_convert_markdown()` mixed-content bug (Phase 1) #bug #auto-dispatch ~2h For #t209 logged:2026-04-17
+  - `PostAbilities::maybe_convert_markdown()` (line 780) short-circuits when content contains `<!-- wp:` — but the LLM produces hybrid content (image blocks + raw markdown text). The markdown portions are never converted, rendering as unstyled freeform blocks.
+  - EDIT: includes/Abilities/PostAbilities.php:775-813 — instead of returning early when `<!-- wp:` found, parse the content with `parse_blocks()`, identify freeform blocks (null blockName) that contain markdown signals, convert those segments individually with `MarkdownToBlocks::convert()`, and reassemble.
+  - Verify: `composer phpstan && composer phpcs`; test: pass content with mixed `<!-- wp:image -->` blocks and `## Heading\n\nParagraph text\n\n- list item` — verify freeform segments become proper blocks while existing blocks are preserved.
+
+- [ ] t211 Auto-inject skills into system prompt based on task intent (Phase 2) #feature #auto-dispatch ~4h For #t209 logged:2026-04-17
+  - Skills are currently opt-in — the LLM must voluntarily call `skill-load`, which it never does because the system prompt already tells it "just write markdown." Knowledge base has auto-injection via RAG; skills should work the same way.
+  - NEW: includes/Core/SkillAutoInjector.php — `inject_for_message(string $user_message): string` — keyword matching against skill trigger words. Returns concatenated skill content for matching skills. Trigger map: `create|page|post|blog|article|content|write` → `gutenberg-blocks`, `woocommerce|product|store|shop|order` → `woocommerce`, `seo|ranking|meta|sitemap` → `seo-optimization`. Cap at 2 skills per injection to limit prompt size.
+  - EDIT: includes/Core/SystemInstructionBuilder.php:68-72 — after the passive skill index injection, call `SkillAutoInjector::inject_for_message($this->user_message)` and append result to `$base`. Guard: skip if user_message is empty (non-chat contexts).
+  - EDIT: includes/Models/Skill.php — add `get_content_by_slug(string $slug): ?string` convenience method (loads from DB, returns content or null). Used by SkillAutoInjector.
+  - Verify: `composer phpstan && composer phpcs`; test: build system prompt with user_message "create a landing page for my business" — verify gutenberg-blocks skill content appears in the system instruction.
+
+- [ ] t212 Rewrite gutenberg-blocks skill with comprehensive block markup reference (Phase 3) #enhancement #auto-dispatch ~6h For #t209 logged:2026-04-17
+  - Current `gutenberg-blocks.md` is 73 lines with zero actual serialized block markup examples. LLMs need to see working examples to produce correct output — they don't know WordPress block comment syntax from training.
+  - EDIT: includes/Models/skills/gutenberg-blocks.md — complete rewrite with:
+    - **Critical rule**: content must be EITHER all markdown OR all serialized block markup, never mixed
+    - **Complete serialized block examples** for every common block: paragraph, heading (h2/h3/h4), image (with id/sizeSlug/align attrs), list+list-item (ordered and unordered), quote, code, table, separator, spacer, buttons+button, columns+column, group, cover
+    - **Layout composition patterns**: hero section (cover with heading+paragraph+buttons), two-column text+image, three-column feature grid, CTA section (group with background color), testimonial (quote in group)
+    - **Decision guide update**: use markdown for blog posts/articles (text-heavy), use raw block markup for pages with visual layouts (landing, about, services, contact)
+    - **Attribute reference**: how to set alignment (`"align":"wide"`), colors (`"backgroundColor":"primary"`), widths (`"width":"66.66%"`), custom spacing
+  - Target: 300-400 lines of actionable reference material
+  - Verify: visual review of the markdown rendering; ensure all block markup examples are valid (test with `parse_blocks()` if possible)
+
+- [ ] t213 Unhide block abilities + update system prompt content creation guidance (Phase 4) #feature #auto-dispatch ~4h For #t209 blocked-by:t211,t212 logged:2026-04-17
+  - `markdown-to-blocks` and `create-block-content` have `'ai_hidden' => true` — the LLM cannot see or call them. The system prompt says "Write content directly using markdown" which contradicts block-aware skills.
+  - EDIT: includes/Abilities/BlockAbilities.php:67-68 — remove `'ai_hidden' => true` from `markdown-to-blocks` ability meta
+  - EDIT: includes/Abilities/BlockAbilities.php:289-290 — remove `'ai_hidden' => true` from `create-block-content` ability meta
+  - EDIT: includes/Core/SystemInstructionBuilder.php:170-178 — rewrite "Content Creation" section: "For blog posts and articles, write in markdown. For pages with visual layouts (landing pages, about pages, service pages), write content using serialized Gutenberg block markup (<!-- wp:blockname --> HTML <!-- /wp:blockname -->). Load the gutenberg-blocks skill for block markup reference and examples. Use `create-block-content` for complex nested layouts (columns, groups, covers)."
+  - Verify: `composer phpstan && composer phpcs`
+
+- [ ] t214 Add validate-block-content ability for pre-insertion validation (Phase 4b) #feature #auto-dispatch ~4h For #t209 blocked-by:t213 logged:2026-04-17
+  - No guardrail exists — the LLM can produce malformed block markup and it's silently inserted. A validation ability gives the LLM a feedback loop.
+  - NEW: includes/Abilities/BlockAbilities.php — add `ai-agent/validate-block-content` ability: takes raw content string, runs `parse_blocks()`, checks for: (1) freeform blocks with markdown signals (mixed content warning), (2) mismatched open/close comments, (3) empty blocks, (4) blocks with required attrs missing. Returns `{valid: bool, warnings: string[], block_count: int, freeform_count: int}`.
+  - EDIT: includes/Models/skills/gutenberg-blocks.md — add validate-block-content to the "Available Tools" section with usage guidance: "After building complex block content, validate it before passing to create-post."
+  - Verify: `composer phpstan && composer phpcs`; test: pass valid block content (returns valid:true), pass mixed markdown+blocks (returns warning), pass malformed comments (returns warning).
+
 - [x] t188 Replace provider dropdown with connectors link when no providers defined #enhancement #auto-dispatch ~1h logged:2026-04-16 pr:#981 completed:2026-04-16
 
 ### Post-DI Code Quality & Structure Improvements

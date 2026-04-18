@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -157,6 +157,24 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 8. Settings page with 12 configuration tabs
 
 == Changelog ==
+
+= 1.6.0 - Released on 2026-04-17 =
+* New: Tool call details and skill activations displayed inline in chat messages
+* New: Always-on message input with message queue and agent interrupt support
+* Improved: Complete dependency injection migration — all wiring through x-wp/di container
+* Improved: Database god class split into focused domain repositories
+* Improved: AgentLoop refactored into focused, testable subclasses
+* Improved: Typed DTOs for database rows eliminate mixed-type casting
+* Improved: REST controller domain logic extracted into service classes
+* Improved: Interfaces added for key contracts (repositories, settings, budget)
+* Improved: Settings converted to injectable DI service
+* Improved: Plugin Builder abilities extracted into individual PSR-4 files
+* Fix: Ability error messages now preserve exception file, line, and trace details
+* Fix: Infinite API error loop replaced with friendly boot error and nonce refresh
+* Fix: stdClass handling in ability arguments and JSON schema empty-object serialization
+* Fix: Admin notice shown instead of fatal error when vendor directory is missing
+* Fix: Concurrent REST fetches for providers, settings, and abilities deduplicated
+* Fix: Tool confirmation dialog styles missing in screen-meta view
 
 = 1.5.0 - Released on 2026-04-15 =
 * New: Customer feedback & issue reporting system — thumbs-down button, feedback consent UI, auto-prompt banner on conversation end, /report-issue command, and AI-assisted triage
@@ -313,6 +331,9 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * WordPress 7.0 AI Client SDK integration (native core API)
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Architecture release: complete dependency injection migration via x-wp/di, database split into domain repositories, typed DTOs, service extraction from REST controllers, and new interfaces for key contracts. Also adds inline tool call details in chat and always-on message input with queue support. Multiple bug fixes including API error loop prevention and improved error diagnostics.
 
 = 1.5.0 =
 Major feature release: adds customer feedback & issue reporting system (thumbs-down, consent UI, AI triage), Plugin Builder with sandbox activation, async job architecture, internet search ability, and 7 plugin management abilities. Database will upgrade automatically.

@@ -34,6 +34,7 @@ const sessionStorageMock = ( () => {
 
 Object.defineProperty( global, 'sessionStorage', {
 	value: sessionStorageMock,
+	configurable: true,
 	writable: true,
 } );
 
@@ -68,18 +69,21 @@ describe( 'setActiveJob', () => {
 
 	test( 'does not throw when sessionStorage is unavailable', () => {
 		const original = global.sessionStorage;
-		Object.defineProperty( global, 'sessionStorage', {
-			get() {
-				throw new Error( 'storage unavailable' );
-			},
-			configurable: true,
-		} );
-		expect( () => setActiveJob( 1, 'job_x' ) ).not.toThrow();
-		Object.defineProperty( global, 'sessionStorage', {
-			value: original,
-			configurable: true,
-			writable: true,
-		} );
+		try {
+			Object.defineProperty( global, 'sessionStorage', {
+				get() {
+					throw new Error( 'storage unavailable' );
+				},
+				configurable: true,
+			} );
+			expect( () => setActiveJob( 1, 'job_x' ) ).not.toThrow();
+		} finally {
+			Object.defineProperty( global, 'sessionStorage', {
+				value: original,
+				configurable: true,
+				writable: true,
+			} );
+		}
 	} );
 } );
 
@@ -130,18 +134,21 @@ describe( 'getActiveJobs', () => {
 
 	test( 'returns an empty object when sessionStorage is unavailable', () => {
 		const original = global.sessionStorage;
-		Object.defineProperty( global, 'sessionStorage', {
-			get() {
-				throw new Error( 'storage unavailable' );
-			},
-			configurable: true,
-		} );
-		expect( getActiveJobs() ).toEqual( {} );
-		Object.defineProperty( global, 'sessionStorage', {
-			value: original,
-			configurable: true,
-			writable: true,
-		} );
+		try {
+			Object.defineProperty( global, 'sessionStorage', {
+				get() {
+					throw new Error( 'storage unavailable' );
+				},
+				configurable: true,
+			} );
+			expect( getActiveJobs() ).toEqual( {} );
+		} finally {
+			Object.defineProperty( global, 'sessionStorage', {
+				value: original,
+				configurable: true,
+				writable: true,
+			} );
+		}
 	} );
 
 	test( 'returns an empty object when storage contains malformed JSON', () => {

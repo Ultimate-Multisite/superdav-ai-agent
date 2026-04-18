@@ -8,6 +8,7 @@
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { onVisibilityChange } from '../../utils/visibility-manager';
+import { setActiveJob, clearActiveJob } from '../../utils/active-jobs-storage';
 
 export const initialState = {
 	// Active polling job ID (most-recently-started job for the current session).
@@ -137,6 +138,7 @@ export const actions = {
 				attempts++;
 				if ( attempts > maxAttempts ) {
 					unsubscribeVisibility();
+					clearActiveJob( sessionId );
 					// Only append error and update UI for the current session.
 					if ( select.getCurrentSessionId() === sessionId ) {
 						dispatch.appendMessage( {
@@ -206,6 +208,7 @@ export const actions = {
 						if ( currentJobId !== jobId && currentJobId !== null ) {
 							// Different job is now active; stop this poller.
 							unsubscribeVisibility();
+							clearActiveJob( sessionId );
 							return;
 						}
 
@@ -231,6 +234,7 @@ export const actions = {
 						}
 						// Don't clear sending — still waiting.
 						unsubscribeVisibility();
+						clearActiveJob( sessionId );
 						return;
 					}
 
@@ -388,6 +392,7 @@ export const actions = {
 
 				// Job finished (complete or error).
 				unsubscribeVisibility();
+				clearActiveJob( sessionId );
 				if ( select.getCurrentSessionId() === sessionId ) {
 					dispatch.setSending( false );
 					dispatch.setLiveToolCalls( [] );
@@ -397,6 +402,10 @@ export const actions = {
 				dispatch.setCurrentJobId( null );
 				dispatch.setSessionJob( sessionId, null );
 			};
+
+			// Persist to sessionStorage so the poll loop survives same-tab
+			// wp-admin page navigation (Phase 4 / t206).
+			setActiveJob( sessionId, jobId );
 
 			// Initial delay before first poll.
 			setTimeout( poll, 2000 );

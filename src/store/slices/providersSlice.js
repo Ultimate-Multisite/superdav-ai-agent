@@ -167,6 +167,29 @@ export const selectors = {
 		);
 		return provider?.models || [];
 	},
+
+	/**
+	 * Return the context window size (in tokens) for a given model.
+	 * Looks through all loaded providers for a model entry that carries
+	 * a `context_window` field from the REST API response. Falls back to
+	 * `settings.context_window_default` and then to 128,000.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @param {string}                           modelId - Model identifier to look up.
+	 * @return {number} Context window size in tokens.
+	 */
+	getModelContextWindow( state, modelId ) {
+		for ( const provider of state.providers ) {
+			if ( ! Array.isArray( provider.models ) ) {
+				continue;
+			}
+			const model = provider.models.find( ( m ) => m.id === modelId );
+			if ( model?.context_window ) {
+				return model.context_window;
+			}
+		}
+		return state.settings?.context_window_default || 128000;
+	},
 };
 
 /**

@@ -1140,9 +1140,11 @@ final class SettingsController {
 							$model_metadata = $directory->listModelMetadata();
 
 							foreach ( $model_metadata as $model_meta ) {
+								$model_id = $model_meta->getId();
 								$models[] = array(
-									'id'   => $model_meta->getId(),
-									'name' => $model_meta->getName(),
+									'id'             => $model_id,
+									'name'           => $model_meta->getName(),
+									'context_window' => Settings::MODEL_CONTEXT_WINDOWS[ $model_id ] ?? 128000,
 								);
 							}
 						} catch ( \Throwable $e ) {

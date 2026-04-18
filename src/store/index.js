@@ -109,19 +109,6 @@ const STORE_NAME = 'gratis-ai-agent';
 } );
 
 /**
- * Known model context windows (tokens).
- */
-const MODEL_CONTEXT_WINDOWS = {
-	'claude-sonnet-4-20250514': 200000,
-	'claude-opus-4-20250115': 200000,
-	'gpt-4.1': 1000000,
-	'gpt-4.1-mini': 1000000,
-	'gpt-4.1-nano': 1000000,
-	'gpt-4o': 128000,
-	'gpt-4o-mini': 128000,
-};
-
-/**
  * Combined initial state from all domain slices.
  */
 const DEFAULT_STATE = {
@@ -177,10 +164,10 @@ const selectors = {
 	 * @return {number} Percentage of context window consumed by prompt tokens.
 	 */
 	getContextPercentage( state ) {
-		const contextLimit =
-			MODEL_CONTEXT_WINDOWS[ state.selectedModelId ] ||
-			state.settings?.context_window_default ||
-			128000;
+		const contextLimit = providersSelectors.getModelContextWindow(
+			state,
+			state.selectedModelId
+		);
 		return ( state.tokenUsage.prompt / contextLimit ) * 100;
 	},
 
@@ -191,10 +178,10 @@ const selectors = {
 	 * @return {boolean} True when context usage is above 80%.
 	 */
 	isContextWarning( state ) {
-		const contextLimit =
-			MODEL_CONTEXT_WINDOWS[ state.selectedModelId ] ||
-			state.settings?.context_window_default ||
-			128000;
+		const contextLimit = providersSelectors.getModelContextWindow(
+			state,
+			state.selectedModelId
+		);
 		return ( state.tokenUsage.prompt / contextLimit ) * 100 > 80;
 	},
 };

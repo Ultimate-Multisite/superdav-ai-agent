@@ -330,13 +330,13 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
-- [ ] t188 Replace provider dropdown with connectors link when no providers defined #enhancement #auto-dispatch ~1h logged:2026-04-16
+- [x] t188 Replace provider dropdown with connectors link when no providers defined #enhancement #auto-dispatch ~1h logged:2026-04-16 pr:#981 completed:2026-04-16
 
 ### Post-DI Code Quality & Structure Improvements
 
 Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di-code-quality--structure-improvements)
 
-- [ ] t189 Split Database God Class (1,490 lines) into domain repositories #refactor #auto-dispatch ~6h logged:2026-04-16
+- [x] t189 Split Database God Class (1,490 lines) into domain repositories #refactor #auto-dispatch ~6h logged:2026-04-16 pr:#1002 completed:2026-04-17
   - Database handles 7 unrelated domains: schema, sessions, usage, generated plugins, modified files, shared sessions, paused state
   - Split into: SchemaManager, SessionRepository, UsageRepository, GeneratedPluginRepository, ModifiedFileRepository, SharedSessionRepository
   - EDIT: includes/Core/Database.php — extract methods into new repository classes
@@ -402,7 +402,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - Fix stale AdminPage::SLUG reference in ScreenMetaPanel (class was deleted in t146)
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t197 Add interfaces for key contracts (repositories, settings, budget) #refactor ~4h logged:2026-04-16 blocked-by:t189,t192
+- [x] t197 Add interfaces for key contracts (repositories, settings, budget) #refactor ~4h logged:2026-04-16 blocked-by:t189,t192 pr:#1012 completed:2026-04-17
   - No interfaces exist — direct coupling to concrete classes, hard to mock in tests
   - NEW: includes/Contracts/SessionRepositoryInterface.php — CRUD contract from t189
   - NEW: includes/Contracts/SettingsProviderInterface.php — get/update/defaults from t192

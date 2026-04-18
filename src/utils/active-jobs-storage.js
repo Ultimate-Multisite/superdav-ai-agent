@@ -17,6 +17,26 @@
 const STORAGE_KEY = 'gratisAiAgent_activeJobs';
 
 /**
+ * Parse and normalise raw sessionStorage content into a plain-object map.
+ *
+ * JSON.parse() can legitimately return null, an array, or a primitive — all of
+ * which violate the `{}` contract expected by callers using Object.entries().
+ * This helper always returns a plain object.
+ *
+ * @param {string|null} raw - Raw string from sessionStorage.getItem(), or null.
+ * @return {Object} Validated plain-object map, or {} when invalid/empty.
+ */
+function parseActiveJobs( raw ) {
+	if ( ! raw ) {
+		return {};
+	}
+	const parsed = JSON.parse( raw );
+	return parsed && typeof parsed === 'object' && ! Array.isArray( parsed )
+		? parsed
+		: {};
+}
+
+/**
  * Register or update an active job in sessionStorage.
  *
  * Called when a poll loop starts so the job survives navigation.
@@ -27,7 +47,7 @@ const STORAGE_KEY = 'gratisAiAgent_activeJobs';
 export function setActiveJob( sessionId, jobId ) {
 	try {
 		const raw = sessionStorage.getItem( STORAGE_KEY );
-		const jobs = raw ? JSON.parse( raw ) : {};
+		const jobs = parseActiveJobs( raw );
 		jobs[ sessionId ] = jobId;
 		sessionStorage.setItem( STORAGE_KEY, JSON.stringify( jobs ) );
 	} catch {
@@ -49,7 +69,7 @@ export function clearActiveJob( sessionId ) {
 		if ( ! raw ) {
 			return;
 		}
-		const jobs = JSON.parse( raw );
+		const jobs = parseActiveJobs( raw );
 		delete jobs[ sessionId ];
 		if ( Object.keys( jobs ).length === 0 ) {
 			sessionStorage.removeItem( STORAGE_KEY );
@@ -73,7 +93,7 @@ export function clearActiveJob( sessionId ) {
 export function getActiveJobs() {
 	try {
 		const raw = sessionStorage.getItem( STORAGE_KEY );
-		return raw ? JSON.parse( raw ) : {};
+		return parseActiveJobs( raw );
 	} catch {
 		return {};
 	}

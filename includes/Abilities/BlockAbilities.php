@@ -63,8 +63,6 @@ class BlockAbilities {
 						'destructive' => false,
 						'idempotent'  => true,
 					],
-					'show_in_rest' => false,
-					'ai_hidden'    => true,
 				],
 			]
 		);
@@ -286,8 +284,6 @@ class BlockAbilities {
 						'destructive' => false,
 						'idempotent'  => true,
 					],
-					'show_in_rest' => false,
-					'ai_hidden'    => true,
 				],
 			]
 		);

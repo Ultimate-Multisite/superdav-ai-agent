@@ -1020,8 +1020,8 @@ final class SessionController {
 	 * (they are already in the session's messages column) — the frontend
 	 * receives status='complete' with from_db=true and should reload the session.
 	 *
-	 * @param string        $job_id Job UUID.
-	 * @param ActiveJobRow  $row    DTO returned by ActiveJobRepository::get_by_job_id().
+	 * @param string       $job_id Job UUID.
+	 * @param ActiveJobRow $row    DTO returned by ActiveJobRepository::get_by_job_id().
 	 * @return WP_REST_Response
 	 */
 	private function job_status_from_db_row( string $job_id, ActiveJobRow $row ): WP_REST_Response {

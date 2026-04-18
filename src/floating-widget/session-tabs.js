@@ -61,15 +61,12 @@ export default function SessionTabs() {
 							isActive ? 'is-active' : ''
 						} ${ needsApproval ? 'needs-approval' : '' }` }
 						onClick={ () => openSession( id ) }
-						title={
-							needsApproval
-								? __(
-										'Approval needed',
-										'gratis-ai-agent'
-								  )
-								: session.title ||
-								  __( 'Untitled', 'gratis-ai-agent' )
-						}
+					title={
+						needsApproval
+							? __( 'Approval needed', 'gratis-ai-agent' )
+							: session.title ||
+							  __( 'Untitled', 'gratis-ai-agent' )
+					}
 						type="button"
 					>
 						{ needsApproval && (

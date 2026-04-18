@@ -122,10 +122,7 @@ function SessionItem( {
 				{ hasPendingConfirmation && ! isActive && (
 					<span
 						className="gratis-ai-agent-session-confirm-badge"
-						title={ __(
-							'Approval needed',
-							'gratis-ai-agent'
-						) }
+						title={ __( 'Approval needed', 'gratis-ai-agent' ) }
 						aria-label={ __(
 							'Approval needed',
 							'gratis-ai-agent'

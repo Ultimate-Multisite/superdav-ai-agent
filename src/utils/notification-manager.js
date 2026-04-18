@@ -51,6 +51,12 @@ function startTitleFlash() {
 	}
 
 	originalTitle = document.title;
+	// Build the flash title once so we don't call __() on every interval tick.
+	const flashTitle =
+		'\u26A0 ' +
+		__( 'Approval needed', 'gratis-ai-agent' ) +
+		' \u2014 ' +
+		originalTitle;
 	let toggle = false;
 
 	titleFlashInterval = setInterval( () => {
@@ -58,9 +64,7 @@ function startTitleFlash() {
 			stopTitleFlash();
 			return;
 		}
-		document.title = toggle
-			? originalTitle
-			: `\u26A0 ${ __( 'Approval needed', 'gratis-ai-agent' ) } \u2014 ${ originalTitle }`;
+		document.title = toggle ? originalTitle : flashTitle;
 		toggle = ! toggle;
 	}, 1500 );
 }
@@ -86,7 +90,7 @@ function stopTitleFlash() {
  * confirmation click or from the settings page) so that browsers
  * that require user activation can honour the prompt.
  *
- * @return {Promise<NotificationPermission>} Resolved permission state.
+ * @return {Promise<string>} Resolved permission state ('granted'|'denied'|'default').
  */
 export async function requestPermission() {
 	if ( ! ( 'Notification' in window ) ) {
@@ -202,9 +206,7 @@ export function clearAllNotifications() {
  * @return {boolean} True when notifications can be fired.
  */
 export function canNotify() {
-	return (
-		'Notification' in window && Notification.permission === 'granted'
-	);
+	return 'Notification' in window && Notification.permission === 'granted';
 }
 
 /**

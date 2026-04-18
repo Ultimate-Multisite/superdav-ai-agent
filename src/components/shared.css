@@ -736,3 +736,46 @@
 	color: #a7aaad !important;
 	margin-bottom: 0 !important;
 }
+
+/* ── Session changes bar ───────────────────────────────────────────────────── */
+.gratis-ai-agent-changes-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	background: #fff8e5;
+	border-top: 1px solid #f0d080;
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+.gratis-ai-agent-changes-bar--reverted {
+	background: #edfaef;
+	border-top-color: #7dd68d;
+}
+
+.gratis-ai-agent-changes-bar__text {
+	color: #3c2f00;
+	font-weight: 500;
+}
+
+.gratis-ai-agent-changes-bar--reverted .gratis-ai-agent-changes-bar__text {
+	color: #1b4c26;
+}
+
+.gratis-ai-agent-changes-bar__actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+}
+
+.gratis-ai-agent-changes-bar__dismiss.components-button,
+.gratis-ai-agent-changes-bar__view-link.components-button {
+	font-size: 12px;
+}
+
+/* Compact mode: slightly smaller padding */
+.is-compact .gratis-ai-agent-changes-bar {
+	padding: 4px 10px;
+}

@@ -26,6 +26,7 @@ import ToolConfirmationDialog from './tool-confirmation-dialog';
 import BudgetIndicator from './budget-indicator';
 import { isTTSSupported } from './use-text-to-speech';
 import TokenCounter from './token-counter';
+import SessionChangesBar from './session-changes-bar';
 
 /**
  * Speaker icon SVG for the TTS toggle button.
@@ -149,6 +150,7 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 				>
 					<MessageList />
 				</ErrorBoundary>
+				<SessionChangesBar />
 				<ErrorBoundary
 					label={ __( 'Message input', 'gratis-ai-agent' ) }
 				>

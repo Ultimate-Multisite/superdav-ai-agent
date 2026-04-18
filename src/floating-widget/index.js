@@ -17,6 +17,7 @@ import FloatingButton from './floating-button';
 import FloatingPanel from './floating-panel';
 import SiteBuilderOverlay from './site-builder-overlay';
 import useKeyboardShortcut from './use-keyboard-shortcut';
+import { getActiveJobs } from '../utils/active-jobs-storage';
 import '../components/shared.css';
 import './style.css';
 
@@ -40,6 +41,7 @@ function FloatingWidget() {
 		setPageContext,
 		setSiteBuilderMode,
 		setFloatingOpen,
+		pollJob,
 	} = useDispatch( STORE_NAME );
 
 	const { isOpen, isSiteBuilderMode, settings, bootError } = useSelect(
@@ -63,6 +65,28 @@ function FloatingWidget() {
 		fetchProviders();
 		fetchSessions();
 	}, [ fetchProviders, fetchSessions ] );
+
+	// Cross-page navigation survival (Phase 4 / t206):
+	// Restore any active poll loops from sessionStorage. If the user navigated
+	// away from an admin page while a background job was running, sessionStorage
+	// still holds the jobId → sessionId mapping. Re-starting the poll loop here
+	// reconnects to the in-progress job without a full page reload.
+	// sessionStorage is cleared when the tab closes, so stale entries from a
+	// previous tab session are never restored. pollJob handles already-completed
+	// jobs gracefully — the first poll returns 'complete' and exits cleanly.
+	useEffect( () => {
+		const activeJobs = getActiveJobs();
+		const entries = Object.entries( activeJobs );
+		if ( entries.length === 0 ) {
+			return;
+		}
+		for ( const [ sessionIdStr, jobId ] of entries ) {
+			const sessionId = parseInt( sessionIdStr, 10 );
+			if ( ! isNaN( sessionId ) && jobId ) {
+				pollJob( jobId, sessionId );
+			}
+		}
+	}, [ pollJob ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Fetch settings on mount so the keyboard shortcut is available.
 	const { fetchSettings } = useDispatch( STORE_NAME );

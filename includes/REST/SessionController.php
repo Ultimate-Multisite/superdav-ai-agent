@@ -17,7 +17,9 @@ use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\Export;
 use GratisAiAgent\Core\Settings;
+use GratisAiAgent\Models\ActiveJobRepository;
 use GratisAiAgent\Models\Agent;
+use GratisAiAgent\Models\DTO\ActiveJobRow;
 use GratisAiAgent\REST\SseStreamer;
 use GratisAiAgent\REST\WebhookDatabase;
 use WP_Error;
@@ -925,11 +927,16 @@ final class SessionController {
 		$job    = get_transient( RestController::JOB_PREFIX . $job_id );
 
 		if ( false === $job || ! is_array( $job ) ) {
-			return new WP_Error(
-				'gratis_ai_agent_job_not_found',
-				__( 'Job not found or expired.', 'gratis-ai-agent' ),
-				array( 'status' => 404 )
-			);
+			// Transient expired or was never set — fall back to the DB (source of truth).
+			$db_row = ActiveJobRepository::get_by_job_id( $job_id );
+			if ( null === $db_row ) {
+				return new WP_Error(
+					'gratis_ai_agent_job_not_found',
+					__( 'Job not found or expired.', 'gratis-ai-agent' ),
+					array( 'status' => 404 )
+				);
+			}
+			return $this->job_status_from_db_row( $job_id, $db_row );
 		}
 
 		/** @var array<string, mixed> $job */
@@ -985,6 +992,7 @@ final class SessionController {
 
 			// Clean up — result has been delivered.
 			delete_transient( RestController::JOB_PREFIX . $job_id );
+			ActiveJobRepository::delete( $job_id );
 		}
 
 		if ( 'error' === $job['status'] && isset( $job['error'] ) ) {
@@ -998,6 +1006,47 @@ final class SessionController {
 
 			// Clean up.
 			delete_transient( RestController::JOB_PREFIX . $job_id );
+			ActiveJobRepository::delete( $job_id );
+		}
+
+		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Build a job-status REST response from a DB row (transient-expiry fallback).
+	 *
+	 * Called when the transient is gone but the DB record still exists.
+	 * For 'complete' jobs the full reply/history are NOT stored in the DB
+	 * (they are already in the session's messages column) — the frontend
+	 * receives status='complete' with from_db=true and should reload the session.
+	 *
+	 * @param string        $job_id Job UUID.
+	 * @param ActiveJobRow  $row    DTO returned by ActiveJobRepository::get_by_job_id().
+	 * @return WP_REST_Response
+	 */
+	private function job_status_from_db_row( string $job_id, ActiveJobRow $row ): WP_REST_Response {
+		$status   = $row->status;
+		$response = [
+			'status'  => $status,
+			'from_db' => true,
+		];
+
+		// Include tool-call progress when present.
+		$tool_calls = json_decode( $row->tool_calls, true );
+		if ( is_array( $tool_calls ) && ! empty( $tool_calls ) ) {
+			$response['tool_calls'] = $tool_calls;
+		}
+
+		if ( 'awaiting_confirmation' === $status ) {
+			$pending = json_decode( $row->pending_tools, true );
+			if ( is_array( $pending ) ) {
+				$response['pending_tools'] = $pending;
+			}
+		}
+
+		// Delete DB row on terminal-state delivery (mirrors the transient cleanup).
+		if ( in_array( $status, array( 'complete', 'error' ), true ) ) {
+			ActiveJobRepository::delete( $job_id );
 		}
 
 		return new WP_REST_Response( $response, 200 );
@@ -1138,6 +1187,9 @@ final class SessionController {
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 
+		// Keep DB in sync — job is back to processing after confirmation/rejection.
+		ActiveJobRepository::update_status( $job_id, 'processing' );
+
 		// Spawn background worker.
 		wp_remote_post(
 			rest_url( RestController::NAMESPACE . '/process' ),
@@ -1206,6 +1258,11 @@ final class SessionController {
 		);
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+		// Persist to DB so the job survives transient expiry (source of truth).
+		// @phpstan-ignore-next-line
+		$db_session_id = isset( $job['params']['session_id'] ) ? (int) $job['params']['session_id'] : 0;
+		ActiveJobRepository::create( $db_session_id, $job_id, (int) ( $job['user_id'] ?? 0 ) );
 
 		// Spawn background worker via non-blocking loopback.
 		wp_remote_post(
@@ -1451,6 +1508,10 @@ final class SessionController {
 
 			unset( $job['token'] );
 			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+			// Persist exception to DB so status survives transient expiry.
+			ActiveJobRepository::update_status( $job_id, 'error' );
+
 			return new WP_REST_Response( array( 'ok' => false ), 200 );
 		}
 
@@ -1489,6 +1550,21 @@ final class SessionController {
 			// Keep token and params for the resume flow.
 			unset( $job['token'] );
 			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+			// Persist awaiting_confirmation to DB so status survives transient expiry.
+			/** @var list<array<string, mixed>> $pending_tools_for_db */
+			$pending_tools_for_db = $job['pending_tools'] ?? array();
+			/** @var list<array<string, mixed>> $tool_calls_for_db */
+			$tool_calls_for_db = $job['tool_calls'] ?? array();
+			ActiveJobRepository::update_status(
+				$job_id,
+				'awaiting_confirmation',
+				[
+					'pending_tools' => wp_json_encode( $pending_tools_for_db ),
+					'tool_calls'    => wp_json_encode( $tool_calls_for_db ),
+				]
+			);
+
 			return new WP_REST_Response( array( 'ok' => true ), 200 );
 		} else {
 			/** @var array<string, mixed> $result */
@@ -1603,6 +1679,25 @@ final class SessionController {
 		// Clear the token — no longer needed.
 		unset( $job['token'] );
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+		// Persist terminal status to DB so result survives transient expiry.
+		// The full reply/history are in the session messages column already.
+		// A DB-sourced poll response returns status + session_id for the
+		// frontend to reload the session when needed.
+		$db_status = (string) ( $job['status'] ?? 'error' );
+		if ( 'error' === $db_status ) {
+			ActiveJobRepository::update_status( $job_id, 'error' );
+		} elseif ( 'complete' === $db_status ) {
+			/** @var array<string, mixed> $complete_result */
+			$complete_result = $job['result'] ?? array();
+			/** @var list<array<string, mixed>> $complete_tool_calls */
+			$complete_tool_calls = $complete_result['tool_calls'] ?? array();
+			ActiveJobRepository::update_status(
+				$job_id,
+				'complete',
+				[ 'tool_calls' => wp_json_encode( $complete_tool_calls ) ]
+			);
+		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
 	}

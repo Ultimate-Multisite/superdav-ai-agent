@@ -58,7 +58,7 @@ class BlockAbilities {
 					return current_user_can( 'edit_posts' );
 				},
 				'meta'                => [
-					'annotations'  => [
+					'annotations' => [
 						'readonly'    => true,
 						'destructive' => false,
 						'idempotent'  => true,
@@ -279,7 +279,7 @@ class BlockAbilities {
 					return current_user_can( 'edit_posts' );
 				},
 				'meta'                => [
-					'annotations'  => [
+					'annotations' => [
 						'readonly'    => false,
 						'destructive' => false,
 						'idempotent'  => true,
@@ -1082,11 +1082,11 @@ class BlockAbilities {
 				++$freeform_count;
 
 				// Check for markdown signals in freeform content.
-				$has_heading  = (bool) preg_match( '/^#{1,6}\s+\S/m', $inner );
-				$has_list     = (bool) preg_match( '/^[\-\*]\s+\S/m', $inner );
-				$has_bold     = (bool) preg_match( '/\*{2}[^*]+\*{2}/', $inner );
-				$has_link     = (bool) preg_match( '/\[[^\]]+\]\([^)]+\)/', $inner );
-				$has_code     = str_contains( $inner, '```' );
+				$has_heading = (bool) preg_match( '/^#{1,6}\s+\S/m', $inner );
+				$has_list    = (bool) preg_match( '/^[\-\*]\s+\S/m', $inner );
+				$has_bold    = (bool) preg_match( '/\*{2}[^*]+\*{2}/', $inner );
+				$has_link    = (bool) preg_match( '/\[[^\]]+\]\([^)]+\)/', $inner );
+				$has_code    = str_contains( $inner, '```' );
 
 				$markdown_signals = [];
 				if ( $has_heading ) {

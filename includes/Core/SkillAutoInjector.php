@@ -79,7 +79,7 @@ class SkillAutoInjector {
 		}
 
 		return "## Active Skill Guide\n"
-			. "The following skill guide has been auto-loaded based on your request. "
+			. 'The following skill guide has been auto-loaded based on your request. '
 			. "Follow these instructions for the best results.\n\n"
 			. implode( "\n\n---\n\n", $sections );
 	}

@@ -875,13 +875,11 @@ class PostAbilities {
 			if ( $signals >= 1 ) {
 				// Convert the freeform markdown segment to blocks.
 				$output .= MarkdownToBlocks::convert( $trimmed ) . "\n\n";
-			} else {
+			} elseif ( '' !== trim( wp_strip_all_tags( $trimmed ) ) ) {
 				// Plain text without markdown — wrap in a paragraph block.
 				// Only if it has actual visible content (not just whitespace/newlines).
-				if ( '' !== trim( strip_tags( $trimmed ) ) ) {
-					// @phpstan-ignore-next-line
-					$output .= serialize_block( MarkdownToBlocks::make_paragraph( $trimmed ) ) . "\n\n";
-				}
+				// @phpstan-ignore-next-line
+				$output .= serialize_block( MarkdownToBlocks::make_paragraph( $trimmed ) ) . "\n\n";
 			}
 		}
 

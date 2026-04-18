@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\ConversationTrimmer;
 use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\Export;
@@ -1290,6 +1291,10 @@ final class SessionController {
 				if ( ! empty( $session_messages ) ) {
 					try {
 						$history = AgentLoop::deserialize_history( $session_messages );
+						// Strip orphaned tool_use blocks (no matching tool_result) at
+						// load time. Prevents API 400 errors when a prior job was
+						// interrupted between recording a tool_use and its tool_result.
+						$history = ConversationTrimmer::validate_tool_pairs( $history );
 					} catch ( \Exception $e ) {
 						$history = array();
 					}
@@ -1300,6 +1305,8 @@ final class SessionController {
 				/** @var list<array<string, mixed>> $params_history */
 				$params_history = $params['history'];
 				$history        = AgentLoop::deserialize_history( array_values( $params_history ) );
+				// Same defensive strip for history passed directly in the request body.
+				$history = ConversationTrimmer::validate_tool_pairs( $history );
 			} catch ( \Exception $e ) {
 				$job['status'] = 'error';
 				$job['error']  = __( 'Invalid conversation history format.', 'gratis-ai-agent' );

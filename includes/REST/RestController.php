@@ -29,6 +29,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\REST;
 
 use GratisAiAgent\Core\AgentLoop;
+use GratisAiAgent\Core\ConversationTrimmer;
 use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\RolePermissions;
@@ -383,6 +384,9 @@ Assistant: %s',
 				/** @var list<array<string, mixed>> $raw_history_typed */
 				$raw_history_typed = array_values( $raw_history );
 				$history           = AgentLoop::deserialize_history( $raw_history_typed );
+				// Strip any orphaned tool_use blocks (no matching tool_result) that
+				// may have been saved to the paused state mid-cycle.
+				$history = ConversationTrimmer::validate_tool_pairs( $history );
 			}
 		} catch ( \Exception $e ) {
 			$history = array();

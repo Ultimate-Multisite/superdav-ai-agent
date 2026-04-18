@@ -71,7 +71,7 @@ function FloatingWidget() {
 	// Cross-page navigation survival (Phase 4 / t206):
 	// Restore any active poll loops from sessionStorage. If the user navigated
 	// away from an admin page while a background job was running, sessionStorage
-	// still holds the jobId → sessionId mapping. Re-starting the poll loop here
+	// still holds the sessionId → jobId mapping. Re-starting the poll loop here
 	// reconnects to the in-progress job without a full page reload.
 	// sessionStorage is cleared when the tab closes, so stale entries from a
 	// previous tab session are never restored. pollJob handles already-completed

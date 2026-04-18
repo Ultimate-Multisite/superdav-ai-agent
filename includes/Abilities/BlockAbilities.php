@@ -333,6 +333,48 @@ class BlockAbilities {
 				},
 			]
 		);
+
+		wp_register_ability(
+			'ai-agent/validate-block-content',
+			[
+				'label'               => __( 'Validate Block Content', 'gratis-ai-agent' ),
+				'description'         => __( 'Validate block content before insertion. Checks for mixed markdown/block markup, malformed block comments, empty blocks, and freeform content that should be wrapped in blocks. Use this after building complex block content to catch errors before creating a post or page.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'content' => [
+							'type'        => 'string',
+							'description' => 'Raw block content string to validate.',
+						],
+					],
+					'required'   => [ 'content' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'valid'          => [ 'type' => 'boolean' ],
+						'warnings'       => [
+							'type'  => 'array',
+							'items' => [ 'type' => 'string' ],
+						],
+						'block_count'    => [ 'type' => 'integer' ],
+						'freeform_count' => [ 'type' => 'integer' ],
+					],
+				],
+				'meta'                => [
+					'annotations' => [
+						'readonly'    => true,
+						'destructive' => false,
+						'idempotent'  => true,
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_validate_block_content' ],
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
 	// ─── Handlers ─────────────────────────────────────────────────
@@ -997,5 +1039,106 @@ class BlockAbilities {
 		}
 
 		return $cleaned;
+	}
+
+	// ─── Validate handler ────────────────────────────────────────
+
+	/**
+	 * Handle block content validation.
+	 *
+	 * Parses the content and checks for common issues:
+	 * - Freeform blocks containing markdown (mixed content)
+	 * - Empty freeform blocks
+	 * - Mismatched block comment structure
+	 * - Content with no real blocks (pure markdown passed as blocks)
+	 *
+	 * @param array<string,mixed> $input Input with 'content' key.
+	 * @return array<string,mixed>|\WP_Error Validation result.
+	 */
+	public static function handle_validate_block_content( array $input ) {
+		$content = $input['content'] ?? '';
+
+		if ( empty( $content ) ) {
+			return new \WP_Error( 'missing_content', 'Content is required for validation.' );
+		}
+
+		$parsed   = parse_blocks( $content );
+		$warnings = [];
+
+		$block_count    = 0;
+		$freeform_count = 0;
+
+		foreach ( $parsed as $block ) {
+			$block_name = $block['blockName'] ?? null;
+
+			if ( null === $block_name ) {
+				// Freeform block — check if it contains markdown or significant content.
+				$inner = trim( (string) ( $block['innerHTML'] ?? '' ) );
+
+				if ( '' === $inner ) {
+					continue;
+				}
+
+				++$freeform_count;
+
+				// Check for markdown signals in freeform content.
+				$has_heading  = (bool) preg_match( '/^#{1,6}\s+\S/m', $inner );
+				$has_list     = (bool) preg_match( '/^[\-\*]\s+\S/m', $inner );
+				$has_bold     = (bool) preg_match( '/\*{2}[^*]+\*{2}/', $inner );
+				$has_link     = (bool) preg_match( '/\[[^\]]+\]\([^)]+\)/', $inner );
+				$has_code     = str_contains( $inner, '```' );
+
+				$markdown_signals = [];
+				if ( $has_heading ) {
+					$markdown_signals[] = 'headings (##)';
+				}
+				if ( $has_list ) {
+					$markdown_signals[] = 'list items (- or *)';
+				}
+				if ( $has_bold ) {
+					$markdown_signals[] = 'bold (**text**)';
+				}
+				if ( $has_link ) {
+					$markdown_signals[] = 'links ([text](url))';
+				}
+				if ( $has_code ) {
+					$markdown_signals[] = 'code fences (```)';
+				}
+
+				if ( ! empty( $markdown_signals ) ) {
+					$preview    = mb_substr( $inner, 0, 80 );
+					$warnings[] = sprintf(
+						'Freeform block contains markdown (%s): "%s..." — This will NOT render correctly. Convert to block markup or use pure markdown for the entire content.',
+						implode( ', ', $markdown_signals ),
+						$preview
+					);
+				}
+			} else {
+				++$block_count;
+			}
+		}
+
+		// Check for no real blocks at all.
+		if ( 0 === $block_count && $freeform_count > 0 ) {
+			$warnings[] = 'Content has no Gutenberg blocks — it appears to be plain text or markdown. Use markdown format (without <!-- wp: --> comments) and it will be auto-converted, or write proper block markup.';
+		}
+
+		// Check for unmatched block comments.
+		$opens  = preg_match_all( '/<!-- wp:(\S+)/', $content );
+		$closes = preg_match_all( '/<!-- \/wp:(\S+)/', $content );
+		if ( $opens !== $closes ) {
+			$warnings[] = sprintf(
+				'Mismatched block comments: %d opening vs %d closing. Check for unclosed blocks.',
+				$opens,
+				$closes
+			);
+		}
+
+		return [
+			'valid'          => empty( $warnings ),
+			'warnings'       => $warnings,
+			'block_count'    => $block_count,
+			'freeform_count' => $freeform_count,
+		];
 	}
 }

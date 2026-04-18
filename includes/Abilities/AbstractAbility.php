@@ -207,6 +207,13 @@ abstract class AbstractAbility extends \WP_Ability {
 	 * This override intercepts the input before it reaches the callback and
 	 * recursively casts any stdClass values to arrays.
 	 *
+	 * Unlike parent::do_execute() which delegates to invoke_callback(), this
+	 * method calls execute_callback() directly. WP core's invoke_callback()
+	 * catches all Throwable exceptions and wraps them in a bare WP_Error that
+	 * strips file/line/trace — making it impossible for the user (or AI) to
+	 * know WHERE the error occurred. By calling the callback directly, we can
+	 * preserve the full exception context in the WP_Error's error_data.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param mixed $input Optional. The input data for the ability.
@@ -219,8 +226,51 @@ abstract class AbstractAbility extends \WP_Ability {
 			$input = self::stdclass_to_array( $input );
 		}
 
-		// @phpstan-ignore-next-line — do_execute() exists at runtime in WP 7.0.
-		return parent::do_execute( $input );
+		// Call execute_callback() directly instead of parent::do_execute()
+		// to preserve exception context that WP core's invoke_callback() strips.
+		// Always pass $input — concrete implementations either use it or
+		// declare $input = null; WP_Ability::execute() normalises to null
+		// when no input_schema is defined.
+		try {
+			return $this->execute_callback( $input );
+		} catch ( \Throwable $e ) {
+			// Log the full trace — this is the ONLY place it's available
+			// before WP core would strip it in invoke_callback().
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log(
+				sprintf(
+					'[Gratis AI Agent] Ability "%s" exception: %s in %s:%d',
+					$this->get_name(),
+					$e->getMessage(),
+					$e->getFile(),
+					$e->getLine()
+				) . "\n" . $e->getTraceAsString()
+			);
+
+			$trace_frames = array();
+			foreach ( array_slice( $e->getTrace(), 0, 10 ) as $frame ) {
+				$trace_frames[] = ( $frame['file'] ?? '?' )
+					. ':' . ( $frame['line'] ?? '?' )
+					. ' ' . ( $frame['class'] ?? '' )
+					. ( $frame['type'] ?? '' )
+					. ( $frame['function'] ?? '' ) . '()';
+			}
+
+			return new \WP_Error(
+				'ability_callback_exception',
+				sprintf(
+					/* translators: 1: Ability name, 2: Exception message. */
+					__( 'Ability "%1$s" threw an error: %2$s', 'gratis-ai-agent' ),
+					$this->get_name(),
+					$e->getMessage()
+				),
+				array(
+					'exception_file'  => $e->getFile(),
+					'exception_line'  => $e->getLine(),
+					'exception_trace' => $trace_frames,
+				)
+			);
+		}
 	}
 
 	/**

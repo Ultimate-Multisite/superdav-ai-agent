@@ -290,6 +290,21 @@
 	font-weight: 400;
 }
 
+.gratis-ai-agent-skill-badge--modified {
+	background: #fcf0c8;
+	color: #6b5d14;
+}
+
+.gratis-ai-agent-skill-badge--update {
+	background: #d0e8ff;
+	color: #06c;
+}
+
+.gratis-ai-agent-skill-version {
+	font-size: 11px;
+	color: #999;
+}
+
 .gratis-ai-agent-skill-card-description {
 	margin: 0 0 8px;
 	color: #646970;
@@ -304,14 +319,68 @@
 	padding-left: 52px;
 }
 
+.gratis-ai-agent-skill-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
 .gratis-ai-agent-skill-word-count {
 	font-size: 12px;
 	color: #999;
 }
 
+.gratis-ai-agent-skill-usage-stats {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.gratis-ai-agent-skill-usage-count {
+	font-size: 12px;
+	color: #646970;
+}
+
+.gratis-ai-agent-skill-helpful {
+	font-size: 11px;
+	background: #d7f0d5;
+	color: #1e6129;
+	padding: 1px 6px;
+	border-radius: 3px;
+}
+
 .gratis-ai-agent-skill-card-actions {
 	display: flex;
 	gap: 2px;
+}
+
+/* Skill update controls (auto-update toggle + check-updates button) */
+.gratis-ai-agent-skill-update-controls {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 12px 14px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+
+.gratis-ai-agent-skill-update-controls .components-toggle-control {
+	margin-bottom: 0;
+	flex: 1;
+	min-width: 200px;
+}
+
+.gratis-ai-agent-skill-update-controls .components-base-control__field {
+	margin-bottom: 0;
+}
+
+.gratis-ai-agent-check-updates-btn {
+	flex-shrink: 0;
+	align-self: flex-start;
+	margin-top: 2px;
 }
 
 /* Usage Dashboard */

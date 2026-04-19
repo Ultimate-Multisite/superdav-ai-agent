@@ -23,7 +23,8 @@
 		],
 		"jsdoc/no-undefined-types": [ "error", { "definedTypes": [ "JSX" ] } ],
 		"@wordpress/no-unsafe-wp-apis": "warn",
-		"no-console": "warn"
+		"no-console": "warn",
+		"import/no-unresolved": [ "error", { "ignore": [ "@wordpress/icons" ] } ]
 	},
 	"ignorePatterns": [
 		"build/",

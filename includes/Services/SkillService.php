@@ -38,16 +38,19 @@ final class SkillService {
 	 */
 	public static function format_skill( object $skill ): array {
 		return array(
-			'id'          => (int) $skill->id,
-			'slug'        => $skill->slug,
-			'name'        => $skill->name,
-			'description' => $skill->description,
-			'content'     => $skill->content,
-			'is_builtin'  => (bool) (int) $skill->is_builtin,
-			'enabled'     => (bool) (int) $skill->enabled,
-			'word_count'  => str_word_count( $skill->content ),
-			'created_at'  => $skill->created_at,
-			'updated_at'  => $skill->updated_at,
+			'id'            => (int) $skill->id,
+			'slug'          => $skill->slug,
+			'name'          => $skill->name,
+			'description'   => $skill->description,
+			'content'       => $skill->content,
+			'is_builtin'    => (bool) (int) $skill->is_builtin,
+			'enabled'       => (bool) (int) $skill->enabled,
+			'version'       => (string) ( $skill->version ?? '' ),
+			'source_url'    => (string) ( $skill->source_url ?? '' ),
+			'user_modified' => (bool) (int) ( $skill->user_modified ?? 0 ),
+			'word_count'    => str_word_count( $skill->content ),
+			'created_at'    => $skill->created_at,
+			'updated_at'    => $skill->updated_at,
 		);
 	}
 

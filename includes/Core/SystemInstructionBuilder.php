@@ -73,21 +73,35 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . $skill_index;
 		}
 
-		// Auto-inject relevant skill content based on the user's message —
-		// but only for models that need it (Phase 2 / t216).
+		// Model-aware tiered skill injection (Phase 2 / t217):
 		//
-		// Strong models (GPT-4.1, Claude Sonnet/Opus) reliably call skill-load
-		// from the index alone, so auto-injection just burns 1500-3000 tokens/turn.
-		// Weak models (quantized open-weight, small-param models) tend to ignore
-		// the index and benefit from having the skill content pre-loaded.
+		// Strong models (GPT-4.1, Claude Sonnet/Opus): receive only the lean
+		// skill index above (~15 tok/skill) plus a targeted hint pointing at
+		// relevant skills. They reliably call skill-load on demand, so injecting
+		// 1 500-3 000 tokens of guide content unconditionally wastes context.
+		//
+		// Weak models (quantized open-weight, small-param models): auto-inject
+		// the best matching skill guide (max 1) directly into the prompt. They
+		// often fail to voluntarily call skill-load even when the index is
+		// present, so front-loading the content is the only reliable path.
 		//
 		// The model_id also passes through so injections are recorded to the
 		// skill_usage table for telemetry (Phase 1 / t215).
-		if ( ! empty( $this->user_message ) && ModelHealthTracker::is_weak( $this->model_id ) ) {
-			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
-			if ( ! empty( $auto_skill ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $auto_skill;
+		if ( ! empty( $this->user_message ) ) {
+			if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
+				// Weak model path: inject full skill content (max 1 guide).
+				$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
+				if ( ! empty( $auto_skill ) ) {
+					// @phpstan-ignore-next-line
+					$base .= "\n\n" . $auto_skill;
+				}
+			} else {
+				// Strong model path: add a targeted hint to guide skill-load calls.
+				$hint = SkillAutoInjector::get_index_description( $this->user_message );
+				if ( ! empty( $hint ) ) {
+					// @phpstan-ignore-next-line
+					$base .= "\n\n" . $hint;
+				}
 			}
 		}
 

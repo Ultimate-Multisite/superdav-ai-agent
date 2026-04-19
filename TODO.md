@@ -384,7 +384,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - EDIT: gratis-ai-agent.php or LifecycleHandler — register wp_schedule_event for daily skill check
   - Verify: `composer phpstan && composer phpcs`
 
-- [ ] t220 Skill manager UI: usage stats + update badges + auto-update toggle (Phase 4) #ui #auto-dispatch ~6h For #t215 blocked-by:t216,t219 logged:2026-04-18
+- [x] t220 Skill manager UI: usage stats + update badges + auto-update toggle (Phase 4) #ui #auto-dispatch ~6h For #t215 blocked-by:t216,t219 logged:2026-04-18 pr:#1100 completed:2026-04-19
   - EDIT: src/settings-page/skill-manager.js — add "Usage Stats" column (load count, helpful %, last used), "Update available" badge, "Modified" badge with "Reset to upstream" button, per-skill and global auto-update toggle
   - EDIT: includes/REST/SkillController.php — add GET /skills/usage-stats endpoint returning aggregated data from SkillUsageRepository::get_stats()
   - EDIT: src/store/slices/skillsSlice.js — add fetchSkillUsageStats thunk and state

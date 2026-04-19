@@ -10,7 +10,6 @@ import {
 } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Internal dependencies
@@ -22,8 +21,7 @@ import '../abilities';
 import SessionSidebar from '../components/session-sidebar';
 import ChatPanel from '../components/ChatPanel';
 import BootError from '../components/boot-error';
-import OnboardingWizard from '../components/onboarding-wizard';
-import OnboardingInterview from '../components/onboarding-interview';
+import OnboardingGate from '../components/onboarding-gate';
 import ShortcutsHelp from '../components/shortcuts-help';
 import { useKeyboardShortcuts } from '../utils/keyboard-shortcuts';
 import '../components/shared.css';
@@ -31,10 +29,10 @@ import './style.css';
 
 /**
  * Root admin page application component. Renders the session sidebar and chat panel,
- * handles onboarding wizard display, keyboard shortcuts, and slash command routing.
+ * handles onboarding gate display, keyboard shortcuts, and slash command routing.
  *
- * After the wizard completes, the interview is shown if the site scan has
- * finished and the interview has not yet been done (t064).
+ * The gate blocks access until at least one AI provider is connected; it then
+ * transitions to the main chat UI automatically.
  *
  * @return {JSX.Element|null} Admin page app element, or null while settings are loading.
  */
@@ -56,7 +54,6 @@ function AdminPageApp() {
 	);
 
 	const [ showOnboarding, setShowOnboarding ] = useState( false );
-	const [ showInterview, setShowInterview ] = useState( false );
 	const [ showShortcuts, setShowShortcuts ] = useState( false );
 	const [ sidebarOpen, setSidebarOpen ] = useState( false );
 
@@ -74,45 +71,11 @@ function AdminPageApp() {
 	}, [ settingsLoaded, settings ] );
 
 	/**
-	 * Poll the interview endpoint until the scan is done, then show the interview.
-	 * Gives up after 2 minutes (40 × 3 s) to avoid blocking the user indefinitely.
+	 * Called when the gate clears (a provider is detected). Show the main chat UI.
 	 */
-	const checkInterviewReady = useCallback( () => {
-		let attempts = 0;
-		const maxAttempts = 40;
-
-		const poll = () => {
-			apiFetch( { path: '/gratis-ai-agent/v1/onboarding/interview' } )
-				.then( ( data ) => {
-					if ( data.done ) {
-						// Already completed — go straight to chat.
-						return;
-					}
-					if ( data.ready ) {
-						setShowInterview( true );
-						return;
-					}
-					// Scan still running — keep polling.
-					attempts++;
-					if ( attempts < maxAttempts ) {
-						setTimeout( poll, 3000 );
-					}
-				} )
-				.catch( () => {
-					// Non-fatal — skip the interview on error.
-				} );
-		};
-
-		poll();
-	}, [] );
-
-	/**
-	 * Called when the wizard finishes. Check whether the interview should be shown.
-	 */
-	const handleWizardComplete = useCallback( () => {
+	const handleGateComplete = useCallback( () => {
 		setShowOnboarding( false );
-		checkInterviewReady();
-	}, [ checkInterviewReady ] );
+	}, [] );
 
 	const handleSlashCommand = useCallback( ( command ) => {
 		if ( command === 'help' ) {
@@ -149,15 +112,7 @@ function AdminPageApp() {
 	}
 
 	if ( showOnboarding ) {
-		return <OnboardingWizard onComplete={ handleWizardComplete } />;
-	}
-
-	if ( showInterview ) {
-		return (
-			<OnboardingInterview
-				onComplete={ () => setShowInterview( false ) }
-			/>
-		);
+		return <OnboardingGate onComplete={ handleGateComplete } />;
 	}
 
 	return (

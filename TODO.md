@@ -330,7 +330,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
-- [ ] t221 Onboarding v2: Gate + AI-driven discovery #parent #feature → [todo/PLANS.md#onboarding-v2-gate--ai-driven-discovery] ~8h logged:2026-04-18
+- [x] t221 Onboarding v2: Gate + AI-driven discovery #parent #feature → [todo/PLANS.md#onboarding-v2-gate--ai-driven-discovery] ~8h logged:2026-04-18 pr:#1097 completed:2026-04-19
 
 - [ ] t222 Connector gate component + remove wizard (Phase 1) #feature #auto-dispatch ~2h For #t221 logged:2026-04-18
   - NEW: src/components/onboarding-gate.js — single-screen "Connect an AI Provider" gate with provider polling (3-5s interval). Auto-transitions to chat when provider appears. No skip, no next, no dots.

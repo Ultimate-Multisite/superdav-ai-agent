@@ -107,7 +107,7 @@ class OnboardingManager {
 	// ── REST API ──────────────────────────────────────────────────────────
 
 	/**
-	 * Register the onboarding status REST route.
+	 * Register the onboarding status REST routes.
 	 */
 	public static function register_rest_routes(): void {
 		register_rest_route(
@@ -127,36 +127,6 @@ class OnboardingManager {
 				'methods'             => 'POST',
 				'callback'            => [ __CLASS__, 'rest_rescan' ],
 				'permission_callback' => [ __CLASS__, 'rest_permission' ],
-			]
-		);
-
-		// Interview endpoints (t064).
-		register_rest_route(
-			'gratis-ai-agent/v1',
-			'/onboarding/interview',
-			[
-				[
-					'methods'             => 'GET',
-					'callback'            => [ __CLASS__, 'rest_get_interview' ],
-					'permission_callback' => [ __CLASS__, 'rest_permission' ],
-				],
-				[
-					'methods'             => 'POST',
-					'callback'            => [ __CLASS__, 'rest_save_interview' ],
-					'permission_callback' => [ __CLASS__, 'rest_permission' ],
-					'args'                => [
-						'answers' => [
-							'required' => false,
-							'type'     => 'object',
-							'default'  => [],
-						],
-						'skipped' => [
-							'required' => false,
-							'type'     => 'boolean',
-							'default'  => false,
-						],
-					],
-				],
 			]
 		);
 	}
@@ -187,11 +157,9 @@ class OnboardingManager {
 
 		return new \WP_REST_Response(
 			[
-				'triggered'       => (bool) get_option( self::TRIGGERED_OPTION ),
-				'scan'            => $scan_status,
-				'scheduled'       => (bool) wp_next_scheduled( SiteScanner::CRON_HOOK ),
-				'interview_ready' => OnboardingInterview::is_ready(),
-				'interview_done'  => OnboardingInterview::is_done(),
+				'triggered' => (bool) get_option( self::TRIGGERED_OPTION ),
+				'scan'      => $scan_status,
+				'scheduled' => (bool) wp_next_scheduled( SiteScanner::CRON_HOOK ),
 			],
 			200
 		);
@@ -206,94 +174,12 @@ class OnboardingManager {
 	 */
 	public static function rest_rescan(): \WP_REST_Response {
 		self::reset();
-		OnboardingInterview::reset();
 		self::trigger();
 
 		return new \WP_REST_Response(
 			[
 				'success' => true,
 				'message' => __( 'Site scan scheduled. Results will be available shortly.', 'gratis-ai-agent' ),
-			],
-			200
-		);
-	}
-
-	// ── Interview REST handlers (t064) ────────────────────────────────────
-
-	/**
-	 * GET /gratis-ai-agent/v1/onboarding/interview
-	 *
-	 * Returns the interview questions and current status.
-	 *
-	 * @return \WP_REST_Response
-	 */
-	public static function rest_get_interview(): \WP_REST_Response {
-		return new \WP_REST_Response(
-			[
-				'ready'     => OnboardingInterview::is_ready(),
-				'done'      => OnboardingInterview::is_done(),
-				'questions' => OnboardingInterview::is_ready()
-					? OnboardingInterview::get_questions()
-					: [],
-			],
-			200
-		);
-	}
-
-	/**
-	 * POST /gratis-ai-agent/v1/onboarding/interview
-	 *
-	 * Saves interview answers (or marks as skipped).
-	 *
-	 * @param \WP_REST_Request $request REST request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public static function rest_save_interview( \WP_REST_Request $request ) {
-		$skipped = (bool) $request->get_param( 'skipped' );
-
-		if ( $skipped ) {
-			OnboardingInterview::mark_skipped();
-
-			return new \WP_REST_Response(
-				[
-					'success' => true,
-					'message' => __( 'Interview skipped.', 'gratis-ai-agent' ),
-				],
-				200
-			);
-		}
-
-		$answers = $request->get_param( 'answers' );
-
-		if ( ! is_array( $answers ) ) {
-			return new \WP_Error(
-				'invalid_answers',
-				__( 'Answers must be an object mapping question IDs to answer strings.', 'gratis-ai-agent' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		// Sanitize each answer.
-		$sanitized = [];
-		foreach ( $answers as $id => $value ) {
-			// @phpstan-ignore-next-line
-			$sanitized[ sanitize_key( $id ) ] = sanitize_textarea_field( (string) $value );
-		}
-
-		$saved = OnboardingInterview::save_answers( $sanitized );
-
-		if ( ! $saved ) {
-			return new \WP_Error(
-				'save_failed',
-				__( 'No answers were provided.', 'gratis-ai-agent' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		return new \WP_REST_Response(
-			[
-				'success' => true,
-				'message' => __( 'Interview answers saved. The AI now has context about your site goals.', 'gratis-ai-agent' ),
 			],
 			200
 		);

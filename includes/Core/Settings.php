@@ -579,4 +579,106 @@ class Settings {
 	public function has_feedback_api_key(): bool {
 		return '' !== $this->get_feedback_api_key();
 	}
+
+	// ── WooCommerce ability auto-enable ───────────────────────────────────────
+
+	/**
+	 * Option name that records whether WooCommerce abilities were auto-enabled.
+	 * Stored as a standalone option (not inside the settings blob) so it
+	 * persists even if the settings are reset.
+	 */
+	const WOO_AUTO_ENABLED_OPTION = 'gratis_ai_agent_woo_abilities_auto_enabled';
+
+	/**
+	 * WooCommerce ability IDs managed by this auto-enable routine.
+	 *
+	 * @var string[]
+	 */
+	const WOO_ABILITY_IDS = array(
+		'gratis-ai-agent/woo-get-products',
+		'gratis-ai-agent/woo-create-product',
+		'gratis-ai-agent/woo-update-product',
+		'gratis-ai-agent/woo-delete-product',
+		'gratis-ai-agent/woo-get-orders',
+		'gratis-ai-agent/woo-get-store-stats',
+	);
+
+	/**
+	 * Auto-enable WooCommerce abilities on first load when a provider is
+	 * detected and WooCommerce is active.
+	 *
+	 * Conditions (all must be true):
+	 *  1. Auto-enable has not already run (idempotent guard).
+	 *  2. WooCommerce is active (class WooCommerce exists).
+	 *  3. At least one AI provider is configured (direct API key, Claude Max
+	 *     token, or a default_provider set by the WP SDK Connectors API).
+	 *
+	 * When all conditions are met the WooCommerce ability IDs are added to
+	 * `tool_permissions` with the 'auto' level so they execute without
+	 * requiring per-call user confirmation.
+	 *
+	 * @return void
+	 */
+	public function maybe_auto_enable_woo_abilities(): void {
+		// 1. Idempotent guard — only run once per site.
+		if ( get_option( self::WOO_AUTO_ENABLED_OPTION ) ) {
+			return;
+		}
+
+		// 2. WooCommerce must be active.
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+
+		// 3. A provider must be configured.
+		if ( ! $this->has_provider_configured() ) {
+			return;
+		}
+
+		// Merge WooCommerce abilities into the existing tool_permissions map.
+		$current_perms = (array) $this->get( 'tool_permissions' );
+
+		foreach ( self::WOO_ABILITY_IDS as $ability_id ) {
+			if ( ! isset( $current_perms[ $ability_id ] ) ) {
+				$current_perms[ $ability_id ] = 'auto';
+			}
+		}
+
+		$this->update( array( 'tool_permissions' => $current_perms ) );
+
+		// Mark as done so this routine never runs again.
+		update_option( self::WOO_AUTO_ENABLED_OPTION, true, false );
+	}
+
+	/**
+	 * Check whether at least one AI provider is configured.
+	 *
+	 * Resolution order:
+	 *  1. `default_provider` saved via the WP SDK Connectors settings page.
+	 *  2. Any directly-configured provider API key (OpenAI, Anthropic, Google).
+	 *  3. Claude Max OAuth token.
+	 *
+	 * @return bool
+	 */
+	private function has_provider_configured(): bool {
+		// WP SDK connector.
+		$provider = (string) $this->get( 'default_provider' );
+		if ( '' !== $provider ) {
+			return true;
+		}
+
+		// Direct API keys.
+		foreach ( array_keys( self::DIRECT_PROVIDERS ) as $provider_id ) {
+			if ( '' !== $this->get_provider_key( $provider_id ) ) {
+				return true;
+			}
+		}
+
+		// Claude Max OAuth token.
+		if ( '' !== $this->get_claude_max_token() ) {
+			return true;
+		}
+
+		return false;
+	}
 }

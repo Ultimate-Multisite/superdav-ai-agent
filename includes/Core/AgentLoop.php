@@ -25,6 +25,7 @@ namespace GratisAiAgent\Core;
 use GratisAiAgent\Abilities\FeedbackAbilities;
 use GratisAiAgent\Core\BudgetManager;
 use GratisAiAgent\Core\ChangeLogger;
+use GratisAiAgent\Repositories\SkillUsageRepository;
 use GratisAiAgent\Tools\ModelHealthTracker;
 use GratisAiAgent\Tools\ToolDiscovery;
 use GratisAiAgent\Core\RolePermissions;
@@ -322,7 +323,12 @@ class AgentLoop {
 		// Append the new user message to history.
 		$this->history[] = new UserMessage( array( new MessagePart( $this->user_message ) ) );
 
-		return $this->run_loop( $this->max_iterations );
+		$result = $this->run_loop( $this->max_iterations );
+
+		// Apply Phase-1 outcome heuristic to skill usage rows for this session.
+		$this->evaluate_skill_outcomes( $result );
+
+		return $result;
 	}
 
 	/**
@@ -1195,6 +1201,40 @@ class AgentLoop {
 			$result['inability_reported'] = $inability;
 		}
 		return $result;
+	}
+
+	// ── Skill usage outcome heuristic ─────────────────────────────────────
+
+	/**
+	 * Apply the outcome heuristic to skill usage rows for the current session.
+	 *
+	 * Called after run_loop() completes. If the loop exited cleanly (no
+	 * exit_reason in the result), injected skills are marked 'helpful'. All
+	 * other exits (timeout, spin, WP_Error) are marked 'neutral' — we cannot
+	 * infer benefit when the agent did not reach a conclusive answer.
+	 *
+	 * This is a Phase-1 heuristic. Future phases will refine based on
+	 * model-reported inability (t186), thumbs-down feedback, and follow-up
+	 * message correlation.
+	 *
+	 * @param array<string,mixed>|WP_Error $result The loop result.
+	 */
+	private function evaluate_skill_outcomes( $result ): void {
+		if ( $this->session_id <= 0 ) {
+			return;
+		}
+
+		if ( is_wp_error( $result ) ) {
+			SkillUsageRepository::update_session_outcomes( $this->session_id, 'neutral' );
+			return;
+		}
+
+		// @phpstan-ignore-next-line
+		$exit_reason = $result['exit_reason'] ?? '';
+
+		$outcome = ( '' === $exit_reason ) ? 'helpful' : 'neutral';
+
+		SkillUsageRepository::update_session_outcomes( $this->session_id, $outcome );
 	}
 
 	// ── Client ability partitioning ───────────────────────────────────────

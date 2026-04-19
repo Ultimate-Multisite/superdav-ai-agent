@@ -132,6 +132,74 @@ class SkillUsageRepository {
 	}
 
 	/**
+	 * Update the outcome for a single skill usage row.
+	 *
+	 * Allows explicit post-hoc correction (e.g. thumbs-down feedback → negative).
+	 *
+	 * @param int    $id      Row ID to update.
+	 * @param string $outcome New outcome: 'helpful', 'neutral', 'negative', or 'unknown'.
+	 * @return bool Whether the update succeeded.
+	 */
+	public static function update_outcome( int $id, string $outcome ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		if ( ! in_array( $outcome, [ 'helpful', 'neutral', 'negative', 'unknown' ], true ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		$result = $wpdb->update(
+			Database::skill_usage_table_name(),
+			[ 'outcome' => $outcome ],
+			[ 'id' => $id ],
+			[ '%s' ],
+			[ '%d' ]
+		);
+
+		return false !== $result;
+	}
+
+	/**
+	 * Batch-update the outcome for all 'unknown' rows in a session.
+	 *
+	 * Called by AgentLoop after the loop completes to apply the outcome
+	 * heuristic across all skills injected during that session.
+	 * Only rows that are still 'unknown' are updated — explicitly-set
+	 * outcomes (e.g. thumbs-down → negative) are preserved.
+	 *
+	 * @param int    $session_id Session ID (0 = no-op).
+	 * @param string $outcome    Outcome to apply: 'helpful', 'neutral', or 'negative'.
+	 * @return int Number of rows updated.
+	 */
+	public static function update_session_outcomes( int $session_id, string $outcome ): int {
+		if ( $session_id <= 0 ) {
+			return 0;
+		}
+
+		if ( ! in_array( $outcome, [ 'helpful', 'neutral', 'negative' ], true ) ) {
+			return 0;
+		}
+
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
+		$rows_affected = $wpdb->update(
+			Database::skill_usage_table_name(),
+			[ 'outcome' => $outcome ],
+			[
+				'session_id' => $session_id,
+				'outcome'    => 'unknown',
+			],
+			[ '%s' ],
+			[ '%d', '%s' ]
+		);
+
+		return is_int( $rows_affected ) ? $rows_affected : 0;
+	}
+
+	/**
 	 * Estimate the token count for a string of text.
 	 *
 	 * Uses chars/4 as a rough approximation for English text.

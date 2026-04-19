@@ -22,8 +22,12 @@ class SkillAutoInjector {
 
 	/**
 	 * Maximum number of skills to inject per prompt to limit token usage.
+	 *
+	 * Capped at 1: weak models can only effectively follow one skill guide
+	 * at a time. Two guides were found to cause instruction conflicts and
+	 * confused execution.
 	 */
-	private const MAX_INJECTED_SKILLS = 2;
+	private const MAX_INJECTED_SKILLS = 1;
 
 	/**
 	 * Keyword-to-skill trigger map.
@@ -85,21 +89,59 @@ class SkillAutoInjector {
 	}
 
 	/**
+	 * Get a context-aware skill hint for strong models.
+	 *
+	 * Strong models receive the lean skill index (~15 tok/skill) and are
+	 * expected to call `ai-agent/skill-load` on their own when needed.
+	 * This method supplements the index with a targeted, one-line hint
+	 * pointing at which skill(s) are particularly relevant to the current
+	 * request — helping the model decide whether to load before proceeding,
+	 * without injecting the full 1 500-3 000 token guide.
+	 *
+	 * Returns an empty string when no trigger pattern matches the message.
+	 *
+	 * @param string $user_message The user's chat message.
+	 * @return string Inline hint text to append after the skill index, or empty string.
+	 */
+	public static function get_index_description( string $user_message ): string {
+		if ( '' === trim( $user_message ) ) {
+			return '';
+		}
+
+		$matched_slugs = self::match_skills( $user_message );
+
+		if ( empty( $matched_slugs ) ) {
+			return '';
+		}
+
+		return '> **Skill hint:** the following skill guide(s) are likely relevant to this request — '
+			. 'call `ai-agent/skill-load` before proceeding: `'
+			. implode( '`, `', $matched_slugs )
+			. '`';
+	}
+
+	/**
 	 * Match user message against the trigger map and return unique skill slugs.
+	 *
+	 * Uses a key-indexed set for deduplication so PHPStan can track the element
+	 * type correctly across loop iterations without false "always false" warnings.
 	 *
 	 * @param string $user_message The user's chat message.
 	 * @return list<string> Matched skill slugs (max MAX_INJECTED_SKILLS).
 	 */
 	private static function match_skills( string $user_message ): array {
+		/** @var array<string, true> $seen */
+		$seen    = [];
 		$matched = [];
 
 		foreach ( self::TRIGGER_MAP as $pattern => $slug ) {
-			if ( in_array( $slug, $matched, true ) ) {
+			if ( isset( $seen[ $slug ] ) ) {
 				continue;
 			}
 
 			if ( preg_match( $pattern, $user_message ) ) {
-				$matched[] = $slug;
+				$seen[ $slug ] = true;
+				$matched[]     = $slug;
 
 				if ( count( $matched ) >= self::MAX_INJECTED_SKILLS ) {
 					break;

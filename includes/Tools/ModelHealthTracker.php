@@ -168,13 +168,32 @@ class ModelHealthTracker {
 		self::bump( 'nudge' );
 	}
 
+	/**
+	 * Record one voluntary `skill-load` tool call against the current model.
+	 *
+	 * Strong models are expected to call skill-load on their own when the
+	 * skill index suggests a guide is relevant. Tracking this count lets
+	 * the system detect models that consistently ignore the index hint
+	 * (never calling skill-load despite it being present), which is a
+	 * signal that they should be routed to the auto-injection path.
+	 *
+	 * Note: this counter is informational for Phase 2. A future task will
+	 * incorporate it into the is_weak() scoring formula to automatically
+	 * escalate index-ignoring models to auto-injection.
+	 *
+	 * @return void
+	 */
+	public static function record_skill_load(): void {
+		self::bump( 'skill_load_count' );
+	}
+
 	// ─── Reading ──────────────────────────────────────────────────────
 
 	/**
 	 * Get the raw health record for a model id.
 	 *
 	 * @param string $model_id Model id.
-	 * @return array{success:int,validation_error:int,nudge:int,last_used:int}|null
+	 * @return array{success:int,validation_error:int,nudge:int,skill_load_count:int,last_used:int}|null
 	 */
 	public static function get_health( string $model_id ): ?array {
 		$map = self::load();
@@ -293,7 +312,7 @@ class ModelHealthTracker {
 	/**
 	 * Increment one counter on the current model's record.
 	 *
-	 * @param string $field One of 'success', 'validation_error', 'nudge'.
+	 * @param string $field One of 'success', 'validation_error', 'nudge', 'skill_load_count'.
 	 * @return void
 	 */
 	private static function bump( string $field ): void {
@@ -305,17 +324,24 @@ class ModelHealthTracker {
 		$model_id = self::$current_model;
 		$now      = time();
 
-		if ( ! isset( $map[ $model_id ] ) ) {
-			$map[ $model_id ] = array(
-				'success'          => 0,
-				'validation_error' => 0,
-				'nudge'            => 0,
-				'last_used'        => $now,
-			);
-		}
+		$record = $map[ $model_id ] ?? array(
+			'success'          => 0,
+			'validation_error' => 0,
+			'nudge'            => 0,
+			'skill_load_count' => 0,
+			'last_used'        => 0,
+		);
 
-		$map[ $model_id ][ $field ]    = (int) $map[ $model_id ][ $field ] + 1;
-		$map[ $model_id ]['last_used'] = $now;
+		// Reconstruct the record with the targeted counter incremented.
+		// Explicit shape reconstruction keeps the PHPStan array type narrow
+		// (dynamic key mutation widens the inner array to array<string, int>).
+		$map[ $model_id ] = array(
+			'success'          => 'success' === $field ? ( $record['success'] + 1 ) : $record['success'],
+			'validation_error' => 'validation_error' === $field ? ( $record['validation_error'] + 1 ) : $record['validation_error'],
+			'nudge'            => 'nudge' === $field ? ( $record['nudge'] + 1 ) : $record['nudge'],
+			'skill_load_count' => 'skill_load_count' === $field ? ( $record['skill_load_count'] + 1 ) : $record['skill_load_count'],
+			'last_used'        => $now,
+		);
 
 		if ( count( $map ) > self::MAX_ENTRIES ) {
 			$map = self::prune_internal( $map, self::MAX_ENTRIES );
@@ -327,7 +353,7 @@ class ModelHealthTracker {
 	/**
 	 * Load and normalise the persisted map.
 	 *
-	 * @return array<string, array{success:int,validation_error:int,nudge:int,last_used:int}>
+	 * @return array<string, array{success:int,validation_error:int,nudge:int,skill_load_count:int,last_used:int}>
 	 */
 	private static function load(): array {
 		$raw = get_option( self::OPTION_NAME, array() );
@@ -344,6 +370,8 @@ class ModelHealthTracker {
 				'success'          => isset( $entry['success'] ) ? (int) $entry['success'] : 0,
 				'validation_error' => isset( $entry['validation_error'] ) ? (int) $entry['validation_error'] : 0,
 				'nudge'            => isset( $entry['nudge'] ) ? (int) $entry['nudge'] : 0,
+				// skill_load_count added in Phase 2 (t217). Default 0 for existing records.
+				'skill_load_count' => isset( $entry['skill_load_count'] ) ? (int) $entry['skill_load_count'] : 0,
 				'last_used'        => isset( $entry['last_used'] ) ? (int) $entry['last_used'] : 0,
 			);
 		}
@@ -353,9 +381,9 @@ class ModelHealthTracker {
 	/**
 	 * Drop the least-recently-used entries until the map fits MAX_ENTRIES.
 	 *
-	 * @param array<string, array{success:int,validation_error:int,nudge:int,last_used:int}> $map The current map.
-	 * @param int                                                                            $max Maximum number of entries to keep.
-	 * @return array<string, array{success:int,validation_error:int,nudge:int,last_used:int}>
+	 * @param array<string, array{success:int,validation_error:int,nudge:int,skill_load_count:int,last_used:int}> $map The current map.
+	 * @param int                                                                                                 $max Maximum number of entries to keep.
+	 * @return array<string, array{success:int,validation_error:int,nudge:int,skill_load_count:int,last_used:int}>
 	 */
 	private static function prune_internal( array $map, int $max ): array {
 		if ( count( $map ) <= $max ) {

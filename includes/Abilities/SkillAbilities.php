@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Abilities;
 
 use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Tools\ModelHealthTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -120,6 +121,12 @@ class SkillAbilities {
 			// @phpstan-ignore-next-line
 			return new \WP_Error( 'skill_disabled', "Skill '$slug' is disabled." );
 		}
+
+		// Record this voluntary skill-load call in ModelHealthTracker.
+		// Strong models that call skill-load on their own confirm they can use
+		// the index-only path effectively. This signal is used in Phase 3 to
+		// tune the auto-injection threshold per model.
+		ModelHealthTracker::record_skill_load();
 
 		return [
 			'name'    => $skill->name,

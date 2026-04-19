@@ -144,6 +144,42 @@ class ModelHealthTrackerTest extends WP_UnitTestCase {
 		$this->assertTrue( ModelHealthTracker::is_weak( 'gpt-4o' ) );
 	}
 
+	// ─── skill_load_count ─────────────────────────────────────────────
+
+	public function test_record_skill_load_increments_count(): void {
+		ModelHealthTracker::set_current_model( 'claude-sonnet-4-6' );
+
+		ModelHealthTracker::record_skill_load();
+		ModelHealthTracker::record_skill_load();
+		ModelHealthTracker::record_skill_load();
+
+		$health = ModelHealthTracker::get_health( 'claude-sonnet-4-6' );
+		$this->assertNotNull( $health );
+		$this->assertSame( 3, $health['skill_load_count'] );
+		// skill_load_count should not affect success/validation_error/nudge.
+		$this->assertSame( 0, $health['success'] );
+		$this->assertSame( 0, $health['validation_error'] );
+		$this->assertSame( 0, $health['nudge'] );
+	}
+
+	public function test_record_skill_load_noop_without_current_model(): void {
+		// No current model set → no-op.
+		ModelHealthTracker::record_skill_load();
+		$this->assertNull( ModelHealthTracker::get_health( '' ) );
+	}
+
+	public function test_skill_load_count_defaults_to_zero_for_existing_records(): void {
+		// Records created before t217 (missing skill_load_count key) should
+		// normalize to 0 when loaded.
+		ModelHealthTracker::set_current_model( 'claude-sonnet-4-6' );
+		ModelHealthTracker::record_success();
+
+		$health = ModelHealthTracker::get_health( 'claude-sonnet-4-6' );
+		$this->assertNotNull( $health );
+		$this->assertArrayHasKey( 'skill_load_count', $health );
+		$this->assertSame( 0, $health['skill_load_count'] );
+	}
+
 	// ─── prompt nudge ─────────────────────────────────────────────────
 
 	public function test_weak_model_prompt_nudge_contains_key_phrases(): void {

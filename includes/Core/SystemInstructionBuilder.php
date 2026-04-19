@@ -71,15 +71,32 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . $skill_index;
 		}
 
-		// Auto-inject relevant skill content based on the user's message.
-		// This supplements the passive skill index above — instead of relying
-		// on the LLM to voluntarily call skill-load, we inject the content
-		// directly for matching tasks (e.g. content creation → gutenberg-blocks).
+		// Model-aware tiered skill injection:
+		//
+		// Strong models (is_weak() = false): receive only the lean skill index
+		// above (~15 tok/skill) plus a targeted hint pointing at relevant skills.
+		// They are capable of calling skill-load on demand, so injecting 1 500+
+		// tokens of guide content unconditionally wastes their context window.
+		//
+		// Weak models (is_weak() = true): auto-inject the best matching skill
+		// guide (max 1) directly into the prompt. They often fail to voluntarily
+		// call skill-load even when the index is present, so front-loading the
+		// content is the only reliable way to get them to follow it.
 		if ( ! empty( $this->user_message ) ) {
-			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message );
-			if ( ! empty( $auto_skill ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $auto_skill;
+			if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
+				// Weak model path: inject full skill content (max 1 guide).
+				$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message );
+				if ( ! empty( $auto_skill ) ) {
+					// @phpstan-ignore-next-line
+					$base .= "\n\n" . $auto_skill;
+				}
+			} else {
+				// Strong model path: add a targeted hint to guide skill-load calls.
+				$hint = SkillAutoInjector::get_index_description( $this->user_message );
+				if ( ! empty( $hint ) ) {
+					// @phpstan-ignore-next-line
+					$base .= "\n\n" . $hint;
+				}
 			}
 		}
 

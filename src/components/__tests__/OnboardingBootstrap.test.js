@@ -46,8 +46,7 @@ jest.mock( '../../store', () => 'gratis-ai-agent' );
 
 jest.mock( '../ChatPanel', () => {
 	const React = require( 'react' );
-	return () =>
-		React.createElement( 'div', { 'data-testid': 'chat-panel' } );
+	return () => React.createElement( 'div', { 'data-testid': 'chat-panel' } );
 } );
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -80,6 +79,9 @@ describe( 'OnboardingBootstrap', () => {
 		jest.clearAllMocks();
 	} );
 
+	/**
+	 *
+	 */
 	async function renderBootstrap() {
 		await act( async () => {
 			root.render( createElement( OnboardingBootstrap, {} ) );
@@ -93,7 +95,9 @@ describe( 'OnboardingBootstrap', () => {
 			bootstrap_system_prompt: 'You are a helpful agent.',
 		} );
 		await renderBootstrap();
-		expect( container.querySelector( '.gratis-ai-agent-onboarding-bootstrap' ) ).not.toBeNull();
+		expect(
+			container.querySelector( '.gratis-ai-agent-onboarding-bootstrap' )
+		).not.toBeNull();
 	} );
 
 	test( 'renders ChatPanel inside the wrapper', async () => {
@@ -103,7 +107,9 @@ describe( 'OnboardingBootstrap', () => {
 			bootstrap_system_prompt: 'You are a helpful agent.',
 		} );
 		await renderBootstrap();
-		expect( container.querySelector( '[data-testid="chat-panel"]' ) ).not.toBeNull();
+		expect(
+			container.querySelector( '[data-testid="chat-panel"]' )
+		).not.toBeNull();
 	} );
 
 	test( 'calls bootstrap-start endpoint on mount', async () => {
@@ -150,11 +156,7 @@ describe( 'OnboardingBootstrap', () => {
 			bootstrap_system_prompt: null,
 		} );
 		await renderBootstrap();
-		expect( sendMessageMock ).toHaveBeenCalledWith(
-			'Hello',
-			[],
-			{}
-		);
+		expect( sendMessageMock ).toHaveBeenCalledWith( 'Hello', [], {} );
 	} );
 
 	test( 'uses fallback kickoff message when none returned', async () => {

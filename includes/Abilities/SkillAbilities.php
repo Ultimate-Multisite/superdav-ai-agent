@@ -12,6 +12,7 @@ namespace GratisAiAgent\Abilities;
 
 use GratisAiAgent\Models\Skill;
 use GratisAiAgent\Repositories\SkillUsageRepository;
+use GratisAiAgent\Tools\ModelHealthTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -135,6 +136,12 @@ class SkillAbilities {
 				'model_id'        => '',
 			]
 		);
+
+		// Record this voluntary skill-load call in ModelHealthTracker (Phase 2 / t217).
+		// Strong models that call skill-load on their own confirm they can use
+		// the index-only path effectively. This signal is used in Phase 3 to
+		// tune the auto-injection threshold per model.
+		ModelHealthTracker::record_skill_load();
 
 		return [
 			'name'    => $skill->name,

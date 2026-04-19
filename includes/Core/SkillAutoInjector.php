@@ -107,6 +107,38 @@ class SkillAutoInjector {
 	}
 
 	/**
+	 * Get a context-aware skill hint for strong models.
+	 *
+	 * Strong models receive the lean skill index (~15 tok/skill) and are
+	 * expected to call `ai-agent/skill-load` on their own when needed.
+	 * This method supplements the index with a targeted, one-line hint
+	 * pointing at which skill(s) are particularly relevant to the current
+	 * request — helping the model decide whether to load before proceeding,
+	 * without injecting the full 1 500-3 000 token guide.
+	 *
+	 * Returns an empty string when no trigger pattern matches the message.
+	 *
+	 * @param string $user_message The user's chat message.
+	 * @return string Inline hint text to append after the skill index, or empty string.
+	 */
+	public static function get_index_description( string $user_message ): string {
+		if ( '' === trim( $user_message ) ) {
+			return '';
+		}
+
+		$matched_slugs = self::match_skills( $user_message );
+
+		if ( empty( $matched_slugs ) ) {
+			return '';
+		}
+
+		return '> **Skill hint:** the following skill guide(s) are likely relevant to this request — '
+			. 'call `ai-agent/skill-load` before proceeding: `'
+			. implode( '`, `', $matched_slugs )
+			. '`';
+	}
+
+	/**
 	 * Match user message against the trigger map and return unique skill slugs.
 	 *
 	 * Collects all pattern matches first, then de-duplicates with array_unique

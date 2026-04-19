@@ -2,11 +2,18 @@
 
 declare(strict_types=1);
 /**
- * Onboarding Manager — orchestrates the first-activation site scan.
+ * Onboarding Manager — tracks first-activation state and the bootstrap session.
  *
- * Detects whether this is a fresh installation (no memories, no scan record)
- * and schedules the background SiteScanner job. Also exposes a REST endpoint
- * so the admin UI can poll scan status.
+ * Manages two concerns:
+ * 1. Background SiteScanner job (existing — collects raw site data).
+ * 2. Bootstrap session (new in Phase 2) — an AI-driven auto-discovery run that
+ *    explores the site with abilities, infers purpose/audience/style, stores
+ *    memories, and presents findings + starter prompts to the site owner.
+ *
+ * REST endpoints:
+ *   GET  /gratis-ai-agent/v1/onboarding/status    — scan status + completion flag
+ *   POST /gratis-ai-agent/v1/onboarding/rescan    — reset and schedule a new scan
+ *   POST /gratis-ai-agent/v1/onboarding/bootstrap — create the bootstrap discovery session
  *
  * @package GratisAiAgent
  * @license GPL-2.0-or-later
@@ -14,7 +21,9 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Core;
 
+use GratisAiAgent\Models\ActiveJobRepository;
 use GratisAiAgent\Models\Memory;
+use GratisAiAgent\REST\RestController;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,9 +32,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class OnboardingManager {
 
 	/**
-	 * Option key that records whether onboarding has been triggered.
-	 * Separate from SiteScanner::STATUS_OPTION so we can distinguish
-	 * "never triggered" from "triggered but pending".
+	 * Option key that records whether the AI-driven bootstrap discovery has been completed.
+	 * Set to true once the bootstrap session job has been dispatched.
+	 */
+	const COMPLETE_OPTION = 'gratis_ai_agent_onboarding_complete';
+
+	/**
+	 * Option key that records whether the background site scan has been triggered.
+	 * Kept for backward compatibility.
 	 */
 	const TRIGGERED_OPTION = 'gratis_ai_agent_onboarding_triggered';
 
@@ -93,21 +107,38 @@ class OnboardingManager {
 	}
 
 	/**
-	 * Reset onboarding state (allows re-running the scan).
+	 * Reset onboarding state (allows re-running the scan and bootstrap session).
 	 *
-	 * Clears the triggered flag and scan status so the next admin_init
-	 * will re-evaluate and schedule a new scan.
+	 * Clears both the triggered flag and the completion flag so the next
+	 * admin_init will re-evaluate and a fresh bootstrap session can be created.
 	 */
 	public static function reset(): void {
 		delete_option( self::TRIGGERED_OPTION );
+		delete_option( self::COMPLETE_OPTION );
 		delete_option( SiteScanner::STATUS_OPTION );
 		SiteScanner::unschedule();
+	}
+
+	/**
+	 * Mark onboarding as complete (called after the bootstrap session job is dispatched).
+	 */
+	public static function mark_complete(): void {
+		update_option( self::COMPLETE_OPTION, true, false );
+	}
+
+	/**
+	 * Whether the AI-driven onboarding bootstrap session has been completed.
+	 *
+	 * @return bool
+	 */
+	public static function is_complete(): bool {
+		return (bool) get_option( self::COMPLETE_OPTION );
 	}
 
 	// ── REST API ──────────────────────────────────────────────────────────
 
 	/**
-	 * Register the onboarding status REST route.
+	 * Register all onboarding REST routes.
 	 */
 	public static function register_rest_routes(): void {
 		register_rest_route(
@@ -130,44 +161,13 @@ class OnboardingManager {
 			]
 		);
 
-		// Bootstrap start endpoint (onboarding v2).
 		register_rest_route(
 			'gratis-ai-agent/v1',
-			'/onboarding/bootstrap-start',
+			'/onboarding/bootstrap',
 			[
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'rest_bootstrap_start' ],
+				'callback'            => [ __CLASS__, 'rest_create_bootstrap_session' ],
 				'permission_callback' => [ __CLASS__, 'rest_permission' ],
-			]
-		);
-
-		// Interview endpoints (t064).
-		register_rest_route(
-			'gratis-ai-agent/v1',
-			'/onboarding/interview',
-			[
-				[
-					'methods'             => 'GET',
-					'callback'            => [ __CLASS__, 'rest_get_interview' ],
-					'permission_callback' => [ __CLASS__, 'rest_permission' ],
-				],
-				[
-					'methods'             => 'POST',
-					'callback'            => [ __CLASS__, 'rest_save_interview' ],
-					'permission_callback' => [ __CLASS__, 'rest_permission' ],
-					'args'                => [
-						'answers' => [
-							'required' => false,
-							'type'     => 'object',
-							'default'  => [],
-						],
-						'skipped' => [
-							'required' => false,
-							'type'     => 'boolean',
-							'default'  => false,
-						],
-					],
-				],
 			]
 		);
 	}
@@ -191,6 +191,12 @@ class OnboardingManager {
 	/**
 	 * GET /gratis-ai-agent/v1/onboarding/status
 	 *
+	 * Returns the current onboarding state:
+	 *  - triggered:           whether the background site scan was triggered
+	 *  - scan:                current SiteScanner status
+	 *  - scheduled:           whether the scan cron job is queued
+	 *  - onboarding_complete: whether the bootstrap session has been dispatched
+	 *
 	 * @return \WP_REST_Response
 	 */
 	public static function rest_get_status(): \WP_REST_Response {
@@ -198,11 +204,10 @@ class OnboardingManager {
 
 		return new \WP_REST_Response(
 			[
-				'triggered'       => (bool) get_option( self::TRIGGERED_OPTION ),
-				'scan'            => $scan_status,
-				'scheduled'       => (bool) wp_next_scheduled( SiteScanner::CRON_HOOK ),
-				'interview_ready' => OnboardingInterview::is_ready(),
-				'interview_done'  => OnboardingInterview::is_done(),
+				'triggered'           => (bool) get_option( self::TRIGGERED_OPTION ),
+				'scan'                => $scan_status,
+				'scheduled'           => (bool) wp_next_scheduled( SiteScanner::CRON_HOOK ),
+				'onboarding_complete' => self::is_complete(),
 			],
 			200
 		);
@@ -217,7 +222,6 @@ class OnboardingManager {
 	 */
 	public static function rest_rescan(): \WP_REST_Response {
 		self::reset();
-		OnboardingInterview::reset();
 		self::trigger();
 
 		return new \WP_REST_Response(
@@ -229,82 +233,84 @@ class OnboardingManager {
 		);
 	}
 
-	// ── Interview REST handlers (t064) ────────────────────────────────────
-
 	/**
-	 * GET /gratis-ai-agent/v1/onboarding/interview
+	 * POST /gratis-ai-agent/v1/onboarding/bootstrap
 	 *
-	 * Returns the interview questions and current status.
+	 * Creates a new session and dispatches the AI-driven auto-discovery job.
 	 *
-	 * @return \WP_REST_Response
-	 */
-	public static function rest_get_interview(): \WP_REST_Response {
-		return new \WP_REST_Response(
-			[
-				'ready'     => OnboardingInterview::is_ready(),
-				'done'      => OnboardingInterview::is_done(),
-				'questions' => OnboardingInterview::is_ready()
-					? OnboardingInterview::get_questions()
-					: [],
-			],
-			200
-		);
-	}
-
-	/**
-	 * POST /gratis-ai-agent/v1/onboarding/interview
+	 * The job uses BootstrapPrompt::generate() as a prepended system instruction
+	 * alongside the regular prompt, explores the site with available abilities,
+	 * stores memories for future sessions, and presents findings + starter prompts.
 	 *
-	 * Saves interview answers (or marks as skipped).
+	 * Returns { session_id, job_id, bootstrap_session: true } so the frontend
+	 * can open the session and poll the job via the standard job-polling mechanism.
 	 *
-	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public static function rest_save_interview( \WP_REST_Request $request ) {
-		$skipped = (bool) $request->get_param( 'skipped' );
+	public static function rest_create_bootstrap_session() {
+		$user_id    = get_current_user_id();
+		$session_id = Database::create_session(
+			[
+				'user_id' => $user_id,
+				'title'   => __( 'Site Discovery', 'gratis-ai-agent' ),
+			]
+		);
 
-		if ( $skipped ) {
-			OnboardingInterview::mark_skipped();
-
-			return new \WP_REST_Response(
-				[
-					'success' => true,
-					'message' => __( 'Interview skipped.', 'gratis-ai-agent' ),
-				],
-				200
-			);
-		}
-
-		$answers = $request->get_param( 'answers' );
-
-		if ( ! is_array( $answers ) ) {
+		if ( ! $session_id ) {
 			return new \WP_Error(
-				'invalid_answers',
-				__( 'Answers must be an object mapping question IDs to answer strings.', 'gratis-ai-agent' ),
-				[ 'status' => 400 ]
+				'bootstrap_session_failed',
+				__( 'Failed to create bootstrap session.', 'gratis-ai-agent' ),
+				[ 'status' => 500 ]
 			);
 		}
 
-		// Sanitize each answer.
-		$sanitized = [];
-		foreach ( $answers as $id => $value ) {
-			// @phpstan-ignore-next-line
-			$sanitized[ sanitize_key( $id ) ] = sanitize_textarea_field( (string) $value );
-		}
+		$job_id = wp_generate_uuid4();
+		$token  = wp_generate_password( 40, false );
 
-		$saved = OnboardingInterview::save_answers( $sanitized );
+		$job = [
+			'status'     => 'processing',
+			'token'      => $token,
+			'user_id'    => $user_id,
+			'tool_calls' => [],
+			'params'     => [
+				'message'          => __(
+					'Please explore this WordPress site and present your findings.',
+					'gratis-ai-agent'
+				),
+				'session_id'       => $session_id,
+				'bootstrap_prompt' => BootstrapPrompt::generate(),
+				'max_iterations'   => 20,
+			],
+		];
 
-		if ( ! $saved ) {
-			return new \WP_Error(
-				'save_failed',
-				__( 'No answers were provided.', 'gratis-ai-agent' ),
-				[ 'status' => 400 ]
-			);
-		}
+		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+		ActiveJobRepository::create( $session_id, $job_id, $user_id );
+
+		// Mark onboarding complete — prevents re-dispatching on subsequent calls.
+		self::mark_complete();
+
+		// Spawn the background worker via a non-blocking loopback request.
+		// This mirrors the pattern in SessionController::handle_run().
+		wp_remote_post(
+			rest_url( RestController::NAMESPACE . '/process' ),
+			[
+				'timeout'  => 0.01,
+				'blocking' => false,
+				'body'     => (string) wp_json_encode(
+					[
+						'job_id' => $job_id,
+						'token'  => $token,
+					]
+				),
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+			]
+		);
 
 		return new \WP_REST_Response(
 			[
-				'success' => true,
-				'message' => __( 'Interview answers saved. The AI now has context about your site goals.', 'gratis-ai-agent' ),
+				'session_id'        => $session_id,
+				'job_id'            => $job_id,
+				'bootstrap_session' => true,
 			],
 			200
 		);

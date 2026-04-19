@@ -284,6 +284,7 @@ class OnboardingManagerTest extends WP_UnitTestCase {
 
 	/**
 	 * rest_get_status() returns a WP_REST_Response with expected keys.
+	 * Phase 2 (t223): response now contains onboarding_complete instead of interview keys.
 	 */
 	public function test_rest_get_status_returns_expected_shape(): void {
 		$response = OnboardingManager::rest_get_status();
@@ -296,8 +297,9 @@ class OnboardingManagerTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'triggered', $data );
 		$this->assertArrayHasKey( 'scan', $data );
 		$this->assertArrayHasKey( 'scheduled', $data );
-		$this->assertArrayHasKey( 'interview_ready', $data );
-		$this->assertArrayHasKey( 'interview_done', $data );
+		$this->assertArrayHasKey( 'onboarding_complete', $data );
+		$this->assertArrayNotHasKey( 'interview_ready', $data );
+		$this->assertArrayNotHasKey( 'interview_done', $data );
 	}
 
 	/**
@@ -370,15 +372,17 @@ class OnboardingManagerTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * register_rest_routes() registers the onboarding/interview route.
+	 * register_rest_routes() registers the onboarding/bootstrap route (Phase 2, t223).
+	 * The interview route was removed; bootstrap replaces it.
 	 */
-	public function test_register_rest_routes_registers_interview_route(): void {
+	public function test_register_rest_routes_registers_bootstrap_route(): void {
 		do_action( 'rest_api_init' );
 		OnboardingManager::register_rest_routes();
 
 		$server = rest_get_server();
 		$routes = $server->get_routes();
 
-		$this->assertArrayHasKey( '/gratis-ai-agent/v1/onboarding/interview', $routes );
+		$this->assertArrayHasKey( '/gratis-ai-agent/v1/onboarding/bootstrap', $routes );
+		$this->assertArrayNotHasKey( '/gratis-ai-agent/v1/onboarding/interview', $routes );
 	}
 }

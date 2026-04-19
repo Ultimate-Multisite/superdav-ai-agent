@@ -30,6 +30,11 @@ export const initialState = {
 	siteBuilderStep: 0,
 	siteBuilderTotalSteps: 0,
 
+	// Bootstrap session flag (t223) — true when the current session is the
+	// AI-driven auto-discovery run. Prevents the empty-state placeholder from
+	// appearing while the agent is actively exploring the site.
+	isBootstrapSession: false,
+
 	// Text-to-speech (t084) — persisted to localStorage.
 	ttsEnabled: localStorage.getItem( 'gratisAiAgentTtsEnabled' ) === 'true',
 	ttsVoiceURI: localStorage.getItem( 'gratisAiAgentTtsVoiceURI' ) || '',
@@ -170,6 +175,19 @@ export const actions = {
 	},
 
 	/**
+	 * Set or clear the bootstrap session flag (t223).
+	 *
+	 * Set to true when the current session is the AI-driven auto-discovery run
+	 * so the UI can suppress the empty-state placeholder while the agent works.
+	 *
+	 * @param {boolean} isBootstrap - Whether the current session is a bootstrap session.
+	 * @return {Object} Redux action.
+	 */
+	setBootstrapSession( isBootstrap ) {
+		return { type: 'SET_BOOTSTRAP_SESSION', isBootstrap };
+	},
+
+	/**
 	 * Set or clear the boot error state.
 	 *
 	 * @param {Object|null} error - Error object { message, status } or null to clear.
@@ -307,6 +325,17 @@ export const selectors = {
 	},
 
 	/**
+	 * Whether the current session is the AI-driven bootstrap auto-discovery run (t223).
+	 * Returns true while the agent is exploring the site on first activation.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {boolean} True when the active session is a bootstrap session.
+	 */
+	isBootstrapSession( state ) {
+		return state.isBootstrapSession ?? false;
+	},
+
+	/**
 	 * @param {import('../../types').StoreState} state
 	 * @return {Object|null} Boot error { message, status } or null.
 	 */
@@ -368,6 +397,8 @@ export function reducer( state, action ) {
 			return { ...state, debugMode: action.enabled };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
+		case 'SET_BOOTSTRAP_SESSION':
+			return { ...state, isBootstrapSession: action.isBootstrap };
 		case 'SET_BOOT_ERROR':
 			return { ...state, bootError: action.error };
 		case 'SET_SITE_BUILDER_STEP':

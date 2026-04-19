@@ -53,37 +53,27 @@ describe( 'ConnectorGate', () => {
 	} );
 
 	test( 'renders the gate wrapper', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'gratis-ai-agent-connector-gate' );
 	} );
 
 	test( 'renders the title', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'Set Up an AI Provider' );
 	} );
 
 	test( 'renders descriptive text about connectors', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'Connectors page' );
 	} );
 
 	test( 'renders CTA button', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'Configure a Connector' );
 	} );
 
 	test( 'CTA button links to options-connectors.php by default', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'options-connectors.php' );
 	} );
 
@@ -91,16 +81,12 @@ describe( 'ConnectorGate', () => {
 		window.gratisAiAgentData = {
 			connectorsUrl: 'admin.php?page=custom-connectors',
 		};
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'admin.php?page=custom-connectors' );
 	} );
 
 	test( 'renders info notice', () => {
-		const html = renderToStaticMarkup(
-			createElement( ConnectorGate, {} )
-		);
+		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		const notice = html.match( /data-status="info"/ );
 		expect( notice ).not.toBeNull();
 	} );

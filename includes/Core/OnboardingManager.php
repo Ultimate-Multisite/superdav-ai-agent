@@ -170,6 +170,16 @@ class OnboardingManager {
 				'permission_callback' => [ __CLASS__, 'rest_permission' ],
 			]
 		);
+
+		register_rest_route(
+			'gratis-ai-agent/v1',
+			'/onboarding/bootstrap-start',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'rest_bootstrap_start' ],
+				'permission_callback' => [ __CLASS__, 'rest_permission' ],
+			]
+		);
 	}
 
 	/**

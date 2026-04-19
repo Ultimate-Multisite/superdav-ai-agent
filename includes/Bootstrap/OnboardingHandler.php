@@ -68,6 +68,14 @@ final class OnboardingHandler {
 	}
 
 	/**
+	 * Register the onboarding REST endpoints on rest_api_init.
+	 */
+	#[Action( tag: 'rest_api_init', priority: 10 )]
+	public function register_onboarding_rest_routes(): void {
+		OnboardingManager::register_rest_routes();
+	}
+
+	/**
 	 * Auto-enable WooCommerce abilities on first load when a provider is
 	 * detected and WooCommerce is active.
 	 */

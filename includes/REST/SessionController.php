@@ -1274,6 +1274,7 @@ final class SessionController {
 				'history'            => $request->get_param( 'history' ),
 				'abilities'          => $request->get_param( 'abilities' ),
 				'system_instruction' => $request->get_param( 'system_instruction' ),
+				'bootstrap_prompt'   => $request->get_param( 'bootstrap_prompt' ),
 				'max_iterations'     => $request->get_param( 'max_iterations' ),
 				'session_id'         => $request->get_param( 'session_id' ),
 				'provider_id'        => $request->get_param( 'provider_id' ),
@@ -1407,6 +1408,12 @@ final class SessionController {
 
 		if ( ! empty( $params['system_instruction'] ) ) {
 			$options['system_instruction'] = $params['system_instruction'];
+		}
+
+		// Bootstrap prompt — prepended to the regular system instruction for the
+		// onboarding auto-discovery session. Mutually exclusive with system_instruction.
+		if ( ! empty( $params['bootstrap_prompt'] ) && empty( $params['system_instruction'] ) ) {
+			$options['bootstrap_prompt'] = $params['bootstrap_prompt'];
 		}
 
 		if ( ! empty( $params['provider_id'] ) ) {

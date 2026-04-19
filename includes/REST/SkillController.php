@@ -10,7 +10,9 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\REST;
 
+use GratisAiAgent\Core\Settings;
 use GratisAiAgent\Models\Skill;
+use GratisAiAgent\Repositories\SkillUsageRepository;
 use GratisAiAgent\Services\SkillService;
 use WP_Error;
 use WP_REST_Request;
@@ -30,11 +32,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Domain logic (formatting, business rules) is delegated to SkillService.
  *
  * Endpoints:
- *  GET    /skills            — list all skills
- *  POST   /skills            — create a custom skill
- *  PATCH  /skills/{id}       — update a skill
- *  DELETE /skills/{id}       — delete a custom skill
- *  POST   /skills/{id}/reset — reset a built-in skill to defaults
+ *  GET    /skills               — list all skills
+ *  POST   /skills               — create a custom skill
+ *  PATCH  /skills/{id}          — update a skill
+ *  DELETE /skills/{id}          — delete a custom skill
+ *  POST   /skills/{id}/reset    — reset a built-in skill to defaults
+ *  GET    /skills/stats         — aggregated usage stats per skill
+ *  POST   /skills/check-updates — check remote manifest for available updates
  */
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
@@ -262,6 +266,154 @@ final class SkillController extends XWP_REST_Controller {
 				'type'     => 'boolean',
 			),
 		);
+	}
+
+	/**
+	 * Handle GET /skills/stats — aggregated usage stats per skill.
+	 *
+	 * Returns total load count, helpful/neutral/negative outcome counts, and
+	 * the last-used timestamp for each skill that has at least one usage record.
+	 * Skills with no usage records are omitted (frontend treats absence as zero).
+	 *
+	 * @return WP_REST_Response
+	 */
+	#[REST_Route(
+		route: 'stats',
+		methods: WP_REST_Server::READABLE,
+		guard: 'check_permission',
+	)]
+	public function handle_skill_stats(): WP_REST_Response {
+		$rows = SkillUsageRepository::get_stats();
+
+		// Index by skill_id for easy frontend lookups.
+		$stats = array();
+		foreach ( $rows as $row ) {
+			$stats[ (int) $row->skill_id ] = array(
+				'skill_id'       => (int) $row->skill_id,
+				'total_loads'    => (int) $row->total_loads,
+				'helpful_count'  => (int) $row->helpful_count,
+				'neutral_count'  => (int) $row->neutral_count,
+				'negative_count' => (int) $row->negative_count,
+				'last_used_at'   => (string) $row->last_used_at,
+			);
+		}
+
+		return new WP_REST_Response( $stats, 200 );
+	}
+
+	/**
+	 * Handle POST /skills/check-updates — check remote manifest for updates.
+	 *
+	 * Fetches the skill manifest URL from settings, compares each built-in
+	 * skill's content_hash against the manifest, and optionally applies
+	 * updates to skills that have not been user-modified when skill_auto_update
+	 * is enabled.
+	 *
+	 * Returns a map of skill_id => { has_update, remote_version, applied }.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	#[REST_Route(
+		route: 'check-updates',
+		methods: WP_REST_Server::CREATABLE,
+		guard: 'check_permission',
+	)]
+	public function handle_check_updates(): WP_REST_Response|WP_Error {
+		// Read settings directly — avoids constructor injection for a single call.
+		// @phpstan-ignore-next-line
+		$saved_settings = (array) get_option( Settings::OPTION_NAME, array() );
+		$manifest_url   = (string) ( $saved_settings['skill_manifest_url'] ?? '' );
+		$auto_update    = isset( $saved_settings['skill_auto_update'] )
+			? (bool) $saved_settings['skill_auto_update']
+			: true; // default: auto-update enabled
+
+		if ( '' === $manifest_url ) {
+			return new WP_Error(
+				'gratis_ai_agent_no_manifest_url',
+				__( 'No skill manifest URL configured. Set skill_manifest_url in settings.', 'gratis-ai-agent' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Fetch the remote manifest.
+		$response = wp_remote_get(
+			$manifest_url,
+			array(
+				'timeout' => 15,
+				'headers' => array( 'Accept' => 'application/json' ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_manifest_fetch_failed',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Failed to fetch skill manifest: %s', 'gratis-ai-agent' ),
+					$response->get_error_message()
+				),
+				array( 'status' => 502 )
+			);
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== (int) $status_code ) {
+			return new WP_Error(
+				'gratis_ai_agent_manifest_bad_status',
+				sprintf(
+					/* translators: %d: HTTP status code */
+					__( 'Skill manifest returned HTTP %d.', 'gratis-ai-agent' ),
+					$status_code
+				),
+				array( 'status' => 502 )
+			);
+		}
+
+		$body     = wp_remote_retrieve_body( $response );
+		$manifest = json_decode( $body, true );
+
+		if ( ! is_array( $manifest ) ) {
+			return new WP_Error(
+				'gratis_ai_agent_manifest_invalid',
+				__( 'Skill manifest is not valid JSON or not an array.', 'gratis-ai-agent' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		// Compare each built-in skill against the manifest.
+		$skills  = Skill::get_all();
+		$results = array();
+
+		foreach ( $skills ?? array() as $skill ) {
+			if ( ! $skill->is_builtin ) {
+				continue;
+			}
+
+			$entry = $manifest[ $skill->slug ] ?? null;
+
+			if ( null === $entry || ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$update_data = Skill::check_for_updates( $skill, $entry );
+			$has_update  = null !== $update_data;
+			$applied     = false;
+
+			if ( $has_update && $auto_update && ! $skill->user_modified ) {
+				$applied = Skill::apply_update( $skill->id, $entry );
+			}
+
+			$results[ $skill->id ] = array(
+				'skill_id'       => $skill->id,
+				'slug'           => $skill->slug,
+				'has_update'     => $has_update,
+				'remote_version' => (string) ( $entry['version'] ?? '' ),
+				'applied'        => $applied,
+				'user_modified'  => $skill->user_modified,
+			);
+		}
+
+		return new WP_REST_Response( $results, 200 );
 	}
 
 	/**

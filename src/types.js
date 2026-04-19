@@ -94,11 +94,20 @@
  * A skill entry.
  *
  * @typedef {Object} Skill
- * @property {number}  id            - Skill identifier.
- * @property {string}  name          - Skill name / slug.
- * @property {string}  [label]       - Human-readable label.
- * @property {string}  [description] - Skill description.
- * @property {boolean} [builtin]     - Whether this is a built-in skill.
+ * @property {number}  id              - Skill identifier.
+ * @property {string}  slug            - URL-safe unique identifier.
+ * @property {string}  name            - Human-readable skill name.
+ * @property {string}  [label]         - Deprecated alias for name.
+ * @property {string}  [description]   - One-line description shown in the skill index.
+ * @property {string}  [content]       - Full skill guide markdown content.
+ * @property {boolean} [is_builtin]    - Whether this is a framework-bundled skill.
+ * @property {boolean} [enabled]       - Whether the skill is active.
+ * @property {string}  [version]       - Semver string of the current skill content.
+ * @property {string}  [source_url]    - Remote URL the skill originates from (empty for user-created).
+ * @property {boolean} [user_modified] - True when an admin has edited a built-in skill (blocks auto-updates).
+ * @property {number}  [word_count]    - Word count of the skill content.
+ * @property {string}  [created_at]    - MySQL UTC datetime of creation.
+ * @property {string}  [updated_at]    - MySQL UTC datetime of last update.
  */
 
 /**
@@ -158,6 +167,10 @@
  * @property {boolean}                  memoriesLoaded          - Whether memories have been fetched.
  * @property {Skill[]}                  skills                  - Skill entries.
  * @property {boolean}                  skillsLoaded            - Whether skills have been fetched.
+ * @property {Object}                   skillStats              - Aggregated usage stats indexed by skill_id.
+ * @property {boolean}                  skillStatsLoaded        - Whether skill stats have been fetched.
+ * @property {Object}                   skillUpdates            - Update availability map from check-updates, indexed by skill_id.
+ * @property {boolean}                  skillUpdatesChecking    - Whether a check-updates request is in flight.
  * @property {TokenUsage}               tokenUsage              - Cumulative token usage for the session.
  * @property {PendingConfirmation|null} pendingConfirmation     - Pending tool confirmation.
  * @property {boolean}                  debugMode               - Whether debug mode is active.

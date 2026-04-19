@@ -179,34 +179,43 @@ class Skill {
 	/**
 	 * Create a new skill.
 	 *
-	 * @param array<string, mixed> $data Skill data: slug, name, description, content, is_builtin, enabled.
+	 * @param array<string, mixed> $data Skill data: slug, name, description, content, is_builtin, enabled, version, content_hash, source_url.
 	 * @return int|false Inserted row ID or false on failure.
 	 */
 	public static function create( array $data ) {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		$now = current_time( 'mysql', true );
+		// @phpstan-ignore-next-line
+		$content = (string) ( $data['content'] ?? '' );
+		$now     = current_time( 'mysql', true );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table query; caching not applicable.
 		$result = $wpdb->insert(
 			self::table_name(),
 			[
 				// @phpstan-ignore-next-line
-				'slug'        => sanitize_title( $data['slug'] ?? '' ),
+				'slug'          => sanitize_title( $data['slug'] ?? '' ),
 				// @phpstan-ignore-next-line
-				'name'        => sanitize_text_field( $data['name'] ?? '' ),
+				'name'          => sanitize_text_field( $data['name'] ?? '' ),
 				// @phpstan-ignore-next-line
-				'description' => sanitize_textarea_field( $data['description'] ?? '' ),
+				'description'   => sanitize_textarea_field( $data['description'] ?? '' ),
 				// Skill content is markdown for AI consumption, not HTML for browser rendering.
 				// It is stored verbatim; SQL injection is prevented by $wpdb->insert() parameterisation.
+				'content'       => $content,
+				'is_builtin'    => ! empty( $data['is_builtin'] ) ? 1 : 0,
+				'enabled'       => isset( $data['enabled'] ) ? ( $data['enabled'] ? 1 : 0 ) : 1,
 				// @phpstan-ignore-next-line
-				'content'     => $data['content'] ?? '',
-				'is_builtin'  => ! empty( $data['is_builtin'] ) ? 1 : 0,
-				'enabled'     => isset( $data['enabled'] ) ? ( $data['enabled'] ? 1 : 0 ) : 1,
-				'created_at'  => $now,
-				'updated_at'  => $now,
+				'version'       => (string) ( $data['version'] ?? '' ),
+				// @phpstan-ignore-next-line
+				'content_hash'  => '' !== $content ? hash( 'sha256', $content ) : (string) ( $data['content_hash'] ?? '' ),
+				// @phpstan-ignore-next-line
+				'source_url'    => esc_url_raw( (string) ( $data['source_url'] ?? '' ) ),
+				'user_modified' => 0,
+				'created_at'    => $now,
+				'updated_at'    => $now,
 			],
-			[ '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' ]
+			[ '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s' ]
 		);
 
 		return $result ? (int) $wpdb->insert_id : false;
@@ -215,15 +224,20 @@ class Skill {
 	/**
 	 * Update an existing skill.
 	 *
+	 * When a built-in skill's content is changed by an admin, `user_modified` is
+	 * automatically set to `1` to protect the customisation from auto-updates.
+	 * Pass `'user_modified' => false` explicitly to bypass this (e.g. when
+	 * {@see apply_update()} applies a remote update to an unmodified skill).
+	 *
 	 * @param int                  $id   Skill ID.
-	 * @param array<string, mixed> $data Fields to update (name, description, content, enabled).
+	 * @param array<string, mixed> $data Fields to update (name, description, content, enabled, version, source_url, user_modified).
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		$allowed = [ 'name', 'description', 'content', 'enabled' ];
+		$allowed = [ 'name', 'description', 'content', 'enabled', 'version', 'source_url', 'user_modified' ];
 		$data    = array_intersect_key( $data, array_flip( $allowed ) );
 
 		if ( isset( $data['name'] ) ) {
@@ -234,6 +248,10 @@ class Skill {
 			// @phpstan-ignore-next-line
 			$data['description'] = sanitize_textarea_field( $data['description'] );
 		}
+		if ( isset( $data['source_url'] ) ) {
+			// @phpstan-ignore-next-line
+			$data['source_url'] = esc_url_raw( (string) $data['source_url'] );
+		}
 		// Skill content is markdown for AI consumption, not HTML for browser rendering.
 		// Stored verbatim; SQL injection is prevented by $wpdb->update() parameterisation.
 		// No sanitization needed: content only flows through REST/admin, never rendered as raw HTML.
@@ -242,11 +260,31 @@ class Skill {
 			$data['enabled'] = $data['enabled'] ? 1 : 0;
 		}
 
+		// When an admin modifies a built-in skill's content, mark it as user-modified
+		// so that automatic remote updates do not overwrite their customisations.
+		// The caller may pass user_modified => false explicitly to suppress this
+		// (used by apply_update() when applying a remote update to an unmodified skill).
+		if ( isset( $data['content'] ) && ! array_key_exists( 'user_modified', $data ) ) {
+			$skill = self::get( $id );
+			if ( $skill && $skill->is_builtin ) {
+				$data['user_modified'] = 1;
+			}
+		}
+
+		if ( isset( $data['user_modified'] ) ) {
+			$data['user_modified'] = $data['user_modified'] ? 1 : 0;
+		}
+
+		// Update content_hash whenever content changes.
+		if ( isset( $data['content'] ) ) {
+			$data['content_hash'] = hash( 'sha256', (string) $data['content'] );
+		}
+
 		$data['updated_at'] = current_time( 'mysql', true );
 
 		$formats = [];
 		foreach ( $data as $key => $value ) {
-			if ( $key === 'enabled' ) {
+			if ( in_array( $key, [ 'enabled', 'user_modified' ], true ) ) {
 				$formats[] = '%d';
 			} else {
 				$formats[] = '%s';
@@ -298,6 +336,8 @@ class Skill {
 	/**
 	 * Reset a built-in skill to its original content.
 	 *
+	 * Clears `user_modified` so that subsequent remote auto-updates will apply.
+	 *
 	 * @param int $id Skill ID.
 	 * @return bool
 	 */
@@ -320,11 +360,93 @@ class Skill {
 			$id,
 			[
 				// @phpstan-ignore-next-line
-				'name'        => $definition['name'],
+				'name'          => $definition['name'],
 				// @phpstan-ignore-next-line
-				'description' => $definition['description'],
+				'description'   => $definition['description'],
 				// @phpstan-ignore-next-line
-				'content'     => $definition['content'],
+				'content'       => $definition['content'],
+				// Explicitly clear user_modified so future remote updates can apply.
+				'user_modified' => false,
+			]
+		);
+	}
+
+	/**
+	 * Check whether a remote update is available for a skill.
+	 *
+	 * Compares the skill's stored `content_hash` against a hash of the remote
+	 * manifest entry. Returns the remote skill data when the hashes differ, or
+	 * null when the skill is up to date or the manifest entry is absent.
+	 *
+	 * This method only detects differences; it does not apply any changes.
+	 * Use {@see apply_update()} to apply a detected update.
+	 *
+	 * @param SkillRow             $skill        The skill to check.
+	 * @param array<string, mixed> $manifest_entry Remote manifest entry for this slug
+	 *                                             (keys: version, content, source_url).
+	 * @return array<string, mixed>|null Remote entry when an update is available, null otherwise.
+	 */
+	public static function check_for_updates( SkillRow $skill, array $manifest_entry ): ?array {
+		// @phpstan-ignore-next-line
+		$remote_content = (string) ( $manifest_entry['content'] ?? '' );
+
+		if ( '' === $remote_content ) {
+			return null;
+		}
+
+		$remote_hash = hash( 'sha256', $remote_content );
+
+		// No update needed if content is identical.
+		if ( $remote_hash === $skill->content_hash ) {
+			return null;
+		}
+
+		return $manifest_entry;
+	}
+
+	/**
+	 * Apply a remote manifest update to a built-in skill.
+	 *
+	 * Skips silently if the skill has been locally modified by an admin
+	 * (`user_modified = 1`), to protect customisations.
+	 *
+	 * Passes `'user_modified' => false` to {@see update()} so the built-in
+	 * skill's modification flag is not re-set during the remote sync.
+	 *
+	 * @param int                  $id            Skill ID.
+	 * @param array<string, mixed> $manifest_entry Remote manifest entry (keys: version, content, source_url).
+	 * @return bool True when the update was applied, false when skipped or failed.
+	 */
+	public static function apply_update( int $id, array $manifest_entry ): bool {
+		$skill = self::get( $id );
+
+		if ( ! $skill || ! $skill->is_builtin ) {
+			return false;
+		}
+
+		// Never overwrite admin customisations.
+		if ( $skill->user_modified ) {
+			return false;
+		}
+
+		// @phpstan-ignore-next-line
+		$remote_content = (string) ( $manifest_entry['content'] ?? '' );
+
+		if ( '' === $remote_content ) {
+			return false;
+		}
+
+		return self::update(
+			$id,
+			[
+				// @phpstan-ignore-next-line
+				'content'       => $remote_content,
+				// @phpstan-ignore-next-line
+				'version'       => (string) ( $manifest_entry['version'] ?? '' ),
+				// @phpstan-ignore-next-line
+				'source_url'    => (string) ( $manifest_entry['source_url'] ?? '' ),
+				// Explicitly keep user_modified=0; this is a remote sync, not an admin edit.
+				'user_modified' => false,
 			]
 		);
 	}

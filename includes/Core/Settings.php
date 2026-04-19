@@ -325,6 +325,9 @@ class Settings {
 			// Feedback report receiver settings (t180).
 			'feedback_enabled'         => false,
 			'feedback_endpoint_url'    => 'https://ultimateagentwp.ai/wp-json/gratis-ai-server/v1/reports',
+			// Skill auto-update settings (t218).
+			'skill_auto_update'        => true,
+			'skill_manifest_url'       => '',
 		);
 	}
 

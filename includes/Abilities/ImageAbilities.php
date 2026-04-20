@@ -319,6 +319,7 @@ INSTRUCTION;
 			$prompt .= "\n\n<additional-context>" . $context . '</additional-context>';
 		}
 		if ( ! empty( $style ) ) {
+			// phpcs:ignore WordPress.WP.EnqueuedResources -- This is XML markup in an AI prompt string, not an HTML <style> element. No CSS is enqueued or rendered to the frontend.
 			$prompt .= "\n\n<style>" . $style . '</style>';
 		}
 

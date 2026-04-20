@@ -10,9 +10,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Benchmark;
 
-use GratisAiAgent\Core\CredentialResolver;
 use GratisAiAgent\Core\Database;
-use GratisAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -297,11 +295,10 @@ class BenchmarkRunner {
 	private static function benchmark_question( array $model, array $question ): array {
 		$start_time = microtime( true );
 
-		$prompt     = self::build_prompt( $question );
-		$max_tokens = self::get_max_tokens_for_question( $question );
+		$prompt = self::build_prompt( $question );
 
-		// Call the model.
-		$response = self::call_model( $model, $prompt, $max_tokens );
+		// Call the model (token limits are managed by the SDK internally).
+		$response = self::call_model( $model, $prompt );
 
 		$latency_ms = (int) ( ( microtime( true ) - $start_time ) * 1000 );
 
@@ -328,35 +325,6 @@ class BenchmarkRunner {
 			'completion_tokens' => $response['completion_tokens'] ?? 0,
 			'latency_ms'        => $latency_ms,
 		);
-	}
-
-	/**
-	 * Determine the max_tokens limit for a question.
-	 *
-	 * Multiple-choice questions need only a few tokens for a letter answer.
-	 * Open-ended questions (code generation, debugging, architecture) need
-	 * substantially more tokens for complete responses.
-	 *
-	 * @param array<string, mixed> $question Question data.
-	 * @return int Maximum tokens for the model response.
-	 */
-	private static function get_max_tokens_for_question( array $question ): int {
-		$question_type = (string) ( $question['type'] ?? 'knowledge' );
-
-		if ( 'open_ended' === $question_type ) {
-			$category = (string) ( $question['category'] ?? '' );
-
-			// Code generation and multi-step questions need more room.
-			if ( in_array( $category, array( 'code_generation', 'multi_step' ), true ) ) {
-				return 2048;
-			}
-
-			// Debugging, reasoning, and architecture need moderate room.
-			return 1500;
-		}
-
-		// Multiple-choice: a single letter is sufficient.
-		return 10;
 	}
 
 	/**
@@ -434,55 +402,93 @@ class BenchmarkRunner {
 	/**
 	 * Call a model to get a response.
 	 *
-	 * @param array<string, mixed> $model      Model configuration.
-	 * @param string               $prompt     Prompt text.
-	 * @param int                  $max_tokens Maximum tokens for the response.
+	 * All models now route through the WordPress AI SDK (wp_ai_client_prompt),
+	 * which handles provider authentication, model resolution, and the agent loop.
+	 * The SDK connects to all configured providers (direct API keys, WP SDK
+	 * connectors, and OpenAI-compatible endpoints) through a unified interface.
+	 *
+	 * @param array<string, mixed> $model Model configuration.
+	 * @param string               $prompt Prompt text.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_model( array $model, string $prompt, int $max_tokens = 10 ) {
+	private static function call_model( array $model, string $prompt ): array|\WP_Error {
 		$provider_id = $model['provider_id'] ?? '';
 		$model_id    = $model['model_id'] ?? '';
 
-		// For built-in WordPress AI Client.
-		if ( function_exists( 'wp_ai_client_prompt' ) && empty( $provider_id ) ) {
-			return self::call_wp_ai_client( $model_id, $prompt );
-		}
-
-		// For direct provider calls.
-		switch ( $provider_id ) {
-			case 'anthropic':
-				return self::call_anthropic( $model_id, $prompt, $max_tokens );
-			case 'openai':
-				return self::call_openai( $model_id, $prompt, $max_tokens );
-			case 'google':
-				return self::call_google( $model_id, $prompt, $max_tokens );
-			default:
-				return new \WP_Error(
-					'benchmark_unknown_provider',
-					__( 'Unknown provider specified.', 'gratis-ai-agent' )
-				);
-		}
+		// Always route through the WordPress AI SDK.
+		return self::call_wp_ai_client( $provider_id, $model_id, $prompt );
 	}
 
 	/**
-	 * Call WordPress AI Client.
+	 * Call WordPress AI Client SDK.
 	 *
-	 * @param string $model_id Model identifier.
-	 * @param string $prompt   Prompt text.
+	 * Routes through the unified WordPress AI SDK which handles all providers
+	 * (direct API keys, WP SDK connectors, OpenAI-compatible endpoints).
+	 *
+	 * @param string $provider_id Provider identifier (empty = use default).
+	 * @param string $model_id   Model identifier (empty = use provider default).
+	 * @param string $prompt    Prompt text.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private static function call_wp_ai_client( string $model_id, string $prompt ) {
+	private static function call_wp_ai_client( string $provider_id, string $model_id, string $prompt ): array|\WP_Error {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new \WP_Error(
 				'benchmark_no_ai_client',
-				__( 'WordPress AI Client not available.', 'gratis-ai-agent' )
+				__( 'WordPress AI Client not available. WordPress 7.0+ is required.', 'gratis-ai-agent' )
 			);
 		}
 
+		// WordPress AI SDK handles credentials internally.
 		$builder = wp_ai_client_prompt( $prompt );
 
-		if ( ! empty( $model_id ) ) {
-			$builder = $builder->using_model_preference( $model_id );
+		// Set provider and model through the SDK registry.
+		if ( ! empty( $provider_id ) ) {
+			try {
+				$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+				if ( ! $registry->hasProvider( $provider_id ) ) {
+					return new \WP_Error(
+						'benchmark_invalid_provider',
+						sprintf(
+							/* translators: %s is the provider ID. */
+							__( 'Provider "%s" not found.', 'gratis-ai-agent' ),
+							$provider_id
+						)
+					);
+				}
+				$builder->using_provider( $provider_id );
+
+				// If specific model requested, use it directly.
+				if ( ! empty( $model_id ) ) {
+					$model = $registry->getProviderModel( $provider_id, $model_id );
+					if ( null === $model ) {
+						return new \WP_Error(
+							'benchmark_invalid_model',
+							sprintf(
+								/* translators: %1$s is the model ID, %2$s is the provider ID. */
+								__( 'Model "%1$s" not found for provider "%2$s".', 'gratis-ai-agent' ),
+								$model_id,
+								$provider_id
+							)
+						);
+					}
+					$builder->using_model( $model );
+				}
+			} catch ( \Throwable $e ) {
+				return new \WP_Error(
+					'benchmark_provider_error',
+					$e->getMessage()
+				);
+			}
+		} elseif ( ! empty( $model_id ) ) {
+			// Empty provider but specific model - try to resolve via preference.
+			try {
+				$builder->using_model_preference( $model_id );
+			} catch ( \Throwable $e ) {
+				return new \WP_Error(
+					'benchmark_model_error',
+					$e->getMessage()
+				);
+			}
 		}
 
 		$result = $builder->generate_text_result();
@@ -496,213 +502,20 @@ class BenchmarkRunner {
 		$completion_tokens = 0;
 
 		if ( $result instanceof \WordPress\AiClient\Results\DTO\GenerativeAiResult ) {
-			$content           = $result->toText();
-			$usage             = $result->getTokenUsage();
-			$prompt_tokens     = $usage->getPromptTokens();
-			$completion_tokens = $usage->getCompletionTokens();
+			$content = $result->toText();
+			try {
+				$usage             = $result->getTokenUsage();
+				$prompt_tokens     = $usage->getPromptTokens();
+				$completion_tokens = $usage->getCompletionTokens();
+			} catch ( \Throwable $e ) {
+				// Token usage not available.
+			}
 		}
 
 		return array(
 			'content'           => $content,
 			'prompt_tokens'     => $prompt_tokens,
 			'completion_tokens' => $completion_tokens,
-		);
-	}
-
-	/**
-	 * Call Anthropic API directly.
-	 *
-	 * @param string $model_id   Model identifier.
-	 * @param string $prompt     Prompt text.
-	 * @param int    $max_tokens Maximum tokens for the response.
-	 * @return array<string, mixed>|\WP_Error
-	 */
-	private static function call_anthropic( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::instance()->get_provider_key( 'anthropic' );
-		if ( empty( $api_key ) ) {
-			return new \WP_Error(
-				'benchmark_no_anthropic_key',
-				__( 'Anthropic API key not configured.', 'gratis-ai-agent' )
-			);
-		}
-
-		// Scale timeout with max_tokens: open-ended questions need more time.
-		$timeout = $max_tokens > 100 ? 120 : 60;
-
-		$response = wp_remote_post(
-			'https://api.anthropic.com/v1/messages',
-			array(
-				'timeout' => $timeout,
-				'headers' => array(
-					'Content-Type'      => 'application/json',
-					'X-API-Key'         => $api_key,
-					'anthropic-version' => '2023-06-01',
-				),
-				'body'    => (string) wp_json_encode(
-					array(
-						'model'      => $model_id,
-						'max_tokens' => $max_tokens,
-						'messages'   => array(
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
-						),
-					)
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new \WP_Error(
-				'benchmark_anthropic_error',
-				$body['error']['message'] ?? 'Unknown error'
-			);
-		}
-
-		return array(
-			'content'           => $body['content'][0]['text'] ?? '',
-			'prompt_tokens'     => $body['usage']['input_tokens'] ?? 0,
-			'completion_tokens' => $body['usage']['output_tokens'] ?? 0,
-		);
-	}
-
-	/**
-	 * Call OpenAI API directly.
-	 *
-	 * @param string $model_id   Model identifier.
-	 * @param string $prompt     Prompt text.
-	 * @param int    $max_tokens Maximum tokens for the response.
-	 * @return array<string, mixed>|\WP_Error
-	 */
-	private static function call_openai( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::instance()->get_provider_key( 'openai' );
-		if ( empty( $api_key ) ) {
-			return new \WP_Error(
-				'benchmark_no_openai_key',
-				__( 'OpenAI API key not configured.', 'gratis-ai-agent' )
-			);
-		}
-
-		// Scale timeout with max_tokens: open-ended questions need more time.
-		$timeout = $max_tokens > 100 ? 120 : 60;
-
-		$response = wp_remote_post(
-			'https://api.openai.com/v1/chat/completions',
-			array(
-				'timeout' => $timeout,
-				'headers' => array(
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $api_key,
-				),
-				'body'    => (string) wp_json_encode(
-					array(
-						'model'      => $model_id,
-						'max_tokens' => $max_tokens,
-						'messages'   => array(
-							array(
-								'role'    => 'user',
-								'content' => $prompt,
-							),
-						),
-					)
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new \WP_Error(
-				'benchmark_openai_error',
-				$body['error']['message'] ?? 'Unknown error'
-			);
-		}
-
-		return array(
-			'content'           => $body['choices'][0]['message']['content'] ?? '',
-			'prompt_tokens'     => $body['usage']['prompt_tokens'] ?? 0,
-			'completion_tokens' => $body['usage']['completion_tokens'] ?? 0,
-		);
-	}
-
-	/**
-	 * Call Google Gemini API directly.
-	 *
-	 * @param string $model_id   Model identifier.
-	 * @param string $prompt     Prompt text.
-	 * @param int    $max_tokens Maximum tokens for the response.
-	 * @return array<string, mixed>|\WP_Error
-	 */
-	private static function call_google( string $model_id, string $prompt, int $max_tokens = 10 ) {
-		$api_key = Settings::instance()->get_provider_key( 'google' );
-		if ( empty( $api_key ) ) {
-			return new \WP_Error(
-				'benchmark_no_google_key',
-				__( 'Google API key not configured.', 'gratis-ai-agent' )
-			);
-		}
-
-		// Scale timeout with max_tokens: open-ended questions need more time.
-		$timeout = $max_tokens > 100 ? 120 : 60;
-
-		$response = wp_remote_post(
-			'https://generativelanguage.googleapis.com/v1beta/models/' . $model_id . ':generateContent?key=' . $api_key,
-			array(
-				'timeout' => $timeout,
-				'headers' => array(
-					'Content-Type' => 'application/json',
-				),
-				'body'    => (string) wp_json_encode(
-					array(
-						'contents'         => array(
-							array(
-								'parts' => array(
-									array( 'text' => $prompt ),
-								),
-							),
-						),
-						'generationConfig' => array(
-							'maxOutputTokens' => $max_tokens,
-						),
-					)
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $body['error'] ) ) {
-			return new \WP_Error(
-				'benchmark_google_error',
-				$body['error']['message'] ?? 'Unknown error'
-			);
-		}
-
-		$candidates = $body['candidates'] ?? array();
-		$content    = '';
-		if ( ! empty( $candidates ) && isset( $candidates[0]['content']['parts'][0]['text'] ) ) {
-			$content = $candidates[0]['content']['parts'][0]['text'];
-		}
-
-		return array(
-			'content'           => $content,
-			'prompt_tokens'     => $body['usageMetadata']['promptTokenCount'] ?? 0,
-			'completion_tokens' => $body['usageMetadata']['candidatesTokenCount'] ?? 0,
 		);
 	}
 

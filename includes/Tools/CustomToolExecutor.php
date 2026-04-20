@@ -269,7 +269,7 @@ class CustomToolExecutor {
 		$command = preg_replace( '/[;&|`$]/', '', $command );
 
 		// Build full WP-CLI command.
-		$wp_cli_path  = defined( 'WP_CLI_PATH' ) ? WP_CLI_PATH : 'wp';
+		$wp_cli_path = defined( 'WP_CLI_PATH' ) ? WP_CLI_PATH : 'wp';
 		// NOTE: exec() is required for WP-CLI tool execution - alternative approaches (proc_open, shell_exec) provide no security benefit.
 		// All input is properly escaped via escapeshellcmd() and escapeshellarg() above.
 		// See: https://www.php.net/manual/en/function.exec.php

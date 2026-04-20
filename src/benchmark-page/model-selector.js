@@ -23,109 +23,40 @@ export default function ModelSelector( {
 } ) {
 	const [ searchTerm, setSearchTerm ] = useState( '' );
 
-	// Define available models by provider
+	// Build available models from the providers API endpoint.
+	// Models are now loaded dynamically from the WordPress AI SDK
+	// and any configured connectors - no hardcoded model lists.
 	const availableModels = useMemo( () => {
 		const models = [];
 
-		// Built-in WordPress AI Client models
+		// Start with WP AI Client (empty provider_id uses SDK default)
 		models.push( {
 			provider_id: '',
 			provider_name: __( 'WordPress AI Client', 'gratis-ai-agent' ),
-			model_id: 'claude-sonnet-4',
-			model_name: 'Claude Sonnet 4',
+			model_id: '',
+			model_name: __( 'Default Model', 'gratis-ai-agent' ),
 		} );
 
-		// Anthropic models
-		models.push(
-			{
-				provider_id: 'anthropic',
-				provider_name: __( 'Anthropic', 'gratis-ai-agent' ),
-				model_id: 'claude-sonnet-4-20250514',
-				model_name: 'Claude Sonnet 4 (2025-05-14)',
-			},
-			{
-				provider_id: 'anthropic',
-				provider_name: __( 'Anthropic', 'gratis-ai-agent' ),
-				model_id: 'claude-opus-4-20250514',
-				model_name: 'Claude Opus 4 (2025-05-14)',
-			},
-			{
-				provider_id: 'anthropic',
-				provider_name: __( 'Anthropic', 'gratis-ai-agent' ),
-				model_id: 'claude-haiku-4-20250514',
-				model_name: 'Claude Haiku 4 (2025-05-14)',
-			}
-		);
-
-		// OpenAI models
-		models.push(
-			{
-				provider_id: 'openai',
-				provider_name: __( 'OpenAI', 'gratis-ai-agent' ),
-				model_id: 'gpt-4o',
-				model_name: 'GPT-4o',
-			},
-			{
-				provider_id: 'openai',
-				provider_name: __( 'OpenAI', 'gratis-ai-agent' ),
-				model_id: 'gpt-4o-mini',
-				model_name: 'GPT-4o Mini',
-			},
-			{
-				provider_id: 'openai',
-				provider_name: __( 'OpenAI', 'gratis-ai-agent' ),
-				model_id: 'gpt-4-turbo',
-				model_name: 'GPT-4 Turbo',
-			},
-			{
-				provider_id: 'openai',
-				provider_name: __( 'OpenAI', 'gratis-ai-agent' ),
-				model_id: 'gpt-3.5-turbo',
-				model_name: 'GPT-3.5 Turbo',
-			}
-		);
-
-		// Google models
-		models.push(
-			{
-				provider_id: 'google',
-				provider_name: __( 'Google', 'gratis-ai-agent' ),
-				model_id: 'gemini-2.5-pro',
-				model_name: 'Gemini 2.5 Pro',
-			},
-			{
-				provider_id: 'google',
-				provider_name: __( 'Google', 'gratis-ai-agent' ),
-				model_id: 'gemini-2.5-flash',
-				model_name: 'Gemini 2.5 Flash',
-			},
-			{
-				provider_id: 'google',
-				provider_name: __( 'Google', 'gratis-ai-agent' ),
-				model_id: 'gemini-1.5-pro',
-				model_name: 'Gemini 1.5 Pro',
-			}
-		);
-
-		// Add any custom providers from the API
+		// Add all models from configured providers
 		if ( providers && providers.length > 0 ) {
 			providers.forEach( ( provider ) => {
-				if ( provider.models ) {
+				if ( provider.models && provider.models.length > 0 ) {
 					provider.models.forEach( ( model ) => {
-						// Skip if already added
-						const exists = models.some(
-							( m ) =>
-								m.provider_id === provider.id &&
-								m.model_id === model.id
-						);
-						if ( ! exists ) {
-							models.push( {
-								provider_id: provider.id,
-								provider_name: provider.name,
-								model_id: model.id,
-								model_name: model.name || model.id,
-							} );
-						}
+						models.push( {
+							provider_id: provider.id,
+							provider_name: provider.name,
+							model_id: model.id,
+							model_name: model.name || model.id,
+						} );
+					} );
+				} else {
+					// Provider exists but has no models listed -
+					// still include it as an option (SDK will list available models)
+					models.push( {
+						provider_id: provider.id,
+						provider_name: provider.name,
+						model_id: '',
+						model_name: __( 'Default Model', 'gratis-ai-agent' ),
 					} );
 				}
 			} );

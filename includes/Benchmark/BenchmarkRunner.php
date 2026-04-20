@@ -328,35 +328,6 @@ class BenchmarkRunner {
 	}
 
 	/**
-	 * Determine the max_tokens limit for a question.
-	 *
-	 * Multiple-choice questions need only a few tokens for a letter answer.
-	 * Open-ended questions (code generation, debugging, architecture) need
-	 * substantially more tokens for complete responses.
-	 *
-	 * @param array<string, mixed> $question Question data.
-	 * @return int Maximum tokens for the model response.
-	 */
-	private static function get_max_tokens_for_question( array $question ): int {
-		$question_type = (string) ( $question['type'] ?? 'knowledge' );
-
-		if ( 'open_ended' === $question_type ) {
-			$category = (string) ( $question['category'] ?? '' );
-
-			// Code generation and multi-step questions need more room.
-			if ( in_array( $category, array( 'code_generation', 'multi_step' ), true ) ) {
-				return 2048;
-			}
-
-			// Debugging, reasoning, and architecture need moderate room.
-			return 1500;
-		}
-
-		// Multiple-choice: a single letter is sufficient.
-		return 10;
-	}
-
-	/**
 	 * Build the prompt for a question.
 	 *
 	 * Generates different prompt formats based on question type:

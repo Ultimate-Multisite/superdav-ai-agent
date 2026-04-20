@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -173,6 +173,28 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 8. Settings page with 12 configuration tabs
 
 == Changelog ==
+
+= 1.7.0 - Released on 2026-04-20 =
+* New: Adaptive skill system — usage tracking, model-aware injection, and remote skill registry
+* New: Onboarding v2 — connector gate and AI-driven discovery session
+* New: Skill manager UI — usage stats, update badges, and auto-update toggle
+* New: Skill versioning with remote update checker
+* New: Active jobs database table for resumable background jobs
+* New: Multi-session chat UI with tabbed interface
+* New: Session-scoped polling with exponential backoff and visibility throttling
+* New: Cross-page navigation survival via sessionStorage
+* New: In-session rollback bar for conversation undo
+* New: Browser notifications for permission prompts
+* New: Dynamic context windows from provider API response headers
+* New: Auto-enable WooCommerce abilities on activation
+* New: Bootstrap system prompt with auto-discovery session context
+* Improved: Skill usage outcome heuristics and update methods
+* Improved: Block editor content quality handling
+* Improved: Active job reconnection via REST endpoint
+* Improved: Active job lifecycle persisted to database alongside transients
+* Fix: Orphaned tool_use blocks stripped to prevent Anthropic 400 errors
+* Fix: REQUEST_URI normalization for plain-permalink REST detection
+* Fix: Various database repository return type consistency fixes
 
 = 1.6.0 - Released on 2026-04-17 =
 * New: Tool call details and skill activations displayed inline in chat messages

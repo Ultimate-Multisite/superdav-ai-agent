@@ -398,7 +398,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 - [ ] t199 Resumable background jobs & multi-session chat #parent #feature → [todo/PLANS.md#resumable-background-jobs] ~10d ref:GH#1027 logged:2026-04-17
 
-- [ ] t200 Active jobs DB table + repository class (Phase 1a) #feature #auto-dispatch ~3h For #t199 ref:GH#1028 logged:2026-04-17
+- [x] t200 Active jobs DB table + repository class (Phase 1a) #feature #auto-dispatch ~3h For #t199 ref:GH#1028 logged:2026-04-17 pr:#1106 completed:2026-04-20
   - NEW: includes/Models/DTO/ActiveJobRow.php — readonly DTO: id, session_id, job_id (UUID), user_id, status (processing|awaiting_confirmation|complete|error), pending_tools (JSON), tool_calls (JSON), created_at, updated_at. Model on includes/Models/DTO/SessionRow.php
   - NEW: includes/Models/ActiveJobRepository.php — create(), get_by_job_id(), get_by_session_id(), get_active_for_user(), update_status(), delete(). Model on includes/Models/Memory.php (static CRUD pattern)
   - EDIT: includes/Core/Database.php:255 area — add CREATE TABLE for `{$wpdb->prefix}gratis_ai_agent_active_jobs` with indexes on session_id, job_id, user_id+status. Bump DB_VERSION constant.

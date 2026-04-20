@@ -469,6 +469,7 @@ class PluginInstaller {
 
 		// Record in database.
 		$now    = current_time( 'mysql' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal plugin installation; caching not applicable.
 		$insert = $wpdb->insert(
 			self::table_name(),
 			[
@@ -521,6 +522,7 @@ class PluginInstaller {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal plugin status update; caching not applicable.
 		$updated = $wpdb->update(
 			self::table_name(),
 			[
@@ -611,6 +613,7 @@ class PluginInstaller {
 			}
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal plugin deletion; caching not applicable.
 		$deleted = $wpdb->delete(
 			self::table_name(),
 			[ 'id' => $id ],

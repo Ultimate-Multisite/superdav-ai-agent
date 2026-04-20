@@ -595,7 +595,7 @@ class ListOptionsAbility extends AbstractAbility {
 		}
 
 		// @phpstan-ignore-next-line
-		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is always the output of $wpdb->prepare() above; PHPCS cannot trace through the variable.
+		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Discovery query; caching not appropriate for dynamic option listings.
 
 		if ( null === $rows ) {
 			return new WP_Error(

@@ -229,7 +229,7 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 		}
 
 		// Verify the plugin directory exists.
-		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug;
+		$plugin_dir = WP_PLUGIN_DIR . '/' . $slug;
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
 				'gratis_ai_agent_plugin_not_found',

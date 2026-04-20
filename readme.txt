@@ -113,7 +113,23 @@ The Gratis AI Agent discovers abilities at runtime from any plugin that register
 * WordPress 7.0 or higher
 * PHP 8.2 or higher
 * An AI provider connector plugin registered through the WordPress Connectors API
-* An API key from your chosen AI provider (OpenAI, Anthropic, etc.)
+* An AI key from your chosen AI provider (OpenAI, Anthropic, etc.)
+
+== External Services ==
+
+This plugin uses third-party services to provide AI capabilities. Each service is used only when you configure it as your AI provider.
+
+* **OpenAI** (api.openai.com) - Provides AI chat completions when using OpenAI models. Sends conversation context and user queries. Terms: https://openai.com/terms/ Privacy: https://openai.com/privacy/
+
+* **Anthropic** (api.anthropic.com) - Provides AI chat completions when using Claude models. Sends conversation context and user queries. Terms: https://www.anthropic.com/terms Privacy: https://www.anthropic.com/privacy/
+
+* **Google AI** (generativelanguage.googleapis.com) - Provides AI chat completions when using Gemini models. Sends conversation context. Terms: https://policies.google.com/terms Privacy: https://policies.google.com/privacy/
+
+* **Lorem Flickr** (loremflickr.com) - Stock image service for the image generation ability. Sends image dimensions and search keyword only. Terms: https://loremflickr.com/terms
+
+* **Picsum Photos** (picsum.photos) - Fallback stock image service. Sends image dimensions only.
+
+* **Discord** (discord.com) - Optional: sends webhook notifications when configured. No data sent unless you set up a Discord webhook.
 
 == Frequently Asked Questions ==
 

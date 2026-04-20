@@ -436,7 +436,7 @@ final class ChangesController {
 		}
 
 		// Verify the plugin directory exists.
-		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug;
+		$plugin_dir = WP_PLUGIN_DIR . '/' . $slug;
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
 				'plugin_not_found',

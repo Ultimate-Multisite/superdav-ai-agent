@@ -270,6 +270,7 @@ class CustomToolExecutor {
 
 		// Build full WP-CLI command.
 		$wp_cli_path  = defined( 'WP_CLI_PATH' ) ? WP_CLI_PATH : 'wp';
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Intentional: WP-CLI tool execution requires shell.
 		$full_command = sprintf(
 			'%s %s --path=%s 2>&1',
 			escapeshellcmd( $wp_cli_path ),
@@ -283,7 +284,7 @@ class CustomToolExecutor {
 		$output      = [];
 		$return_code = 0;
 
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Intentional: WP-CLI tool execution.
 		exec( $full_command, $output, $return_code );
 
 		$output_text = implode( "\n", $output );

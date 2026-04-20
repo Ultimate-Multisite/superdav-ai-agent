@@ -1,11 +1,10 @@
 /**
- * Post-build script: inject `declare(strict_types=1);` into generated .asset.php files.
+ * Post-build script: inject PHP header protections into generated .asset.php files.
  *
  * wp-scripts generates .asset.php manifests that open with `<?php return array(...)`.
- * These committed files must comply with the project-wide PHP coding standard that
- * requires `declare(strict_types=1);` on every PHP file. This script rewrites each
- * generated file to insert the declaration immediately after the opening `<?php` tag
- * without altering the rest of the file content.
+ * These committed files must comply with the project-wide PHP coding standards:
+ *   1. `declare(strict_types=1);` after `<?php`
+ *   2. Direct file access protection check
  *
  * Run automatically via the `postbuild` npm script.
  */
@@ -16,11 +15,11 @@ const path = require( 'path' );
 const BUILD_DIR = path.join( __dirname, '..', 'build' );
 
 /**
- * Inject `declare(strict_types=1);` after `<?php` if not already present.
+ * Inject protections into a generated .asset.php file.
  *
  * @param {string} filePath Absolute path to the .asset.php file.
  */
-function addStrictTypes( filePath ) {
+function addProtections( filePath ) {
 	const content = fs.readFileSync( filePath, 'utf8' );
 
 	// Already compliant — skip to avoid double declaration.
@@ -33,10 +32,20 @@ function addStrictTypes( filePath ) {
 		return;
 	}
 
-	// Insert the declaration immediately after `<?php`, preserving the rest.
+	// Insert both: strict_types and ABSPATH check.
+	// The raw wp-scripts output is: <?php return array(...)
+	// We need to preserve that on the same line after the closing brace.
 	const updated = content.replace(
-		/^<\?php/,
-		'<?php declare(strict_types=1);'
+		/^<\?php\s*?return array/,
+		`<?php
+declare(strict_types=1);
+
+/**
+ * Prevents direct access to the file.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+\t_exit();
+} return array`
 	);
 	fs.writeFileSync( filePath, updated, 'utf8' );
 	console.log( `Updated: ${ path.relative( process.cwd(), filePath ) }` );
@@ -53,5 +62,5 @@ if ( assetFiles.length === 0 ) {
 	process.exit( 0 );
 }
 
-assetFiles.forEach( addStrictTypes );
+assetFiles.forEach( addProtections );
 console.log( `Processed ${ assetFiles.length } .asset.php file(s).` );

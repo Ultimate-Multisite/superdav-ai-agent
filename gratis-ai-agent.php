@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Gratis AI Agent
+ * Plugin Name: AI Agent for WP
  * Plugin URI:  https://github.com/Ultimate-Multisite/gratis-ai-agent
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
  * Version:     1.7.0
@@ -9,7 +9,7 @@
  * License:     GPL-2.0-or-later
  * Requires at least: 7.0
  * Requires PHP: 8.2
- * Text Domain: gratis-ai-agent
+ * Text Domain: ai-agent-for-wp
  *
  * @package GratisAiAgent
  */
@@ -100,7 +100,7 @@ if ( ! empty( $_GET['rest_route'] ) ) {
 // `GratisAiAgent\Plugin::$handlers`. Nothing else needs to live in this file.
 xwp_load_app(
 	[
-		'id'            => 'gratis-ai-agent',
+		'id'            => 'ai-agent-for-wp',
 		'module'        => Plugin::class,
 		'autowiring'    => true,
 		'compile'       => 'production' === wp_get_environment_type(),

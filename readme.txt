@@ -1,4 +1,4 @@
-=== Gratis AI Agent ===
+=== AI Agent for WP ===
 Contributors: superdav42
 Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0

@@ -1,6 +1,4 @@
 <?php
-
-declare(strict_types=1);
 /**
  * Custom Tools model — CRUD for user-defined tools.
  *
@@ -13,7 +11,16 @@ declare(strict_types=1);
  * @license GPL-2.0-or-later
  */
 
+declare(strict_types=1);
+
 namespace GratisAiAgent\Tools;
+
+/**
+ * Prevents direct access to the file.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class CustomTools {
 

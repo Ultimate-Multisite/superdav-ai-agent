@@ -1,6 +1,4 @@
 <?php
-
-declare(strict_types=1);
 /**
  * Provider Trace Logger — hooks into WordPress HTTP API to capture LLM provider traffic.
  *
@@ -12,9 +10,18 @@ declare(strict_types=1);
  * @license GPL-2.0-or-later
  */
 
+declare(strict_types=1);
+
 namespace GratisAiAgent\Core;
 
 use GratisAiAgent\Models\ProviderTrace;
+
+/**
+ * Prevents direct access to the file.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class ProviderTraceLogger {
 

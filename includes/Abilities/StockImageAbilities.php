@@ -168,7 +168,17 @@ class StockImageAbilities {
 	}
 
 	/**
+	 * Maximum number of verification retries per keyword.
+	 *
+	 * @since 1.5.0
+	 */
+	private const MAX_RETRIES = 3;
+
+	/**
 	 * Download an image from Lorem Flickr and import it into the media library.
+	 *
+	 * Uses AI vision to verify the downloaded image actually matches the keyword,
+	 * retrying with different images if verification fails.
 	 *
 	 * @param string $keyword Search keyword.
 	 * @param int    $width   Image width.
@@ -176,17 +186,6 @@ class StockImageAbilities {
 	 * @return array<string,mixed> Result array.
 	 */
 	private static function download_and_import( string $keyword, int $width, int $height ): array {
-		// Build a deterministic-ish lock so the same keyword doesn't always
-		// return the exact same image, but retries in the same request do.
-		$lock = crc32( $keyword . gmdate( 'Y-m-d-H' ) );
-		$url  = sprintf(
-			'https://loremflickr.com/%d/%d/%s?lock=%d',
-			$width,
-			$height,
-			rawurlencode( $keyword ),
-			$lock
-		);
-
 		// Require file handling functions.
 		if ( ! function_exists( 'download_url' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -196,21 +195,66 @@ class StockImageAbilities {
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 		}
 
-		$tmp_file = download_url( $url, 30 );
+		$last_error    = '';
+		$tmp_file    = null;
+		$image_url  = '';
+		$retry      = 0;
 
-		if ( is_wp_error( $tmp_file ) ) {
-			// Fallback to Picsum (no keyword, but reliable).
-			$fallback_url = sprintf( 'https://picsum.photos/%d/%d', $width, $height );
-			$tmp_file     = download_url( $fallback_url, 30 );
+		// Retry loop: download, verify, import.
+		while ( $retry <= self::MAX_RETRIES ) {
+			++$retry;
+
+			// Build a deterministic-ish lock so the same keyword doesn't always
+			// return the exact same image, but retries in the same request do.
+			// Vary by retry count to get different images on each attempt.
+			$lock = crc32( $keyword . ( gmdate( 'Y-m-d-H' ) + $retry ) );
+			$url  = sprintf(
+				'https://loremflickr.com/%d/%d/%s?lock=%d',
+				$width,
+				$height,
+				rawurlencode( $keyword ),
+				$lock
+			);
+
+			$tmp_file = download_url( $url, 30 );
 
 			if ( is_wp_error( $tmp_file ) ) {
-				return [ 'error' => 'Failed to download image: ' . $tmp_file->get_error_message() ];
+				$last_error = 'Failed to download image: ' . $tmp_file->get_error_message();
+				continue;
 			}
+
+			// Verify the image matches the keyword using AI vision.
+			$verified = self::verify_image_matches_keyword( $tmp_file, $keyword );
+
+			if ( true === $verified ) {
+				// Image verified - proceed to import.
+				break;
+			}
+
+			$last_error = is_string( $verified ) ? $verified : 'Image does not match keyword';
+
+			// Clean up rejected image and retry.
+			if ( file_exists( $tmp_file ) ) {
+				unlink( $tmp_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			}
+			$tmp_file = null;
+		}
+
+		// All retries exhausted without verification.
+		if ( null === $tmp_file || ! file_exists( $tmp_file ) ) {
+			return [
+				'error' => sprintf(
+					'Could not find an image matching "%s" after %d attempts. %s',
+					$keyword,
+					self::MAX_RETRIES + 1,
+					$last_error
+				),
+			];
 		}
 
 		// Build a meaningful filename from the keyword.
 		$safe_keyword = sanitize_file_name( $keyword );
-		$filename     = $safe_keyword . '-' . $width . 'x' . $height . '.jpg';
+		$filename   = $safe_keyword . '-' . $width . 'x' . $height . '.jpg';
 
 		$file_array = [
 			'name'     => $filename,
@@ -241,5 +285,94 @@ class StockImageAbilities {
 			'title'         => $title,
 			'tip'           => 'Use this attachment_id as featured_image_id when calling create-post or update-post.',
 		];
+	}
+
+	/**
+	 * Verify that an image matches the given keyword using AI vision.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param string $tmp_file Path to the downloaded image.
+	 * @param string $keyword  The keyword to verify against.
+	 * @return true|string    True if verified, or error message if not.
+	 */
+	private static function verify_image_matches_keyword( string $tmp_file, string $keyword ): true|string {
+		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+			// AI not available - accept the image without verification.
+			return true;
+		}
+
+		// Resolve the image to a data URI for the AI.
+		$image_data = self::image_to_data_uri( $tmp_file );
+		if ( empty( $image_data ) ) {
+			return 'Could not read downloaded image for verification.';
+		}
+
+		$system_instruction = <<<'INSTRUCTION'
+You are an image verification expert. Your task is to determine whether the provided image matches the given search keyword.
+
+Examine the image carefully and respond with ONLY one of:
+- "MATCH" if the image clearly contains or depicts the keyword concept
+- "NO_MATCH" if the image does not depict the keyword concept
+
+Be strict: if the image is ambiguous or only loosely related, respond NO_MATCH.
+Examples of NO_MATCH:
+- Keyword "cats" → image shows dogs
+- Keyword "beach" → image shows mountains
+- Keyword "coffee" → image shows tea cups
+- Keyword "sunset" → image shows a sunny day without a visible sun
+
+Respond with ONLY MATCH or NO_MATCH, nothing else.
+INSTRUCTION;
+
+		$prompt = sprintf(
+			'Does this image match the keyword "%s"? Respond with MATCH or NO_MATCH.',
+			$keyword
+		);
+
+		$builder = wp_ai_client_prompt( $prompt )
+			->with_file( $image_data )
+			->using_system_instruction( $system_instruction )
+			->using_temperature( 0 );
+
+		$result = $builder->generate_text();
+
+		if ( is_wp_error( $result ) ) {
+			// AI failed - accept the image to avoid blocking.
+			return true;
+		}
+
+		$response = strtoupper( trim( (string) $result ) );
+
+		if ( false !== strpos( $response, 'MATCH' ) ) {
+			return true;
+		}
+
+		return sprintf( 'AI verification failed: expected MATCH, got "%s"', $response );
+	}
+
+	/**
+	 * Convert an image file to a data URI for AI vision.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param string $file_path Path to the image file.
+	 * @return string Data URI or empty string on failure.
+	 */
+	private static function image_to_data_uri( string $file_path ): string {
+		if ( ! file_exists( $file_path ) ) {
+			return '';
+		}
+
+		$contents = file_get_contents( $file_path );
+		if ( false === $contents ) {
+			return '';
+		}
+
+		$finfo    = new \finfo( FILEINFO_MIME_TYPE );
+		$mime    = $finfo->file( $file_path );
+		$base64  = base64_encode( $contents );
+
+		return sprintf( 'data:%s;base64,%s', $mime, $base64 );
 	}
 }

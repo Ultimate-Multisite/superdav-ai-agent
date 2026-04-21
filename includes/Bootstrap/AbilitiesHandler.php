@@ -92,6 +92,7 @@ final class AbilitiesHandler {
 		FeedbackAbilities::register_abilities();
 		SkillAbilities::register_abilities();
 		KnowledgeAbilities::register_abilities();
+		ImageAbilities\UnifiedImageAbility::register();
 		StockImageAbilities::register_abilities();
 		AiImageAbilities::register_abilities();
 		InternetSearchAbilities::register_abilities();

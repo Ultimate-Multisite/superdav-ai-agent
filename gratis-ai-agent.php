@@ -7,7 +7,7 @@
  * Author:      superdav42
  * Author URI:  https://github.com/superdav42
  * License:     GPL-2.0-or-later
- * Requires at least: 7.0
+ * Requires at least: 6.9
  * Requires PHP: 8.2
  * Text Domain: ai-agent-for-wp
  *
@@ -57,15 +57,25 @@ if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 
 use GratisAiAgent\Bootstrap\LifecycleHandler;
 use GratisAiAgent\Compat\AiBridgeLoader;
+use GratisAiAgent\Compat\SdkLoader;
 use GratisAiAgent\Plugin;
 
-// Load the WP AI Client bridge polyfill on WordPress < 7.0.
+// Phase 1 (t227): Register the bundled wordpress/php-ai-client SDK autoloader.
+// On WP 7.0+ the SDK is already in core and this call is a no-op.
+// On WP 6.9 the SDK is not in core; our bundled copy in lib/php-ai-client/ is
+// registered here so that AiBridgeLoader (below) can find the SDK classes.
+SdkLoader::register( GRATIS_AI_AGENT_DIR );
+
+// Phase 2 (t228): Load the WP AI Client bridge polyfill on WordPress < 7.0.
 // On WP 7.0+ this is a no-op — core's definitions take precedence.
-// Requires the wordpress/php-ai-client SDK to be available via Composer
-// (added in Phase 1 — t227). Safe to call before WordPress has loaded
-// all plugins because it only require_once's files and calls SDK static
-// methods that are independent of WordPress hooks.
+// Requires the wordpress/php-ai-client SDK to be available (registered above).
 AiBridgeLoader::maybe_load();
+
+// Phase 3 (t229): Load Connectors API polyfills on WordPress < 7.0.
+// Provides _wp_connectors_get_provider_settings() and _wp_connectors_get_real_api_key()
+// using the same connectors_ai_{provider}_api_key option names as WP 7.0.
+// On WP 7.0+ the function_exists() guards in the file prevent double-definition.
+require_once GRATIS_AI_AGENT_DIR . '/includes/Compat/wp-connectors-polyfill.php';
 
 // Activation / deactivation hooks fire *before* `plugins_loaded`, so they
 // cannot be wired through the DI container. `LifecycleHandler` consolidates

@@ -10,9 +10,13 @@ parameters:
 		- includes/CLI
 		# Compat polyfill files define the same global classes/functions as stubs/wordpress-7-runtime.php.
 		# Exclude them from PHPStan analysis to avoid duplicate-class errors; the stubs already provide
-		# the type information PHPStan needs. AiBridgeLoader.php (PSR-4) is not excluded.
+		# the type information PHPStan needs. AiBridgeLoader.php and SdkLoader.php (PSR-4) are not excluded.
 		- includes/Compat/ai-client
 		- includes/Compat/ai-client.php
+		# wp-connectors-polyfill.php defines _wp_connectors_get_provider_settings() and
+		# _wp_connectors_get_real_api_key() which are already stubbed in stubs/wordpress-7-runtime.php.
+		# Exclude to avoid duplicate-function errors.
+		- includes/Compat/wp-connectors-polyfill.php
 	bootstrapFiles:
 		- vendor/autoload.php
 	scanFiles:

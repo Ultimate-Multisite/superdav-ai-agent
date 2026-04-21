@@ -11,6 +11,23 @@
 $plugin_dir = dirname( __DIR__ );
 require_once $plugin_dir . '/vendor/autoload.php';
 
+// WP 7.0 PSR conflict prevention: remove WordPress\AiClient\* from the Composer
+// ClassLoader BEFORE WordPress boots. wp-settings.php loads the php-ai-client SDK
+// with scoped PSR interfaces (WordPress\AiClientDependencies\Psr\*) and then
+// require_once's WP_AI_Client_HTTP_Client which implements the scoped ClientWithOptionsInterface.
+// If our unscoped Composer copy loaded ClientWithOptionsInterface first, PHP throws a
+// fatal "Declaration incompatible" error. By removing the mapping here, WP 7.0's own
+// autoloader (registered in wp-settings.php) loads the scoped version first.
+// On WP 6.9 (no php-ai-client/autoload.php in wp-includes), the plugin's Jetpack
+// Autoloader provides the classes via gratis-ai-agent.php's bootstrap.
+foreach ( spl_autoload_functions() as $gratis_loader ) {
+	if ( is_array( $gratis_loader ) && isset( $gratis_loader[0] ) && $gratis_loader[0] instanceof \Composer\Autoload\ClassLoader ) {
+		$gratis_loader[0]->setPsr4( 'WordPress\\AiClient\\', [] );
+		break;
+	}
+}
+unset( $gratis_loader );
+
 /*
  * Force XWP_Context to CTX_REST so the x-wp/di container loads REST handlers.
  *

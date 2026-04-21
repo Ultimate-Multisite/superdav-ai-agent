@@ -273,6 +273,9 @@ async function mockAgentsApi( page, opts = {} ) {
 
 	// Stub providers endpoint (used by the provider/model dropdowns).
 	// Use a function matcher so wp-env's URL-encoded paths (%2F) are decoded first.
+	// Return a fake provider so AdminPageApp renders the chat layout instead of
+	// ConnectorGate — the agent selector lives inside the chat panel and is only
+	// visible when at least one provider is in the store.
 	await page.route(
 		( url ) =>
 			decodeUrl( url ).includes( 'gratis-ai-agent/v1/providers' ),
@@ -280,7 +283,21 @@ async function mockAgentsApi( page, opts = {} ) {
 			await route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify( [] ),
+				body: JSON.stringify( [
+					{
+						id: 'openai',
+						name: 'OpenAI',
+						type: 'direct',
+						configured: true,
+						models: [
+							{
+								id: 'gpt-4.1-nano',
+								name: 'GPT-4.1 Nano',
+								context_window: 1000000,
+							},
+						],
+					},
+				] ),
 			} );
 		}
 	);

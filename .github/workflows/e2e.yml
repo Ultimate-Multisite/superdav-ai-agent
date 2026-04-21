@@ -184,6 +184,17 @@ jobs:
           npx wp-env run cli wp option update gratis_ai_agent_settings \
             '{"onboarding_complete":true,"site_builder_mode":false}' --format=json
 
+          # Configure a fake OpenAI key so the /providers endpoint returns at
+          # least one provider. Without a provider the AdminPageApp renders the
+          # ConnectorGate instead of the chat layout, breaking all tests that
+          # look for .gratis-ai-agent-layout or .gratis-ai-agent-chat-panel.
+          # The key is never used for real API calls — E2E specs mock the
+          # /stream endpoint — but its non-empty value is enough for the
+          # SettingsController::handle_providers() to include OpenAI in the
+          # list returned to the React app.
+          npx wp-env run cli wp option update gratis_ai_agent_provider_keys \
+            '{"openai":"sk-test-fake-key-for-e2e"}' --format=json
+
           # Prevent FreshInstallDetector from re-enabling site_builder_mode on
           # every page load. The wp-env environment is always a "fresh install"
           # (default theme, only sample posts), so isFreshInstall() returns true

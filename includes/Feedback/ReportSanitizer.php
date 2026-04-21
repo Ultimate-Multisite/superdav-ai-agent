@@ -43,18 +43,18 @@ class ReportSanitizer {
 	 * @return array<string, mixed> Sanitized copy — the original is not mutated.
 	 */
 	public static function sanitize( array $payload ): array {
-		$session = $payload['session'] ?? null;
-		if ( is_array( $session ) ) {
-			if ( isset( $session['messages'] ) && is_array( $session['messages'] ) ) {
+		$session_data = $payload['session_data'] ?? null;
+		if ( is_array( $session_data ) ) {
+			if ( isset( $session_data['messages'] ) && is_array( $session_data['messages'] ) ) {
 				/** @var array<int, array<string, mixed>> $messages */
-				$messages                       = $session['messages'];
-				$payload['session']['messages'] = self::sanitize_messages( $messages );
+				$messages                            = $session_data['messages'];
+				$payload['session_data']['messages'] = self::sanitize_messages( $messages );
 			}
 
-			if ( isset( $session['tool_calls'] ) && is_array( $session['tool_calls'] ) ) {
+			if ( isset( $session_data['tool_calls'] ) && is_array( $session_data['tool_calls'] ) ) {
 				/** @var array<int, array<string, mixed>> $tool_calls */
-				$tool_calls                       = $session['tool_calls'];
-				$payload['session']['tool_calls'] = self::sanitize_tool_calls( $tool_calls );
+				$tool_calls                            = $session_data['tool_calls'];
+				$payload['session_data']['tool_calls'] = self::sanitize_tool_calls( $tool_calls );
 			}
 		}
 

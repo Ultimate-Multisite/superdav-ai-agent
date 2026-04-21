@@ -100,7 +100,7 @@ if ( ! empty( $_GET['rest_route'] ) ) {
 // `GratisAiAgent\Plugin::$handlers`. Nothing else needs to live in this file.
 xwp_load_app(
 	[
-		'id'            => 'ai-agent-for-wp',
+		'id'            => 'gratis-ai-agent',
 		'module'        => Plugin::class,
 		'autowiring'    => true,
 		'compile'       => 'production' === wp_get_environment_type(),

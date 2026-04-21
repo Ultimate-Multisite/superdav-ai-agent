@@ -183,12 +183,29 @@ async function mockSpendingLimitsRoutes( page, overrides = {} ) {
 			} );
 		}
 
-		// Providers list.
+		// Providers list — return a fake provider so AdminPageApp renders the
+		// chat layout instead of ConnectorGate (which blocks when providers=[]).
+		// The budget indicator tests need the non-compact chat panel visible,
+		// which requires at least one provider in the store.
 		if ( url.includes( '/gratis-ai-agent/v1/providers' ) ) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify( [] ),
+				body: JSON.stringify( [
+					{
+						id: 'openai',
+						name: 'OpenAI',
+						type: 'direct',
+						configured: true,
+						models: [
+							{
+								id: 'gpt-4.1-nano',
+								name: 'GPT-4.1 Nano',
+								context_window: 1000000,
+							},
+						],
+					},
+				] ),
 			} );
 		}
 

@@ -133,9 +133,9 @@ final class Plugin {
 			// from the constants defined in gratis-ai-agent.php, not at compile-time.
 			// This allows the compiled container to ship in distributions
 			// while still resolving to the correct paths on each installation.
-			'plugin.version'                  => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_VERSION' ) ? constant( 'GRATIS_AI_AGENT_VERSION' ) : '' ),
-			'plugin.dir'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_DIR' ) ? constant( 'GRATIS_AI_AGENT_DIR' ) : '' ),
-			'plugin.url'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_URL' ) ? constant( 'GRATIS_AI_AGENT_URL' ) : '' ),
+			'plugin.version'                  => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_VERSION' ) ? (string) constant( 'GRATIS_AI_AGENT_VERSION' ) : '' ),
+			'plugin.dir'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_DIR' ) ? (string) constant( 'GRATIS_AI_AGENT_DIR' ) : '' ),
+			'plugin.url'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_URL' ) ? (string) constant( 'GRATIS_AI_AGENT_URL' ) : '' ),
 
 			// Interface → implementation bindings (t197).
 			// These adapters delegate to the existing static classes so all

@@ -148,7 +148,7 @@ class ToolDiscovery {
 			'gratis-ai-agent/ability-call',
 			array(
 				'label'               => __( 'Call Ability', 'gratis-ai-agent' ),
-				'description'         => __( 'Execute any registered ability by its id, passing the matching arguments object. Use ability-search first if you do not already know the input schema.', 'gratis-ai-agent' ),
+				'description'         => __( 'Execute any ability by id with a complete arguments object. CRITICAL: ALWAYS call ability-search FIRST to fetch the target ability\'s input_schema with example_arguments, copy that stub, replace placeholders with real values, then call this tool. Never call without valid arguments.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -159,10 +159,10 @@ class ToolDiscovery {
 						),
 						'arguments' => array(
 							'type'        => 'object',
-							'description' => 'Arguments object that matches the ability\'s input schema.',
+							'description' => 'Arguments object that matches the ability\'s input schema. REQUIRED — you MUST provide arguments that satisfy the target ability\'s required fields.',
 						),
 					),
-					'required'   => array( 'ability' ),
+					'required'   => array( 'ability', 'arguments' ),
 				),
 				'meta'                => array(
 					'show_in_rest' => true,

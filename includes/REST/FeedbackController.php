@@ -142,7 +142,7 @@ final class FeedbackController extends XWP_REST_Controller {
 			$payload = array(
 				'report_type'      => $report_type,
 				'user_description' => $user_description,
-				'session'          => null,
+				'session_data'    => null,
 				'environment'      => array(),
 				'generated_at'     => gmdate( 'c' ),
 			);

@@ -82,21 +82,23 @@ class ReportBuilder {
 			$messages   = self::strip_tool_result_messages( $messages );
 		}
 
+		$session_data = array(
+			'id'                => $session_id,
+			'title'             => $session->title ?? '',
+			'provider_id'       => $session->provider_id ?? '',
+			'model_id'          => $session->model_id ?? '',
+			'prompt_tokens'     => (int) ( $session->prompt_tokens ?? 0 ),
+			'completion_tokens' => (int) ( $session->completion_tokens ?? 0 ),
+			'messages'          => $messages,
+			'tool_calls'        => $tool_calls,
+			'message_count'     => count( $messages ),
+			'tool_call_count'   => count( $tool_calls ),
+		);
+
 		return array(
 			'report_type'      => $report_type,
 			'user_description' => $user_description,
-			'session'          => array(
-				'id'                => $session_id,
-				'title'             => $session->title ?? '',
-				'provider_id'       => $session->provider_id ?? '',
-				'model_id'          => $session->model_id ?? '',
-				'prompt_tokens'     => (int) ( $session->prompt_tokens ?? 0 ),
-				'completion_tokens' => (int) ( $session->completion_tokens ?? 0 ),
-				'messages'          => $messages,
-				'tool_calls'        => $tool_calls,
-				'message_count'     => count( $messages ),
-				'tool_call_count'   => count( $tool_calls ),
-			),
+			'session_data'     => $session_data,
 			'environment'      => self::collect_environment(),
 			'generated_at'     => gmdate( 'c' ),
 		);

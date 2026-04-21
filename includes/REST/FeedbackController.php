@@ -149,7 +149,7 @@ final class FeedbackController extends XWP_REST_Controller {
 		}
 
 		$sanitized = ReportSanitizer::sanitize( $payload );
-		$result    = ReportSender::send( $sanitized );
+		$result    = ReportSender::send( $sanitized, true ); // Force send for manual user submissions.
 
 		if ( is_wp_error( $result ) ) {
 			$http_status = 500;

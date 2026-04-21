@@ -23,15 +23,22 @@ class ReportSender {
 	/**
 	 * Send a sanitized report payload to the configured feedback endpoint.
 	 *
-	 * @param array<string, mixed> $payload Sanitized payload from ReportSanitizer::sanitize().
+	 * @param array<string, mixed> $payload    Sanitized payload from ReportSanitizer::sanitize().
+	 * @param bool               $force_send Bypass the enabled check. Set to true for manual user submissions
+	 *                                   from the feedback form; false for automatic background reporting.
 	 * @return true|WP_Error True on success (2xx response), WP_Error on failure.
 	 */
-	public static function send( array $payload ): true|WP_Error {
+	public static function send( array $payload, bool $force_send = false ): true|WP_Error {
 		$endpoint_url = (string) ( Settings::instance()->get( 'feedback_endpoint_url' ) ?? '' );
-		$enabled      = (bool) ( Settings::instance()->get( 'feedback_enabled' ) ?? false );
 
-		if ( ! $enabled ) {
-			return new WP_Error( 'feedback_disabled', 'Feedback reporting is not enabled in Settings.' );
+		// Skip enabled check when $force_send is true (manual form submissions).
+		// The setting only controls automatic/batch feedback reporting.
+		if ( ! $force_send ) {
+			$enabled = (bool) ( Settings::instance()->get( 'feedback_enabled' ) ?? false );
+
+			if ( ! $enabled ) {
+				return new WP_Error( 'feedback_disabled', 'Feedback reporting is not enabled in Settings.' );
+			}
 		}
 
 		if ( '' === $endpoint_url ) {

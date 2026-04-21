@@ -24,8 +24,8 @@ class ReportSender {
 	 * Send a sanitized report payload to the configured feedback endpoint.
 	 *
 	 * @param array<string, mixed> $payload    Sanitized payload from ReportSanitizer::sanitize().
-	 * @param bool               $force_send Bypass the enabled check. Set to true for manual user submissions
-	 *                                   from the feedback form; false for automatic background reporting.
+	 * @param bool                 $force_send Bypass the enabled check. Set to true for manual user submissions
+	 *                                     from the feedback form; false for automatic background reporting.
 	 * @return true|WP_Error True on success (2xx response), WP_Error on failure.
 	 */
 	public static function send( array $payload, bool $force_send = false ): true|WP_Error {

@@ -13,6 +13,11 @@
     <exclude-pattern>*/bin/*</exclude-pattern>
     <exclude-pattern>*/.github/*</exclude-pattern>
     <exclude-pattern>*/compat/*</exclude-pattern>
+    <!-- Compat polyfill files are copies of WP core files; they use WP core text domain style
+         and WP-style class naming. Exclude them from plugin PHPCS rules. AiBridgeLoader.php is
+         PSR-4 and remains checked. -->
+    <exclude-pattern>*/Compat/ai-client/*</exclude-pattern>
+    <exclude-pattern>*/Compat/ai-client.php</exclude-pattern>
 
     <!-- Arguments -->
     <arg name="extensions" value="php"/>

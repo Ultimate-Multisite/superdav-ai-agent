@@ -56,7 +56,16 @@ if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 }
 
 use GratisAiAgent\Bootstrap\LifecycleHandler;
+use GratisAiAgent\Compat\AiBridgeLoader;
 use GratisAiAgent\Plugin;
+
+// Load the WP AI Client bridge polyfill on WordPress < 7.0.
+// On WP 7.0+ this is a no-op — core's definitions take precedence.
+// Requires the wordpress/php-ai-client SDK to be available via Composer
+// (added in Phase 1 — t227). Safe to call before WordPress has loaded
+// all plugins because it only require_once's files and calls SDK static
+// methods that are independent of WordPress hooks.
+AiBridgeLoader::maybe_load();
 
 // Activation / deactivation hooks fire *before* `plugins_loaded`, so they
 // cannot be wired through the DI container. `LifecycleHandler` consolidates

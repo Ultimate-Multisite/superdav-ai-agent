@@ -13,6 +13,9 @@
     <exclude-pattern>*/bin/*</exclude-pattern>
     <exclude-pattern>*/.github/*</exclude-pattern>
     <exclude-pattern>*/compat/*</exclude-pattern>
+    <!-- lib/ contains bundled WP 7.0 SDK files and PSR-compliant third-party code
+         that follows PSR-2 coding standards rather than WordPress coding standards. -->
+    <exclude-pattern>*/lib/*</exclude-pattern>
 
     <!-- Arguments -->
     <arg name="extensions" value="php"/>

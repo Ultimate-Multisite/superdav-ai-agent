@@ -117,14 +117,20 @@ class CompatLoader {
 		}
 
 		// Adapters — must be loaded before the bridge classes that depend on them.
+		// Each is guarded by class_exists() so that on WP 7.0, where core already
+		// defines these classes (wp-includes/ai-client/adapters/), our copies are
+		// never require_once'd and we avoid "Cannot redeclare class" fatal errors.
 		$adapters = [
-			'class-wp-ai-client-cache.php',
-			'class-wp-ai-client-event-dispatcher.php',
-			'class-wp-ai-client-http-client.php',
-			'class-wp-ai-client-discovery-strategy.php',
+			'class-wp-ai-client-cache.php'              => 'WP_AI_Client_Cache',
+			'class-wp-ai-client-event-dispatcher.php'   => 'WP_AI_Client_Event_Dispatcher',
+			'class-wp-ai-client-http-client.php'        => 'WP_AI_Client_HTTP_Client',
+			'class-wp-ai-client-discovery-strategy.php' => 'WP_AI_Client_Discovery_Strategy',
 		];
 
-		foreach ( $adapters as $adapter_file ) {
+		foreach ( $adapters as $adapter_file => $class_name ) {
+			if ( class_exists( $class_name, false ) ) {
+				continue;
+			}
 			$file = $bridge_dir . '/adapters/' . $adapter_file;
 			if ( file_exists( $file ) ) {
 				require_once $file;

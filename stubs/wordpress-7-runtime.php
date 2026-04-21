@@ -611,9 +611,14 @@ namespace {
 		/**
 		 * Constructor.
 		 *
-		 * @param string $prompt Initial prompt text.
+		 * Matches the real WP 7.0 signature in wp-includes/ai-client/class-wp-ai-client-prompt-builder.php:
+		 *   __construct( ProviderRegistry $registry, $prompt = null )
+		 * The ProviderRegistry is typed as mixed here to avoid unknown-class errors.
+		 *
+		 * @param mixed $registry Provider registry instance (WordPress\AiClient\Providers\ProviderRegistry).
+		 * @param mixed $prompt   Initial prompt content (string, MessagePart, Message, array, or null).
 		 */
-		public function __construct( string $prompt = '' ) {}
+		public function __construct( mixed $registry = null, mixed $prompt = null ) {}
 
 		/**
 		 * Set the system instruction for this prompt.

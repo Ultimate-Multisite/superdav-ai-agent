@@ -54,7 +54,13 @@ if ( ! function_exists( 'wp_supports_ai' ) ) {
  * @return WP_AI_Client_Prompt_Builder The prompt builder instance.
  */
 if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-	function wp_ai_client_prompt( $prompt = null ): \WP_AI_Client_Prompt_Builder {
+	/**
+	 * Polyfill: wp_ai_client_prompt() — matches WP 7.0 signature.
+	 *
+	 * @param string|\WP_AI_Client_Prompt_Builder|mixed $prompt Optional prompt. Default null.
+	 * @return \WP_AI_Client_Prompt_Builder
+	 */
+	function wp_ai_client_prompt( mixed $prompt = null ): \WP_AI_Client_Prompt_Builder {
 		return new \WP_AI_Client_Prompt_Builder(
 			\WordPress\AiClient\AiClient::defaultRegistry(),
 			$prompt

@@ -7,7 +7,7 @@
  * Author:      superdav42
  * Author URI:  https://github.com/superdav42
  * License:     GPL-2.0-or-later
- * Requires at least: 7.0
+ * Requires at least: 6.9
  * Requires PHP: 8.2
  * Text Domain: ai-agent-for-wp
  *
@@ -56,7 +56,19 @@ if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {
 }
 
 use GratisAiAgent\Bootstrap\LifecycleHandler;
+use GratisAiAgent\Compat\CompatLoader;
 use GratisAiAgent\Plugin;
+
+// Load WP 6.9 compatibility polyfills.
+//
+// On WP 7.0+ every polyfill definition is guarded by class_exists()/
+// function_exists() so core implementations take precedence. On WP 6.9
+// our bundled copies of the php-ai-client SDK, the WP AI Client bridge
+// classes, and the Connectors credential helper functions are loaded here.
+//
+// Must run before xwp_load_app() schedules the DI container so that the
+// SDK autoloader is in place when ability classes and AgentLoop are built.
+( new CompatLoader( GRATIS_AI_AGENT_DIR ) )->load();
 
 // Activation / deactivation hooks fire *before* `plugins_loaded`, so they
 // cannot be wired through the DI container. `LifecycleHandler` consolidates

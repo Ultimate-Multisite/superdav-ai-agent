@@ -4,6 +4,27 @@
 import { useState, useRef, useCallback, useEffect } from '@wordpress/element';
 
 /**
+ * Whether the browser supports the Web Speech API SpeechRecognition interface.
+ *
+ * @type {boolean}
+ */
+export const isSpeechRecognitionSupported =
+	typeof window !== 'undefined' &&
+	( 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window );
+
+/**
+ * The SpeechRecognition constructor, if available.
+ *
+ * @type {Function|null}
+ */
+const getSpeechRecognition = () => {
+	if ( typeof window === 'undefined' ) {
+		return null;
+	}
+	return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+};
+
+/**
  * Custom hook for push-to-talk speech recognition via the browser Web Speech API.
  *
  * Returns an object with:
@@ -33,10 +54,7 @@ export default function useSpeechRecognition( {
 	onResult,
 	onEnd,
 } = {} ) {
-	const SpeechRecognition =
-		window.SpeechRecognition || window.webkitSpeechRecognition;
-
-	const isSupported = Boolean( SpeechRecognition );
+	const isSupported = isSpeechRecognitionSupported;
 
 	const [ isListening, setIsListening ] = useState( false );
 	const [ transcript, setTranscript ] = useState( '' );
@@ -58,6 +76,11 @@ export default function useSpeechRecognition( {
 
 	const startListening = useCallback( () => {
 		if ( ! isSupported || isListening ) {
+			return;
+		}
+
+		const SpeechRecognition = getSpeechRecognition();
+		if ( ! SpeechRecognition ) {
 			return;
 		}
 
@@ -103,7 +126,6 @@ export default function useSpeechRecognition( {
 		recognitionRef.current = recognition;
 		recognition.start();
 	}, [
-		SpeechRecognition,
 		isSupported,
 		isListening,
 		lang,

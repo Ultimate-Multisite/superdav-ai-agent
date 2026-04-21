@@ -468,7 +468,7 @@ class PluginInstaller {
 		}
 
 		// Record in database.
-		$now    = current_time( 'mysql' );
+		$now = current_time( 'mysql' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal plugin installation; caching not applicable.
 		$insert = $wpdb->insert(
 			self::table_name(),

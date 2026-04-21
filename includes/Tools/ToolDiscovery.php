@@ -602,16 +602,62 @@ class ToolDiscovery {
 			);
 		}
 
-		// Normalize stdClass to array (recursively) — AI client JSON decoders
-		// may return nested stdClass objects for tool arguments. Use
-		// json round-trip which handles arbitrary nesting depth.
-		if ( $args instanceof \stdClass || is_array( $args ) ) {
-			$args = json_decode( (string) wp_json_encode( $args ), true );
+		// Normalize the arguments to a plain PHP associative array.
+		//
+		// Three cases handled:
+		// 1. JSON string — some AI providers / SDK versions return nested
+		// tool-call arguments as a raw JSON string rather than a parsed
+		// object (e.g. when the outer layer is parsed but the inner
+		// `arguments` value is left as a string). Decode it explicitly
+		// so the args are never silently dropped.
+		// 2. stdClass / array — recursively convert stdClass objects to
+		// arrays via a json round-trip.  Guard against wp_json_encode()
+		// failure (e.g. invalid UTF-8 in content) by falling back to the
+		// original array rather than silently losing all arguments.
+		// 3. Anything else (null, int, …) — treat as no arguments.
+		if ( is_string( $args ) && '' !== $args ) {
+			$decoded = json_decode( $args, true );
+			$args    = is_array( $decoded ) ? $decoded : array();
+		} elseif ( $args instanceof \stdClass || is_array( $args ) ) {
+			$encoded = wp_json_encode( $args );
+			if ( false !== $encoded ) {
+				$decoded = json_decode( $encoded, true );
+				$args    = is_array( $decoded ) ? $decoded : ( is_array( $args ) ? $args : array() );
+			} elseif ( ! is_array( $args ) ) {
+				// wp_json_encode failed (e.g. invalid UTF-8); args was stdClass.
+				// Shallow-cast to array as last resort — better than losing everything.
+				$args = (array) $args;
+			}
+		} else {
+			$args = array();
 		}
 
 		// Pass an empty assoc array (not null) so parameterless abilities
 		// with `type: object` schemas pass input validation.
-		$input_data = is_array( $args ) ? $args : array();
+		$input_data = $args;
+
+		// Diagnostic: log large payloads and empty argument objects to help
+		// diagnose GH#1113 (arguments silently dropped for large content).
+		// Logs are written only when WP_DEBUG_LOG is enabled.
+		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			$raw_args    = $input['arguments'] ?? null;
+			$raw_type    = gettype( $raw_args );
+			$raw_size    = is_string( $raw_args )
+				? strlen( $raw_args )
+				: strlen( (string) wp_json_encode( $raw_args ) );
+			$result_keys = array_keys( $input_data );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log(
+				sprintf(
+					'[Gratis AI Agent] ability-call: ability=%s raw_type=%s raw_size=%d normalized_keys=[%s]',
+					$ability_id,
+					$raw_type,
+					$raw_size,
+					implode( ',', $result_keys )
+				)
+			);
+		}
+
 		// @phpstan-ignore-next-line — execute() exists at runtime in WP 7.0.
 		$result = $ability->execute( $input_data );
 

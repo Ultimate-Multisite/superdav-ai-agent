@@ -62,12 +62,15 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test getMenuItems() returns exactly 4 items.
+	 * Test getMenuItems() returns at least 4 items.
+	 *
+	 * On WP 6.9 (no native Connectors page) a 5th Connectors item is added;
+	 * on WP 7.0+ the native page handles connectors so only 4 items appear.
 	 */
 	public function test_get_menu_items_returns_four_items(): void {
 		$items = UnifiedAdminMenu::getMenuItems();
 
-		$this->assertCount( 4, $items );
+		$this->assertGreaterThanOrEqual( 4, count( $items ) );
 	}
 
 	/**
@@ -146,6 +149,54 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 		sort( $sorted );
 
 		$this->assertSame( $sorted, $positions );
+	}
+
+	/**
+	 * Test getMenuItems() always includes chat, abilities, changes, settings.
+	 */
+	public function test_get_menu_items_includes_core_items(): void {
+		$items = UnifiedAdminMenu::getMenuItems();
+		$slugs = array_column( $items, 'slug' );
+
+		$this->assertContains( 'chat', $slugs );
+		$this->assertContains( 'abilities', $slugs );
+		$this->assertContains( 'changes', $slugs );
+		$this->assertContains( 'settings', $slugs );
+	}
+
+	/**
+	 * Test hasNativeConnectorsPage() returns a boolean.
+	 */
+	public function test_has_native_connectors_page_returns_bool(): void {
+		$result = UnifiedAdminMenu::hasNativeConnectorsPage();
+		$this->assertIsBool( $result );
+	}
+
+	/**
+	 * Test getConnectorsUrl() returns a non-empty string.
+	 */
+	public function test_get_connectors_url_returns_string(): void {
+		$url = UnifiedAdminMenu::getConnectorsUrl();
+		$this->assertIsString( $url );
+		$this->assertNotEmpty( $url );
+	}
+
+	/**
+	 * Test getMenuItems() conditionally includes Connectors item.
+	 *
+	 * When there is no native WP 7.0+ Connectors page, a Connectors item is
+	 * added to the unified admin menu. When the native page exists, it is
+	 * omitted so users go to the core page instead.
+	 */
+	public function test_get_menu_items_connectors_conditional(): void {
+		$items = UnifiedAdminMenu::getMenuItems();
+		$slugs = array_column( $items, 'slug' );
+
+		if ( UnifiedAdminMenu::hasNativeConnectorsPage() ) {
+			$this->assertNotContains( 'connectors', $slugs );
+		} else {
+			$this->assertContains( 'connectors', $slugs );
+		}
 	}
 
 	// ─── getCurrentRoute ──────────────────────────────────────────────────────

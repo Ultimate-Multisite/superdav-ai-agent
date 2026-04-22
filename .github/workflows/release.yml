@@ -52,7 +52,7 @@ jobs:
           mkdir -p dist/gratis-ai-agent/build
 
           # Copy PHP files
-          cp gratis-ai-agent.php dist/gratis-ai-agent/
+          cp ai-agent-for-wp.php dist/gratis-ai-agent/
           cp -r includes dist/gratis-ai-agent/
           cp -r stubs dist/gratis-ai-agent/ 2>/dev/null || true
 

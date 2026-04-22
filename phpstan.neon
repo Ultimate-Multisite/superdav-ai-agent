@@ -5,7 +5,7 @@ parameters:
 	level: 10
 	paths:
 		- includes
-		- gratis-ai-agent.php
+		- ai-agent-for-wp.php
 	excludePaths:
 		- includes/CLI
 		# Compat polyfill files define the same global classes/functions as stubs/wordpress-7-runtime.php.

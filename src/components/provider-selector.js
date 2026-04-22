@@ -45,7 +45,10 @@ export default function ProviderSelector( { compact = false } ) {
 		return (
 			<div className="gratis-ai-agent-provider-selector">
 				<p>
-					<a href="/wp-admin/options-connectors.php">
+					<a href={
+						window.gratisAiAgentData?.connectorsUrl ||
+						'admin.php?page=gratis-ai-agent#/connectors'
+					}>
 						{ __( 'Configure a provider', 'gratis-ai-agent' ) }
 					</a>
 				</p>

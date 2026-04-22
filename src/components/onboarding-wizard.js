@@ -19,7 +19,7 @@ import ProviderSelector from './provider-selector';
  * @return {string} Connectors page URL.
  */
 function getConnectorsUrl() {
-	return window.gratisAiAgentData?.connectorsUrl || 'options-connectors.php';
+	return window.gratisAiAgentData?.connectorsUrl || 'admin.php?page=gratis-ai-agent#/connectors';
 }
 
 /**

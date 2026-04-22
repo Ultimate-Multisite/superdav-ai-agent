@@ -7,7 +7,7 @@
  * - Renders the description
  * - Renders the CTA link pointing to Connectors page
  * - Uses custom connectorsUrl from window.gratisAiAgentData when available
- * - Falls back to options-connectors.php when connectorsUrl is not set
+ * - Falls back to polyfill Connectors page when connectorsUrl is not set
  */
 
 import { createElement } from '@wordpress/element';
@@ -72,9 +72,9 @@ describe( 'ConnectorGate', () => {
 		expect( html ).toContain( 'Configure a Connector' );
 	} );
 
-	test( 'CTA button links to options-connectors.php by default', () => {
+	test( 'CTA button links to polyfill Connectors page by default', () => {
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
-		expect( html ).toContain( 'options-connectors.php' );
+		expect( html ).toContain( 'admin.php?page=gratis-ai-agent#/connectors' );
 	} );
 
 	test( 'uses connectorsUrl from window.gratisAiAgentData when available', () => {

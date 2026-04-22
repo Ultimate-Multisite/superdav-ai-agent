@@ -154,6 +154,30 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 	}
 
+	public function test_ability_call_returns_error_for_malformed_json_arguments(): void {
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'   => 'gratis-ai-agent/get-plugins',
+				'arguments' => '{"title":', // Truncated / malformed JSON.
+			]
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_ability_arguments', $result->get_error_code() );
+	}
+
+	public function test_ability_call_returns_error_for_non_object_json_arguments(): void {
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'   => 'gratis-ai-agent/get-plugins',
+				'arguments' => '"just a string"', // Valid JSON but not an object/array.
+			]
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_ability_arguments', $result->get_error_code() );
+	}
+
 	// ── manifest ──────────────────────────────────────────────────────
 
 	public function test_manifest_lists_tier_2_abilities(): void {

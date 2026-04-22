@@ -617,7 +617,23 @@ class ToolDiscovery {
 		// 3. Anything else (null, int, …) — treat as no arguments.
 		if ( is_string( $args ) && '' !== $args ) {
 			$decoded = json_decode( $args, true );
-			$args    = is_array( $decoded ) ? $decoded : array();
+			if ( JSON_ERROR_NONE !== json_last_error() ) {
+				return new WP_Error(
+					'invalid_ability_arguments',
+					sprintf(
+						/* translators: %s: JSON decode error message. */
+						__( 'arguments must be valid JSON: %s', 'gratis-ai-agent' ),
+						json_last_error_msg()
+					)
+				);
+			}
+			if ( ! is_array( $decoded ) ) {
+				return new WP_Error(
+					'invalid_ability_arguments',
+					__( 'arguments must decode to a JSON object.', 'gratis-ai-agent' )
+				);
+			}
+			$args = $decoded;
 		} elseif ( $args instanceof \stdClass || is_array( $args ) ) {
 			$encoded = wp_json_encode( $args );
 			if ( false !== $encoded ) {
@@ -642,18 +658,19 @@ class ToolDiscovery {
 		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 			$raw_args    = $input['arguments'] ?? null;
 			$raw_type    = gettype( $raw_args );
-			$raw_size    = is_string( $raw_args )
-				? strlen( $raw_args )
-				: strlen( (string) wp_json_encode( $raw_args ) );
+			$raw_encoded = is_string( $raw_args ) ? $raw_args : wp_json_encode( $raw_args );
+			$raw_size    = is_string( $raw_encoded ) ? strlen( $raw_encoded ) : 0;
+			$encode_note = false === $raw_encoded ? ' raw_encode_failed=1' : '';
 			$result_keys = array_keys( $input_data );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log(
 				sprintf(
-					'[Gratis AI Agent] ability-call: ability=%s raw_type=%s raw_size=%d normalized_keys=[%s]',
+					'[Gratis AI Agent] ability-call: ability=%s raw_type=%s raw_size=%d normalized_keys=[%s]%s',
 					$ability_id,
 					$raw_type,
 					$raw_size,
-					implode( ',', $result_keys )
+					implode( ',', $result_keys ),
+					$encode_note
 				)
 			);
 		}

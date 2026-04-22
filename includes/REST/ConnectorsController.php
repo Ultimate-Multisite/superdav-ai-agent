@@ -27,6 +27,7 @@ use WP_REST_Response;
 use WP_REST_Server;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
+use GratisAiAgent\Admin\UnifiedAdminMenu;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -157,7 +158,7 @@ final class ConnectorsController {
 		return new WP_REST_Response(
 			array(
 				'providers'     => $providers,
-				'wp_has_native' => function_exists( '_wp_connectors_get_provider_settings' ),
+				'wp_has_native' => UnifiedAdminMenu::hasNativeConnectorsPage(),
 			),
 			200
 		);

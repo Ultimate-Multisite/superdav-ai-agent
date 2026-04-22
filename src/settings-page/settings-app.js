@@ -509,8 +509,8 @@ export default function SettingsApp() {
 				) }{ ' ' }
 				<a
 					href={
-				window.gratisAiAgentData?.connectorsUrl ||
-				'admin.php?page=gratis-ai-agent#/connectors'
+						window.gratisAiAgentData?.connectorsUrl ||
+						'admin.php?page=gratis-ai-agent#/connectors'
 					}
 				>
 					{ __( 'Open Connectors →', 'gratis-ai-agent' ) }

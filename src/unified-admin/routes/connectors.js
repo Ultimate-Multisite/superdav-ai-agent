@@ -415,7 +415,8 @@ export default function ConnectorsRoute() {
 	}, [ fetchProviders ] );
 
 	const connectorsUrl =
-		window.gratisAiAgentData?.connectorsUrl || 'admin.php?page=gratis-ai-agent#/connectors';
+		window.gratisAiAgentData?.connectorsUrl ||
+		'admin.php?page=gratis-ai-agent#/connectors';
 
 	if ( state.loading ) {
 		return (

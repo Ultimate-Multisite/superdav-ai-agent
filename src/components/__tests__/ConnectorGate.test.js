@@ -74,7 +74,9 @@ describe( 'ConnectorGate', () => {
 
 	test( 'CTA button links to polyfill Connectors page by default', () => {
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
-		expect( html ).toContain( 'admin.php?page=gratis-ai-agent#/connectors' );
+		expect( html ).toContain(
+			'admin.php?page=gratis-ai-agent#/connectors'
+		);
 	} );
 
 	test( 'uses connectorsUrl from window.gratisAiAgentData when available', () => {

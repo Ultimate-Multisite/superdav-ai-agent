@@ -186,7 +186,9 @@ describe( 'ProviderSelector rendering', () => {
 			createElement( ProviderSelector, {} )
 		);
 		expect( html ).toContain( 'Configure a provider' );
-		expect( html ).toContain( 'admin.php?page=gratis-ai-agent#/connectors' );
+		expect( html ).toContain(
+			'admin.php?page=gratis-ai-agent#/connectors'
+		);
 	} );
 
 	test( 'does not render dropdowns when providers list is empty', () => {

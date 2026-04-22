@@ -43,6 +43,13 @@ class OnboardingManager {
 	 */
 	const TRIGGERED_OPTION = 'gratis_ai_agent_onboarding_triggered';
 
+	/**
+	 * Option key that persists the onboarding bootstrap session ID.
+	 * Stored on first call to rest_bootstrap_start; reused on subsequent calls
+	 * to make the endpoint idempotent — repeat calls return the same session.
+	 */
+	const BOOTSTRAP_SESSION_OPTION = 'gratis_ai_agent_bootstrap_session_id';
+
 	// ── Bootstrap ─────────────────────────────────────────────────────────
 
 	/**
@@ -115,6 +122,7 @@ class OnboardingManager {
 	public static function reset(): void {
 		delete_option( self::TRIGGERED_OPTION );
 		delete_option( self::COMPLETE_OPTION );
+		delete_option( self::BOOTSTRAP_SESSION_OPTION );
 		delete_option( SiteScanner::STATUS_OPTION );
 		SiteScanner::unschedule();
 	}
@@ -129,10 +137,14 @@ class OnboardingManager {
 	/**
 	 * Whether the AI-driven onboarding bootstrap session has been completed.
 	 *
+	 * Checks both the completion flag and the presence of a persisted bootstrap
+	 * session ID so that /onboarding/status stays consistent with bootstrap-start.
+	 *
 	 * @return bool
 	 */
 	public static function is_complete(): bool {
-		return (bool) get_option( self::COMPLETE_OPTION );
+		return (bool) get_option( self::COMPLETE_OPTION )
+			|| (bool) get_option( self::BOOTSTRAP_SESSION_OPTION );
 	}
 
 	// ── REST API ──────────────────────────────────────────────────────────
@@ -334,25 +346,53 @@ class OnboardingManager {
 	 * Called by the frontend when a provider is available and onboarding has
 	 * not yet completed. This handler:
 	 *
-	 *  1. Marks onboarding as complete so the gate/bootstrap never shows again.
+	 *  1. Returns early (already_complete) if onboarding was already completed,
+	 *     re-using the persisted session ID so the frontend can resume the chat.
 	 *  2. Silently auto-detects WooCommerce and stores a site-context memory.
 	 *  3. Creates a dedicated onboarding session for the AI discovery conversation.
-	 *  4. Returns the session ID, bootstrap system prompt, and kickoff message
+	 *  4. Persists the session ID and marks onboarding complete via both the
+	 *     COMPLETE_OPTION WordPress option and the Settings store so that
+	 *     is_complete() and /onboarding/status stay consistent.
+	 *  5. Returns the session ID, bootstrap system prompt, and kickoff message
 	 *     so the frontend can auto-send the first message.
 	 *
-	 * Idempotent: calling it a second time returns success without creating
-	 * a duplicate session (onboarding_complete will already be true, but the
-	 * endpoint gracefully returns without error so the frontend can proceed).
+	 * Idempotent: repeat calls return the originally-created session ID with
+	 * already_complete=true instead of creating a duplicate session.
 	 *
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public static function rest_bootstrap_start(): \WP_REST_Response {
+	public static function rest_bootstrap_start(): \WP_REST_Response|\WP_Error {
 		$settings = Settings::instance();
 		$all      = $settings->get();
 
-		// Mark onboarding complete — idempotent.
-		if ( empty( $all['onboarding_complete'] ) ) {
-			$settings->update( [ 'onboarding_complete' => true ] );
+		// Early-return if onboarding was already completed. Reuse the persisted
+		// session ID so the frontend can resume the same conversation.
+		$existing_session_id = get_option( self::BOOTSTRAP_SESSION_OPTION );
+		if ( self::is_complete() || ! empty( $all['onboarding_complete'] ) ) {
+			// Ensure both persistence layers are consistent on legacy installs
+			// where only one of the two stores was set.
+			self::mark_complete();
+			if ( empty( $all['onboarding_complete'] ) ) {
+				$settings->update( [ 'onboarding_complete' => true ] );
+			}
+
+			$bootstrap_prompt = SystemInstructionBuilder::get_onboarding_bootstrap_prompt();
+			$kickoff_message  = __(
+				"Hi! I just set up this plugin and I'm ready to get started.",
+				'gratis-ai-agent'
+			);
+
+			return new \WP_REST_Response(
+				[
+					'success'                 => true,
+					'onboarding_complete'     => true,
+					'already_complete'        => true,
+					'session_id'              => $existing_session_id ?: null,
+					'bootstrap_system_prompt' => $bootstrap_prompt,
+					'kickoff_message'         => $kickoff_message,
+				],
+				200
+			);
 		}
 
 		// Auto-detect WooCommerce and save a context memory silently.
@@ -378,6 +418,20 @@ class OnboardingManager {
 				'model_id'    => $all['default_model'] ?? '',
 			]
 		);
+
+		if ( ! $session_id ) {
+			return new \WP_Error(
+				'bootstrap_session_failed',
+				__( 'Failed to create bootstrap session.', 'gratis-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		// Persist the session ID and mark onboarding complete atomically across
+		// both persistence layers so is_complete() and /onboarding/status agree.
+		update_option( self::BOOTSTRAP_SESSION_OPTION, $session_id, false );
+		self::mark_complete();
+		$settings->update( [ 'onboarding_complete' => true ] );
 
 		$bootstrap_prompt = SystemInstructionBuilder::get_onboarding_bootstrap_prompt();
 

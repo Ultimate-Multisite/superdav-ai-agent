@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Benchmark;
 
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Core\ProviderCredentialLoader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -438,7 +439,9 @@ class BenchmarkRunner {
 			);
 		}
 
-		// WordPress AI SDK handles credentials internally.
+		// Ensure provider credentials are loaded (same logic the chat uses).
+		ProviderCredentialLoader::load();
+
 		$builder = wp_ai_client_prompt( $prompt );
 
 		// Set provider and model through the SDK registry.

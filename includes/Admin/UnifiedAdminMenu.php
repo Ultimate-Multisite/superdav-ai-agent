@@ -29,10 +29,15 @@ class UnifiedAdminMenu {
 	 * management at options-connectors.php. On WP 6.9, our polyfill page is
 	 * shown instead.
 	 *
+	 * Uses version_compare() against $wp_version rather than function_exists()
+	 * because the polyfill (wp-connectors-polyfill.php) defines the same
+	 * functions on WP 6.9, making function_exists() always return true.
+	 *
 	 * @return bool True when running on WP 7.0+ (native Connectors page exists).
 	 */
 	public static function hasNativeConnectorsPage(): bool {
-		return function_exists( '_wp_connectors_get_provider_settings' );
+		global $wp_version;
+		return version_compare( $wp_version, '7.0', '>=' );
 	}
 
 	/**

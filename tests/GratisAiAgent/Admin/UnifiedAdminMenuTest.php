@@ -173,6 +173,38 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test hasNativeConnectorsPage() returns false on WP 6.9.
+	 *
+	 * The polyfill defines _wp_connectors_get_provider_settings() on WP 6.9,
+	 * so function_exists() would incorrectly return true. The method must
+	 * use version_compare() instead.
+	 */
+	public function test_has_native_connectors_page_returns_false_on_wp_69(): void {
+		global $wp_version;
+		$original = $wp_version;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
+		$wp_version = '6.9';
+		$result = UnifiedAdminMenu::hasNativeConnectorsPage();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
+		$wp_version = $original;
+		$this->assertFalse( $result, 'hasNativeConnectorsPage() should return false on WP 6.9 even though the polyfill defines the function.' );
+	}
+
+	/**
+	 * Test hasNativeConnectorsPage() returns true on WP 7.0.
+	 */
+	public function test_has_native_connectors_page_returns_true_on_wp_70(): void {
+		global $wp_version;
+		$original = $wp_version;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
+		$wp_version = '7.0';
+		$result = UnifiedAdminMenu::hasNativeConnectorsPage();
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
+		$wp_version = $original;
+		$this->assertTrue( $result, 'hasNativeConnectorsPage() should return true on WP 7.0+.' );
+	}
+
+	/**
 	 * Test getConnectorsUrl() returns a non-empty string.
 	 */
 	public function test_get_connectors_url_returns_string(): void {

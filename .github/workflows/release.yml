@@ -39,37 +39,10 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      - name: Install Composer dependencies (production)
-        run: composer install --no-dev --optimize-autoloader
-
-      - name: Create plugin directory
+      - name: Rename archive for release
         run: |
-          # Save built assets out of the way before creating the plugin tree
-          mkdir -p /tmp/gratis-build
-          cp build/*.js build/*.css build/*.asset.php /tmp/gratis-build/ 2>/dev/null || true
-          cp build/*.map /tmp/gratis-build/ 2>/dev/null || true
-
-          mkdir -p dist/gratis-ai-agent/build
-
-          # Copy PHP files
-          cp ai-agent-for-wp.php dist/gratis-ai-agent/
-          cp -r includes dist/gratis-ai-agent/
-          cp -r stubs dist/gratis-ai-agent/ 2>/dev/null || true
-
-          # Copy built assets
-          cp /tmp/gratis-build/* dist/gratis-ai-agent/build/ 2>/dev/null || true
-
-          # Copy other assets
-          cp -r assets dist/gratis-ai-agent/ 2>/dev/null || true
-          cp -r languages dist/gratis-ai-agent/ 2>/dev/null || true
-
-          # Copy vendor (production only)
-          cp -r vendor dist/gratis-ai-agent/
-
-          # Copy documentation
-          cp README.md dist/gratis-ai-agent/
-          cp readme.txt dist/gratis-ai-agent/
-          cp LICENSE dist/gratis-ai-agent/
+          mkdir -p build
+          mv ai-agent-for-wp.zip build/ultimate-multisite-${{ env.VERSION }}.zip
 
       - name: Create ZIP files
         run: |

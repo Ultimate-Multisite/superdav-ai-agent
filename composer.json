@@ -91,7 +91,6 @@
 			".gitattributes",
 			".task-counter",
 			".wordpress-org",
-			"assets",
 			".stylelintrc.json",
 			".eslintrc.json",
 			"wp-cli.yml",

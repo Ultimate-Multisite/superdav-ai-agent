@@ -85,7 +85,12 @@ final class AiBridgeLoader {
 		self::$loaded = true;
 
 		// Nothing to do if WP 7.0 core already provides the bridge.
-		if ( class_exists( 'WP_AI_Client_Prompt_Builder' ) ) {
+		// Check function_exists() instead of class_exists() because Composer's
+		// classmap may auto-load WP_AI_Client_Prompt_Builder before the global
+		// functions (wp_ai_client_prompt, wp_supports_ai) are loaded from
+		// ai-client.php. Checking the function ensures both class AND function
+		// are available before skipping.
+		if ( function_exists( 'wp_ai_client_prompt' ) ) {
 			return;
 		}
 

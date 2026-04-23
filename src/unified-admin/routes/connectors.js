@@ -1,9 +1,10 @@
 /**
  * Connectors Route — polyfill Connectors admin page for WP 6.9.
  *
- * On WordPress 7.0+, provider API keys are managed on the native
- * options-connectors.php page. This route provides an equivalent UI for
- * WordPress 6.9 installations.
+ * On WordPress 7.0+ (or WP 6.9 with Gutenberg 22.8.0+), provider API keys
+ * are managed on the official Connectors page at
+ * options-general.php?page=options-connectors-wp-admin. This route provides
+ * an equivalent UI for WordPress 6.9 installations without Gutenberg.
  *
  * Features:
  * - Lists AI provider connector plugins (Anthropic, OpenAI, Google AI)
@@ -416,7 +417,7 @@ export default function ConnectorsRoute() {
 
 	const connectorsUrl =
 		window.gratisAiAgentData?.connectorsUrl ||
-		'admin.php?page=gratis-ai-agent#/connectors';
+		'options-general.php?page=options-connectors-wp-admin';
 
 	if ( state.loading ) {
 		return (

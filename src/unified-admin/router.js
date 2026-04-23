@@ -9,8 +9,25 @@ import { __ } from '@wordpress/i18n';
 import ChatRoute from './routes/chat';
 import AbilitiesRoute from './routes/abilities';
 import ChangesRoute from './routes/changes';
-import ConnectorsRoute from './routes/connectors';
 import SettingsRoute from './routes/settings';
+
+/**
+ * Redirect #/connectors to the appropriate destination.
+ *
+ * On WP 7.0+ or Gutenberg 22.8.0+, redirects to the official Connectors
+ * page. On WP 6.9 without Gutenberg, redirects to the plugin installer
+ * to install Gutenberg.
+ */
+function redirectConnectors() {
+	if ( window.gratisAiAgentData?.connectorsAvailable ) {
+		window.location.href =
+			window.gratisAiAgentData?.connectorsUrl ||
+			'options-general.php?page=options-connectors-wp-admin';
+	} else {
+		window.location.href =
+			'plugin-install.php?s=gutenberg&tab=search&type=term';
+	}
+}
 
 /**
  * Router Component
@@ -38,7 +55,8 @@ export default function Router( { route } ) {
 			return <ChangesRoute />;
 
 		case 'connectors':
-			return <ConnectorsRoute />;
+			redirectConnectors();
+			return null;
 
 		case 'settings':
 			return <SettingsRoute subRoute={ subRoute } />;

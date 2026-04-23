@@ -26,33 +26,52 @@ class UnifiedAdminMenu {
 	 * Whether the native WP 7.0 Connectors page is available.
 	 *
 	 * On WP 7.0+, the native Connectors page handles provider credential
-	 * management at options-connectors.php. On WP 6.9, our polyfill page is
-	 * shown instead.
+	 * management. On WP 6.9 with Gutenberg 22.8.0+, the same page is
+	 * available via the Gutenberg plugin.
 	 *
-	 * Uses version_compare() against $wp_version rather than function_exists()
-	 * because the polyfill (wp-connectors-polyfill.php) defines the same
-	 * functions on WP 6.9, making function_exists() always return true.
-	 *
-	 * @return bool True when running on WP 7.0+ (native Connectors page exists).
+	 * @return bool True when the Connectors page is available (WP 7.0+ or Gutenberg 22.8.0+).
 	 */
 	public static function hasNativeConnectorsPage(): bool {
 		global $wp_version;
-		return version_compare( $wp_version, '7.0', '>=' );
+
+		// Use 7.0-alpha1 as the floor so that pre-release versions
+		// (7.0-alpha, 7.0-beta, 7.0-RC2, etc.) are correctly detected.
+		// PHP's version_compare() treats RC/beta/alpha as less than the
+		// release, so comparing against '7.0' would miss '7.0-RC2'.
+		if ( version_compare( $wp_version, '7.0-alpha1', '>=' ) ) {
+			return true;
+		}
+
+		// On WP 6.9, the Connectors page is available via Gutenberg 22.8.0+.
+		return self::hasGutenbergConnectorsPage();
+	}
+
+	/**
+	 * Whether the Gutenberg plugin provides the Connectors page.
+	 *
+	 * Gutenberg 22.8.0+ backports the WP 7.0 Connectors page to WP 6.9.
+	 *
+	 * @return bool True when Gutenberg 22.8.0+ is active.
+	 */
+	public static function hasGutenbergConnectorsPage(): bool {
+		if ( ! defined( 'GUTENBERG_VERSION' ) ) {
+			return false;
+		}
+		return version_compare( GUTENBERG_VERSION, '22.8.0', '>=' );
 	}
 
 	/**
 	 * Get the URL for the Connectors page.
 	 *
-	 * On WP 7.0+, returns the native options-connectors.php URL.
-	 * On WP 6.9, returns our polyfill page URL within the unified admin.
+	 * Always returns the official Connectors page URL. On WP 7.0+ and
+	 * Gutenberg 22.8.0+, this page exists natively. On WP 6.9 without
+	 * Gutenberg, the page won't exist — the JS layer handles prompting
+	 * the user to install Gutenberg.
 	 *
 	 * @return string Admin URL for the Connectors page.
 	 */
 	public static function getConnectorsUrl(): string {
-		if ( self::hasNativeConnectorsPage() ) {
-			return admin_url( 'options-connectors.php' );
-		}
-		return admin_url( 'admin.php?page=' . self::SLUG . '#/connectors' );
+		return admin_url( 'options-general.php?page=options-connectors-wp-admin' );
 	}
 
 	/**
@@ -89,18 +108,9 @@ class UnifiedAdminMenu {
 			),
 		);
 
-		// Add the Connectors item only when there is no native WP 7.0 page.
-		// On WP 7.0+, the options-connectors.php page handles provider setup;
-		// we don't need to duplicate it in the admin menu.
-		if ( ! self::hasNativeConnectorsPage() ) {
-			$items[] = array(
-				'slug'       => 'connectors',
-				'label'      => __( 'Connectors', 'gratis-ai-agent' ),
-				'icon'       => 'dashicons-admin-plugins',
-				'position'   => 25,
-				'capability' => self::CAPABILITY,
-			);
-		}
+		// The Connectors page is handled by WP 7.0+ core or Gutenberg 22.8.0+.
+		// No need for a polyfill menu item — users are directed to the
+		// official page or prompted to install Gutenberg.
 
 		$items[] = array(
 			'slug'       => 'settings',
@@ -287,14 +297,15 @@ class UnifiedAdminMenu {
 			'gratis-ai-agent-unified-admin',
 			'gratisAiAgentData',
 			array(
-				'currentUserId'   => get_current_user_id(),
-				'currentUserName' => $current_user->display_name,
-				'restNamespace'   => 'gratis-ai-agent/v1',
-				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
-				'nonce'           => wp_create_nonce( 'wp_rest' ),
-				'initialRoute'    => self::getCurrentRoute(),
-				'menuItems'       => self::getMenuItems(),
-				'connectorsUrl'   => self::getConnectorsUrl(),
+				'currentUserId'       => get_current_user_id(),
+				'currentUserName'     => $current_user->display_name,
+				'restNamespace'       => 'gratis-ai-agent/v1',
+				'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
+				'nonce'               => wp_create_nonce( 'wp_rest' ),
+				'initialRoute'        => self::getCurrentRoute(),
+				'menuItems'           => self::getMenuItems(),
+				'connectorsUrl'       => self::getConnectorsUrl(),
+				'connectorsAvailable' => self::hasNativeConnectorsPage() ? '1' : '',
 			)
 		);
 	}

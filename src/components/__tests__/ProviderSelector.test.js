@@ -187,7 +187,7 @@ describe( 'ProviderSelector rendering', () => {
 		);
 		expect( html ).toContain( 'Configure a provider' );
 		expect( html ).toContain(
-			'admin.php?page=gratis-ai-agent#/connectors'
+			'options-general.php?page=options-connectors-wp-admin'
 		);
 	} );
 

@@ -21,7 +21,73 @@ import ProviderSelector from './provider-selector';
 function getConnectorsUrl() {
 	return (
 		window.gratisAiAgentData?.connectorsUrl ||
-		'admin.php?page=gratis-ai-agent#/connectors'
+		'options-general.php?page=options-connectors-wp-admin'
+	);
+}
+
+/**
+ * Whether the Connectors page is available (WP 7.0+ or Gutenberg 22.8.0+).
+ *
+ * wp_localize_script() converts PHP booleans to strings ('1' or ''),
+ * so we check for truthiness rather than strict boolean comparison.
+ *
+ * @return {boolean} True when the Connectors page exists.
+ */
+function isConnectorsAvailable() {
+	return !! window.gratisAiAgentData?.connectorsAvailable;
+}
+
+/**
+ * One-click Gutenberg install and activate button.
+ *
+ * Uses the WP REST Plugins API to install and activate Gutenberg in a
+ * single request. Reloads the page on success so the Connectors page
+ * becomes available.
+ *
+ * @return {JSX.Element} Install button with status feedback.
+ */
+function GutenbergInstallButton() {
+	const [ busy, setBusy ] = useState( false );
+	const [ installError, setInstallError ] = useState( null );
+
+	const handleInstall = useCallback( async () => {
+		setBusy( true );
+		setInstallError( null );
+		try {
+			await apiFetch( {
+				path: '/wp/v2/plugins',
+				method: 'POST',
+				data: { slug: 'gutenberg', status: 'active' },
+			} );
+			window.location.reload();
+		} catch ( err ) {
+			setInstallError(
+				err?.message ||
+					__( 'Failed to install Gutenberg.', 'gratis-ai-agent' )
+			);
+			setBusy( false );
+		}
+	}, [] );
+
+	return (
+		<>
+			{ installError && (
+				<Notice status="error" isDismissible={ false }>
+					{ installError }
+				</Notice>
+			) }
+			<Button
+				variant="primary"
+				onClick={ handleInstall }
+				isBusy={ busy }
+				disabled={ busy }
+				className="gratis-ai-agent-wizard-connectors-link"
+			>
+				{ busy
+					? __( 'Installing Gutenberg…', 'gratis-ai-agent' )
+					: __( 'Install & Activate Gutenberg', 'gratis-ai-agent' ) }
+			</Button>
+		</>
 	);
 }
 
@@ -295,17 +361,29 @@ export default function OnboardingWizard( { onComplete } ) {
 						) }
 					</p>
 
-					<Notice status="info" isDismissible={ false }>
-						<a
-							href={ getConnectorsUrl() }
-							className="gratis-ai-agent-wizard-connectors-link"
-						>
-							{ __(
-								'Open Connectors page to configure a provider →',
-								'gratis-ai-agent'
-							) }
-						</a>
-					</Notice>
+					{ isConnectorsAvailable() ? (
+						<Notice status="info" isDismissible={ false }>
+							<a
+								href={ getConnectorsUrl() }
+								className="gratis-ai-agent-wizard-connectors-link"
+							>
+								{ __(
+									'Open Connectors page to configure a provider →',
+									'gratis-ai-agent'
+								) }
+							</a>
+						</Notice>
+					) : (
+						<>
+							<Notice status="warning" isDismissible={ false }>
+								{ __(
+									'Your WordPress version does not include the Connectors page. Install the Gutenberg plugin (version 22.8.0 or newer) to continue.',
+									'gratis-ai-agent'
+								) }
+							</Notice>
+							<GutenbergInstallButton />
+						</>
+					) }
 
 					<p className="description">
 						{ __(

@@ -510,7 +510,7 @@ export default function SettingsApp() {
 				<a
 					href={
 						window.gratisAiAgentData?.connectorsUrl ||
-						'admin.php?page=gratis-ai-agent#/connectors'
+						'options-general.php?page=options-connectors-wp-admin'
 					}
 				>
 					{ __( 'Open Connectors →', 'gratis-ai-agent' ) }

@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -173,6 +173,10 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 8. Settings page with 12 configuration tabs
 
 == Changelog ==
+
+= 1.8.1 - Released on 2026-04-22 =
+* Fix: Connectors page showing WP 7.0 redirect on WP 6.9
+* Fix: Connectors page links for WP 6.9 compat
 
 = 1.8.0 - Released on 2026-04-22 =
 * New: Split image abilities — extract GenerateImageAbility, rename Stock/Unified abilities

@@ -48,7 +48,7 @@ export default function ProviderSelector( { compact = false } ) {
 					<a
 						href={
 							window.gratisAiAgentData?.connectorsUrl ||
-							'admin.php?page=gratis-ai-agent#/connectors'
+							'options-general.php?page=options-connectors-wp-admin'
 						}
 					>
 						{ __( 'Configure a provider', 'gratis-ai-agent' ) }

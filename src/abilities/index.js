@@ -36,6 +36,10 @@
 import { registerCategory } from './registry';
 import { registerNavigationAbility } from './navigation';
 import { registerEditorAbility } from './editor';
+import {
+	registerCaptureScreenshotAbility,
+	registerScreenshotUrlAbility,
+} from './screenshot';
 
 /**
  * Window-global key used to share the registration Promise across all
@@ -102,6 +106,8 @@ export function ensureRegistered() {
 		// Now safe to register abilities — the category exists in the store.
 		await registerNavigationAbility();
 		await registerEditorAbility();
+		await registerCaptureScreenshotAbility();
+		await registerScreenshotUrlAbility();
 
 		// If the abilities API was not available (e.g. script module not
 		// yet loaded), the registration calls above silently no-oped.

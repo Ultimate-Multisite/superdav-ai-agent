@@ -99,6 +99,98 @@ class JsAbilityCatalog {
 				),
 				'screens'       => array( 'editor' ),
 			),
+			array(
+				'name'          => 'gratis-ai-agent-js/capture-screenshot',
+				'label'         => 'Capture Screenshot',
+				'description'   => 'Capture a screenshot of the current page the user is viewing. Optionally target a specific element with a CSS selector. Returns a base64 JPEG image for visual review by the AI.',
+				'category'      => 'gratis-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'selector' => array(
+							'type'        => 'string',
+							'description' => 'CSS selector to capture a specific element (e.g. "#main-content", ".entry-content"). Leave empty to capture the full page body.',
+						),
+						'fullPage' => array(
+							'type'        => 'boolean',
+							'description' => 'If true, captures the full scrollable page height instead of just the viewport. Default: false.',
+						),
+					),
+					'required'   => array(),
+				),
+				'output_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'success'   => array( 'type' => 'boolean' ),
+						'image'     => array(
+							'type'        => 'string',
+							'description' => 'Base64-encoded JPEG data URL of the screenshot.',
+						),
+						'width'     => array( 'type' => 'integer' ),
+						'height'    => array( 'type' => 'integer' ),
+						'url'       => array( 'type' => 'string' ),
+						'truncated' => array(
+							'type'        => 'boolean',
+							'description' => 'True if fullPage capture was clamped to the maximum height.',
+						),
+						'error'     => array( 'type' => 'string' ),
+					),
+				),
+				'annotations'   => array(
+					'readonly' => true,
+				),
+				'screens'       => array( 'all' ),
+			),
+			array(
+				'name'          => 'gratis-ai-agent-js/screenshot-url',
+				'label'         => 'Screenshot URL',
+				'description'   => 'Load any page on this WordPress site in a hidden iframe and capture a screenshot. Use this to visually review frontend pages without navigating the user away from wp-admin. The URL must be on the same site. Returns a base64 JPEG image for visual review by the AI.',
+				'category'      => 'gratis-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'url'      => array(
+							'type'        => 'string',
+							'description' => 'URL to screenshot. Can be a full URL on this site or a relative path (e.g. "/about/", "/contact/", "/").',
+						),
+						'width'    => array(
+							'type'        => 'integer',
+							'description' => 'Viewport width in pixels for the capture. Default: 1280.',
+						),
+						'height'   => array(
+							'type'        => 'integer',
+							'description' => 'Viewport height in pixels for the capture. Default: 800.',
+						),
+						'fullPage' => array(
+							'type'        => 'boolean',
+							'description' => 'If true, captures the full scrollable page height instead of just the viewport. Default: false.',
+						),
+					),
+					'required'   => array( 'url' ),
+				),
+				'output_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'success'   => array( 'type' => 'boolean' ),
+						'image'     => array(
+							'type'        => 'string',
+							'description' => 'Base64-encoded JPEG data URL of the screenshot.',
+						),
+						'width'     => array( 'type' => 'integer' ),
+						'height'    => array( 'type' => 'integer' ),
+						'url'       => array( 'type' => 'string' ),
+						'truncated' => array(
+							'type'        => 'boolean',
+							'description' => 'True if fullPage capture was clamped to the maximum height.',
+						),
+						'error'     => array( 'type' => 'string' ),
+					),
+				),
+				'annotations'   => array(
+					'readonly' => true,
+				),
+				'screens'       => array( 'all' ),
+			),
 		);
 	}
 

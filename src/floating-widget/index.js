@@ -13,25 +13,19 @@ import STORE_NAME from '../store';
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import ErrorBoundary from '../components/error-boundary';
-import FloatingButton from './floating-button';
-import FloatingPanel from './floating-panel';
-import SiteBuilderOverlay from './site-builder-overlay';
+import ChatWidget from '../components/chat-widget';
 import useKeyboardShortcut from './use-keyboard-shortcut';
 import { getActiveJobs } from '../utils/active-jobs-storage';
 import '../components/shared.css';
-import './style.css';
 
 /**
  * Root floating widget component.
  *
  * Fetches providers and sessions on mount, gathers page context, and
- * renders one of three states:
- * - SiteBuilderOverlay: full-screen overlay for fresh installs (t062)
- * - FloatingButton: FAB when the panel is closed
- * - FloatingPanel: draggable chat panel when open
- * Registers a configurable keyboard shortcut (default: Alt+A) to toggle the panel.
+ * renders the redesigned ChatWidget (launcher or panel). Registers a
+ * configurable keyboard shortcut (default: Alt+A) to toggle the panel.
  *
- * @return {JSX.Element} The floating widget element.
+ * @return {JSX.Element|null} The floating widget element, or null on boot error.
  */
 function FloatingWidget() {
 	const {
@@ -39,16 +33,14 @@ function FloatingWidget() {
 		fetchSessions,
 		fetchAlerts,
 		setPageContext,
-		setSiteBuilderMode,
 		setFloatingOpen,
 		pollJob,
 		restoreActiveJobs,
 	} = useDispatch( STORE_NAME );
 
-	const { isOpen, isSiteBuilderMode, settings, bootError } = useSelect(
+	const { isOpen, settings, bootError } = useSelect(
 		( select ) => ( {
 			isOpen: select( STORE_NAME ).isFloatingOpen(),
-			isSiteBuilderMode: select( STORE_NAME ).isSiteBuilderMode(),
 			settings: select( STORE_NAME ).getSettings(),
 			bootError: select( STORE_NAME ).getBootError(),
 		} ),
@@ -136,63 +128,13 @@ function FloatingWidget() {
 		}
 	}, [ setPageContext ] );
 
-	// Activate site builder mode when the PHP layer signals it (t060/t062).
-	// Only activate on the main AI Agent page — not on Changes, Abilities, or
-	// other admin pages where the overlay would block unrelated content (#511).
-	useEffect( () => {
-		if (
-			window.gratisAiAgentSiteBuilder?.siteBuilderMode &&
-			isMainAgentPage()
-		) {
-			setSiteBuilderMode( true );
-		}
-	}, [ setSiteBuilderMode ] );
-
 	// If API calls failed, hide the widget entirely — the full error
 	// screen is shown by the admin-page bundle instead.
 	if ( bootError ) {
 		return null;
 	}
 
-	// Site builder full-screen overlay takes priority over normal FAB/panel.
-	// Guard: only render on the main AI Agent page.
-	if ( isSiteBuilderMode && isMainAgentPage() ) {
-		return <SiteBuilderOverlay />;
-	}
-
-	return (
-		<>
-			{ ! isOpen && <FloatingButton /> }
-			{ isOpen && <FloatingPanel /> }
-		</>
-	);
-}
-
-/**
- * Determine whether the current admin page is the main AI Agent page.
- *
- * The site builder overlay must only render on the main AI Agent page
- * (slug: `gratis-ai-agent`). On other admin pages — Changes, Abilities,
- * Settings, or any unrelated WordPress page — the overlay must not appear
- * even when `siteBuilderMode` is true in the store (#511).
- *
- * WordPress sets `window.pagenow` to the page slug for top-level menu pages
- * (e.g. `toplevel_page_gratis-ai-agent`) and `window.adminpage` to the
- * hook suffix. We also check the URL `page` query param as a fallback.
- *
- * @return {boolean} True only when on the main AI Agent admin page.
- */
-function isMainAgentPage() {
-	const MAIN_PAGE_SLUG = 'gratis-ai-agent';
-
-	// WordPress sets pagenow to `toplevel_page_{slug}` for top-level menu pages.
-	if ( window.pagenow ) {
-		return window.pagenow === 'toplevel_page_' + MAIN_PAGE_SLUG;
-	}
-
-	// Fallback: check the URL `page` query parameter.
-	const urlParams = new URLSearchParams( window.location.search );
-	return urlParams.get( 'page' ) === MAIN_PAGE_SLUG;
+	return <ChatWidget />;
 }
 
 /**

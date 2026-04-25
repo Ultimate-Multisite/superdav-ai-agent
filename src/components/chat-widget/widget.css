@@ -1,0 +1,1275 @@
+/*
+ * Floating chat widget — redesign styles.
+ * Scoped under .gaa-w-* so nothing leaks into the surrounding wp-admin.
+ * All colour tokens resolve against the chat-redesign variables when
+ * chat-redesign.css has loaded on the page; for admin pages that only
+ * load the widget bundle, we re-declare the subset we need below.
+ */
+
+:root {
+	--gaa-w-primary: var(--wp-admin-theme-color, #2271b1);
+	--gaa-w-primary-dark: var(--wp-admin-theme-color-darker-10, #135e96);
+	--gaa-w-text-primary: #1d2327;
+	--gaa-w-text-secondary: #50575e;
+	--gaa-w-text-muted: #787c82;
+	--gaa-w-border-strong: #c3c4c7;
+	--gaa-w-border-subtle: #dcdcde;
+	--gaa-w-bubble-user-border: #c5d9ed;
+	--gaa-w-surface: #f6f7f7;
+	--gaa-w-surface-hover: #f0f0f1;
+	--gaa-w-surface-active: #f0f6fc;
+	--gaa-w-success: #00a32a;
+	--gaa-w-warning: #dba617;
+	--gaa-w-error: #d63638;
+	--gaa-w-radius-xs: 4px;
+	--gaa-w-radius-sm: 6px;
+	--gaa-w-radius-md: 8px;
+	--gaa-w-radius-lg: 12px;
+	--gaa-w-radius-pill: 9999px;
+	--gaa-w-duration: 150ms;
+	--gaa-w-shadow-overlay: 0 8px 32px rgb(0 0 0 / 20%);
+	--gaa-w-shadow-elevated: 0 4px 16px rgb(0 0 0 / 14%);
+	--gaa-w-font-ui:
+		-apple-system, blinkmacsystemfont, "Segoe UI", Roboto, Oxygen-Sans,
+		Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	--gaa-w-font-mono:
+		ui-monospace, sfmono-regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* =================================================================
+   Launcher (FAB)
+   ================================================================= */
+
+.gaa-w-launcher {
+	position: fixed;
+	right: 36px;
+	bottom: 28px;
+	z-index: 99999;
+	display: inline-flex;
+	width: 52px;
+	height: 52px;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 50%;
+	background: var(--gaa-w-primary);
+	color: #fff;
+	box-shadow:
+		0 4px 16px rgb(0 0 0 / 18%),
+		0 2px 4px rgb(0 0 0 / 10%);
+	cursor: pointer;
+	transition: transform var(--gaa-w-duration), background var(--gaa-w-duration);
+}
+
+.gaa-w-launcher:hover {
+	background: var(--gaa-w-primary-dark);
+	transform: translateY(-1px);
+}
+
+.gaa-w-launcher svg {
+	width: 24px;
+	height: 24px;
+	fill: currentcolor;
+}
+
+.gaa-w-launcher-logo {
+	width: 26px;
+	height: 26px;
+	border-radius: 3px;
+	object-fit: contain;
+}
+
+.gaa-w-launcher-pulse {
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	width: 10px;
+	height: 10px;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	background: var(--gaa-w-success);
+	animation: gaa-w-pulse 1.5s ease-in-out infinite;
+}
+
+.gaa-w-launcher-badge {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+	display: inline-flex;
+	min-width: 18px;
+	height: 18px;
+	align-items: center;
+	justify-content: center;
+	padding: 0 4px;
+	border: 2px solid #fff;
+	border-radius: 9px;
+	background: var(--gaa-w-error);
+	color: #fff;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+	box-sizing: border-box;
+	pointer-events: none;
+}
+
+/* =================================================================
+   Panel shell
+   ================================================================= */
+
+.gaa-w-panel {
+	position: fixed;
+	right: 36px;
+	bottom: 28px;
+	z-index: 99999;
+	display: flex;
+	width: 400px;
+	height: 640px;
+	max-width: calc(100vw - 72px);
+	max-height: calc(100vh - 56px);
+	flex-direction: column;
+	overflow: hidden;
+	border-radius: var(--gaa-w-radius-lg);
+	background: #fff;
+	box-shadow: var(--gaa-w-shadow-overlay);
+	font-family: var(--gaa-w-font-ui);
+	font-size: 13px;
+	color: var(--gaa-w-text-primary);
+	animation: gaa-w-panel-in 180ms ease;
+}
+
+.gaa-w-panel.is-minimized {
+	width: 320px;
+	height: auto;
+	cursor: pointer;
+}
+
+/* Suppress the panel-in entrance animation while the user is moving or
+   resizing — otherwise every state update replays the fade-in. */
+.gaa-w-panel.is-dragging,
+.gaa-w-panel.is-resizing {
+	animation: none;
+	transition: none;
+}
+
+/* =================================================================
+   Resize handles
+   ================================================================= */
+
+.gaa-w-resize-handle {
+	position: absolute;
+	z-index: 20;
+}
+
+.gaa-w-resize-handle--right {
+	top: 0;
+	right: 0;
+	width: 6px;
+	height: 100%;
+	cursor: ew-resize;
+}
+
+.gaa-w-resize-handle--bottom {
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 6px;
+	cursor: ns-resize;
+}
+
+.gaa-w-resize-handle--corner {
+	bottom: 0;
+	right: 0;
+	width: 16px;
+	height: 16px;
+	cursor: nwse-resize;
+}
+
+.gaa-w-resize-handle--corner::after {
+	content: "";
+	position: absolute;
+	right: 3px;
+	bottom: 3px;
+	width: 8px;
+	height: 8px;
+	border-right: 2px solid var(--gaa-w-border-strong);
+	border-bottom: 2px solid var(--gaa-w-border-strong);
+	border-radius: 1px;
+}
+
+@keyframes gaa-w-panel-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes gaa-w-pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.4;
+	}
+}
+
+@keyframes gaa-w-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* =================================================================
+   Header
+   ================================================================= */
+
+.gaa-w-head {
+	display: flex;
+	min-height: 54px;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--gaa-w-border-subtle);
+	background: #fff;
+	cursor: grab;
+	user-select: none;
+}
+
+.gaa-w-panel.is-dragging .gaa-w-head {
+	cursor: grabbing;
+}
+
+.gaa-w-panel.is-minimized .gaa-w-head {
+	border-bottom: 0;
+}
+
+/* Title-wrap hugs its content so the "new chat" button sits directly
+   after the title. min-width: 0 still lets the title ellipsis when a
+   single conversation title is too long to fit. */
+.gaa-w-head-title-wrap {
+	position: relative;
+	display: flex;
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.gaa-w-head-session {
+	display: inline-flex;
+	min-width: 0;
+	max-width: 100%;
+	align-items: center;
+	gap: 10px;
+	padding: 4px 8px 4px 6px;
+	border: 0;
+	border-radius: var(--gaa-w-radius-sm);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background var(--gaa-w-duration);
+}
+
+.gaa-w-head-session:hover,
+.gaa-w-head-session.is-open {
+	background: var(--gaa-w-surface-hover);
+}
+
+.gaa-w-avatar {
+	display: inline-flex;
+	width: 26px;
+	height: 26px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: var(--gaa-w-primary);
+	color: #fff;
+}
+
+.gaa-w-avatar svg {
+	width: 14px;
+	height: 14px;
+	fill: currentcolor;
+}
+
+.gaa-w-avatar-logo {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	border-radius: 3px;
+}
+
+.gaa-w-head-titles {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+	text-align: left;
+}
+
+.gaa-w-head-name {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	font-size: 13.5px;
+	font-weight: 600;
+	line-height: 1.2;
+	color: var(--gaa-w-text-primary);
+}
+
+.gaa-w-head-name-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+.gaa-w-head-caret {
+	display: inline-flex;
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+	color: var(--gaa-w-text-muted);
+	transition: transform var(--gaa-w-duration);
+}
+
+.gaa-w-head-caret svg {
+	width: 14px;
+	height: 14px;
+	fill: currentcolor;
+}
+
+.gaa-w-head-session.is-open .gaa-w-head-caret {
+	transform: rotate(180deg);
+}
+
+.gaa-w-head-status {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 1px;
+	font-size: 11px;
+	color: var(--gaa-w-text-muted);
+}
+
+.gaa-w-head-status.is-running {
+	color: var(--gaa-w-success);
+}
+
+.gaa-w-head-status-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	background: var(--gaa-w-success);
+}
+
+.gaa-w-head-status.is-running .gaa-w-head-status-dot,
+.gaa-w-head-status-dot.is-running {
+	animation: gaa-w-pulse 1.5s ease-in-out infinite;
+}
+
+.gaa-w-head-status-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gaa-w-new-btn {
+	display: inline-flex;
+	width: 34px;
+	height: 34px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid transparent;
+	border-radius: var(--gaa-w-radius-sm);
+	background: transparent;
+	color: var(--gaa-w-text-muted);
+	cursor: pointer;
+	transition:
+		background var(--gaa-w-duration),
+		border-color var(--gaa-w-duration),
+		color var(--gaa-w-duration);
+}
+
+.gaa-w-new-btn:hover {
+	border-color: var(--gaa-w-border-subtle);
+	background: var(--gaa-w-surface-hover);
+	color: var(--gaa-w-primary);
+}
+
+.gaa-w-new-btn svg {
+	width: 20px;
+	height: 20px;
+	fill: currentcolor;
+}
+
+.gaa-w-head-actions {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 2px;
+	margin-left: auto;
+}
+
+/* ─── Session drawer (dropdown under title) ───────────────────────── */
+
+.gaa-w-session-drawer {
+	position: absolute;
+	z-index: 80;
+	top: calc(100% + 6px);
+	left: 0;
+	display: flex;
+	width: max-content;
+	min-width: 280px;
+	max-width: min(480px, calc(100vw - 72px));
+	max-height: 360px;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--gaa-w-border-subtle);
+	border-radius: var(--gaa-w-radius-md);
+	background: #fff;
+	box-shadow: var(--gaa-w-shadow-elevated);
+	animation: gaa-w-panel-in 150ms ease;
+}
+
+.gaa-w-session-drawer-item-title {
+
+	/* Give the max-content width of the drawer room to grow with the
+	   longest title, while still ellipsising the outliers. */
+	max-width: 320px;
+}
+
+.gaa-w-session-drawer-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--gaa-w-border-subtle);
+	color: var(--gaa-w-text-muted);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+}
+
+.gaa-w-session-drawer-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px;
+}
+
+.gaa-w-session-drawer-item {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: var(--gaa-w-radius-sm);
+	background: transparent;
+	color: var(--gaa-w-text-primary);
+	font: inherit;
+	font-size: 12.5px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.gaa-w-session-drawer-item:hover {
+	background: var(--gaa-w-surface-hover);
+}
+
+.gaa-w-session-drawer-item.is-active {
+	background: var(--gaa-w-surface-active);
+	color: var(--gaa-w-primary);
+	font-weight: 500;
+}
+
+.gaa-w-session-drawer-item-icon {
+	display: inline-flex;
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	color: var(--gaa-w-text-muted);
+}
+
+.gaa-w-session-drawer-item-icon svg {
+	width: 12px;
+	height: 12px;
+	fill: currentcolor;
+}
+
+.gaa-w-session-drawer-item-title {
+	overflow: hidden;
+	min-width: 0;
+	flex: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gaa-w-session-drawer-item-time {
+	flex-shrink: 0;
+	color: var(--gaa-w-text-muted);
+	font-size: 10.5px;
+}
+
+.gaa-w-session-drawer-item.is-active .gaa-w-session-drawer-item-time {
+	color: var(--gaa-w-primary);
+	opacity: 0.7;
+}
+
+.gaa-w-session-drawer-empty {
+	padding: 16px 12px;
+	color: var(--gaa-w-text-muted);
+	font-size: 12px;
+	text-align: center;
+}
+
+/* =================================================================
+   Body + empty state
+   ================================================================= */
+
+.gaa-w-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 16px 0 8px;
+	scroll-behavior: smooth;
+}
+
+.gaa-w-body-inner {
+	padding: 0 14px;
+}
+
+.gaa-w-empty {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 24px 14px 8px;
+}
+
+.gaa-w-empty-greeting {
+	margin: 0 0 4px;
+	color: var(--gaa-w-text-primary);
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.gaa-w-empty-sub {
+	margin: 0 0 16px;
+	color: var(--gaa-w-text-secondary);
+	font-size: 12.5px;
+	line-height: 1.5;
+}
+
+.gaa-w-empty-label {
+	margin: 0 0 8px;
+	color: var(--gaa-w-text-muted);
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+}
+
+.gaa-w-suggestion-list {
+	display: grid;
+	gap: 6px;
+}
+
+.gaa-w-suggestion-card {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--gaa-w-border-subtle);
+	border-radius: var(--gaa-w-radius-md);
+	background: #fff;
+	color: var(--gaa-w-text-primary);
+	font: inherit;
+	font-size: 12.5px;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		border-color var(--gaa-w-duration),
+		background var(--gaa-w-duration);
+}
+
+.gaa-w-suggestion-card:hover {
+	border-color: var(--gaa-w-primary);
+	background: var(--gaa-w-surface-active);
+}
+
+.gaa-w-suggestion-card-icon {
+	display: inline-flex;
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--gaa-w-radius-sm);
+	background: var(--gaa-w-surface);
+	color: var(--gaa-w-text-secondary);
+}
+
+.gaa-w-suggestion-card-icon svg {
+	width: 16px;
+	height: 16px;
+	fill: currentcolor;
+}
+
+.gaa-w-suggestion-card-body {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+}
+
+.gaa-w-suggestion-card-title {
+	font-weight: 500;
+	line-height: 1.3;
+}
+
+.gaa-w-suggestion-card-sub {
+	overflow: hidden;
+	margin-top: 2px;
+	color: var(--gaa-w-text-muted);
+	font-size: 11px;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gaa-w-empty-foot {
+	margin: 16px 0 0;
+	color: var(--gaa-w-text-muted);
+	font-size: 11px;
+	text-align: center;
+	opacity: 0.6;
+}
+
+/* =================================================================
+   Messages
+   ================================================================= */
+
+.gaa-w-msg-row {
+	position: relative;
+	margin-bottom: 16px;
+}
+
+.gaa-w-msg-user {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+.gaa-w-bubble-user {
+	max-width: 88%;
+	padding: 8px 12px;
+	border: 1px solid var(--gaa-w-bubble-user-border);
+	border-radius: var(--gaa-w-radius-md);
+	border-bottom-right-radius: 4px;
+	background: var(--gaa-w-surface-active);
+	color: var(--gaa-w-text-primary);
+	font-size: 13px;
+	line-height: 1.55;
+	white-space: pre-wrap;
+}
+
+.gaa-w-bubble-attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.gaa-w-bubble-attachments img {
+	max-width: 120px;
+	max-height: 120px;
+	border-radius: var(--gaa-w-radius-sm);
+	object-fit: cover;
+}
+
+.gaa-w-msg-assistant {
+	display: flex;
+	gap: 8px;
+}
+
+.gaa-w-msg-avatar {
+	display: inline-flex;
+	width: 22px;
+	height: 22px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	margin-top: 1px;
+	border-radius: 50%;
+	background: var(--gaa-w-primary);
+	color: #fff;
+}
+
+.gaa-w-msg-avatar svg {
+	width: 12px;
+	height: 12px;
+	fill: currentcolor;
+}
+
+.gaa-w-msg-body {
+	min-width: 0;
+	flex: 1;
+	color: var(--gaa-w-text-primary);
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.gaa-w-msg-body p {
+	margin: 0 0 6px;
+}
+
+.gaa-w-msg-body p:last-child {
+	margin-bottom: 0;
+}
+
+.gaa-w-msg-body strong {
+	font-weight: 600;
+}
+
+.gaa-w-msg-body ol,
+.gaa-w-msg-body ul {
+	margin: 0 0 6px;
+	padding-left: 20px;
+}
+
+.gaa-w-msg-body li {
+	margin-bottom: 4px;
+}
+
+.gaa-w-msg-body li::marker {
+	color: var(--gaa-w-text-muted);
+}
+
+.gaa-w-msg-body code {
+	padding: 1px 5px;
+	border: 1px solid var(--gaa-w-border-subtle);
+	border-radius: var(--gaa-w-radius-xs);
+	background: var(--gaa-w-surface);
+	font-family: var(--gaa-w-font-mono);
+	font-size: 0.88em;
+}
+
+/* Dark code blocks for markdown fences — excluded for tool card
+   argument/result panels which use the chat-redesign light style. */
+.gaa-w-msg-body pre:not(.gaa-cr-tool-detail-value) {
+	margin: 0.4em 0;
+	padding: 8px 10px;
+	overflow-x: auto;
+	border-radius: var(--gaa-w-radius-sm);
+	background: #1d2327;
+	color: #e0e0e0;
+	font-size: 0.8em;
+	line-height: 1.4;
+}
+
+.gaa-w-msg-body pre:not(.gaa-cr-tool-detail-value) code {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+}
+
+.gaa-w-msg-system {
+	padding: 8px 12px;
+	border: 1px solid var(--gaa-w-error);
+	border-radius: var(--gaa-w-radius-sm);
+	background: #fcf0f1;
+	color: #8a2424;
+	font-size: 12px;
+}
+
+.gaa-w-msg-meta {
+	display: flex;
+	min-height: 22px;
+	align-items: center;
+	gap: 8px;
+	margin-top: 4px;
+	color: var(--gaa-w-text-muted);
+	font-size: 10.5px;
+	opacity: 0;
+	transition: opacity var(--gaa-w-duration);
+}
+
+.gaa-w-msg-row:hover .gaa-w-msg-meta,
+.gaa-w-msg-row:focus-within .gaa-w-msg-meta {
+	opacity: 1;
+}
+
+.gaa-w-msg-meta-assistant {
+	padding-left: 0;
+	justify-content: flex-start;
+}
+
+.gaa-w-followups {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 10px;
+}
+
+.gaa-w-followup-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border: 1px solid var(--gaa-w-border-subtle);
+	border-radius: var(--gaa-w-radius-pill);
+	background: #fff;
+	color: var(--gaa-w-text-primary);
+	font: inherit;
+	font-size: 11.5px;
+	cursor: pointer;
+	transition:
+		border-color var(--gaa-w-duration),
+		background var(--gaa-w-duration),
+		color var(--gaa-w-duration);
+}
+
+.gaa-w-followup-chip:hover {
+	border-color: var(--gaa-w-primary);
+	background: var(--gaa-w-surface-active);
+	color: var(--gaa-w-primary);
+}
+
+.gaa-w-followup-chip svg {
+	width: 12px;
+	height: 12px;
+	fill: currentcolor;
+	color: var(--gaa-w-text-muted);
+}
+
+.gaa-w-followup-chip:hover svg {
+	color: var(--gaa-w-primary);
+}
+
+.gaa-w-running-line {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 6px;
+	color: var(--gaa-w-text-secondary);
+	font-size: 12px;
+}
+
+.gaa-w-running-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--gaa-w-primary);
+	animation: gaa-w-pulse 1.2s ease-in-out infinite;
+}
+
+/* Tool card reuses the chat-redesign styling verbatim so the widget
+   and full chat render tool calls identically. No compact overrides. */
+
+/* =================================================================
+   Running banner + changes strip (between body and input)
+   ================================================================= */
+
+.gaa-w-running-banner {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-top: 1px solid #c5d9ed;
+	background: #f7fbfe;
+	color: var(--gaa-w-text-secondary);
+	font-size: 11.5px;
+}
+
+.gaa-w-spin {
+	width: 10px;
+	height: 10px;
+	flex-shrink: 0;
+	border: 2px solid rgb(34 113 177 / 25%);
+	border-top-color: var(--gaa-w-primary);
+	border-radius: 50%;
+	animation: gaa-w-spin 0.7s linear infinite;
+}
+
+.gaa-w-running-banner-text {
+	overflow: hidden;
+	min-width: 0;
+	flex: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gaa-w-running-banner-text strong {
+	color: var(--gaa-w-text-primary);
+	font-weight: 600;
+}
+
+.gaa-w-stop-btn {
+	display: inline-flex;
+	height: 24px;
+	align-items: center;
+	gap: 4px;
+	padding: 0 8px;
+	border: 1px solid var(--gaa-w-border-strong);
+	border-radius: var(--gaa-w-radius-sm);
+	background: #fff;
+	color: var(--gaa-w-text-primary);
+	font: inherit;
+	font-size: 11.5px;
+	cursor: pointer;
+}
+
+.gaa-w-stop-btn:hover {
+	border-color: var(--gaa-w-error);
+	color: var(--gaa-w-error);
+}
+
+.gaa-w-stop-btn svg {
+	width: 10px;
+	height: 10px;
+	fill: currentcolor;
+}
+
+/* Full-width changes strip below the header */
+
+.gaa-w-changes-strip {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid #e4c880;
+	background: #fcf9e8;
+	color: #7a5a10;
+	font-size: 11.5px;
+}
+
+.gaa-w-changes-strip-text {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.gaa-w-changes-count {
+	display: inline-flex;
+	min-width: 18px;
+	height: 18px;
+	align-items: center;
+	justify-content: center;
+	padding: 0 5px;
+	margin-right: 4px;
+	border-radius: var(--gaa-w-radius-pill);
+	background: #e4c880;
+	color: #5a4208;
+	font-size: 10.5px;
+	font-weight: 700;
+}
+
+.gaa-w-changes-strip-btn {
+	padding: 2px 8px;
+	border: 0;
+	border-radius: var(--gaa-w-radius-sm);
+	background: transparent;
+	color: #7a5a10;
+	font: inherit;
+	font-size: 11.5px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.gaa-w-changes-strip-btn:hover {
+	background: rgb(122 90 16 / 10%);
+}
+
+/* Body wrap hosts both the message list and the changes drawer overlay. */
+
+.gaa-w-body-wrap {
+	position: relative;
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	flex-direction: column;
+}
+
+/* Wrap is a positioning context only — no backdrop, no forced size.
+   The drawer inside auto-sizes to its content. */
+.gaa-w-changes-drawer-wrap {
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 15;
+	pointer-events: none;
+	animation: gaa-w-panel-in 120ms ease;
+}
+
+/* Override the chat-redesign drawer's absolute positioning so it anchors
+   to the top of the widget body area, inherits the widget's width, and
+   shrinks to fit its content (capped at the available height). */
+.gaa-w-changes-drawer-wrap .gaa-cr-changes-drawer {
+	position: relative;
+	top: 0;
+	right: 0;
+	margin: 8px;
+	width: auto;
+	max-height: calc(100vh - 220px);
+	pointer-events: auto;
+}
+
+.gaa-w-queue-indicator {
+	padding: 4px 12px;
+	border-top: 1px solid var(--gaa-w-border-subtle);
+	background: var(--gaa-w-surface);
+	color: var(--gaa-w-text-muted);
+	font-size: 11px;
+}
+
+/* =================================================================
+   Input
+   ================================================================= */
+
+.gaa-w-input {
+	flex-shrink: 0;
+	padding: 10px 12px;
+	border-top: 1px solid var(--gaa-w-border-subtle);
+	background: #fff;
+}
+
+.gaa-w-input-frame {
+	padding: 8px 10px 6px;
+	border: 1px solid var(--gaa-w-border-strong);
+	border-radius: 12px;
+	background: #fff;
+	transition:
+		border-color var(--gaa-w-duration),
+		box-shadow var(--gaa-w-duration);
+}
+
+.gaa-w-input-frame:focus-within {
+	border-color: var(--gaa-w-primary);
+	box-shadow: 0 0 0 1px var(--gaa-w-primary);
+}
+
+.gaa-w-input-textarea {
+	display: block;
+	width: 100%;
+	min-height: 22px;
+	max-height: 140px;
+	padding: 2px;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--gaa-w-text-primary);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.5;
+	resize: none;
+	box-shadow: none;
+}
+
+/* Kill wp-components' default focus ring — the outer .gaa-w-input-frame
+   already handles the focused state via its own border + box-shadow. */
+.gaa-w-input-textarea:focus,
+.gaa-w-input-textarea:focus-visible {
+	outline: 0;
+	box-shadow: none;
+}
+
+.gaa-w-input-textarea::placeholder {
+	color: var(--gaa-w-text-muted);
+}
+
+.gaa-w-input-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding-top: 4px;
+}
+
+.gaa-w-input-toolbar-left {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	align-items: center;
+	gap: 2px;
+}
+
+.gaa-w-input-toolbar-right {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.gaa-w-attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.gaa-w-attachment-thumb {
+	position: relative;
+	display: inline-flex;
+	width: 48px;
+	height: 48px;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	border: 1px solid var(--gaa-w-border-subtle);
+	border-radius: var(--gaa-w-radius-sm);
+	background: var(--gaa-w-surface);
+	font-size: 10px;
+	font-weight: 600;
+	color: var(--gaa-w-text-secondary);
+}
+
+.gaa-w-attachment-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.gaa-w-attachment-thumb-remove {
+	position: absolute;
+	top: 1px;
+	right: 1px;
+	display: inline-flex;
+	width: 16px;
+	height: 16px;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 50%;
+	background: rgb(0 0 0 / 55%);
+	color: #fff;
+	font-size: 12px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+/* Model chip + send button reuse the chat-redesign (.gaa-cr-*) styles
+   so the widget input toolbar matches the main chat sizing exactly. */
+
+/* =================================================================
+   Icon buttons (widget-specific — used in header + session drawer)
+   ================================================================= */
+
+.gaa-w-icon-btn {
+	display: inline-flex;
+	width: 26px;
+	height: 26px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid transparent;
+	border-radius: var(--gaa-w-radius-sm);
+	background: transparent;
+	color: var(--gaa-w-text-muted);
+	cursor: pointer;
+	transition:
+		background var(--gaa-w-duration),
+		color var(--gaa-w-duration);
+}
+
+.gaa-w-icon-btn:hover:not(:disabled) {
+	background: var(--gaa-w-surface-hover);
+	color: var(--gaa-w-text-primary);
+}
+
+.gaa-w-icon-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.gaa-w-icon-btn.is-active {
+	background: var(--gaa-w-surface-active);
+	color: var(--gaa-w-primary);
+}
+
+.gaa-w-icon-btn.is-small {
+	width: 22px;
+	height: 22px;
+}
+
+.gaa-w-icon-btn svg {
+	width: 14px;
+	height: 14px;
+	fill: currentcolor;
+}
+
+.gaa-w-icon-btn.is-small svg {
+	width: 12px;
+	height: 12px;
+}
+
+/* =================================================================
+   Responsive
+   ================================================================= */
+
+@media (max-width: 500px) {
+	.gaa-w-panel {
+		right: 8px;
+		bottom: 8px;
+		left: 8px;
+		width: auto;
+		height: calc(100vh - 80px);
+		max-width: none;
+	}
+
+	.gaa-w-panel.is-minimized {
+		left: auto;
+		width: 280px;
+		height: auto;
+	}
+
+	.gaa-w-launcher {
+		right: 16px;
+		bottom: 16px;
+		width: 44px;
+		height: 44px;
+	}
+
+	.gaa-w-launcher svg {
+		width: 20px;
+		height: 20px;
+	}
+}
+
+/* =================================================================
+   Body scrollbars
+   ================================================================= */
+
+.gaa-w-body::-webkit-scrollbar,
+.gaa-w-empty::-webkit-scrollbar {
+	width: 8px;
+}
+
+.gaa-w-body::-webkit-scrollbar-thumb,
+.gaa-w-empty::-webkit-scrollbar-thumb {
+	border: 2px solid transparent;
+	border-radius: 10px;
+	background: transparent;
+	background-clip: padding-box;
+}
+
+.gaa-w-body:hover::-webkit-scrollbar-thumb,
+.gaa-w-empty:hover::-webkit-scrollbar-thumb {
+	background: rgb(0 0 0 / 15%);
+	background-clip: padding-box;
+}

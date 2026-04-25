@@ -923,6 +923,7 @@ export const actions = {
 					role: 'user',
 					parts: parts.length ? parts : [ { text: '' } ],
 					attachments: imageAttachments,
+					ts: Date.now(),
 				} );
 			}
 

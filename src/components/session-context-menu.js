@@ -2,14 +2,13 @@
  * WordPress dependencies
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-import FolderPicker from './folder-picker';
 
 /**
  * Context menu for a session item (rename, pin, folder, export, archive, trash, share).
@@ -28,7 +27,6 @@ export default function SessionContextMenu( {
 	onClose,
 	isOwner = true,
 } ) {
-	const [ showFolderPicker, setShowFolderPicker ] = useState( false );
 	const [ isRenaming, setIsRenaming ] = useState( false );
 	const [ renameTitle, setRenameTitle ] = useState( session.title || '' );
 	const menuRef = useRef( null );
@@ -46,20 +44,8 @@ export default function SessionContextMenu( {
 		trashSession,
 		restoreSession,
 		renameSession,
-		moveSessionToFolder,
 		exportSession,
-		shareSession,
-		unshareSession,
 	} = useDispatch( STORE_NAME );
-
-	// Determine if this session is currently shared.
-	const isShared = useSelect(
-		( select ) => {
-			const sharedSessions = select( STORE_NAME ).getSharedSessions();
-			return sharedSessions.some( ( s ) => s.id === session.id );
-		},
-		[ session.id ]
-	);
 
 	const sessionId = session.id;
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
@@ -111,89 +97,46 @@ export default function SessionContextMenu( {
 		);
 	}
 
-	if ( showFolderPicker ) {
-		return (
-			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
-				<FolderPicker
-					currentFolder={ session.folder || '' }
-					onSelect={ ( folder ) => {
-						moveSessionToFolder( sessionId, folder );
-						onClose();
-					} }
-					onClose={ onClose }
-				/>
-			</div>
-		);
-	}
-
 	return (
 		<div
 			className="gratis-ai-agent-context-menu"
 			ref={ menuRef }
 			role="menu"
 		>
+			{ ! isTrashed && isOwner && (
+				<button
+					type="button"
+					role="menuitem"
+					onClick={ () => setIsRenaming( true ) }
+				>
+					{ __( 'Rename', 'gratis-ai-agent' ) }
+				</button>
+			) }
 			{ ! isTrashed && (
-				<>
-					{ isOwner && (
-						<button
-							type="button"
-							role="menuitem"
-							onClick={ () => setIsRenaming( true ) }
-						>
-							{ __( 'Rename', 'gratis-ai-agent' ) }
-						</button>
-					) }
-					<button
-						type="button"
-						role="menuitem"
-						onClick={ () => {
-							pinSession( sessionId, ! isPinned );
-							onClose();
-						} }
-					>
-						{ isPinned
-							? __( 'Unpin', 'gratis-ai-agent' )
-							: __( 'Pin', 'gratis-ai-agent' ) }
-					</button>
-					{ isOwner && (
-						<button
-							type="button"
-							role="menuitem"
-							onClick={ () => setShowFolderPicker( true ) }
-						>
-							{ __( 'Move to Folder', 'gratis-ai-agent' ) }
-						</button>
-					) }
-					<button
-						type="button"
-						role="menuitem"
-						onClick={ () => {
-							exportSession( sessionId, 'json' );
-							onClose();
-						} }
-					>
-						{ __( 'Export', 'gratis-ai-agent' ) }
-					</button>
-					{ isOwner && (
-						<button
-							type="button"
-							role="menuitem"
-							onClick={ () => {
-								if ( isShared ) {
-									unshareSession( sessionId );
-								} else {
-									shareSession( sessionId );
-								}
-								onClose();
-							} }
-						>
-							{ isShared
-								? __( 'Unshare', 'gratis-ai-agent' )
-								: __( 'Share with Admins', 'gratis-ai-agent' ) }
-						</button>
-					) }
-					<hr />
-				</>
+				<button
+					type="button"
+					role="menuitem"
+					onClick={ () => {
+						pinSession( sessionId, ! isPinned );
+						onClose();
+					} }
+				>
+					{ isPinned
+						? __( 'Unpin', 'gratis-ai-agent' )
+						: __( 'Pin', 'gratis-ai-agent' ) }
+				</button>
+			) }
+			{ ! isTrashed && (
+				<button
+					type="button"
+					role="menuitem"
+					onClick={ () => {
+						exportSession( sessionId, 'json' );
+						onClose();
+					} }
+				>
+					{ __( 'Export', 'gratis-ai-agent' ) }
+				</button>
 			) }
 			{ isOwner && ! isArchived && ! isTrashed && (
 				<button

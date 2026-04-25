@@ -1,0 +1,1738 @@
+/* ============================================================
+   Gratis AI Agent — Chat Redesign
+   All rules are scoped under .gaa-cr* to avoid colliding with the
+   existing .gratis-ai-agent-* layout.
+
+   Design tokens are declared on :root so the .gaa-cr-* primitives
+   (tool card, changes drawer, icon buttons) work anywhere they are
+   rendered — including inside the floating widget, which does NOT
+   wrap its content in a .gaa-cr ancestor.
+   ============================================================ */
+
+:root {
+
+	/* Tokens — wp-admin palette. Accent follows the user's admin color scheme. */
+	--gaa-primary: var(--wp-admin-theme-color, #2271b1);
+	--gaa-primary-dark: var(--wp-admin-theme-color-darker-10, #135e96);
+	--gaa-text-primary: #1d2327;
+	--gaa-text-secondary: #50575e;
+	--gaa-text-muted: #787c82;
+	--gaa-text-disabled: #a7aaad;
+	--gaa-surface-page: #fff;
+	--gaa-surface: #f6f7f7;
+	--gaa-surface-hover: #f0f0f1;
+	--gaa-surface-active: #f0f6fc;
+	--gaa-border-strong: #c3c4c7;
+	--gaa-border-subtle: #dcdcde;
+	--gaa-bubble-user-border: #c5d9ed;
+	--gaa-success: #00a32a;
+	--gaa-warning: #dba617;
+	--gaa-error: #d63638;
+	--gaa-error-surface: #fcf0f1;
+	--gaa-font-ui:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
+		Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	--gaa-font-mono:
+		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+		"Liberation Mono", monospace;
+	--gaa-radius-xs: 4px;
+	--gaa-radius-sm: 6px;
+	--gaa-radius-md: 8px;
+	--gaa-radius-lg: 12px;
+	--gaa-radius-pill: 9999px;
+	--gaa-shadow-raised: 0 1px 4px rgb(0 0 0 / 12%);
+	--gaa-shadow-elevated: 0 4px 16px rgb(0 0 0 / 14%);
+	--gaa-duration: 150ms;
+}
+
+/* Root layout — sits inside the admin page content area. */
+.gaa-cr {
+	display: flex;
+	flex-direction: column;
+	font-family: var(--gaa-font-ui);
+	color: var(--gaa-text-primary);
+	font-size: 13px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+
+	/* Fill the admin content column. Title now lives inside the sidebar so
+	   we can claim more vertical space for the conversation. */
+	height: calc(100vh - 92px);
+	min-height: 500px;
+}
+
+.gaa-cr *,
+.gaa-cr *::before,
+.gaa-cr *::after {
+	box-sizing: border-box;
+}
+
+.gaa-cr button {
+	font-family: inherit;
+}
+
+/* Sidebar brand block — moved from the old page header so the convo pane
+   reclaims the vertical space. The collapse button lives here, right-aligned. */
+.gaa-cr-sidebar-brand {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 12px 8px 6px 12px;
+	border-bottom: 1px solid var(--gaa-border-subtle);
+	margin-bottom: 4px;
+}
+
+.gaa-cr-sidebar-brand-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.gaa-cr-sidebar-brand-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--gaa-text-primary);
+	line-height: 1.3;
+}
+
+.gaa-cr-sidebar-brand-subtitle {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	line-height: 1.4;
+	margin-top: 2px;
+}
+
+.gaa-cr-sidebar-brand-collapse {
+	flex-shrink: 0;
+}
+
+/* App shell — two columns when the sidebar is open, single column when it
+   is collapsed. The collapsed sidebar is removed from the DOM so the
+   conversation pane always takes the full width. */
+.gaa-cr-shell {
+	flex: 1;
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	gap: 16px;
+	min-height: 0;
+	transition:
+		grid-template-columns 220ms cubic-bezier(0.4, 0, 0.2, 1),
+		gap 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gaa-cr-shell.is-sidebar-collapsed {
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+
+/* ───────── Sidebar ───────── */
+
+.gaa-cr-sidebar {
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Slide the sidebar in from the left when it expands. */
+.gaa-cr-sidebar {
+	animation: gaa-cr-slide-in-left 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gaa-cr-sidebar-head {
+	padding: 10px 10px 8px;
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.gaa-cr-sidebar-head .gaa-cr-new-chat {
+	flex: 1;
+	justify-content: center;
+	width: 100%;
+}
+
+/* Active / Archived / Trash filter tabs — sits above the search field. */
+.gaa-cr-sidebar-tabs {
+	display: flex;
+	gap: 2px;
+	padding: 0 10px;
+	border-bottom: 1px solid var(--gaa-border-subtle);
+	margin-bottom: 8px;
+}
+
+.gaa-cr-sidebar-tab {
+	padding: 8px 10px 10px;
+	margin-bottom: -1px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--gaa-text-secondary);
+	font: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	transition:
+		color var(--gaa-duration),
+		border-color var(--gaa-duration);
+}
+
+.gaa-cr-sidebar-tab:hover {
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-sidebar-tab.is-active {
+	color: var(--gaa-primary);
+	border-bottom-color: var(--gaa-primary);
+}
+
+.gaa-cr-sidebar-search {
+	padding: 0 10px 8px;
+	position: relative;
+}
+
+.gaa-cr-search-field {
+	position: relative;
+	width: 100%;
+}
+
+.gaa-cr-search-icon {
+	position: absolute;
+	left: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--gaa-text-muted);
+	pointer-events: none;
+	display: inline-flex;
+	width: 14px;
+	height: 14px;
+}
+
+.gaa-cr-search-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Specificity bumped to beat wp-admin's default input[type="text"] styles. */
+.gaa-cr .gaa-cr-search-input,
+input[type="text"].gaa-cr-search-input {
+	box-sizing: border-box;
+	width: 100%;
+	height: 30px;
+	min-height: 30px;
+	padding: 0 8px 0 28px;
+	margin: 0;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-sm);
+	background: #fff;
+	font-family: inherit;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-search-input:focus {
+	outline: none;
+	border-color: var(--gaa-primary);
+	box-shadow: 0 0 0 1px var(--gaa-primary);
+}
+
+.gaa-cr-sidebar-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 6px 10px;
+}
+
+.gaa-cr-sidebar-group {
+	margin-top: 6px;
+}
+
+.gaa-cr-sidebar-group-label {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	font-weight: 600;
+	padding: 6px 8px 4px;
+}
+
+.gaa-cr-session-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	border-radius: var(--gaa-radius-sm);
+	cursor: pointer;
+	margin-bottom: 1px;
+	position: relative;
+	border: 1px solid transparent;
+}
+
+.gaa-cr-session-row:hover {
+	background: var(--gaa-surface-hover);
+}
+
+.gaa-cr-session-row.is-active {
+	background: var(--gaa-surface-active);
+	border-color: var(--gaa-bubble-user-border);
+}
+
+.gaa-cr-session-row-icon {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	color: var(--gaa-text-secondary);
+	font-size: 16px;
+	line-height: 1;
+}
+
+.gaa-cr-session-row.is-active .gaa-cr-session-row-icon {
+	color: var(--gaa-primary);
+}
+
+.gaa-cr-session-row-icon svg {
+	width: 16px;
+	height: 16px;
+	fill: currentcolor;
+}
+
+/* Emoji rendered in place of the default icon when the generated title
+   starts with one. Slightly larger so it reads at a glance. */
+.gaa-cr-session-row-emoji {
+	font-size: 16px;
+	line-height: 1;
+}
+
+.gaa-cr-session-row-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.gaa-cr-session-row-title {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--gaa-text-primary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	line-height: 1.3;
+}
+
+.gaa-cr-session-row.is-active .gaa-cr-session-row-title {
+	font-weight: 600;
+}
+
+.gaa-cr-session-row-meta {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.gaa-cr-session-row-meta.is-running {
+	color: var(--gaa-success);
+}
+
+.gaa-cr-session-row-actions {
+	position: relative;
+	display: none;
+	gap: 2px;
+	align-items: center;
+}
+
+.gaa-cr-session-row:hover .gaa-cr-session-row-actions,
+.gaa-cr-session-row.is-active .gaa-cr-session-row-actions {
+	display: flex;
+}
+
+/* Darker + larger sidebar menu icon so it reads against the row title
+   instead of fading into the background. Overrides is-small's 12×12 svg
+   rule by targeting the descendant SVG directly. */
+.gaa-cr-session-row-actions .gaa-cr-icon-btn,
+.gaa-cr-session-row-actions .gaa-cr-icon-btn.is-small {
+	width: 26px;
+	height: 26px;
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-session-row-actions .gaa-cr-icon-btn:hover {
+	background: var(--gaa-surface-hover);
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-session-row-actions .gaa-cr-icon-btn.is-small svg,
+.gaa-cr-session-row-actions .gaa-cr-icon-btn svg {
+	width: 18px;
+	height: 18px;
+	fill: currentcolor;
+}
+
+.gaa-cr-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--gaa-success);
+	display: inline-block;
+	animation: gaa-cr-pulse 1.5s ease-in-out infinite;
+	flex-shrink: 0;
+}
+
+.gaa-cr-sidebar-foot {
+	border-top: 1px solid var(--gaa-border-subtle);
+	padding: 8px 10px;
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+}
+
+.gaa-cr-session-empty {
+	padding: 20px 12px;
+	color: var(--gaa-text-muted);
+	text-align: center;
+	font-size: 12px;
+}
+
+/* ───────── Conversation panel ───────── */
+
+.gaa-cr-convo {
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	min-height: 0;
+	overflow: hidden;
+	position: relative;
+}
+
+.gaa-cr-convo-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 16px;
+	border-bottom: 1px solid var(--gaa-border-subtle);
+	background: #fff;
+	flex-shrink: 0;
+	min-height: 48px;
+}
+
+.gaa-cr-convo-head-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--gaa-text-primary);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	cursor: text;
+	text-align: left;
+	font-family: inherit;
+}
+
+.gaa-cr-convo-head-title-text {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.gaa-cr-convo-head-rename-hint {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	font-weight: 400;
+	opacity: 0;
+	transition: opacity var(--gaa-duration);
+}
+
+.gaa-cr-convo-head-title:hover .gaa-cr-convo-head-rename-hint {
+	opacity: 1;
+}
+
+.gaa-cr-convo-head-title-input {
+	flex: 1;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	padding: 2px 6px;
+	border: 1px solid var(--gaa-primary);
+	border-radius: var(--gaa-radius-xs);
+	background: #fff;
+	color: var(--gaa-text-primary);
+	outline: none;
+}
+
+.gaa-cr-convo-head-actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.gaa-cr-convo-head-ai-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--wp-admin-theme-color, #2271b1);
+	color: #fff;
+	flex-shrink: 0;
+	margin-right: 2px;
+}
+
+/* Changes pill */
+.gaa-cr-changes-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 26px;
+	padding: 0 4px 0 10px;
+	border: 1px solid #e4c880;
+	background: #fcf9e8;
+	border-radius: var(--gaa-radius-pill);
+	font-size: 12px;
+	color: #7a5a10;
+	font-weight: 500;
+}
+
+.gaa-cr-changes-pill-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: var(--gaa-radius-pill);
+	background: #e4c880;
+	color: #5a4208;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.gaa-cr-changes-pill-btn {
+	border: 0;
+	background: transparent;
+	color: #7a5a10;
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+	padding: 0 6px;
+	height: 22px;
+	border-radius: var(--gaa-radius-pill);
+}
+
+.gaa-cr-changes-pill-btn:hover {
+	background: rgb(122 90 16 / 8%);
+}
+
+/* Changes drawer */
+.gaa-cr-changes-drawer {
+	position: absolute;
+	right: 16px;
+	top: 70px;
+	width: 380px;
+	max-height: calc(100% - 120px);
+	background: #fff;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	box-shadow: var(--gaa-shadow-elevated);
+	z-index: 30;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.gaa-cr-changes-drawer-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--gaa-border-subtle);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.gaa-cr-changes-drawer-body {
+	padding: 8px 14px;
+	overflow-y: auto;
+}
+
+.gaa-cr-changes-row {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--gaa-border-subtle);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+}
+
+.gaa-cr-changes-row:last-child {
+	border-bottom: 0;
+}
+
+.gaa-cr-changes-row-body {
+	min-width: 0;
+	flex: 1;
+}
+
+.gaa-cr-changes-row-title {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--gaa-text-primary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.gaa-cr-changes-row-meta {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+}
+
+.gaa-cr-changes-drawer-foot {
+	padding: 10px 14px;
+	border-top: 1px solid var(--gaa-border-subtle);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+}
+
+.gaa-cr-changes-drawer-empty {
+	padding: 24px 14px;
+	color: var(--gaa-text-muted);
+	font-size: 12px;
+	text-align: center;
+}
+
+/* Messages */
+.gaa-cr-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: 28px 0 16px;
+	scroll-behavior: smooth;
+}
+
+.gaa-cr-messages-inner {
+	max-width: 780px;
+	margin: 0 auto;
+	padding: 0 24px;
+}
+
+.gaa-cr-msg-row {
+	margin-bottom: 22px;
+	position: relative;
+}
+
+.gaa-cr-empty {
+	text-align: center;
+	color: var(--gaa-text-muted);
+	padding: 48px 16px;
+	font-size: 14px;
+}
+
+/* User bubble — stacks bubble + meta vertically, right-aligned. */
+.gaa-cr-msg-user {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+.gaa-cr-bubble-user {
+	background: var(--gaa-surface-active);
+	border: 1px solid var(--gaa-bubble-user-border);
+	color: var(--gaa-text-primary);
+	padding: 10px 14px;
+	border-radius: var(--gaa-radius-lg);
+	border-bottom-right-radius: 4px;
+	max-width: 85%;
+	font-size: 13.5px;
+	line-height: 1.55;
+	white-space: pre-wrap;
+}
+
+.gaa-cr-bubble-attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.gaa-cr-bubble-attachments img {
+	max-width: 180px;
+	max-height: 180px;
+	border-radius: var(--gaa-radius-xs);
+	border: 1px solid var(--gaa-border-subtle);
+}
+
+/* Assistant */
+.gaa-cr-msg-assistant {
+	display: flex;
+	gap: 12px;
+}
+
+.gaa-cr-avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--gaa-primary);
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.gaa-cr-avatar svg {
+	width: 14px;
+	height: 14px;
+}
+
+.gaa-cr-msg-body {
+	flex: 1;
+	min-width: 0;
+	font-size: 13.5px;
+	line-height: 1.55;
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-msg-body p {
+	margin: 0 0 8px;
+}
+
+.gaa-cr-msg-body p:last-child {
+	margin-bottom: 0;
+}
+
+.gaa-cr-msg-body strong {
+	font-weight: 600;
+}
+
+.gaa-cr-msg-body ol,
+.gaa-cr-msg-body ul {
+	margin: 0 0 8px;
+	padding-left: 22px;
+}
+
+.gaa-cr-msg-body li {
+	margin-bottom: 6px;
+}
+
+.gaa-cr-msg-body li::marker {
+	color: var(--gaa-text-muted);
+}
+
+.gaa-cr-msg-body :not(pre) > code {
+	font-family: var(--gaa-font-mono);
+	font-size: 0.88em;
+	padding: 1px 5px;
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-xs);
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-msg-body h1,
+.gaa-cr-msg-body h2,
+.gaa-cr-msg-body h3,
+.gaa-cr-msg-body h4 {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 16px 0 8px;
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-msg-actions {
+	display: flex;
+	gap: 2px;
+	margin-top: 8px;
+	opacity: 0;
+	transition: opacity var(--gaa-duration);
+}
+
+.gaa-cr-msg-row:hover .gaa-cr-msg-actions,
+.gaa-cr-msg-row:focus-within .gaa-cr-msg-actions {
+	opacity: 1;
+}
+
+/* ─── Per-message meta row (copy / thumbs-down + model · dur · tokens · cost)
+ *     — Shown full-opacity on the last message, faded until hover/focus on
+ *     earlier ones so the list stays scannable. */
+.gaa-cr-msg-meta {
+	display: flex;
+	min-height: 24px;
+	align-items: center;
+	gap: 8px;
+	margin-top: 4px;
+	color: var(--gaa-text-muted);
+	font-size: 11px;
+	opacity: 0.6;
+	transition: opacity var(--gaa-duration);
+}
+
+.gaa-cr-msg-row:hover .gaa-cr-msg-meta,
+.gaa-cr-msg-row:focus-within .gaa-cr-msg-meta {
+	opacity: 1;
+}
+
+/* User meta row is hidden until hover / focus / tap so the bubble
+   reads as a clean chat message. Touch users reveal it by tapping
+   (which moves keyboard focus into the row via the action buttons). */
+.gaa-cr-msg-meta-user {
+	justify-content: flex-end;
+	opacity: 0;
+}
+
+.gaa-cr-msg-row:hover .gaa-cr-msg-meta-user,
+.gaa-cr-msg-row:focus-within .gaa-cr-msg-meta-user,
+.gaa-cr-msg-row:active .gaa-cr-msg-meta-user {
+	opacity: 1;
+}
+
+.gaa-cr-msg-meta-assistant {
+	justify-content: flex-start;
+	padding-left: 0;
+}
+
+.gaa-cr-msg-meta-text {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+}
+
+.gaa-cr-msg-meta-model {
+	color: var(--gaa-text-secondary);
+	font-family: var(--gaa-font-mono);
+	font-size: 10.5px;
+	font-weight: 500;
+}
+
+.gaa-cr-msg-meta-sep {
+	color: var(--gaa-border-strong);
+}
+
+.gaa-cr-msg-meta-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+}
+
+/* ─── User bubble edit mode ─────────────────────────────────────────── */
+.gaa-cr-bubble-user--editing {
+	padding: 8px 10px;
+	width: 100%;
+	max-width: 100%;
+}
+
+.gaa-cr-bubble-user-edit {
+	display: block;
+	width: 100%;
+	min-height: 64px;
+	resize: vertical;
+	padding: 6px 8px;
+	border: 1px solid var(--gaa-border-strong);
+	border-radius: var(--gaa-radius-sm);
+	background: #fff;
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.5;
+	box-sizing: border-box;
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-bubble-user-edit:focus,
+.gaa-cr-bubble-user-edit:focus-visible {
+	outline: 0;
+	border-color: var(--gaa-primary);
+	box-shadow: 0 0 0 1px var(--gaa-primary);
+}
+
+.gaa-cr-bubble-user-edit-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 6px;
+	margin-top: 6px;
+}
+
+/* System notices */
+.gaa-cr-msg-system {
+	background: var(--gaa-error-surface);
+	border: 1px solid var(--gaa-error);
+	color: var(--gaa-error);
+	padding: 10px 14px;
+	border-radius: var(--gaa-radius-md);
+	font-size: 13px;
+}
+
+/* Tool card */
+.gaa-cr-tool-card {
+	margin: 0 0 10px;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	background: #fff;
+	font-size: 12.5px;
+	overflow: hidden;
+}
+
+.gaa-cr-tool-card.is-running {
+	border-color: var(--gaa-primary);
+	background: #f7fbfe;
+}
+
+.gaa-cr-tool-card.is-error {
+	border-color: var(--gaa-error);
+}
+
+.gaa-cr-tool-card-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	cursor: pointer;
+	user-select: none;
+	background: transparent;
+	border: 0;
+	width: 100%;
+	text-align: left;
+	font: inherit;
+	color: inherit;
+}
+
+.gaa-cr-tool-card-head:hover {
+	background: var(--gaa-surface-hover);
+}
+
+.gaa-cr-tool-card.is-running .gaa-cr-tool-card-head:hover {
+	background: #eef5fc;
+}
+
+.gaa-cr-tool-status {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.gaa-cr-tool-status.is-ok {
+	background: #edf7ee;
+	color: var(--gaa-success);
+}
+
+.gaa-cr-tool-status.is-running {
+	background: var(--gaa-surface-active);
+	color: var(--gaa-primary);
+}
+
+.gaa-cr-tool-status.is-error {
+	background: var(--gaa-error-surface);
+	color: var(--gaa-error);
+}
+
+.gaa-cr-tool-status.is-warn {
+	background: #fdf5e1;
+	color: var(--gaa-warning);
+}
+
+.gaa-cr-tool-status svg {
+	width: 12px;
+	height: 12px;
+}
+
+.gaa-cr-tool-spin {
+	width: 12px;
+	height: 12px;
+	border: 2px solid rgb(34 113 177 / 25%);
+	border-top-color: var(--gaa-primary);
+	border-radius: 50%;
+	animation: gaa-cr-spin 0.7s linear infinite;
+}
+
+.gaa-cr-tool-card-name {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+	flex: 1;
+}
+
+.gaa-cr-tool-card-name code {
+	font-family: var(--gaa-font-mono);
+	font-size: 12px;
+	padding: 2px 6px;
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-xs);
+	color: var(--gaa-text-primary);
+	font-weight: 500;
+}
+
+.gaa-cr-tool-card-summary {
+	font-size: 12px;
+	color: var(--gaa-text-secondary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.gaa-cr-tool-card-meta {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.gaa-cr-tool-card-meta.is-running {
+	color: var(--gaa-primary);
+}
+
+.gaa-cr-tool-card-chevron {
+	width: 16px;
+	height: 16px;
+	color: var(--gaa-text-muted);
+	transition: transform var(--gaa-duration);
+	flex-shrink: 0;
+	display: inline-flex;
+}
+
+.gaa-cr-tool-card.is-open .gaa-cr-tool-card-chevron {
+	transform: rotate(180deg);
+}
+
+.gaa-cr-tool-card-body {
+	border-top: 1px solid var(--gaa-border-subtle);
+	padding: 12px;
+	background: var(--gaa-surface);
+	font-size: 12px;
+	display: grid;
+
+	/* minmax(0, 1fr) lets the grid shrink below its content min-width so
+	   the <pre> below can scroll horizontally instead of stretching the
+	   whole tool card. Without this the pre grows to its content width
+	   (thousands of px), hiding its own scrollbar beyond the card's clip. */
+	grid-template-columns: minmax(0, 1fr);
+	gap: 12px;
+}
+
+.gaa-cr-tool-card.is-running .gaa-cr-tool-card-body {
+	background: #fafcfe;
+	border-top-color: var(--gaa-bubble-user-border);
+}
+
+.gaa-cr-tool-detail-label {
+	font-size: 10.5px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--gaa-text-muted);
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.gaa-cr-tool-detail-value {
+	font-family: var(--gaa-font-mono);
+	font-size: 12px;
+	background: #fff;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-sm);
+	padding: 8px 10px;
+	color: var(--gaa-text-primary);
+	overflow-x: auto;
+	line-height: 1.5;
+	white-space: pre;
+	margin: 0;
+	max-height: 240px;
+}
+
+.gaa-cr-tool-detail-revert {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-top: 8px;
+	border-top: 1px solid var(--gaa-border-subtle);
+	font-size: 12px;
+}
+
+.gaa-cr-tool-detail-revert-note {
+	color: var(--gaa-text-secondary);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.gaa-cr-tool-detail-revert-note svg {
+	width: 14px;
+	height: 14px;
+	color: var(--gaa-warning);
+}
+
+/* Running indicator */
+.gaa-cr-running-line {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--gaa-text-secondary);
+	font-size: 13px;
+	margin-top: 8px;
+}
+
+.gaa-cr-running-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	background: var(--gaa-primary);
+	border-radius: 50%;
+	animation: gaa-cr-pulse 1.2s ease-in-out infinite;
+}
+
+/* Input area */
+.gaa-cr-input-area {
+	border-top: 1px solid var(--gaa-border-subtle);
+	background: #fff;
+	padding: 14px 16px 16px;
+	flex-shrink: 0;
+	position: relative;
+}
+
+.gaa-cr-input-inner {
+	max-width: 780px;
+	margin: 0 auto;
+}
+
+.gaa-cr-input-frame {
+	background: #fff;
+	border: 1px solid var(--gaa-border-strong);
+	border-radius: 14px;
+	padding: 10px 12px 8px;
+	box-shadow: 0 1px 4px rgb(0 0 0 / 4%);
+	transition: border-color var(--gaa-duration), box-shadow var(--gaa-duration);
+}
+
+.gaa-cr-input-frame:focus-within {
+	border-color: var(--gaa-primary);
+	box-shadow: 0 0 0 1px var(--gaa-primary), 0 1px 4px rgb(0 0 0 / 4%);
+}
+
+.gaa-cr-input-frame.is-drag-over {
+	border-color: var(--gaa-primary);
+	background: var(--gaa-surface-active);
+}
+
+.gaa-cr-attachments {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.gaa-cr-attachment-thumb {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-sm);
+	font-size: 11px;
+	color: var(--gaa-text-secondary);
+	max-width: 200px;
+}
+
+.gaa-cr-attachment-thumb img {
+	width: 24px;
+	height: 24px;
+	object-fit: cover;
+	border-radius: 3px;
+}
+
+.gaa-cr-attachment-thumb-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 1;
+	min-width: 0;
+}
+
+.gaa-cr-attachment-thumb-remove {
+	background: none;
+	border: 0;
+	color: var(--gaa-text-muted);
+	cursor: pointer;
+	padding: 0 2px;
+	font-size: 14px;
+	line-height: 1;
+}
+
+.gaa-cr-attachment-thumb-remove:hover {
+	color: var(--gaa-error);
+}
+
+.gaa-cr .gaa-cr-input-textarea,
+textarea.gaa-cr-input-textarea {
+	box-sizing: border-box;
+	width: 100%;
+	border: 0;
+	outline: 0;
+	resize: none;
+	font-family: inherit;
+	font-size: 14.5px;
+	line-height: 1.55;
+	color: var(--gaa-text-primary);
+	padding: 6px 4px;
+	margin: 0;
+	min-height: 52px;
+	max-height: 200px;
+	background: transparent;
+	display: block;
+	box-shadow: none;
+}
+
+.gaa-cr-input-textarea::placeholder {
+	color: var(--gaa-text-muted);
+}
+
+.gaa-cr-input-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding-top: 6px;
+}
+
+.gaa-cr-input-toolbar-left {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.gaa-cr-input-toolbar-right {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+/* Model chip */
+.gaa-cr-model-chip-wrap {
+	position: relative;
+	display: inline-flex;
+}
+
+.gaa-cr-model-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	padding: 0 8px 0 10px;
+	border: 1px solid var(--gaa-border-subtle);
+	background: #fff;
+	border-radius: var(--gaa-radius-pill);
+	font: inherit;
+	font-size: 12px;
+	color: var(--gaa-text-primary);
+	cursor: pointer;
+	transition: border-color var(--gaa-duration), background var(--gaa-duration);
+	max-width: 260px;
+}
+
+.gaa-cr-model-chip:hover {
+	border-color: var(--gaa-primary);
+	background: var(--gaa-surface-active);
+}
+
+.gaa-cr-model-chip svg {
+	width: 14px;
+	height: 14px;
+	color: var(--gaa-text-muted);
+	flex-shrink: 0;
+}
+
+.gaa-cr-model-chip-provider {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	padding-right: 6px;
+	border-right: 1px solid var(--gaa-border-subtle);
+	margin-right: 2px;
+	white-space: nowrap;
+}
+
+.gaa-cr-model-chip-model {
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+/* Popover (model picker + session context) */
+.gaa-cr-popover {
+	position: absolute;
+	z-index: 40;
+	background: #fff;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	box-shadow: var(--gaa-shadow-elevated);
+	padding: 6px;
+	min-width: 240px;
+}
+
+.gaa-cr-popover.is-up {
+	bottom: calc(100% + 6px);
+	left: 0;
+}
+
+/* Fixed variant — portaled to body so it isn't clipped by any parent
+   overflow:hidden. Coordinates + max-height are set inline by the component. */
+.gaa-cr-popover-fixed {
+	position: fixed;
+	z-index: 100000;
+	overflow-y: auto;
+}
+
+.gaa-cr-popover-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 7px 10px;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	border-radius: var(--gaa-radius-sm);
+	font: inherit;
+	font-size: 13px;
+	color: var(--gaa-text-primary);
+	cursor: pointer;
+}
+
+.gaa-cr-popover-item:hover {
+	background: var(--gaa-surface-hover);
+}
+
+.gaa-cr-popover-item.is-active {
+	background: var(--gaa-surface-active);
+	color: var(--gaa-primary);
+	font-weight: 500;
+}
+
+.gaa-cr-popover-item-sub {
+	margin-left: auto;
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+}
+
+.gaa-cr-popover-item-check {
+	margin-left: 4px;
+	color: var(--gaa-primary);
+	display: inline-flex;
+}
+
+.gaa-cr-popover-section-label {
+	font-size: 10.5px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: var(--gaa-text-muted);
+	font-weight: 600;
+	padding: 8px 10px 4px;
+}
+
+/* Send button */
+.gaa-cr-send-btn {
+	width: 32px;
+	height: 32px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--gaa-primary);
+	color: #fff;
+	border: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.gaa-cr-send-btn:hover:not(:disabled) {
+	background: var(--gaa-primary-dark);
+}
+
+.gaa-cr-send-btn:disabled {
+	background: var(--gaa-border-subtle);
+	color: #fff;
+	cursor: not-allowed;
+}
+
+.gaa-cr-send-btn.is-stop {
+	background: var(--gaa-error);
+}
+
+.gaa-cr-send-btn.is-stop:hover {
+	background: #b32d2e;
+}
+
+.gaa-cr-send-btn svg {
+	width: 16px;
+	height: 16px;
+	fill: currentcolor;
+}
+
+/* Icon button */
+.gaa-cr-icon-btn {
+	width: 28px;
+	height: 28px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--gaa-radius-sm);
+	color: var(--gaa-text-muted);
+	cursor: pointer;
+	transition: background var(--gaa-duration), color var(--gaa-duration);
+	font: inherit;
+}
+
+.gaa-cr-icon-btn svg {
+	width: 16px;
+	height: 16px;
+	fill: currentcolor;
+}
+
+.gaa-cr-icon-btn:hover:not(:disabled) {
+	background: var(--gaa-surface-hover);
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-icon-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.gaa-cr-icon-btn.is-active {
+	color: var(--gaa-primary);
+	background: var(--gaa-surface-active);
+}
+
+.gaa-cr-icon-btn.is-small {
+	width: 22px;
+	height: 22px;
+}
+
+.gaa-cr-icon-btn.is-small svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Shared small button used in drawer + tool card */
+.gaa-cr-btn-sm {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 26px;
+	padding: 0 10px;
+	border: 1px solid var(--gaa-border-strong);
+	background: #fff;
+	border-radius: var(--gaa-radius-sm);
+	font: inherit;
+	font-size: 12px;
+	color: var(--gaa-text-primary);
+	cursor: pointer;
+	transition: background var(--gaa-duration), border-color var(--gaa-duration), color var(--gaa-duration);
+}
+
+.gaa-cr-btn-sm:hover:not(:disabled) {
+	background: var(--gaa-surface-hover);
+	border-color: var(--gaa-text-muted);
+}
+
+.gaa-cr-btn-sm:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.gaa-cr-btn-sm svg {
+	width: 12px;
+	height: 12px;
+}
+
+.gaa-cr-btn-sm.is-primary {
+	background: var(--gaa-primary);
+	border-color: var(--gaa-primary);
+	color: #fff;
+}
+
+.gaa-cr-btn-sm.is-primary:hover:not(:disabled) {
+	background: var(--gaa-primary-dark);
+	border-color: var(--gaa-primary-dark);
+}
+
+.gaa-cr-btn-sm.is-destructive {
+	color: var(--gaa-error);
+	border-color: var(--gaa-error);
+}
+
+.gaa-cr-btn-sm.is-destructive:hover:not(:disabled) {
+	background: var(--gaa-error-surface);
+}
+
+/* Hint line */
+.gaa-cr-input-hint {
+	text-align: center;
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	margin-top: 8px;
+}
+
+.gaa-cr-input-hint kbd {
+	font-family: inherit;
+	font-size: 10.5px;
+	padding: 1px 5px;
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-bottom-width: 1.5px;
+	border-radius: 3px;
+	color: var(--gaa-text-secondary);
+}
+
+/* Suggestions */
+.gaa-cr-suggestions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.gaa-cr-suggestion-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 12px;
+	background: var(--gaa-surface);
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: 16px;
+	font-family: inherit;
+	font-size: 12px;
+	color: var(--gaa-text-primary);
+	cursor: pointer;
+	transition: background var(--gaa-duration);
+}
+
+.gaa-cr-suggestion-chip:hover {
+	background: var(--gaa-surface-hover);
+}
+
+/* Thinking state */
+.gaa-cr-thinking {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+	color: var(--gaa-text-secondary);
+}
+
+/* Queue indicator */
+.gaa-cr-queue-indicator {
+	font-size: 11px;
+	color: var(--gaa-text-muted);
+	padding: 4px 0;
+	text-align: center;
+}
+
+/* Context menu wrapper (session row) */
+.gaa-cr-context-menu {
+	position: absolute;
+	top: 28px;
+	right: 4px;
+	z-index: 40;
+	background: #fff;
+	border: 1px solid var(--gaa-border-subtle);
+	border-radius: var(--gaa-radius-md);
+	box-shadow: var(--gaa-shadow-elevated);
+	padding: 4px;
+	min-width: 180px;
+}
+
+/* Same popover anchored to the right side of the convo header "more"
+   button instead of a sidebar row. */
+.gaa-cr-convo-head-menu-wrap {
+	position: relative;
+	display: inline-flex;
+}
+
+.gaa-cr-context-menu--header {
+	top: calc(100% + 6px);
+	right: 0;
+}
+
+/* The legacy context-menu component uses .gratis-ai-agent-context-menu
+   for its inner buttons. Scope our sizing + colour tokens to the nested
+   button/menu so both the sidebar popover and the convo-head popover
+   look consistent with the rest of chat-redesign. */
+.gaa-cr-context-menu .gratis-ai-agent-context-menu {
+
+	/* Reset legacy absolute positioning so the inner menu fills our
+	   .gaa-cr-context-menu wrapper instead of being detached from it. */
+	position: static;
+	top: auto;
+	right: auto;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	box-shadow: none;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 180px;
+}
+
+.gaa-cr-context-menu .gratis-ai-agent-context-menu > button {
+	display: block;
+	width: 100%;
+	padding: 7px 10px;
+	border: 0;
+	border-radius: var(--gaa-radius-sm);
+	background: transparent;
+	color: var(--gaa-text-primary);
+	font: inherit;
+	font-size: 12.5px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.gaa-cr-context-menu .gratis-ai-agent-context-menu > button:hover {
+	background: var(--gaa-surface-hover);
+}
+
+.gaa-cr-context-menu
+	.gratis-ai-agent-context-menu
+	.gratis-ai-agent-context-menu-danger {
+	color: var(--gaa-error);
+}
+
+.gaa-cr-context-menu
+	.gratis-ai-agent-context-menu
+	.gratis-ai-agent-context-menu-danger:hover {
+	background: var(--gaa-error-surface);
+}
+
+/* Animations */
+@keyframes gaa-cr-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.4;
+	}
+}
+
+@keyframes gaa-cr-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes gaa-cr-fade-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes gaa-cr-slide-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-16px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes gaa-cr-slide-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Scrollbars */
+.gaa-cr-messages::-webkit-scrollbar,
+.gaa-cr-sidebar-list::-webkit-scrollbar {
+	width: 10px;
+}
+
+.gaa-cr-messages::-webkit-scrollbar-thumb,
+.gaa-cr-sidebar-list::-webkit-scrollbar-thumb {
+	background: transparent;
+	border-radius: 10px;
+	border: 3px solid transparent;
+	background-clip: padding-box;
+}
+
+.gaa-cr-messages:hover::-webkit-scrollbar-thumb,
+.gaa-cr-sidebar-list:hover::-webkit-scrollbar-thumb {
+	background: rgb(0 0 0 / 15%);
+	background-clip: padding-box;
+	border: 3px solid transparent;
+}
+
+/* Density variant */
+.gaa-cr.is-density-compact .gaa-cr-msg-row {
+	margin-bottom: 14px;
+}
+
+.gaa-cr.is-density-compact .gaa-cr-messages {
+	padding: 16px 0 10px;
+}
+
+.gaa-cr.is-density-compact .gaa-cr-bubble-user {
+	padding: 8px 12px;
+}
+
+/* Mobile — below the wp-admin 782px breakpoint.
+   When the sidebar is open it takes the full width and hides the convo,
+   turning the UI into a single-pane toggle. */
+@media (max-width: 782px) {
+	.gaa-cr-shell:not(.is-sidebar-collapsed) {
+		grid-template-columns: 1fr;
+		gap: 0;
+		transition: none;
+	}
+
+	.gaa-cr-shell:not(.is-sidebar-collapsed) .gaa-cr-convo {
+		display: none;
+	}
+
+	.gaa-cr {
+		height: calc(100vh - 60px);
+	}
+}

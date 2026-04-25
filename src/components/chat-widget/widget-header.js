@@ -1,0 +1,333 @@
+/**
+ * Header for the floating widget — avatar + session title with dropdown,
+ * status sub-line, new-chat button, minimize and close controls.
+ *
+ * The session dropdown is a compact drawer listing recent sessions and
+ * reuses the same store actions as the full chat (openSession, new chat).
+ */
+
+import { useState, useRef, useEffect, useCallback } from '@wordpress/element';
+import { useSelect, useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
+import {
+	Icon,
+	plus,
+	close,
+	chevronDown,
+	commentContent,
+} from '@wordpress/icons';
+
+import STORE_NAME from '../../store';
+import { getBranding } from '../../utils/branding';
+import { AiIcon } from '../chat-redesign/icons';
+
+/**
+ *
+ */
+function MinimizeIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			width="16"
+			height="16"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<path d="M6 18h12" />
+		</svg>
+	);
+}
+
+/**
+ *
+ * @param {string} dateStr
+ */
+function relativeTime( dateStr ) {
+	if ( ! dateStr ) {
+		return '';
+	}
+	const date = new Date( dateStr + 'Z' );
+	const now = new Date();
+	const diff = Math.floor( ( now - date ) / 1000 );
+	if ( diff < 60 ) {
+		return __( 'just now', 'gratis-ai-agent' );
+	}
+	if ( diff < 3600 ) {
+		return Math.floor( diff / 60 ) + 'm ago';
+	}
+	if ( diff < 86400 ) {
+		return Math.floor( diff / 3600 ) + 'h ago';
+	}
+	if ( diff < 604800 ) {
+		return Math.floor( diff / 86400 ) + 'd ago';
+	}
+	return date.toLocaleDateString();
+}
+
+/**
+ *
+ * @param {Object} root0
+ * @param {*}      root0.isMinimized
+ * @param {*}      root0.onToggleMinimize
+ * @param {*}      root0.onDragHandleMouseDown
+ */
+export default function WidgetHeader( {
+	isMinimized,
+	onToggleMinimize,
+	onDragHandleMouseDown,
+} ) {
+	const { setFloatingOpen, clearCurrentSession, openSession, fetchSessions } =
+		useDispatch( STORE_NAME );
+
+	const { sessions, currentSessionId, sessionJobs, activeModelName } =
+		useSelect( ( sel ) => {
+			const store = sel( STORE_NAME );
+			const providers = store.getProviders() || [];
+			const providerId = store.getSelectedProviderId();
+			const modelId = store.getSelectedModelId();
+			const provider =
+				providers.find( ( p ) => p.id === providerId ) ||
+				providers[ 0 ];
+			const model =
+				provider?.models?.find( ( m ) => m.id === modelId ) ||
+				provider?.models?.[ 0 ];
+			return {
+				sessions: store.getSessions(),
+				currentSessionId: store.getCurrentSessionId(),
+				sessionJobs: store.getSessionJobs(),
+				activeModelName: model?.name || model?.id || '',
+			};
+		}, [] );
+
+	const [ drawerOpen, setDrawerOpen ] = useState( false );
+	const drawerRef = useRef( null );
+
+	useEffect( () => {
+		if ( ! drawerOpen ) {
+			return undefined;
+		}
+		const handler = ( e ) => {
+			if (
+				drawerRef.current &&
+				! drawerRef.current.contains( e.target )
+			) {
+				setDrawerOpen( false );
+			}
+		};
+		document.addEventListener( 'mousedown', handler );
+		return () => document.removeEventListener( 'mousedown', handler );
+	}, [ drawerOpen ] );
+
+	useEffect( () => {
+		if ( drawerOpen ) {
+			fetchSessions();
+		}
+	}, [ drawerOpen, fetchSessions ] );
+
+	const session = sessions.find( ( s ) => s.id === currentSessionId ) || null;
+	const branding = getBranding();
+	const agentName = branding.agentName || __( 'AI Agent', 'gratis-ai-agent' );
+	const title = session?.title || agentName;
+	const runningJob = currentSessionId
+		? sessionJobs[ currentSessionId ]
+		: null;
+	const isRunning = runningJob?.status === 'processing';
+
+	const statusLabel = ( () => {
+		if ( isRunning ) {
+			const runningCount = Object.values( sessionJobs ).filter(
+				( j ) => j && j.status === 'processing'
+			).length;
+			if ( runningCount > 1 ) {
+				return __( 'Working…', 'gratis-ai-agent' );
+			}
+			return __( 'Working…', 'gratis-ai-agent' );
+		}
+		return activeModelName
+			? `${ __( 'Ready', 'gratis-ai-agent' ) } · ${ activeModelName }`
+			: __( 'Ready', 'gratis-ai-agent' );
+	} )();
+
+	const handlePickSession = useCallback(
+		( id ) => {
+			openSession( id );
+			setDrawerOpen( false );
+		},
+		[ openSession ]
+	);
+
+	const handleNewChat = useCallback( () => {
+		clearCurrentSession();
+		setDrawerOpen( false );
+	}, [ clearCurrentSession ] );
+
+	const recent = sessions.slice( 0, 8 );
+
+	return (
+		<div
+			className="gaa-w-head"
+			role="presentation"
+			onMouseDown={ onDragHandleMouseDown }
+		>
+			<div className="gaa-w-head-title-wrap" ref={ drawerRef }>
+				<button
+					type="button"
+					className={ `gaa-w-head-session${
+						drawerOpen ? ' is-open' : ''
+					}` }
+					onClick={ () => setDrawerOpen( ( v ) => ! v ) }
+					title={ __( 'Switch session', 'gratis-ai-agent' ) }
+					aria-haspopup="menu"
+					aria-expanded={ drawerOpen }
+				>
+					<span className="gaa-w-avatar" aria-hidden="true">
+						{ branding.logoUrl ? (
+							<img
+								src={ branding.logoUrl }
+								alt=""
+								className="gaa-w-avatar-logo"
+							/>
+						) : (
+							<AiIcon thinking={ isRunning } />
+						) }
+					</span>
+					<span className="gaa-w-head-titles">
+						<span className="gaa-w-head-name">
+							<span className="gaa-w-head-name-text">
+								{ title }
+							</span>
+							<span className="gaa-w-head-caret">
+								<Icon icon={ chevronDown } size={ 14 } />
+							</span>
+						</span>
+						<span
+							className={ `gaa-w-head-status${
+								isRunning ? ' is-running' : ''
+							}` }
+						>
+							<span className="gaa-w-head-status-dot" />
+							<span className="gaa-w-head-status-text">
+								{ statusLabel }
+							</span>
+						</span>
+					</span>
+				</button>
+
+				{ drawerOpen && (
+					<div className="gaa-w-session-drawer" role="menu">
+						<div className="gaa-w-session-drawer-head">
+							<span>
+								{ __( 'Conversations', 'gratis-ai-agent' ) }
+							</span>
+							<button
+								type="button"
+								className="gaa-w-icon-btn is-small"
+								onClick={ () => setDrawerOpen( false ) }
+								aria-label={ __( 'Close', 'gratis-ai-agent' ) }
+							>
+								<Icon icon={ close } size={ 14 } />
+							</button>
+						</div>
+						<div className="gaa-w-session-drawer-list">
+							{ recent.length === 0 && (
+								<div className="gaa-w-session-drawer-empty">
+									{ __(
+										'No conversations yet',
+										'gratis-ai-agent'
+									) }
+								</div>
+							) }
+							{ recent.map( ( s ) => {
+								const active = s.id === currentSessionId;
+								const job = sessionJobs[ s.id ];
+								const running = job?.status === 'processing';
+								return (
+									<button
+										type="button"
+										key={ s.id }
+										className={ `gaa-w-session-drawer-item${
+											active ? ' is-active' : ''
+										}` }
+										onClick={ () =>
+											handlePickSession( s.id )
+										}
+										role="menuitem"
+									>
+										<span className="gaa-w-session-drawer-item-icon">
+											{ running ? (
+												<span className="gaa-w-head-status-dot is-running" />
+											) : (
+												<Icon
+													icon={ commentContent }
+													size={ 12 }
+												/>
+											) }
+										</span>
+										<span className="gaa-w-session-drawer-item-title">
+											{ s.title ||
+												__(
+													'Untitled',
+													'gratis-ai-agent'
+												) }
+										</span>
+										<span className="gaa-w-session-drawer-item-time">
+											{ relativeTime( s.updated_at ) }
+										</span>
+									</button>
+								);
+							} ) }
+						</div>
+					</div>
+				) }
+			</div>
+
+			<button
+				type="button"
+				className="gaa-w-new-btn"
+				onClick={ handleNewChat }
+				aria-label={ __( 'Start new chat', 'gratis-ai-agent' ) }
+				title={ __( 'Start new chat', 'gratis-ai-agent' ) }
+			>
+				<Icon icon={ plus } size={ 18 } />
+			</button>
+
+			<div className="gaa-w-head-actions">
+				<button
+					type="button"
+					className="gaa-w-icon-btn"
+					onClick={ onToggleMinimize }
+					aria-label={
+						isMinimized
+							? __( 'Expand', 'gratis-ai-agent' )
+							: __( 'Minimize', 'gratis-ai-agent' )
+					}
+					title={
+						isMinimized
+							? __( 'Expand', 'gratis-ai-agent' )
+							: __( 'Minimize', 'gratis-ai-agent' )
+					}
+				>
+					<MinimizeIcon />
+				</button>
+				<button
+					type="button"
+					className="gaa-w-icon-btn"
+					data-dismiss-only="true"
+					onClick={ ( e ) => {
+						e.stopPropagation();
+						setFloatingOpen( false );
+					} }
+					aria-label={ __( 'Close', 'gratis-ai-agent' ) }
+					title={ __( 'Close', 'gratis-ai-agent' ) }
+				>
+					<Icon icon={ close } size={ 16 } />
+				</button>
+			</div>
+		</div>
+	);
+}

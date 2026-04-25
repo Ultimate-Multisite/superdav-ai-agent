@@ -288,7 +288,7 @@ class Settings {
 		return array(
 			'default_provider'         => '',
 			'default_model'            => '',
-			'max_iterations'           => 25,
+			'max_iterations'           => 50,
 			'greeting_message'         => '',
 			'system_prompt'            => '',
 			'auto_memory'              => true,

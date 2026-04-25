@@ -126,13 +126,20 @@ class UnifiedAdminMenu {
 	 */
 	public static function register(): void {
 		// Top-level menu.
+		// Pass the SVG as a base64 data URI so WordPress treats it as a
+		// background-image (class="svg") with background-size: 20px auto.
+		// URL-based icons are rendered as <img> tags which don't respect
+		// background-size and render fill="currentColor" as black.
+		$icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="#fff"><text x="9" y="18" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Arial,sans-serif" font-size="16" font-weight="800" letter-spacing="-0.5">AI</text><path d="M15 1.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7z"/><path d="M3 1l.35 1.05 1.05.35-1.05.35L3 3.8l-.35-1.05-1.05-.35 1.05-.35z"/><path d="M19 10l.3.9.9.3-.9.3-.3.9-.3-.9-.9-.3.9-.3z"/></svg>';
+		$icon_uri = 'data:image/svg+xml;base64,' . base64_encode( $icon_svg ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+
 		add_menu_page(
 			__( 'Gratis AI Agent', 'gratis-ai-agent' ),
 			__( 'AI Agent', 'gratis-ai-agent' ),
 			self::CAPABILITY,
 			self::SLUG,
 			array( __CLASS__, 'render' ),
-			GRATIS_AI_AGENT_URL . 'assets/menu-icon.svg',
+			$icon_uri,
 			30 // Position after Dashboard
 		);
 

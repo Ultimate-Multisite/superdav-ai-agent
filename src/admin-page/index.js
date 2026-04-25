@@ -1,15 +1,8 @@
 /**
  * WordPress dependencies
  */
-import {
-	createRoot,
-	useEffect,
-	useState,
-	useCallback,
-	useMemo,
-} from '@wordpress/element';
+import { createRoot, useEffect, useState, useMemo } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
@@ -18,8 +11,7 @@ import STORE_NAME from '../store';
 // Register gratis-ai-agent-js/* client-side abilities into core/abilities
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
-import SessionSidebar from '../components/session-sidebar';
-import ChatPanel from '../components/ChatPanel';
+import ChatRedesign from '../components/chat-redesign';
 import BootError from '../components/boot-error';
 import ConnectorGate from '../components/connector-gate';
 import OnboardingBootstrap from '../components/onboarding-bootstrap';
@@ -66,7 +58,6 @@ function AdminPageApp() {
 		);
 
 	const [ showShortcuts, setShowShortcuts ] = useState( false );
-	const [ sidebarOpen, setSidebarOpen ] = useState( false );
 
 	useEffect( () => {
 		fetchProviders();
@@ -107,19 +98,13 @@ function AdminPageApp() {
 			);
 	}, [ providersLoaded, fetchProviders ] );
 
-	const handleSlashCommand = useCallback( ( command ) => {
-		if ( command === 'help' ) {
-			setShowShortcuts( true );
-		}
-	}, [] );
-
 	// Keyboard shortcuts.
 	const shortcuts = useMemo(
 		() => ( {
 			'mod+n': () => clearCurrentSession(),
 			'mod+k': () => {
 				const searchInput = document.querySelector(
-					'.gratis-ai-agent-sidebar-search'
+					'.gaa-cr-search-input, .gratis-ai-agent-sidebar-search'
 				);
 				if ( searchInput ) {
 					searchInput.focus();
@@ -153,37 +138,10 @@ function AdminPageApp() {
 		return <OnboardingBootstrap />;
 	}
 
-	// Normal chat layout.
+	// Normal chat layout — redesigned shell.
 	return (
 		<>
-			<div
-				className={ `gratis-ai-agent-layout${
-					sidebarOpen ? ' sidebar-is-open' : ''
-				}` }
-			>
-				{ /* Backdrop — tapping closes the drawer on mobile */ }
-				{ sidebarOpen && (
-					<div
-						className="gratis-ai-agent-sidebar-backdrop"
-						onClick={ () => setSidebarOpen( false ) }
-						aria-hidden="true"
-					/>
-				) }
-				<SessionSidebar onClose={ () => setSidebarOpen( false ) } />
-				<div className="gratis-ai-agent-main">
-					{ /* Hamburger button — visible only on mobile */ }
-					<button
-						type="button"
-						className="gratis-ai-agent-sidebar-toggle"
-						onClick={ () => setSidebarOpen( ( prev ) => ! prev ) }
-						aria-label={ __( 'Toggle sidebar', 'gratis-ai-agent' ) }
-						aria-expanded={ sidebarOpen }
-					>
-						<span aria-hidden="true">&#9776;</span>
-					</button>
-					<ChatPanel onSlashCommand={ handleSlashCommand } />
-				</div>
-			</div>
+			<ChatRedesign />
 			{ showShortcuts && (
 				<ShortcutsHelp onClose={ () => setShowShortcuts( false ) } />
 			) }

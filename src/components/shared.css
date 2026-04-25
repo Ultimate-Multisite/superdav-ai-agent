@@ -1,5 +1,30 @@
 /* Shared component styles — loaded by both admin-page and floating-widget bundles */
 
+/* ── AI Icon — unified mark + thinking animation ───────────────────────────── */
+.gaa-ai-icon .sp {
+	transform-box: fill-box;
+	transform-origin: center;
+	opacity: 1;
+	transform: scale(1);
+}
+.gaa-ai-icon.thinking .sp-lg {
+	animation: gaa-sparkle-twinkle 1.5s ease-in-out infinite;
+}
+.gaa-ai-icon.thinking .sp-md {
+	animation: gaa-sparkle-twinkle 1.5s ease-in-out infinite;
+	animation-delay: 0.35s;
+}
+.gaa-ai-icon.thinking .sp-sm {
+	animation: gaa-sparkle-twinkle 1.5s ease-in-out infinite;
+	animation-delay: 0.7s;
+}
+
+@keyframes gaa-sparkle-twinkle {
+	0%, 100% { opacity: 0.35; transform: scale(0.6); }
+	40%      { opacity: 1;    transform: scale(1.1); }
+	60%      { opacity: 1;    transform: scale(1); }
+}
+
 /* ── TTS toggle button ─────────────────────────────────────────────────────── */
 .gratis-ai-agent-tts-btn.components-button {
 	min-width: auto;

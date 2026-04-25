@@ -30,7 +30,10 @@
 		"build/",
 		"node_modules/",
 		"vendor/",
-		"tests/"
+		"tests/",
+		"better-chat/",
+		"design_handoff_chat_redesign/",
+		"design_handoff_chat_widget_redesign/"
 	],
 	"overrides": [
 		{

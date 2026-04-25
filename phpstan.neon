@@ -294,9 +294,14 @@ parameters:
 		- '#Call to function is_wp_error\(\) with WP_AI_Client_Prompt_Builder will always evaluate to false#'
 		- '#Call to function is_array\(\) with WP_AI_Client_Prompt_Builder will always evaluate to false#'
 		- '#Call to function is_string\(\) with WP_AI_Client_Prompt_Builder will always evaluate to false#'
-		# AiGenerateSource: generate_image() result type is unknown (class-string|object from
-		# method_exists guard); to_base64() call is intentional runtime pattern.
+		# AiGenerateSource/GenerateImageAbility: after generate_image(), $file is a
+		# WordPress\AiClient\Files\DTO\File (unknown class). method_exists() narrows $file
+		# to class-string|object; the guarded calls are safe at runtime.
 		- '#Cannot call method to_base64\(\) on class-string\|object#'
+		- '#Cannot call method isRemote\(\) on class-string\|object#'
+		- '#Cannot call method getUrl\(\) on class-string\|object#'
+		- '#Cannot call method getBase64Data\(\) on class-string\|object#'
+		- '#Cannot call method getMimeType\(\) on class-string\|object#'
 		# AiGenerateSource: array offsets on *NEVER* type — consequence of is_array() narrowing.
 		- '#Offset .* on \*NEVER\* on left side of \?\? always exists and is not nullable#'
 		# ImageSources: array_map Closure return type mismatch — PHPStan infers typed shape but

@@ -91,7 +91,7 @@ final class AdminHandler {
 	 * Add action links to the plugin listing on plugins.php.
 	 *
 	 * @param array<string, string> $actions     Plugin action links.
-	 * @param string               $plugin_file Path to plugin file relative to plugins directory.
+	 * @param string                $plugin_file Path to plugin file relative to plugins directory.
 	 * @return array<string, string> Modified action links.
 	 */
 	#[Filter( tag: 'plugin_action_links', priority: 10 )]

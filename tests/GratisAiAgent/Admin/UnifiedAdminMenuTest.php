@@ -62,10 +62,11 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test getMenuItems() returns at least 4 items.
+	 * Test getMenuItems() returns exactly 4 items.
 	 *
-	 * On WP 6.9 (no native Connectors page) a 5th Connectors item is added;
-	 * on WP 7.0+ the native page handles connectors so only 4 items appear.
+	 * The menu always contains chat, abilities, changes, settings.
+	 * The Connectors item is never added — users are directed to the
+	 * official Connectors page or prompted to install Gutenberg.
 	 */
 	public function test_get_menu_items_returns_four_items(): void {
 		$items = UnifiedAdminMenu::getMenuItems();
@@ -165,43 +166,6 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test hasNativeConnectorsPage() returns false on WP 6.9 without Gutenberg.
-	 *
-	 * On WP 6.9 without the Gutenberg plugin, the Connectors page is not
-	 * available. Users should be directed to install Gutenberg 22.8.0+.
-	 */
-	public function test_has_native_connectors_page_returns_false_on_wp_69(): void {
-		global $wp_version;
-		$original = $wp_version;
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
-		$wp_version = '6.9';
-		$result = UnifiedAdminMenu::hasNativeConnectorsPage();
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
-		$wp_version = $original;
-
-		// Only false when GUTENBERG_VERSION is not defined or < 22.8.0.
-		if ( defined( 'GUTENBERG_VERSION' ) && version_compare( GUTENBERG_VERSION, '22.8.0', '>=' ) ) {
-			$this->assertTrue( $result, 'hasNativeConnectorsPage() should return true on WP 6.9 with Gutenberg 22.8.0+.' );
-		} else {
-			$this->assertFalse( $result, 'hasNativeConnectorsPage() should return false on WP 6.9 without Gutenberg 22.8.0+.' );
-		}
-	}
-
-	/**
-	 * Test hasNativeConnectorsPage() returns true on WP 7.0.
-	 */
-	public function test_has_native_connectors_page_returns_true_on_wp_70(): void {
-		global $wp_version;
-		$original = $wp_version;
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
-		$wp_version = '7.0';
-		$result = UnifiedAdminMenu::hasNativeConnectorsPage();
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test-only override.
-		$wp_version = $original;
-		$this->assertTrue( $result, 'hasNativeConnectorsPage() should return true on WP 7.0+.' );
-	}
-
-	/**
 	 * Test hasGutenbergConnectorsPage() returns false when GUTENBERG_VERSION is not defined.
 	 */
 	public function test_has_gutenberg_connectors_page_without_gutenberg(): void {
@@ -272,24 +236,6 @@ class UnifiedAdminMenuTest extends WP_UnitTestCase {
 		$url = UnifiedAdminMenu::getConnectorsUrl();
 		$this->assertIsString( $url );
 		$this->assertNotEmpty( $url );
-	}
-
-	/**
-	 * Test getMenuItems() conditionally includes Connectors item.
-	 *
-	 * When there is no native WP 7.0+ Connectors page, a Connectors item is
-	 * added to the unified admin menu. When the native page exists, it is
-	 * omitted so users go to the core page instead.
-	 */
-	public function test_get_menu_items_connectors_conditional(): void {
-		$items = UnifiedAdminMenu::getMenuItems();
-		$slugs = array_column( $items, 'slug' );
-
-		if ( UnifiedAdminMenu::hasNativeConnectorsPage() ) {
-			$this->assertNotContains( 'connectors', $slugs );
-		} else {
-			$this->assertContains( 'connectors', $slugs );
-		}
 	}
 
 	// ─── getCurrentRoute ──────────────────────────────────────────────────────

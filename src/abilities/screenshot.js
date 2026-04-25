@@ -20,7 +20,6 @@
  * itself via iframe sandboxing).
  */
 
-import html2canvas from 'html2canvas';
 import { registerClientAbility } from './registry';
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
@@ -36,6 +35,28 @@ const IFRAME_LOAD_TIMEOUT = 15000;
 
 /** Extra settle time (ms) after iframe load event for async renders. */
 const IFRAME_SETTLE_DELAY = 1500;
+
+/**
+ * Maximum capture height (px) for fullPage mode.
+ *
+ * html2canvas allocates a canvas of width * height * 4 bytes (RGBA). At
+ * 1280 x 16000 that is ~82 MB — tolerable. At 1280 x 40000 it is ~200 MB,
+ * which will OOM-crash tabs on low-memory devices. 10000 px is roughly
+ * 12 viewport-heights of content — more than enough for visual review.
+ * Heights beyond this are clamped and flagged via `truncated: true`.
+ */
+const MAX_CAPTURE_HEIGHT = 10000;
+
+/**
+ * Step size (px) for the scroll pass that triggers lazy-loaded content.
+ * Smaller values catch more IntersectionObserver thresholds but take longer.
+ * One viewport-height per step is the sweet spot — each step brings a full
+ * new screen of images into the intersection root.
+ */
+const SCROLL_STEP = 800;
+
+/** Pause (ms) between scroll steps to let lazy loaders fire and settle. */
+const SCROLL_STEP_DELAY = 150;
 
 /* ── Helpers ───────────────────────────────────────────────────────────── */
 
@@ -104,6 +125,45 @@ function validateSameOrigin( url ) {
 	}
 }
 
+/**
+ * Scroll a window/document top-to-bottom in steps to trigger lazy-loaded
+ * images and IntersectionObserver callbacks.
+ *
+ * WordPress adds `loading="lazy"` to all `<img>` tags by default (since 5.5).
+ * Images below the initial viewport never enter the intersection root of an
+ * off-screen iframe, so they remain as empty placeholders in the capture.
+ * Scrolling the iframe's contentWindow in increments forces each slice of
+ * content through the viewport, triggering native lazy-load and any
+ * JS-based lazy loaders.
+ *
+ * After the scroll pass the window is scrolled back to top for capture.
+ *
+ * @param {Window}   win       The window to scroll (e.g. iframe.contentWindow).
+ * @param {Document} doc       The document for measuring scrollHeight.
+ * @param {number}   maxHeight Stop scrolling past this height (the clamped capture height).
+ * @return {Promise<void>} Resolves when the scroll pass is complete.
+ */
+async function scrollToRevealLazyContent( win, doc, maxHeight ) {
+	const scrollTarget = Math.min(
+		doc.documentElement.scrollHeight,
+		maxHeight
+	);
+
+	for ( let y = 0; y < scrollTarget; y += SCROLL_STEP ) {
+		win.scrollTo( 0, y );
+		// eslint-disable-next-line no-await-in-loop
+		await new Promise( ( r ) => setTimeout( r, SCROLL_STEP_DELAY ) );
+	}
+
+	// Scroll to the very bottom to catch the last slice, then back to top.
+	win.scrollTo( 0, scrollTarget );
+	await new Promise( ( r ) => setTimeout( r, SCROLL_STEP_DELAY ) );
+	win.scrollTo( 0, 0 );
+
+	// Brief settle for any final image decode / layout reflow.
+	await new Promise( ( r ) => setTimeout( r, 300 ) );
+}
+
 /* ── Ability 1: capture-screenshot ─────────────────────────────────────── */
 
 /**
@@ -136,6 +196,20 @@ async function executeCaptureScreenshot( args ) {
 			target = el;
 		}
 
+		// For fullPage captures: clamp height to avoid OOM from huge canvases,
+		// and scroll through the page to trigger lazy-loaded images.
+		let captureHeight;
+		let truncated = false;
+
+		if ( fullPage && target === document.body ) {
+			const rawHeight = document.documentElement.scrollHeight;
+			captureHeight = Math.min( rawHeight, MAX_CAPTURE_HEIGHT );
+			truncated = rawHeight > MAX_CAPTURE_HEIGHT;
+
+			await scrollToRevealLazyContent( window, document, captureHeight );
+		}
+
+		const { default: html2canvas } = await import( 'html2canvas' );
 		const canvas = await html2canvas( target, {
 			useCORS: true,
 			allowTaint: false,
@@ -144,10 +218,7 @@ async function executeCaptureScreenshot( args ) {
 				target === document.body
 					? document.documentElement.scrollWidth
 					: undefined,
-			windowHeight:
-				fullPage && target === document.body
-					? document.documentElement.scrollHeight
-					: undefined,
+			windowHeight: captureHeight,
 		} );
 
 		const { dataUrl, width, height } = canvasToJpeg( canvas );
@@ -158,6 +229,7 @@ async function executeCaptureScreenshot( args ) {
 			width,
 			height,
 			url: window.location.href,
+			truncated,
 			error: '',
 		};
 	} catch ( err ) {
@@ -285,20 +357,41 @@ async function executeScreenshotUrl( args ) {
 		].join( ' ' );
 		iframeDoc.head.appendChild( adminBarStyle );
 
+		// For fullPage captures: clamp height to avoid OOM, resize the iframe
+		// to the capture height so the full content is laid out, then scroll
+		// through to trigger lazy-loaded images before capturing.
+		let captureH = viewportHeight;
+		let truncated = false;
+
+		if ( fullPage ) {
+			const rawHeight = iframeDoc.documentElement.scrollHeight;
+			captureH = Math.min( rawHeight, MAX_CAPTURE_HEIGHT );
+			truncated = rawHeight > MAX_CAPTURE_HEIGHT;
+
+			// Resize the iframe to the capture height so the browser lays
+			// out all content within view and IntersectionObservers see it.
+			iframe.style.height = `${ captureH }px`;
+
+			// Scroll through the iframe content in steps to trigger native
+			// loading="lazy" images and JS-based lazy loaders.
+			await scrollToRevealLazyContent(
+				iframe.contentWindow,
+				iframeDoc,
+				captureH
+			);
+		}
+
 		const captureTarget = iframeDoc.body;
 
+		const { default: html2canvas } = await import( 'html2canvas' );
 		const canvas = await html2canvas( captureTarget, {
 			useCORS: true,
 			allowTaint: false,
 			logging: false,
 			width: viewportWidth,
-			height: fullPage
-				? iframeDoc.documentElement.scrollHeight
-				: viewportHeight,
+			height: captureH,
 			windowWidth: viewportWidth,
-			windowHeight: fullPage
-				? iframeDoc.documentElement.scrollHeight
-				: viewportHeight,
+			windowHeight: captureH,
 		} );
 
 		const { dataUrl, width, height } = canvasToJpeg( canvas );
@@ -309,6 +402,7 @@ async function executeScreenshotUrl( args ) {
 			width,
 			height,
 			url: resolved,
+			truncated,
 			error: '',
 		};
 	} catch ( err ) {
@@ -372,6 +466,11 @@ export async function registerCaptureScreenshotAbility() {
 				width: { type: 'integer' },
 				height: { type: 'integer' },
 				url: { type: 'string' },
+				truncated: {
+					type: 'boolean',
+					description:
+						'True if fullPage capture was clamped to the maximum height. Some content at the bottom of the page was not captured.',
+				},
 				error: { type: 'string' },
 			},
 		},
@@ -431,6 +530,11 @@ export async function registerScreenshotUrlAbility() {
 				width: { type: 'integer' },
 				height: { type: 'integer' },
 				url: { type: 'string' },
+				truncated: {
+					type: 'boolean',
+					description:
+						'True if fullPage capture was clamped to the maximum height. Some content at the bottom of the page was not captured.',
+				},
 				error: { type: 'string' },
 			},
 		},

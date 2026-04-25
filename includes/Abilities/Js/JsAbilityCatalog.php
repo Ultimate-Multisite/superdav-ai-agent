@@ -121,15 +121,19 @@ class JsAbilityCatalog {
 				'output_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
-						'success' => array( 'type' => 'boolean' ),
-						'image'   => array(
+						'success'   => array( 'type' => 'boolean' ),
+						'image'     => array(
 							'type'        => 'string',
 							'description' => 'Base64-encoded JPEG data URL of the screenshot.',
 						),
-						'width'   => array( 'type' => 'integer' ),
-						'height'  => array( 'type' => 'integer' ),
-						'url'     => array( 'type' => 'string' ),
-						'error'   => array( 'type' => 'string' ),
+						'width'     => array( 'type' => 'integer' ),
+						'height'    => array( 'type' => 'integer' ),
+						'url'       => array( 'type' => 'string' ),
+						'truncated' => array(
+							'type'        => 'boolean',
+							'description' => 'True if fullPage capture was clamped to the maximum height.',
+						),
+						'error'     => array( 'type' => 'string' ),
 					),
 				),
 				'annotations'   => array(
@@ -167,15 +171,19 @@ class JsAbilityCatalog {
 				'output_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
-						'success' => array( 'type' => 'boolean' ),
-						'image'   => array(
+						'success'   => array( 'type' => 'boolean' ),
+						'image'     => array(
 							'type'        => 'string',
 							'description' => 'Base64-encoded JPEG data URL of the screenshot.',
 						),
-						'width'   => array( 'type' => 'integer' ),
-						'height'  => array( 'type' => 'integer' ),
-						'url'     => array( 'type' => 'string' ),
-						'error'   => array( 'type' => 'string' ),
+						'width'     => array( 'type' => 'integer' ),
+						'height'    => array( 'type' => 'integer' ),
+						'url'       => array( 'type' => 'string' ),
+						'truncated' => array(
+							'type'        => 'boolean',
+							'description' => 'True if fullPage capture was clamped to the maximum height.',
+						),
+						'error'     => array( 'type' => 'string' ),
 					),
 				),
 				'annotations'   => array(

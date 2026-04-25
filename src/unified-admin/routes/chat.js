@@ -2,8 +2,6 @@
  * WordPress dependencies
  */
 import { useEffect, useRef } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
-import { Card, CardHeader, CardBody } from '@wordpress/components';
 
 /**
  * Chat Route Component
@@ -112,19 +110,12 @@ export default function ChatRoute() {
 
 	return (
 		<div className="gratis-ai-agent-route gratis-ai-agent-route-chat">
-			<Card>
-				<CardHeader>
-					<h2>{ __( 'Chat', 'gratis-ai-agent' ) }</h2>
-				</CardHeader>
-				<CardBody>
-					<div
-						ref={ containerRef }
-						id="gratis-ai-agent-chat-container"
-						className="gratis-ai-agent-chat-container"
-						style={ { minHeight: '500px' } }
-					/>
-				</CardBody>
-			</Card>
+			<div
+				ref={ containerRef }
+				id="gratis-ai-agent-chat-container"
+				className="gratis-ai-agent-chat-container"
+				style={ { minHeight: '500px' } }
+			/>
 		</div>
 	);
 }

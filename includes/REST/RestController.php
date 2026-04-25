@@ -274,7 +274,7 @@ final class RestController {
 		}
 
 		$prompt_text = sprintf(
-			'Generate a short 3-5 word title for this conversation. Reply with ONLY the title — no quotes, no punctuation at the end, no explanation.
+			'Generate a short 3-5 word title for this conversation, prefixed by a single relevant emoji. Reply with ONLY: emoji space title — no quotes, no punctuation at the end, no explanation. Example: "🐱 All about cats".
 
 User: %s
 Assistant: %s',

@@ -5,8 +5,32 @@
    can scroll normally. */
 /* stylelint-disable selector-class-pattern */
 html:has(body.toplevel_page_gratis-ai-agent .gratis-ai-agent-layout),
-body.toplevel_page_gratis-ai-agent:has(.gratis-ai-agent-layout) {
+body.toplevel_page_gratis-ai-agent:has(.gratis-ai-agent-layout),
+html:has(body.toplevel_page_gratis-ai-agent .gaa-cr),
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) {
 	overflow: hidden;
+}
+
+/* Allow the wp-admin left menu to scroll independently when its items don't
+   fit, since body overflow:hidden (above) otherwise traps the overflow. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap {
+	height: calc(100vh - 32px);
+	overflow-y: auto;
+}
+
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar {
+	width: 8px;
+}
+
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar-thumb {
+	background: rgb(255 255 255 / 15%);
+	border-radius: 8px;
+}
+
+/* wp-admin folded menu state also needs the override */
+body.folded.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap {
+	height: calc(100vh - 32px);
+	overflow-y: auto;
 }
 
 /* Hide all admin notices on the AI Agent page */

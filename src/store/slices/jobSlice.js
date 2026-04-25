@@ -359,6 +359,44 @@ export const actions = {
 								totalTokens,
 								cost
 							);
+
+							// Record per-message metadata on the last model
+							// message so the MessageList action row can
+							// display model · duration · tokens · cost.
+							const msgs =
+								select.getCurrentSessionMessages() || [];
+							let lastModelIdx = -1;
+							for ( let i = msgs.length - 1; i >= 0; i-- ) {
+								if ( msgs[ i ].role === 'model' ) {
+									lastModelIdx = i;
+									break;
+								}
+							}
+							if ( lastModelIdx >= 0 ) {
+								const sentAt = select.getSendTimestamp() || 0;
+								const duration = sentAt
+									? ( Date.now() - sentAt ) / 1000
+									: null;
+								const providers = select.getProviders() || [];
+								const pid = select.getSelectedProviderId();
+								const mid = select.getSelectedModelId();
+								const provider = providers.find(
+									( p ) => p.id === pid
+								);
+								const model = provider?.models?.find(
+									( m ) => m.id === mid
+								);
+								dispatch.setMessageTokens( lastModelIdx, {
+									prompt: tu.prompt || 0,
+									completion: tu.completion || 0,
+									cost,
+									duration,
+									modelId: model?.id || mid,
+									modelName: model?.name || model?.id || mid,
+									providerId: provider?.id || pid,
+									providerName: provider?.name || '',
+								} );
+							}
 						}
 
 						if ( result.generated_title && result.session_id ) {

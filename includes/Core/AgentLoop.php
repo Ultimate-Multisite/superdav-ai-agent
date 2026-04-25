@@ -47,8 +47,10 @@ class AgentLoop {
 	/**
 	 * Wall-clock timeout in seconds. Prevents runaway loops from burning
 	 * tokens indefinitely when round/token limits are not hit.
+	 * Reset after each successful tool call so productive long tasks are
+	 * not killed — only truly stalled loops hit this limit.
 	 */
-	const LOOP_TIMEOUT_SECONDS = 120;
+	const LOOP_TIMEOUT_SECONDS = 300;
 
 	/**
 	 * Consecutive no-progress rounds before forced exit.
@@ -664,6 +666,12 @@ class AgentLoop {
 			$truncated_message = self::truncate_tool_results( $response_message );
 			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $response_message );
+
+			// Reset the wall-clock deadline after each productive tool call.
+			// This allows genuinely long tasks (many sequential tool calls) to
+			// complete while still killing truly stalled loops that make no
+			// forward progress within a single LOOP_TIMEOUT_SECONDS window.
+			$deadline = microtime( true ) + self::LOOP_TIMEOUT_SECONDS;
 
 			// Spin detection: delegate to SpinDetector which encapsulates
 			// the idle-round state (last_tool_signature + idle_rounds counter).

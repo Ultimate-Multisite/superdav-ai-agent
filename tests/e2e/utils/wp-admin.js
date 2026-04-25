@@ -124,34 +124,41 @@ async function goToAgentPage( page ) {
 async function goToAdminDashboard( page ) {
 	await page.goto( '/wp-admin/index.php' );
 	await page.waitForLoadState( 'networkidle' );
-	// Wait for the floating widget React app to mount and render the FAB.
-	// The FAB renders after FloatingWidget mounts and fetchSettings() resolves.
-	// Without this wait, tests that immediately call fab.click() can time out
-	// when the CI runner is under load.
+	// Wait for the floating widget React app to mount and render the launcher.
+	// The launcher (FAB) renders after FloatingWidget mounts and fetchSettings()
+	// resolves. Without this wait, tests that immediately click the launcher can
+	// time out when the CI runner is under load.
+	// The redesign (#1157) renamed .gratis-ai-agent-fab to .gaa-w-launcher.
 	await page
-		.locator( '.gratis-ai-agent-fab' )
+		.locator( '.gaa-w-launcher' )
 		.waitFor( { state: 'visible', timeout: 15_000 } )
-		.catch( () => {} ); // Non-fatal: some tests may not need the FAB.
+		.catch( () => {} ); // Non-fatal: some tests may not need the launcher.
 }
 
 /**
- * Wait for the floating action button to be visible.
+ * Wait for the floating action button (launcher) to be visible.
+ *
+ * The redesign (#1157) replaced the legacy .gratis-ai-agent-fab class with
+ * .gaa-w-launcher in the new WidgetLauncher component.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
- * @return {import('@playwright/test').Locator} The FAB locator.
+ * @return {import('@playwright/test').Locator} The launcher locator.
  */
 function getFloatingButton( page ) {
-	return page.locator( '.gratis-ai-agent-fab' );
+	return page.locator( '.gaa-w-launcher' );
 }
 
 /**
- * Wait for the floating panel to be visible.
+ * Get the floating widget panel.
+ *
+ * The redesign (#1157) replaced the legacy .gratis-ai-agent-floating-panel
+ * class with .gaa-w-panel in the new WidgetPanel component.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The floating panel locator.
  */
 function getFloatingPanel( page ) {
-	return page.locator( '.gratis-ai-agent-floating-panel' );
+	return page.locator( '.gaa-w-panel' );
 }
 
 /**

@@ -1230,11 +1230,11 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		await goToAdminDashboard( page );
 
-		const fab = page.locator( '.gratis-ai-agent-fab' );
+		const fab = page.locator( '.gaa-w-launcher' );
 		await expect( fab ).toBeVisible();
 
 		// Badge should not be present when count is 0.
-		const badge = fab.locator( '.gratis-ai-agent-fab-badge' );
+		const badge = fab.locator( '.gaa-w-launcher-badge' );
 		await expect( badge ).toHaveCount( 0 );
 	} );
 
@@ -1252,11 +1252,11 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		await goToAdminDashboard( page );
 
-		const fab = page.locator( '.gratis-ai-agent-fab' );
+		const fab = page.locator( '.gaa-w-launcher' );
 		await expect( fab ).toBeVisible();
 
 		// Badge should appear with the count.
-		const badge = fab.locator( '.gratis-ai-agent-fab-badge' );
+		const badge = fab.locator( '.gaa-w-launcher-badge' );
 		await expect( badge ).toBeVisible( { timeout: 10_000 } );
 		await expect( badge ).toContainText( '3' );
 	} );
@@ -1278,7 +1278,7 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		// Use 20 s — the badge appears after fetchAlerts() resolves, which can
 		// take longer than 10 s on CI runners under load with 3 parallel workers.
-		const badge = page.locator( '.gratis-ai-agent-fab-badge' );
+		const badge = page.locator( '.gaa-w-launcher-badge' );
 		await expect( badge ).toBeVisible( { timeout: 20_000 } );
 		await expect( badge ).toContainText( '9+' );
 	} );
@@ -1292,7 +1292,7 @@ test.describe( 'Proactive Alert Badge on FAB', () => {
 
 		await goToAdminDashboard( page );
 
-		const badge = page.locator( '.gratis-ai-agent-fab-badge' );
+		const badge = page.locator( '.gaa-w-launcher-badge' );
 		await expect( badge ).toBeVisible( { timeout: 10_000 } );
 
 		// aria-label should include the count for screen readers.

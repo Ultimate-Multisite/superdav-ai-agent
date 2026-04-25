@@ -54,10 +54,11 @@ const { loginToWordPress } = require( './utils/wp-admin' );
 async function goToDashboard( page ) {
 	await page.goto( '/wp-admin/index.php' );
 	await page.waitForLoadState( 'domcontentloaded' );
-	// Wait for the FAB button — it renders once React has mounted and the
+	// Wait for the launcher button — it renders once React has mounted and the
 	// floating-widget bundle has executed (triggering ensureRegistered()).
+	// The redesign (#1157) renamed .gratis-ai-agent-fab to .gaa-w-launcher.
 	await page
-		.locator( '.gratis-ai-agent-fab' )
+		.locator( '.gaa-w-launcher' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 }
 

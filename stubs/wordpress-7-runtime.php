@@ -725,6 +725,22 @@ namespace {
 		public function generate_text_result(): \WordPress\AiClient\Results\DTO\GenerativeAiResult|\WP_Error {
 			return new \WordPress\AiClient\Results\DTO\GenerativeAiResult();
 		}
+
+		/**
+		 * Check if the prompt is supported for image generation.
+		 *
+		 * @return bool
+		 */
+		public function is_supported_for_image_generation(): bool { return false; }
+
+		/**
+		 * Generate an image from the prompt.
+		 *
+		 * @return \WordPress\AiClient\Files\DTO\File|\WP_Error
+		 */
+		public function generate_image(): \WordPress\AiClient\Files\DTO\File|\WP_Error {
+			return new \WP_Error( 'not_implemented', 'Stub only.' );
+		}
 	}
 
 	/**

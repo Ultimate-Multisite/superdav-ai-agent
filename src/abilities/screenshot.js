@@ -16,8 +16,12 @@
  * vision-capable model.
  *
  * Security: screenshot-url restricts targets to the current WordPress site
- * origin (same-origin policy enforced both by URL validation and the browser
- * itself via iframe sandboxing).
+ * origin via explicit URL validation in `validateSameOrigin()`. The browser's
+ * same-origin policy enforces this at runtime: cross-origin redirects will
+ * cause `iframe.contentDocument` access to throw, and the error path returns
+ * a structured failure result. The iframe is intentionally NOT `sandbox`'d,
+ * because a sandboxed iframe gets an opaque origin that would block the
+ * same-origin DOM access html2canvas needs.
  */
 
 import { registerClientAbility } from './registry';
@@ -206,7 +210,13 @@ async function executeCaptureScreenshot( args ) {
 			captureHeight = Math.min( rawHeight, MAX_CAPTURE_HEIGHT );
 			truncated = rawHeight > MAX_CAPTURE_HEIGHT;
 
-			await scrollToRevealLazyContent( window, document, captureHeight );
+			const originalScrollX = window.scrollX;
+			const originalScrollY = window.scrollY;
+			try {
+				await scrollToRevealLazyContent( window, document, captureHeight );
+			} finally {
+				window.scrollTo( originalScrollX, originalScrollY );
+			}
 		}
 
 		const { default: html2canvas } = await import( 'html2canvas' );

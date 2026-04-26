@@ -117,7 +117,7 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 			'Result must be an array or WP_Error.'
 		);
 		if ( is_wp_error( $result ) ) {
-			$this->assertNotSame( 'ultra', $result->get_error_code() );
+			$this->assertNotSame( 'invalid_quality', $result->get_error_code() );
 		}
 	}
 
@@ -136,7 +136,7 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 			'Result must be an array or WP_Error.'
 		);
 		if ( is_wp_error( $result ) ) {
-			$this->assertNotSame( 'cartoon', $result->get_error_code() );
+			$this->assertNotSame( 'invalid_style', $result->get_error_code() );
 		}
 	}
 

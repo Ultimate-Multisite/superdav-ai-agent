@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { useMemo } from '@wordpress/element';
+import { useMemo, lazy, Suspense } from '@wordpress/element';
 
 /**
  * External dependencies
@@ -12,9 +12,55 @@ import remarkGfm from 'remark-gfm';
 /**
  * Internal dependencies
  */
-import CodeBlock from './code-block';
-import ChartBlock from './chart-block';
 import DataTable from './data-table';
+
+/**
+ * CodeBlock and ChartBlock are lazy-loaded so their heavy dependencies
+ * (CodeMirror ~800 KB, Chart.js ~220 KB) are bundled into separate async
+ * chunks that are only downloaded the first time the AI returns a fenced
+ * code block. webpackPrefetch causes the browser to fetch the chunks in
+ * the background during idle time so the download is usually already
+ * complete by the time a code block first appears.
+ */
+const CodeBlock = lazy( () =>
+	import(
+		/* webpackChunkName: "code-block", webpackPrefetch: true */
+		'./code-block'
+	)
+);
+const ChartBlock = lazy( () =>
+	import(
+		/* webpackChunkName: "chart-block", webpackPrefetch: true */
+		'./chart-block'
+	)
+);
+
+/**
+ * Plain fallback rendered while the syntax-highlighter chunk downloads.
+ * Shows the raw code text immediately so the user can read it before
+ * the interactive editor hydrates (~50 ms on a cached chunk).
+ *
+ * @param {Object} props          - Fallback props.
+ * @param {string} [props.lang]   - Language label for the header line.
+ * @param {*}      props.children - Code text.
+ * @return {JSX.Element} Preformatted code element.
+ */
+function CodeFallback( { lang, children } ) {
+	return (
+		<div className="gratis-ai-agent-code-block">
+			{ lang && (
+				<div className="gratis-ai-agent-code-header">
+					<span className="gratis-ai-agent-code-language">
+						{ lang }
+					</span>
+				</div>
+			) }
+			<pre className="gratis-ai-agent-code-cm gratis-ai-agent-code-plain">
+				<code>{ children }</code>
+			</pre>
+		</div>
+	);
+}
 
 /** Languages that should render as interactive Chart.js charts. */
 const CHART_LANGUAGES = new Set( [ 'chart', 'chartjs', 'chart.js' ] );
@@ -26,13 +72,38 @@ const components = {
 	code( { inline, className, children, ...props } ) {
 		const match = /language-(\w+)/.exec( className || '' );
 		if ( ! inline && match ) {
-			if ( CHART_LANGUAGES.has( match[ 1 ].toLowerCase() ) ) {
-				return <ChartBlock>{ children }</ChartBlock>;
+			const lang = match[ 1 ];
+			if ( CHART_LANGUAGES.has( lang.toLowerCase() ) ) {
+				return (
+					<Suspense
+						fallback={
+							<CodeFallback lang={ lang }>
+								{ children }
+							</CodeFallback>
+						}
+					>
+						<ChartBlock>{ children }</ChartBlock>
+					</Suspense>
+				);
 			}
-			return <CodeBlock language={ match[ 1 ] }>{ children }</CodeBlock>;
+			return (
+				<Suspense
+					fallback={
+						<CodeFallback lang={ lang }>{ children }</CodeFallback>
+					}
+				>
+					<CodeBlock language={ lang }>{ children }</CodeBlock>
+				</Suspense>
+			);
 		}
 		if ( ! inline && String( children ).includes( '\n' ) ) {
-			return <CodeBlock>{ children }</CodeBlock>;
+			return (
+				<Suspense
+					fallback={ <CodeFallback>{ children }</CodeFallback> }
+				>
+					<CodeBlock>{ children }</CodeBlock>
+				</Suspense>
+			);
 		}
 		return (
 			<code className={ className } { ...props }>

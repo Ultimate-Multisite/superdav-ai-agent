@@ -1,8 +1,8 @@
 /**
  * WordPress dependencies
  */
-import { createRoot, useState, useEffect } from '@wordpress/element';
-import { Notice } from '@wordpress/components';
+import { createRoot, useState, useEffect, Suspense } from '@wordpress/element';
+import { Notice, Spinner } from '@wordpress/components';
 
 /**
  * Internal dependencies
@@ -126,7 +126,9 @@ function UnifiedAdminApp() {
 
 				<div className="gratis-ai-admin-layout">
 					<main className="gratis-ai-admin-main">
-						<Router route={ currentRoute } />
+						<Suspense fallback={ <Spinner /> }>
+							<Router route={ currentRoute } />
+						</Suspense>
 					</main>
 				</div>
 			</div>

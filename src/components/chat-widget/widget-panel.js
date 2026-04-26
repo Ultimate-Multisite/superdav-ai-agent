@@ -14,6 +14,10 @@ import STORE_NAME from '../../store';
 import ErrorBoundary from '../error-boundary';
 import ToolConfirmationDialog from '../tool-confirmation-dialog';
 import ChangesDrawer from '../chat-redesign/ChangesDrawer';
+// chat-redesign base styles (.gaa-cr-*) are only needed by panel
+// sub-components, so the import lives here rather than in index.js.
+// This keeps the CSS in the async panel chunk and out of the initial bundle.
+import '../chat-redesign/chat-redesign.css';
 import WidgetHeader from './widget-header';
 import WidgetEmpty from './widget-empty';
 import WidgetMessageList from './widget-message-list';

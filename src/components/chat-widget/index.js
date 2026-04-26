@@ -3,19 +3,35 @@
  * when closed, or the redesigned widget panel when open. State for
  * open/minimized comes from the shared store so every surface
  * (keyboard shortcut, close button, legacy code paths) stays in sync.
+ *
+ * Bundle strategy: WidgetPanel (and every component it imports —
+ * ChangesDrawer, WidgetInput, ModelPicker, AgentPicker,
+ * WidgetMessageList, ToolConfirmationDialog, SlashCommandMenu, …) lives
+ * in a separate async chunk.  The browser downloads that chunk only the
+ * first time the user opens the widget.
+ *
+ * webpackPrefetch causes the browser to fetch the chunk in the background
+ * during idle time after the main page loads, so when the user clicks the
+ * FAB the chunk is already cached — no visible delay on first open.
  */
 
+import { lazy, Suspense } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 
 import STORE_NAME from '../../store';
 import WidgetLauncher from './widget-launcher';
-import WidgetPanel from './widget-panel';
-// chat-redesign base styles provide the primitives (.gaa-cr-tool-card,
-// .gaa-cr-changes-drawer, .gaa-cr-icon-btn, .gaa-cr-btn-sm) used by the
-// shared components we import from chat-redesign. All rules are scoped
-// under .gaa-cr* so they don't leak into the wp-admin surface.
-import '../chat-redesign/chat-redesign.css';
+// widget.css contains the launcher (FAB) styles and is required in the
+// initial bundle so the FAB is styled immediately on every page load.
+// chat-redesign.css is imported inside widget-panel.js so it lands in
+// the async chunk and is only fetched when the panel first opens.
 import './widget.css';
+
+const WidgetPanel = lazy( () =>
+	import(
+		/* webpackChunkName: "widget-panel", webpackPrefetch: true */
+		'./widget-panel'
+	)
+);
 
 /**
  *
@@ -25,5 +41,16 @@ export default function ChatWidget() {
 		( sel ) => sel( STORE_NAME ).isFloatingOpen(),
 		[]
 	);
-	return isOpen ? <WidgetPanel /> : <WidgetLauncher />;
+
+	if ( ! isOpen ) {
+		return <WidgetLauncher />;
+	}
+
+	// Suspense renders nothing while the panel chunk is downloading.
+	// On a cache hit (prefetch or repeat visit) this is imperceptible.
+	return (
+		<Suspense fallback={ null }>
+			<WidgetPanel />
+		</Suspense>
+	);
 }

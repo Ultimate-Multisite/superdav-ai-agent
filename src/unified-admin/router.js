@@ -1,15 +1,38 @@
 /**
  * WordPress dependencies
  */
+import { lazy } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
+// ChatRoute is the default landing route — keep it in the initial chunk so
+// the chat UI appears without any async loading on the first visit.
 import ChatRoute from './routes/chat';
-import AbilitiesRoute from './routes/abilities';
-import ChangesRoute from './routes/changes';
-import SettingsRoute from './routes/settings';
+
+// All non-default routes are lazy-loaded so their code (SettingsApp and its
+// 12 managers, AbilitiesExplorer, ChangesPage, …) is only downloaded when
+// the user first navigates to that section.  webpackPrefetch fetches the
+// chunks in the background during idle time so transitions feel instant.
+const AbilitiesRoute = lazy( () =>
+	import(
+		/* webpackChunkName: "route-abilities", webpackPrefetch: true */
+		'./routes/abilities'
+	)
+);
+const ChangesRoute = lazy( () =>
+	import(
+		/* webpackChunkName: "route-changes", webpackPrefetch: true */
+		'./routes/changes'
+	)
+);
+const SettingsRoute = lazy( () =>
+	import(
+		/* webpackChunkName: "route-settings", webpackPrefetch: true */
+		'./routes/settings'
+	)
+);
 
 /**
  * Redirect #/connectors to the appropriate destination.

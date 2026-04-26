@@ -1,7 +1,14 @@
 /**
  * WordPress dependencies
  */
-import { createRoot, useEffect, useState, useMemo } from '@wordpress/element';
+import {
+	createRoot,
+	useEffect,
+	useState,
+	useMemo,
+	lazy,
+	Suspense,
+} from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 
 /**
@@ -13,12 +20,33 @@ import STORE_NAME from '../store';
 import '../abilities';
 import ChatRedesign from '../components/chat-redesign';
 import BootError from '../components/boot-error';
-import ConnectorGate from '../components/connector-gate';
-import OnboardingBootstrap from '../components/onboarding-bootstrap';
-import ShortcutsHelp from '../components/shortcuts-help';
 import { useKeyboardShortcuts } from '../utils/keyboard-shortcuts';
 import '../components/shared.css';
 import './style.css';
+
+// These components are rendered only in specific, uncommon states:
+//  - ConnectorGate   → zero providers configured (first install)
+//  - OnboardingBootstrap → provider exists but onboarding not yet done (once per site)
+//  - ShortcutsHelp   → user presses Mod+/ (explicitly intentional)
+// None of them appear during a normal chat session, so they are lazy-loaded.
+const ConnectorGate = lazy( () =>
+	import(
+		/* webpackChunkName: "connector-gate", webpackPrefetch: true */
+		'../components/connector-gate'
+	)
+);
+const OnboardingBootstrap = lazy( () =>
+	import(
+		/* webpackChunkName: "onboarding-bootstrap", webpackPrefetch: true */
+		'../components/onboarding-bootstrap'
+	)
+);
+const ShortcutsHelp = lazy( () =>
+	import(
+		/* webpackChunkName: "shortcuts-help", webpackPrefetch: true */
+		'../components/shortcuts-help'
+	)
+);
 
 /**
  * Root admin page application component.
@@ -129,13 +157,21 @@ function AdminPageApp() {
 	// Phase 1 gate: no connector → show connector gate.
 	const hasProvider = providers.length > 0;
 	if ( ! hasProvider ) {
-		return <ConnectorGate />;
+		return (
+			<Suspense fallback={ null }>
+				<ConnectorGate />
+			</Suspense>
+		);
 	}
 
 	// Phase 2 gate: connector exists but onboarding not yet started → bootstrap.
 	const onboardingComplete = settings?.onboarding_complete !== false;
 	if ( ! onboardingComplete ) {
-		return <OnboardingBootstrap />;
+		return (
+			<Suspense fallback={ null }>
+				<OnboardingBootstrap />
+			</Suspense>
+		);
 	}
 
 	// Normal chat layout — redesigned shell.
@@ -143,7 +179,11 @@ function AdminPageApp() {
 		<>
 			<ChatRedesign />
 			{ showShortcuts && (
-				<ShortcutsHelp onClose={ () => setShowShortcuts( false ) } />
+				<Suspense fallback={ null }>
+					<ShortcutsHelp
+						onClose={ () => setShowShortcuts( false ) }
+					/>
+				</Suspense>
 			) }
 		</>
 	);

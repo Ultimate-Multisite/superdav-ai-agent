@@ -213,7 +213,11 @@ async function executeCaptureScreenshot( args ) {
 			const originalScrollX = window.scrollX;
 			const originalScrollY = window.scrollY;
 			try {
-				await scrollToRevealLazyContent( window, document, captureHeight );
+				await scrollToRevealLazyContent(
+					window,
+					document,
+					captureHeight
+				);
 			} finally {
 				window.scrollTo( originalScrollX, originalScrollY );
 			}

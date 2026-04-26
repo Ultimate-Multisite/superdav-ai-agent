@@ -187,7 +187,7 @@ class FloatingWidget {
 			'gratis-ai-agent-floating-widget',
 			'gratisAiAgentData',
 			[
-				'currentUserId'      => get_current_user_id(),
+				'currentUserId'       => get_current_user_id(),
 				'onboarding_complete' => OnboardingManager::is_complete(),
 			]
 		);

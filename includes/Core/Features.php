@@ -48,8 +48,8 @@ final class Features {
 	 * @var array<string, string>
 	 */
 	private const CONSTANT_MAP = array(
-		self::BRANDING        => 'GRATIS_AI_AGENT_FEATURE_BRANDING',
-		self::ACCESS_CONTROL  => 'GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL',
+		self::BRANDING       => 'GRATIS_AI_AGENT_FEATURE_BRANDING',
+		self::ACCESS_CONTROL => 'GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL',
 	);
 
 	/**

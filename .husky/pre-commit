@@ -29,6 +29,18 @@ if [ -n "$VENDOR_MANIFESTS" ]; then
 	done
 fi
 
+# --- Ensure PHP tooling is available ---
+if [ ! -x "vendor/bin/phpcs" ]; then
+	if command -v composer >/dev/null 2>&1; then
+		echo "pre-commit: vendor/bin/phpcs not found — running composer install..."
+		composer install --quiet
+	else
+		echo "pre-commit: vendor/bin/phpcs not found and composer is not installed."
+		echo "Install Composer (https://getcomposer.org) and re-run your commit."
+		exit 1
+	fi
+fi
+
 if command -v npx >/dev/null 2>&1 && [ -d "node_modules/.bin" ]; then
 	npx lint-staged
 else

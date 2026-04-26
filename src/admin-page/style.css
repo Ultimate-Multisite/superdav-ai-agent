@@ -78,6 +78,17 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-unified-admin {
 	min-height: 0;
 }
 
+/* .gratis-ai-admin-main is display:block by default (unified-admin/style.css).
+   That means flex properties on its child .gratis-ai-agent-route-chat are
+   inert, so the route grows to its content height and overflows the viewport.
+   Making it a flex column here (scoped to the chat page) allows the route to
+   participate in the height distribution chain. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-admin-main {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
 /* Chat route wrapper and the mount container that ChatRoute renders into both
    need to be flex columns so .gaa-cr (which uses flex:1) can fill them. */
 body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-route-chat,
@@ -86,6 +97,13 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-chat-container 
 	flex-direction: column;
 	flex: 1;
 	min-height: 0;
+}
+
+/* The WP admin footer (#wpfooter) is a flex sibling of #wpbody inside
+   #wpcontent. Leaving it visible costs flex space that the chat panel needs,
+   causing the input area to be pushed off-screen on smaller viewports. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpfooter {
+	display: none;
 }
 
 /* Allow the wp-admin left menu to scroll independently when its items don't

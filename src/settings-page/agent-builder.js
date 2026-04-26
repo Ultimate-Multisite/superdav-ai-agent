@@ -54,11 +54,13 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 		? allAbilities.filter(
 				( a ) =>
 					! tools.includes( a.id ) &&
-					( a.id.toLowerCase().includes( search.toLowerCase() ) ||
-						a.label
+					( ( a.id || '' )
+						.toLowerCase()
+						.includes( search.toLowerCase() ) ||
+						( a.label || '' )
 							.toLowerCase()
 							.includes( search.toLowerCase() ) ||
-						a.category
+						( a.category || '' )
 							.toLowerCase()
 							.includes( search.toLowerCase() ) )
 		  )
@@ -221,7 +223,9 @@ export default function AgentBuilder() {
 		setForm( ( prev ) => ( { ...prev, [ key ]: value } ) );
 	}, [] );
 
-	const handleEdit = useCallback( ( agent ) => {
+	const handleEdit = useCallback( async ( agent ) => {
+		// Immediately open the form with the list data so the UI responds
+		// without waiting for the network.
 		setEditId( agent.id );
 		setForm( {
 			slug: agent.slug || '',
@@ -243,6 +247,22 @@ export default function AgentBuilder() {
 		} );
 		setShowForm( true );
 		setNotice( null );
+
+		// Fetch the full agent record to ensure system_prompt and tier_1_tools
+		// are populated — the list response may omit or truncate large fields.
+		try {
+			const full = await apiFetch( {
+				path: `/gratis-ai-agent/v1/agents/${ agent.id }`,
+			} );
+			setForm( ( prev ) => ( {
+				...prev,
+				system_prompt: full.system_prompt || prev.system_prompt || '',
+				tier_1_tools: full.tier_1_tools || prev.tier_1_tools || [],
+				greeting: full.greeting || prev.greeting || '',
+			} ) );
+		} catch {
+			// Network error — keep whatever the list already gave us.
+		}
 	}, [] );
 
 	const handleSubmit = useCallback( async () => {
@@ -277,12 +297,16 @@ export default function AgentBuilder() {
 				tier_1_tools: form.tier_1_tools,
 			};
 
-			if ( form.temperature !== '' ) {
-				payload.temperature = parseFloat( form.temperature );
-			}
-			if ( form.max_iterations !== '' ) {
-				payload.max_iterations = parseInt( form.max_iterations, 10 );
-			}
+			// Send null when the field is blank so the server clears the column
+			// back to NULL (falls back to global default at runtime).
+			// Also guard against NaN so garbled input never reaches the API.
+			const rawTemp = String( form.temperature ?? '' ).trim();
+			const parsedTemp = rawTemp === '' ? NaN : parseFloat( rawTemp );
+			payload.temperature = isNaN( parsedTemp ) ? null : parsedTemp;
+
+			const rawIter = String( form.max_iterations ?? '' ).trim();
+			const parsedIter = rawIter === '' ? NaN : parseInt( rawIter, 10 );
+			payload.max_iterations = isNaN( parsedIter ) ? null : parsedIter;
 
 			if ( editId ) {
 				await updateAgent( editId, payload );
@@ -328,10 +352,7 @@ export default function AgentBuilder() {
 				! window.confirm(
 					sprintf(
 						/* translators: %s: agent name */
-						__(
-							'Delete agent "%s"? This cannot be undone.',
-							'gratis-ai-agent'
-						),
+						__( 'Delete agent "%s"?', 'gratis-ai-agent' ),
 						agent.name
 					)
 				)
@@ -451,46 +472,50 @@ export default function AgentBuilder() {
 							<CardHeader>
 								<div className="gratis-ai-agent-card-header">
 									<div className="gratis-ai-agent-card-title">
-										<strong>{ agent.name }</strong>
-										{ agent.is_builtin && (
-											<span className="gratis-ai-agent-card-badge">
-												{ __(
-													'Built-in',
-													'gratis-ai-agent'
-												) }
-											</span>
-										) }
-										{ agent.description && (
-											<span className="gratis-ai-agent-card-desc">
-												{ agent.description }
-											</span>
-										) }
-									</div>
-									<div className="gratis-ai-agent-card-actions">
-										<Button
-											icon={ pencil }
-											label={ __(
-												'Edit agent',
-												'gratis-ai-agent'
+										<div className="gratis-ai-agent-card-title-row">
+											<strong>{ agent.name }</strong>
+											{ agent.is_builtin && (
+												<span className="gratis-ai-agent-card-badge">
+													{ __(
+														'Built-in',
+														'gratis-ai-agent'
+													) }
+												</span>
 											) }
-											onClick={ () =>
-												handleEdit( agent )
-											}
-											size="small"
-										/>
-										{ agent.slug !== 'general' && (
-											<Button
-												icon={ trash }
-												label={ __(
-													'Delete agent',
-													'gratis-ai-agent'
+											<div className="gratis-ai-agent-card-actions">
+												<Button
+													icon={ pencil }
+													label={ __(
+														'Edit agent',
+														'gratis-ai-agent'
+													) }
+													onClick={ () =>
+														handleEdit( agent )
+													}
+													size="small"
+												/>
+												{ agent.slug !== 'general' && (
+													<Button
+														icon={ trash }
+														label={ __(
+															'Delete agent',
+															'gratis-ai-agent'
+														) }
+														onClick={ () =>
+															handleDelete(
+																agent
+															)
+														}
+														isDestructive
+														size="small"
+													/>
 												) }
-												onClick={ () =>
-													handleDelete( agent )
-												}
-												isDestructive
-												size="small"
-											/>
+											</div>
+										</div>
+										{ agent.description && (
+											<p className="gratis-ai-agent-card-desc">
+												{ agent.description }
+											</p>
 										) }
 									</div>
 								</div>
@@ -517,17 +542,6 @@ export default function AgentBuilder() {
 												) }
 											</strong>{ ' ' }
 											{ agent.model_id }
-										</span>
-									) }
-									{ null !== agent.temperature && (
-										<span>
-											<strong>
-												{ __(
-													'Temp:',
-													'gratis-ai-agent'
-												) }
-											</strong>{ ' ' }
-											{ agent.temperature }
 										</span>
 									) }
 									{ agent.tier_1_tools?.length > 0 && (
@@ -589,144 +603,322 @@ export default function AgentBuilder() {
 							: __( 'New Agent', 'gratis-ai-agent' ) }
 					</h3>
 
-					{ ! editId && (
-						<TextControl
-							label={ __( 'Slug', 'gratis-ai-agent' ) }
-							value={ form.slug }
-							onChange={ ( v ) => updateField( 'slug', v ) }
-							help={ __(
-								'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-								'gratis-ai-agent'
+					<table className="form-table gratis-ai-agent-form-table">
+						<tbody>
+							{ ! editId && (
+								<tr>
+									<th scope="row">
+										<label htmlFor="agent-slug">
+											{ __( 'Slug', 'gratis-ai-agent' ) }
+										</label>
+									</th>
+									<td>
+										<TextControl
+											id="agent-slug"
+											value={ form.slug }
+											onChange={ ( v ) =>
+												updateField( 'slug', v )
+											}
+											__nextHasNoMarginBottom
+										/>
+										<p className="description">
+											{ __(
+												'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
+												'gratis-ai-agent'
+											) }
+										</p>
+									</td>
+								</tr>
 							) }
-							__nextHasNoMarginBottom
-						/>
-					) }
 
-					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
-						value={ form.name }
-						onChange={ ( v ) => updateField( 'name', v ) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-name">
+										{ __( 'Name', 'gratis-ai-agent' ) }
+									</label>
+								</th>
+								<td>
+									<TextControl
+										id="agent-name"
+										value={ form.name }
+										onChange={ ( v ) =>
+											updateField( 'name', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+								</td>
+							</tr>
 
-					<TextareaControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
-						value={ form.description }
-						onChange={ ( v ) => updateField( 'description', v ) }
-						rows={ 2 }
-						help={ __(
-							'Short description shown in the agent list.',
-							'gratis-ai-agent'
-						) }
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-description">
+										{ __(
+											'Description',
+											'gratis-ai-agent'
+										) }
+									</label>
+								</th>
+								<td>
+									<TextareaControl
+										id="agent-description"
+										value={ form.description }
+										onChange={ ( v ) =>
+											updateField( 'description', v )
+										}
+										rows={ 2 }
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Short description shown in the agent list.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<TextareaControl
-						label={ __( 'System Prompt', 'gratis-ai-agent' ) }
-						value={ form.system_prompt }
-						onChange={ ( v ) => updateField( 'system_prompt', v ) }
-						rows={ 8 }
-						help={ __(
-							'Instructions that define how this agent behaves. Each agent has its own system prompt.',
-							'gratis-ai-agent'
-						) }
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-system-prompt">
+										{ __(
+											'System Prompt',
+											'gratis-ai-agent'
+										) }
+									</label>
+								</th>
+								<td>
+									<TextareaControl
+										id="agent-system-prompt"
+										value={ form.system_prompt }
+										onChange={ ( v ) =>
+											updateField( 'system_prompt', v )
+										}
+										rows={ 10 }
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Instructions that define how this agent behaves.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<TextareaControl
-						label={ __( 'Greeting Message', 'gratis-ai-agent' ) }
-						value={ form.greeting }
-						onChange={ ( v ) => updateField( 'greeting', v ) }
-						rows={ 2 }
-						help={ __(
-							'Message shown when this agent starts a conversation.',
-							'gratis-ai-agent'
-						) }
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-greeting">
+										{ __( 'Greeting', 'gratis-ai-agent' ) }
+									</label>
+								</th>
+								<td>
+									<TextareaControl
+										id="agent-greeting"
+										value={ form.greeting }
+										onChange={ ( v ) =>
+											updateField( 'greeting', v )
+										}
+										rows={ 2 }
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Message shown when this agent starts a conversation.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<div className="gratis-ai-agent-form-field">
-						<h4 className="gratis-ai-agent-form-label">
-							{ __( 'Tier 1 Tools', 'gratis-ai-agent' ) }
-						</h4>
-						<p className="description">
-							{ __(
-								'Tools immediately available to this agent. Other tools can still be discovered via search. Aim for about 10 tools to keep context size low.',
-								'gratis-ai-agent'
-							) }
-						</p>
-						<Tier1ToolsEditor
-							tools={ form.tier_1_tools || [] }
-							onChange={ ( v ) =>
-								updateField( 'tier_1_tools', v )
-							}
-							allAbilities={ allAbilities }
-						/>
-					</div>
+							<tr>
+								<th scope="row">
+									{ __( 'Tier 1 Tools', 'gratis-ai-agent' ) }
+								</th>
+								<td>
+									<p className="description">
+										{ __(
+											'Tools immediately available to this agent. Others can still be found via search. Aim for ~10 to keep context size low.',
+											'gratis-ai-agent'
+										) }
+									</p>
+									<Tier1ToolsEditor
+										tools={ form.tier_1_tools || [] }
+										onChange={ ( v ) =>
+											updateField( 'tier_1_tools', v )
+										}
+										allAbilities={ allAbilities }
+									/>
+								</td>
+							</tr>
 
-					<SelectControl
-						label={ __( 'Provider', 'gratis-ai-agent' ) }
-						value={ form.provider_id }
-						options={ providerOptions }
-						onChange={ ( v ) => {
-							updateField( 'provider_id', v );
-							updateField( 'model_id', '' );
-						} }
-						help={ __(
-							'Override the AI provider for this agent.',
-							'gratis-ai-agent'
-						) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-provider">
+										{ __( 'Provider', 'gratis-ai-agent' ) }
+									</label>
+								</th>
+								<td>
+									<SelectControl
+										id="agent-provider"
+										value={ form.provider_id }
+										options={ providerOptions }
+										onChange={ ( v ) => {
+											updateField( 'provider_id', v );
+											updateField( 'model_id', '' );
+										} }
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Override the AI provider for this agent.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<SelectControl
-						label={ __( 'Model', 'gratis-ai-agent' ) }
-						value={ form.model_id }
-						options={ modelOptions }
-						onChange={ ( v ) => updateField( 'model_id', v ) }
-						help={ __(
-							'Override the AI model for this agent.',
-							'gratis-ai-agent'
-						) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-model">
+										{ __( 'Model', 'gratis-ai-agent' ) }
+									</label>
+								</th>
+								<td>
+									<SelectControl
+										id="agent-model"
+										value={ form.model_id }
+										options={ modelOptions }
+										onChange={ ( v ) =>
+											updateField( 'model_id', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Override the AI model for this agent.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<TextControl
-						label={ __( 'Temperature', 'gratis-ai-agent' ) }
-						type="number"
-						min={ 0 }
-						max={ 2 }
-						step={ 0.1 }
-						value={ form.temperature }
-						onChange={ ( v ) => updateField( 'temperature', v ) }
-						help={ __(
-							'Override temperature (0–2). Leave empty to use the global default.',
-							'gratis-ai-agent'
-						) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-temperature">
+										{ __(
+											'Temperature',
+											'gratis-ai-agent'
+										) }
+									</label>
+								</th>
+								<td>
+									<TextControl
+										id="agent-temperature"
+										type="number"
+										min={ 0 }
+										max={ 2 }
+										step={ 0.1 }
+										value={ form.temperature }
+										placeholder="0.2"
+										onChange={ ( v ) =>
+											updateField( 'temperature', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Override temperature (0–2). Leave empty to use the global default (0.2).',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<TextControl
-						label={ __( 'Max Iterations', 'gratis-ai-agent' ) }
-						type="number"
-						min={ 1 }
-						max={ 50 }
-						value={ form.max_iterations }
-						onChange={ ( v ) => updateField( 'max_iterations', v ) }
-						help={ __(
-							'Override max tool-call iterations. Leave empty to use the global default.',
-							'gratis-ai-agent'
-						) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-max-iterations">
+										{ __(
+											'Max Iterations',
+											'gratis-ai-agent'
+										) }
+									</label>
+								</th>
+								<td>
+									<TextControl
+										id="agent-max-iterations"
+										type="number"
+										min={ 1 }
+										max={ 50 }
+										value={ form.max_iterations }
+										placeholder="50"
+										onChange={ ( v ) =>
+											updateField( 'max_iterations', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+									<p className="description">
+										{ __(
+											'Override max tool-call iterations. Leave empty to use the global default (50).',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
 
-					<TextControl
-						label={ __( 'Avatar Icon', 'gratis-ai-agent' ) }
-						value={ form.avatar_icon }
-						onChange={ ( v ) => updateField( 'avatar_icon', v ) }
-						help={ __(
-							'Dashicon name or emoji for the agent avatar.',
-							'gratis-ai-agent'
-						) }
-						__nextHasNoMarginBottom
-					/>
+							<tr>
+								<th scope="row">
+									<label htmlFor="agent-avatar-icon">
+										{ __(
+											'Avatar Icon',
+											'gratis-ai-agent'
+										) }
+									</label>
+								</th>
+								<td>
+									<TextControl
+										id="agent-avatar-icon"
+										value={ form.avatar_icon }
+										placeholder="dashicons-admin-generic or 🤖"
+										onChange={ ( v ) =>
+											updateField( 'avatar_icon', v )
+										}
+										__nextHasNoMarginBottom
+									/>
+									{ form.avatar_icon && (
+										<div className="gratis-ai-agent-icon-preview">
+											{ form.avatar_icon.startsWith(
+												'dashicons-'
+											) ? (
+												<span
+													className={ `dashicons ${ form.avatar_icon } gratis-ai-agent-icon-preview-dash` }
+													aria-hidden="true"
+												/>
+											) : (
+												<span
+													className="gratis-ai-agent-icon-preview-emoji"
+													aria-hidden="true"
+												>
+													{ form.avatar_icon }
+												</span>
+											) }
+											<span className="gratis-ai-agent-icon-preview-label">
+												{ __(
+													'Preview',
+													'gratis-ai-agent'
+												) }
+											</span>
+										</div>
+									) }
+									<p className="description">
+										{ __(
+											'Dashicon name (e.g. dashicons-cart) or an emoji.',
+											'gratis-ai-agent'
+										) }
+									</p>
+								</td>
+							</tr>
+						</tbody>
+					</table>
 
 					<div className="gratis-ai-agent-form-actions">
 						<Button

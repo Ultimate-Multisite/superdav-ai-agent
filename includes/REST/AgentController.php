@@ -103,11 +103,11 @@ final class AgentController {
 						),
 						'temperature'    => array(
 							'required' => false,
-							'type'     => 'number',
+							'type'     => array( 'number', 'null' ),
 						),
 						'max_iterations' => array(
 							'required' => false,
-							'type'     => 'integer',
+							'type'     => array( 'integer', 'null' ),
 						),
 						'greeting'       => array(
 							'required'          => false,
@@ -195,11 +195,11 @@ final class AgentController {
 						),
 						'temperature'    => array(
 							'required' => false,
-							'type'     => 'number',
+							'type'     => array( 'number', 'null' ),
 						),
 						'max_iterations' => array(
 							'required' => false,
-							'type'     => 'integer',
+							'type'     => array( 'integer', 'null' ),
 						),
 						'greeting'       => array(
 							'required'          => false,

@@ -16,6 +16,7 @@ namespace GratisAiAgent\CLI;
 
 use GratisAiAgent\Core\AgentLoop;
 use GratisAiAgent\Core\ConversationSerializer;
+use GratisAiAgent\Models\Agent;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,16 +29,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * ## EXAMPLES
  *
  *     # Simple prompt
- *     wp ai-agent prompt "hello"
+ *     wp gratis-ai-agent prompt "hello"
+ *
+ *     # With a specific agent
+ *     wp gratis-ai-agent prompt "write a blog post intro about WordPress" --agent=content-creator
  *
  *     # With a specific model
- *     wp ai-agent prompt "how many sites we got??" --model=qwen3.5
+ *     wp gratis-ai-agent prompt "how many plugins are active?" --model=qwen3.5
  *
  *     # With verbose output showing tool calls and token usage
- *     wp ai-agent prompt "list all plugins" --verbose
+ *     wp gratis-ai-agent prompt "list all plugins" --verbose
  *
  *     # Skip all tool usage
- *     wp ai-agent prompt "what day is it?" --skip-tools
+ *     wp gratis-ai-agent prompt "what day is it?" --skip-tools
  *
  * @since 1.1.0
  */
@@ -54,30 +58,33 @@ class CliCommand extends \WP_CLI_Command {
 	 * <prompt>
 	 * : The prompt to send to the AI agent.
 	 *
+	 * [--agent=<slug>]
+	 * : Agent slug to use (e.g. general, content-creator, seo-specialist).
+	 *   Loads the agent's system prompt, tier 1 tools, and model overrides.
+	 *   CLI --model / --provider / --max-iterations flags take precedence.
+	 *
 	 * [--model=<model>]
-	 * : Model ID to use (e.g. qwen3.5, claude-sonnet-4).
+	 * : Model ID to use (e.g. qwen3.5, claude-sonnet-4). Overrides agent default.
 	 *
 	 * [--provider=<provider>]
-	 * : Provider ID to use. Defaults to saved setting.
+	 * : Provider ID to use. Overrides agent default.
 	 *
 	 * [--max-iterations=<n>]
-	 * : Maximum tool-calling loop iterations.
-	 * ---
-	 * default: 25
-	 * ---
+	 * : Maximum tool-calling loop iterations. Overrides agent default.
 	 *
 	 * [--skip-tools]
 	 * : Disable all tool/ability usage.
 	 *
 	 * [--verbose]
-	 * : Show tool calls, results, and token usage details.
+	 * : Show agent info, tool calls, results, and token usage details.
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp ai-agent prompt "how many sites we got??"
-	 *     wp ai-agent prompt "how many sites we got??" --model=qwen3.5
-	 *     wp ai-agent prompt "list all plugins" --max-iterations=5
-	 *     wp ai-agent prompt "what day is it?" --skip-tools
+	 *     wp gratis-ai-agent prompt "how many plugins are active?"
+	 *     wp gratis-ai-agent prompt "write a blog post intro" --agent=content-creator
+	 *     wp gratis-ai-agent prompt "audit my SEO" --agent=seo-specialist --verbose
+	 *     wp gratis-ai-agent prompt "list products" --agent=e-commerce
+	 *     wp gratis-ai-agent prompt "what day is it?" --skip-tools
 	 *
 	 * @when after_wp_load
 	 *
@@ -85,12 +92,10 @@ class CliCommand extends \WP_CLI_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function prompt( array $args, array $assoc_args ): void {
-		$prompt         = $args[0];
-		$model          = \WP_CLI\Utils\get_flag_value( $assoc_args, 'model', '' );
-		$provider       = \WP_CLI\Utils\get_flag_value( $assoc_args, 'provider', '' );
-		$max_iterations = (int) \WP_CLI\Utils\get_flag_value( $assoc_args, 'max-iterations', 25 );
-		$no_tools       = \WP_CLI\Utils\get_flag_value( $assoc_args, 'skip-tools', false );
-		$verbose        = \WP_CLI\Utils\get_flag_value( $assoc_args, 'verbose', false );
+		$prompt     = $args[0];
+		$agent_slug = \WP_CLI\Utils\get_flag_value( $assoc_args, 'agent', '' );
+		$no_tools   = \WP_CLI\Utils\get_flag_value( $assoc_args, 'skip-tools', false );
+		$verbose    = \WP_CLI\Utils\get_flag_value( $assoc_args, 'verbose', false );
 
 		// Ensure a user is set so ability permission checks pass.
 		// WP-CLI doesn't set a current user unless --user is passed.
@@ -104,34 +109,84 @@ class CliCommand extends \WP_CLI_Command {
 			}
 		}
 
-		if ( $verbose ) {
-			if ( $model ) {
-				WP_CLI::log( "Model: {$model}" );
+		// ── Agent resolution ─────────────────────────────────────────────────
+		// Start with agent loop options (system prompt, model, tier-1 tools,
+		// temperature, max_iterations) if --agent is provided.
+		// CLI flags layered on top override any agent defaults.
+		$options = [];
+
+		if ( $agent_slug ) {
+			$agent = Agent::get_by_slug( $agent_slug );
+
+			if ( ! $agent ) {
+				$available = array_map(
+					static fn( $a ) => $a->slug,
+					Agent::get_all()
+				);
+				WP_CLI::error(
+					"Agent '{$agent_slug}' not found. Available slugs: " . implode( ', ', $available )
+				);
+				return;
 			}
-			if ( $provider ) {
-				WP_CLI::log( "Provider: {$provider}" );
+
+			if ( ! $agent->enabled ) {
+				WP_CLI::error( "Agent '{$agent_slug}' is disabled." );
+				return;
 			}
-			WP_CLI::log( "Max iterations: {$max_iterations}" );
-			WP_CLI::log( '' );
+
+			// Merge agent-level options first; explicit CLI flags below override.
+			$options = Agent::get_loop_options( $agent->id );
+
+			if ( $verbose ) {
+				$tool_count = count( $agent->tier_1_tools ?? [] );
+				WP_CLI::log( "Agent:       {$agent->name} ({$agent->slug})" );
+				if ( $agent->description ) {
+					WP_CLI::log( "Description: {$agent->description}" );
+				}
+				WP_CLI::log( "Tier 1 tools: {$tool_count}" );
+				if ( $agent->system_prompt ) {
+					$preview = substr( $agent->system_prompt, 0, 200 );
+					if ( strlen( $agent->system_prompt ) > 200 ) {
+						$preview .= '...';
+					}
+					WP_CLI::log( 'System prompt preview:' );
+					WP_CLI::log( "  {$preview}" );
+				}
+				WP_CLI::log( '' );
+			}
 		}
 
-		// Build options for Agent_Loop.
-		$options = [
-			'max_iterations' => $max_iterations,
-		];
+		// ── CLI flag overrides ────────────────────────────────────────────────
+		// Explicit flags always win over agent defaults.
+		$model    = \WP_CLI\Utils\get_flag_value( $assoc_args, 'model', '' );
+		$provider = \WP_CLI\Utils\get_flag_value( $assoc_args, 'provider', '' );
+
+		// Default max_iterations from agent (or 25 global default) unless CLI overrides.
+		$agent_max      = $options['max_iterations'] ?? 25;
+		$cli_max        = isset( $assoc_args['max-iterations'] )
+			? (int) $assoc_args['max-iterations']
+			: null;
+		$max_iterations = $cli_max ?? $agent_max;
+
+		$options['max_iterations'] = $max_iterations;
 
 		if ( $model ) {
 			$options['model_id'] = $model;
 		}
-
 		if ( $provider ) {
 			$options['provider_id'] = $provider;
 		}
 
 		// In CLI mode, enable YOLO mode so write tools auto-execute without
-		// pausing for confirmation. Passed as an option override so it only
-		// affects this run, not the persisted settings.
+		// pausing for confirmation.
 		$options['yolo_mode'] = true;
+
+		if ( $verbose ) {
+			$effective_model = $options['model_id'] ?? '(global default)';
+			WP_CLI::log( "Model:          {$effective_model}" );
+			WP_CLI::log( "Max iterations: {$max_iterations}" );
+			WP_CLI::log( '' );
+		}
 
 		// If --skip-tools, pass a bogus ability name so nothing resolves.
 		$abilities = $no_tools ? [ '__none__' ] : [];

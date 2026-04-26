@@ -33,6 +33,7 @@ import {
 	pairToolCalls,
 	parseSuggestions,
 } from './message-helpers';
+import { linkifyText } from '../../utils/linkify';
 
 /**
  *
@@ -465,7 +466,7 @@ export function RunningMessage( { step, liveToolCalls } ) {
 export function SystemMessage( { text } ) {
 	return (
 		<div className="gaa-cr-msg-row">
-			<div className="gaa-cr-msg-system">{ text }</div>
+			<div className="gaa-cr-msg-system">{ linkifyText( text ) }</div>
 		</div>
 	);
 }

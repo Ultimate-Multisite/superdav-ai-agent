@@ -19,6 +19,7 @@ import FeedbackConsentModal from './feedback-consent-modal';
 import { getBranding } from '../utils/branding';
 import useTextToSpeech from './use-text-to-speech';
 import { MessageTokenAnnotation } from './token-counter';
+import { linkifyText } from '../utils/linkify';
 
 /**
  * Parse suggestion chips from the end of a model response.
@@ -131,7 +132,9 @@ function MessageBubble( { role, text, attachments, queued } ) {
 	}
 
 	return (
-		<div className={ classMap[ role ] || classMap.system }>{ text }</div>
+		<div className={ classMap[ role ] || classMap.system }>
+			{ linkifyText( text ) }
+		</div>
 	);
 }
 

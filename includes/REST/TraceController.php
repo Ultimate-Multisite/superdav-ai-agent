@@ -45,11 +45,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class TraceController extends XWP_REST_Controller {
 
 	/**
-	 * Permission check — admin only.
+	 * Permission check — admin only, and only when WP_DEBUG is active.
+	 *
+	 * Provider tracing is a debug-only feature. The REST endpoints are
+	 * unavailable (return 403) on any site where WP_DEBUG is not defined
+	 * or is false, regardless of the user's role.
 	 *
 	 * @return bool
 	 */
 	public function check_permission(): bool {
+		if ( ! ProviderTrace::is_debug_mode() ) {
+			return false;
+		}
 		return current_user_can( 'manage_options' );
 	}
 

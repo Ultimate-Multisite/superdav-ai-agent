@@ -424,6 +424,10 @@ export default function SettingsApp() {
 		( p ) => p.id === local.default_provider
 	);
 
+	// Provider trace is a debug-only feature — only show the tab when
+	// WP_DEBUG is active (communicated from PHP via gratisAiAgentData.wpDebug).
+	const isWpDebug = !! window.gratisAiAgentData?.wpDebug;
+
 	// Consolidated tab list. Providers are configured network-wide via the
 	// WP Multisite WaaS Connectors page, so no Providers tab is rendered here.
 	const tabs = [
@@ -467,11 +471,16 @@ export default function SettingsApp() {
 			title: __( 'Usage', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
-		{
-			name: 'provider-trace',
-			title: __( 'Provider Trace', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
-		},
+		// Only visible when WP_DEBUG is active.
+		...( isWpDebug
+			? [
+					{
+						name: 'provider-trace',
+						title: __( 'Provider Trace', 'gratis-ai-agent' ),
+						className: 'gratis-ai-agent-settings-tab',
+					},
+			  ]
+			: [] ),
 		{
 			name: 'advanced',
 			title: __( 'Advanced', 'gratis-ai-agent' ),

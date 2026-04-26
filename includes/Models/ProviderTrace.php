@@ -75,17 +75,39 @@ class ProviderTrace {
 	}
 
 	/**
+	 * Whether the provider trace feature is available on this installation.
+	 *
+	 * Provider tracing is a debug-only feature. It captures raw HTTP request
+	 * and response bodies from LLM provider calls, which may contain prompt
+	 * content and model outputs. Availability is therefore gated on WP_DEBUG
+	 * so the feature is never active on production sites.
+	 *
+	 * @return bool True only when the WP_DEBUG constant is defined and truthy.
+	 */
+	public static function is_debug_mode(): bool {
+		return defined( 'WP_DEBUG' ) && (bool) WP_DEBUG;
+	}
+
+	/**
 	 * Check whether provider tracing is enabled.
 	 *
-	 * Checks the filter first, then the option.
+	 * Returns false immediately when WP_DEBUG is not active — tracing is a
+	 * debug-only feature and must never run on production. When WP_DEBUG is
+	 * set, checks the filter first, then the stored option.
 	 *
 	 * @return bool
 	 */
 	public static function is_enabled(): bool {
+		// Provider trace is a debug-only feature.
+		if ( ! self::is_debug_mode() ) {
+			return false;
+		}
+
 		/**
 		 * Filter to enable/disable provider trace logging.
 		 *
 		 * Allows enabling tracing environmentally without touching settings.
+		 * Only evaluated when WP_DEBUG is active.
 		 *
 		 * @param bool|null $enabled Null to defer to the option, true/false to override.
 		 */

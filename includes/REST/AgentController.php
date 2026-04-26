@@ -121,6 +121,17 @@ final class AgentController {
 							'default'           => '',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
+						'tier_1_tools'   => array(
+							'required' => false,
+							'type'     => 'array',
+							'default'  => array(),
+							'items'    => array( 'type' => 'string' ),
+						),
+						'suggestions'    => array(
+							'required' => false,
+							'type'     => 'array',
+							'default'  => array(),
+						),
 					),
 				),
 			)
@@ -200,6 +211,15 @@ final class AgentController {
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
+						'tier_1_tools'   => array(
+							'required' => false,
+							'type'     => 'array',
+							'items'    => array( 'type' => 'string' ),
+						),
+						'suggestions'    => array(
+							'required' => false,
+							'type'     => 'array',
+						),
 						'enabled'        => array(
 							'required' => false,
 							'type'     => 'boolean',
@@ -215,6 +235,40 @@ final class AgentController {
 							'required'          => true,
 							'type'              => 'integer',
 							'sanitize_callback' => 'absint',
+						),
+					),
+				),
+			)
+		);
+
+		// Reset built-in agents to factory defaults.
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/agents/reset-defaults',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_reset_defaults' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// List registered abilities for the Tier 1 tools picker.
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/abilities',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_list_abilities' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'search' => array(
+							'required'          => false,
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_text_field',
 						),
 					),
 				),
@@ -292,8 +346,9 @@ final class AgentController {
 	/**
 	 * Handle GET /agents — list all agents.
 	 *
-	 * Returns only public-safe fields so that chat users cannot read system_prompt or
-	 * provider/model configuration.
+	 * Returns public-safe fields plus suggestions so the chat UI can render
+	 * per-agent suggestion cards. System prompt and provider/model config
+	 * are excluded for non-admin chat users.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -308,6 +363,8 @@ final class AgentController {
 					'description' => $agent->description,
 					'avatar_icon' => $agent->avatar_icon,
 					'greeting'    => $agent->greeting,
+					'suggestions' => $agent->suggestions,
+					'is_builtin'  => $agent->is_builtin,
 					'enabled'     => $agent->enabled,
 				);
 			},
@@ -340,6 +397,9 @@ final class AgentController {
 	/**
 	 * Handle POST /agents — create a new agent.
 	 *
+	 * New agents default to the General agent's tier_1_tools when none are
+	 * provided, so they start with a usable tool set.
+	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -357,6 +417,12 @@ final class AgentController {
 			);
 		}
 
+		// Default tier_1_tools to the general agent's tool set.
+		$tier_1_tools = $request->get_param( 'tier_1_tools' );
+		if ( empty( $tier_1_tools ) ) {
+			$tier_1_tools = Agent::get_general_tier_1_tools();
+		}
+
 		$id = Agent::create(
 			array(
 				'slug'           => $slug,
@@ -370,6 +436,8 @@ final class AgentController {
 				'max_iterations' => $request->get_param( 'max_iterations' ),
 				'greeting'       => $request->get_param( 'greeting' ) ?? '',
 				'avatar_icon'    => $request->get_param( 'avatar_icon' ) ?? '',
+				'tier_1_tools'   => $tier_1_tools,
+				'suggestions'    => $request->get_param( 'suggestions' ) ?? array(),
 				'enabled'        => true,
 			)
 		);
@@ -412,6 +480,8 @@ final class AgentController {
 			'max_iterations',
 			'greeting',
 			'avatar_icon',
+			'tier_1_tools',
+			'suggestions',
 			'enabled',
 		);
 
@@ -443,12 +513,18 @@ final class AgentController {
 	/**
 	 * Handle DELETE /agents/{id} — delete an agent.
 	 *
+	 * The built-in General agent cannot be deleted.
+	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_delete_agent( WP_REST_Request $request ) {
 		$id     = self::get_int_param( $request, 'id' );
 		$result = Agent::delete( $id );
+
+		if ( $result instanceof WP_Error ) {
+			return $result;
+		}
 
 		if ( ! $result ) {
 			return new WP_Error(
@@ -459,6 +535,85 @@ final class AgentController {
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );
+	}
+
+	/**
+	 * Handle POST /agents/reset-defaults — reset built-in agents to factory defaults.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_reset_defaults(): WP_REST_Response {
+		Agent::reset_defaults();
+
+		$agents = Agent::get_all();
+		$list   = array_map( [ Agent::class, 'to_array' ], $agents );
+
+		return new WP_REST_Response(
+			array(
+				'success' => true,
+				'message' => __( 'Built-in agents have been reset to factory defaults.', 'gratis-ai-agent' ),
+				'agents'  => $list,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Handle GET /abilities — list registered abilities for the tier 1 tool picker.
+	 *
+	 * Returns ability id + label + description + category for the autocomplete
+	 * search in the agent builder.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response
+	 */
+	public function handle_list_abilities( WP_REST_Request $request ): WP_REST_Response {
+		if ( ! function_exists( 'wp_get_abilities' ) ) {
+			return new WP_REST_Response( array(), 200 );
+		}
+
+		$search = strtolower( (string) ( $request->get_param( 'search' ) ?? '' ) );
+		$result = array();
+
+		foreach ( wp_get_abilities() as $ability ) {
+			$name = $ability->get_name();
+			$meta = $ability->get_meta();
+
+			// Skip hidden abilities.
+			if ( ! empty( $meta['ai_hidden'] ) ) {
+				continue;
+			}
+
+			$label = (string) $ability->get_label();
+			$desc  = (string) $ability->get_description();
+			$cat   = $ability->get_category() ?: 'uncategorized';
+
+			// Apply search filter if provided.
+			if ( '' !== $search ) {
+				$haystack = strtolower( $name . ' ' . $label . ' ' . $desc . ' ' . $cat );
+				if ( ! str_contains( $haystack, $search ) ) {
+					continue;
+				}
+			}
+
+			$result[] = array(
+				'id'          => $name,
+				'label'       => $label,
+				'description' => mb_strlen( $desc ) > 120 ? mb_substr( $desc, 0, 117 ) . '...' : $desc,
+				'category'    => $cat,
+			);
+		}
+
+		// Sort by category, then id.
+		usort(
+			$result,
+			static function ( array $a, array $b ): int {
+				$cat_cmp = strcmp( $a['category'], $b['category'] );
+				return 0 !== $cat_cmp ? $cat_cmp : strcmp( $a['id'], $b['id'] );
+			}
+		);
+
+		return new WP_REST_Response( $result, 200 );
 	}
 
 	/**

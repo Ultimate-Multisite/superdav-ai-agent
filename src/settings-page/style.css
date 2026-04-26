@@ -862,3 +862,141 @@
 	max-width: 280px;
 }
 
+/* ── Agent builder — built-in badge ──────────────────────────── */
+
+.gratis-ai-agent-card-badge {
+	display: inline-block;
+	font-size: 11px;
+	line-height: 1;
+	padding: 2px 6px;
+	margin-left: 8px;
+	background: #e7f5e7;
+	color: #1e4620;
+	border-radius: 3px;
+	vertical-align: middle;
+	font-weight: 500;
+}
+
+.gratis-ai-agent-builder-actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+/* ── Tier 1 Tools editor ─────────────────────────────────────── */
+
+.gratis-ai-agent-tier1-editor {
+	margin-top: 8px;
+}
+
+.gratis-ai-agent-tier1-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+
+.gratis-ai-agent-tier1-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	background: #f0f0f0;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.gratis-ai-agent-tier1-chip-label {
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gratis-ai-agent-tier1-chip-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border: none;
+	background: none;
+	color: #757575;
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+	border-radius: 50%;
+}
+
+.gratis-ai-agent-tier1-chip-remove:hover {
+	background: #cc1818;
+	color: #fff;
+}
+
+.gratis-ai-agent-tier1-add {
+	position: relative;
+}
+
+.gratis-ai-agent-tier1-results {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 100;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	list-style: none;
+	margin: 4px 0 0;
+	padding: 4px 0;
+	max-height: 240px;
+	overflow-y: auto;
+}
+
+.gratis-ai-agent-tier1-result-item {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	padding: 8px 12px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	text-align: left;
+}
+
+.gratis-ai-agent-tier1-result-item:hover {
+	background: #f0f0f0;
+}
+
+.gratis-ai-agent-tier1-result-name {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.gratis-ai-agent-tier1-result-id {
+	font-size: 11px;
+	color: #757575;
+}
+
+.gratis-ai-agent-tier1-warning {
+	color: #996800;
+	font-size: 12px;
+	margin: 0 0 8px;
+}
+
+.gratis-ai-agent-tier1-no-results {
+	color: #757575;
+	font-size: 12px;
+	padding: 4px 0;
+}
+
+.gratis-ai-agent-form-label {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 16px 0 4px;
+}
+

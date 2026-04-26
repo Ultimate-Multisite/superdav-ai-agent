@@ -43,6 +43,7 @@ export default function SessionContextMenu( {
 		archiveSession,
 		trashSession,
 		restoreSession,
+		deleteSession,
 		renameSession,
 		exportSession,
 	} = useDispatch( STORE_NAME );
@@ -173,6 +174,28 @@ export default function SessionContextMenu( {
 					} }
 				>
 					{ __( 'Move to Trash', 'gratis-ai-agent' ) }
+				</button>
+			) }
+			{ isOwner && isTrashed && (
+				<button
+					type="button"
+					role="menuitem"
+					className="gratis-ai-agent-context-menu-danger"
+					onClick={ () => {
+						// eslint-disable-next-line no-alert
+						const confirmed = window.confirm(
+							__(
+								'Permanently delete this conversation? This cannot be undone.',
+								'gratis-ai-agent'
+							)
+						);
+						if ( confirmed ) {
+							deleteSession( sessionId );
+							onClose();
+						}
+					} }
+				>
+					{ __( 'Delete Permanently', 'gratis-ai-agent' ) }
 				</button>
 			) }
 		</div>

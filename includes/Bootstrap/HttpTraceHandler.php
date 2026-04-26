@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Bootstrap;
 
 use GratisAiAgent\Core\ProviderTraceLogger;
+use GratisAiAgent\Models\ProviderTrace;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
 
@@ -32,6 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * CTX_GLOBAL ensures the filters are active in every request context — AI
  * calls can originate from admin (manual runs), REST (webhook triggers), CLI,
  * and cron (scheduled tasks).
+ *
+ * Both filter callbacks are no-ops when WP_DEBUG is not active. The DI
+ * container always instantiates this handler, but the actual recording never
+ * happens on production sites where WP_DEBUG is false or undefined.
  */
 #[Handler(
 	container: 'gratis-ai-agent',
@@ -44,7 +49,8 @@ final class HttpTraceHandler {
 	 * Capture outgoing request details before the HTTP call is made.
 	 *
 	 * Returns `$preempt` unchanged — this filter is used only for its
-	 * side-effect of recording in-flight request metadata.
+	 * side-effect of recording in-flight request metadata. No-op when
+	 * WP_DEBUG is not active.
 	 *
 	 * @param false|array<string,mixed>|\WP_Error $preempt     A preemptive return value. Default false.
 	 * @param array<string,mixed>                 $parsed_args HTTP request arguments.
@@ -53,6 +59,9 @@ final class HttpTraceHandler {
 	 */
 	#[Filter( tag: 'pre_http_request', priority: 10 )]
 	public function on_pre_http_request( mixed $preempt, array $parsed_args, string $url ): mixed {
+		if ( ! ProviderTrace::is_debug_mode() ) {
+			return $preempt;
+		}
 		return ProviderTraceLogger::on_pre_http_request( $preempt, $parsed_args, $url );
 	}
 
@@ -60,7 +69,8 @@ final class HttpTraceHandler {
 	 * Capture response details and write a trace record.
 	 *
 	 * Returns `$response` unchanged — this filter is used only for its
-	 * side-effect of persisting the completed trace row.
+	 * side-effect of persisting the completed trace row. No-op when
+	 * WP_DEBUG is not active.
 	 *
 	 * @param array<string,mixed> $response    HTTP response array.
 	 * @param array<string,mixed> $parsed_args HTTP request arguments.
@@ -69,6 +79,9 @@ final class HttpTraceHandler {
 	 */
 	#[Filter( tag: 'http_response', priority: 10 )]
 	public function on_http_response( array $response, array $parsed_args, string $url ): array {
+		if ( ! ProviderTrace::is_debug_mode() ) {
+			return $response;
+		}
 		return ProviderTraceLogger::on_http_response( $response, $parsed_args, $url );
 	}
 }

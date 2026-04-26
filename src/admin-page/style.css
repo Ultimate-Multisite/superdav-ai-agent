@@ -4,11 +4,88 @@
    Scoped to the chat layout so other routes (Settings, Abilities, Changes)
    can scroll normally. */
 /* stylelint-disable selector-class-pattern */
+
+/* Lock viewport scrolling and establish a height basis for the flex chain. */
 html:has(body.toplevel_page_gratis-ai-agent .gratis-ai-agent-layout),
 body.toplevel_page_gratis-ai-agent:has(.gratis-ai-agent-layout),
 html:has(body.toplevel_page_gratis-ai-agent .gaa-cr),
 body.toplevel_page_gratis-ai-agent:has(.gaa-cr) {
 	overflow: hidden;
+	height: 100%;
+}
+
+/* Flex chain: propagate height through the WP admin scaffold so that any
+   content injected before our .wrap (Hello Dolly, admin notices, etc.) takes
+   its natural height as a flex item and the React app fills the remainder.
+   Without this chain, .gaa-cr must rely on calc(100vh - Npx) which breaks
+   whenever a plugin adds content above the plugin page. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpwrap {
+	height: 100%;
+}
+
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpcontent {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+/* #wpbody-content becomes a flex column so injected nodes (Hello Dolly,
+   notices that survive the display:none rules below) take their natural
+   height and .wrap.gratis-ai-agent-wrap with flex:1 gets the rest.
+   Reset WP's default padding-bottom (footer clearance) and float:left —
+   both are irrelevant and harmful inside a flex container. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody-content {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	float: none;
+	padding-bottom: 0;
+}
+
+/* .wrap is the last element rendered in #wpbody-content (the page callback
+   fires after all admin_notices).  flex:1 claims all space not consumed by
+   injected siblings above it.  Reset .wrap's default top margin so
+   injected content above doesn't create a double gap. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .wrap.gratis-ai-agent-wrap {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	margin-top: 0;
+}
+
+/* React root and app container propagate height into the unified-admin tree. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #gratis-ai-agent-root,
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-app {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+/* unified-admin already declares display:flex; flex-direction:column — just
+   add flex:1 so it stretches to fill its parent. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-unified-admin {
+	flex: 1;
+	min-height: 0;
+}
+
+/* Chat route wrapper and the mount container that ChatRoute renders into both
+   need to be flex columns so .gaa-cr (which uses flex:1) can fill them. */
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-route-chat,
+body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-chat-container {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
 }
 
 /* Allow the wp-admin left menu to scroll independently when its items don't

@@ -149,20 +149,13 @@ final class FeedbackController extends XWP_REST_Controller {
 		}
 
 		$sanitized = ReportSanitizer::sanitize( $payload );
-		$result    = ReportSender::send( $sanitized, true ); // Force send for manual user submissions.
+		$result    = ReportSender::send( $sanitized );
 
 		if ( is_wp_error( $result ) ) {
-			$http_status = 500;
-			$error_code  = $result->get_error_code();
-
-			if ( in_array( $error_code, array( 'feedback_disabled', 'feedback_no_endpoint', 'feedback_invalid_url' ), true ) ) {
-				$http_status = 422;
-			}
-
 			return new WP_Error(
-				$error_code,
+				$result->get_error_code(),
 				$result->get_error_message(),
-				array( 'status' => $http_status )
+				array( 'status' => 500 )
 			);
 		}
 

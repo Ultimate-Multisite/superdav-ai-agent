@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Admin;
 
+use GratisAiAgent\Core\Features;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -312,6 +314,12 @@ class UnifiedAdminMenu {
 				'connectorsUrl'       => self::getConnectorsUrl(),
 				'connectorsAvailable' => self::hasNativeConnectorsPage() || self::hasGutenbergConnectorsPage() ? '1' : '',
 				'onboarding_complete' => \GratisAiAgent\Core\OnboardingManager::is_complete(),
+				// Provider trace is a debug-only feature. The JS settings page reads
+				// this flag to show or hide the Provider Trace tab.
+				'wpDebug'             => defined( 'WP_DEBUG' ) && WP_DEBUG ? '1' : '',
+				// Feature flags — mirrors Features::all() so JS can gate UI sections
+				// without waiting for the /settings REST response.
+				'features'            => Features::all(),
 			)
 		);
 	}

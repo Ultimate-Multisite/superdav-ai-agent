@@ -55,9 +55,15 @@
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 
-	/* Fill the admin content column. Title now lives inside the sidebar so
-	   we can claim more vertical space for the conversation. */
-	height: calc(100vh - 92px);
+	/* Fill whatever height the parent flex chain provides.  The ancestor
+	   chain (html → body → #wpcontent → #wpbody → #wpbody-content →
+	   .wrap → #gratis-ai-agent-root → ... → .gratis-ai-agent-chat-container)
+	   is made into flex columns in admin-page/style.css, so any content
+	   injected before our .wrap (Hello Dolly, notices, etc.) takes its
+	   natural height and this component fills the remainder.  The old
+	   calc(100vh - 92px) hardcoded the WP chrome offset and broke whenever
+	   a plugin added content above the page. */
+	flex: 1;
 	min-height: 500px;
 }
 

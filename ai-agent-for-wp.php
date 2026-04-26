@@ -33,6 +33,24 @@ define( 'GRATIS_AI_AGENT_URL', plugin_dir_url( __FILE__ ) );
  */
 define( 'GRATIS_AI_AGENT_DEFAULT_MODEL', 'claude-sonnet-4' );
 
+// ── Feature flags ─────────────────────────────────────────────────────────────
+// Each constant defaults to `true` (enabled) when not defined.
+// Resellers / site owners can disable individual features by adding
+// `define( 'GRATIS_AI_AGENT_FEATURE_<NAME>', false );` to wp-config.php
+// before the plugin loads.
+
+/**
+ * Feature: white-label branding — agent name, brand colours, logo URL.
+ * When false, the Branding section is hidden and branding CSS vars are not set.
+ */
+defined( 'GRATIS_AI_AGENT_FEATURE_BRANDING' ) || define( 'GRATIS_AI_AGENT_FEATURE_BRANDING', true );
+
+/**
+ * Feature: role-based access control — who can access the AI agent.
+ * When false, the Role Permissions manager and its REST routes are disabled.
+ */
+defined( 'GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL' ) || define( 'GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL', true );
+
 // Load Jetpack Autoloader for PSR-4 autoloading with version conflict resolution.
 // Jetpack Autoloader ensures the newest version of shared packages (like php-ai-client) is used.
 if ( file_exists( GRATIS_AI_AGENT_DIR . '/vendor/autoload_packages.php' ) ) {

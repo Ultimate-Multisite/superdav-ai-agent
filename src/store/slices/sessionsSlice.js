@@ -188,6 +188,11 @@ export const initialState = {
 	// Drained automatically when the current job completes.
 	messageQueue: [],
 
+	// Index of the message currently in edit mode, or null when no message is
+	// being edited.  Keyed by the actual message index (position in
+	// currentSessionMessages) so only a single message can be editing at once.
+	editingMessageIndex: null,
+
 	// Open tabs for the chat tab bar (t207).
 	// Array of integer session IDs representing sessions pinned as tabs.
 	// Persisted to localStorage so tabs survive page reload.
@@ -328,6 +333,21 @@ export const actions = {
 	 */
 	truncateMessagesTo( index ) {
 		return { type: 'TRUNCATE_MESSAGES_TO', index };
+	},
+
+	/**
+	 * Set the index of the message currently in edit mode, or null to clear.
+	 *
+	 * Only one message may be in edit mode at a time; keying on the actual
+	 * message index prevents the "all user messages enter edit mode" bug where
+	 * local component state coupled with non-unique visibility-position keys
+	 * caused every user bubble to show the editing UI.
+	 *
+	 * @param {number|null} index - Message index to enter edit mode, or null.
+	 * @return {Object} Redux action.
+	 */
+	setEditingMessageIndex( index ) {
+		return { type: 'SET_EDITING_MESSAGE_INDEX', index };
 	},
 
 	/**
@@ -844,6 +864,7 @@ export const actions = {
 	 */
 	editAndResend( index, newText ) {
 		return async ( { dispatch } ) => {
+			dispatch.setEditingMessageIndex( null );
 			dispatch.truncateMessagesTo( index );
 			dispatch.sendMessage( newText );
 		};
@@ -1480,6 +1501,16 @@ export const selectors = {
 	},
 
 	/**
+	 * Get the index of the message currently in edit mode, or null.
+	 *
+	 * @param {import('../../types').StoreState} state
+	 * @return {number|null} Message index currently being edited, or null.
+	 */
+	getEditingMessageIndex( state ) {
+		return state.editingMessageIndex ?? null;
+	},
+
+	/**
 	 * Get inability-reported data (t185).
 	 * Returns the data object { reason, attempted_steps } or null.
 	 *
@@ -1647,6 +1678,7 @@ export function reducer( state, action ) {
 					0,
 					action.index
 				),
+				editingMessageIndex: null,
 			};
 		case 'SET_SEND_TIMESTAMP':
 			return { ...state, sendTimestamp: action.ts };
@@ -1654,6 +1686,8 @@ export function reducer( state, action ) {
 			return { ...state, streamError: action.error };
 		case 'SET_LAST_USER_MESSAGE':
 			return { ...state, lastUserMessage: action.message };
+		case 'SET_EDITING_MESSAGE_INDEX':
+			return { ...state, editingMessageIndex: action.index ?? null };
 		case 'SET_INABILITY_REPORTED':
 			return { ...state, inabilityReported: action.data };
 		case 'SET_FEEDBACK_BANNER':

@@ -51,13 +51,6 @@ class Settings {
 	const GSC_CREDENTIALS_OPTION = 'gratis_ai_agent_gsc_credentials';
 
 	/**
-	 * Option name for the feedback-report receiver API key.
-	 * Stored separately from general settings to avoid leaking the credential
-	 * through the GET /settings endpoint.
-	 */
-	const FEEDBACK_API_KEY_OPTION = 'gratis_ai_agent_feedback_api_key';
-
-	/**
 	 * Supported direct providers with their metadata.
 	 */
 	/**
@@ -322,9 +315,6 @@ class Settings {
 			// Provider trace / debug mode (GH#830).
 			'provider_trace_enabled'   => false,
 			'provider_trace_max_rows'  => 200,
-			// Feedback report receiver settings (t180).
-			'feedback_enabled'         => false,
-			'feedback_endpoint_url'    => 'https://ultimateagentwp.ai/wp-json/gratis-ai-server/v1/reports',
 			// Skill auto-update settings (t218).
 			'skill_auto_update'        => true,
 			'skill_manifest_url'       => '',
@@ -540,44 +530,6 @@ class Settings {
 		$merged = array_merge( $current, $data );
 
 		return update_option( self::OPTION_NAME, $merged );
-	}
-
-	/**
-	 * Get the stored feedback-report receiver API key.
-	 *
-	 * The key is intentionally stored in a dedicated option so it is never
-	 * returned by GET /settings and cannot leak through the JSON response.
-	 *
-	 * @return string Empty string when not configured.
-	 */
-	public function get_feedback_api_key(): string {
-		$key = get_option( self::FEEDBACK_API_KEY_OPTION, '' );
-		return is_string( $key ) ? $key : '';
-	}
-
-	/**
-	 * Persist the feedback-report receiver API key.
-	 *
-	 * Pass an empty string to clear the credential.
-	 *
-	 * @param string $api_key The API key value.
-	 * @return bool True on success.
-	 */
-	public function set_feedback_api_key( string $api_key ): bool {
-		if ( '' === $api_key ) {
-			return delete_option( self::FEEDBACK_API_KEY_OPTION );
-		}
-
-		return update_option( self::FEEDBACK_API_KEY_OPTION, $api_key );
-	}
-
-	/**
-	 * Check whether a feedback-report receiver API key is configured.
-	 *
-	 * @return bool
-	 */
-	public function has_feedback_api_key(): bool {
-		return '' !== $this->get_feedback_api_key();
 	}
 
 	// ── WooCommerce ability auto-enable ───────────────────────────────────────

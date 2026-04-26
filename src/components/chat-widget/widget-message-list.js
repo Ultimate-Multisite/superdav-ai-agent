@@ -97,7 +97,7 @@ export default function WidgetMessageList() {
 						if ( msg.role === 'user' ) {
 							return (
 								<UserMessage
-									key={ i }
+									key={ index }
 									msg={ msg }
 									index={ index }
 								/>
@@ -106,7 +106,7 @@ export default function WidgetMessageList() {
 						if ( msg.role === 'model' ) {
 							return (
 								<AssistantMessage
-									key={ i }
+									key={ index }
 									msg={ msg }
 									index={ index }
 									onSuggestionSelect={ sendMessage }
@@ -118,7 +118,7 @@ export default function WidgetMessageList() {
 						if ( msg.role === 'system' ) {
 							return (
 								<SystemMessage
-									key={ i }
+									key={ index }
 									text={ extractText( msg ) }
 								/>
 							);

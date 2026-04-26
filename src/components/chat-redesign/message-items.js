@@ -144,11 +144,10 @@ function AssistantMeta( { tokens } ) {
  */
 export function UserMessage( { msg, index } ) {
 	const [ copied, setCopied ] = useState( false );
-	const [ editing, setEditing ] = useState( false );
 	const [ draft, setDraft ] = useState( '' );
 	const textareaRef = useRef( null );
-	const { editAndResend } = useDispatch( STORE_NAME );
-	const { sending, messageToken, selectedModelName } = useSelect(
+	const { editAndResend, setEditingMessageIndex } = useDispatch( STORE_NAME );
+	const { sending, messageToken, selectedModelName, editing } = useSelect(
 		( sel ) => {
 			const store = sel( STORE_NAME );
 			const tokens = store.getMessageTokens() || [];
@@ -163,6 +162,12 @@ export function UserMessage( { msg, index } ) {
 				sending: store.isSending(),
 				messageToken: tokens[ index ],
 				selectedModelName: model?.name || model?.id || '',
+				// Derive editing from the store's editingMessageIndex so only the
+				// exact message whose index matches enters edit mode. Using a
+				// store-level flag (rather than local useState) means a single
+				// dispatch controls which message is active, preventing the bug
+				// where all user messages simultaneously showed the editing UI.
+				editing: store.getEditingMessageIndex() === index,
 			};
 		},
 		[ index ]
@@ -191,9 +196,10 @@ export function UserMessage( { msg, index } ) {
 	const handleSubmit = useCallback( () => {
 		if ( draft.trim() && draft.trim() !== text ) {
 			editAndResend( index, draft.trim() );
+		} else {
+			setEditingMessageIndex( null );
 		}
-		setEditing( false );
-	}, [ draft, text, index, editAndResend ] );
+	}, [ draft, text, index, editAndResend, setEditingMessageIndex ] );
 
 	// Prefer the model actually used for the nearest assistant reply if
 	// available, else show the currently-selected model.
@@ -215,7 +221,7 @@ export function UserMessage( { msg, index } ) {
 								handleSubmit();
 							}
 							if ( e.key === 'Escape' ) {
-								setEditing( false );
+								setEditingMessageIndex( null );
 							}
 						} }
 						rows={ 3 }
@@ -224,7 +230,7 @@ export function UserMessage( { msg, index } ) {
 						<button
 							type="button"
 							className="gaa-cr-btn-sm"
-							onClick={ () => setEditing( false ) }
+							onClick={ () => setEditingMessageIndex( null ) }
 						>
 							{ __( 'Cancel', 'gratis-ai-agent' ) }
 						</button>
@@ -276,7 +282,7 @@ export function UserMessage( { msg, index } ) {
 						className="gaa-cr-icon-btn"
 						onClick={ () => {
 							setDraft( text || '' );
-							setEditing( true );
+							setEditingMessageIndex( index );
 						} }
 						disabled={ sending }
 						title={ __( 'Edit & resend', 'gratis-ai-agent' ) }

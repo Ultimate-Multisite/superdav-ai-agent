@@ -13,6 +13,7 @@ namespace GratisAiAgent\Bootstrap;
 use GratisAiAgent\CLI\BenchmarkCommand;
 use GratisAiAgent\CLI\CliCommand;
 use GratisAiAgent\CLI\TraceCommand;
+use GratisAiAgent\Models\ProviderTrace;
 use WP_CLI;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
@@ -44,14 +45,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class CliHandler {
 
 	/**
-	 * Command-to-class map used to derive both primary and alias registrations.
+	 * Commands always registered regardless of WP_DEBUG.
 	 *
 	 * @var array<string,class-string>
 	 */
 	private const COMMANDS = array(
 		'prompt'    => CliCommand::class,
-		'trace'     => TraceCommand::class,
 		'benchmark' => BenchmarkCommand::class,
+	);
+
+	/**
+	 * Commands only registered when WP_DEBUG is active.
+	 *
+	 * @var array<string,class-string>
+	 */
+	private const DEBUG_COMMANDS = array(
+		'trace' => TraceCommand::class,
 	);
 
 	/**
@@ -67,11 +76,20 @@ final class CliHandler {
 	 * Hooked on `cli_init` — guaranteed to fire only when WP-CLI is active,
 	 * which removes the need for the legacy `defined('WP_CLI')` guard that
 	 * used to live in the plugin bootstrap file.
+	 *
+	 * Debug-only commands (e.g. `trace`) are only registered when WP_DEBUG
+	 * is defined and truthy, matching the REST and UI availability gates.
 	 */
 	#[Action( tag: 'cli_init', priority: 10 )]
 	public function register_commands(): void {
+		$commands = self::COMMANDS;
+
+		if ( ProviderTrace::is_debug_mode() ) {
+			$commands = array_merge( $commands, self::DEBUG_COMMANDS );
+		}
+
 		foreach ( self::NAMESPACES as $ns ) {
-			foreach ( self::COMMANDS as $sub => $class ) {
+			foreach ( $commands as $sub => $class ) {
 				WP_CLI::add_command( "{$ns} {$sub}", $class );
 			}
 		}

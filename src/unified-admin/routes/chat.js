@@ -114,7 +114,6 @@ export default function ChatRoute() {
 				ref={ containerRef }
 				id="gratis-ai-agent-chat-container"
 				className="gratis-ai-agent-chat-container"
-				style={ { minHeight: '500px' } }
 			/>
 		</div>
 	);

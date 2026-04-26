@@ -107,13 +107,6 @@ export default function SettingsApp() {
 	const [ braveSaving, setBraveSaving ] = useState( false );
 	const [ braveNotice, setBraveNotice ] = useState( null );
 
-	// Feedback report receiver API key state (t180).
-	const [ feedbackApiKey, setFeedbackApiKey ] = useState( '' );
-	const [ feedbackApiKeyConfigured, setFeedbackApiKeyConfigured ] =
-		useState( false );
-	const [ feedbackApiKeySaving, setFeedbackApiKeySaving ] = useState( false );
-	const [ feedbackNotice, setFeedbackNotice ] = useState( null );
-
 	useEffect( () => {
 		fetchSettings();
 		fetchProviders();
@@ -130,14 +123,10 @@ export default function SettingsApp() {
 				}
 			} )
 			.catch( () => {} );
-		// Fetch Brave Search key status and feedback API key status from the
-		// general settings response.
+		// Fetch Brave Search key status from the general settings response.
 		apiFetch( { path: '/gratis-ai-agent/v1/settings' } )
 			.then( ( data ) => {
 				setBraveConfigured( !! data?._brave_search_key_configured );
-				setFeedbackApiKeyConfigured(
-					!! data?._feedback_api_key_configured
-				);
 			} )
 			.catch( () => {} );
 	}, [ fetchSettings, fetchProviders ] );
@@ -274,58 +263,6 @@ export default function SettingsApp() {
 		setBraveSaving( false );
 	}, [] );
 
-	// Feedback report receiver API key handlers (t180).
-	const handleFeedbackApiKeySave = useCallback( async () => {
-		setFeedbackApiKeySaving( true );
-		setFeedbackNotice( null );
-		try {
-			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/feedback-api-key',
-				method: 'POST',
-				data: { api_key: feedbackApiKey },
-			} );
-			setFeedbackApiKeyConfigured( true );
-			setFeedbackApiKey( '' ); // Clear the field after saving.
-			setFeedbackNotice( {
-				status: 'success',
-				message: __( 'Feedback API key saved.', 'gratis-ai-agent' ),
-			} );
-		} catch ( err ) {
-			setFeedbackNotice( {
-				status: 'error',
-				message:
-					err?.message ||
-					__( 'Failed to save feedback API key.', 'gratis-ai-agent' ),
-			} );
-		}
-		setFeedbackApiKeySaving( false );
-	}, [ feedbackApiKey ] );
-
-	const handleFeedbackApiKeyRemove = useCallback( async () => {
-		setFeedbackApiKeySaving( true );
-		setFeedbackNotice( null );
-		try {
-			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/feedback-api-key',
-				method: 'DELETE',
-			} );
-			setFeedbackApiKeyConfigured( false );
-			setFeedbackNotice( {
-				status: 'success',
-				message: __( 'Feedback API key removed.', 'gratis-ai-agent' ),
-			} );
-		} catch {
-			setFeedbackNotice( {
-				status: 'error',
-				message: __(
-					'Failed to remove feedback API key.',
-					'gratis-ai-agent'
-				),
-			} );
-		}
-		setFeedbackApiKeySaving( false );
-	}, [] );
-
 	useEffect( () => {
 		if ( settings && ! local ) {
 			setLocal( { ...settings } );
@@ -424,9 +361,21 @@ export default function SettingsApp() {
 		( p ) => p.id === local.default_provider
 	);
 
+	// Provider trace is a debug-only feature — only show the tab when
+	// WP_DEBUG is active (communicated from PHP via gratisAiAgentData.wpDebug).
+	const isWpDebug = !! window.gratisAiAgentData?.wpDebug;
+	// Feature flags injected by PHP (UnifiedAdminMenu::enqueueAssets).
+	// Fall back to all-enabled when the global is absent (e.g. unit tests).
+	const features = window.gratisAiAgentData?.features ?? {
+		branding: true,
+		access_control: true,
+	};
+
 	// Consolidated tab list. Providers are configured network-wide via the
 	// WP Multisite WaaS Connectors page, so no Providers tab is rendered here.
-	const tabs = [
+	// The 'access-branding' tab is only included when at least one of the two
+	// features it hosts (access_control, branding) is enabled.
+	const allTabs = [
 		{
 			name: 'general',
 			title: __( 'General', 'gratis-ai-agent' ),
@@ -461,23 +410,32 @@ export default function SettingsApp() {
 			name: 'access-branding',
 			title: __( 'Access & Branding', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
+			// Hide when both constituent features are disabled.
+			hidden: ! features.access_control && ! features.branding,
 		},
 		{
 			name: 'usage',
 			title: __( 'Usage', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
-		{
-			name: 'provider-trace',
-			title: __( 'Provider Trace', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
-		},
+		// Only visible when WP_DEBUG is active.
+		...( isWpDebug
+			? [
+					{
+						name: 'provider-trace',
+						title: __( 'Provider Trace', 'gratis-ai-agent' ),
+						className: 'gratis-ai-agent-settings-tab',
+					},
+			  ]
+			: [] ),
 		{
 			name: 'advanced',
 			title: __( 'Advanced', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
 		},
 	];
+
+	const tabs = allTabs.filter( ( tab ) => ! tab.hidden );
 
 	const scrollWrapperClasses = [
 		'gratis-ai-agent-tabs-scroll-wrapper',
@@ -1550,36 +1508,44 @@ export default function SettingsApp() {
 									</div>
 								);
 
-							case 'access-branding':
-								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Role Permissions',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<ErrorBoundary
-											label={ __(
-												'Role permissions manager',
-												'gratis-ai-agent'
-											) }
-										>
-											<RolePermissionsManager />
-										</ErrorBoundary>
+						case 'access-branding':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									{ features.access_control && (
+										<>
+											<h3 className="gratis-ai-agent-settings-section-title">
+												{ __(
+													'Role Permissions',
+													'gratis-ai-agent'
+												) }
+											</h3>
+											<ErrorBoundary
+												label={ __(
+													'Role permissions manager',
+													'gratis-ai-agent'
+												) }
+											>
+												<RolePermissionsManager />
+											</ErrorBoundary>
+										</>
+									) }
 
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Branding',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<BrandingManager
-											local={ local }
-											updateField={ updateField }
-										/>
-									</div>
-								);
+									{ features.branding && (
+										<>
+											<h3 className="gratis-ai-agent-settings-section-title">
+												{ __(
+													'Branding',
+													'gratis-ai-agent'
+												) }
+											</h3>
+											<BrandingManager
+												local={ local }
+												updateField={ updateField }
+											/>
+										</>
+									) }
+								</div>
+							);
 
 							case 'usage':
 								return (
@@ -1972,179 +1938,6 @@ export default function SettingsApp() {
 													onClick={ handleBraveClear }
 													isBusy={ braveSaving }
 													disabled={ braveSaving }
-												>
-													{ __(
-														'Remove Key',
-														'gratis-ai-agent'
-													) }
-												</Button>
-											) }
-										</div>
-
-										<h4 className="gratis-ai-agent-settings-subsection-title">
-											{ __(
-												'Feedback Reports',
-												'gratis-ai-agent'
-											) }
-										</h4>
-										<p className="description">
-											{ __(
-												'Configure where feedback reports (errors, thumbs-down, user-reported issues) are sent. The receiving endpoint is the gratis-ai-feedback plugin. Leave blank to disable report submission.',
-												'gratis-ai-agent'
-											) }
-										</p>
-										{ feedbackNotice && (
-											<Notice
-												status={ feedbackNotice.status }
-												isDismissible
-												onDismiss={ () =>
-													setFeedbackNotice( null )
-												}
-											>
-												{ feedbackNotice.message }
-											</Notice>
-										) }
-										<table className="form-table gratis-ai-agent-form-table">
-											<tbody>
-												<tr>
-													<th scope="row">
-														{ __(
-															'Enable Feedback Submission',
-															'gratis-ai-agent'
-														) }
-													</th>
-													<td>
-														<ToggleControl
-															label={ __(
-																'Send feedback reports to the configured endpoint',
-																'gratis-ai-agent'
-															) }
-															checked={
-																!! local.feedback_enabled
-															}
-															onChange={ ( v ) =>
-																updateField(
-																	'feedback_enabled',
-																	v
-																)
-															}
-															help={ __(
-																'When enabled, the plugin can send feedback reports (with user consent) to the endpoint URL below.',
-																'gratis-ai-agent'
-															) }
-															__nextHasNoMarginBottom
-														/>
-													</td>
-												</tr>
-												<tr>
-													<th scope="row">
-														<label htmlFor="gratis-feedback-endpoint-url">
-															{ __(
-																'Endpoint URL',
-																'gratis-ai-agent'
-															) }
-														</label>
-													</th>
-													<td>
-														<TextControl
-															id="gratis-feedback-endpoint-url"
-															type="url"
-															value={
-																local.feedback_endpoint_url ||
-																''
-															}
-															onChange={ ( v ) =>
-																updateField(
-																	'feedback_endpoint_url',
-																	v
-																)
-															}
-															placeholder="https://example.com/wp-json/gratis-ai-feedback/v1/reports"
-															help={ __(
-																'REST API URL of the gratis-ai-feedback receiving plugin. Reports are sent as POST requests to this URL.',
-																'gratis-ai-agent'
-															) }
-															__nextHasNoMarginBottom
-														/>
-													</td>
-												</tr>
-												<tr>
-													<th scope="row">
-														<label htmlFor="gratis-feedback-api-key">
-															{ __(
-																'API Key',
-																'gratis-ai-agent'
-															) }
-														</label>
-													</th>
-													<td>
-														{ feedbackApiKeyConfigured && (
-															<p className="description">
-																{ __(
-																	'An API key is currently saved.',
-																	'gratis-ai-agent'
-																) }
-															</p>
-														) }
-														<TextControl
-															id="gratis-feedback-api-key"
-															type="password"
-															value={
-																feedbackApiKey
-															}
-															onChange={
-																setFeedbackApiKey
-															}
-															placeholder={
-																feedbackApiKeyConfigured
-																	? __(
-																			'Key saved — enter a new key to replace it',
-																			'gratis-ai-agent'
-																	  )
-																	: __(
-																			'Enter your feedback API key',
-																			'gratis-ai-agent'
-																	  )
-															}
-															help={ __(
-																'The API key is stored securely and never exposed via the settings API. Sent as the X-Feedback-Api-Key header with each report.',
-																'gratis-ai-agent'
-															) }
-															__nextHasNoMarginBottom
-														/>
-													</td>
-												</tr>
-											</tbody>
-										</table>
-										<div className="gratis-ai-agent-settings-row-actions">
-											<Button
-												variant="primary"
-												onClick={
-													handleFeedbackApiKeySave
-												}
-												isBusy={ feedbackApiKeySaving }
-												disabled={
-													feedbackApiKeySaving ||
-													! feedbackApiKey
-												}
-											>
-												{ __(
-													'Save API Key',
-													'gratis-ai-agent'
-												) }
-											</Button>
-											{ feedbackApiKeyConfigured && (
-												<Button
-													variant="secondary"
-													onClick={
-														handleFeedbackApiKeyRemove
-													}
-													isBusy={
-														feedbackApiKeySaving
-													}
-													disabled={
-														feedbackApiKeySaving
-													}
 												>
 													{ __(
 														'Remove Key',

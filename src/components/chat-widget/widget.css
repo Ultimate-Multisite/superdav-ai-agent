@@ -1273,3 +1273,67 @@
 	background: rgb(0 0 0 / 15%);
 	background-clip: padding-box;
 }
+
+/* =================================================================
+   Scroll-to-bottom button
+   Shown when the user has scrolled up and new messages arrive.
+   Positioned absolute inside .gaa-w-body-wrap (position: relative)
+   so it floats at the bottom of the message area.
+   ================================================================= */
+
+.gaa-w-scroll-to-bottom {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	z-index: 20;
+	pointer-events: none;
+}
+
+.gaa-w-scroll-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 28px;
+	padding: 0 8px 0 6px;
+	border: 1px solid var(--gaa-w-border-strong);
+	border-radius: var(--gaa-w-radius-pill);
+	background: #fff;
+	box-shadow: var(--gaa-w-shadow-elevated);
+	color: var(--gaa-w-text-secondary);
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+	pointer-events: auto;
+	transition:
+		background var(--gaa-w-duration),
+		box-shadow var(--gaa-w-duration),
+		color var(--gaa-w-duration);
+	animation: gaa-w-panel-in 150ms ease;
+}
+
+.gaa-w-scroll-btn:hover {
+	background: var(--gaa-w-surface-hover);
+	box-shadow: var(--gaa-w-shadow-elevated);
+	color: var(--gaa-w-text-primary);
+}
+
+.gaa-w-scroll-btn svg {
+	width: 12px;
+	height: 12px;
+	fill: currentcolor;
+	flex-shrink: 0;
+}
+
+.gaa-w-scroll-btn-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
+	border-radius: var(--gaa-w-radius-pill);
+	background: var(--gaa-w-primary);
+	color: #fff;
+	font-size: 10px;
+	font-weight: 700;
+}

@@ -424,9 +424,18 @@ export default function SettingsApp() {
 		( p ) => p.id === local.default_provider
 	);
 
+	// Feature flags injected by PHP (UnifiedAdminMenu::enqueueAssets).
+	// Fall back to all-enabled when the global is absent (e.g. unit tests).
+	const features = window.gratisAiAgentData?.features ?? {
+		branding: true,
+		access_control: true,
+	};
+
 	// Consolidated tab list. Providers are configured network-wide via the
 	// WP Multisite WaaS Connectors page, so no Providers tab is rendered here.
-	const tabs = [
+	// The 'access-branding' tab is only included when at least one of the two
+	// features it hosts (access_control, branding) is enabled.
+	const allTabs = [
 		{
 			name: 'general',
 			title: __( 'General', 'gratis-ai-agent' ),
@@ -461,6 +470,8 @@ export default function SettingsApp() {
 			name: 'access-branding',
 			title: __( 'Access & Branding', 'gratis-ai-agent' ),
 			className: 'gratis-ai-agent-settings-tab',
+			// Hide when both constituent features are disabled.
+			hidden: ! features.access_control && ! features.branding,
 		},
 		{
 			name: 'usage',
@@ -478,6 +489,8 @@ export default function SettingsApp() {
 			className: 'gratis-ai-agent-settings-tab',
 		},
 	];
+
+	const tabs = allTabs.filter( ( tab ) => ! tab.hidden );
 
 	const scrollWrapperClasses = [
 		'gratis-ai-agent-tabs-scroll-wrapper',
@@ -1596,36 +1609,44 @@ export default function SettingsApp() {
 									</div>
 								);
 
-							case 'access-branding':
-								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Role Permissions',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<ErrorBoundary
-											label={ __(
-												'Role permissions manager',
-												'gratis-ai-agent'
-											) }
-										>
-											<RolePermissionsManager />
-										</ErrorBoundary>
+						case 'access-branding':
+							return (
+								<div className="gratis-ai-agent-settings-section">
+									{ features.access_control && (
+										<>
+											<h3 className="gratis-ai-agent-settings-section-title">
+												{ __(
+													'Role Permissions',
+													'gratis-ai-agent'
+												) }
+											</h3>
+											<ErrorBoundary
+												label={ __(
+													'Role permissions manager',
+													'gratis-ai-agent'
+												) }
+											>
+												<RolePermissionsManager />
+											</ErrorBoundary>
+										</>
+									) }
 
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Branding',
-												'gratis-ai-agent'
-											) }
-										</h3>
-										<BrandingManager
-											local={ local }
-											updateField={ updateField }
-										/>
-									</div>
-								);
+									{ features.branding && (
+										<>
+											<h3 className="gratis-ai-agent-settings-section-title">
+												{ __(
+													'Branding',
+													'gratis-ai-agent'
+												) }
+											</h3>
+											<BrandingManager
+												local={ local }
+												updateField={ updateField }
+											/>
+										</>
+									) }
+								</div>
+							);
 
 							case 'usage':
 								return (

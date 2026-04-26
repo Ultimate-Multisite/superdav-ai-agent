@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Admin;
 
+use GratisAiAgent\Core\Features;
 use GratisAiAgent\Core\FreshInstallDetector;
 use GratisAiAgent\Core\Settings;
 
@@ -160,23 +161,26 @@ class FloatingWidget {
 		);
 
 		// Pass white-label branding values to the widget (t075).
-		$branding = Settings::instance()->get();
-		wp_localize_script(
-			'gratis-ai-agent-floating-widget',
-			'gratisAiAgentBranding',
-			array(
-				// @phpstan-ignore-next-line
-				'agentName'       => (string) ( $branding['agent_name'] ?? '' ),
-				// @phpstan-ignore-next-line
-				'primaryColor'    => (string) ( $branding['brand_primary_color'] ?? '' ),
-				// @phpstan-ignore-next-line
-				'textColor'       => (string) ( $branding['brand_text_color'] ?? '' ),
-				// @phpstan-ignore-next-line
-				'logoUrl'         => (string) ( $branding['brand_logo_url'] ?? '' ),
-				// @phpstan-ignore-next-line
-				'greetingMessage' => (string) ( $branding['greeting_message'] ?? '' ),
-			)
-		);
+		// Only applied when the branding feature is enabled.
+		if ( Features::is_enabled( Features::BRANDING ) ) {
+			$branding = Settings::instance()->get();
+			wp_localize_script(
+				'gratis-ai-agent-floating-widget',
+				'gratisAiAgentBranding',
+				array(
+					// @phpstan-ignore-next-line
+					'agentName'       => (string) ( $branding['agent_name'] ?? '' ),
+					// @phpstan-ignore-next-line
+					'primaryColor'    => (string) ( $branding['brand_primary_color'] ?? '' ),
+					// @phpstan-ignore-next-line
+					'textColor'       => (string) ( $branding['brand_text_color'] ?? '' ),
+					// @phpstan-ignore-next-line
+					'logoUrl'         => (string) ( $branding['brand_logo_url'] ?? '' ),
+					// @phpstan-ignore-next-line
+					'greetingMessage' => (string) ( $branding['greeting_message'] ?? '' ),
+				)
+			);
+		}
 
 		wp_localize_script(
 			'gratis-ai-agent-floating-widget',

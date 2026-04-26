@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Admin;
 
+use GratisAiAgent\Core\Features;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -311,6 +313,9 @@ class UnifiedAdminMenu {
 				'menuItems'           => self::getMenuItems(),
 				'connectorsUrl'       => self::getConnectorsUrl(),
 				'connectorsAvailable' => self::hasNativeConnectorsPage() || self::hasGutenbergConnectorsPage() ? '1' : '',
+				// Feature flags — mirrors Features::all() so JS can gate UI sections
+				// without waiting for the /settings REST response.
+				'features'            => Features::all(),
 			)
 		);
 	}

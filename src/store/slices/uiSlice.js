@@ -1,5 +1,5 @@
 /**
- * UI slice — floating panel, debug mode, alerts, page context,
+ * UI slice — floating panel, alerts, page context,
  * site builder mode, text-to-speech, and send timestamp.
  */
 
@@ -10,8 +10,6 @@ export const initialState = {
 	floatingMinimized: false,
 	pageContext: '',
 
-	// Debug mode
-	debugMode: localStorage.getItem( 'gratisAiAgentDebugMode' ) === 'true',
 	sendTimestamp: 0,
 
 	// Proactive alerts — count of issues surfaced as a badge on the FAB.
@@ -93,20 +91,6 @@ export const actions = {
 	 */
 	setPageContext( context ) {
 		return { type: 'SET_PAGE_CONTEXT', context };
-	},
-
-	/**
-	 * Enable or disable debug mode and persist the choice to localStorage.
-	 *
-	 * @param {boolean} enabled - Whether debug mode should be active.
-	 * @return {Object} Redux action.
-	 */
-	setDebugMode( enabled ) {
-		localStorage.setItem(
-			'gratisAiAgentDebugMode',
-			enabled ? 'true' : 'false'
-		);
-		return { type: 'SET_DEBUG_MODE', enabled };
 	},
 
 	setAlertCount( count ) {
@@ -358,14 +342,6 @@ export const selectors = {
 
 	/**
 	 * @param {import('../../types').StoreState} state
-	 * @return {boolean} Whether debug mode is active.
-	 */
-	isDebugMode( state ) {
-		return state.debugMode;
-	},
-
-	/**
-	 * @param {import('../../types').StoreState} state
 	 * @return {number} Timestamp of the last send in ms since epoch.
 	 */
 	getSendTimestamp( state ) {
@@ -471,8 +447,6 @@ export function reducer( state, action ) {
 			return { ...state, siteBuilderMode: action.enabled };
 		case 'SET_PAGE_CONTEXT':
 			return { ...state, pageContext: action.context };
-		case 'SET_DEBUG_MODE':
-			return { ...state, debugMode: action.enabled };
 		case 'SET_ALERT_COUNT':
 			return { ...state, alertCount: action.count };
 		case 'SET_BOOTSTRAP_SESSION':

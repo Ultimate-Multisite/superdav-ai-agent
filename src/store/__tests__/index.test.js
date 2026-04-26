@@ -87,7 +87,6 @@ const DEFAULT_STATE = {
 	skillsLoaded: false,
 	tokenUsage: { prompt: 0, completion: 0 },
 	pendingConfirmation: null,
-	debugMode: false,
 	sendTimestamp: 0,
 };
 
@@ -264,21 +263,6 @@ describe( 'actions', () => {
 			type: 'TRUNCATE_MESSAGES_TO',
 			index: 3,
 		} );
-	} );
-
-	test( 'setDebugMode persists to localStorage and returns action', () => {
-		expect( actions.setDebugMode( true ) ).toEqual( {
-			type: 'SET_DEBUG_MODE',
-			enabled: true,
-		} );
-		expect( localStorage.getItem( 'gratisAiAgentDebugMode' ) ).toBe(
-			'true'
-		);
-
-		actions.setDebugMode( false );
-		expect( localStorage.getItem( 'gratisAiAgentDebugMode' ) ).toBe(
-			'false'
-		);
 	} );
 
 	test( 'setSendTimestamp returns correct action', () => {
@@ -648,14 +632,6 @@ describe( 'reducer', () => {
 		expect( state.currentSessionMessages[ 0 ].parts[ 0 ].text ).toBe( 'a' );
 	} );
 
-	test( 'SET_DEBUG_MODE updates debugMode', () => {
-		const state = reducer( DEFAULT_STATE, {
-			type: 'SET_DEBUG_MODE',
-			enabled: true,
-		} );
-		expect( state.debugMode ).toBe( true );
-	} );
-
 	test( 'SET_SEND_TIMESTAMP updates sendTimestamp', () => {
 		const state = reducer( DEFAULT_STATE, {
 			type: 'SET_SEND_TIMESTAMP',
@@ -704,7 +680,6 @@ describe( 'selectors', () => {
 		folders: [ 'work' ],
 		foldersLoaded: true,
 		pendingConfirmation: { jobId: 'j1' },
-		debugMode: true,
 		sendTimestamp: 12345,
 	};
 
@@ -844,10 +819,6 @@ describe( 'selectors', () => {
 		expect( selectors.getPendingConfirmation( state ) ).toEqual( {
 			jobId: 'j1',
 		} );
-	} );
-
-	test( 'isDebugMode returns debugMode', () => {
-		expect( selectors.isDebugMode( state ) ).toBe( true );
 	} );
 
 	test( 'getSendTimestamp returns sendTimestamp', () => {

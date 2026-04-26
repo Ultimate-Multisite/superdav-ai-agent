@@ -67,14 +67,6 @@ const COMMANDS = [
 		action: 'help',
 	},
 	{
-		name: '/debug',
-		description: __(
-			'Toggle debug mode (per-response metrics)',
-			'gratis-ai-agent'
-		),
-		action: 'debug',
-	},
-	{
 		name: '/report-issue',
 		description: __(
 			'Send a bug report or feedback (type description after)',

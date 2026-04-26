@@ -26,7 +26,6 @@
  * - handleKeyDown: Shift+Enter does not trigger send
  * - handleSlashSelect 'new' action calls clearCurrentSession
  * - handleSlashSelect 'compact' action calls compactConversation
- * - handleSlashSelect 'debug' action calls setDebugMode
  *
  * Uses react-dom/server for snapshot/rendering tests and react-dom/client
  * (React 18 createRoot) for interaction tests.
@@ -122,11 +121,6 @@ jest.mock( '../slash-command-menu', () => {
 				{ onClick: () => onSelect( { action: 'compact' } ) },
 				'compact'
 			),
-			React.createElement(
-				'button',
-				{ onClick: () => onSelect( { action: 'debug' } ) },
-				'debug'
-			),
 			React.createElement( 'button', { onClick: onClose }, 'close' )
 		);
 } );
@@ -174,24 +168,20 @@ jest.mock( '../feedback-consent-modal', () => {
  * @param {Object}  root0
  * @param {boolean} root0.sending
  * @param {string}  root0.currentSessionId
- * @param {boolean} root0.debugMode
  */
 function setupMocks( {
 	sending = false,
 	currentSessionId = 'session-1',
-	debugMode = false,
 } = {} ) {
 	const sendMessage = jest.fn();
 	const stopGeneration = jest.fn();
 	const clearCurrentSession = jest.fn();
 	const compactConversation = jest.fn();
 	const exportSession = jest.fn();
-	const setDebugMode = jest.fn();
 
 	const storeSelectors = {
 		isSending: () => sending,
 		getCurrentSessionId: () => currentSessionId,
-		isDebugMode: () => debugMode,
 	};
 
 	useSelect.mockImplementation( ( selector ) =>
@@ -204,7 +194,6 @@ function setupMocks( {
 		clearCurrentSession,
 		compactConversation,
 		exportSession,
-		setDebugMode,
 	} );
 
 	return {
@@ -213,7 +202,6 @@ function setupMocks( {
 		clearCurrentSession,
 		compactConversation,
 		exportSession,
-		setDebugMode,
 	};
 }
 
@@ -582,38 +570,6 @@ describe( 'MessageInput interactions', () => {
 			compactBtn.click();
 		} );
 		expect( compactConversation ).toHaveBeenCalledTimes( 1 );
-	} );
-
-	test( 'selecting "debug" slash command calls setDebugMode', () => {
-		const { setDebugMode } = setupMocks( { debugMode: false } );
-
-		act( () => {
-			root.render( createElement( MessageInput, {} ) );
-		} );
-
-		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
-		);
-
-		act( () => {
-			const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-				window.HTMLTextAreaElement.prototype,
-				'value'
-			).set;
-			nativeInputValueSetter.call( textarea, '/debug' );
-			textarea.dispatchEvent( new Event( 'change', { bubbles: true } ) );
-		} );
-
-		const slashMenu = container.querySelector(
-			'[data-testid="slash-command-menu"]'
-		);
-		const debugBtn = Array.from(
-			slashMenu.querySelectorAll( 'button' )
-		).find( ( b ) => b.textContent === 'debug' );
-		act( () => {
-			debugBtn.click();
-		} );
-		expect( setDebugMode ).toHaveBeenCalledWith( true );
 	} );
 
 	test( '/report-issue with description opens FeedbackConsentModal with pre-filled description', () => {

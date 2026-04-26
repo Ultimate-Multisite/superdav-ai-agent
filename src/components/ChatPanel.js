@@ -77,10 +77,9 @@ function SpeakerIcon( { enabled } ) {
 export default function ChatPanel( { compact = false, onSlashCommand } ) {
 	const { confirmToolCall, rejectToolCall, setTtsEnabled } =
 		useDispatch( STORE_NAME );
-	const { pendingConfirmation, debugMode, yoloMode, ttsEnabled } = useSelect(
+	const { pendingConfirmation, yoloMode, ttsEnabled } = useSelect(
 		( select ) => ( {
 			pendingConfirmation: select( STORE_NAME ).getPendingConfirmation(),
-			debugMode: select( STORE_NAME ).isDebugMode(),
 			yoloMode: select( STORE_NAME ).isYoloMode(),
 			ttsEnabled: select( STORE_NAME ).isTtsEnabled(),
 		} ),
@@ -130,18 +129,6 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 							showTooltip
 							icon={ <SpeakerIcon enabled={ ttsEnabled } /> }
 						/>
-					) }
-					{ debugMode && (
-						<Tooltip
-							text={ __(
-								'Debug mode is active — extra metadata is shown below each response.',
-								'gratis-ai-agent'
-							) }
-						>
-							<span className="gratis-ai-agent-debug-badge">
-								{ __( 'DEBUG', 'gratis-ai-agent' ) }
-							</span>
-						</Tooltip>
 					) }
 				</div>
 				<ContextIndicator />

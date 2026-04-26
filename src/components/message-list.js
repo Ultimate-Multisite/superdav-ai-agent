@@ -13,7 +13,7 @@ import STORE_NAME from '../store';
 import ToolCallDetails from './tool-call-details';
 import MarkdownMessage from './markdown-message';
 import MessageActions from './message-actions';
-import DebugPanel from './debug-panel';
+import ModelInfoPanel from './model-info-panel';
 import ActionCard from './action-card';
 import FeedbackConsentModal from './feedback-consent-modal';
 import { getBranding } from '../utils/branding';
@@ -272,7 +272,7 @@ function LiveToolProgress( { toolCalls } ) {
  * Scrollable list of chat messages for the current session.
  *
  * Renders user/model/system bubbles, tool call details, message actions,
- * debug panels, and suggestion chips.
+ * model info panels, and suggestion chips.
  * Auto-scrolls to the bottom on new messages.
  *
  * When text-to-speech is enabled, each new model response is spoken aloud
@@ -284,7 +284,6 @@ export default function MessageList() {
 	const {
 		messages,
 		sending,
-		debugMode,
 		pendingActionCard,
 		settingsGreeting,
 		ttsEnabled,
@@ -303,7 +302,6 @@ export default function MessageList() {
 		return {
 			messages: store.getCurrentSessionMessages(),
 			sending: store.isSending(),
-			debugMode: store.isDebugMode(),
 			pendingActionCard: store.getPendingActionCard(),
 			settingsGreeting: store.getSettings()?.greeting_message || '',
 			ttsEnabled: store.isTtsEnabled(),
@@ -483,8 +481,8 @@ export default function MessageList() {
 								}
 							/>
 						) }
-						{ debugMode && isModel && msg.debug && (
-							<DebugPanel debug={ msg.debug } />
+						{ isModel && msg.debug && (
+							<ModelInfoPanel debug={ msg.debug } />
 						) }
 						{ isLastModel && (
 							<SuggestionChips

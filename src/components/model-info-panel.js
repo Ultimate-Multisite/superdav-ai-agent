@@ -38,16 +38,16 @@ function formatCost( cost ) {
 }
 
 /**
- * Collapsible debug metrics panel shown below model messages in debug mode.
+ * Collapsible panel shown below model messages with response metrics.
  *
  * Displays response time, token counts, speed, cost, iteration count, and
  * tool call summary. Collapsed by default; click the summary row to expand.
  *
  * @param {Object}            props       - Component props.
  * @param {MessageDebug|null} props.debug - Debug metadata from the store message.
- * @return {JSX.Element|null} The debug panel, or null when debug is falsy.
+ * @return {JSX.Element|null} The panel, or null when debug is falsy.
  */
-export default function DebugPanel( { debug } ) {
+export default function ModelInfoPanel( { debug } ) {
 	const [ expanded, setExpanded ] = useState( false );
 
 	if ( ! debug ) {

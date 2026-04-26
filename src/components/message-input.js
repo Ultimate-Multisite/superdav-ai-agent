@@ -176,10 +176,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		( select ) => select( STORE_NAME ).getCurrentSessionId(),
 		[]
 	);
-	const debugMode = useSelect(
-		( select ) => select( STORE_NAME ).isDebugMode(),
-		[]
-	);
 	const queueCount = useSelect(
 		( select ) => select( STORE_NAME ).getMessageQueue().length,
 		[]
@@ -190,7 +186,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 		clearCurrentSession,
 		compactConversation,
 		exportSession,
-		setDebugMode,
 	} = useDispatch( STORE_NAME );
 
 	// Push-to-talk: append recognised speech to the textarea.
@@ -481,9 +476,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 						onSlashCommand( 'help' );
 					}
 					break;
-				case 'debug':
-					setDebugMode( ! debugMode );
-					break;
 				case 'model':
 					// Focus back on input for model name typing.
 					setText( '/model ' );
@@ -542,8 +534,6 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			exportSession,
 			currentSessionId,
 			onSlashCommand,
-			debugMode,
-			setDebugMode,
 		]
 	);
 

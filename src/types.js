@@ -173,7 +173,6 @@
  * @property {boolean}                  skillUpdatesChecking    - Whether a check-updates request is in flight.
  * @property {TokenUsage}               tokenUsage              - Cumulative token usage for the session.
  * @property {PendingConfirmation|null} pendingConfirmation     - Pending tool confirmation.
- * @property {boolean}                  debugMode               - Whether debug mode is active.
  * @property {number}                   sendTimestamp           - Timestamp of the last send (ms since epoch).
  */
 

@@ -54,14 +54,12 @@ export default function InputArea() {
 		clearCurrentSession,
 		compactConversation,
 		exportSession,
-		setDebugMode,
 	} = useDispatch( STORE_NAME );
-	const { sending, queueCount, currentSessionId, debugMode } = useSelect(
+	const { sending, queueCount, currentSessionId } = useSelect(
 		( sel ) => ( {
 			sending: sel( STORE_NAME ).isSending(),
 			queueCount: sel( STORE_NAME ).getMessageQueue().length,
 			currentSessionId: sel( STORE_NAME ).getCurrentSessionId(),
-			debugMode: sel( STORE_NAME ).isDebugMode(),
 		} ),
 		[]
 	);
@@ -210,9 +208,6 @@ export default function InputArea() {
 						exportSession( currentSessionId, 'json' );
 					}
 					break;
-				case 'debug':
-					setDebugMode( ! debugMode );
-					break;
 				// Commands that need further input — prefill and let user continue.
 				case 'model':
 					setText( '/model ' );
@@ -257,8 +252,6 @@ export default function InputArea() {
 			compactConversation,
 			exportSession,
 			currentSessionId,
-			debugMode,
-			setDebugMode,
 		]
 	);
 

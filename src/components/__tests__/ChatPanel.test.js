@@ -5,8 +5,6 @@
  * - Snapshot rendering (default and compact modes)
  * - Renders gratis-ai-agent-chat-panel wrapper
  * - Applies is-compact class in compact mode
- * - Renders DEBUG badge when debugMode is true
- * - Does not render DEBUG badge when debugMode is false
  * - Renders YOLO badge when yoloMode is true
  * - Does not render YOLO badge when yoloMode is false
  * - Auto-confirms pending tool call when YOLO mode is active
@@ -152,13 +150,11 @@ jest.mock( '../use-text-to-speech', () => ( {
 
 /**
  * @param {Object}  root0
- * @param {boolean} root0.debugMode
  * @param {boolean} root0.yoloMode
  * @param {boolean} root0.ttsEnabled
  * @param {Object}  root0.pendingConfirmation
  */
 function setupMocks( {
-	debugMode = false,
 	yoloMode = false,
 	ttsEnabled = false,
 	pendingConfirmation = null,
@@ -169,7 +165,6 @@ function setupMocks( {
 
 	const storeSelectors = {
 		getPendingConfirmation: () => pendingConfirmation,
-		isDebugMode: () => debugMode,
 		isYoloMode: () => yoloMode,
 		isTtsEnabled: () => ttsEnabled,
 	};
@@ -208,12 +203,6 @@ describe( 'ChatPanel snapshots', () => {
 		expect( html ).toMatchSnapshot();
 	} );
 
-	test( 'matches snapshot with debug mode enabled', () => {
-		setupMocks( { debugMode: true } );
-		const html = renderToStaticMarkup( createElement( ChatPanel, {} ) );
-		expect( html ).toMatchSnapshot();
-	} );
-
 	test( 'matches snapshot with YOLO mode enabled', () => {
 		setupMocks( { yoloMode: true } );
 		const html = renderToStaticMarkup( createElement( ChatPanel, {} ) );
@@ -246,19 +235,6 @@ describe( 'ChatPanel rendering', () => {
 		setupMocks();
 		const html = renderToStaticMarkup( createElement( ChatPanel, {} ) );
 		expect( html ).not.toContain( 'is-compact' );
-	} );
-
-	test( 'renders DEBUG badge when debugMode is true', () => {
-		setupMocks( { debugMode: true } );
-		const html = renderToStaticMarkup( createElement( ChatPanel, {} ) );
-		expect( html ).toContain( 'DEBUG' );
-		expect( html ).toContain( 'gratis-ai-agent-debug-badge' );
-	} );
-
-	test( 'does not render DEBUG badge when debugMode is false', () => {
-		setupMocks( { debugMode: false } );
-		const html = renderToStaticMarkup( createElement( ChatPanel, {} ) );
-		expect( html ).not.toContain( 'gratis-ai-agent-debug-badge' );
 	} );
 
 	test( 'renders YOLO badge when yoloMode is true', () => {

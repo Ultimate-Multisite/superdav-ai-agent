@@ -14,12 +14,10 @@ import STORE_NAME from '../../store';
 import ErrorBoundary from '../error-boundary';
 import ToolConfirmationDialog from '../tool-confirmation-dialog';
 import ChangesDrawer from '../chat-redesign/ChangesDrawer';
-import { Stop } from '../chat-redesign/icons';
 import WidgetHeader from './widget-header';
 import WidgetEmpty from './widget-empty';
 import WidgetMessageList from './widget-message-list';
 import WidgetInput from './widget-input';
-import { getRunningToolName } from '../chat-redesign/message-helpers';
 import useDrag from './use-drag';
 import useResize from './use-resize';
 
@@ -30,12 +28,8 @@ const PANEL_SIZE_STORAGE_KEY = 'aiAgentWidgetPanelSize';
  *
  */
 export default function WidgetPanel() {
-	const {
-		confirmToolCall,
-		rejectToolCall,
-		stopGeneration,
-		setFloatingMinimized,
-	} = useDispatch( STORE_NAME );
+	const { confirmToolCall, rejectToolCall, setFloatingMinimized } =
+		useDispatch( STORE_NAME );
 
 	const {
 		isMinimized,
@@ -43,8 +37,6 @@ export default function WidgetPanel() {
 		yoloMode,
 		sending,
 		currentSessionId,
-		sessionJobs,
-		liveToolCalls,
 		messageCount,
 	} = useSelect( ( sel ) => {
 		const store = sel( STORE_NAME );
@@ -54,8 +46,6 @@ export default function WidgetPanel() {
 			yoloMode: store.isYoloMode(),
 			sending: store.isSending(),
 			currentSessionId: store.getCurrentSessionId(),
-			sessionJobs: store.getSessionJobs(),
-			liveToolCalls: store.getLiveToolCalls(),
 			messageCount: store.getCurrentSessionMessages().length,
 		};
 	}, [] );
@@ -154,14 +144,6 @@ export default function WidgetPanel() {
 		[ isMinimized, dragMoved, setFloatingMinimized ]
 	);
 
-	const runningJob = currentSessionId
-		? sessionJobs[ currentSessionId ]
-		: null;
-	const runningToolCalls =
-		runningJob?.toolCalls?.length > 0
-			? runningJob.toolCalls
-			: liveToolCalls;
-	const runningToolName = getRunningToolName( runningToolCalls );
 	const showEmpty = messageCount === 0 && ! sending;
 
 	const panelStyle = {};
@@ -249,31 +231,6 @@ export default function WidgetPanel() {
 								/>
 							</div>
 						) }
-					</div>
-				) }
-
-				{ ! isMinimized && sending && (
-					<div className="gaa-w-running-banner">
-						<span className="gaa-w-spin" aria-hidden="true" />
-						<span className="gaa-w-running-banner-text">
-							{ runningToolName ? (
-								<>
-									<strong>{ runningToolName }</strong>
-									{ ' · ' }
-									{ __( 'running…', 'gratis-ai-agent' ) }
-								</>
-							) : (
-								__( 'Composing reply…', 'gratis-ai-agent' )
-							) }
-						</span>
-						<button
-							type="button"
-							className="gaa-w-stop-btn"
-							onClick={ stopGeneration }
-						>
-							<Stop />
-							<span>{ __( 'Stop', 'gratis-ai-agent' ) }</span>
-						</button>
 					</div>
 				) }
 

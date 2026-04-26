@@ -1738,7 +1738,51 @@ textarea.gaa-cr-input-textarea {
 		display: none;
 	}
 
+	/* WP admin bar is 46px at ≤782px (vs 32px on desktop).  The
+	   #wpfooter is hidden via admin-page/style.css so we only need
+	   to subtract the bar height.  Use dvh where supported so the
+	   calc tracks the browser's dynamic viewport (address bar
+	   appearing/disappearing on touch devices). */
 	.gaa-cr {
-		height: calc(100vh - 60px);
+		height: calc(100vh - 46px); /* fallback */
+
+		/* stylelint-disable-next-line unit-no-unknown */
+		height: calc(100dvh - 46px);
 	}
+}
+
+/* =================================================================
+   Agent picker — icon styles (chip + popover)
+   ================================================================= */
+
+/* Dashicon inside the chip or popover row — override WP's default 20px. */
+.gaa-cr-agent-icon.dashicons {
+	width: 15px;
+	height: 15px;
+	font-size: 15px;
+	line-height: 1;
+	flex-shrink: 0;
+	vertical-align: middle;
+}
+
+/* Emoji fallback */
+.gaa-cr-agent-icon--emoji {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 15px;
+	height: 15px;
+	flex-shrink: 0;
+	font-size: 12px;
+	line-height: 1;
+}
+
+/* Popover rows with icons need a little gap between icon and label. */
+.gaa-cr-agent-popover-item {
+	gap: 8px;
+}
+
+/* Chip: slightly wider than model chip to accommodate icon + name. */
+.gaa-cr-agent-chip {
+	gap: 5px;
 }

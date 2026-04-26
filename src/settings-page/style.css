@@ -862,6 +862,49 @@
 	max-width: 280px;
 }
 
+/* ── Agent builder — card hover + layout ─────────────────────── */
+
+.gratis-ai-agent-card {
+	transition: background-color 120ms, box-shadow 120ms;
+}
+
+.gratis-ai-agent-card:hover {
+	background-color: #f0f6fc;
+	box-shadow: 0 0 0 1px #c5d9ed;
+}
+
+/* Title row: name | badge | actions all inline. */
+.gratis-ai-agent-card-title-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+/* Actions sit immediately after the badge — no auto-margin. */
+.gratis-ai-agent-card-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+
+	/* Subtly hidden; revealed fully on card hover. */
+	opacity: 0.35;
+	transition: opacity 120ms;
+}
+
+.gratis-ai-agent-card:hover .gratis-ai-agent-card-actions {
+	opacity: 1;
+}
+
+/* Description sits on its own line below the title row. */
+.gratis-ai-agent-card-desc {
+	display: block;
+	margin: 3px 0 0;
+	font-size: 12.5px;
+	color: #50575e;
+	line-height: 1.4;
+}
+
 /* ── Agent builder — built-in badge ──────────────────────────── */
 
 .gratis-ai-agent-card-badge {
@@ -869,12 +912,43 @@
 	font-size: 11px;
 	line-height: 1;
 	padding: 2px 6px;
-	margin-left: 8px;
 	background: #e7f5e7;
 	color: #1e4620;
 	border-radius: 3px;
 	vertical-align: middle;
 	font-weight: 500;
+}
+
+/* ── Agent builder — avatar icon preview ─────────────────────── */
+
+.gratis-ai-agent-icon-preview {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 6px;
+	padding: 6px 10px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.gratis-ai-agent-icon-preview-dash {
+	font-size: 22px;
+	width: 22px;
+	height: 22px;
+	color: #2271b1;
+}
+
+.gratis-ai-agent-icon-preview-emoji {
+	font-size: 20px;
+	line-height: 1;
+}
+
+.gratis-ai-agent-icon-preview-label {
+	font-size: 11px;
+	color: #757575;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
 }
 
 .gratis-ai-agent-builder-actions {

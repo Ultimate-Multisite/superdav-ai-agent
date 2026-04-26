@@ -234,13 +234,15 @@ class Agent {
 			// @phpstan-ignore-next-line
 			$data['tool_profile'] = sanitize_text_field( $data['tool_profile'] );
 		}
-		if ( isset( $data['temperature'] ) ) {
+		if ( array_key_exists( 'temperature', $data ) ) {
+			// null means "clear to global default"; cast non-null values to float.
 			// @phpstan-ignore-next-line
-			$data['temperature'] = (float) $data['temperature'];
+			$data['temperature'] = null !== $data['temperature'] ? (float) $data['temperature'] : null;
 		}
-		if ( isset( $data['max_iterations'] ) ) {
+		if ( array_key_exists( 'max_iterations', $data ) ) {
+			// null means "clear to global default"; cast non-null values to int.
 			// @phpstan-ignore-next-line
-			$data['max_iterations'] = (int) $data['max_iterations'];
+			$data['max_iterations'] = null !== $data['max_iterations'] ? (int) $data['max_iterations'] : null;
 		}
 		if ( isset( $data['greeting'] ) ) {
 			// @phpstan-ignore-next-line

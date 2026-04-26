@@ -311,6 +311,7 @@ class UnifiedAdminMenu {
 				'menuItems'           => self::getMenuItems(),
 				'connectorsUrl'       => self::getConnectorsUrl(),
 				'connectorsAvailable' => self::hasNativeConnectorsPage() || self::hasGutenbergConnectorsPage() ? '1' : '',
+				'onboarding_complete' => \GratisAiAgent\Core\OnboardingManager::is_complete(),
 			)
 		);
 	}

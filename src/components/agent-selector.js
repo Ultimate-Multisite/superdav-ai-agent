@@ -16,11 +16,11 @@ import STORE_NAME from '../store';
  *
  * Fetches the list of enabled agents and lets the user switch between them.
  * Selecting an agent causes subsequent messages to use that agent's
- * system prompt, model, and tool profile overrides.
+ * system prompt, model, and tier 1 tool overrides.
  *
  * @param {Object}  props           - Component props.
  * @param {boolean} [props.compact] - Render in compact mode.
- * @return {JSX.Element|null} Agent selector or null when no agents exist.
+ * @return {JSX.Element|null} Agent selector or null when fewer than 2 agents.
  */
 export default function AgentSelector( { compact = false } ) {
 	const { fetchAgents, setSelectedAgentId } = useDispatch( STORE_NAME );
@@ -40,19 +40,16 @@ export default function AgentSelector( { compact = false } ) {
 		}
 	}, [ agentsLoaded, fetchAgents ] );
 
-	// Only render when there are agents to choose from.
+	// Only render when there are multiple agents to choose from.
 	const enabledAgents = agents.filter( ( a ) => a.enabled );
-	if ( ! agentsLoaded || enabledAgents.length === 0 ) {
+	if ( ! agentsLoaded || enabledAgents.length < 2 ) {
 		return null;
 	}
 
-	const options = [
-		{ label: __( 'Default agent', 'gratis-ai-agent' ), value: '' },
-		...enabledAgents.map( ( a ) => ( {
-			label: a.name,
-			value: String( a.id ),
-		} ) ),
-	];
+	const options = enabledAgents.map( ( a ) => ( {
+		label: a.name,
+		value: String( a.id ),
+	} ) );
 
 	return (
 		<div

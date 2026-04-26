@@ -1,5 +1,10 @@
 /**
  * Agents slice — agent list, selected agent, and agent CRUD thunks.
+ *
+ * On first load, auto-selects the default agent:
+ * - If onboarding is not complete → selects the "onboarding" agent.
+ * - Otherwise → selects the "general" agent.
+ * Users can override by picking a different agent in the chat header.
  */
 
 import apiFetch from '@wordpress/api-fetch';
@@ -20,12 +25,18 @@ export const actions = {
 	},
 
 	fetchAgents() {
-		return async ( { dispatch } ) => {
+		return async ( { dispatch, select } ) => {
 			try {
 				const agents = await apiFetch( {
 					path: '/gratis-ai-agent/v1/agents',
 				} );
 				dispatch.setAgents( agents );
+
+				// Auto-select default agent on first load when no agent is
+				// explicitly selected yet.
+				if ( ! select.getSelectedAgentId() && agents.length > 0 ) {
+					dispatch( { type: 'AUTO_SELECT_DEFAULT_AGENT', agents } );
+				}
 			} catch {
 				dispatch.setAgents( [] );
 			}
@@ -98,7 +109,10 @@ export const selectors = {
 
 	getSelectedAgent( state ) {
 		if ( ! state.selectedAgentId ) {
-			return null;
+			// Fall back to the general agent if available.
+			return (
+				state.agents.find( ( a ) => a.slug === 'general' ) || null
+			);
 		}
 		return (
 			state.agents.find( ( a ) => a.id === state.selectedAgentId ) || null
@@ -121,6 +135,31 @@ export function reducer( state, action ) {
 			};
 		case 'SET_SELECTED_AGENT_ID':
 			return { ...state, selectedAgentId: action.agentId };
+		case 'AUTO_SELECT_DEFAULT_AGENT': {
+			const agents = action.agents || [];
+			// Check if onboarding is complete via settings (injected into
+			// window.gratisAiAgentData by the PHP enqueue).
+			const onboardingComplete =
+				window.gratisAiAgentData?.onboarding_complete;
+
+			let defaultAgent;
+			if ( ! onboardingComplete ) {
+				// First session: prefer onboarding agent.
+				defaultAgent =
+					agents.find( ( a ) => a.slug === 'onboarding' && a.enabled ) ||
+					agents.find( ( a ) => a.slug === 'general' && a.enabled );
+			} else {
+				// Normal session: use general agent.
+				defaultAgent = agents.find(
+					( a ) => a.slug === 'general' && a.enabled
+				);
+			}
+
+			return {
+				...state,
+				selectedAgentId: defaultAgent ? defaultAgent.id : null,
+			};
+		}
 		default:
 			return state;
 	}

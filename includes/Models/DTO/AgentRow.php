@@ -16,21 +16,24 @@ namespace GratisAiAgent\Models\DTO;
 readonly class AgentRow {
 
 	/**
-	 * @param int        $id             Row ID (auto-increment PK).
-	 * @param string     $slug           URL-safe unique slug.
-	 * @param string     $name           Human-readable name.
-	 * @param string     $description    Short description.
-	 * @param string     $system_prompt  Custom system instruction override (default '').
-	 * @param string     $provider_id    AI provider slug override (default '').
-	 * @param string     $model_id       Model slug override (default '').
-	 * @param string     $tool_profile   Tool profile slug (default '').
-	 * @param float|null $temperature    Sampling temperature override, or null to use default.
-	 * @param int|null   $max_iterations Iteration cap override, or null to use default.
-	 * @param string     $greeting       Agent greeting message (default '').
-	 * @param string     $avatar_icon    Dashicons slug or empty string.
-	 * @param bool       $enabled        Whether the agent is active.
-	 * @param string     $created_at     MySQL datetime string (UTC).
-	 * @param string     $updated_at     MySQL datetime string (UTC).
+	 * @param int           $id             Row ID (auto-increment PK).
+	 * @param string        $slug           URL-safe unique slug.
+	 * @param string        $name           Human-readable name.
+	 * @param string        $description    Short description.
+	 * @param string        $system_prompt  Custom system instruction override (default '').
+	 * @param string        $provider_id    AI provider slug override (default '').
+	 * @param string        $model_id       Model slug override (default '').
+	 * @param string        $tool_profile   Tool profile slug (default '').
+	 * @param float|null    $temperature    Sampling temperature override, or null to use default.
+	 * @param int|null      $max_iterations Iteration cap override, or null to use default.
+	 * @param string        $greeting       Agent greeting message (default '').
+	 * @param string        $avatar_icon    Dashicons slug or empty string.
+	 * @param list<string>  $tier_1_tools   Curated Tier 1 ability names for this agent.
+	 * @param list<array{title: string, description: string, prompt: string}> $suggestions Agent-specific suggestion cards.
+	 * @param bool          $is_builtin     Whether this is a system-provided default agent.
+	 * @param bool          $enabled        Whether the agent is active.
+	 * @param string        $created_at     MySQL datetime string (UTC).
+	 * @param string        $updated_at     MySQL datetime string (UTC).
 	 */
 	public function __construct(
 		public int $id,
@@ -45,6 +48,9 @@ readonly class AgentRow {
 		public ?int $max_iterations,
 		public string $greeting,
 		public string $avatar_icon,
+		public array $tier_1_tools,
+		public array $suggestions,
+		public bool $is_builtin,
 		public bool $enabled,
 		public string $created_at,
 		public string $updated_at,
@@ -65,6 +71,18 @@ readonly class AgentRow {
 			? (int) $row->max_iterations
 			: null;
 
+		$tier_1_raw = (string) ( $row->tier_1_tools ?? '' );
+		$tier_1     = '' !== $tier_1_raw ? json_decode( $tier_1_raw, true ) : [];
+		if ( ! is_array( $tier_1 ) ) {
+			$tier_1 = [];
+		}
+
+		$suggestions_raw = (string) ( $row->suggestions ?? '' );
+		$suggestions     = '' !== $suggestions_raw ? json_decode( $suggestions_raw, true ) : [];
+		if ( ! is_array( $suggestions ) ) {
+			$suggestions = [];
+		}
+
 		return new self(
 			id:             (int) $row->id,
 			slug:           (string) ( $row->slug ?? '' ),
@@ -78,6 +96,9 @@ readonly class AgentRow {
 			max_iterations: $max_iter,
 			greeting:       (string) ( $row->greeting ?? '' ),
 			avatar_icon:    (string) ( $row->avatar_icon ?? '' ),
+			tier_1_tools:   $tier_1,
+			suggestions:    $suggestions,
+			is_builtin:     (bool) (int) ( $row->is_builtin ?? 0 ),
 			enabled:        (bool) (int) ( $row->enabled ?? 1 ),
 			created_at:     (string) ( $row->created_at ?? '' ),
 			updated_at:     (string) ( $row->updated_at ?? '' ),

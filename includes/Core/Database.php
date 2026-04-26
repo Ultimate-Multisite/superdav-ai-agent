@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace GratisAiAgent\Core;
 
 use GratisAiAgent\Knowledge\KnowledgeDatabase;
+use GratisAiAgent\Models\Agent;
 use GratisAiAgent\Models\ConversationTemplate;
 use GratisAiAgent\Models\ProviderTrace;
 use GratisAiAgent\Models\Skill;
@@ -35,7 +36,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '17.0.0';
+	const DB_VERSION        = '18.0.0';
 
 	// ─── Table Name Registry ──────────────────────────────────────────────────
 
@@ -500,6 +501,9 @@ class Database {
 			max_iterations int(11) DEFAULT NULL,
 			greeting text NOT NULL DEFAULT '',
 			avatar_icon varchar(100) NOT NULL DEFAULT '',
+			tier_1_tools longtext NOT NULL DEFAULT '',
+			suggestions longtext NOT NULL DEFAULT '',
+			is_builtin tinyint(1) NOT NULL DEFAULT 0,
 			enabled tinyint(1) NOT NULL DEFAULT 1,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -652,6 +656,9 @@ class Database {
 
 		// Seed example custom tools.
 		CustomTools::seed_examples();
+
+		// Seed built-in agents (onboarding, general, content-creator, seo, ecommerce).
+		Agent::seed_defaults();
 
 		update_option( self::DB_VERSION_OPTION, self::DB_VERSION );
 	}

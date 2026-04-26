@@ -87,7 +87,8 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 	// ── register ─────────────────────────────────────────────────────────────
 
 	/**
-	 * register() hooks into the expected WordPress actions.
+	 * register() hooks into the expected WordPress actions including the new
+	 * edit_terms pre-save hook required to capture before-values for terms.
 	 */
 	public function test_register_adds_expected_hooks(): void {
 		ChangeLogger::register();
@@ -95,6 +96,7 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 		$this->assertNotFalse( has_action( 'post_updated', [ ChangeLogger::class, 'on_post_updated' ] ) );
 		$this->assertNotFalse( has_action( 'updated_option', [ ChangeLogger::class, 'on_updated_option' ] ) );
 		$this->assertNotFalse( has_action( 'added_option', [ ChangeLogger::class, 'on_added_option' ] ) );
+		$this->assertNotFalse( has_action( 'edit_terms', [ ChangeLogger::class, 'on_edit_terms' ] ) );
 		$this->assertNotFalse( has_action( 'edited_term', [ ChangeLogger::class, 'on_edited_term' ] ) );
 		$this->assertNotFalse( has_action( 'profile_update', [ ChangeLogger::class, 'on_profile_update' ] ) );
 	}
@@ -127,6 +129,7 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 
 	/**
 	 * on_post_updated() records a change when logging is active and title differs.
+	 * object_type must reflect the actual post_type, not the hardcoded string 'post'.
 	 */
 	public function test_on_post_updated_records_title_change_when_active(): void {
 		ChangeLogger::begin( 42, 'update_post' );
@@ -154,6 +157,39 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 		$this->assertSame( 'Updated Title', $row->after_value );
 		$this->assertSame( '42', (string) $row->session_id );
 		$this->assertSame( 'update_post', $row->ability_name );
+		// BUG-4 fix: object_type should be the actual post_type, not hardcoded 'post'.
+		$this->assertSame( 'post', $row->object_type );
+	}
+
+	/**
+	 * on_post_updated() uses the actual post_type as object_type for pages.
+	 */
+	public function test_on_post_updated_uses_actual_post_type_for_pages(): void {
+		ChangeLogger::begin( 1, 'update_page' );
+
+		$page_id = self::factory()->post->create( [
+			'post_title' => 'Original Page',
+			'post_type'  => 'page',
+		] );
+		$before = get_post( $page_id );
+		$after  = clone $before;
+		/** @var \WP_Post $after */
+		$after->post_title = 'Updated Page';
+
+		ChangeLogger::on_post_updated( $page_id, $after, $before );
+
+		global $wpdb;
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE object_id = %d AND field_name = %s',
+				$wpdb->prefix . 'gratis_ai_agent_changes_log',
+				$page_id,
+				'post_title'
+			)
+		);
+
+		$this->assertNotNull( $row );
+		$this->assertSame( 'page', $row->object_type );
 	}
 
 	/**
@@ -300,6 +336,38 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 		$this->assertSame( '0', (string) $count );
 	}
 
+	/**
+	 * on_updated_option() stores array values via maybe_serialize() so they
+	 * can be correctly restored by maybe_unserialize() in the revert service.
+	 *
+	 * Scalar strings must be stored verbatim (maybe_serialize is a no-op for
+	 * scalars), so existing scalar-value records remain compatible.
+	 */
+	public function test_on_updated_option_serializes_array_values(): void {
+		ChangeLogger::begin( 1, 'test' );
+
+		$old_array = [ 'key' => 'old_val', 'count' => 3 ];
+		$new_array = [ 'key' => 'new_val', 'count' => 5 ];
+
+		ChangeLogger::on_updated_option( 'my_plugin_settings', $old_array, $new_array );
+
+		global $wpdb;
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE field_name = %s',
+				$wpdb->prefix . 'gratis_ai_agent_changes_log',
+				'my_plugin_settings'
+			)
+		);
+
+		$this->assertNotNull( $row );
+		// Stored value must be WordPress-serialised so maybe_unserialize() can decode it.
+		$restored = maybe_unserialize( $row->before_value );
+		$this->assertIsArray( $restored );
+		$this->assertSame( 'old_val', $restored['key'] );
+		$this->assertSame( 3, $restored['count'] );
+	}
+
 	// ── on_added_option ───────────────────────────────────────────────────────
 
 	/**
@@ -362,7 +430,7 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 		$this->assertSame( '[REDACTED]', $row->after_value );
 	}
 
-	// ── on_edited_term ────────────────────────────────────────────────────────
+	// ── on_edit_terms / on_edited_term ───────────────────────────────────────
 
 	/**
 	 * on_edited_term() skips when inactive.
@@ -370,6 +438,8 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 	public function test_on_edited_term_skips_when_inactive(): void {
 		$term = self::factory()->term->create_and_get( [ 'taxonomy' => 'category' ] );
 
+		// Neither pre-save nor post-save hooks should record when inactive.
+		ChangeLogger::on_edit_terms( $term->term_id, 'category' );
 		ChangeLogger::on_edited_term( $term->term_id, $term->term_taxonomy_id, 'category' );
 
 		global $wpdb;
@@ -384,18 +454,26 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * on_edited_term() records a term change when active.
+	 * on_edited_term() records a term change with correct before_value when
+	 * on_edit_terms() is called first to capture the old name.
+	 *
+	 * Simulates the full WordPress hook pair: edit_terms → edited_term.
 	 */
-	public function test_on_edited_term_records_change_when_active(): void {
-		ChangeLogger::begin( 7, 'edit_term' );
-
+	public function test_on_edited_term_captures_before_value(): void {
 		$term = self::factory()->term->create_and_get(
 			[
 				'taxonomy' => 'category',
-				'name'     => 'Test Category',
+				'name'     => 'Original Name',
 			]
 		);
 
+		ChangeLogger::begin( 7, 'edit_term' );
+
+		// Step 1: pre-save hook captures the old name.
+		ChangeLogger::on_edit_terms( $term->term_id, 'category' );
+
+		// Step 2: perform the actual update, then fire the post-save hook.
+		wp_update_term( $term->term_id, 'category', [ 'name' => 'Updated Name' ] );
 		ChangeLogger::on_edited_term( $term->term_id, $term->term_taxonomy_id, 'category' );
 
 		global $wpdb;
@@ -408,9 +486,40 @@ class ChangeLoggerTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertNotNull( $row );
-		$this->assertSame( 'Test Category', $row->object_title );
+		$this->assertNotNull( $row, 'A change record should have been created.' );
+		$this->assertSame( 'Original Name', $row->before_value, 'before_value must be the old term name.' );
+		$this->assertSame( 'Updated Name', $row->after_value, 'after_value must be the new term name.' );
+		$this->assertSame( 'Updated Name', $row->object_title );
 		$this->assertSame( 'category', $row->field_name );
+	}
+
+	/**
+	 * on_edited_term() does NOT record when the name hasn't actually changed.
+	 */
+	public function test_on_edited_term_skips_when_name_unchanged(): void {
+		$term = self::factory()->term->create_and_get(
+			[
+				'taxonomy' => 'category',
+				'name'     => 'Same Name',
+			]
+		);
+
+		ChangeLogger::begin( 1, 'test' );
+
+		// Pre-save captures "Same Name"; post-save term is still "Same Name".
+		ChangeLogger::on_edit_terms( $term->term_id, 'category' );
+		ChangeLogger::on_edited_term( $term->term_id, $term->term_taxonomy_id, 'category' );
+
+		global $wpdb;
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE object_type = %s AND object_id = %d',
+				$wpdb->prefix . 'gratis_ai_agent_changes_log',
+				'term',
+				$term->term_id
+			)
+		);
+		$this->assertSame( '0', (string) $count, 'No record should be created when term name did not change.' );
 	}
 
 	/**

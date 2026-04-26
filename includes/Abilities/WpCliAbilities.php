@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use GratisAiAgent\Core\ChangeLogger;
+use GratisAiAgent\Models\ChangesLog;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -363,6 +365,24 @@ class WpCliAbilities {
 			if ( '' !== $url ) {
 				self::$current_site_url = $url;
 			}
+		}
+
+		// Audit trail: log write/destructive WP-CLI commands as unrevertable.
+		// Read-only commands (list, get, status, …) are not logged.
+		if ( ChangeLogger::is_active() && 'read' !== $level && ! is_wp_error( $result ) ) {
+			ChangesLog::record(
+				[
+					'session_id'   => ChangeLogger::get_session_id(),
+					'object_type'  => 'wp_cli',
+					'object_id'    => 0,
+					'object_title' => $command_path,
+					'ability_name' => ChangeLogger::get_ability_name() ?: 'wp_cli',
+					'field_name'   => 'command',
+					'before_value' => '',
+					'after_value'  => 'wp ' . $command,
+					'revertable'   => false,
+				]
+			);
 		}
 
 		return $result;

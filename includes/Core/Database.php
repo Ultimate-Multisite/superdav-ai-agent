@@ -36,7 +36,7 @@ use GratisAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
-	const DB_VERSION        = '18.0.0';
+	const DB_VERSION        = '19.0.0';
 
 	// ─── Table Name Registry ──────────────────────────────────────────────────
 
@@ -465,12 +465,14 @@ class Database {
 			after_value longtext NOT NULL,
 			reverted tinyint(1) NOT NULL DEFAULT 0,
 			reverted_at datetime DEFAULT NULL,
+			revertable tinyint(1) NOT NULL DEFAULT 1,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY session_id (session_id),
 			KEY user_id (user_id),
 			KEY object_type_id (object_type, object_id),
 			KEY reverted (reverted),
+			KEY revertable (revertable),
 			KEY created_at (created_at)
 		) {$charset};
 

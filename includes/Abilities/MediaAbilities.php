@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use GratisAiAgent\Core\ChangeLogger;
+use GratisAiAgent\Models\ChangesLog;
 use WP_Error;
 use WP_Post;
 
@@ -450,6 +452,23 @@ class MediaAbilities {
 
 		if ( $switched ) {
 			restore_current_blog();
+		}
+
+		// Audit trail: log media deletion as unrevertable — the file and DB row are gone.
+		if ( $result && ChangeLogger::is_active() ) {
+			ChangesLog::record(
+				[
+					'session_id'   => ChangeLogger::get_session_id(),
+					'object_type'  => 'media',
+					'object_id'    => $attachment_id,
+					'object_title' => $title,
+					'ability_name' => ChangeLogger::get_ability_name() ?: 'delete_media',
+					'field_name'   => 'attachment',
+					'before_value' => $title,
+					'after_value'  => '(deleted)',
+					'revertable'   => false,
+				]
+			);
 		}
 
 		return [

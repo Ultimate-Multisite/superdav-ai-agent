@@ -150,12 +150,23 @@ function AdminPageApp() {
 		return <BootError />;
 	}
 
-	if ( ! settingsLoaded || ! providersLoaded ) {
+	// Block only until settings are available (~90 ms). Do NOT block on
+	// providersLoaded (~1,180 ms with the SDK's live model-listing call) so
+	// the chat shell renders within one network round-trip.
+	//
+	// Gating logic while providers are still loading:
+	//   - Assume a provider exists (optimistic) so ChatRedesign renders.
+	//   - The model picker already handles an empty providers array gracefully.
+	//   - If providers finish loading with an empty list, we swap to ConnectorGate.
+	//   - Onboarding state is derived from settings (already loaded), so that
+	//     gate can still fire correctly without waiting for providers.
+	if ( ! settingsLoaded ) {
 		return null;
 	}
 
 	// Phase 1 gate: no connector → show connector gate.
-	const hasProvider = providers.length > 0;
+	// While providers are still loading we skip this gate (assume configured).
+	const hasProvider = ! providersLoaded || providers.length > 0;
 	if ( ! hasProvider ) {
 		return (
 			<Suspense fallback={ null }>
@@ -239,3 +250,8 @@ window.gratisAiAgentChat = {
 		}
 	},
 };
+
+// Notify ChatRoute that the mount API is now available. ChatRoute listens for
+// this event and calls mount() immediately, replacing the previous 0–50 ms
+// polling interval with a near-zero-latency handshake.
+window.dispatchEvent( new CustomEvent( 'gratis-ai-agent-chat-ready' ) );

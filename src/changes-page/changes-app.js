@@ -9,7 +9,6 @@ import {
 	SelectControl,
 	CheckboxControl,
 	Modal,
-	Badge,
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
@@ -300,6 +299,7 @@ export default function ChangesApp() {
 			{ /* Filters */ }
 			<div className="gratis-changes-filters">
 				<SelectControl
+					__next40pxDefaultSize
 					label={ __( 'Object Type', 'gratis-ai-agent' ) }
 					value={ filterType }
 					options={ [
@@ -310,6 +310,14 @@ export default function ChangesApp() {
 						{
 							label: __( 'Post', 'gratis-ai-agent' ),
 							value: 'post',
+						},
+						{
+							label: __( 'Page', 'gratis-ai-agent' ),
+							value: 'page',
+						},
+						{
+							label: __( 'Post Meta', 'gratis-ai-agent' ),
+							value: 'post_meta',
 						},
 						{
 							label: __( 'Option', 'gratis-ai-agent' ),
@@ -323,6 +331,22 @@ export default function ChangesApp() {
 							label: __( 'User', 'gratis-ai-agent' ),
 							value: 'user',
 						},
+						{
+							label: __( 'Nav Menu', 'gratis-ai-agent' ),
+							value: 'nav_menu',
+						},
+						{
+							label: __( 'File', 'gratis-ai-agent' ),
+							value: 'file',
+						},
+						{
+							label: __( 'Media', 'gratis-ai-agent' ),
+							value: 'media',
+						},
+						{
+							label: __( 'WP-CLI', 'gratis-ai-agent' ),
+							value: 'wp_cli',
+						},
 					] }
 					onChange={ ( val ) => {
 						setFilterType( val );
@@ -330,6 +354,7 @@ export default function ChangesApp() {
 					} }
 				/>
 				<SelectControl
+					__next40pxDefaultSize
 					label={ __( 'Status', 'gratis-ai-agent' ) }
 					value={ filterReverted }
 					options={ [
@@ -476,21 +501,30 @@ export default function ChangesApp() {
 											{ formatDate( change.created_at ) }
 										</td>
 										<td>
+											{ /* eslint-disable no-nested-ternary */ }
 											{ change.reverted ? (
-												<Badge>
+												<span className="gratis-changes-badge gratis-changes-badge--reverted">
 													{ __(
 														'Reverted',
 														'gratis-ai-agent'
 													) }
-												</Badge>
+												</span>
+											) : change.revertable === false ? (
+												<span className="gratis-changes-badge gratis-changes-badge--unrevertable">
+													{ __(
+														'Cannot undo',
+														'gratis-ai-agent'
+													) }
+												</span>
 											) : (
-												<Badge>
+												<span className="gratis-changes-badge gratis-changes-badge--active">
 													{ __(
 														'Active',
 														'gratis-ai-agent'
 													) }
-												</Badge>
+												</span>
 											) }
+											{ /* eslint-enable no-nested-ternary */ }
 										</td>
 										<td>
 											<div className="gratis-changes-actions">
@@ -505,30 +539,32 @@ export default function ChangesApp() {
 														'gratis-ai-agent'
 													) }
 												</Button>
-												{ ! change.reverted && (
-													<Button
-														variant="link"
-														isDestructive
-														onClick={ () =>
-															handleRevert(
+												{ ! change.reverted &&
+													change.revertable !==
+														false && (
+														<Button
+															variant="link"
+															isDestructive
+															onClick={ () =>
+																handleRevert(
+																	change.id
+																)
+															}
+															disabled={
+																reverting ===
 																change.id
-															)
-														}
-														disabled={
-															reverting ===
-															change.id
-														}
-														isBusy={
-															reverting ===
-															change.id
-														}
-													>
-														{ __(
-															'Revert',
-															'gratis-ai-agent'
-														) }
-													</Button>
-												) }
+															}
+															isBusy={
+																reverting ===
+																change.id
+															}
+														>
+															{ __(
+																'Revert',
+																'gratis-ai-agent'
+															) }
+														</Button>
+													) }
 											</div>
 										</td>
 									</tr>
@@ -614,21 +650,38 @@ export default function ChangesApp() {
 									diffModal.change.after_value
 								}
 							/>
-							{ ! diffModal.change.reverted && (
-								<div className="gratis-changes-diff-modal__actions">
-									<Button
-										variant="primary"
-										isDestructive
-										onClick={ () => {
-											setDiffModal( null );
-											handleRevert( diffModal.change.id );
-										} }
-									>
+							{ ! diffModal.change.reverted &&
+								diffModal.change.revertable !== false && (
+									<div className="gratis-changes-diff-modal__actions">
+										<Button
+											variant="primary"
+											isDestructive
+											onClick={ () => {
+												setDiffModal( null );
+												handleRevert(
+													diffModal.change.id
+												);
+											} }
+										>
+											{ __(
+												'Revert This Change',
+												'gratis-ai-agent'
+											) }
+										</Button>
+									</div>
+								) }
+							{ diffModal.change.revertable === false && (
+								<div className="gratis-changes-diff-modal__notice">
+									<span className="gratis-changes-badge gratis-changes-badge--unrevertable">
 										{ __(
-											'Revert This Change',
+											'Cannot undo',
 											'gratis-ai-agent'
 										) }
-									</Button>
+									</span>{ ' ' }
+									{ __(
+										'This change was made outside of WordPress core (filesystem, WP-CLI, media deletion) and cannot be automatically reversed.',
+										'gratis-ai-agent'
+									) }
 								</div>
 							) }
 						</>

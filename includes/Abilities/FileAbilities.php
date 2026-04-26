@@ -15,7 +15,9 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Abilities;
 
+use GratisAiAgent\Core\ChangeLogger;
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\Models\ChangesLog;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -540,6 +542,24 @@ class FileWriteAbility extends AbstractFileAbility {
 			(int) get_current_user_id()
 		);
 
+		// Audit trail: log as unrevertable — filesystem writes are not tracked
+		// by WordPress hooks and there is no before-value snapshot.
+		if ( ChangeLogger::is_active() ) {
+			ChangesLog::record(
+				[
+					'session_id'   => ChangeLogger::get_session_id(),
+					'object_type'  => 'file',
+					'object_id'    => 0,
+					'object_title' => $path,
+					'ability_name' => ChangeLogger::get_ability_name() ?: 'write_file',
+					'field_name'   => 'content',
+					'before_value' => '',
+					'after_value'  => $existed ? '(updated)' : '(created)',
+					'revertable'   => false,
+				]
+			);
+		}
+
 		return [
 			'path'   => $path,
 			'action' => $existed ? 'updated' : 'created',
@@ -745,6 +765,23 @@ class FileEditAbility extends AbstractFileAbility {
 				0,
 				(int) get_current_user_id()
 			);
+
+			// Audit trail: log as unrevertable.
+			if ( ChangeLogger::is_active() ) {
+				ChangesLog::record(
+					[
+						'session_id'   => ChangeLogger::get_session_id(),
+						'object_type'  => 'file',
+						'object_id'    => 0,
+						'object_title' => $path,
+						'ability_name' => ChangeLogger::get_ability_name() ?: 'edit_file',
+						'field_name'   => 'content',
+						'before_value' => '',
+						'after_value'  => sprintf( '(%d edits applied)', count( $applied ) ),
+						'revertable'   => false,
+					]
+				);
+			}
 		}
 
 		return [
@@ -841,6 +878,23 @@ class FileDeleteAbility extends AbstractFileAbility {
 		if ( ! $result ) {
 			// @phpstan-ignore-next-line
 			return new WP_Error( 'gratis_ai_agent_file_delete_failed', sprintf( 'Failed to delete: %s', $path ) );
+		}
+
+		// Audit trail: log as unrevertable — the file content is permanently gone.
+		if ( ChangeLogger::is_active() ) {
+			ChangesLog::record(
+				[
+					'session_id'   => ChangeLogger::get_session_id(),
+					'object_type'  => 'file',
+					'object_id'    => 0,
+					'object_title' => $path,
+					'ability_name' => ChangeLogger::get_ability_name() ?: 'delete_file',
+					'field_name'   => 'content',
+					'before_value' => '',
+					'after_value'  => '(deleted)',
+					'revertable'   => false,
+				]
+			);
 		}
 
 		return [

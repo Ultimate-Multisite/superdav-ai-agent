@@ -581,6 +581,9 @@ final class SettingsController {
 			return new WP_REST_Response( array( 'error' => 'Failed to save API key.' ), 500 );
 		}
 
+		// Credentials changed — the cached providers list is now stale.
+		self::flush_providers_cache();
+
 		return new WP_REST_Response(
 			array(
 				'saved'   => true,
@@ -969,11 +972,42 @@ final class SettingsController {
 	}
 
 	/**
+	 * Transient key for the cached providers list.
+	 * Scoped per-user so each admin sees their own credential state.
+	 *
+	 * @return string
+	 */
+	private static function providers_cache_key(): string {
+		return 'gratis_ai_providers_' . get_current_user_id();
+	}
+
+	/**
+	 * Flush the cached providers list.
+	 *
+	 * Call whenever provider credentials are added, changed, or removed so the
+	 * next GET /providers rebuilds the list from live data.
+	 */
+	public static function flush_providers_cache(): void {
+		delete_transient( self::providers_cache_key() );
+	}
+
+	/**
 	 * Handle the /providers endpoint — list registered AI providers and models.
+	 *
+	 * The result is cached in a 5-minute transient because `listModelMetadata()`
+	 * on WP SDK providers can make a live HTTP call to the upstream API to
+	 * enumerate available models, adding ~1 s on every page load. The cache is
+	 * invalidated by flush_providers_cache() whenever credentials change.
 	 *
 	 * @return WP_REST_Response
 	 */
 	public function handle_providers(): WP_REST_Response {
+		$cache_key = self::providers_cache_key();
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return new WP_REST_Response( $cached, 200 );
+		}
+
 		$providers = array();
 
 		// Direct providers (OpenAI, Anthropic, Google) — listed first, no WP SDK required.
@@ -1076,6 +1110,10 @@ final class SettingsController {
 				}
 			}
 		}
+
+		// Cache for 5 minutes. Provider lists rarely change during a session;
+		// flush_providers_cache() is called whenever credentials are updated.
+		set_transient( $cache_key, $providers, 5 * MINUTE_IN_SECONDS );
 
 		return new WP_REST_Response( $providers, 200 );
 	}

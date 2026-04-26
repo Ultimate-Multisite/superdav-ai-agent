@@ -137,6 +137,32 @@
 	color: #060;
 }
 
+/* Status badges (replace @wordpress/components Badge which is not universally available) */
+.gratis-changes-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 0.78em;
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.gratis-changes-badge--active {
+	background: #d7f5e5;
+	color: #1a6140;
+}
+
+.gratis-changes-badge--reverted {
+	background: #f0f0f0;
+	color: #757575;
+}
+
+.gratis-changes-badge--unrevertable {
+	background: #fff3cd;
+	color: #856404;
+}
+
 /* Diff modal */
 .gratis-changes-diff-modal .components-modal__content {
 	min-width: min( 80vw, 900px );
@@ -146,4 +172,16 @@
 	margin-top: 1.5rem;
 	display: flex;
 	justify-content: flex-end;
+}
+
+.gratis-changes-diff-modal__notice {
+	margin-top: 1rem;
+	padding: 0.6rem 0.75rem;
+	background: #fff3cd;
+	border-left: 3px solid #ffc107;
+	border-radius: 0 4px 4px 0;
+	font-size: 0.875em;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
 }

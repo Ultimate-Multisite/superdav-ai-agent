@@ -49,8 +49,8 @@ export default function ChatRoute() {
 			return false;
 		}
 
-		// Try immediately — the API may already be defined if admin-page.js
-		// loaded synchronously before this effect ran.
+		// Try immediately — admin-page.js may already have executed if the
+		// browser parsed both script tags before this effect ran.
 		if ( tryMount() ) {
 			return () => {
 				if (
@@ -64,12 +64,19 @@ export default function ChatRoute() {
 			};
 		}
 
-		// Poll every 50 ms for up to 30 s waiting for admin-page.js to load
-		// and expose window.gratisAiAgentChat. This handles the race condition
-		// where unified-admin.js renders ChatRoute before admin-page.js has
-		// finished executing (both are loaded as async scripts).
-		// 30 s matches the goToAgentPage() wait timeout in tests/e2e/utils/wp-admin.js
-		// so the chat panel always has a chance to mount before the test times out.
+		// admin-page.js hasn't run yet. Listen for the 'gratis-ai-agent-chat-ready'
+		// CustomEvent that admin-page.js dispatches synchronously after setting
+		// window.gratisAiAgentChat. This fires within microseconds of the script
+		// finishing, replacing the previous 0–50 ms polling interval.
+		//
+		// Falls back to a 50 ms poll as a safety net for environments where
+		// the event fires before this listener is registered (e.g. the script
+		// tag appeared synchronously before the React render cycle).
+		const handleReady = () => tryMount();
+		window.addEventListener( 'gratis-ai-agent-chat-ready', handleReady );
+
+		// Safety poll — catches any edge case where the event was missed.
+		// 30 s matches the goToAgentPage() wait timeout in tests/e2e/utils/wp-admin.js.
 		let intervalId = setInterval( () => {
 			if ( tryMount() ) {
 				clearInterval( intervalId );
@@ -77,12 +84,10 @@ export default function ChatRoute() {
 			}
 		}, 50 );
 
-		// Safety timeout: stop polling after 30 s to avoid an infinite loop.
 		const timeoutId = setTimeout( () => {
 			if ( intervalId ) {
 				clearInterval( intervalId );
 				intervalId = null;
-				// Log a warning to help diagnose a missing admin-page bundle.
 				// eslint-disable-next-line no-console
 				console.warn(
 					'[Gratis AI Agent] ChatRoute: window.gratisAiAgentChat.mount() not available after 30s. ' +
@@ -91,8 +96,11 @@ export default function ChatRoute() {
 			}
 		}, 30_000 );
 
-		// Cleanup: stop polling and unmount the chat app.
 		return () => {
+			window.removeEventListener(
+				'gratis-ai-agent-chat-ready',
+				handleReady
+			);
 			if ( intervalId ) {
 				clearInterval( intervalId );
 			}

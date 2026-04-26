@@ -43,8 +43,8 @@ const EMPTY_FORM = {
  *
  * @param {Object}   props              Component props.
  * @param {string[]} props.tools        Current tier 1 tool IDs.
- * @param {Function} props.onChange      Callback when tools change.
- * @param {Array}    props.allAbilities  Full abilities catalog for autocomplete.
+ * @param {Function} props.onChange     Callback when tools change.
+ * @param {Array}    props.allAbilities Full abilities catalog for autocomplete.
  */
 function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 	const [ search, setSearch ] = useState( '' );
@@ -94,10 +94,7 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 		<div className="gratis-ai-agent-tier1-editor">
 			<div className="gratis-ai-agent-tier1-list">
 				{ tools.map( ( toolId ) => (
-					<span
-						key={ toolId }
-						className="gratis-ai-agent-tier1-chip"
-					>
+					<span key={ toolId } className="gratis-ai-agent-tier1-chip">
 						<span className="gratis-ai-agent-tier1-chip-label">
 							{ getLabel( toolId ) }
 						</span>
@@ -127,7 +124,7 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 			<div className="gratis-ai-agent-tier1-add">
 				<TextControl
 					placeholder={ __(
-						'Search abilities to add...',
+						'Search abilities to add…',
 						'gratis-ai-agent'
 					) }
 					value={ search }
@@ -164,7 +161,10 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 				) }
 				{ showResults && search.trim() && filtered.length === 0 && (
 					<p className="gratis-ai-agent-tier1-no-results">
-						{ __( 'No matching abilities found.', 'gratis-ai-agent' ) }
+						{ __(
+							'No matching abilities found.',
+							'gratis-ai-agent'
+						) }
 					</p>
 				) }
 			</div>
@@ -345,10 +345,7 @@ export default function AgentBuilder() {
 					status: 'error',
 					message:
 						err?.message ||
-						__(
-							'Failed to delete agent.',
-							'gratis-ai-agent'
-						),
+						__( 'Failed to delete agent.', 'gratis-ai-agent' ),
 				} );
 			}
 		},
@@ -389,10 +386,7 @@ export default function AgentBuilder() {
 				status: 'error',
 				message:
 					err?.message ||
-					__(
-						'Failed to reset agents.',
-						'gratis-ai-agent'
-					),
+					__( 'Failed to reset agents.', 'gratis-ai-agent' ),
 			} );
 		}
 
@@ -649,9 +643,9 @@ export default function AgentBuilder() {
 					/>
 
 					<div className="gratis-ai-agent-form-field">
-						<label className="gratis-ai-agent-form-label">
+						<h4 className="gratis-ai-agent-form-label">
 							{ __( 'Tier 1 Tools', 'gratis-ai-agent' ) }
-						</label>
+						</h4>
 						<p className="description">
 							{ __(
 								'Tools immediately available to this agent. Other tools can still be discovered via search. Aim for about 10 tools to keep context size low.',
@@ -703,7 +697,7 @@ export default function AgentBuilder() {
 						value={ form.temperature }
 						onChange={ ( v ) => updateField( 'temperature', v ) }
 						help={ __(
-							'Override temperature (0-2). Leave empty to use the global default.',
+							'Override temperature (0–2). Leave empty to use the global default.',
 							'gratis-ai-agent'
 						) }
 						__nextHasNoMarginBottom

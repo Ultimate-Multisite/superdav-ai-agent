@@ -110,9 +110,7 @@ export const selectors = {
 	getSelectedAgent( state ) {
 		if ( ! state.selectedAgentId ) {
 			// Fall back to the general agent if available.
-			return (
-				state.agents.find( ( a ) => a.slug === 'general' ) || null
-			);
+			return state.agents.find( ( a ) => a.slug === 'general' ) || null;
 		}
 		return (
 			state.agents.find( ( a ) => a.id === state.selectedAgentId ) || null
@@ -146,7 +144,9 @@ export function reducer( state, action ) {
 			if ( ! onboardingComplete ) {
 				// First session: prefer onboarding agent.
 				defaultAgent =
-					agents.find( ( a ) => a.slug === 'onboarding' && a.enabled ) ||
+					agents.find(
+						( a ) => a.slug === 'onboarding' && a.enabled
+					) ||
 					agents.find( ( a ) => a.slug === 'general' && a.enabled );
 			} else {
 				// Normal session: use general agent.

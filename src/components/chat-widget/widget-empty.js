@@ -20,23 +20,38 @@ import { getBranding } from '../../utils/branding';
 const DEFAULT_SUGGESTIONS = [
 	{
 		title: __( 'Site health check', 'gratis-ai-agent' ),
-		description: __( 'Run a full report and summarize issues', 'gratis-ai-agent' ),
-		prompt: __( 'Run a site health check and summarize the issues you find.', 'gratis-ai-agent' ),
+		description: __(
+			'Run a full report and summarize issues',
+			'gratis-ai-agent'
+		),
+		prompt: __(
+			'Run a site health check and summarize the issues you find.',
+			'gratis-ai-agent'
+		),
 	},
 	{
 		title: __( 'Draft a blog post', 'gratis-ai-agent' ),
 		description: __( "Pick a topic and I'll set it up", 'gratis-ai-agent' ),
-		prompt: __( 'Help me draft a new blog post - suggest a topic, then create a draft.', 'gratis-ai-agent' ),
+		prompt: __(
+			'Help me draft a new blog post - suggest a topic, then create a draft.',
+			'gratis-ai-agent'
+		),
 	},
 	{
 		title: __( 'Review installed plugins', 'gratis-ai-agent' ),
 		description: __( 'Find unused or outdated ones', 'gratis-ai-agent' ),
-		prompt: __( 'Review my installed plugins. Flag any that are unused or outdated.', 'gratis-ai-agent' ),
+		prompt: __(
+			'Review my installed plugins. Flag any that are unused or outdated.',
+			'gratis-ai-agent'
+		),
 	},
 	{
 		title: __( 'List recent signups', 'gratis-ai-agent' ),
 		description: __( 'Last 7 days, grouped by role', 'gratis-ai-agent' ),
-		prompt: __( 'List users who signed up in the last 7 days, grouped by role.', 'gratis-ai-agent' ),
+		prompt: __(
+			'List users who signed up in the last 7 days, grouped by role.',
+			'gratis-ai-agent'
+		),
 	},
 ];
 
@@ -52,9 +67,10 @@ export default function WidgetEmpty() {
 	}, [] );
 
 	// Agent-aware greeting.
-	const greeting = selectedAgent?.greeting
-		|| branding.greeting
-		|| __( 'What can I help you with?', 'gratis-ai-agent' );
+	const greeting =
+		selectedAgent?.greeting ||
+		branding.greeting ||
+		__( 'What can I help you with?', 'gratis-ai-agent' );
 
 	// Agent-aware suggestions.
 	const agentSuggestions = selectedAgent?.suggestions;
@@ -64,22 +80,21 @@ export default function WidgetEmpty() {
 			: DEFAULT_SUGGESTIONS;
 
 	// Agent name for the footer.
-	const agentName = selectedAgent?.name
-		|| branding.agentName
-		|| __( 'AI Agent', 'gratis-ai-agent' );
+	const agentName =
+		selectedAgent?.name ||
+		branding.agentName ||
+		__( 'AI Agent', 'gratis-ai-agent' );
 
 	return (
 		<div className="gaa-w-empty">
 			<h2 className="gaa-w-empty-greeting">{ greeting }</h2>
 			<p className="gaa-w-empty-sub">
-				{ selectedAgent?.description
-					? selectedAgent.description
-					: branding.tagline
-					? branding.tagline
-					: __(
-							'I can manage content, products, users, SEO and more - across every plugin on your site.',
-							'gratis-ai-agent'
-					  ) }
+				{ selectedAgent?.description ||
+					branding.tagline ||
+					__(
+						'I can manage content, products, users, SEO and more - across every plugin on your site.',
+						'gratis-ai-agent'
+					) }
 			</p>
 			<div className="gaa-w-empty-label">
 				{ __( 'Suggested', 'gratis-ai-agent' ) }

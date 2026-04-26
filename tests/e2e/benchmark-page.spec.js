@@ -133,6 +133,12 @@ test.describe( 'Benchmark Page - Page Render', () => {
 		await loginToWordPress( page );
 		await mockBenchmarkApi( page );
 		await goToBenchmarkPage( page );
+		// goToBenchmarkPage waits for the React root non-fatally (.catch(()=>{})). Add
+		// an explicit wait for the PHP-rendered .gratis-ai-agent-benchmark-wrap so the
+		// test always sees the page before asserting on content inside it.
+		await expect(
+			page.locator( '.gratis-ai-agent-benchmark-wrap' )
+		).toBeVisible( { timeout: 30_000 } );
 	} );
 
 	test( 'benchmark page renders the wrap and heading', async ( { page } ) => {
@@ -194,6 +200,10 @@ test.describe( 'Benchmark Page - Form Inputs', () => {
 		await loginToWordPress( page );
 		await mockBenchmarkApi( page );
 		await goToBenchmarkPage( page );
+		// Wait for the benchmark page root to be visible before interacting with form elements.
+		await expect(
+			page.locator( '.gratis-ai-agent-benchmark-wrap' )
+		).toBeVisible( { timeout: 30_000 } );
 	} );
 
 	test( 'Run Name field is present and accepts text input', async ( {
@@ -347,6 +357,10 @@ test.describe( 'Benchmark Page - Run List', () => {
 		await loginToWordPress( page );
 		await mockBenchmarkApi( page );
 		await goToBenchmarkPage( page );
+		// Wait for the benchmark page root to be visible before clicking tabs.
+		await expect(
+			page.locator( '.gratis-ai-agent-benchmark-wrap' )
+		).toBeVisible( { timeout: 30_000 } );
 	} );
 
 	test( 'History tab is clickable and shows the run list', async ( {
@@ -469,6 +483,10 @@ test.describe( 'Benchmark Page - Empty Run List', () => {
 		);
 
 		await goToBenchmarkPage( page );
+		// Wait for the benchmark page root to be visible before clicking tabs.
+		await expect(
+			page.locator( '.gratis-ai-agent-benchmark-wrap' )
+		).toBeVisible( { timeout: 30_000 } );
 	} );
 
 	test( 'History tab shows empty state when no runs exist', async ( {

@@ -270,6 +270,10 @@ test.describe( 'Slash Command Menu', () => {
 	} );
 
 	test( 'slash menu appears when typing /', async ( { page } ) => {
+		// Wait for ChatRedesign InputArea to be ready before typing.
+		await page
+			.locator( '.gaa-cr' )
+			.waitFor( { state: 'visible', timeout: 30_000 } );
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
@@ -333,11 +337,10 @@ test.describe( 'Slash Command Menu', () => {
 		} );
 		await newItem.click();
 
-		// Empty state should be visible. Scope to the non-compact chat panel to
-		// avoid matching the floating widget's hidden empty state element.
-		const emptyState = page.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-empty-state'
-		);
+		// Empty state should be visible. ChatRedesign MessageList renders
+		// .gaa-cr-empty when there are no messages. Scoped to .gaa-cr (the admin
+		// chat root) so it doesn't match any other element on the page.
+		const emptyState = page.locator( '.gaa-cr .gaa-cr-empty' );
 		await expect( emptyState ).toBeVisible();
 	} );
 
@@ -368,12 +371,18 @@ test.describe( 'Provider Selector', () => {
 	test( 'provider selector is visible in the chat header', async ( {
 		page,
 	} ) => {
-		// Scope to the non-compact (admin page) chat panel to avoid matching
-		// the floating widget's hidden provider selector (is-compact).
+		// Wait for ChatRedesign to mount before checking the model chip.
+		// ChatRoute polls for window.gratisAiAgentChat (exposed by admin-page.js),
+		// so .gaa-cr may appear after a short delay post-navigation.
+		await page
+			.locator( '.gaa-cr' )
+			.waitFor( { state: 'visible', timeout: 30_000 } );
+
+		// ChatRedesign replaces ProviderSelector with ModelPicker. The model chip
+		// (.gaa-cr-model-chip-wrap) sits in InputArea's toolbar and shows the
+		// active provider + model. Scoped to .gaa-cr (admin chat root).
 		const providerSelector = page
-			.locator(
-				'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-provider-selector'
-			)
+			.locator( '.gaa-cr .gaa-cr-model-chip-wrap' )
 			.first();
 		await expect( providerSelector ).toBeVisible();
 	} );
@@ -423,6 +432,11 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 
 		await loginToWordPress( page );
 		await goToAgentPage( page );
+		// Wait for ChatRedesign to mount before interacting. ChatRoute polls for
+		// window.gratisAiAgentChat, so .gaa-cr may appear after a short delay.
+		await page
+			.locator( '.gaa-cr' )
+			.waitFor( { state: 'visible', timeout: 30_000 } );
 	} );
 
 	test( 'session title updates in sidebar after first AI response', async ( {
@@ -440,23 +454,26 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.fill( 'Tell me about WordPress' );
 		await input.press( 'Enter' );
 
-		// Wait for the active session item to appear in the sidebar. The active
-		// item has the is-active class and is the current session. Using
+		// Wait for the active session row to appear in the sidebar. The active
+		// row has the is-active class and is the current session. Using
 		// .first() is unreliable when previous tests have left sessions in the
 		// sidebar — the current session may not be the first item.
+		//
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
 		//
 		// 20 s timeout: the full chain (POST /sessions → POST /run → job poll
 		// at 3 s interval → fetchSessions → React re-render) takes 8-15 s on
 		// CI runners under load. The previous 10 s timeout was borderline —
 		// the third auto-title test (which uses 15 s) passed while these two
 		// (at 10 s) failed consistently.
-		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
+		const activeItem = page.locator( '.gaa-cr-session-row.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 20_000 } );
 
-		// The active sidebar item should now display the generated title.
+		// The active sidebar row should now display the generated title.
 		// The title arrives via the SSE done event (generated_title field),
 		// not via a direct store dispatch, so this assertion validates the
 		// full stream-event handling path.
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
 		await expect( activeItem ).toContainText( expectedTitle, {
 			timeout: 10_000,
 		} );
@@ -475,13 +492,15 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.fill( 'How do I build a WordPress plugin?' );
 		await input.press( 'Enter' );
 
-		// Wait for the active session item (see timeout rationale in first test).
-		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
+		// Wait for the active session row (see timeout rationale in first test).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		const activeItem = page.locator( '.gaa-cr-session-row.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 20_000 } );
 
-		// The title element inside the active session item should not say "Untitled".
+		// The title element inside the active session row should not say "Untitled".
 		// The title arrives via the SSE done event, not a direct store dispatch.
-		const titleEl = activeItem.locator( '.gratis-ai-agent-session-title' );
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
+		const titleEl = activeItem.locator( '.gaa-cr-session-row-title' );
 		await expect( titleEl ).not.toContainText( 'Untitled', {
 			timeout: 10_000,
 		} );
@@ -503,15 +522,17 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.fill( 'Hello' );
 		await input.press( 'Enter' );
 
-		// Wait for the active session item to appear in the sidebar. fetchSessions()
+		// Wait for the active session row to appear in the sidebar. fetchSessions()
 		// runs after the intercepted stream completes, so the session is in
 		// state.sessions at this point.
-		const activeItem = page.locator( '.gratis-ai-agent-session-item.is-active' );
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		const activeItem = page.locator( '.gaa-cr-session-row.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 15_000 } );
 
 		// The intercepted done event carries no generated_title, so the title
 		// should still be "Untitled" (or empty) at this point.
-		const titleEl = activeItem.locator( '.gratis-ai-agent-session-title' );
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
+		const titleEl = activeItem.locator( '.gaa-cr-session-row-title' );
 		const titleText = await titleEl.textContent();
 		// Title is either empty or "Untitled" — no auto-title was injected.
 		expect(

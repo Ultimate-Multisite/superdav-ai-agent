@@ -141,9 +141,13 @@ export default function WidgetInput() {
 					path: '/gratis-ai-agent/v1/memory',
 					method: 'POST',
 					data: { category: 'general', content: fact },
-				} ).catch( () => {} );
+				} ).catch( ( err ) => {
+					// eslint-disable-next-line no-console
+					console.error( 'Memory save failed:', err );
+				} );
 			}
 			setText( '' );
+			setAttachments( [] );
 			return;
 		}
 
@@ -154,9 +158,13 @@ export default function WidgetInput() {
 					path: '/gratis-ai-agent/v1/memory/forget',
 					method: 'POST',
 					data: { topic },
-				} ).catch( () => {} );
+				} ).catch( ( err ) => {
+					// eslint-disable-next-line no-console
+					console.error( 'Memory forget failed:', err );
+				} );
 			}
 			setText( '' );
+			setAttachments( [] );
 			return;
 		}
 
@@ -173,6 +181,7 @@ export default function WidgetInput() {
 				userDescription: description,
 			} );
 			setText( '' );
+			setAttachments( [] );
 			return;
 		}
 

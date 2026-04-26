@@ -462,7 +462,8 @@ input[type="text"].gaa-cr-search-input {
 	transition: opacity var(--gaa-duration);
 }
 
-.gaa-cr-convo-head-title:hover .gaa-cr-convo-head-rename-hint {
+.gaa-cr-convo-head-title:hover .gaa-cr-convo-head-rename-hint,
+.gaa-cr-convo-head-title:focus .gaa-cr-convo-head-rename-hint {
 	opacity: 1;
 }
 

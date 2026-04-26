@@ -168,7 +168,13 @@ class CliCommand extends \WP_CLI_Command {
 			: null;
 		$max_iterations = $cli_max ?? $agent_max;
 
-		$options['max_iterations'] = $max_iterations;
+		// Only write max_iterations when a CLI flag was supplied or the key was
+		// already present in options (from agent settings). Without this guard
+		// the hard-coded fallback of 25 would overwrite AgentLoop's own default
+		// whenever no agent or flag is provided.
+		if ( isset( $assoc_args['max-iterations'] ) || array_key_exists( 'max_iterations', $options ) ) {
+			$options['max_iterations'] = $max_iterations;
+		}
 
 		if ( $model ) {
 			$options['model_id'] = $model;

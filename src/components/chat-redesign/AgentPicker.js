@@ -106,6 +106,19 @@ export default function AgentPicker() {
 		}
 	}, [ open, updatePosition ] );
 
+	// When the popover opens, move focus to the active menu item so keyboard
+	// users land on a sensible starting point without having to tab through.
+	useEffect( () => {
+		if ( ! open || ! popoverRef.current ) {
+			return;
+		}
+		const active = popoverRef.current.querySelector(
+			'[role="menuitem"].is-active'
+		);
+		const first = popoverRef.current.querySelector( '[role="menuitem"]' );
+		( active ?? first )?.focus();
+	}, [ open ] );
+
 	useEffect( () => {
 		if ( ! open ) {
 			return undefined;
@@ -121,11 +134,44 @@ export default function AgentPicker() {
 			}
 		};
 		const onScrollOrResize = () => updatePosition();
+		const onKeyDown = ( e ) => {
+			if ( ! popoverRef.current ) {
+				return;
+			}
+			const items = Array.from(
+				popoverRef.current.querySelectorAll( '[role="menuitem"]' )
+			);
+			const focused = popoverRef.current.ownerDocument.activeElement;
+			const currentIndex = items.indexOf( focused );
+
+			if ( e.key === 'Escape' ) {
+				e.preventDefault();
+				setOpen( false );
+				chipRef.current?.focus();
+			} else if ( e.key === 'ArrowDown' ) {
+				e.preventDefault();
+				const next = items[ currentIndex + 1 ] ?? items[ 0 ];
+				next?.focus();
+			} else if ( e.key === 'ArrowUp' ) {
+				e.preventDefault();
+				const prev =
+					items[ currentIndex - 1 ] ?? items[ items.length - 1 ];
+				prev?.focus();
+			} else if ( e.key === 'Home' ) {
+				e.preventDefault();
+				items[ 0 ]?.focus();
+			} else if ( e.key === 'End' ) {
+				e.preventDefault();
+				items[ items.length - 1 ]?.focus();
+			}
+		};
 		document.addEventListener( 'mousedown', handler );
+		document.addEventListener( 'keydown', onKeyDown );
 		window.addEventListener( 'resize', onScrollOrResize );
 		window.addEventListener( 'scroll', onScrollOrResize, true );
 		return () => {
 			document.removeEventListener( 'mousedown', handler );
+			document.removeEventListener( 'keydown', onKeyDown );
 			window.removeEventListener( 'resize', onScrollOrResize );
 			window.removeEventListener( 'scroll', onScrollOrResize, true );
 		};
@@ -153,6 +199,7 @@ export default function AgentPicker() {
 					ref={ popoverRef }
 					className="gaa-cr-popover gaa-cr-popover-fixed"
 					role="menu"
+					aria-label={ __( 'Select agent', 'gratis-ai-agent' ) }
 					style={ {
 						left: pos.left,
 						bottom: pos.bottom,

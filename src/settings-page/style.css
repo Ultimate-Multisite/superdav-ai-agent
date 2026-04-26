@@ -892,7 +892,8 @@
 	transition: opacity 120ms;
 }
 
-.gratis-ai-agent-card:hover .gratis-ai-agent-card-actions {
+.gratis-ai-agent-card:hover .gratis-ai-agent-card-actions,
+.gratis-ai-agent-card:focus-within .gratis-ai-agent-card-actions {
 	opacity: 1;
 }
 

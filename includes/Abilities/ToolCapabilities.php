@@ -44,15 +44,20 @@ class ToolCapabilities {
 	 *
 	 * Examples:
 	 *   gratis-ai-agent/memory-save  → gratis_ai_agent_tool_memory_save
+	 *   ai-agent/memory-save         → gratis_ai_agent_tool_memory_save
 	 *   gratis-ai-agent/db-query     → gratis_ai_agent_tool_db_query
 	 *   gratis-ai-agent/run-php      → gratis_ai_agent_tool_run_php
 	 *
-	 * @param string $ability_id The ability ID (e.g. "gratis-ai-agent/memory-save").
+	 * Both "gratis-ai-agent/" and the WordPress core "ai-agent/" namespace
+	 * prefixes are stripped so that abilities registered under either prefix
+	 * resolve to the same capability name.
+	 *
+	 * @param string $ability_id The ability ID (e.g. "gratis-ai-agent/memory-save" or "ai-agent/create-post").
 	 * @return string The derived capability name.
 	 */
 	public static function cap_name( string $ability_id ): string {
-		// Strip the "gratis-ai-agent/" namespace prefix.
-		$name = str_replace( 'gratis-ai-agent/', '', $ability_id );
+		// Strip either the "gratis-ai-agent/" or the WP core "ai-agent/" namespace prefix.
+		$name = str_replace( [ 'gratis-ai-agent/', 'ai-agent/' ], '', $ability_id );
 
 		// Replace hyphens and slashes with underscores.
 		$name = str_replace( [ '-', '/' ], '_', $name );
@@ -163,15 +168,32 @@ class ToolCapabilities {
 	 */
 	public static function all_ability_ids(): array {
 		return [
-			// Memory.
-			'gratis-ai-agent/memory-save',
-			'gratis-ai-agent/memory-list',
-			'gratis-ai-agent/memory-delete',
-			// Skills.
-			'gratis-ai-agent/skill-load',
-			'gratis-ai-agent/skill-list',
-			// Knowledge.
-			'gratis-ai-agent/knowledge-search',
+			// Posts (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/list-posts',
+			'ai-agent/get-post',
+			'ai-agent/create-post',
+			'ai-agent/update-post',
+			'ai-agent/delete-post',
+			// Global styles (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/get-global-styles',
+			'ai-agent/update-global-styles',
+			'ai-agent/get-theme-json',
+			'ai-agent/reset-global-styles',
+			// Memory (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/memory-save',
+			'ai-agent/memory-list',
+			'ai-agent/memory-delete',
+			// Skills (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/skill-load',
+			'ai-agent/skill-list',
+			// Knowledge (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/knowledge-search',
+			// Nav menus (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/list-menus',
+			'ai-agent/get-menu',
+			'ai-agent/create-menu',
+			'ai-agent/delete-menu',
+			'ai-agent/add-menu-item',
 			// Ability discovery.
 			'gratis-ai-agent/discovery-list',
 			'gratis-ai-agent/discovery-get',

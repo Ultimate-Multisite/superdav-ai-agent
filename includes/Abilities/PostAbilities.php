@@ -171,7 +171,7 @@ class PostAbilities {
 			'ai-agent/update-post',
 			[
 				'label'               => __( 'Update Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Update an existing WordPress post. Only provided fields are changed; omitted fields are left as-is.', 'gratis-ai-agent' ),
+				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. Use this to set a featured image by passing post_id + featured_image_id.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
@@ -250,6 +250,97 @@ class PostAbilities {
 		);
 
 		wp_register_ability(
+			'ai-agent/list-posts',
+			[
+				'label'               => __( 'List Posts', 'gratis-ai-agent' ),
+				'description'         => __( 'Query and list WordPress posts or pages. Filter by post_type, status, search term, category, tag, and date. Returns id, title, excerpt, status, post_type, date, permalink, and featured_image_url for each match. Default: 10 most recent published posts.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_type' => [
+							'type'        => 'string',
+							'description' => 'Post type to query (default: "post"). Use "page" for pages, "product" for WooCommerce products.',
+						],
+						'status'    => [
+							'type'        => 'string',
+							'description' => 'Post status filter: "publish" (default), "draft", "pending", "private", "future", "trash", or "any".',
+							'enum'        => [ 'publish', 'draft', 'pending', 'private', 'future', 'trash', 'any' ],
+						],
+						'per_page'  => [
+							'type'        => 'integer',
+							'description' => 'Number of posts to return (default: 10, max: 50).',
+						],
+						'search'    => [
+							'type'        => 'string',
+							'description' => 'Search term to filter posts by title or content.',
+						],
+						'category'  => [
+							'type'        => 'string',
+							'description' => 'Category name or slug to filter by.',
+						],
+						'tag'       => [
+							'type'        => 'string',
+							'description' => 'Tag name or slug to filter by.',
+						],
+						'orderby'   => [
+							'type'        => 'string',
+							'description' => 'Order results by: "date" (default), "title", "modified", "menu_order", "rand".',
+							'enum'        => [ 'date', 'title', 'modified', 'menu_order', 'rand' ],
+						],
+						'order'     => [
+							'type'        => 'string',
+							'description' => 'Sort direction: "DESC" (default, newest first) or "ASC" (oldest first).',
+							'enum'        => [ 'DESC', 'ASC' ],
+						],
+						'site_url'  => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite. Omit for the main site.',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'posts'    => [
+							'type'  => 'array',
+							'items' => [
+								'type'       => 'object',
+								'properties' => [
+									'id'                 => [ 'type' => 'integer' ],
+									'title'              => [ 'type' => 'string' ],
+									'excerpt'            => [ 'type' => 'string' ],
+									'status'             => [ 'type' => 'string' ],
+									'post_type'          => [ 'type' => 'string' ],
+									'date'               => [ 'type' => 'string' ],
+									'modified'           => [ 'type' => 'string' ],
+									'permalink'          => [ 'type' => 'string' ],
+									'featured_image_url' => [ 'type' => 'string' ],
+									'categories'         => [ 'type' => 'array' ],
+									'tags'               => [ 'type' => 'array' ],
+								],
+							],
+						],
+						'total'    => [ 'type' => 'integer' ],
+						'per_page' => [ 'type' => 'integer' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'   => true,
+						'idempotent' => true,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_list_posts' ],
+				'permission_callback' => function (): bool {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
 			'ai-agent/delete-post',
 			[
 				'label'               => __( 'Delete Post', 'gratis-ai-agent' ),
@@ -295,6 +386,125 @@ class PostAbilities {
 				},
 			]
 		);
+	}
+
+	/**
+	 * Handle the list-posts ability.
+	 *
+	 * @param array<string, mixed> $input Input with optional post_type, status, per_page, search, etc.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public static function handle_list_posts( array $input ) {
+		// @phpstan-ignore-next-line
+		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
+		// @phpstan-ignore-next-line
+		$status   = sanitize_text_field( $input['status'] ?? 'publish' );
+		$per_page = isset( $input['per_page'] ) ? min( (int) $input['per_page'], 50 ) : 10;
+		$per_page = max( 1, $per_page );
+		// @phpstan-ignore-next-line
+		$search = sanitize_text_field( $input['search'] ?? '' );
+		// @phpstan-ignore-next-line
+		$category = sanitize_text_field( $input['category'] ?? '' );
+		// @phpstan-ignore-next-line
+		$tag = sanitize_text_field( $input['tag'] ?? '' );
+		// @phpstan-ignore-next-line
+		$orderby = sanitize_text_field( $input['orderby'] ?? 'date' );
+		// @phpstan-ignore-next-line
+		$order    = strtoupper( sanitize_text_field( $input['order'] ?? 'DESC' ) );
+		$site_url = $input['site_url'] ?? '';
+
+		$allowed_orderby = [ 'date', 'title', 'modified', 'menu_order', 'rand' ];
+		if ( ! in_array( $orderby, $allowed_orderby, true ) ) {
+			$orderby = 'date';
+		}
+		if ( ! in_array( $order, [ 'DESC', 'ASC' ], true ) ) {
+			$order = 'DESC';
+		}
+
+		$switched = false;
+		if ( ! empty( $site_url ) && is_multisite() ) {
+			$blog_id = get_blog_id_from_url(
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
+			);
+			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
+				switch_to_blog( $blog_id );
+				$switched = true;
+			}
+		}
+
+		$query_args = [
+			'post_type'      => $post_type,
+			'post_status'    => $status,
+			'posts_per_page' => $per_page,
+			'orderby'        => $orderby,
+			'order'          => $order,
+			'no_found_rows'  => false,
+		];
+
+		if ( '' !== $search ) {
+			$query_args['s'] = $search;
+		}
+
+		if ( '' !== $category ) {
+			$query_args['category_name'] = $category;
+		}
+
+		if ( '' !== $tag ) {
+			$query_args['tag'] = $tag;
+		}
+
+		$query = new \WP_Query( $query_args );
+		$posts = [];
+
+		foreach ( $query->posts as $post ) {
+			if ( ! ( $post instanceof WP_Post ) ) {
+				continue;
+			}
+
+			$thumbnail_url = '';
+			$thumbnail_id  = get_post_thumbnail_id( $post->ID );
+			if ( $thumbnail_id ) {
+				$image_src     = wp_get_attachment_image_src( $thumbnail_id, 'medium' );
+				$thumbnail_url = $image_src ? $image_src[0] : '';
+			}
+
+			$categories = wp_get_post_categories( $post->ID, [ 'fields' => 'names' ] );
+			$tags       = wp_get_post_tags( $post->ID, [ 'fields' => 'names' ] );
+
+			$excerpt = $post->post_excerpt;
+			if ( '' === $excerpt && '' !== $post->post_content ) {
+				$excerpt = wp_trim_words( wp_strip_all_tags( $post->post_content ), 20, '...' );
+			}
+
+			$posts[] = [
+				'id'                 => $post->ID,
+				'title'              => $post->post_title,
+				'excerpt'            => $excerpt,
+				'status'             => $post->post_status,
+				'post_type'          => $post->post_type,
+				'date'               => $post->post_date,
+				'modified'           => $post->post_modified,
+				'permalink'          => get_permalink( $post->ID ) ?: '',
+				'featured_image_url' => $thumbnail_url,
+				'categories'         => is_wp_error( $categories ) ? [] : $categories,
+				'tags'               => is_wp_error( $tags ) ? [] : $tags,
+			];
+		}
+
+		$total = (int) $query->found_posts;
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+
+		return [
+			'posts'    => $posts,
+			'total'    => $total,
+			'per_page' => $per_page,
+		];
 	}
 
 	/**

@@ -71,16 +71,6 @@ class AbilityPluginRegistry {
 
 		// ── Forms ─────────────────────────────────────────────────────────────
 		[
-			'slug'            => 'contact-form-7',
-			'name'            => 'Contact Form 7',
-			'ability_count'   => 4,
-			'has_abilities'   => true,
-			'has_blocks'      => false,
-			'categories'      => [ 'forms', 'contact', 'email', 'lead-capture' ],
-			'active_installs' => 10000000,
-			'description'     => 'Create and manage contact forms with flexible field types and email routing.',
-		],
-		[
 			'slug'            => 'wpforms-lite',
 			'name'            => 'WPForms Lite',
 			'ability_count'   => 5,
@@ -88,7 +78,17 @@ class AbilityPluginRegistry {
 			'has_blocks'      => true,
 			'categories'      => [ 'forms', 'contact', 'surveys', 'lead-capture' ],
 			'active_installs' => 6000000,
-			'description'     => 'Drag-and-drop form builder with templates for contact, survey, and payment forms.',
+			'description'     => 'Recommended form plugin. Registers native WordPress Abilities (v1.9.9.2+) for AI-assisted form creation. Drag-and-drop builder with spam protection and email notifications.',
+		],
+		[
+			'slug'            => 'contact-form-7',
+			'name'            => 'Contact Form 7',
+			'ability_count'   => 0,
+			'has_abilities'   => false,
+			'has_blocks'      => false,
+			'categories'      => [ 'forms', 'contact', 'email', 'lead-capture' ],
+			'active_installs' => 10000000,
+			'description'     => 'Most widely installed contact form plugin. Does not register WordPress Abilities; use WPForms Lite for AI-assisted form management on new sites.',
 		],
 		[
 			'slug'            => 'gravityforms',

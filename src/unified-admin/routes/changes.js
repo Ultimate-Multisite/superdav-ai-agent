@@ -1,4 +1,9 @@
 /**
+ * WordPress dependencies
+ */
+import { __ } from '@wordpress/i18n';
+
+/**
  * Internal dependencies
  */
 import ChangesApp from '../../changes-page/changes-app';
@@ -16,6 +21,7 @@ import '../../changes-page/style.css';
 export default function ChangesRoute() {
 	return (
 		<div className="gratis-ai-agent-route gratis-ai-agent-route-changes">
+			<h2>{ __( 'Changes', 'gratis-ai-agent' ) }</h2>
 			<ChangesApp />
 		</div>
 	);

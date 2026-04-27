@@ -20,6 +20,7 @@ import { __ } from '@wordpress/i18n';
 
 import STORE_NAME from '../../store';
 import FeedbackConsentModal from '../feedback-consent-modal';
+import useTextToSpeech from '../use-text-to-speech';
 import { extractText, getRunningToolName } from './message-helpers';
 import {
 	AssistantMessage,
@@ -42,6 +43,10 @@ export default function MessageList() {
 		liveToolCalls,
 		sessionJobs,
 		greeting,
+		ttsEnabled,
+		ttsVoiceURI,
+		ttsRate,
+		ttsPitch,
 	} = useSelect( ( sel ) => {
 		const store = sel( STORE_NAME );
 		return {
@@ -56,6 +61,10 @@ export default function MessageList() {
 					'Ask the agent to make a change, write a post, or audit your site.',
 					'gratis-ai-agent'
 				),
+			ttsEnabled: store.isTtsEnabled(),
+			ttsVoiceURI: store.getTtsVoiceURI(),
+			ttsRate: store.getTtsRate(),
+			ttsPitch: store.getTtsPitch(),
 		};
 	}, [] );
 
@@ -76,6 +85,52 @@ export default function MessageList() {
 	const [ unseenCount, setUnseenCount ] = useState( 0 );
 	const [ thumbsDownMessageIndex, setThumbsDownMessageIndex ] =
 		useState( null );
+
+	// TTS hook — mirrors the old message-list.js TTS integration.
+	const { speak, cancel } = useTextToSpeech( {
+		voiceURI: ttsVoiceURI,
+		rate: ttsRate,
+		pitch: ttsPitch,
+	} );
+
+	// Track the index of the last message spoken to avoid re-speaking.
+	const lastSpokenIndexRef = useRef( -1 );
+
+	// Speak new model messages when TTS is enabled and streaming completes.
+	useEffect( () => {
+		if ( ! ttsEnabled || sending ) {
+			return;
+		}
+
+		const lastIdx = messages.length - 1;
+		if ( lastIdx < 0 ) {
+			return;
+		}
+
+		const lastMsg = messages[ lastIdx ];
+		if ( lastMsg.role !== 'model' ) {
+			return;
+		}
+
+		if ( lastIdx === lastSpokenIndexRef.current ) {
+			return;
+		}
+
+		const text = extractText( lastMsg );
+		if ( ! text ) {
+			return;
+		}
+
+		lastSpokenIndexRef.current = lastIdx;
+		speak( text );
+	}, [ messages, ttsEnabled, sending, speak ] );
+
+	// Cancel speech when TTS is disabled mid-conversation.
+	useEffect( () => {
+		if ( ! ttsEnabled ) {
+			cancel();
+		}
+	}, [ ttsEnabled, cancel ] );
 
 	// ── Compute visible messages ──────────────────────────────────────────────
 	// Placed before effects so visibleCountRef is updated before they fire.

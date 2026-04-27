@@ -54,6 +54,7 @@ export default function InputArea() {
 		clearCurrentSession,
 		compactConversation,
 		exportSession,
+		setShowShortcutsHelp,
 	} = useDispatch( STORE_NAME );
 	const { sending, queueCount, currentSessionId } = useSelect(
 		( sel ) => ( {
@@ -238,7 +239,8 @@ export default function InputArea() {
 					);
 					return;
 				case 'help':
-					// No-op in this context — slash menu itself is the help.
+					// Show the keyboard shortcuts overlay.
+					setShowShortcutsHelp( true );
 					break;
 			}
 
@@ -252,6 +254,7 @@ export default function InputArea() {
 			compactConversation,
 			exportSession,
 			currentSessionId,
+			setShowShortcutsHelp,
 		]
 	);
 

@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -46,12 +46,20 @@ export default function SessionContextMenu( {
 		deleteSession,
 		renameSession,
 		exportSession,
+		shareSession,
+		unshareSession,
 	} = useDispatch( STORE_NAME );
+
+	const sharedSessions = useSelect(
+		( select ) => select( STORE_NAME ).getSharedSessions(),
+		[]
+	);
 
 	const sessionId = session.id;
 	const isPinned = parseInt( session.pinned, 10 ) === 1;
 	const isArchived = session.status === 'archived';
 	const isTrashed = session.status === 'trash';
+	const isShared = sharedSessions.some( ( s ) => s.id === sessionId );
 
 	// Close on click outside.
 	useEffect( () => {
@@ -137,6 +145,30 @@ export default function SessionContextMenu( {
 					} }
 				>
 					{ __( 'Export', 'gratis-ai-agent' ) }
+				</button>
+			) }
+			{ isOwner && ! isTrashed && ! isShared && (
+				<button
+					type="button"
+					role="menuitem"
+					onClick={ () => {
+						shareSession( sessionId );
+						onClose();
+					} }
+				>
+					{ __( 'Share with Admins', 'gratis-ai-agent' ) }
+				</button>
+			) }
+			{ isOwner && ! isTrashed && isShared && (
+				<button
+					type="button"
+					role="menuitem"
+					onClick={ () => {
+						unshareSession( sessionId );
+						onClose();
+					} }
+				>
+					{ __( 'Unshare', 'gratis-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isArchived && ! isTrashed && (

@@ -199,6 +199,7 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 	const {
 		clearCurrentSession,
 		fetchSessions,
+		fetchSharedSessions,
 		setSessionSearch,
 		setSessionFilter,
 		openSession,
@@ -226,6 +227,12 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 	useEffect( () => {
 		fetchSessions();
 	}, [ fetchSessions, sessionSearch, sessionFilter ] );
+
+	// Fetch shared sessions on mount so the context menu can show
+	// Share/Unshare based on whether each session is currently shared.
+	useEffect( () => {
+		fetchSharedSessions();
+	}, [ fetchSharedSessions ] );
 
 	const handleSearchChange = useCallback(
 		( e ) => {

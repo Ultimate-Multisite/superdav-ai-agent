@@ -155,7 +155,7 @@ export default function ConvoHeader( {
 				{ isTTSSupported && (
 					<button
 						type="button"
-						className={ `gaa-cr-icon-btn${
+						className={ `gaa-cr-icon-btn gratis-ai-agent-tts-btn${
 							ttsEnabled ? ' is-active' : ''
 						}` }
 						onClick={ () => setTtsEnabled( ! ttsEnabled ) }

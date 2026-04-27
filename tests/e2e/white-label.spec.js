@@ -411,9 +411,11 @@ test.describe( 'White-Label Branding - Save and Persist', () => {
 
 		await getSaveButton( page ).click();
 
-		// A success notice should appear after saving.
+		// A success snackbar should appear after saving (SettingsApp uses SnackbarList).
 		await expect(
-			page.locator( '.components-notice.is-success' )
+			page
+				.locator( '.components-snackbar' )
+				.filter( { hasText: /saved/i } )
 		).toBeVisible( { timeout: 10000 } );
 	} );
 
@@ -426,9 +428,11 @@ test.describe( 'White-Label Branding - Save and Persist', () => {
 		await nameField.fill( BRANDED_SETTINGS.agent_name );
 		await getSaveButton( page ).click();
 
-		// Wait for save to complete.
+		// Wait for save to complete (SettingsApp uses SnackbarList).
 		await expect(
-			page.locator( '.components-notice.is-success' )
+			page
+				.locator( '.components-snackbar' )
+				.filter( { hasText: /saved/i } )
 		).toBeVisible( { timeout: 10000 } );
 
 		// Navigate away and return to the Branding tab.

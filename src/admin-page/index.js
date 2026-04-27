@@ -4,7 +4,6 @@
 import {
 	createRoot,
 	useEffect,
-	useState,
 	useMemo,
 	lazy,
 	Suspense,
@@ -72,20 +71,26 @@ function AdminPageApp() {
 		fetchSettings,
 		clearCurrentSession,
 		restoreActiveJobs,
+		setShowShortcutsHelp,
 	} = useDispatch( STORE_NAME );
-	const { settings, settingsLoaded, bootError, providers, providersLoaded } =
-		useSelect(
-			( select ) => ( {
-				settings: select( STORE_NAME ).getSettings(),
-				settingsLoaded: select( STORE_NAME ).getSettingsLoaded(),
-				bootError: select( STORE_NAME ).getBootError(),
-				providers: select( STORE_NAME ).getProviders(),
-				providersLoaded: select( STORE_NAME ).getProvidersLoaded(),
-			} ),
-			[]
-		);
-
-	const [ showShortcuts, setShowShortcuts ] = useState( false );
+	const {
+		settings,
+		settingsLoaded,
+		bootError,
+		providers,
+		providersLoaded,
+		showShortcuts,
+	} = useSelect(
+		( select ) => ( {
+			settings: select( STORE_NAME ).getSettings(),
+			settingsLoaded: select( STORE_NAME ).getSettingsLoaded(),
+			bootError: select( STORE_NAME ).getBootError(),
+			providers: select( STORE_NAME ).getProviders(),
+			providersLoaded: select( STORE_NAME ).getProvidersLoaded(),
+			showShortcuts: select( STORE_NAME ).isShowingShortcutsHelp(),
+		} ),
+		[]
+	);
 
 	useEffect( () => {
 		fetchProviders();
@@ -138,9 +143,9 @@ function AdminPageApp() {
 					searchInput.focus();
 				}
 			},
-			'mod+/': () => setShowShortcuts( ( prev ) => ! prev ),
+			'mod+/': () => setShowShortcutsHelp( ! showShortcuts ),
 		} ),
-		[ clearCurrentSession ]
+		[ clearCurrentSession, setShowShortcutsHelp, showShortcuts ]
 	);
 
 	useKeyboardShortcuts( shortcuts );
@@ -192,7 +197,7 @@ function AdminPageApp() {
 			{ showShortcuts && (
 				<Suspense fallback={ null }>
 					<ShortcutsHelp
-						onClose={ () => setShowShortcuts( false ) }
+						onClose={ () => setShowShortcutsHelp( false ) }
 					/>
 				</Suspense>
 			) }

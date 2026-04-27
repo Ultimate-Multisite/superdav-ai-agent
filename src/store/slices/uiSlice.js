@@ -12,6 +12,10 @@ export const initialState = {
 
 	sendTimestamp: 0,
 
+	// Whether the keyboard shortcuts help overlay is visible.
+	// Set to true when the /help slash command is selected or Mod+/ is pressed.
+	showShortcutsHelp: false,
+
 	// Proactive alerts — count of issues surfaced as a badge on the FAB.
 	alertCount: 0,
 
@@ -95,6 +99,19 @@ export const actions = {
 
 	setAlertCount( count ) {
 		return { type: 'SET_ALERT_COUNT', count };
+	},
+
+	/**
+	 * Show or hide the keyboard shortcuts help overlay.
+	 *
+	 * Set to true when the /help slash command is selected; set to false when
+	 * the overlay is closed. Also toggled by the Mod+/ keyboard shortcut.
+	 *
+	 * @param {boolean} show - Whether to show the overlay.
+	 * @return {Object} Redux action.
+	 */
+	setShowShortcutsHelp( show ) {
+		return { type: 'SET_SHOW_SHORTCUTS_HELP', show };
 	},
 
 	/**
@@ -353,6 +370,14 @@ export const selectors = {
 	},
 
 	/**
+	 * @param {import('../../types').StoreState} state
+	 * @return {boolean} Whether the keyboard shortcuts help overlay is visible.
+	 */
+	isShowingShortcutsHelp( state ) {
+		return state.showShortcutsHelp ?? false;
+	},
+
+	/**
 	 * Whether the current session is the AI-driven bootstrap auto-discovery run (t223).
 	 * Returns true while the agent is exploring the site on first activation.
 	 *
@@ -471,6 +496,8 @@ export function reducer( state, action ) {
 			return { ...state, soundErrorEnabled: action.enabled };
 		case 'SET_SOUND_THINKING_ENABLED':
 			return { ...state, soundThinkingEnabled: action.enabled };
+		case 'SET_SHOW_SHORTCUTS_HELP':
+			return { ...state, showShortcutsHelp: action.show };
 		default:
 			return state;
 	}

@@ -226,16 +226,19 @@ class SeoAbilities {
 				$issues[] = 'Title is too long (over 60 characters).';
 			}
 		} else {
-			$result['title'] = null;
-			$issues[]        = 'Missing <title> tag.';
+			$result['title']        = '';
+			$result['title_length'] = 0;
+			$issues[]               = 'Missing <title> tag.';
 		}
 
 		// Meta description.
-		$result['meta_description'] = self::get_meta_content( $xpath, 'description' );
-		if ( empty( $result['meta_description'] ) ) {
-			$issues[] = 'Missing meta description.';
+		$meta_desc                  = self::get_meta_content( $xpath, 'description' ) ?? '';
+		$result['meta_description'] = $meta_desc;
+		if ( empty( $meta_desc ) ) {
+			$result['meta_description_length'] = 0;
+			$issues[]                          = 'Missing meta description.';
 		} else {
-			$desc_len                          = mb_strlen( $result['meta_description'] );
+			$desc_len                          = mb_strlen( $meta_desc );
 			$result['meta_description_length'] = $desc_len;
 			if ( $desc_len < 120 ) {
 				$issues[] = 'Meta description is too short (under 120 characters).';
@@ -245,14 +248,14 @@ class SeoAbilities {
 		}
 
 		// Meta robots.
-		$result['meta_robots'] = self::get_meta_content( $xpath, 'robots' );
+		$result['meta_robots'] = self::get_meta_content( $xpath, 'robots' ) ?? '';
 
 		// Canonical.
 		$canonical_nodes     = $xpath->query( '//link[@rel="canonical"]' );
 		$canonical_node      = ( $canonical_nodes && $canonical_nodes->length > 0 ) ? $canonical_nodes->item( 0 ) : null;
 		$result['canonical'] = ( $canonical_node instanceof \DOMElement )
 			? $canonical_node->getAttribute( 'href' )
-			: null;
+			: '';
 		if ( empty( $result['canonical'] ) ) {
 			$issues[] = 'Missing canonical URL.';
 		}
@@ -428,11 +431,12 @@ class SeoAbilities {
 		if ( empty( $meta_desc ) ) {
 			$meta_desc = get_post_meta( $post->ID, 'rank_math_description', true );
 		}
-		$result['meta_description'] = $meta_desc ?: null;
+		$meta_desc                  = is_string( $meta_desc ) ? $meta_desc : '';
+		$result['meta_description'] = $meta_desc;
 		if ( empty( $meta_desc ) ) {
-			$recommendations[] = 'No meta description set. Add one for better click-through rates.';
+			$result['meta_description_length'] = 0;
+			$recommendations[]                 = 'No meta description set. Add one for better click-through rates.';
 		} else {
-			// @phpstan-ignore-next-line
 			$desc_len                          = mb_strlen( $meta_desc );
 			$result['meta_description_length'] = $desc_len;
 			if ( $desc_len > 160 ) {
@@ -482,6 +486,8 @@ class SeoAbilities {
 			if ( $avg_sentence_len > 25 ) {
 				$recommendations[] = 'Average sentence length is high (' . round( $avg_sentence_len, 1 ) . ' words). Consider shorter sentences.';
 			}
+		} else {
+			$result['avg_sentence_length'] = 0.0;
 		}
 
 		// Focus keyword analysis.

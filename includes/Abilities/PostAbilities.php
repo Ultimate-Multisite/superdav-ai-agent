@@ -137,6 +137,10 @@ class PostAbilities {
 							'type'        => 'object',
 							'description' => 'Key-value pairs of post meta to set.',
 						],
+						'page_template'     => [
+							'type'        => 'string',
+							'description' => 'Page template filename to assign (e.g. "page-full-width.php"). Only meaningful for post_type "page".',
+						],
 						'site_url'          => [
 							'type'        => 'string',
 							'description' => 'Subsite URL for multisite. Omit for the main site.',
@@ -219,6 +223,10 @@ class PostAbilities {
 						'meta'              => [
 							'type'        => 'object',
 							'description' => 'Key-value pairs of post meta to update.',
+						],
+						'page_template'     => [
+							'type'        => 'string',
+							'description' => 'Page template filename to assign (e.g. "page-full-width.php"). Only meaningful for post_type "page".',
 						],
 						'site_url'          => [
 							'type'        => 'string',
@@ -622,6 +630,12 @@ class PostAbilities {
 			'post_type'    => $post_type,
 		];
 
+		// @phpstan-ignore-next-line
+		$page_template = sanitize_text_field( $input['page_template'] ?? '' );
+		if ( '' !== $page_template ) {
+			$post_data['page_template'] = $page_template;
+		}
+
 		$post_id = wp_insert_post( $post_data, true );
 
 		if ( is_wp_error( $post_id ) ) {
@@ -741,6 +755,10 @@ class PostAbilities {
 			if ( in_array( $new_status, $allowed_statuses, true ) ) {
 				$post_data['post_status'] = $new_status;
 			}
+		}
+		if ( isset( $input['page_template'] ) ) {
+			// @phpstan-ignore-next-line
+			$post_data['page_template'] = sanitize_text_field( $input['page_template'] );
 		}
 
 		$result = wp_update_post( $post_data, true );

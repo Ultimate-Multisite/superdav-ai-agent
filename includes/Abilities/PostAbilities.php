@@ -502,6 +502,52 @@ class PostAbilities {
 				},
 			]
 		);
+
+		wp_register_ability(
+			'ai-agent/set-featured-image',
+			[
+				'label'               => __( 'Set Featured Image', 'gratis-ai-agent' ),
+				'description'         => __( 'Set or remove the featured image (post thumbnail) for any WordPress post or page. Pass featured_image_id to set a new image, or 0 to remove the existing thumbnail. Use this as a focused single-purpose call after uploading a stock or generated image — no other post fields are changed.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'           => [
+							'type'        => 'integer',
+							'description' => 'The ID of the post or page to update.',
+						],
+						'featured_image_id' => [
+							'type'        => 'integer',
+							'description' => 'Attachment ID to set as the featured image. Pass 0 to remove the existing thumbnail.',
+						],
+						'site_url'          => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite. Omit for the main site.',
+						],
+					],
+					'required'   => [ 'post_id', 'featured_image_id' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'           => [ 'type' => 'integer' ],
+						'featured_image_id' => [ 'type' => 'integer' ],
+						'result'            => [ 'type' => 'string' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'    => false,
+						'destructive' => false,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_set_featured_image' ],
+				'permission_callback' => function (): bool {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -1053,6 +1099,79 @@ class PostAbilities {
 			'title'        => $title,
 			'action'       => $force_delete ? 'permanently_deleted' : 'trashed',
 			'force_delete' => $force_delete,
+		];
+	}
+
+	/**
+	 * Handle the set-featured-image ability.
+	 *
+	 * @param array<string, mixed> $input Input with post_id, featured_image_id, and optional site_url.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public static function handle_set_featured_image( array $input ) {
+		// @phpstan-ignore-next-line
+		$post_id = (int) ( $input['post_id'] ?? 0 );
+		// @phpstan-ignore-next-line
+		$featured_image_id = (int) ( $input['featured_image_id'] ?? 0 );
+		$site_url          = $input['site_url'] ?? '';
+
+		if ( ! $post_id ) {
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+		}
+
+		$switched = false;
+
+		if ( ! empty( $site_url ) && is_multisite() ) {
+			$blog_id = get_blog_id_from_url(
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
+			);
+
+			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
+				switch_to_blog( $blog_id );
+				$switched = true;
+			}
+		}
+
+		$post = get_post( $post_id );
+
+		if ( ! ( $post instanceof WP_Post ) ) {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+			return new WP_Error(
+				'ai_agent_post_not_found',
+				/* translators: %d: post ID */
+				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+			);
+		}
+
+		if ( 0 === $featured_image_id ) {
+			$result = delete_post_thumbnail( $post_id );
+			$action = 'removed';
+		} else {
+			$result = set_post_thumbnail( $post_id, $featured_image_id );
+			$action = 'set';
+		}
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+
+		if ( false === $result ) {
+			return new WP_Error(
+				'ai_agent_set_thumbnail_failed',
+				/* translators: %d: post ID */
+				sprintf( __( 'Failed to update featured image for post %d.', 'gratis-ai-agent' ), $post_id )
+			);
+		}
+
+		return [
+			'post_id'           => $post_id,
+			'featured_image_id' => $featured_image_id,
+			'result'            => $action,
 		];
 	}
 

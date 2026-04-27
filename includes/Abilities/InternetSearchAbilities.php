@@ -142,7 +142,12 @@ class InternetSearchAbilities {
 		$freshness = isset( $input['freshness'] ) ? sanitize_key( (string) $input['freshness'] ) : '';
 
 		if ( '' === $query ) {
-			return [ 'error' => 'query is required.' ];
+			return [
+				'results'  => [],
+				'provider' => '',
+				'query'    => '',
+				'error'    => 'query is required.',
+			];
 		}
 
 		$count = max( 1, min( 20, $count ) );

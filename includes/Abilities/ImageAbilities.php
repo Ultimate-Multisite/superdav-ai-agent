@@ -533,7 +533,7 @@ INSTRUCTION;
 
 		return [
 			'id'          => $attachment_id,
-			'url'         => wp_get_attachment_url( $attachment_id ),
+			'url'         => wp_get_attachment_url( $attachment_id ) ?: '',
 			'filename'    => $attached_file ? basename( $attached_file ) : '',
 			'title'       => $attachment ? $attachment->post_title : $title,
 			'description' => $attachment ? $attachment->post_content : $description,

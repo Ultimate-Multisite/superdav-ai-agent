@@ -383,7 +383,7 @@ class MediaAbilities {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $alt_text );
 		}
 
-		$attachment_url = wp_get_attachment_url( $attachment_id );
+		$attachment_url = wp_get_attachment_url( $attachment_id ) ?: '';
 		$attachment     = get_post( $attachment_id );
 		$mime_type      = $attachment instanceof WP_Post ? $attachment->post_mime_type : '';
 

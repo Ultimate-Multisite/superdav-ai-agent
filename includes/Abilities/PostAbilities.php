@@ -352,7 +352,7 @@ class PostAbilities {
 			'author_name'    => get_the_author_meta( 'display_name', (int) $post->post_author ),
 			'date'           => $post->post_date,
 			'modified'       => $post->post_modified,
-			'permalink'      => get_permalink( $post_id ),
+			'permalink'      => get_permalink( $post_id ) ?: '',
 			'categories'     => is_wp_error( $categories ) ? [] : $categories,
 			'tags'           => is_wp_error( $tags ) ? [] : $tags,
 			'featured_image' => $featured_image_url,
@@ -460,7 +460,7 @@ class PostAbilities {
 
 		return [
 			'post_id'   => $post_id,
-			'permalink' => $permalink,
+			'permalink' => $permalink ?: '',
 			'status'    => $status,
 			'post_type' => $post_type,
 		];
@@ -579,7 +579,7 @@ class PostAbilities {
 
 		return [
 			'post_id'   => $post_id,
-			'permalink' => $permalink,
+			'permalink' => $permalink ?: '',
 			'status'    => $updated_post instanceof WP_Post ? $updated_post->post_status : '',
 		];
 	}

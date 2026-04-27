@@ -153,7 +153,11 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 		if ( ! function_exists( 'wp_ai_client_prompt' )
 			|| ! wp_ai_client_prompt()->is_supported_for_image_generation() ) {
 			return [
-				'error' => 'AI image generation is not available. Configure an image-capable provider in Settings > AI.',
+				'attachment_id' => 0,
+				'url'           => '',
+				'title'         => '',
+				'alt'           => '',
+				'error'         => 'AI image generation is not available. Configure an image-capable provider in Settings > AI.',
 			];
 		}
 
@@ -170,7 +174,13 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 			);
 
 			if ( ! $blog_id ) {
-				return [ 'error' => "Could not find a site matching URL: {$site_url}" ];
+				return [
+					'attachment_id' => 0,
+					'url'           => '',
+					'title'         => '',
+					'alt'           => '',
+					'error'         => "Could not find a site matching URL: {$site_url}",
+				];
 			}
 
 			if ( (int) $blog_id !== get_current_blog_id() ) {
@@ -185,7 +195,13 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 			if ( $switched ) {
 				restore_current_blog();
 			}
-			return [ 'error' => 'Image generation failed: ' . $file->get_error_message() ];
+			return [
+				'attachment_id' => 0,
+				'url'           => '',
+				'title'         => '',
+				'alt'           => '',
+				'error'         => 'Image generation failed: ' . $file->get_error_message(),
+			];
 		}
 
 		$tmp_file = $this->file_to_temp( $file );
@@ -194,7 +210,13 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 			if ( $switched ) {
 				restore_current_blog();
 			}
-			return [ 'error' => $tmp_file->get_error_message() ];
+			return [
+				'attachment_id' => 0,
+				'url'           => '',
+				'title'         => '',
+				'alt'           => '',
+				'error'         => $tmp_file->get_error_message(),
+			];
 		}
 
 		$result = $this->import_from_temp( $tmp_file, $title, $post_id );
@@ -204,7 +226,13 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 		}
 
 		if ( is_wp_error( $result ) ) {
-			return [ 'error' => $result->get_error_message() ];
+			return [
+				'attachment_id' => 0,
+				'url'           => '',
+				'title'         => '',
+				'alt'           => '',
+				'error'         => $result->get_error_message(),
+			];
 		}
 
 		return [

@@ -160,7 +160,12 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 
 		if ( null === $source ) {
 			return [
-				'error' => 'No free stock image source is available. Configure Openverse or Pixabay, or use gratis-ai-agent/generate-image to create an AI-generated image instead.',
+				'attachment_id' => 0,
+				'url'           => '',
+				'alt'           => '',
+				'title'         => '',
+				'source'        => '',
+				'error'         => 'No free stock image source is available. Configure Openverse or Pixabay, or use gratis-ai-agent/generate-image to create an AI-generated image instead.',
 			];
 		}
 
@@ -170,7 +175,12 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 
 		if ( is_wp_error( $result ) ) {
 			return [
-				'error' => $result->get_error_message(),
+				'attachment_id' => 0,
+				'url'           => '',
+				'alt'           => '',
+				'title'         => '',
+				'source'        => '',
+				'error'         => $result->get_error_message(),
 			];
 		}
 

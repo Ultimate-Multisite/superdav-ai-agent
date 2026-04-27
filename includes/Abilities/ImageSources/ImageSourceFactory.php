@@ -155,11 +155,17 @@ class ImageSourceFactory {
 	/**
 	 * Import an image from any source.
 	 *
-	 * @param string $keyword     Search keyword or generation prompt.
-	 * @param string $source_id   Source ID (auto-selected if empty).
+	 * On download failure or empty results, the method automatically retries
+	 * all remaining available free sources before falling back to AI generation.
+	 *
+	 * @param string $keyword   Search keyword or generation prompt.
+	 * @param string $source_id Source ID (auto-selected if empty). Use 'generate' for AI.
 	 * @param int    $width     Desired width (0 for original).
 	 * @param int    $height    Desired height (0 for original).
-	 * @param array  $options   Additional options.
+	 * @param array  $options   Additional options:
+	 *                          - 'site_url'             (string) Multisite subsite URL.
+	 *                          - 'post_id'              (int)    Attach to this post.
+	 *                          - 'no_generate_fallback' (bool)   Skip AI generation fallback.
 	 * @return array{\attachment_id: int, url: string, alt: string, title: string, source: string}|\WP_Error
 	 */
 	public static function import_image(
@@ -170,17 +176,17 @@ class ImageSourceFactory {
 		array $options = []
 	): array|\WP_Error {
 
-		// Auto-select source if not specified.
-		$source = self::select_source( $source_id );
+		// Explicit AI generation request — bypass the free-source chain entirely.
+		if ( 'generate' === $source_id ) {
+			$generate = self::get( 'generate' );
+			if ( ! $generate || ! $generate->is_available() ) {
+				return new WP_Error(
+					'image_source_unavailable',
+					'AI image generation is not available.'
+				);
+			}
 
-		// Handle error from select_source (e.g., explicitly requested source unavailable).
-		if ( is_wp_error( $source ) ) {
-			return $source;
-		}
-
-		// For AI generation, use the download method directly.
-		if ( 'generate' === $source->get_id() ) {
-			$tmp_file = $source->download( $keyword, $width, $height );
+			$tmp_file = $generate->download( $keyword, $width, $height );
 
 			if ( is_wp_error( $tmp_file ) ) {
 				return $tmp_file;
@@ -189,48 +195,140 @@ class ImageSourceFactory {
 			return self::handle_sideload( $tmp_file, $keyword, $options );
 		}
 
-		// For search-based sources, search first then download.
-		$search_result = $source->search( $keyword, 1 );
+		// If a specific free source was explicitly requested, validate it up-front.
+		if ( ! empty( $source_id ) ) {
+			$requested = self::get( $source_id );
 
-		if ( is_wp_error( $search_result ) ) {
-			return $search_result;
-		}
-
-		$hits = $search_result['hits'] ?? [];
-
-		if ( empty( $hits ) ) {
-			// No results - try AI generation as fallback.
-			$generate = self::get( 'generate' );
-			if ( $generate && $generate->is_available() ) {
-				return self::import_image( $keyword, 'generate', $width, $height, $options );
+			if ( ! $requested ) {
+				return new WP_Error(
+					'unknown_image_source',
+					sprintf( 'Unknown image source: %s.', $source_id )
+				);
 			}
 
+			if ( ! $requested->is_available() ) {
+				return new WP_Error(
+					'image_source_unavailable',
+					sprintf( 'Image source "%s" is not available.', $source_id )
+				);
+			}
+
+			// Reject non-free sources here rather than silently dropping them
+			// from the free-source chain below. Paid sources that are not AI
+			// generation have no defined path in import_image(); rejecting early
+			// prevents the call from silently falling through to other sources
+			// in a way the caller did not intend.
+			if ( 'free' !== $requested->get_cost_type() ) {
+				return new WP_Error(
+					'non_free_source_not_supported',
+					sprintf(
+						'Image source "%s" is not a free source. Use source_id="generate" for AI generation.',
+						$source_id
+					)
+				);
+			}
+		}
+
+		// Build an ordered fallback chain of all available free sources.
+		// The explicitly requested source (if any) goes first; the rest follow
+		// in their registered priority order (openverse → pixabay).
+		$available    = self::get_available();
+		$free_sources = array_filter(
+			$available,
+			static fn( ImageSourceInterface $source ): bool => 'free' === $source->get_cost_type()
+		);
+
+		if ( ! empty( $source_id ) ) {
+			// Reorder: put the requested source first, then the remaining ones.
+			$ordered = [];
+			if ( isset( $free_sources[ $source_id ] ) ) {
+				$ordered[ $source_id ] = $free_sources[ $source_id ];
+			}
+			foreach ( $free_sources as $id => $s ) {
+				if ( $id !== $source_id ) {
+					$ordered[ $id ] = $s;
+				}
+			}
+			$free_sources = $ordered;
+		}
+
+		// Try each free source in order, recording the failure reason for each.
+		/** @var array<string, string> $tried */
+		$tried = [];
+
+		foreach ( $free_sources as $try_source ) {
+			$search_result = $try_source->search( $keyword, 1 );
+
+			if ( is_wp_error( $search_result ) ) {
+				$tried[ $try_source->get_id() ] = sprintf(
+					'search failed: %s',
+					$search_result->get_error_message()
+				);
+				continue;
+			}
+
+			$hits = $search_result['hits'] ?? [];
+
+			if ( empty( $hits ) ) {
+				$tried[ $try_source->get_id() ] = 'no results found';
+				continue;
+			}
+
+			$hit      = $hits[0];
+			$image_id = (string) ( $hit['id'] ?? '' );
+
+			$tmp_file = $try_source->download( $image_id, $width, $height );
+
+			if ( is_wp_error( $tmp_file ) ) {
+				$tried[ $try_source->get_id() ] = sprintf(
+					'download failed: %s',
+					$tmp_file->get_error_message()
+				);
+				continue;
+			}
+
+			// Success — sideload and return.
+			return self::handle_sideload( $tmp_file, $keyword, $options, $hit );
+		}
+
+		// All free sources failed (or none were available).
+		// Fall back to AI generation unless the caller opted out.
+		$no_generate = (bool) ( $options['no_generate_fallback'] ?? false );
+		if ( ! $no_generate ) {
+			$generate = self::get( 'generate' );
+			if ( $generate && $generate->is_available() ) {
+				$ai_result = self::import_image( $keyword, 'generate', $width, $height, $options );
+
+				if ( ! is_wp_error( $ai_result ) ) {
+					return $ai_result;
+				}
+
+				// Record the AI failure so the final error lists all sources tried.
+				$tried['generate'] = sprintf( 'AI generation failed: %s', $ai_result->get_error_message() );
+			}
+		}
+
+		// Return a descriptive error listing every source that was attempted.
+		if ( empty( $tried ) ) {
 			return new WP_Error(
-				'no_images_found',
-				sprintf(
-					'No images found for "%s" from %s.',
-					$keyword,
-					$source->get_name()
-				)
+				'no_sources_available',
+				sprintf( 'No free image sources are available for "%s".', $keyword )
 			);
 		}
 
-		// Get the first hit.
-		$hit      = $hits[0];
-		$image_id = $hit['id'] ?? '';
-
-		// Download the image.
-		$tmp_file = $source->download( $image_id, $width, $height );
-
-		if ( is_wp_error( $tmp_file ) ) {
-			// Try next hit or fallback.
-			return new WP_Error(
-				'download_failed',
-				'Failed to download: ' . $tmp_file->get_error_message()
-			);
+		$tried_parts = [];
+		foreach ( $tried as $src_id => $reason ) {
+			$tried_parts[] = sprintf( '%s (%s)', $src_id, $reason );
 		}
 
-		return self::handle_sideload( $tmp_file, $keyword, $options, $hit );
+		return new WP_Error(
+			'all_sources_failed',
+			sprintf(
+				'All free image sources failed for "%s". Tried: %s.',
+				$keyword,
+				implode( ', ', $tried_parts )
+			)
+		);
 	}
 
 	/**

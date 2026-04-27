@@ -149,29 +149,36 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 			return new WP_Error( 'missing_keyword', 'keyword is required.' );
 		}
 
-		// Find the first available free source.
-		$source = null;
+		// Verify at least one free source is configured before attempting import.
+		$has_free = false;
 		foreach ( ImageSourceFactory::get_available() as $s ) {
 			if ( 'free' === $s->get_cost_type() ) {
-				$source = $s;
+				$has_free = true;
 				break;
 			}
 		}
 
-		if ( null === $source ) {
+		if ( ! $has_free ) {
 			return [
 				'attachment_id' => 0,
 				'url'           => '',
 				'alt'           => '',
 				'title'         => '',
 				'source'        => '',
-				'error'         => 'No free stock image source is available. Configure Openverse or Pixabay, or use gratis-ai-agent/generate-image to create an AI-generated image instead.',
+				'error'         => 'No free stock image source is available. Configure Openverse or Pixabay.',
+				'tip'           => 'Use gratis-ai-agent/generate-image to create an AI-generated image instead.',
 			];
 		}
 
-		$options = [ 'site_url' => $site_url ];
+		// Let the factory try all available free sources in priority order
+		// (openverse → pixabay) before giving up. Never fall back to AI generation —
+		// this ability is explicitly for stock images only.
+		$options = [
+			'site_url'             => $site_url,
+			'no_generate_fallback' => true,
+		];
 
-		$result = ImageSourceFactory::import_image( $keyword, $source->get_id(), $width, $height, $options );
+		$result = ImageSourceFactory::import_image( $keyword, '', $width, $height, $options );
 
 		if ( is_wp_error( $result ) ) {
 			return [
@@ -180,7 +187,9 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 				'alt'           => '',
 				'title'         => '',
 				'source'        => '',
+				// Error message from the factory lists each source tried and why it failed.
 				'error'         => $result->get_error_message(),
+				'tip'           => 'Use gratis-ai-agent/generate-image to create an AI-generated image instead.',
 			];
 		}
 

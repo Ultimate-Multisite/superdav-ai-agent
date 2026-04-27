@@ -337,7 +337,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 ## Backlog
 
 - [ ] t232 Ability discovery investigation: why agent misses registered abilities #investigation #parent #plan → [todo/PLANS.md#ability-discovery-investigation] ~5h logged:2026-04-26
-- [ ] t234 Audit ability injection pipeline and tool catalog (Phase 1) #investigation #auto-dispatch ~3h For #t232 logged:2026-04-26
+- [x] t234 Audit ability injection pipeline and tool catalog (Phase 1) #investigation #auto-dispatch ~3h For #t232 logged:2026-04-26 pr:#1204 completed:2026-04-27
   - Trace how abilities reach the model: ToolCapabilities.php → AgentLoop.php → wp_ai_client_prompt() injection
   - Check for count limits, filters, or namespace handling that could drop abilities
   - Check site-builder system prompt for tool enumeration gaps

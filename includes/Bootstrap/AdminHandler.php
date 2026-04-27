@@ -19,6 +19,8 @@ use GratisAiAgent\Admin\ModelBenchmarkPage;
 use GratisAiAgent\Admin\ScreenMetaPanel;
 use GratisAiAgent\Admin\UnifiedAdminMenu;
 use GratisAiAgent\Core\Database;
+use GratisAiAgent\REST\ConnectorsController;
+use GratisAiAgent\REST\SettingsController;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -58,12 +60,38 @@ final class AdminHandler {
 	 * - DB schema safety-net (dbDelta is no-op when schema is current).
 	 * - Per-tool capabilities for role-management plugins.
 	 * - Legacy URL redirects to unified menu.
+	 * - Connector option update hooks to invalidate the providers cache when
+	 *   credentials are changed via the native WP 7.0 Connectors admin page.
 	 */
 	#[Action( tag: 'admin_init', priority: 10 )]
 	public function on_admin_init(): void {
 		Database::install();
 		ToolCapabilities::register_capabilities( ToolCapabilities::all_ability_ids() );
 		UnifiedAdminMenu::handleLegacyRedirects();
+		$this->register_connector_cache_hooks();
+	}
+
+	/**
+	 * Register update_option hooks for WP Connectors API option keys.
+	 *
+	 * The native WP 7.0 Connectors page (options-connectors.php) writes
+	 * connectors_ai_{provider}_api_key options directly.  Hooking into
+	 * update_option_{key} ensures the site-wide providers transient cache is
+	 * invalidated whenever an external connector change is saved, so admins
+	 * see fresh provider data on the next GET /providers request.
+	 *
+	 * accepted_args=0 is intentional: flush_providers_cache() takes no
+	 * parameters, and update_option_{key} passes 3 args we do not need.
+	 */
+	private function register_connector_cache_hooks(): void {
+		foreach ( ConnectorsController::PROVIDERS as $meta ) {
+			add_action(
+				'update_option_' . $meta['option_key'],
+				[ SettingsController::class, 'flush_providers_cache' ],
+				10,
+				0
+			);
+		}
 	}
 
 	/**

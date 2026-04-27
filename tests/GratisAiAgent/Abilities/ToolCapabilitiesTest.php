@@ -36,6 +36,7 @@ class ToolCapabilitiesTest extends WP_UnitTestCase {
 	 */
 	public function provider_cap_name(): array {
 		return [
+			// gratis-ai-agent/ prefix (plugin-specific abilities).
 			'memory-save'              => [ 'gratis-ai-agent/memory-save', 'gratis_ai_agent_tool_memory_save' ],
 			'memory-list'              => [ 'gratis-ai-agent/memory-list', 'gratis_ai_agent_tool_memory_list' ],
 			'memory-delete'            => [ 'gratis-ai-agent/memory-delete', 'gratis_ai_agent_tool_memory_delete' ],
@@ -50,6 +51,11 @@ class ToolCapabilitiesTest extends WP_UnitTestCase {
 			'stock-image'              => [ 'gratis-ai-agent/stock-image', 'gratis_ai_agent_tool_stock_image' ],
 			'generate-image'           => [ 'gratis-ai-agent/generate-image', 'gratis_ai_agent_tool_generate_image' ],
 			'custom-tool-with-slashes' => [ 'gratis-ai-agent-custom/my-tool', 'gratis_ai_agent_tool_gratis_ai_agent_custom_my_tool' ],
+			// ai-agent/ prefix (WP core built-in abilities — same cap name, different namespace prefix).
+			'ai-agent/memory-save'     => [ 'ai-agent/memory-save', 'gratis_ai_agent_tool_memory_save' ],
+			'ai-agent/create-post'     => [ 'ai-agent/create-post', 'gratis_ai_agent_tool_create_post' ],
+			'ai-agent/update-post'     => [ 'ai-agent/update-post', 'gratis_ai_agent_tool_update_post' ],
+			'ai-agent/list-posts'      => [ 'ai-agent/list-posts', 'gratis_ai_agent_tool_list_posts' ],
 		];
 	}
 
@@ -174,6 +180,10 @@ class ToolCapabilitiesTest extends WP_UnitTestCase {
 
 	/**
 	 * Test all_ability_ids returns a non-empty array of strings.
+	 *
+	 * Abilities may use either the plugin-specific "gratis-ai-agent/" prefix
+	 * or the WP core "ai-agent/" prefix (used by WP 7.0+ built-in abilities
+	 * such as memory-save, create-post, etc.).
 	 */
 	public function test_all_ability_ids_returns_non_empty_array(): void {
 		$ids = ToolCapabilities::all_ability_ids();
@@ -182,20 +192,32 @@ class ToolCapabilitiesTest extends WP_UnitTestCase {
 
 		foreach ( $ids as $id ) {
 			$this->assertIsString( $id );
-			$this->assertStringStartsWith( 'gratis-ai-agent', $id );
+			$this->assertTrue(
+				str_starts_with( $id, 'gratis-ai-agent/' ) || str_starts_with( $id, 'ai-agent/' ),
+				"Ability ID '{$id}' must start with 'gratis-ai-agent/' or 'ai-agent/'"
+			);
 		}
 	}
 
 	/**
 	 * Test all_ability_ids contains expected core abilities.
+	 *
+	 * Memory, skill, knowledge, post, and global-styles abilities are registered
+	 * under the WP core "ai-agent/" prefix; plugin-specific abilities use
+	 * "gratis-ai-agent/".
 	 */
 	public function test_all_ability_ids_contains_core_abilities(): void {
 		$ids = ToolCapabilities::all_ability_ids();
 
 		$expected = [
-			'gratis-ai-agent/memory-save',
-			'gratis-ai-agent/memory-list',
-			'gratis-ai-agent/memory-delete',
+			// WP core ai-agent/ prefix abilities.
+			'ai-agent/memory-save',
+			'ai-agent/memory-list',
+			'ai-agent/memory-delete',
+			'ai-agent/create-post',
+			'ai-agent/update-post',
+			'ai-agent/list-posts',
+			// Plugin-specific gratis-ai-agent/ prefix abilities.
 			'gratis-ai-agent/db-query',
 			'gratis-ai-agent/run-php',
 			'gratis-ai-agent/file-read',

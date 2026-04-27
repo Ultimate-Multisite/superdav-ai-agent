@@ -69,8 +69,10 @@ final class ChangeRevertService {
 
 			// ── Option (update, add, or restore deleted option) ───────────────────
 			case 'option':
-				// Empty after_value means the option was deleted; update_option()
-				// recreates it. maybe_unserialize() decodes serialised arrays/objects.
+				// Empty before_value → option was newly added; revert by deleting it.
+				// Otherwise restore the prior value (update_option() recreates the row
+				// if it was deleted). maybe_unserialize() decodes arrays/objects that
+				// the logger stored via maybe_serialize().
 				if ( '' === $change->before_value ) {
 					delete_option( $change->field_name );
 				} else {

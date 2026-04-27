@@ -44,7 +44,7 @@ class BootstrapPrompt {
 			. "**WordPress path:** {$wp_path}\n\n"
 			. "## Discovery Steps (execute in order, without waiting for user input)\n\n"
 			. "### Step 1 — Read recent content\n"
-			. 'Use `ai-agent/get-posts` (or equivalent) to fetch recent posts and pages. '
+			. 'Use `ai-agent/list-posts` to fetch recent posts and pages. '
 			. "Note topics covered, writing style, tone (formal/casual/technical), and content categories.\n\n"
 			. "### Step 2 — Check active plugins\n"
 			. 'Use `gratis-ai-agent/get-plugins` to list installed and active plugins. '
@@ -54,7 +54,7 @@ class BootstrapPrompt {
 			. 'Use `gratis-ai-agent/run-php` to call `wp_get_theme()` and get the theme name, '
 			. "description, and parent theme. Note the visual style implied by the theme name.\n\n"
 			. "### Step 4 — Check WooCommerce products (if WooCommerce is active)\n"
-			. 'If WooCommerce is detected in Step 2, use `gratis-ai-agent/get-posts` with '
+			. 'If WooCommerce is detected in Step 2, use `ai-agent/list-posts` with '
 			. "`post_type: product` to fetch a sample of products. Note product types and price ranges.\n\n"
 			. "### Step 5 — Infer site purpose, audience, and style\n"
 			. "Based on steps 1–4, infer:\n"
@@ -63,7 +63,7 @@ class BootstrapPrompt {
 			. "- **Content style**: The tone and style used (professional, casual, technical, creative)\n"
 			. "- **Key capabilities**: What the site can do based on active plugins\n\n"
 			. "### Step 6 — Store memories\n"
-			. "Use `gratis-ai-agent/memory-save` to save the following (separate calls):\n"
+			. "Use `ai-agent/memory-save` to save the following (separate calls):\n"
 			. "- Site purpose and type\n"
 			. "- Target audience description\n"
 			. "- Content style and tone\n"

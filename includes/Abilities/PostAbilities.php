@@ -137,6 +137,10 @@ class PostAbilities {
 							'type'        => 'object',
 							'description' => 'Key-value pairs of post meta to set.',
 						],
+						'page_template'     => [
+							'type'        => 'string',
+							'description' => 'Page template filename to assign (e.g. "page-full-width.php"). Only meaningful for post_type "page".',
+						],
 						'site_url'          => [
 							'type'        => 'string',
 							'description' => 'Subsite URL for multisite. Omit for the main site.',
@@ -171,7 +175,7 @@ class PostAbilities {
 			'ai-agent/update-post',
 			[
 				'label'               => __( 'Update Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Update an existing WordPress post. Only provided fields are changed; omitted fields are left as-is.', 'gratis-ai-agent' ),
+				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. Use this to set a featured image by passing post_id + featured_image_id.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
@@ -220,6 +224,10 @@ class PostAbilities {
 							'type'        => 'object',
 							'description' => 'Key-value pairs of post meta to update.',
 						],
+						'page_template'     => [
+							'type'        => 'string',
+							'description' => 'Page template filename to assign (e.g. "page-full-width.php"). Only meaningful for post_type "page".',
+						],
 						'site_url'          => [
 							'type'        => 'string',
 							'description' => 'Subsite URL for multisite. Omit for the main site.',
@@ -243,6 +251,205 @@ class PostAbilities {
 					'show_in_rest' => true,
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_update_post' ],
+				'permission_callback' => function (): bool {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/list-posts',
+			[
+				'label'               => __( 'List Posts', 'gratis-ai-agent' ),
+				'description'         => __( 'Query and list WordPress posts or pages. Filter by post_type, status, search term, category, tag, and date. Returns id, title, excerpt, status, post_type, date, permalink, and featured_image_url for each match. Default: 10 most recent published posts.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_type' => [
+							'type'        => 'string',
+							'description' => 'Post type to query (default: "post"). Use "page" for pages, "product" for WooCommerce products.',
+						],
+						'status'    => [
+							'type'        => 'string',
+							'description' => 'Post status filter: "publish" (default), "draft", "pending", "private", "future", "trash", or "any".',
+							'enum'        => [ 'publish', 'draft', 'pending', 'private', 'future', 'trash', 'any' ],
+						],
+						'per_page'  => [
+							'type'        => 'integer',
+							'description' => 'Number of posts to return (default: 10, max: 50).',
+						],
+						'search'    => [
+							'type'        => 'string',
+							'description' => 'Search term to filter posts by title or content.',
+						],
+						'category'  => [
+							'type'        => 'string',
+							'description' => 'Category name or slug to filter by.',
+						],
+						'tag'       => [
+							'type'        => 'string',
+							'description' => 'Tag name or slug to filter by.',
+						],
+						'orderby'   => [
+							'type'        => 'string',
+							'description' => 'Order results by: "date" (default), "title", "modified", "menu_order", "rand".',
+							'enum'        => [ 'date', 'title', 'modified', 'menu_order', 'rand' ],
+						],
+						'order'     => [
+							'type'        => 'string',
+							'description' => 'Sort direction: "DESC" (default, newest first) or "ASC" (oldest first).',
+							'enum'        => [ 'DESC', 'ASC' ],
+						],
+						'site_url'  => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite. Omit for the main site.',
+						],
+					],
+					'required'   => [],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'posts'    => [
+							'type'  => 'array',
+							'items' => [
+								'type'       => 'object',
+								'properties' => [
+									'id'                 => [ 'type' => 'integer' ],
+									'title'              => [ 'type' => 'string' ],
+									'excerpt'            => [ 'type' => 'string' ],
+									'status'             => [ 'type' => 'string' ],
+									'post_type'          => [ 'type' => 'string' ],
+									'date'               => [ 'type' => 'string' ],
+									'modified'           => [ 'type' => 'string' ],
+									'permalink'          => [ 'type' => 'string' ],
+									'featured_image_url' => [ 'type' => 'string' ],
+									'categories'         => [ 'type' => 'array' ],
+									'tags'               => [ 'type' => 'array' ],
+								],
+							],
+						],
+						'total'    => [ 'type' => 'integer' ],
+						'per_page' => [ 'type' => 'integer' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'   => true,
+						'idempotent' => true,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_list_posts' ],
+				'permission_callback' => function (): bool {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+
+		wp_register_ability(
+			'ai-agent/batch-create-posts',
+			[
+				'label'               => __( 'Batch Create Posts', 'gratis-ai-agent' ),
+				'description'         => __( 'Create multiple WordPress posts or pages in a single call. Accepts an array of post definitions and returns an array of results. Use this instead of calling create-post repeatedly when building a full site — reduces ~7 sequential calls to 1.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'posts' => [
+							'type'        => 'array',
+							'description' => 'Array of post definitions to create.',
+							'items'       => [
+								'type'       => 'object',
+								'properties' => [
+									'title'             => [
+										'type'        => 'string',
+										'description' => 'The post title (required).',
+									],
+									'content'           => [
+										'type'        => 'string',
+										'description' => 'Post content. Markdown is auto-converted to Gutenberg blocks.',
+									],
+									'excerpt'           => [
+										'type'        => 'string',
+										'description' => 'Optional post excerpt.',
+									],
+									'status'            => [
+										'type'        => 'string',
+										'description' => 'Post status: "draft" (default), "publish", "pending", "private", or "future".',
+										'enum'        => [ 'draft', 'publish', 'pending', 'private', 'future' ],
+									],
+									'post_type'         => [
+										'type'        => 'string',
+										'description' => 'Post type (default: "post"). Use "page" for pages.',
+									],
+									'page_template'     => [
+										'type'        => 'string',
+										'description' => 'Page template file (e.g. "templates/blank.php"). Maps to _wp_page_template meta.',
+									],
+									'categories'        => [
+										'type'        => 'array',
+										'description' => 'Array of category IDs (integers) or names (strings).',
+										'items'       => [
+											'oneOf' => [
+												[ 'type' => 'string' ],
+												[ 'type' => 'integer' ],
+											],
+										],
+									],
+									'tags'              => [
+										'type'        => 'array',
+										'description' => 'Array of tag names.',
+										'items'       => [ 'type' => 'string' ],
+									],
+									'featured_image_id' => [
+										'type'        => 'integer',
+										'description' => 'Attachment ID to set as the featured image.',
+									],
+									'meta'              => [
+										'type'        => 'object',
+										'description' => 'Key-value pairs of post meta to set.',
+									],
+									'site_url'          => [
+										'type'        => 'string',
+										'description' => 'Subsite URL for multisite. Omit for the main site.',
+									],
+								],
+								'required'   => [ 'title' ],
+							],
+						],
+					],
+					'required'   => [ 'posts' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'results'       => [
+							'type'  => 'array',
+							'items' => [
+								'type'       => 'object',
+								'properties' => [
+									'post_id'   => [ 'type' => 'integer' ],
+									'permalink' => [ 'type' => 'string' ],
+									'title'     => [ 'type' => 'string' ],
+									'status'    => [ 'type' => 'string' ],
+									'error'     => [ 'type' => 'string' ],
+								],
+							],
+						],
+						'created_count' => [ 'type' => 'integer' ],
+						'error_count'   => [ 'type' => 'integer' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'    => false,
+						'destructive' => false,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_batch_create_posts' ],
 				'permission_callback' => function (): bool {
 					return current_user_can( 'edit_posts' );
 				},
@@ -295,6 +502,171 @@ class PostAbilities {
 				},
 			]
 		);
+
+		wp_register_ability(
+			'ai-agent/set-featured-image',
+			[
+				'label'               => __( 'Set Featured Image', 'gratis-ai-agent' ),
+				'description'         => __( 'Set or remove the featured image (post thumbnail) for any WordPress post or page. Pass featured_image_id to set a new image, or 0 to remove the existing thumbnail. Use this as a focused single-purpose call after uploading a stock or generated image — no other post fields are changed.', 'gratis-ai-agent' ),
+				'category'            => 'gratis-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'           => [
+							'type'        => 'integer',
+							'description' => 'The ID of the post or page to update.',
+						],
+						'featured_image_id' => [
+							'type'        => 'integer',
+							'description' => 'Attachment ID to set as the featured image. Pass 0 to remove the existing thumbnail.',
+						],
+						'site_url'          => [
+							'type'        => 'string',
+							'description' => 'Subsite URL for multisite. Omit for the main site.',
+						],
+					],
+					'required'   => [ 'post_id', 'featured_image_id' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'post_id'           => [ 'type' => 'integer' ],
+						'featured_image_id' => [ 'type' => 'integer' ],
+						'result'            => [ 'type' => 'string' ],
+					],
+				],
+				'meta'                => [
+					'annotations'  => [
+						'readonly'    => false,
+						'destructive' => false,
+					],
+					'show_in_rest' => true,
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_set_featured_image' ],
+				'permission_callback' => function (): bool {
+					return current_user_can( 'edit_posts' );
+				},
+			]
+		);
+	}
+
+	/**
+	 * Handle the list-posts ability.
+	 *
+	 * @param array<string, mixed> $input Input with optional post_type, status, per_page, search, etc.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public static function handle_list_posts( array $input ) {
+		// @phpstan-ignore-next-line
+		$post_type = sanitize_text_field( $input['post_type'] ?? 'post' );
+		// @phpstan-ignore-next-line
+		$status   = sanitize_text_field( $input['status'] ?? 'publish' );
+		$per_page = isset( $input['per_page'] ) ? min( (int) $input['per_page'], 50 ) : 10;
+		$per_page = max( 1, $per_page );
+		// @phpstan-ignore-next-line
+		$search = sanitize_text_field( $input['search'] ?? '' );
+		// @phpstan-ignore-next-line
+		$category = sanitize_text_field( $input['category'] ?? '' );
+		// @phpstan-ignore-next-line
+		$tag = sanitize_text_field( $input['tag'] ?? '' );
+		// @phpstan-ignore-next-line
+		$orderby = sanitize_text_field( $input['orderby'] ?? 'date' );
+		// @phpstan-ignore-next-line
+		$order    = strtoupper( sanitize_text_field( $input['order'] ?? 'DESC' ) );
+		$site_url = $input['site_url'] ?? '';
+
+		$allowed_orderby = [ 'date', 'title', 'modified', 'menu_order', 'rand' ];
+		if ( ! in_array( $orderby, $allowed_orderby, true ) ) {
+			$orderby = 'date';
+		}
+		if ( ! in_array( $order, [ 'DESC', 'ASC' ], true ) ) {
+			$order = 'DESC';
+		}
+
+		$switched = false;
+		if ( ! empty( $site_url ) && is_multisite() ) {
+			$blog_id = get_blog_id_from_url(
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
+			);
+			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
+				switch_to_blog( $blog_id );
+				$switched = true;
+			}
+		}
+
+		$query_args = [
+			'post_type'      => $post_type,
+			'post_status'    => $status,
+			'posts_per_page' => $per_page,
+			'orderby'        => $orderby,
+			'order'          => $order,
+			'no_found_rows'  => false,
+		];
+
+		if ( '' !== $search ) {
+			$query_args['s'] = $search;
+		}
+
+		if ( '' !== $category ) {
+			$query_args['category_name'] = $category;
+		}
+
+		if ( '' !== $tag ) {
+			$query_args['tag'] = $tag;
+		}
+
+		$query = new \WP_Query( $query_args );
+		$posts = [];
+
+		foreach ( $query->posts as $post ) {
+			if ( ! ( $post instanceof WP_Post ) ) {
+				continue;
+			}
+
+			$thumbnail_url = '';
+			$thumbnail_id  = get_post_thumbnail_id( $post->ID );
+			if ( $thumbnail_id ) {
+				$image_src     = wp_get_attachment_image_src( $thumbnail_id, 'medium' );
+				$thumbnail_url = $image_src ? $image_src[0] : '';
+			}
+
+			$categories = wp_get_post_categories( $post->ID, [ 'fields' => 'names' ] );
+			$tags       = wp_get_post_tags( $post->ID, [ 'fields' => 'names' ] );
+
+			$excerpt = $post->post_excerpt;
+			if ( '' === $excerpt && '' !== $post->post_content ) {
+				$excerpt = wp_trim_words( wp_strip_all_tags( $post->post_content ), 20, '...' );
+			}
+
+			$posts[] = [
+				'id'                 => $post->ID,
+				'title'              => $post->post_title,
+				'excerpt'            => $excerpt,
+				'status'             => $post->post_status,
+				'post_type'          => $post->post_type,
+				'date'               => $post->post_date,
+				'modified'           => $post->post_modified,
+				'permalink'          => get_permalink( $post->ID ) ?: '',
+				'featured_image_url' => $thumbnail_url,
+				'categories'         => is_wp_error( $categories ) ? [] : $categories,
+				'tags'               => is_wp_error( $tags ) ? [] : $tags,
+			];
+		}
+
+		$total = (int) $query->found_posts;
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+
+		return [
+			'posts'    => $posts,
+			'total'    => $total,
+			'per_page' => $per_page,
+		];
 	}
 
 	/**
@@ -352,7 +724,7 @@ class PostAbilities {
 			'author_name'    => get_the_author_meta( 'display_name', (int) $post->post_author ),
 			'date'           => $post->post_date,
 			'modified'       => $post->post_modified,
-			'permalink'      => get_permalink( $post_id ),
+			'permalink'      => get_permalink( $post_id ) ?: '',
 			'categories'     => is_wp_error( $categories ) ? [] : $categories,
 			'tags'           => is_wp_error( $tags ) ? [] : $tags,
 			'featured_image' => $featured_image_url,
@@ -412,6 +784,12 @@ class PostAbilities {
 			'post_type'    => $post_type,
 		];
 
+		// @phpstan-ignore-next-line
+		$page_template = sanitize_text_field( $input['page_template'] ?? '' );
+		if ( '' !== $page_template ) {
+			$post_data['page_template'] = $page_template;
+		}
+
 		$post_id = wp_insert_post( $post_data, true );
 
 		if ( is_wp_error( $post_id ) ) {
@@ -460,9 +838,77 @@ class PostAbilities {
 
 		return [
 			'post_id'   => $post_id,
-			'permalink' => $permalink,
+			'permalink' => $permalink ?: '',
 			'status'    => $status,
 			'post_type' => $post_type,
+		];
+	}
+
+	/**
+	 * Handle the batch-create-posts ability.
+	 *
+	 * Iterates over the provided post definitions and calls handle_create_post()
+	 * for each one. Errors are captured per-item so partial success is possible —
+	 * the caller receives a results array alongside created_count and error_count
+	 * summary fields.
+	 *
+	 * @param array<string, mixed> $input Input with a 'posts' array of post definitions.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public static function handle_batch_create_posts( array $input ) {
+		$posts_input = $input['posts'] ?? [];
+
+		if ( ! is_array( $posts_input ) || empty( $posts_input ) ) {
+			return new WP_Error(
+				'ai_agent_batch_empty',
+				__( 'posts array is required and must not be empty.', 'gratis-ai-agent' )
+			);
+		}
+
+		$results       = [];
+		$created_count = 0;
+		$error_count   = 0;
+
+		foreach ( $posts_input as $post_def ) {
+			if ( ! is_array( $post_def ) ) {
+				++$error_count;
+				$results[] = [
+					'post_id'   => 0,
+					'permalink' => '',
+					'title'     => '',
+					'status'    => '',
+					'error'     => __( 'Post definition must be an object.', 'gratis-ai-agent' ),
+				];
+				continue;
+			}
+
+			$result = self::handle_create_post( $post_def );
+
+			if ( is_wp_error( $result ) ) {
+				++$error_count;
+				$results[] = [
+					'post_id'   => 0,
+					'permalink' => '',
+					'title'     => sanitize_text_field( (string) ( $post_def['title'] ?? '' ) ),
+					'status'    => '',
+					'error'     => $result->get_error_message(),
+				];
+			} else {
+				++$created_count;
+				$results[] = [
+					'post_id'   => $result['post_id'],
+					'permalink' => $result['permalink'],
+					'title'     => sanitize_text_field( (string) ( $post_def['title'] ?? '' ) ),
+					'status'    => $result['status'],
+					'error'     => '',
+				];
+			}
+		}
+
+		return [
+			'results'       => $results,
+			'created_count' => $created_count,
+			'error_count'   => $error_count,
 		];
 	}
 
@@ -532,6 +978,10 @@ class PostAbilities {
 				$post_data['post_status'] = $new_status;
 			}
 		}
+		if ( isset( $input['page_template'] ) ) {
+			// @phpstan-ignore-next-line
+			$post_data['page_template'] = sanitize_text_field( $input['page_template'] );
+		}
 
 		$result = wp_update_post( $post_data, true );
 
@@ -579,7 +1029,7 @@ class PostAbilities {
 
 		return [
 			'post_id'   => $post_id,
-			'permalink' => $permalink,
+			'permalink' => $permalink ?: '',
 			'status'    => $updated_post instanceof WP_Post ? $updated_post->post_status : '',
 		];
 	}
@@ -649,6 +1099,79 @@ class PostAbilities {
 			'title'        => $title,
 			'action'       => $force_delete ? 'permanently_deleted' : 'trashed',
 			'force_delete' => $force_delete,
+		];
+	}
+
+	/**
+	 * Handle the set-featured-image ability.
+	 *
+	 * @param array<string, mixed> $input Input with post_id, featured_image_id, and optional site_url.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public static function handle_set_featured_image( array $input ) {
+		// @phpstan-ignore-next-line
+		$post_id = (int) ( $input['post_id'] ?? 0 );
+		// @phpstan-ignore-next-line
+		$featured_image_id = (int) ( $input['featured_image_id'] ?? 0 );
+		$site_url          = $input['site_url'] ?? '';
+
+		if ( ! $post_id ) {
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+		}
+
+		$switched = false;
+
+		if ( ! empty( $site_url ) && is_multisite() ) {
+			$blog_id = get_blog_id_from_url(
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_HOST ) ?? '' ),
+				// @phpstan-ignore-next-line
+				(string) ( wp_parse_url( $site_url, PHP_URL_PATH ) ?: '/' )
+			);
+
+			if ( $blog_id && $blog_id !== get_current_blog_id() ) {
+				switch_to_blog( $blog_id );
+				$switched = true;
+			}
+		}
+
+		$post = get_post( $post_id );
+
+		if ( ! ( $post instanceof WP_Post ) ) {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+			return new WP_Error(
+				'ai_agent_post_not_found',
+				/* translators: %d: post ID */
+				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+			);
+		}
+
+		if ( 0 === $featured_image_id ) {
+			$result = delete_post_thumbnail( $post_id );
+			$action = 'removed';
+		} else {
+			$result = set_post_thumbnail( $post_id, $featured_image_id );
+			$action = 'set';
+		}
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+
+		if ( false === $result ) {
+			return new WP_Error(
+				'ai_agent_set_thumbnail_failed',
+				/* translators: %d: post ID */
+				sprintf( __( 'Failed to update featured image for post %d.', 'gratis-ai-agent' ), $post_id )
+			);
+		}
+
+		return [
+			'post_id'           => $post_id,
+			'featured_image_id' => $featured_image_id,
+			'result'            => $action,
 		];
 	}
 

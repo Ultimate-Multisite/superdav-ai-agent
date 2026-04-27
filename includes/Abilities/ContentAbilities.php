@@ -187,9 +187,18 @@ class ContentAbilities {
 
 		if ( $total === 0 ) {
 			return [
-				'post_type'   => $post_type,
-				'total_posts' => 0,
-				'message'     => 'No published posts found.',
+				'post_type'                      => $post_type,
+				'total_analyzed'                 => 0,
+				'publishing_frequency'           => (object) [],
+				'avg_word_count'                 => 0,
+				'min_word_count'                 => 0,
+				'max_word_count'                 => 0,
+				'category_distribution'          => (object) [],
+				'posts_without_featured_image'   => [],
+				'posts_without_meta_description' => [],
+				'content_gap_categories'         => [],
+				'thin_content_count'             => 0,
+				'message'                        => 'No published posts found.',
 			];
 		}
 
@@ -263,11 +272,11 @@ class ContentAbilities {
 		return [
 			'post_type'                      => $post_type,
 			'total_analyzed'                 => $total,
-			'publishing_frequency'           => $frequency,
+			'publishing_frequency'           => (object) $frequency,
 			'avg_word_count'                 => (int) round( array_sum( $word_counts ) / $total ),
 			'min_word_count'                 => min( $word_counts ),
 			'max_word_count'                 => max( $word_counts ),
-			'category_distribution'          => $category_distribution,
+			'category_distribution'          => (object) $category_distribution,
 			'posts_without_featured_image'   => $without_featured,
 			'posts_without_meta_description' => $without_meta_desc,
 			'content_gap_categories'         => $content_gaps,
@@ -417,9 +426,9 @@ class ContentAbilities {
 			'posts_published'           => $total,
 			'previous_period_published' => count( $prev_published ),
 			'avg_word_count'            => $total > 0 ? (int) round( array_sum( $word_counts ) / $total ) : 0,
-			'posts_by_category'         => $by_category,
-			'posts_by_author'           => $by_author,
-			'all_posts_by_status'       => $status_counts,
+			'posts_by_category'         => (object) $by_category,
+			'posts_by_author'           => (object) $by_author,
+			'all_posts_by_status'       => (object) $status_counts,
 			'drafts_pending_review'     => $pending_list,
 			'drafts_pending_count'      => count( $pending_list ),
 		];

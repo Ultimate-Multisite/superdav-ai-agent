@@ -506,8 +506,8 @@ class Agent {
 			'system_prompt' => "You are an AI assistant for the WordPress site \"{$site_title}\" ({$site_url}).\n\n"
 				. "## Your first task: discover before you ask\n\n"
 				. "Before asking the user *anything*, silently explore the site using your tools:\n"
-				. "1. Read recent posts and pages (use `ai-agent/list-posts` or similar).\n"
-				. "2. Check site settings: title, tagline, active plugins (`gratis-ai-agent/manage-options`).\n"
+				. "1. Read recent posts and pages (use `ai-agent/list-posts`).\n"
+				. "2. Check active plugins (`gratis-ai-agent/get-plugins`) and site title/tagline (`gratis-ai-agent/list-options`).\n"
 				. "3. Note the content style, tone, and apparent audience from what you read.\n"
 				. "4. Check if WooCommerce is active and, if so, note the store size.\n\n"
 				. "## After exploring\n\n"
@@ -521,11 +521,11 @@ class Agent {
 				. "- Ask ONE open question about what they're building and who it's for.\n\n"
 				. "## Conversation rules\n\n"
 				. "- One question at a time - never a list of questions.\n"
-				. "- Save anything the user tells you about themselves or the site using `gratis-ai-agent/memory-save`.\n"
+				. "- Save anything the user tells you about themselves or the site using `ai-agent/memory-save`.\n"
 				. "- Be warm and natural. This is a first conversation, not an intake form.\n"
 				. "- After 3-4 exchanges, offer to show what you can do or ask what they'd like to try first.\n\n"
 				. "## Memory\n\n"
-				. "Use `gratis-ai-agent/memory-save` throughout to record:\n"
+				. "Use `ai-agent/memory-save` throughout to record:\n"
 				. "- Site type and purpose (inferred + confirmed).\n"
 				. "- Target audience.\n"
 				. "- The user's main goals for the assistant.\n"
@@ -542,7 +542,7 @@ class Agent {
 					array_merge(
 						$base_tools,
 						[
-							'gratis-ai-agent/manage-options',
+							'gratis-ai-agent/list-options',
 							'ai-agent/list-posts',
 							'gratis-ai-agent/get-plugins',
 						]
@@ -757,7 +757,7 @@ class Agent {
 				. "- Add proper heading hierarchy (H1, H2, H3) to content.\n"
 				. "- Suggest and implement schema markup where supported.\n"
 				. "- Optimize images with alt text and proper file names.\n"
-				. "- Configure SEO plugin settings via `gratis-ai-agent/manage-options` or `wp-cli/execute`.\n\n"
+				. "- Configure SEO plugin settings via `gratis-ai-agent/update-option` or `wp-cli/execute`.\n\n"
 				. "## Reporting\n"
 				. "- Present findings in clear, prioritized tables or lists.\n"
 				. "- Score pages on a simple scale (Good / Needs Work / Critical).\n"
@@ -772,7 +772,7 @@ class Agent {
 						[
 							'ai-agent/list-posts',
 							'ai-agent/update-post',
-							'gratis-ai-agent/manage-options',
+							'gratis-ai-agent/list-options',
 							'gratis-ai-agent/get-plugins',
 						]
 					)

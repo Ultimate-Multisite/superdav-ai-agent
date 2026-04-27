@@ -1787,3 +1787,69 @@ textarea.gaa-cr-input-textarea {
 .gaa-cr-agent-chip {
 	gap: 5px;
 }
+
+/* =================================================================
+   Scroll-to-bottom button
+   Shown when the user has scrolled up and new messages arrive.
+   Positioned absolute inside .gaa-cr-convo (position: relative)
+   so it floats just above the input area.
+   ================================================================= */
+
+.gaa-cr-scroll-to-bottom {
+	position: absolute;
+	right: 24px;
+
+	/* Input area is ~146px tall; add 16px breathing room above it. */
+	bottom: 162px;
+	z-index: 20;
+	pointer-events: none;
+}
+
+.gaa-cr-scroll-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 30px;
+	padding: 0 10px 0 8px;
+	border: 1px solid var(--gaa-border-strong);
+	border-radius: var(--gaa-radius-pill);
+	background: #fff;
+	box-shadow: var(--gaa-shadow-raised);
+	color: var(--gaa-text-secondary);
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+	pointer-events: auto;
+	transition:
+		background var(--gaa-duration),
+		box-shadow var(--gaa-duration),
+		color var(--gaa-duration);
+	animation: gaa-cr-fade-in var(--gaa-duration) ease;
+}
+
+.gaa-cr-scroll-btn:hover {
+	background: var(--gaa-surface-hover);
+	box-shadow: var(--gaa-shadow-elevated);
+	color: var(--gaa-text-primary);
+}
+
+.gaa-cr-scroll-btn svg {
+	width: 14px;
+	height: 14px;
+	fill: currentcolor;
+	flex-shrink: 0;
+}
+
+.gaa-cr-scroll-btn-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 4px;
+	border-radius: var(--gaa-radius-pill);
+	background: var(--gaa-primary);
+	color: #fff;
+	font-size: 10.5px;
+	font-weight: 700;
+}

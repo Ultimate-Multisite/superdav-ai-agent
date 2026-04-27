@@ -982,6 +982,13 @@ final class SessionController {
 			return new WP_REST_Response( $response, 200 );
 		}
 
+		if ( 'awaiting_client_tools' === $job['status'] && isset( $job['pending_client_tool_calls'] ) ) {
+			// Surface the client-side pending calls so the browser can execute
+			// JS abilities and POST results back via /chat/tool-result.
+			$response['pending_client_tool_calls'] = $job['pending_client_tool_calls'];
+			return new WP_REST_Response( $response, 200 );
+		}
+
 		if ( 'complete' === $job['status'] && isset( $job['result'] ) ) {
 			// @phpstan-ignore-next-line
 			$response['reply'] = $job['result']['reply'] ?? '';
@@ -1070,6 +1077,14 @@ final class SessionController {
 			$pending = json_decode( $row->pending_tools, true );
 			if ( is_array( $pending ) ) {
 				$response['pending_tools'] = $pending;
+			}
+		}
+
+		if ( 'awaiting_client_tools' === $status ) {
+			// pending_tools column reused — contains pending_client_tool_calls JSON.
+			$pending = json_decode( $row->pending_tools, true );
+			if ( is_array( $pending ) ) {
+				$response['pending_client_tool_calls'] = $pending;
 			}
 		}
 
@@ -1597,6 +1612,38 @@ final class SessionController {
 				'awaiting_confirmation',
 				[
 					'pending_tools' => wp_json_encode( $pending_tools_for_db ),
+					'tool_calls'    => wp_json_encode( $tool_calls_for_db ),
+				]
+			);
+
+			return new WP_REST_Response( array( 'ok' => true ), 200 );
+		} elseif ( is_array( $result ) && ! empty( $result['pending_client_tool_calls'] ) ) {
+			// Agent loop paused — waiting for the browser to execute client-side
+			// (JS) tools and POST results back to /chat/tool-result.
+			// The AgentLoop already persisted the paused conversation state via
+			// Database::save_paused_state(), so /chat/tool-result can reconstruct
+			// the loop. We only need to surface the pending calls to the browser.
+			/** @var array<string, mixed> $result */
+			$job['status']                    = 'awaiting_client_tools';
+			$job['pending_client_tool_calls'] = $result['pending_client_tool_calls'];
+			// Preserve live tool-call progress so the UI stays current.
+			$job['tool_calls'] = $result['tool_call_log'] ?? array();
+
+			unset( $job['token'] );
+			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+			// Persist to DB so the pending calls survive transient expiry.
+			// We reuse the pending_tools column (JSON) since the schema is
+			// shared and the data shape is compatible.
+			/** @var list<array<string, mixed>> $pending_calls_for_db */
+			$pending_calls_for_db = (array) $job['pending_client_tool_calls'];
+			/** @var list<array<string, mixed>> $tool_calls_for_db */
+			$tool_calls_for_db = (array) $job['tool_calls'];
+			ActiveJobRepository::update_status(
+				$job_id,
+				'awaiting_client_tools',
+				[
+					'pending_tools' => wp_json_encode( $pending_calls_for_db ),
 					'tool_calls'    => wp_json_encode( $tool_calls_for_db ),
 				]
 			);

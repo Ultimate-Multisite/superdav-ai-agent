@@ -336,6 +336,35 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 
 ## Backlog
 
+- [ ] t232 Ability discovery investigation: why agent misses registered abilities #investigation #parent #plan → [todo/PLANS.md#ability-discovery-investigation] ~5h logged:2026-04-26
+- [x] t234 Audit ability injection pipeline and tool catalog (Phase 1) #investigation #auto-dispatch ~3h For #t232 logged:2026-04-26 pr:#1204 completed:2026-04-27
+  - Trace how abilities reach the model: ToolCapabilities.php → AgentLoop.php → wp_ai_client_prompt() injection
+  - Check for count limits, filters, or namespace handling that could drop abilities
+  - Check site-builder system prompt for tool enumeration gaps
+  - Verify: document findings with specific file:line references
+- [ ] t235 Fix ability discoverability — descriptions, system prompt, namespace alignment (Phase 2) #enhancement #auto-dispatch ~2h For #t232 blocked-by:t234 logged:2026-04-26
+  - Apply fixes identified in t234: improve descriptions, align namespaces (ai-agent/ vs gratis-ai-agent/), update system prompt
+  - Verify: `composer phpstan && composer phpcs`
+
+- [ ] t233 Site builder ability improvements #parent #plan → [todo/PLANS.md#site-builder-ability-improvements] ~9h logged:2026-04-26
+- [ ] t236 Stock image fallback chain: retry all free sources on download failure (Phase 1) #bugfix #auto-dispatch ~1.5h For #t233 logged:2026-04-26
+  - EDIT: includes/Abilities/ImageSources/ImageSourceFactory.php — in import_image(), on download failure iterate to next free source before AI generate fallback
+  - EDIT: includes/Abilities/ImageAbilities/StockImageAbility.php — surface source tried + fallback info in error response
+  - Verify: `composer phpstan && composer phpcs`
+- [ ] t237 Add page_template param to create-post and update-post (Phase 2) #enhancement #auto-dispatch ~1h For #t233 logged:2026-04-26
+  - EDIT: includes/Abilities/PostAbilities.php — add page_template to input_schema + post_data array in both handle_create_post and handle_update_post
+  - Verify: `composer phpstan && composer phpcs`
+- [x] t238 Add set-featured-image standalone ability (Phase 3) #enhancement #auto-dispatch ~1h For #t233 logged:2026-04-26 pr:#1231 completed:2026-04-27
+  - EDIT: includes/Abilities/PostAbilities.php — register ai-agent/set-featured-image with {post_id, featured_image_id} schema + handle_set_featured_image handler
+  - Verify: `composer phpstan && composer phpcs`
+- [x] t239 Add batch-create-posts ability (Phase 4) #feature #auto-dispatch ~2.5h For #t233 logged:2026-04-26 pr:#1230 completed:2026-04-27
+  - EDIT: includes/Abilities/PostAbilities.php — register ai-agent/batch-create-posts, schema: {posts: [{title, content, post_type, status, featured_image_id, page_template, ...}]}, returns [{post_id, permalink, title, status}]
+  - Verify: `composer phpstan && composer phpcs`
+- [x] t240 Add create-contact-form ability (Phase 5) #feature #auto-dispatch ~3h For #t233 logged:2026-04-26 pr:#1232 completed:2026-04-27
+  - EDIT: includes/Abilities/ContentAbilities.php or NEW: includes/Abilities/FormsAbilities.php
+  - Fallback chain: Contact Form 7 (WPCF7_ContactForm::create() + shortcode) → raw HTML block page
+  - Verify: `composer phpstan && composer phpcs`
+
 - [x] t226 WP 6.9 compatibility: polyfill WP 7.0 AI APIs + Connectors page #parent #feature #plan → [todo/PLANS.md#wp-69-compat] ~40h logged:2026-04-21 pr:#1133,#1136,#1137 completed:2026-04-21
 
 - [x] t227 Add wordpress/php-ai-client + wordpress/abilities-api Composer packages (Phase 1) #feature ~4h For #t226 logged:2026-04-21 pr:#1137 completed:2026-04-21

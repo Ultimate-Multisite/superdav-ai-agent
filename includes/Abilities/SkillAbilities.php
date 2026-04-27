@@ -159,7 +159,10 @@ class SkillAbilities {
 		$skills = Skill::get_all( true );
 
 		if ( empty( $skills ) ) {
-			return [ 'message' => 'No skills available.' ];
+			return [
+				'skills'  => [],
+				'message' => 'No skills available.',
+			];
 		}
 
 		$list = [];
@@ -174,6 +177,9 @@ class SkillAbilities {
 			];
 		}
 
-		return [ 'skills' => $list ];
+		return [
+			'skills'  => $list,
+			'message' => '',
+		];
 	}
 }

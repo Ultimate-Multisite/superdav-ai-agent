@@ -155,7 +155,12 @@ class MemoryAbilities {
 		$id = Memory::create( $category, $content );
 
 		if ( false === $id ) {
-			return [ 'error' => 'Failed to save memory.' ];
+			return [
+				'success' => false,
+				'id'      => 0,
+				'message' => '',
+				'error'   => 'Failed to save memory.',
+			];
 		}
 
 		return [
@@ -175,7 +180,10 @@ class MemoryAbilities {
 		$memories = Memory::get_all();
 
 		if ( empty( $memories ) ) {
-			return [ 'message' => 'No memories stored yet.' ];
+			return [
+				'memories' => [],
+				'message'  => 'No memories stored yet.',
+			];
 		}
 
 		$list = [];
@@ -190,7 +198,10 @@ class MemoryAbilities {
 			];
 		}
 
-		return [ 'memories' => $list ];
+		return [
+			'memories' => $list,
+			'message'  => '',
+		];
 	}
 
 	/**
@@ -210,7 +221,11 @@ class MemoryAbilities {
 		$deleted = Memory::delete( (int) $id );
 
 		if ( ! $deleted ) {
-			return [ 'error' => 'Failed to delete memory or memory not found.' ];
+			return [
+				'success' => false,
+				'message' => '',
+				'error'   => 'Failed to delete memory or memory not found.',
+			];
 		}
 
 		return [

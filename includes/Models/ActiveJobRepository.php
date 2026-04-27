@@ -20,7 +20,7 @@ class ActiveJobRepository {
 	/**
 	 * Valid job status values.
 	 */
-	const STATUSES = [ 'processing', 'awaiting_confirmation', 'complete', 'error' ];
+	const STATUSES = [ 'processing', 'awaiting_confirmation', 'awaiting_client_tools', 'complete', 'error' ];
 
 	/**
 	 * Get the active jobs table name.
@@ -112,7 +112,7 @@ class ActiveJobRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE session_id = %d AND status IN ('processing', 'awaiting_confirmation') ORDER BY created_at DESC LIMIT 1",
+				"SELECT * FROM %i WHERE session_id = %d AND status IN ('processing', 'awaiting_confirmation', 'awaiting_client_tools') ORDER BY created_at DESC LIMIT 1",
 				$table,
 				$session_id
 			)
@@ -139,7 +139,7 @@ class ActiveJobRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE user_id = %d AND status IN ('processing', 'awaiting_confirmation') ORDER BY created_at DESC",
+				"SELECT * FROM %i WHERE user_id = %d AND status IN ('processing', 'awaiting_confirmation', 'awaiting_client_tools') ORDER BY created_at DESC",
 				$table,
 				$user_id
 			)

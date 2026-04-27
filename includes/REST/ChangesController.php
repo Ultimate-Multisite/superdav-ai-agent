@@ -70,6 +70,10 @@ final class ChangesController {
 						'required' => false,
 						'type'     => 'boolean',
 					),
+					'revertable'  => array(
+						'required' => false,
+						'type'     => 'boolean',
+					),
 					'per_page'    => array(
 						'required' => false,
 						'type'     => 'integer',
@@ -224,6 +228,11 @@ final class ChangesController {
 		$reverted = $request->get_param( 'reverted' );
 		if ( null !== $reverted ) {
 			$filters['reverted'] = (bool) $reverted;
+		}
+
+		$revertable = $request->get_param( 'revertable' );
+		if ( null !== $revertable ) {
+			$filters['revertable'] = (bool) $revertable;
 		}
 
 		$result = ChangesLog::list( $filters );

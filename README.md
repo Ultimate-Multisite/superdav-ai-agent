@@ -1,5 +1,7 @@
 # Gratis AI Agent
 
+[![Download Plugin Now](https://img.shields.io/github/v/release/Ultimate-Multisite/gratis-ai-agent?style=for-the-badge&label=Download+Plugin+Now&color=0073aa)](https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip) &nbsp; Upload the zip to WordPress like any other plugin
+
 [![Tests](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/tests.yml)
 [![Code Quality](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/code-quality.yml/badge.svg)](https://github.com/Ultimate-Multisite/gratis-ai-agent/actions/workflows/code-quality.yml)
 [![PHP 8.2+](https://img.shields.io/badge/php-%3E%3D%208.2-blue.svg)](https://www.php.net/)

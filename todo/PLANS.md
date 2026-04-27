@@ -1170,3 +1170,87 @@ WP 7.0 has been delayed again. The plugin currently hard-requires WP 7.0 for fou
 - WP 7.0's `WP_AI_Client_Prompt_Builder` constructor takes `(ProviderRegistry $registry, $prompt)` — our stub file had `(string $prompt)`. The polyfill must match the real constructor.
 - The AI Experiments plugin (`ai`) also requires WP 7.0 (`WPAI_MIN_WP_VERSION = '7.0'`) — it cannot serve as a polyfill source.
 - `_wp_connectors_get_provider_settings()` and `_wp_connectors_get_real_api_key()` are used by our existing `ProviderCredentialLoader` — both need to be in the polyfill.
+
+---
+
+### [2026-04-26] Ability Discovery Investigation — Why Agent Misses Registered Abilities {#ability-discovery-investigation}
+
+**Status:** Planning
+**Estimate:** ~5h (ai:4h test:0.5h read:0.5h)
+**Tasks:** t232 (parent), t234 (phase 1), t235 (phase 2)
+
+#### Purpose
+
+During a site builder session the agent reported that `update-post`, `manage-global-styles`, and `complete-site-builder` did not exist and used WP-CLI workarounds. All three are fully registered and implemented. Root cause must lie in how abilities are presented to the model — either the tool catalog injection, system prompt framing, ability description quality, or a namespace inconsistency the model cannot resolve.
+
+#### Progress
+
+- [ ] (2026-04-26) Phase 1: Audit ability injection pipeline and tool catalog ~3h — t234
+- [ ] (2026-04-26) Phase 2: Fix discoverability — descriptions, system prompt, namespace alignment ~2h — t235
+
+#### Context from Discussion
+
+**Abilities verified present that agent could not find:**
+- `ai-agent/update-post` — `PostAbilities.php:171`, full schema with title/content/status/featured_image_id/meta
+- `ai-agent/update-global-styles` / `ai-agent/get-global-styles` — `GlobalStylesAbilities.php`
+- `gratis-ai-agent/complete-site-builder` — `SiteBuilderAbilities.php::CompleteSiteBuilderAbility`
+
+**Investigation axes:**
+1. `ToolCapabilities.php` — which abilities get included in the tool call payload? Any filter or count cap?
+2. `AgentLoop.php` — how are abilities injected into `wp_ai_client_prompt()`? Injection limit?
+3. Site-builder system prompt — does it enumerate available tools or leave discovery to the model?
+4. Ability descriptions — are `update-post` / `update-global-styles` descriptions clear enough for a restaurant-site context?
+5. Namespace inconsistency — `PostAbilities` uses `ai-agent/` prefix, `SiteBuilderAbilities` uses `gratis-ai-agent/`. Does the model treat these as different plugins?
+
+#### Decision Log
+
+(To be populated during implementation)
+
+#### Surprises & Discoveries
+
+(To be populated during implementation)
+
+---
+
+### [2026-04-26] Site Builder Ability Improvements {#site-builder-ability-improvements}
+
+**Status:** Planning
+**Estimate:** ~9h (ai:8h test:0.5h read:0.5h)
+**Tasks:** t233 (parent), t236–t240 (phases)
+
+#### Purpose
+
+Five genuine capability gaps found in the site builder audit. Most critical is the stock image fallback chain — Openverse/Pixabay download failures return hard errors with no retry. The rest are ergonomic improvements that reduce tool-call count and remove ambiguity for the agent.
+
+#### Progress
+
+- [ ] (2026-04-26) Phase 1: Stock image fallback chain — retry all free sources on download failure ~1.5h — t236
+- [ ] (2026-04-26) Phase 2: Add `page_template` param to `create-post` and `update-post` ~1h — t237
+- [ ] (2026-04-26) Phase 3: Add `set-featured-image` standalone ability ~1h — t238
+- [ ] (2026-04-26) Phase 4: Add `batch-create-posts` ability ~2.5h — t239
+- [ ] (2026-04-26) Phase 5: Add `create-contact-form` ability (WP core, no WPForms dependency) ~3h — t240
+
+#### Context from Discussion
+
+**Stock image fallback (t236):** `StockImageAbility` calls `ImageSourceFactory::get_available()`, picks the first free source, and returns a hard error if `download()` fails. The factory handles empty search results (falls back to AI generate) but not download failures. Fix: in `ImageSourceFactory::import_image()` on download failure, iterate to next free source then fall back to `generate`. Files: `ImageAbilities/StockImageAbility.php`, `ImageSources/ImageSourceFactory.php`.
+
+**Page template (t237):** `wp_insert_post()` / `wp_update_post()` accept `page_template` as a post data key (maps to `_wp_page_template` meta). Neither `create-post` nor `update-post` expose it. Add to schema + handler in `PostAbilities.php`. Two lines per handler.
+
+**set-featured-image (t238):** Already works via `update-post` (pass `post_id` + `featured_image_id`). A standalone ability removes ambiguity — agents frequently miss that `update-post` can set only the thumbnail without touching other fields. Add as a new `wp_register_ability` call in `PostAbilities.php`.
+
+**batch-create-posts (t239):** A full site build takes ~7 sequential `create-post` calls. A batch ability accepting an array of post definitions reduces that to 1 call. Schema: `{ posts: [{ title, content, post_type, status, featured_image_id, page_template, ... }] }`. Returns `[{ post_id, permalink, title, status }]`. Add handler in `PostAbilities.php`.
+
+**create-contact-form (t240):** WPForms is too plugin-specific. Better: register `ai-agent/create-contact-form` that inserts a simple HTML contact form as a Gutenberg HTML block (no plugin dependency). If Contact Form 7 is active, use its `WPCF7_ContactForm::create()` API instead and return the shortcode. Fallback chain: CF7 → raw HTML block. New ability in `ContentAbilities.php` or a new `FormsAbilities.php`.
+
+**Three abilities the audit wrongly reported as missing (already implemented — no action needed):**
+- `update-post` — `PostAbilities.php:171`
+- `manage-global-styles` (`get-global-styles`, `update-global-styles`, `get-theme-json`, `reset-global-styles`) — `GlobalStylesAbilities.php`
+- `complete-site-builder` — `SiteBuilderAbilities.php::CompleteSiteBuilderAbility`
+
+#### Decision Log
+
+(To be populated during implementation)
+
+#### Surprises & Discoveries
+
+(To be populated during implementation)

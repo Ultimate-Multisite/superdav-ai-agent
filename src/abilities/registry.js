@@ -61,6 +61,17 @@ let categoryRegistrationPromise = null;
 const registeredAbilityNames = new Set();
 
 /**
+ * Callback map — name → async function(args) → result.
+ *
+ * Maintained in parallel to the WP 7.0 registry so jobSlice can invoke
+ * abilities by name without relying on wp.abilities.executeAbility() (which
+ * may not be available or may not surface the raw return value we need).
+ *
+ * @type {Map<string, Function>}
+ */
+const clientCallbacks = new Map();
+
+/**
  * Detect whether the WP 7.0 abilities API is available on this page.
  *
  * @return {boolean} True when wp.abilities is loaded and exposes the
@@ -191,6 +202,13 @@ export async function registerClientAbility( def ) {
 	}
 	registeredAbilityNames.add( def.name );
 
+	// Store the callback so executeClientAbility() can invoke it by name
+	// without going through the WP abilities API (which may not expose the
+	// raw return value needed for tool-result forwarding).
+	if ( typeof def.callback === 'function' ) {
+		clientCallbacks.set( def.name, def.callback );
+	}
+
 	try {
 		await wp.abilities.registerAbility( {
 			name: def.name,
@@ -276,4 +294,27 @@ export async function snapshotDescriptors() {
 	} catch ( _err ) {
 		return [];
 	}
+}
+
+/**
+ * Execute a registered client-side ability by name.
+ *
+ * Called by the job-polling logic in jobSlice when the server returns
+ * `pending_client_tool_calls`. The ability must have been registered via
+ * `registerClientAbility()` in the same page lifetime.
+ *
+ * @param {string} name Fully-qualified ability name (gratis-ai-agent-js/...).
+ * @param {Object} args Ability arguments from the model's tool call.
+ * @return {Promise<Object>} The ability's result object.
+ * @throws {Error} When the ability is not registered in the current page.
+ */
+export async function executeClientAbility( name, args ) {
+	const callback = clientCallbacks.get( name );
+	if ( ! callback ) {
+		throw new Error(
+			`Client ability "${ name }" is not registered on this page. ` +
+				'Ensure the ability was registered via registerClientAbility() before the job completed.'
+		);
+	}
+	return callback( args );
 }

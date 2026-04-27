@@ -972,23 +972,45 @@ final class SettingsController {
 	}
 
 	/**
+	 * Site option that stores the cache version counter.
+	 *
+	 * Bumping this value effectively orphans all existing per-user transients,
+	 * ensuring every admin sees a fresh providers list on the next request.
+	 */
+	const PROVIDERS_CACHE_VERSION_OPTION = 'gratis_ai_providers_cache_version';
+
+	/**
 	 * Transient key for the cached providers list.
-	 * Scoped per-user so each admin sees their own credential state.
+	 *
+	 * Incorporates a site-wide version counter so that bumping the version in
+	 * flush_providers_cache() immediately invalidates every admin's cached copy
+	 * without needing to enumerate all user IDs.  The per-user suffix is
+	 * retained for compatibility with ProviderCredentialLoader, which may
+	 * resolve different credentials per user in future.
 	 *
 	 * @return string
 	 */
 	private static function providers_cache_key(): string {
-		return 'gratis_ai_providers_' . get_current_user_id();
+		$version = (int) get_option( self::PROVIDERS_CACHE_VERSION_OPTION, 0 );
+		return 'gratis_ai_providers_' . $version . '_' . get_current_user_id();
 	}
 
 	/**
-	 * Flush the cached providers list.
+	 * Flush the cached providers list for ALL admins.
+	 *
+	 * Increments the site-wide version counter so every existing per-user
+	 * transient (keyed on the previous version) is abandoned.  The orphaned
+	 * transients expire naturally within 5 minutes; no need to enumerate users.
 	 *
 	 * Call whenever provider credentials are added, changed, or removed so the
 	 * next GET /providers rebuilds the list from live data.
 	 */
 	public static function flush_providers_cache(): void {
-		delete_transient( self::providers_cache_key() );
+		update_option(
+			self::PROVIDERS_CACHE_VERSION_OPTION,
+			(int) get_option( self::PROVIDERS_CACHE_VERSION_OPTION, 0 ) + 1,
+			false
+		);
 	}
 
 	/**

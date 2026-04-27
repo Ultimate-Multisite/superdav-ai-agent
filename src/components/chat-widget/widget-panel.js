@@ -71,7 +71,7 @@ export default function WidgetPanel() {
 		}
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&per_page=1`,
+				path: `/gratis-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&revertable=true&per_page=1`,
 			} );
 			setChangesCount( data?.total ?? ( data?.items?.length || 0 ) );
 		} catch {

@@ -407,10 +407,10 @@ test.describe( 'Spending Limits — Settings UI (GH#651)', () => {
 		const saveButton = page.getByRole( 'button', { name: /save settings/i } );
 		await saveButton.click();
 
-		// Success notice should appear.
+		// Success snackbar should appear (SettingsApp uses SnackbarList).
 		await expect(
 			page
-				.locator( '.components-notice' )
+				.locator( '.components-snackbar' )
 				.filter( { hasText: /saved/i } )
 		).toBeVisible( { timeout: 10_000 } );
 
@@ -459,7 +459,7 @@ test.describe( 'Spending Limits — Settings UI (GH#651)', () => {
 
 		await expect(
 			page
-				.locator( '.components-notice' )
+				.locator( '.components-snackbar' )
 				.filter( { hasText: /saved/i } )
 		).toBeVisible( { timeout: 10_000 } );
 
@@ -519,7 +519,7 @@ test.describe( 'Spending Limits — Settings UI (GH#651)', () => {
 
 		await expect(
 			page
-				.locator( '.components-notice' )
+				.locator( '.components-snackbar' )
 				.filter( { hasText: /saved/i } )
 		).toBeVisible( { timeout: 10_000 } );
 

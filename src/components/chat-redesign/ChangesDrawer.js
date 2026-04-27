@@ -70,7 +70,7 @@ export default function ChangesDrawer( {
 		setLoading( true );
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ sessionId }&reverted=false&per_page=100`,
+				path: `/gratis-ai-agent/v1/changes?session_id=${ sessionId }&reverted=false&revertable=true&per_page=100`,
 			} );
 			const items = data.items || [];
 			setChanges( items );
@@ -190,6 +190,7 @@ export default function ChangesDrawer( {
 				<a
 					className="gaa-cr-btn-sm"
 					href={
+						window.gratisAiAgentData?.changesPageUrl ||
 						window.location.href.split( '#' )[ 0 ] + '#/changes'
 					}
 				>

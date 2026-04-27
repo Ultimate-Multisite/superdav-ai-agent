@@ -105,6 +105,10 @@ class ChangesLog {
 			$where[] = $wpdb->prepare( 'reverted = %d', $filters['reverted'] ? 1 : 0 );
 		}
 
+		if ( isset( $filters['revertable'] ) ) {
+			$where[] = $wpdb->prepare( 'revertable = %d', $filters['revertable'] ? 1 : 0 );
+		}
+
 		$where_sql = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom table; built from prepared fragments.

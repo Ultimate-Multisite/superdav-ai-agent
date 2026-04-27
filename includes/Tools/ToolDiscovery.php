@@ -33,6 +33,7 @@ declare(strict_types=1);
 
 namespace GratisAiAgent\Tools;
 
+use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
 use GratisAiAgent\Core\Settings;
 use WP_Error;
 
@@ -88,9 +89,37 @@ class ToolDiscovery {
 
 	/**
 	 * Register the meta-tool abilities.
+	 *
+	 * @deprecated Preserved for back-compat. The DI handler (ToolDiscoveryHandler)
+	 *             calls register_abilities() and register_js_category() directly.
 	 */
 	public static function register(): void {
 		add_action( 'wp_abilities_api_init', array( __CLASS__, 'register_abilities' ) );
+	}
+
+	/**
+	 * Register the gratis-ai-agent-js ability category server-side.
+	 *
+	 * This mirrors the client-side registerAbilityCategory() call in registry.js.
+	 * Must run on wp_abilities_api_categories_init so that the JS ability stubs
+	 * registered in register_abilities() pass wp_register_ability()'s
+	 * category-exists validation check.
+	 *
+	 * Called by ToolDiscoveryHandler on wp_abilities_api_categories_init.
+	 *
+	 * @return void
+	 */
+	public static function register_js_category(): void {
+		if ( ! function_exists( 'wp_register_ability_category' ) ) {
+			return;
+		}
+		wp_register_ability_category(
+			'gratis-ai-agent-js',
+			array(
+				'label'       => __( 'Gratis AI Agent (Client)', 'gratis-ai-agent' ),
+				'description' => __( 'Client-side abilities provided by the Gratis AI Agent plugin. Execute in the browser without a server round-trip.', 'gratis-ai-agent' ),
+			)
+		);
 	}
 
 	/**
@@ -174,6 +203,49 @@ class ToolDiscovery {
 				},
 			)
 		);
+
+		// Register client-side (JS) abilities as permanent stubs so they are
+		// always discoverable via ability-search, even when no client_abilities
+		// are posted in the current /chat request.
+		//
+		// Without this, JS abilities only enter wp_get_abilities() as transient
+		// stubs when the browser includes them in the client_abilities payload
+		// (ClientAbilityRouter::build_stubs()). An agent calling ability-search
+		// before any client_abilities arrive gets zero results for queries like
+		// "screenshot", leaving it unable to discover those tools exist.
+		//
+		// ClientAbilityRouter::build_stubs() already handles the pre-registered
+		// case: it calls wp_get_ability($name) first and re-uses the existing
+		// stub rather than double-registering (see ClientAbilityRouter:104-108).
+		foreach ( JsAbilityCatalog::get_descriptors() as $descriptor ) {
+			$name = (string) ( $descriptor['name'] ?? '' );
+			if ( '' === $name ) {
+				continue;
+			}
+			wp_register_ability(
+				$name,
+				array(
+					'label'               => $descriptor['label'] ?? $name,
+					'description'         => $descriptor['description'] ?? '',
+					'category'            => 'gratis-ai-agent-js',
+					'input_schema'        => $descriptor['input_schema'] ?? array(),
+					'meta'                => array(
+						'annotations'    => $descriptor['annotations'] ?? array(),
+						'js_client_side' => true,
+					),
+					'execute_callback'    => static function ( array $args ): array {
+						// JS abilities execute in the browser via the pending_client_tool_calls
+						// mechanism. This server-side stub exists for discoverability only —
+						// AgentLoop::partition_tool_calls() intercepts calls to these names
+						// and routes them to the client before execute() is ever reached.
+						return array( 'error' => 'This ability runs in the browser. It will be dispatched to the client automatically when called through the chat interface.' );
+					},
+					'permission_callback' => static function (): bool {
+						return current_user_can( 'manage_options' );
+					},
+				)
+			);
+		}
 	}
 
 	// ─── Tier-1 selection ────────────────────────────────────────────────

@@ -189,6 +189,7 @@ class FloatingWidget {
 			[
 				'currentUserId'       => get_current_user_id(),
 				'onboarding_complete' => OnboardingManager::is_complete(),
+				'changesPageUrl'      => admin_url( 'admin.php?page=gratis-ai-agent#/changes' ),
 			]
 		);
 	}

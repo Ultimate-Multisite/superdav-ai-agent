@@ -154,6 +154,15 @@ final class ClientAbilityRouter {
 		$php_parts = array();
 		$client    = array();
 
+		// Build a name→annotations lookup once for O(1) access inside the loop.
+		$annotations_by_name = array();
+		foreach ( $this->client_abilities as $descriptor ) {
+			$name = (string) ( $descriptor['name'] ?? '' );
+			if ( '' !== $name ) {
+				$annotations_by_name[ $name ] = $descriptor['annotations'] ?? array();
+			}
+		}
+
 		foreach ( $message->getParts() as $part ) {
 			$call = $part->getFunctionCall();
 			if ( ! $call ) {
@@ -169,9 +178,12 @@ final class ClientAbilityRouter {
 
 			if ( in_array( $ability_name, $client_names, true ) ) {
 				$client[] = array(
-					'id'   => (string) $call->getId(),
-					'name' => $ability_name,
-					'args' => $call->getArgs() ?: array(),
+					'id'          => (string) $call->getId(),
+					'name'        => $ability_name,
+					'args'        => $call->getArgs() ?: array(),
+					// Annotations are forwarded so the browser can decide whether
+					// to auto-execute (readonly=true) or show a confirmation dialog.
+					'annotations' => $annotations_by_name[ $ability_name ] ?? array(),
 				);
 			} else {
 				$php_parts[] = $part;

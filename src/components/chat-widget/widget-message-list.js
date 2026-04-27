@@ -6,10 +6,16 @@
  * identical. This file only owns the widget-scoped scroll container,
  * the visible-messages filter, the running placeholder, and the
  * feedback consent modal invoked by a thumbs-down click.
+ *
+ * Scroll behaviour:
+ *   - Auto-scrolls to the bottom only when the user is already near the bottom.
+ *   - When scrolled away and new messages arrive, a "scroll to bottom" button
+ *     appears with a badge showing how many new messages were missed.
+ *   - The button disappears when the user clicks it or scrolls back down.
  */
 
 import { useSelect, useDispatch } from '@wordpress/data';
-import { useRef, useEffect, useState } from '@wordpress/element';
+import { useRef, useEffect, useState, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 import STORE_NAME from '../../store';
@@ -24,6 +30,9 @@ import {
 	SystemMessage,
 	UserMessage,
 } from '../chat-redesign/message-items';
+
+/** Distance (px) from the scroll bottom that is treated as "at the bottom". */
+const SCROLL_THRESHOLD = 100;
 
 /**
  *
@@ -43,16 +52,24 @@ export default function WidgetMessageList() {
 
 	const { sendMessage } = useDispatch( STORE_NAME );
 	const ref = useRef( null );
+
+	/** True when the scroll container is within SCROLL_THRESHOLD px of the bottom. */
+	const isAtBottomRef = useRef( true );
+	/** Visible-message count from the previous auto-scroll effect run. */
+	const prevVisibleCountRef = useRef( 0 );
+	/**
+	 * Current render's visible-message count, written during render so the
+	 * effect can read it without adding the `visible` array (new reference on
+	 * every render) to its dependency array.
+	 */
+	const visibleCountRef = useRef( 0 );
+
+	const [ unseenCount, setUnseenCount ] = useState( 0 );
 	const [ thumbsDownMessageIndex, setThumbsDownMessageIndex ] =
 		useState( null );
 
-	useEffect( () => {
-		const el = ref.current;
-		if ( ! el ) {
-			return;
-		}
-		el.scrollTop = el.scrollHeight;
-	}, [ messages, sending, liveToolCalls ] );
+	// ── Compute visible messages ──────────────────────────────────────────────
+	// Placed before effects so visibleCountRef is updated before they fire.
 
 	const visible = [];
 	for ( let i = 0; i < messages.length; i++ ) {
@@ -75,6 +92,74 @@ export default function WidgetMessageList() {
 		visible.push( { msg: m, index: i } );
 	}
 
+	// Keep the ref in sync so effects read the correct count without `visible`
+	// (new array reference each render) being in their dependency arrays.
+	visibleCountRef.current = visible.length;
+
+	// ── Effects ───────────────────────────────────────────────────────────────
+
+	// Reset scroll state on session switch so we always start at the bottom.
+	useEffect( () => {
+		isAtBottomRef.current = true;
+		prevVisibleCountRef.current = 0;
+		setUnseenCount( 0 );
+	}, [ currentSessionId ] );
+
+	// Passive scroll listener — tracks whether the user is near the bottom and
+	// clears the unseen badge when they scroll back down.
+	useEffect( () => {
+		const el = ref.current;
+		if ( ! el ) {
+			return;
+		}
+
+		const handleScroll = () => {
+			const atBottom =
+				el.scrollHeight - el.scrollTop - el.clientHeight <
+				SCROLL_THRESHOLD;
+			isAtBottomRef.current = atBottom;
+			if ( atBottom ) {
+				setUnseenCount( 0 );
+			}
+		};
+
+		el.addEventListener( 'scroll', handleScroll, { passive: true } );
+		return () => el.removeEventListener( 'scroll', handleScroll );
+	}, [] );
+
+	// Auto-scroll when the user is already at the bottom; accumulate an
+	// unseen-message count when they have scrolled away.
+	useEffect( () => {
+		const el = ref.current;
+		if ( ! el ) {
+			return;
+		}
+
+		const newCount = visibleCountRef.current;
+		const prevCount = prevVisibleCountRef.current;
+		prevVisibleCountRef.current = newCount;
+
+		if ( isAtBottomRef.current ) {
+			el.scrollTop = el.scrollHeight;
+		} else if ( newCount > prevCount ) {
+			setUnseenCount( ( c ) => c + ( newCount - prevCount ) );
+		}
+	}, [ messages, sending, liveToolCalls ] );
+
+	// ── Callbacks ─────────────────────────────────────────────────────────────
+
+	const scrollToBottom = useCallback( () => {
+		const el = ref.current;
+		if ( ! el ) {
+			return;
+		}
+		el.scrollTo( { top: el.scrollHeight, behavior: 'smooth' } );
+		isAtBottomRef.current = true;
+		setUnseenCount( 0 );
+	}, [] );
+
+	// ── Derived values ────────────────────────────────────────────────────────
+
 	const lastRunningJob = currentSessionId
 		? sessionJobs[ currentSessionId ]
 		: null;
@@ -87,6 +172,8 @@ export default function WidgetMessageList() {
 	const runningStep = runningToolName
 		? `${ __( 'Running', 'gratis-ai-agent' ) } ${ runningToolName }…`
 		: __( 'Composing reply…', 'gratis-ai-agent' );
+
+	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
 		<>
@@ -134,6 +221,33 @@ export default function WidgetMessageList() {
 					) }
 				</div>
 			</div>
+
+			{ unseenCount > 0 && (
+				<div className="gaa-w-scroll-to-bottom">
+					<button
+						type="button"
+						className="gaa-w-scroll-btn"
+						onClick={ scrollToBottom }
+						aria-label={ __(
+							'Scroll to latest messages',
+							'gratis-ai-agent'
+						) }
+					>
+						{ /* Down-arrow chevron */ }
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+							focusable="false"
+						>
+							<path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+						</svg>
+						<span className="gaa-w-scroll-btn-badge">
+							{ unseenCount }
+						</span>
+					</button>
+				</div>
+			) }
 
 			{ thumbsDownMessageIndex !== null && (
 				<FeedbackConsentModal

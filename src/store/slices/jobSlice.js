@@ -11,6 +11,7 @@ import { onVisibilityChange } from '../../utils/visibility-manager';
 import { setActiveJob, clearActiveJob } from '../../utils/active-jobs-storage';
 import { notifyConfirmationNeeded } from '../../utils/notification-manager';
 import { playDing, playDong, playThinking } from '../../utils/sound-manager';
+import { executeClientAbility } from '../../abilities/registry';
 
 export const initialState = {
 	// Active polling job ID (most-recently-started job for the current session).
@@ -261,6 +262,115 @@ export const actions = {
 						// Don't clear sending — still waiting.
 						unsubscribeVisibility();
 						clearActiveJob( sessionId );
+						return;
+					}
+
+					if ( result.status === 'awaiting_client_tools' ) {
+						// The agent loop has paused and handed a set of JS
+						// abilities to the browser for execution.  Each call
+						// carries an `annotations` object; abilities with
+						// `readonly: true` execute immediately without a
+						// confirmation dialog (screenshots, DOM reads, etc.).
+						// Non-readonly abilities are not yet supported without
+						// an explicit confirmation flow — they will be handled
+						// in a future iteration.
+						const pendingCalls =
+							result.pending_client_tool_calls || [];
+
+						const toolResults = await Promise.all(
+							pendingCalls.map( async ( call ) => {
+								const isReadonly =
+									call.annotations?.readonly === true;
+
+								if ( ! isReadonly ) {
+									// Non-readonly client abilities are not yet
+									// auto-executed — return an error so the
+									// model gets feedback instead of silently
+									// hanging.
+									return {
+										id: call.id,
+										name: call.name,
+										error: __(
+											'Client-side ability requires user confirmation (not yet supported for non-readonly abilities).',
+											'gratis-ai-agent'
+										),
+									};
+								}
+
+								try {
+									const abilityResult =
+										await executeClientAbility(
+											call.name,
+											call.args || {}
+										);
+									return {
+										id: call.id,
+										name: call.name,
+										result: abilityResult,
+									};
+								} catch ( execErr ) {
+									return {
+										id: call.id,
+										name: call.name,
+										error:
+											execErr instanceof Error
+												? execErr.message
+												: String( execErr ),
+									};
+								}
+							} )
+						);
+
+						// POST results back to the server so the agent loop
+						// can continue with the screenshot/DOM data.
+						const currentSessionId = select.getCurrentSessionId();
+						try {
+							await apiFetch( {
+								path: '/gratis-ai-agent/v1/chat/tool-result',
+								method: 'POST',
+								data: {
+									session_id: currentSessionId,
+									tool_results: toolResults,
+								},
+							} );
+						} catch ( postErr ) {
+							// Failed to post results — surface error to user
+							// and stop polling rather than hanging.
+							if ( currentSessionId === sessionId ) {
+								dispatch.appendMessage( {
+									role: 'system',
+									parts: [
+										{
+											text: `${ __(
+												'Error:',
+												'gratis-ai-agent'
+											) } ${
+												postErr instanceof Error
+													? postErr.message
+													: __(
+															'Failed to submit client tool results.',
+															'gratis-ai-agent'
+													  )
+											}`,
+										},
+									],
+								} );
+								dispatch.setSending( false );
+							}
+							unsubscribeVisibility();
+							clearActiveJob( sessionId );
+							dispatch.setCurrentJobId( null );
+							dispatch.setSessionJob( sessionId, null );
+							return;
+						}
+
+						// Resume polling — the server has resumed the agent
+						// loop; we continue polling the same job for the
+						// model's next response or another pause.
+						await new Promise( ( resolve ) =>
+							setTimeout( resolve, getInterval( attempts ) )
+						);
+						poll();
 						return;
 					}
 

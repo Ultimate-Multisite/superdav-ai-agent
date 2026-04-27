@@ -92,7 +92,11 @@ class KnowledgeAbilities {
 		$results = Knowledge::search( $query, $options );
 
 		if ( empty( $results ) ) {
-			return [ 'message' => 'No relevant knowledge found for that query.' ];
+			return [
+				'results' => [],
+				'count'   => 0,
+				'message' => 'No relevant knowledge found for that query.',
+			];
 		}
 
 		$formatted = [];
@@ -113,6 +117,7 @@ class KnowledgeAbilities {
 		return [
 			'results' => $formatted,
 			'count'   => count( $formatted ),
+			'message' => '',
 		];
 	}
 }

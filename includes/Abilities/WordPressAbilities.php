@@ -686,7 +686,7 @@ class InstallPluginAbility extends AbstractAbility {
 			'status'      => 'installed',
 			// @phpstan-ignore-next-line
 			'message'     => sprintf( 'Plugin "%s" installed successfully.', $slug ),
-			'plugin_file' => $plugin_file,
+			'plugin_file' => $plugin_file ?: '',
 			'active'      => false,
 		];
 	}

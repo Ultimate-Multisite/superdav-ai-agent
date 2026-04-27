@@ -187,9 +187,18 @@ class ContentAbilities {
 
 		if ( $total === 0 ) {
 			return [
-				'post_type'   => $post_type,
-				'total_posts' => 0,
-				'message'     => 'No published posts found.',
+				'post_type'                      => $post_type,
+				'total_analyzed'                 => 0,
+				'publishing_frequency'           => [],
+				'avg_word_count'                 => 0,
+				'min_word_count'                 => 0,
+				'max_word_count'                 => 0,
+				'category_distribution'          => [],
+				'posts_without_featured_image'   => [],
+				'posts_without_meta_description' => [],
+				'content_gap_categories'         => [],
+				'thin_content_count'             => 0,
+				'message'                        => 'No published posts found.',
 			];
 		}
 

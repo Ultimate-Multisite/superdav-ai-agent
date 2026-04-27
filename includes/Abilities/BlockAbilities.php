@@ -396,6 +396,7 @@ class BlockAbilities {
 		return [
 			'block_content' => $block_content,
 			'block_count'   => count( $blocks ),
+			'error'         => '',
 		];
 	}
 
@@ -680,6 +681,7 @@ class BlockAbilities {
 		return [
 			'block_content' => trim( $output ),
 			'block_count'   => $block_count,
+			'error'         => '',
 		];
 	}
 
@@ -740,6 +742,7 @@ class BlockAbilities {
 		return [
 			'blocks'      => $blocks,
 			'block_count' => count( $blocks ),
+			'error'       => '',
 		];
 	}
 

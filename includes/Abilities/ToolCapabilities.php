@@ -194,30 +194,26 @@ class ToolCapabilities {
 			'ai-agent/create-menu',
 			'ai-agent/delete-menu',
 			'ai-agent/add-menu-item',
-			// Ability discovery.
-			'gratis-ai-agent/discovery-list',
-			'gratis-ai-agent/discovery-get',
-			'gratis-ai-agent/discovery-execute',
 			// Images.
 			'gratis-ai-agent/stock-image',
 			'gratis-ai-agent/generate-image',
-			// SEO.
-			'gratis-ai-agent/seo-audit-url',
-			'gratis-ai-agent/seo-analyze-content',
-			// Content.
-			'gratis-ai-agent/content-analyze',
-			'gratis-ai-agent/content-performance-report',
-			// Marketing.
-			'gratis-ai-agent/fetch-url',
-			'gratis-ai-agent/analyze-headers',
-			// Blocks.
-			'gratis-ai-agent/markdown-to-blocks',
-			'gratis-ai-agent/list-block-types',
-			'gratis-ai-agent/get-block-type',
-			'gratis-ai-agent/list-block-patterns',
-			'gratis-ai-agent/list-block-templates',
-			'gratis-ai-agent/create-block-content',
-			'gratis-ai-agent/parse-block-content',
+			// SEO (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/seo-audit-url',
+			'ai-agent/seo-analyze-content',
+			// Content (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/content-analyze',
+			'ai-agent/content-performance-report',
+			// Marketing (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/fetch-url',
+			'ai-agent/analyze-headers',
+			// Blocks (registered under the WP core "ai-agent/" prefix).
+			'ai-agent/markdown-to-blocks',
+			'ai-agent/list-block-types',
+			'ai-agent/get-block-type',
+			'ai-agent/list-block-patterns',
+			'ai-agent/list-block-templates',
+			'ai-agent/create-block-content',
+			'ai-agent/parse-block-content',
 			// Files.
 			'gratis-ai-agent/file-read',
 			'gratis-ai-agent/file-write',

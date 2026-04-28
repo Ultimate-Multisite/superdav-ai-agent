@@ -952,7 +952,9 @@ class AgentLoop {
 				}
 			}
 			// Append client ability stubs even in explicit-abilities mode.
-			return array_merge( $resolved, $this->client_router->build_stubs() );
+			return $this->deduplicate_by_function_name(
+				array_merge( $resolved, $this->client_router->build_stubs() )
+			);
 		}
 
 		$tier_1 = ToolDiscovery::tier_1_for_run( $this->agent_tier_1_tools );
@@ -981,7 +983,75 @@ class AgentLoop {
 		}
 
 		// Append synthetic stubs for validated client-side abilities.
-		return array_merge( $resolved, $this->client_router->build_stubs() );
+		return $this->deduplicate_by_function_name(
+			array_merge( $resolved, $this->client_router->build_stubs() )
+		);
+	}
+
+	/**
+	 * Remove abilities whose API function name collides with an earlier entry.
+	 *
+	 * AI providers (e.g. Anthropic, OpenAI) reject requests with duplicate tool
+	 * names (HTTP 400 "tools: Tool names must be unique"). Collisions occur when:
+	 *
+	 *   • Two abilities are registered under different namespace prefixes but the
+	 *     same base name (e.g. "ai-agent/create-block-content" and
+	 *     "gratis-ai-agent/create-block-content"). WP 7.0-RC2's native
+	 *     ability_name_to_function_name() may normalise these to the same string,
+	 *     whereas the compat polyfill preserves the full prefixed form.
+	 *
+	 *   • A third-party plugin registers an ability whose name, after the
+	 *     namespace prefix is stripped, matches one this plugin has already
+	 *     registered (e.g. "some-plugin/create-block-content").
+	 *
+	 * The first occurrence in the list wins; later duplicates are silently
+	 * dropped. Tier-1 curated abilities appear first so they take priority over
+	 * usage-tracked or third-party entries.
+	 *
+	 * @param \WP_Ability[] $abilities Resolved ability list, possibly containing duplicates.
+	 * @return \WP_Ability[] De-duplicated list safe to pass to using_abilities().
+	 */
+	private function deduplicate_by_function_name( array $abilities ): array {
+		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
+			return $abilities;
+		}
+
+		$seen   = array();
+		$unique = array();
+
+		foreach ( $abilities as $ability ) {
+			$fn_name = \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name(
+				$ability->get_name()
+			);
+
+			// Normalise to the lowest-common-denominator form so that providers
+			// which treat hyphens and underscores as equivalent (or which strip the
+			// namespace prefix) do not see duplicates. Lowercase for safety.
+			$key = strtolower( str_replace( '-', '_', $fn_name ) );
+
+			if ( isset( $seen[ $key ] ) ) {
+				// Log the collision so it's visible in debug logs without throwing.
+				_doing_it_wrong(
+					__METHOD__,
+					esc_html(
+						sprintf(
+							/* translators: 1: duplicate ability name, 2: earlier ability name, 3: resolved function name */
+							__( 'Ability "%1$s" produces the same API tool name as "%2$s" (%3$s) and will be skipped to prevent a duplicate-tool-name API error. Register abilities under unique base names.', 'gratis-ai-agent' ),
+							$ability->get_name(),
+							$seen[ $key ],
+							$fn_name
+						)
+					),
+					'1.8.3'
+				);
+				continue;
+			}
+
+			$seen[ $key ] = $ability->get_name();
+			$unique[]     = $ability;
+		}
+
+		return $unique;
 	}
 
 	/**

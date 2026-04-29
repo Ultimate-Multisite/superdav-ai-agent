@@ -286,11 +286,11 @@ class PostAbilities {
 						],
 						'category'  => [
 							'type'        => 'string',
-							'description' => 'Category name or slug to filter by.',
+							'description' => 'Category name or slug to filter by. Human-readable names (e.g. "My Category") are resolved to their slug automatically.',
 						],
 						'tag'       => [
 							'type'        => 'string',
-							'description' => 'Tag name or slug to filter by.',
+							'description' => 'Tag name or slug to filter by. Human-readable names are resolved to their slug automatically.',
 						],
 						'orderby'   => [
 							'type'        => 'string',
@@ -612,11 +612,11 @@ class PostAbilities {
 		}
 
 		if ( '' !== $category ) {
-			$query_args['category_name'] = $category;
+			$query_args['category_name'] = self::resolve_term_slug( $category, 'category' );
 		}
 
 		if ( '' !== $tag ) {
-			$query_args['tag'] = $tag;
+			$query_args['tag'] = self::resolve_term_slug( $tag, 'post_tag' );
 		}
 
 		$query = new \WP_Query( $query_args );
@@ -1295,6 +1295,31 @@ class PostAbilities {
 		}
 
 		return trim( $output );
+	}
+
+	/**
+	 * Resolve a term name or slug to a slug.
+	 *
+	 * WP_Query's category_name and tag params accept slugs only. This helper
+	 * tries to find the term by human-readable name first; if found it returns
+	 * the term's slug. If no match is found the original value is returned
+	 * unchanged — it may already be a valid slug.
+	 *
+	 * @param string $value    Term name or slug provided by the caller.
+	 * @param string $taxonomy Taxonomy to search in ('category' or 'post_tag').
+	 * @return string Resolved slug, or original value if no name match found.
+	 */
+	private static function resolve_term_slug( string $value, string $taxonomy ): string {
+		if ( '' === $value ) {
+			return $value;
+		}
+
+		$term = get_term_by( 'name', $value, $taxonomy );
+		if ( $term && ! is_wp_error( $term ) ) {
+			return $term->slug;
+		}
+
+		return $value;
 	}
 
 	/**

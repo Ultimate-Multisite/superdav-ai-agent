@@ -29,7 +29,17 @@ function executeNavigateTo( args ) {
 			? window.location.origin + '/wp-admin/' + path.replace( /^\//, '' )
 			: '/wp-admin/' + path.replace( /^\//, '' );
 
-	window.location.assign( adminUrl );
+	// Defer the actual navigation so jobSlice can POST the tool result back to
+	// the server before the page unloads. Calling window.location.assign() here
+	// would abort the in-flight fetch, leaving the job stuck in
+	// `awaiting_client_tools` on the server. On the next page load the floating
+	// widget restores the job from sessionStorage, finds the same pending call,
+	// and navigates again — an infinite reload loop.
+	//
+	// jobSlice reads window._gratisAiAgentPendingNavigation after the POST
+	// succeeds, clears sessionStorage, and then triggers the navigation.
+	window._gratisAiAgentPendingNavigation = adminUrl;
+
 	return { navigated: true, path };
 }
 

@@ -32,7 +32,6 @@ use GratisAiAgent\Abilities\DesignSystemAbilities;
 use GratisAiAgent\Abilities\EditorialAbilities;
 use GratisAiAgent\Abilities\FeedbackAbilities;
 use GratisAiAgent\Abilities\FileAbilities;
-use GratisAiAgent\Abilities\FormsAbilities;
 use GratisAiAgent\Abilities\GitAbilities;
 use GratisAiAgent\Abilities\GlobalStylesAbilities;
 use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
@@ -123,7 +122,6 @@ final class AbilitiesHandler {
 		ImageAbilities::register_abilities();
 		SiteBuilderAbilities::register_abilities();
 		DesignSystemAbilities::register_abilities();
-		FormsAbilities::register_abilities();
 	}
 
 	/**

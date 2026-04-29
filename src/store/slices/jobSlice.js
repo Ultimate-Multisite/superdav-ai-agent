@@ -530,6 +530,23 @@ export const actions = {
 							return;
 						}
 
+						// If a client ability deferred navigation (e.g.
+						// navigate-to), trigger it now that the tool result
+						// has been successfully posted. Clear sessionStorage
+						// first so the job is not replayed on the next page —
+						// this is the primary fix for the infinite-reload loop
+						// caused by navigate-to calling window.location.assign()
+						// before the POST could complete.
+						if ( window._gratisAiAgentPendingNavigation ) {
+							const target =
+								window._gratisAiAgentPendingNavigation;
+							delete window._gratisAiAgentPendingNavigation;
+							clearActiveJob( sessionId );
+							unsubscribeVisibility();
+							window.location.assign( target );
+							return;
+						}
+
 						// Resume polling — the server has resumed the agent
 						// loop; we continue polling the same job for the
 						// model's next response or another pause.

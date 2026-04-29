@@ -136,6 +136,7 @@ export const actions = {
 						method: 'POST',
 						data: {
 							session_id: sessionId,
+							job_id: jobId,
 							tool_results: toolResults,
 						},
 					} );
@@ -440,6 +441,9 @@ export const actions = {
 						// A 409 response means the server already processed the
 						// results (POST succeeded but response was lost) — treat
 						// as success and resume polling.
+						// job_id is passed so the server can update the job
+						// transient from 'awaiting_client_tools' to the correct
+						// post-resume state, preventing an infinite 409 loop.
 						const currentSessionId = select.getCurrentSessionId();
 						let postSucceeded = false;
 						let postErr = null;
@@ -450,6 +454,7 @@ export const actions = {
 									method: 'POST',
 									data: {
 										session_id: currentSessionId,
+										job_id: jobId,
 										tool_results: toolResults,
 									},
 								} );

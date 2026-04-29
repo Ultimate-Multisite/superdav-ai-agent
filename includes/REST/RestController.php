@@ -35,6 +35,7 @@ use GratisAiAgent\Core\CostCalculator;
 use GratisAiAgent\Core\Database;
 use GratisAiAgent\Core\RolePermissions;
 use GratisAiAgent\Core\Settings;
+use GratisAiAgent\Models\ActiveJobRepository;
 use GratisAiAgent\Models\Agent;
 use WP_Error;
 use WP_REST_Request;
@@ -96,6 +97,11 @@ final class RestController {
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
+					),
+					'job_id'       => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_key',
 					),
 					'tool_results' => array(
 						'required' => true,
@@ -349,6 +355,7 @@ Assistant: %s',
 	public static function handle_tool_result( WP_REST_Request $request ) {
 		$session_id   = self::get_int_param( $request, 'session_id' );
 		$tool_results = $request->get_param( 'tool_results' );
+		$job_id       = (string) ( $request->get_param( 'job_id' ) ?? '' );
 
 		if ( ! $session_id ) {
 			return new WP_Error(
@@ -422,6 +429,11 @@ Assistant: %s',
 
 		// Handle another client-side pause (chained JS tool calls).
 		if ( ! empty( $result['pending_client_tool_calls'] ) ) {
+			// Sync the job transient so the browser's next poll sees
+			// 'awaiting_client_tools' with the NEW pending calls instead of
+			// the stale set from the original background-job pause.
+			self::update_job_after_resume( $job_id, 'awaiting_client_tools', $result, $session_id );
+
 			return new WP_REST_Response(
 				array(
 					'pending_client_tool_calls' => $result['pending_client_tool_calls'],
@@ -436,6 +448,12 @@ Assistant: %s',
 				200
 			);
 		}
+
+		// Update the job transient to 'complete' so the browser's next poll
+		// sees the finished state rather than the stale 'awaiting_client_tools'
+		// the background job left behind.  Must run before session persistence
+		// so the transient result carries the correct session_id when polled.
+		self::update_job_after_resume( $job_id, 'complete', $result, $session_id );
 
 		// Persist the completed conversation to the session.
 		$session = Database::get_session( $session_id );
@@ -495,5 +513,96 @@ Assistant: %s',
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Sync the job transient and DB row after handle_tool_result runs the loop.
+	 *
+	 * The background job sets the transient to 'awaiting_client_tools' and
+	 * exits.  handle_tool_result then resumes the loop synchronously, but the
+	 * transient is never updated — the browser's next poll still sees
+	 * 'awaiting_client_tools', re-executes the client tools, and POSTs again,
+	 * producing an infinite 409 loop.  This method corrects the transient (and
+	 * the DB fallback row) to match the actual post-resume state.
+	 *
+	 * @param string               $job_id     Job UUID supplied by the browser. No-op when empty.
+	 * @param string               $new_status 'awaiting_client_tools' (chained pause) or 'complete'.
+	 * @param array<string, mixed> $result     Raw loop result from resume_after_client_tools().
+	 * @param int                  $session_id Session ID used to populate result['session_id'].
+	 */
+	private static function update_job_after_resume(
+		string $job_id,
+		string $new_status,
+		array $result,
+		int $session_id
+	): void {
+		if ( '' === $job_id ) {
+			return;
+		}
+
+		$transient_key = self::JOB_PREFIX . $job_id;
+		$job           = get_transient( $transient_key );
+
+		if ( 'awaiting_client_tools' === $new_status ) {
+			/** @var list<array<string, mixed>> $pending_calls */
+			$pending_calls = (array) ( $result['pending_client_tool_calls'] ?? array() );
+			/** @var list<array<string, mixed>> $tool_calls */
+			$tool_calls = (array) ( $result['tool_call_log'] ?? array() );
+
+			if ( is_array( $job ) ) {
+				unset( $job['token'] );
+				$job['status']                    = 'awaiting_client_tools';
+				$job['pending_client_tool_calls'] = $pending_calls;
+				$job['tool_calls']                = $tool_calls;
+				set_transient( $transient_key, $job, self::JOB_TTL );
+			}
+
+			// Always update the DB row — serves as fallback when transient expires.
+			ActiveJobRepository::update_status(
+				$job_id,
+				'awaiting_client_tools',
+				array(
+					'pending_tools' => wp_json_encode( $pending_calls ),
+					'tool_calls'    => wp_json_encode( $tool_calls ),
+				)
+			);
+			return;
+		}
+
+		// 'complete' path.
+		/** @var array<string, mixed> $job_result */
+		$job_result = array(
+			'reply'           => $result['reply'] ?? '',
+			'history'         => $result['history'] ?? array(),
+			'tool_calls'      => $result['tool_calls'] ?? array(),
+			'session_id'      => $session_id,
+			'token_usage'     => $result['token_usage'] ?? array(
+				'prompt'     => 0,
+				'completion' => 0,
+			),
+			'model_id'        => $result['model_id'] ?? '',
+			'iterations_used' => $result['iterations_used'] ?? 0,
+		);
+
+		if ( ! empty( $result['generated_title'] ) ) {
+			$job_result['generated_title'] = $result['generated_title'];
+		}
+		if ( ! empty( $result['exit_reason'] ) ) {
+			$job_result['exit_reason'] = $result['exit_reason'];
+		}
+		if ( ! empty( $result['inability_reported'] ) ) {
+			$job_result['inability_reported'] = $result['inability_reported'];
+		}
+
+		if ( is_array( $job ) ) {
+			unset( $job['token'] );
+			$job['status'] = 'complete';
+			$job['result'] = $job_result;
+			set_transient( $transient_key, $job, self::JOB_TTL );
+		}
+
+		// Update the DB row so the fallback path serves 'complete' (with from_db=true)
+		// if the transient expires before the browser polls.
+		ActiveJobRepository::update_status( $job_id, 'complete' );
 	}
 }

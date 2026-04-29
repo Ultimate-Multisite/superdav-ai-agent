@@ -383,7 +383,7 @@ class SystemInstructionBuilder {
 			. "- Use `ai-agent/update-global-styles` to apply a color palette and typography matching the site tone.\n"
 			. "- Output: \"**Progress:** Global styles applied ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 8 — Save site info to memory**\n"
-			. "- Use `gratis-ai-agent/memory-save` to store: business name, type, goals, page IDs, installed plugins.\n"
+			. "- Use `ai-agent/memory-save` to store: business name, type, goals, page IDs, installed plugins.\n"
 			. "- Output: \"**Progress:** Site info saved to memory ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 9 — Mark site builder complete**\n"
 			. "- Call `gratis-ai-agent/complete-site-builder` to disable site builder mode.\n"

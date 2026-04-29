@@ -1,15 +1,27 @@
 name: Code Quality
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'TODO.md'
+      - 'todo/**'
+      - 'LICENSE'
+      - '.editorconfig'
+      - '.agents/**'
   workflow_dispatch:
 
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  eslint:
-    name: ESLint
+  # ESLint + Stylelint merged into a single job — saves a full npm ci.
+  lint:
+    name: Lint (ESLint + Stylelint)
     runs-on: ubuntu-latest
 
     steps:
@@ -28,28 +40,12 @@ jobs:
       - name: Run ESLint
         run: npx eslint src/ --ext .js,.jsx --format stylish
 
-  stylelint:
-    name: Stylelint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run Stylelint
         run: npx stylelint "src/**/*.css" --formatter verbose
 
+  # Build + bundle size merged — avoids a second npm ci + npm run build.
   build:
-    name: Build Check
+    name: Build & Bundle Size
     runs-on: ubuntu-latest
 
     steps:
@@ -76,27 +72,6 @@ jobs:
           fi
           echo "Build successful - artifacts found:"
           ls -la build/
-
-  bundle-size:
-    name: Bundle Size Budget
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
 
       - name: Check bundle size budgets
         run: npm run size

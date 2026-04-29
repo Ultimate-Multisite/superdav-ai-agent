@@ -1,10 +1,17 @@
 name: E2E Tests
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'TODO.md'
+      - 'todo/**'
+      - 'LICENSE'
+      - '.editorconfig'
+      - '.agents/**'
   workflow_dispatch:
 
 concurrency:
@@ -22,28 +29,24 @@ jobs:
     # 90 s in playwright.config.js — setup + test time could exceed 60 min.
     timeout-minutes: 90
     # WP trunk may fail due to PSR namespace conflicts between our compat
-    # layer and core's native AI Client SDK (see tests.yml for details).
-    continue-on-error: ${{ matrix.wp == 'trunk' }}
+    # layer and core's native AI Client SDK.
+    continue-on-error: true
 
     strategy:
       fail-fast: false
       matrix:
-        wp: ['6.9', 'trunk']
+        # Plugin requires WP 7.0+; only trunk (pre-release 7.x) is relevant.
+        # WP 6.9 was removed — the plugin won't activate on it.
+        wp: ['trunk']
         # 3 shards split 13 spec files into ~4-5 files each. With the 90-min
         # job timeout, each shard has ample headroom even with 2 retries.
         shard: [1, 2, 3]
         include:
-          - wp: '6.9'
-            wp_env_port: '8890'
-            wp_env_override: ''
-            # 2 workers on WP 6.9: 3 workers cause resource contention that
-            # manifests as login and SPA-render timeouts on CI runners.
-            playwright_workers: '2'
           - wp: 'trunk'
             wp_env_port: '8890'
             wp_env_override: '{"core":"WordPress/WordPress#master"}'
-            # 2 workers on WP trunk: same resource contention as WP 6.9 —
-            # 3 workers cause login and SPA-render timeouts on CI runners.
+            # 2 workers: 3 workers cause resource contention that manifests
+            # as login and SPA-render timeouts on CI runners.
             playwright_workers: '2'
 
     steps:
@@ -233,7 +236,7 @@ jobs:
           # shards of the same WP version.
           name: playwright-report-wp${{ matrix.wp }}-shard${{ matrix.shard }}
           path: playwright-report/
-          retention-days: 14
+          retention-days: 3
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -241,7 +244,7 @@ jobs:
         with:
           name: test-results-wp${{ matrix.wp }}-shard${{ matrix.shard }}
           path: test-results/
-          retention-days: 7
+          retention-days: 3
 
       - name: Dump PHP error log on failure
         if: failure()

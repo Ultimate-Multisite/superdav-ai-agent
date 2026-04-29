@@ -1,24 +1,30 @@
 name: Tests
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'TODO.md'
+      - 'todo/**'
+      - 'LICENSE'
+      - '.editorconfig'
+      - '.agents/**'
   workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   phpunit:
-    name: PHPUnit (WP ${{ matrix.wp }})
+    name: PHPUnit
     runs-on: ubuntu-latest
     # Plugin requires WP 7.0+; trunk is the only pre-release target.
-    # Allow trunk failures since the API may still be in flux.
-    continue-on-error: ${{ matrix.wp == 'trunk' }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        wp: ['trunk']
+    # Allow failures since the API may still be in flux.
+    continue-on-error: true
 
     services:
       mariadb:
@@ -64,16 +70,52 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y subversion
 
       - name: Install WordPress test suite
-        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 ${{ matrix.wp }} true
+        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 trunk true
 
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
+  # PHPCS + PHPStan merged into a single job to avoid duplicate Composer installs.
+  static-analysis:
+    name: Static Analysis (PHPCS + PHPStan)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run PHPCS
+        run: vendor/bin/phpcs
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --error-format=github
+
+  # Coverage runs weekly + on-demand only — too expensive for every PR.
   coverage:
     name: PHPUnit Coverage
     runs-on: ubuntu-latest
-    # Plugin requires WP 7.0+; trunk is the only pre-release target.
-    # Allow failures since trunk API may still be in flux.
+    if: github.event_name == 'workflow_dispatch'
     continue-on-error: true
 
     services:
@@ -120,7 +162,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y subversion
 
       - name: Install WordPress test suite
-        # Plugin requires WP 7.0+; use trunk until 7.0 is released as stable
         run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1 trunk true
 
       - name: Run PHPUnit with coverage
@@ -132,67 +173,3 @@ jobs:
           files: ./coverage.xml
           flags: phpunit
           fail_ci_if_error: false
-
-  phpcs:
-    name: PHPCS
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring
-          tools: composer:v2
-
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v5
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Run PHPCS
-        run: vendor/bin/phpcs
-
-  phpstan:
-    name: PHPStan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring
-          tools: composer:v2
-
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v5
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --error-format=github

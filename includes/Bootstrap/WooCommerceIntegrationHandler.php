@@ -1,0 +1,239 @@
+<?php
+/**
+ * DI handler that auto-enables WooCommerce's native Abilities API integration.
+ *
+ * WooCommerce 10.3+ ships its own abilities (products, orders) registered via
+ * `AbilitiesRestBridge`. Those abilities are gated behind an `is_mcp_request()`
+ * guard so they only activate for MCP protocol requests. This handler bridges
+ * the gap so the WP AI Client SDK (which uses `wp-abilities/v1/abilities/{name}/run`
+ * — a REST request, but NOT the `/woocommerce/mcp` endpoint) can also use them.
+ *
+ * Behaviour when WooCommerce ≥ 10.3 is active:
+ *
+ *   1. Auto-enables `woocommerce_feature_mcp_integration_enabled` so that real
+ *      MCP clients (Claude Desktop, etc.) work out of the box. Respects a
+ *      `sd_ai_agent_auto_enable_woo_mcp` filter (return false to opt out).
+ *
+ *   2. Registers the `woocommerce-rest` ability category and all configured
+ *      WooCommerce REST abilities (products-list/get/create/update/delete,
+ *      orders-list/get/create/update) on `wp_abilities_api_init` at priority 5,
+ *      before WooCommerce's own priority-10 hook which bails for non-MCP requests.
+ *
+ * When WooCommerce is not active this handler is a no-op.
+ *
+ * @package SdAiAgent\Bootstrap
+ * @license GPL-2.0-or-later
+ * @since   1.3.0
+ */
+
+declare(strict_types=1);
+
+namespace SdAiAgent\Bootstrap;
+
+use XWP\DI\Decorators\Action;
+use XWP\DI\Decorators\Filter;
+use XWP\DI\Decorators\Handler;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Auto-enables WooCommerce's native Abilities API for the WP AI Client SDK.
+ *
+ * @since 1.3.0
+ */
+#[Handler(
+	container: 'sd-ai-agent',
+	strategy: Handler::INIT_JUST_IN_TIME,
+)]
+final class WooCommerceIntegrationHandler {
+
+	/**
+	 * Fully-qualified class names for WooCommerce's internal abilities bridge.
+	 * We reference them as strings to avoid hard class-import errors when
+	 * WooCommerce is not installed.
+	 */
+	private const BRIDGE_CLASS   = 'Automattic\\WooCommerce\\Internal\\Abilities\\AbilitiesRestBridge';
+	private const FACTORY_CLASS  = 'Automattic\\WooCommerce\\Internal\\Abilities\\REST\\RestAbilityFactory';
+	private const CATEGORY_CLASS = 'Automattic\\WooCommerce\\Internal\\Abilities\\AbilitiesCategories';
+
+	/**
+	 * Option name for WooCommerce's MCP integration feature flag.
+	 */
+	private const WOO_MCP_OPTION = 'woocommerce_feature_mcp_integration_enabled';
+
+	// ─── Hooks ──────────────────────────────────────────────────────────────
+
+	/**
+	 * Auto-enable WooCommerce's MCP integration feature flag when WooCommerce is active.
+	 *
+	 * Fires on `plugins_loaded` at priority 5 (before most plugins). Respects a
+	 * `sd_ai_agent_auto_enable_woo_mcp` filter — return false to opt out.
+	 */
+	#[Action( tag: 'plugins_loaded', priority: 5 )]
+	public function maybe_enable_woo_mcp_feature(): void {
+		if ( ! self::is_woocommerce_active() ) {
+			return;
+		}
+
+		/**
+		 * Controls whether sd-ai-agent automatically enables the WooCommerce
+		 * MCP integration feature flag when WooCommerce is active.
+		 *
+		 * Return false to manage the feature flag yourself via WooCommerce settings.
+		 *
+		 * @since 1.3.0
+		 * @param bool $auto_enable Default true.
+		 */
+		if ( ! apply_filters( 'sd_ai_agent_auto_enable_woo_mcp', true ) ) {
+			return;
+		}
+
+		if ( get_option( self::WOO_MCP_OPTION ) !== 'yes' ) {
+			update_option( self::WOO_MCP_OPTION, 'yes', true );
+		}
+	}
+
+	/**
+	 * Register the `woocommerce-rest` ability category for the WP Abilities API.
+	 *
+	 * WooCommerce normally registers this category only when its `AbilitiesRegistry`
+	 * is constructed (which only happens during MCP requests). We register it here
+	 * at priority 5 so it's always available when WooCommerce is active.
+	 */
+	#[Action( tag: 'wp_abilities_api_categories_init', priority: 5 )]
+	public function register_woo_ability_category(): void {
+		if ( ! self::is_woocommerce_active() ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wp_register_ability_category' ) ) {
+			return;
+		}
+
+		// Delegate to WooCommerce's own category registration when available so
+		// labels/descriptions stay in sync. Gracefully fall back to our own call
+		// if the class doesn't exist (older WooCommerce).
+		if ( class_exists( self::CATEGORY_CLASS ) ) {
+			( self::CATEGORY_CLASS )::register_categories();
+			return;
+		}
+
+		// Fallback for WooCommerce versions without AbilitiesCategories.
+		if ( ! wp_get_ability_category( 'woocommerce-rest' ) ) {
+			wp_register_ability_category(
+				'woocommerce-rest',
+				array(
+					'label'       => __( 'WooCommerce REST API', 'sd-ai-agent' ),
+					'description' => __( 'REST API operations for WooCommerce resources including products, orders, and other store data.', 'sd-ai-agent' ),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Register WooCommerce's native REST-bridge abilities for the WP AI Client SDK.
+	 *
+	 * WooCommerce's `AbilitiesRestBridge::register_abilities()` is gated behind
+	 * `MCPAdapterProvider::is_mcp_request()` — it only fires for requests to
+	 * `/woocommerce/mcp`, not for the generic `/wp-abilities/v1/abilities/{name}/run`
+	 * endpoint used by `wp_ai_client_prompt()`. We use PHP reflection to call the
+	 * private `get_configurations()` method and pass each config directly to
+	 * `RestAbilityFactory::register_controller_abilities()`, bypassing the guard.
+	 *
+	 * Fires at priority 5, before WooCommerce's own priority-10 hook, so the
+	 * abilities are registered regardless of whether this is an MCP request.
+	 * WooCommerce's hook becomes a benign no-op (abilities already registered).
+	 *
+	 * Falls back gracefully if WooCommerce's internal classes are not available
+	 * (e.g., older WooCommerce or WooCommerce not active).
+	 */
+	#[Action( tag: 'wp_abilities_api_init', priority: 5 )]
+	public function register_woo_rest_abilities(): void {
+		if ( ! self::is_woocommerce_active() ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return;
+		}
+
+		if ( ! class_exists( self::BRIDGE_CLASS ) || ! class_exists( self::FACTORY_CLASS ) ) {
+			return;
+		}
+
+		try {
+			$ref    = new \ReflectionClass( self::BRIDGE_CLASS );
+			$method = $ref->getMethod( 'get_configurations' );
+			$method->setAccessible( true );
+
+			/** @var array<int, array<string, mixed>> $configurations */
+			$configurations = $method->invoke( null );
+
+			foreach ( $configurations as $config ) {
+				( self::FACTORY_CLASS )::register_controller_abilities( $config );
+			}
+		} catch ( \ReflectionException $e ) {
+			// WooCommerce internals changed. Log and carry on — abilities simply
+			// won't be available via the WP AI Client SDK for this version.
+			if ( function_exists( 'wc_get_logger' ) ) {
+				wc_get_logger()->warning(
+				'sd-ai-agent: Could not reflect on WooCommerce AbilitiesRestBridge::get_configurations(). ' .
+				'WooCommerce product/order abilities may not be available via wp_ai_client_prompt(). ' .
+				'Error: ' . $e->getMessage(),
+					array( 'source' => 'sd-ai-agent-woo-integration' )
+				);
+			}
+		}
+	}
+
+	/**
+	 * Grant WooCommerce REST ability permissions to users with appropriate capabilities.
+	 *
+	 * WooCommerce's `RestAbilityFactory::check_permission()` delegates to this filter
+	 * with a default of `false`. During MCP requests, WooCommerce's transport layer
+	 * hooks in its own handler. For non-MCP requests (the WP AI Client SDK path via
+	 * `/wp-abilities/v1/abilities/{name}/run`), we provide the permission check here
+	 * based on standard WooCommerce capabilities:
+	 *
+	 *   - GET operations: require `view_woocommerce_reports` or `manage_woocommerce`
+	 *   - POST/PUT/DELETE: require `manage_woocommerce`
+	 *
+	 * @param bool   $allowed    Current permission state (default false).
+	 * @param string $method     HTTP method (GET, POST, PUT, DELETE).
+	 * @param object $controller REST controller instance.
+	 * @return bool Whether the operation is allowed.
+	 */
+	#[Filter( tag: 'woocommerce_check_rest_ability_permissions_for_method', priority: 10 )]
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $controller required by WooCommerce filter signature.
+	public function check_woo_rest_ability_permissions( bool $allowed, string $method, object $controller ): bool {
+		// Already allowed by another filter (e.g., WooCommerce's MCP transport).
+		if ( $allowed ) {
+			return true;
+		}
+
+		if ( ! self::is_woocommerce_active() ) {
+			return false;
+		}
+
+		// Read operations: view_woocommerce_reports or manage_woocommerce.
+		if ( 'GET' === $method ) {
+			return current_user_can( 'view_woocommerce_reports' ) || current_user_can( 'manage_woocommerce' );
+		}
+
+		// Write operations: manage_woocommerce.
+		return current_user_can( 'manage_woocommerce' );
+	}
+
+	// ─── Helpers ─────────────────────────────────────────────────────────────
+
+	/**
+	 * Check whether WooCommerce is active with its core classes available.
+	 *
+	 * @return bool
+	 */
+	private static function is_woocommerce_active(): bool {
+		return class_exists( 'WooCommerce' ) && function_exists( 'wc_get_product' );
+	}
+}

@@ -54,7 +54,6 @@ use SdAiAgent\Abilities\SiteBuilderAbilities;
 use SdAiAgent\Abilities\SiteHealthAbilities;
 use SdAiAgent\Abilities\SkillAbilities;
 use SdAiAgent\Abilities\UserAbilities;
-use SdAiAgent\Abilities\WooCommerceAbilities;
 use SdAiAgent\Abilities\WordPressAbilities;
 use SdAiAgent\Abilities\WpCliAbilities;
 use XWP\DI\Decorators\Action;
@@ -109,7 +108,10 @@ final class AbilitiesHandler {
 		WordPressAbilities::register_abilities();
 		WpCliAbilities::register_ability();
 		OptionsAbilities::register_abilities();
-		WooCommerceAbilities::register_abilities();
+		// WooCommerce abilities are now registered by WooCommerceIntegrationHandler
+		// via WooCommerce's own AbilitiesRestBridge, making WooCommerce's native
+		// woocommerce/products-* and woocommerce/orders-* abilities available to the
+		// WP AI Client SDK without maintaining a duplicate implementation here.
 		SiteHealthAbilities::register_abilities();
 		NavigationAbilities::register_abilities();
 		MenuAbilities::register_abilities();

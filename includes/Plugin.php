@@ -20,6 +20,7 @@ namespace SdAiAgent;
 
 use SdAiAgent\Bootstrap\AbilitiesHandler;
 use SdAiAgent\Bootstrap\AdminHandler;
+use SdAiAgent\Bootstrap\WooCommerceIntegrationHandler;
 use SdAiAgent\Bootstrap\AutomationsHandler;
 use SdAiAgent\Bootstrap\ChangeLoggingHandler;
 use SdAiAgent\Bootstrap\CliHandler;
@@ -86,6 +87,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		RequestTimeoutFilter::class,
 		CliHandler::class,
 		AbilitiesHandler::class,
+		WooCommerceIntegrationHandler::class,
 		AdminHandler::class,
 		// Core background service handlers (replaced CoreServicesHandler).
 		ChangeLoggingHandler::class,

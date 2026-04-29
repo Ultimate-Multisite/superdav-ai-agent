@@ -39,17 +39,12 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      - name: Rename archive for release
-        run: |
-          mkdir -p build
-          mv ai-agent-for-wp.zip build/ultimate-multisite-${{ env.VERSION }}.zip
-
       - name: Create ZIP files
         run: |
-          cd dist
-          zip -r ../gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip gratis-ai-agent -x "*.DS_Store" -x "*.git*"
+          # npm run build → archive.js → composer archive-project → ai-agent-for-wp.zip
+          cp ai-agent-for-wp.zip gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip
           # Stable-name zip so playground blueprints can reference /releases/latest/download/
-          cp ../gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip ../gratis-ai-agent.zip
+          cp ai-agent-for-wp.zip gratis-ai-agent.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

@@ -2,16 +2,16 @@
 /**
  * Handler: normalise `wp_register_ability_args` input schemas.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Infrastructure\WordPress\Abilities;
+namespace SdAiAgent\Infrastructure\WordPress\Abilities;
 
-use GratisAiAgent\Infrastructure\Schema\EmptyJsonObject;
-use GratisAiAgent\Infrastructure\Schema\SchemaNormalizer;
+use SdAiAgent\Infrastructure\Schema\EmptyJsonObject;
+use SdAiAgent\Infrastructure\Schema\SchemaNormalizer;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
 
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * instantiates the {@see \WP_Ability} object.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

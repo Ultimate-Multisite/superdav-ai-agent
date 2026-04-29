@@ -60,7 +60,7 @@ jest.mock( '@wordpress/components', () => {
 } );
 
 // Mock store.
-jest.mock( '../../store', () => 'gratis-ai-agent' );
+jest.mock( '../../store', () => 'sd-ai-agent' );
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

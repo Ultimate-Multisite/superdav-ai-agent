@@ -4,20 +4,20 @@ declare(strict_types=1);
 /**
  * Plugin settings management.
  *
- * Stores all Gratis AI Agent settings in a single WordPress option and provides
- * a React-based settings page under Tools > Gratis AI Agent Settings.
+ * Stores all Superdav AI Agent settings in a single WordPress option and provides
+ * a React-based settings page under Tools > Superdav AI Agent Settings.
  *
  * This class is designed as an injectable DI service. Use constructor injection
  * to receive a Settings instance in DI-managed handlers. For non-DI code, use
  * the static {@see Settings::instance()} factory as a bridge.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Core\CredentialResolver;
+use SdAiAgent\Core\CredentialResolver;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,27 +28,27 @@ class Settings {
 	/**
 	 * Option name in the wp_options table.
 	 */
-	const OPTION_NAME = 'gratis_ai_agent_settings';
+	const OPTION_NAME = 'sd_ai_agent_settings';
 
 	/**
 	 * Separate option name for the Claude Max OAuth token (stored apart from
 	 * general settings so it can be given stricter access control).
 	 */
-	const CLAUDE_MAX_TOKEN_OPTION = 'gratis_ai_agent_claude_max_token';
+	const CLAUDE_MAX_TOKEN_OPTION = 'sd_ai_agent_claude_max_token';
 
 	/**
 	 * Option name for directly-configured provider API keys.
 	 * Stored separately from general settings to avoid leaking credentials
 	 * through the GET /settings endpoint.
 	 */
-	const PROVIDER_KEYS_OPTION = 'gratis_ai_agent_provider_keys';
+	const PROVIDER_KEYS_OPTION = 'sd_ai_agent_provider_keys';
 
 	/**
 	 * Option name for Google Search Console credentials.
 	 * Stored separately from general settings to avoid leaking credentials
 	 * through the GET /settings endpoint.
 	 */
-	const GSC_CREDENTIALS_OPTION = 'gratis_ai_agent_gsc_credentials';
+	const GSC_CREDENTIALS_OPTION = 'sd_ai_agent_gsc_credentials';
 
 	/**
 	 * Supported direct providers with their metadata.
@@ -462,13 +462,13 @@ class Settings {
 	 *
 	 * Resolution order (first non-empty value wins):
 	 *   1. `default_model` setting saved by the site administrator.
-	 *   2. Value returned by the `gratis_ai_agent_default_model` filter (allows
+	 *   2. Value returned by the `sd_ai_agent_default_model` filter (allows
 	 *      developers to override the default programmatically).
-	 *   3. The `GRATIS_AI_AGENT_DEFAULT_MODEL` constant defined in the plugin root.
+	 *   3. The `SD_AI_AGENT_DEFAULT_MODEL` constant defined in the plugin root.
 	 *
 	 * Example — override the default model from a theme or mu-plugin:
 	 *
-	 *   add_filter( 'gratis_ai_agent_default_model', function ( string $model ): string {
+	 *   add_filter( 'sd_ai_agent_default_model', function ( string $model ): string {
 	 *       return 'gpt-4o';
 	 *   } );
 	 *
@@ -480,14 +480,14 @@ class Settings {
 		$model = (string) ( $settings['default_model'] ?? '' );
 
 		if ( '' === $model ) {
-			$builtin = defined( 'GRATIS_AI_AGENT_DEFAULT_MODEL' ) ? (string) GRATIS_AI_AGENT_DEFAULT_MODEL : 'claude-sonnet-4';
+			$builtin = defined( 'SD_AI_AGENT_DEFAULT_MODEL' ) ? (string) SD_AI_AGENT_DEFAULT_MODEL : 'claude-sonnet-4';
 
 			/**
 			 * Filter the default model ID used when no model is configured in settings.
 			 *
-			 * @param string $model The built-in fallback model ID (GRATIS_AI_AGENT_DEFAULT_MODEL).
+			 * @param string $model The built-in fallback model ID (SD_AI_AGENT_DEFAULT_MODEL).
 			 */
-			$model = (string) apply_filters( 'gratis_ai_agent_default_model', $builtin );
+			$model = (string) apply_filters( 'sd_ai_agent_default_model', $builtin );
 		}
 
 		return $model;
@@ -539,7 +539,7 @@ class Settings {
 	 * Stored as a standalone option (not inside the settings blob) so it
 	 * persists even if the settings are reset.
 	 */
-	const WOO_AUTO_ENABLED_OPTION = 'gratis_ai_agent_woo_abilities_auto_enabled';
+	const WOO_AUTO_ENABLED_OPTION = 'sd_ai_agent_woo_abilities_auto_enabled';
 
 	/**
 	 * WooCommerce ability IDs managed by this auto-enable routine.
@@ -547,12 +547,12 @@ class Settings {
 	 * @var string[]
 	 */
 	const WOO_ABILITY_IDS = array(
-		'gratis-ai-agent/woo-get-products',
-		'gratis-ai-agent/woo-create-product',
-		'gratis-ai-agent/woo-update-product',
-		'gratis-ai-agent/woo-delete-product',
-		'gratis-ai-agent/woo-get-orders',
-		'gratis-ai-agent/woo-get-store-stats',
+		'sd-ai-agent/woo-get-products',
+		'sd-ai-agent/woo-create-product',
+		'sd-ai-agent/woo-update-product',
+		'sd-ai-agent/woo-delete-product',
+		'sd-ai-agent/woo-get-orders',
+		'sd-ai-agent/woo-get-store-stats',
 	);
 
 	/**

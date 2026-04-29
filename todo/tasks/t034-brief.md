@@ -38,7 +38,7 @@ the manager resolves the correct tracker automatically.
   - `get_all_tracked_files(?string $status): array`
   - `revert_package(string $slug, string $type): array`
   - `get_package_summary(string $slug, string $type): array|WP_Error`
-  - `register(): void` — hooks into `gratis_ai_agent_before/after_file_write/edit`
+  - `register(): void` — hooks into `sd_ai_agent_before/after_file_write/edit`
   - `clear_cache(): void` — for tests
 - In-memory cache keyed by package slug (plugins: slug, themes: `theme:{slug}`)
 - `resolve_plugin_file()` uses `get_plugins()` to find the main plugin file

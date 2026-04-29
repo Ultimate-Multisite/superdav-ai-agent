@@ -43,15 +43,15 @@ export default function ProviderSelector( { compact = false } ) {
 
 	if ( ! providers.length ) {
 		return (
-			<div className="gratis-ai-agent-provider-selector">
+			<div className="sd-ai-agent-provider-selector">
 				<p>
 					<a
 						href={
-							window.gratisAiAgentData?.connectorsUrl ||
+							window.sdAiAgentData?.connectorsUrl ||
 							'options-general.php?page=options-connectors-wp-admin'
 						}
 					>
-						{ __( 'Configure a provider', 'gratis-ai-agent' ) }
+						{ __( 'Configure a provider', 'sd-ai-agent' ) }
 					</a>
 				</p>
 			</div>
@@ -68,7 +68,7 @@ export default function ProviderSelector( { compact = false } ) {
 				label: m.name || m.id,
 				value: m.id,
 		  } ) )
-		: [ { label: __( '(default)', 'gratis-ai-agent' ), value: '' } ];
+		: [ { label: __( '(default)', 'sd-ai-agent' ), value: '' } ];
 
 	const onProviderChange = ( value ) => {
 		setSelectedProvider( value );
@@ -82,15 +82,13 @@ export default function ProviderSelector( { compact = false } ) {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-provider-selector ${
+			className={ `sd-ai-agent-provider-selector ${
 				compact ? 'is-compact' : ''
 			}` }
 		>
-			<div className="gratis-ai-agent-provider-selector__row">
+			<div className="sd-ai-agent-provider-selector__row">
 				<SelectControl
-					label={
-						compact ? null : __( 'Provider', 'gratis-ai-agent' )
-					}
+					label={ compact ? null : __( 'Provider', 'sd-ai-agent' ) }
 					value={ selectedProviderId }
 					options={ providerOptions }
 					onChange={ onProviderChange }
@@ -101,14 +99,14 @@ export default function ProviderSelector( { compact = false } ) {
 					variant="tertiary"
 					onClick={ onRefresh }
 					disabled={ loading }
-					className="gratis-ai-agent-provider-selector__refresh"
+					className="sd-ai-agent-provider-selector__refresh"
 					icon="update"
-					label={ __( 'Refresh providers', 'gratis-ai-agent' ) }
+					label={ __( 'Refresh providers', 'sd-ai-agent' ) }
 					showTooltip
 				/>
 			</div>
 			<SelectControl
-				label={ compact ? null : __( 'Model', 'gratis-ai-agent' ) }
+				label={ compact ? null : __( 'Model', 'sd-ai-agent' ) }
 				value={ selectedModelId }
 				options={ modelOptions }
 				onChange={ setSelectedModel }

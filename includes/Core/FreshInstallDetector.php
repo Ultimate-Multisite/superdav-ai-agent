@@ -11,11 +11,11 @@ declare(strict_types=1);
  * sets the `site_builder_mode` flag so the floating widget can open
  * automatically in expanded mode and guide the user through site setup.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,7 +28,7 @@ class FreshInstallDetector {
 	 *
 	 * Stored as a transient so it is re-evaluated after content changes.
 	 */
-	const TRANSIENT_KEY = 'gratis_ai_agent_fresh_install';
+	const TRANSIENT_KEY = 'sd_ai_agent_fresh_install';
 
 	/**
 	 * How long (in seconds) to cache the detection result.

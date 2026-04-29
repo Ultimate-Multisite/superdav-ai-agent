@@ -42,9 +42,9 @@ const SettingsRoute = lazy( () =>
  * to install Gutenberg.
  */
 function redirectConnectors() {
-	if ( window.gratisAiAgentData?.connectorsAvailable ) {
+	if ( window.sdAiAgentData?.connectorsAvailable ) {
 		window.location.href =
-			window.gratisAiAgentData?.connectorsUrl ||
+			window.sdAiAgentData?.connectorsUrl ||
 			'options-general.php?page=options-connectors-wp-admin';
 	} else {
 		window.location.href =
@@ -86,12 +86,12 @@ export default function Router( { route } ) {
 
 		default:
 			return (
-				<div className="gratis-ai-agent-route-not-found">
-					<h2>{ __( 'Page Not Found', 'gratis-ai-agent' ) }</h2>
+				<div className="sd-ai-agent-route-not-found">
+					<h2>{ __( 'Page Not Found', 'sd-ai-agent' ) }</h2>
 					<p>
 						{ __(
 							'The requested page could not be found.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>

@@ -9,10 +9,10 @@
  *   - Resetting fields to empty restores the default preview values
  *
  * Tests run against the settings page at:
- *   /wp-admin/admin.php?page=gratis-ai-agent#/settings
+ *   /wp-admin/admin.php?page=sd-ai-agent#/settings
  *
  * The branding panel lives on the "Branding" tab of the settings page.
- * REST API calls to /gratis-ai-agent/v1/settings are intercepted so tests
+ * REST API calls to /sd-ai-agent/v1/settings are intercepted so tests
  * are deterministic and do not require a live WordPress database.
  *
  * IMPORTANT: mockSettingsApi() must be called BEFORE loginToWordPress() in
@@ -73,7 +73,7 @@ const BRANDED_SETTINGS = {
 // ---------------------------------------------------------------------------
 
 /**
- * Intercept all /gratis-ai-agent/v1/settings REST calls and return controlled
+ * Intercept all /sd-ai-agent/v1/settings REST calls and return controlled
  * fixture data. This makes tests deterministic without a live WP database.
  *
  * MUST be called before any page.goto() / loginToWordPress() call so that
@@ -87,7 +87,7 @@ async function mockSettingsApi( page, initialSettings = DEFAULT_SETTINGS ) {
 	let settings = { ...initialSettings };
 
 	await page.route(
-		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/settings' ),
+		( url ) => decodeUrl( url ).includes( 'sd-ai-agent/v1/settings' ),
 		async ( route ) => {
 			const rawMethod = route.request().method();
 			const overrideHeader =
@@ -121,7 +121,7 @@ async function mockSettingsApi( page, initialSettings = DEFAULT_SETTINGS ) {
 
 	// Stub agents endpoint (used by the floating widget on every admin page).
 	await page.route(
-		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/agents' ),
+		( url ) => decodeUrl( url ).includes( 'sd-ai-agent/v1/agents' ),
 		async ( route ) => {
 			await route.fulfill( {
 				status: 200,
@@ -144,22 +144,22 @@ async function mockSettingsApi( page, initialSettings = DEFAULT_SETTINGS ) {
  */
 async function goToBrandingTab( page ) {
 	// UnifiedAdminMenu uses hash-based routing. The settings route is at
-	// admin.php?page=gratis-ai-agent#/settings. The old URL
-	// (tools.php?page=gratis-ai-agent-settings) triggers a wp_safe_redirect()
+	// admin.php?page=sd-ai-agent#/settings. The old URL
+	// (tools.php?page=sd-ai-agent-settings) triggers a wp_safe_redirect()
 	// which causes Playwright to hang — use the canonical hash URL directly.
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-agent-route-settings' )
+		.locator( '.sd-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// Click the Branding tab (present in the unified settings route).
 	const tab = page.getByRole( 'tab', { name: /branding/i } );
 	await tab.click();
 	await page
-		.locator( '.gratis-ai-agent-branding-manager' )
+		.locator( '.sd-ai-agent-branding-manager' )
 		.waitFor( { state: 'visible', timeout: 15_000 } );
 }
 
@@ -174,7 +174,7 @@ async function goToBrandingTab( page ) {
  * @return {import('@playwright/test').Locator}
  */
 function getBrandingManager( page ) {
-	return page.locator( '.gratis-ai-agent-branding-manager' );
+	return page.locator( '.sd-ai-agent-branding-manager' );
 }
 
 /**
@@ -190,7 +190,7 @@ function getBrandingManager( page ) {
  */
 function getBrandingPreview( page ) {
 	return getBrandingManager( page ).locator(
-		'.gratis-ai-agent-branding-preview'
+		'.sd-ai-agent-branding-preview'
 	);
 }
 
@@ -204,7 +204,7 @@ function getBrandingPreview( page ) {
  */
 function getPreviewTitleBar( page ) {
 	return getBrandingManager( page ).locator(
-		'.gratis-ai-agent-branding-preview__titlebar'
+		'.sd-ai-agent-branding-preview__titlebar'
 	);
 }
 
@@ -218,7 +218,7 @@ function getPreviewTitleBar( page ) {
  */
 function getPreviewFab( page ) {
 	return getBrandingManager( page ).locator(
-		'.gratis-ai-agent-branding-preview__fab'
+		'.sd-ai-agent-branding-preview__fab'
 	);
 }
 
@@ -265,9 +265,9 @@ test.describe( 'White-Label Branding - Settings Fields', () => {
 		page,
 	} ) => {
 		const manager = getBrandingManager( page );
-		// The primary color TextControl has id="gratis-ai-agent-brand-primary-color".
+		// The primary color TextControl has id="sd-ai-agent-brand-primary-color".
 		const colorField = manager.locator(
-			'#gratis-ai-agent-brand-primary-color'
+			'#sd-ai-agent-brand-primary-color'
 		);
 		await expect( colorField ).toBeVisible();
 		await colorField.fill( '#e63946' );
@@ -331,7 +331,7 @@ test.describe( 'White-Label Branding - Live Preview', () => {
 	} ) => {
 		const manager = getBrandingManager( page );
 		const colorField = manager.locator(
-			'#gratis-ai-agent-brand-primary-color'
+			'#sd-ai-agent-brand-primary-color'
 		);
 
 		await colorField.fill( '#e63946' );
@@ -364,7 +364,7 @@ test.describe( 'White-Label Branding - Live Preview', () => {
 		// img is inside an aria-hidden container that some environments treat
 		// as visually hidden.
 		const previewLogo = getBrandingPreview( page ).locator(
-			'.gratis-ai-agent-branding-preview__logo'
+			'.sd-ai-agent-branding-preview__logo'
 		);
 		await expect( previewLogo ).toBeAttached();
 		await expect( previewLogo ).toHaveAttribute(
@@ -406,7 +406,7 @@ test.describe( 'White-Label Branding - Save and Persist', () => {
 			.getByLabel( /Agent Display Name/i )
 			.fill( BRANDED_SETTINGS.agent_name );
 		await manager
-			.locator( '#gratis-ai-agent-brand-primary-color' )
+			.locator( '#sd-ai-agent-brand-primary-color' )
 			.fill( BRANDED_SETTINGS.brand_primary_color );
 
 		await getSaveButton( page ).click();

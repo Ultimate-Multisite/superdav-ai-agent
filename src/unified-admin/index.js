@@ -8,7 +8,7 @@ import { Notice, Spinner } from '@wordpress/components';
  * Internal dependencies
  */
 import './style.css';
-// Register gratis-ai-agent-js/* client-side abilities into core/abilities
+// Register sd-ai-agent-js/* client-side abilities into core/abilities
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import Router from './router';
@@ -25,7 +25,7 @@ function getInitialRoute() {
 	if ( hash && hash.startsWith( '#/' ) ) {
 		return hash.substring( 2 ) || 'chat';
 	}
-	return window.gratisAiAgentData?.initialRoute || 'chat';
+	return window.sdAiAgentData?.initialRoute || 'chat';
 }
 
 /**
@@ -60,7 +60,7 @@ function UnifiedAdminApp() {
 
 	// Update document title based on route.
 	useEffect( () => {
-		const menuItems = window.gratisAiAgentData?.menuItems || [];
+		const menuItems = window.sdAiAgentData?.menuItems || [];
 		const baseRoute = currentRoute.split( '/' )[ 0 ];
 		const currentItem = menuItems.find(
 			( item ) => item.slug === baseRoute
@@ -71,11 +71,11 @@ function UnifiedAdminApp() {
 
 		// Sync WordPress admin submenu highlight with the current hash route.
 		// WordPress marks the active submenu server-side, but since all our
-		// submenu items share the same `page=gratis-ai-agent` query and only
+		// submenu items share the same `page=sd-ai-agent` query and only
 		// differ by URL fragment (which the server never sees), only the first
 		// item is ever highlighted. Update the `current` class client-side.
 		const parentMenu = document.getElementById(
-			'toplevel_page_gratis-ai-agent'
+			'toplevel_page_sd-ai-agent'
 		);
 		if ( parentMenu ) {
 			const links = parentMenu.querySelectorAll( '.wp-submenu a' );
@@ -87,7 +87,7 @@ function UnifiedAdminApp() {
 				let isCurrent = false;
 				if ( baseRoute === 'chat' ) {
 					isCurrent =
-						/[?&]page=gratis-ai-agent$/.test( href ) &&
+						/[?&]page=sd-ai-agent$/.test( href ) &&
 						! href.includes( '#' );
 				} else {
 					isCurrent = href.endsWith( '#/' + baseRoute );
@@ -112,20 +112,20 @@ function UnifiedAdminApp() {
 
 	return (
 		<AppProvider value={ appContext }>
-			<div className="gratis-ai-agent-unified-admin">
+			<div className="sd-ai-agent-unified-admin">
 				{ notice && (
 					<Notice
 						status={ notice.status }
 						isDismissible
 						onRemove={ () => setNotice( null ) }
-						className="gratis-ai-admin-notice"
+						className="sd-ai-admin-notice"
 					>
 						{ notice.message }
 					</Notice>
 				) }
 
-				<div className="gratis-ai-admin-layout">
-					<main className="gratis-ai-admin-main">
+				<div className="sd-ai-admin-layout">
+					<main className="sd-ai-admin-main">
 						<Suspense fallback={ <Spinner /> }>
 							<Router route={ currentRoute } />
 						</Suspense>
@@ -136,7 +136,7 @@ function UnifiedAdminApp() {
 	);
 }
 
-const container = document.getElementById( 'gratis-ai-agent-root' );
+const container = document.getElementById( 'sd-ai-agent-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render( <UnifiedAdminApp /> );

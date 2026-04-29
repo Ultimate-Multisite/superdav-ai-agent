@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Typed DTO for a conversation-template row returned by wpdb::get_row() / wpdb::get_results().
  *
- * @package GratisAiAgent\Models\DTO
+ * @package SdAiAgent\Models\DTO
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models\DTO;
+namespace SdAiAgent\Models\DTO;
 
 /**
- * Immutable DTO for the gratis_ai_agent_conversation_templates table row.
+ * Immutable DTO for the sd_ai_agent_conversation_templates table row.
  */
 readonly class ConversationTemplateRow {
 

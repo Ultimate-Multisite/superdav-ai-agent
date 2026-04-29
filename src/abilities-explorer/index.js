@@ -11,11 +11,11 @@ import ErrorBoundary from '../components/error-boundary';
 import AbilitiesExplorerApp from './abilities-explorer-app';
 import './style.css';
 
-const container = document.getElementById( 'gratis-ai-agent-abilities-root' );
+const container = document.getElementById( 'sd-ai-agent-abilities-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render(
-		<ErrorBoundary label={ __( 'Abilities Explorer', 'gratis-ai-agent' ) }>
+		<ErrorBoundary label={ __( 'Abilities Explorer', 'sd-ai-agent' ) }>
 			<AbilitiesExplorerApp />
 		</ErrorBoundary>
 	);

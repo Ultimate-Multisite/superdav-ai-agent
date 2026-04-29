@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Checks daily and monthly spend against configured caps before each API call.
  * Uses the existing usage table and caches aggregations via transients.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WP_Error;
 
@@ -24,12 +24,12 @@ class BudgetManager {
 	/**
 	 * Transient key for cached daily spend.
 	 */
-	const TRANSIENT_DAILY = 'gratis_ai_agent_budget_daily';
+	const TRANSIENT_DAILY = 'sd_ai_agent_budget_daily';
 
 	/**
 	 * Transient key for cached monthly spend.
 	 */
-	const TRANSIENT_MONTHLY = 'gratis_ai_agent_budget_monthly';
+	const TRANSIENT_MONTHLY = 'sd_ai_agent_budget_monthly';
 
 	/**
 	 * Cache TTL in seconds (5 minutes).
@@ -68,10 +68,10 @@ class BudgetManager {
 			$daily_spend = self::get_daily_spend();
 			if ( $daily_spend >= $daily_cap ) {
 				return new WP_Error(
-					'gratis_ai_agent_budget_daily_exceeded',
+					'sd_ai_agent_budget_daily_exceeded',
 					sprintf(
 						/* translators: 1: formatted spend, 2: formatted cap */
-						__( 'Daily budget of %2$s reached (spent %1$s). Resets at midnight UTC.', 'gratis-ai-agent' ),
+						__( 'Daily budget of %2$s reached (spent %1$s). Resets at midnight UTC.', 'sd-ai-agent' ),
 						self::format_cost( $daily_spend ),
 						self::format_cost( $daily_cap )
 					)
@@ -83,10 +83,10 @@ class BudgetManager {
 			$monthly_spend = self::get_monthly_spend();
 			if ( $monthly_spend >= $monthly_cap ) {
 				return new WP_Error(
-					'gratis_ai_agent_budget_monthly_exceeded',
+					'sd_ai_agent_budget_monthly_exceeded',
 					sprintf(
 						/* translators: 1: formatted spend, 2: formatted cap */
-						__( 'Monthly budget of %2$s reached (spent %1$s). Resets on the 1st of next month UTC.', 'gratis-ai-agent' ),
+						__( 'Monthly budget of %2$s reached (spent %1$s). Resets on the 1st of next month UTC.', 'sd-ai-agent' ),
 						self::format_cost( $monthly_spend ),
 						self::format_cost( $monthly_cap )
 					)

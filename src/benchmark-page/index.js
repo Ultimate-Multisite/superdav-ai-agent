@@ -59,7 +59,7 @@ function BenchmarkPageApp() {
 	const loadSuites = async () => {
 		try {
 			const data = await apiFetch( {
-				path: '/gratis-ai-agent/v1/benchmark/suites',
+				path: '/sd-ai-agent/v1/benchmark/suites',
 			} );
 			setSuites( data );
 		} catch ( error ) {
@@ -67,7 +67,7 @@ function BenchmarkPageApp() {
 				status: 'error',
 				message: __(
 					'Failed to load benchmark suites.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		}
@@ -76,13 +76,13 @@ function BenchmarkPageApp() {
 	const loadProviders = async () => {
 		try {
 			const data = await apiFetch( {
-				path: '/gratis-ai-agent/v1/providers',
+				path: '/sd-ai-agent/v1/providers',
 			} );
 			setProviders( data.providers || [] );
 		} catch ( error ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to load providers.', 'gratis-ai-agent' ),
+				message: __( 'Failed to load providers.', 'sd-ai-agent' ),
 			} );
 		}
 	};
@@ -90,16 +90,13 @@ function BenchmarkPageApp() {
 	const loadRuns = async () => {
 		try {
 			const data = await apiFetch( {
-				path: '/gratis-ai-agent/v1/benchmark/runs',
+				path: '/sd-ai-agent/v1/benchmark/runs',
 			} );
 			setRuns( data.runs || [] );
 		} catch ( error ) {
 			setNotice( {
 				status: 'error',
-				message: __(
-					'Failed to load benchmark runs.',
-					'gratis-ai-agent'
-				),
+				message: __( 'Failed to load benchmark runs.', 'sd-ai-agent' ),
 			} );
 		}
 	};
@@ -108,7 +105,7 @@ function BenchmarkPageApp() {
 		if ( ! runName.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Please enter a run name.', 'gratis-ai-agent' ),
+				message: __( 'Please enter a run name.', 'sd-ai-agent' ),
 			} );
 			return;
 		}
@@ -118,7 +115,7 @@ function BenchmarkPageApp() {
 				status: 'error',
 				message: __(
 					'Please select at least one model.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 			return;
@@ -129,7 +126,7 @@ function BenchmarkPageApp() {
 
 		try {
 			const run = await apiFetch( {
-				path: '/gratis-ai-agent/v1/benchmark/runs',
+				path: '/sd-ai-agent/v1/benchmark/runs',
 				method: 'POST',
 				data: {
 					name: runName,
@@ -149,7 +146,7 @@ function BenchmarkPageApp() {
 				status: 'success',
 				message: __(
 					'Benchmark run created. Starting tests…',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 
@@ -160,7 +157,7 @@ function BenchmarkPageApp() {
 				status: 'error',
 				message:
 					error.message ||
-					__( 'Failed to create benchmark run.', 'gratis-ai-agent' ),
+					__( 'Failed to create benchmark run.', 'sd-ai-agent' ),
 			} );
 			setIsLoading( false );
 		}
@@ -170,7 +167,7 @@ function BenchmarkPageApp() {
 		const runNext = async () => {
 			try {
 				const result = await apiFetch( {
-					path: `/gratis-ai-agent/v1/benchmark/runs/${ runId }/run-next`,
+					path: `/sd-ai-agent/v1/benchmark/runs/${ runId }/run-next`,
 					method: 'POST',
 				} );
 
@@ -180,10 +177,7 @@ function BenchmarkPageApp() {
 					setRunProgress( result.progress );
 					setNotice( {
 						status: 'success',
-						message: __(
-							'Benchmark completed!',
-							'gratis-ai-agent'
-						),
+						message: __( 'Benchmark completed!', 'sd-ai-agent' ),
 					} );
 					loadRuns();
 					return;
@@ -200,7 +194,7 @@ function BenchmarkPageApp() {
 					status: 'error',
 					message:
 						error.message ||
-						__( 'Benchmark failed.', 'gratis-ai-agent' ),
+						__( 'Benchmark failed.', 'sd-ai-agent' ),
 				} );
 				loadRuns();
 			}
@@ -213,14 +207,14 @@ function BenchmarkPageApp() {
 		setIsLoading( true );
 		try {
 			const run = await apiFetch( {
-				path: `/gratis-ai-agent/v1/benchmark/runs/${ runId }`,
+				path: `/sd-ai-agent/v1/benchmark/runs/${ runId }`,
 			} );
 			setSelectedRun( run );
 			setActiveTab( 'view-run' );
 		} catch ( error ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to load run details.', 'gratis-ai-agent' ),
+				message: __( 'Failed to load run details.', 'sd-ai-agent' ),
 			} );
 		}
 		setIsLoading( false );
@@ -232,7 +226,7 @@ function BenchmarkPageApp() {
 			! window.confirm(
 				__(
 					'Are you sure you want to delete this benchmark run?',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				)
 			)
 		) {
@@ -242,18 +236,18 @@ function BenchmarkPageApp() {
 		setIsLoading( true );
 		try {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/benchmark/runs/${ runId }`,
+				path: `/sd-ai-agent/v1/benchmark/runs/${ runId }`,
 				method: 'DELETE',
 			} );
 			setRuns( runs.filter( ( r ) => r.id !== runId ) );
 			setNotice( {
 				status: 'success',
-				message: __( 'Benchmark run deleted.', 'gratis-ai-agent' ),
+				message: __( 'Benchmark run deleted.', 'sd-ai-agent' ),
 			} );
 		} catch ( error ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to delete run.', 'gratis-ai-agent' ),
+				message: __( 'Failed to delete run.', 'sd-ai-agent' ),
 			} );
 		}
 		setIsLoading( false );
@@ -262,23 +256,23 @@ function BenchmarkPageApp() {
 	const tabs = [
 		{
 			name: 'new-run',
-			title: __( 'New Benchmark', 'gratis-ai-agent' ),
+			title: __( 'New Benchmark', 'sd-ai-agent' ),
 		},
 		{
 			name: 'history',
-			title: __( 'History', 'gratis-ai-agent' ),
+			title: __( 'History', 'sd-ai-agent' ),
 		},
 	];
 
 	if ( selectedRun ) {
 		tabs.push( {
 			name: 'view-run',
-			title: __( 'Run Details', 'gratis-ai-agent' ),
+			title: __( 'Run Details', 'sd-ai-agent' ),
 		} );
 	}
 
 	return (
-		<div className="gratis-ai-agent-benchmark-page">
+		<div className="sd-ai-agent-benchmark-page">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -290,7 +284,7 @@ function BenchmarkPageApp() {
 			) }
 
 			<TabPanel
-				className="gratis-ai-agent-benchmark-tabs"
+				className="sd-ai-agent-benchmark-tabs"
 				activeClass="is-active"
 				tabs={ tabs }
 				initialTabName={ activeTab }
@@ -382,19 +376,16 @@ function NewRunTab( {
 	runProgress,
 } ) {
 	return (
-		<div className="gratis-ai-agent-benchmark-new-run">
+		<div className="sd-ai-agent-benchmark-new-run">
 			<Card>
 				<CardHeader>
-					<h2>{ __( 'Configure Benchmark', 'gratis-ai-agent' ) }</h2>
+					<h2>{ __( 'Configure Benchmark', 'sd-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
 					{ isRunning && runProgress && (
-						<div className="gratis-ai-agent-benchmark-progress">
+						<div className="sd-ai-agent-benchmark-progress">
 							<Notice status="info" isDismissible={ false }>
-								{ __(
-									'Benchmark is running…',
-									'gratis-ai-agent'
-								) }
+								{ __( 'Benchmark is running…', 'sd-ai-agent' ) }
 							</Notice>
 							<ProgressBar
 								value={
@@ -406,39 +397,36 @@ function NewRunTab( {
 							<p>
 								{ runProgress.completed } /{ ' ' }
 								{ runProgress.total }{ ' ' }
-								{ __(
-									'questions completed',
-									'gratis-ai-agent'
-								) }
+								{ __( 'questions completed', 'sd-ai-agent' ) }
 							</p>
 						</div>
 					) }
 
 					<TextControl
-						label={ __( 'Run Name', 'gratis-ai-agent' ) }
+						label={ __( 'Run Name', 'sd-ai-agent' ) }
 						value={ runName }
 						onChange={ setRunName }
 						placeholder={ __(
 							'e.g., Claude vs GPT-4 Comparison',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						disabled={ isRunning }
 					/>
 
 					<TextareaControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'sd-ai-agent' ) }
 						value={ runDescription }
 						onChange={ setRunDescription }
 						placeholder={ __(
 							'Optional description of this benchmark run',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						rows={ 3 }
 						disabled={ isRunning }
 					/>
 
 					<SelectControl
-						label={ __( 'Test Suite', 'gratis-ai-agent' ) }
+						label={ __( 'Test Suite', 'sd-ai-agent' ) }
 						value={ selectedSuite }
 						options={ suites.map( ( suite ) => ( {
 							value: suite.slug,
@@ -448,8 +436,8 @@ function NewRunTab( {
 						disabled={ isRunning }
 					/>
 
-					<div className="gratis-ai-agent-benchmark-models">
-						<h3>{ __( 'Select Models', 'gratis-ai-agent' ) }</h3>
+					<div className="sd-ai-agent-benchmark-models">
+						<h3>{ __( 'Select Models', 'sd-ai-agent' ) }</h3>
 						<ModelSelector
 							providers={ providers }
 							selectedModels={ selectedModels }
@@ -465,8 +453,8 @@ function NewRunTab( {
 						isBusy={ isLoading || isRunning }
 					>
 						{ isRunning
-							? __( 'Running…', 'gratis-ai-agent' )
-							: __( 'Start Benchmark', 'gratis-ai-agent' ) }
+							? __( 'Running…', 'sd-ai-agent' )
+							: __( 'Start Benchmark', 'sd-ai-agent' ) }
 					</Button>
 				</CardBody>
 			</Card>
@@ -474,7 +462,7 @@ function NewRunTab( {
 	);
 }
 
-const container = document.getElementById( 'gratis-ai-agent-benchmark-root' );
+const container = document.getElementById( 'sd-ai-agent-benchmark-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render( <BenchmarkPageApp /> );

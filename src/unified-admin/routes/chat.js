@@ -7,7 +7,7 @@ import { useEffect, useRef } from '@wordpress/element';
  * Chat Route Component
  *
  * Mounts the AdminPageApp chat UI into a dedicated container.
- * The mount API (`window.gratisAiAgentChat`) is exposed by the admin-page
+ * The mount API (`window.sdAiAgentChat`) is exposed by the admin-page
  * bundle (build/admin-page.js), which is enqueued after unified-admin.js.
  * Because the two bundles load asynchronously, the API may not be defined
  * when this component first mounts. We poll with a short interval until the
@@ -38,12 +38,12 @@ export default function ChatRoute() {
 		 */
 		function tryMount() {
 			if (
-				window.gratisAiAgentChat &&
-				typeof window.gratisAiAgentChat.mount === 'function' &&
+				window.sdAiAgentChat &&
+				typeof window.sdAiAgentChat.mount === 'function' &&
 				! mountedRef.current
 			) {
 				mountedRef.current = true;
-				window.gratisAiAgentChat.mount( container );
+				window.sdAiAgentChat.mount( container );
 				return true;
 			}
 			return false;
@@ -55,25 +55,25 @@ export default function ChatRoute() {
 			return () => {
 				if (
 					mountedRef.current &&
-					window.gratisAiAgentChat &&
-					typeof window.gratisAiAgentChat.unmount === 'function'
+					window.sdAiAgentChat &&
+					typeof window.sdAiAgentChat.unmount === 'function'
 				) {
-					window.gratisAiAgentChat.unmount( container );
+					window.sdAiAgentChat.unmount( container );
 				}
 				mountedRef.current = false;
 			};
 		}
 
-		// admin-page.js hasn't run yet. Listen for the 'gratis-ai-agent-chat-ready'
+		// admin-page.js hasn't run yet. Listen for the 'sd-ai-agent-chat-ready'
 		// CustomEvent that admin-page.js dispatches synchronously after setting
-		// window.gratisAiAgentChat. This fires within microseconds of the script
+		// window.sdAiAgentChat. This fires within microseconds of the script
 		// finishing, replacing the previous 0–50 ms polling interval.
 		//
 		// Falls back to a 50 ms poll as a safety net for environments where
 		// the event fires before this listener is registered (e.g. the script
 		// tag appeared synchronously before the React render cycle).
 		const handleReady = () => tryMount();
-		window.addEventListener( 'gratis-ai-agent-chat-ready', handleReady );
+		window.addEventListener( 'sd-ai-agent-chat-ready', handleReady );
 
 		// Safety poll — catches any edge case where the event was missed.
 		// 30 s matches the goToAgentPage() wait timeout in tests/e2e/utils/wp-admin.js.
@@ -90,38 +90,35 @@ export default function ChatRoute() {
 				intervalId = null;
 				// eslint-disable-next-line no-console
 				console.warn(
-					'[Gratis AI Agent] ChatRoute: window.gratisAiAgentChat.mount() not available after 30s. ' +
+					'[Superdav AI Agent] ChatRoute: window.sdAiAgentChat.mount() not available after 30s. ' +
 						'Ensure build/admin-page.js is enqueued.'
 				);
 			}
 		}, 30_000 );
 
 		return () => {
-			window.removeEventListener(
-				'gratis-ai-agent-chat-ready',
-				handleReady
-			);
+			window.removeEventListener( 'sd-ai-agent-chat-ready', handleReady );
 			if ( intervalId ) {
 				clearInterval( intervalId );
 			}
 			clearTimeout( timeoutId );
 			if (
 				mountedRef.current &&
-				window.gratisAiAgentChat &&
-				typeof window.gratisAiAgentChat.unmount === 'function'
+				window.sdAiAgentChat &&
+				typeof window.sdAiAgentChat.unmount === 'function'
 			) {
-				window.gratisAiAgentChat.unmount( container );
+				window.sdAiAgentChat.unmount( container );
 				mountedRef.current = false;
 			}
 		};
 	}, [] );
 
 	return (
-		<div className="gratis-ai-agent-route gratis-ai-agent-route-chat">
+		<div className="sd-ai-agent-route sd-ai-agent-route-chat">
 			<div
 				ref={ containerRef }
-				id="gratis-ai-agent-chat-container"
-				className="gratis-ai-agent-chat-container"
+				id="sd-ai-agent-chat-container"
+				className="sd-ai-agent-chat-container"
 			/>
 		</div>
 	);

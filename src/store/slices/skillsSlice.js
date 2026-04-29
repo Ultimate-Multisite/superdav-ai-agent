@@ -67,7 +67,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const skills = await apiFetch( {
-					path: '/gratis-ai-agent/v1/skills',
+					path: '/sd-ai-agent/v1/skills',
 				} );
 				dispatch.setSkills( skills );
 			} catch {
@@ -88,7 +88,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const stats = await apiFetch( {
-					path: '/gratis-ai-agent/v1/skills/stats',
+					path: '/sd-ai-agent/v1/skills/stats',
 				} );
 				dispatch.setSkillStats( stats );
 			} catch {
@@ -112,7 +112,7 @@ export const actions = {
 			dispatch.setSkillUpdatesChecking( true );
 			try {
 				const updates = await apiFetch( {
-					path: '/gratis-ai-agent/v1/skills/check-updates',
+					path: '/sd-ai-agent/v1/skills/check-updates',
 					method: 'POST',
 				} );
 				dispatch.setSkillUpdates( updates );
@@ -136,7 +136,7 @@ export const actions = {
 	createSkill( data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/skills',
+				path: '/sd-ai-agent/v1/skills',
 				method: 'POST',
 				data,
 			} );
@@ -154,7 +154,7 @@ export const actions = {
 	updateSkill( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/skills/${ id }`,
+				path: `/sd-ai-agent/v1/skills/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -171,7 +171,7 @@ export const actions = {
 	deleteSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/skills/${ id }`,
+				path: `/sd-ai-agent/v1/skills/${ id }`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchSkills();
@@ -187,7 +187,7 @@ export const actions = {
 	resetSkill( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/skills/${ id }/reset`,
+				path: `/sd-ai-agent/v1/skills/${ id }/reset`,
 				method: 'POST',
 			} );
 			dispatch.fetchSkills();

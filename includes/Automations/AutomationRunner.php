@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * Automation Runner — cron handler that fires Agent_Loop for scheduled automations.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Automations;
+namespace SdAiAgent\Automations;
 
-use GratisAiAgent\Core\AgentLoop;
-use GratisAiAgent\Core\BudgetManager;
-use GratisAiAgent\Core\ProviderCredentialLoader;
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\BudgetManager;
+use SdAiAgent\Core\ProviderCredentialLoader;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AutomationRunner {
 
-	const CRON_HOOK = 'gratis_ai_agent_run_automation';
+	const CRON_HOOK = 'sd_ai_agent_run_automation';
 
 	/**
 	 * Register hooks.
@@ -43,7 +43,7 @@ class AutomationRunner {
 		if ( ! isset( $schedules['weekly'] ) ) {
 			$schedules['weekly'] = [
 				'interval' => WEEK_IN_SECONDS,
-				'display'  => __( 'Once Weekly', 'gratis-ai-agent' ),
+				'display'  => __( 'Once Weekly', 'sd-ai-agent' ),
 			];
 		}
 		return $schedules;
@@ -153,7 +153,7 @@ class AutomationRunner {
 		 * @param array $log_data      The log data for this run.
 		 * @param array $automation    The automation definition.
 		 */
-		do_action( 'gratis_ai_agent_automation_complete', $automation_id, $log_data, $automation );
+		do_action( 'sd_ai_agent_automation_complete', $automation_id, $log_data, $automation );
 
 		return $log_data;
 	}

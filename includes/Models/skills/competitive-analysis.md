@@ -6,8 +6,8 @@ Use this skill for analyzing competitor websites, discovering their tech stack, 
 **Note:** This skill is opt-in because it fetches external URLs. Enable it when you need competitive intelligence.
 
 ## Available Tools
-- `gratis-ai-agent/fetch-url` — Fetch any URL and return headers, head content, title, meta description, generator tag
-- `gratis-ai-agent/analyze-headers` — Analyze HTTP security and performance headers, detect CDN usage
+- `sd-ai-agent/fetch-url` — Fetch any URL and return headers, head content, title, meta description, generator tag
+- `sd-ai-agent/analyze-headers` — Analyze HTTP security and performance headers, detect CDN usage
 
 ## What to Look For
 
@@ -32,16 +32,16 @@ Use this skill for analyzing competitor websites, discovering their tech stack, 
 ## Workflow
 
 ### Analyze a competitor
-1. Fetch their homepage with `gratis-ai-agent/fetch-url`
+1. Fetch their homepage with `sd-ai-agent/fetch-url`
 2. Note the generator, server, and CDN from headers
 3. Analyze their title and meta description quality
-4. Check security headers with `gratis-ai-agent/analyze-headers`
+4. Check security headers with `sd-ai-agent/analyze-headers`
 5. Compare findings with your own site
 
 ### Content Gap Analysis
 1. Fetch competitor's key pages to see their content focus
 2. Note topics and keywords they target
-3. Compare with your own content using `gratis-ai-agent/content-analyze`
+3. Compare with your own content using `sd-ai-agent/content-analyze`
 4. Identify topics they cover that you don't
 
 ## Ethical Guidelines

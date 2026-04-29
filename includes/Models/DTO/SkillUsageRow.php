@@ -4,21 +4,21 @@ declare(strict_types=1);
 /**
  * Typed DTO for a skill usage row returned by wpdb::get_row() / wpdb::get_results().
  *
- * @package GratisAiAgent\Models\DTO
+ * @package SdAiAgent\Models\DTO
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models\DTO;
+namespace SdAiAgent\Models\DTO;
 
 /**
- * Immutable DTO for the gratis_ai_agent_skill_usage table row.
+ * Immutable DTO for the sd_ai_agent_skill_usage table row.
  */
 readonly class SkillUsageRow {
 
 	/**
 	 * @param int    $id              Row ID (auto-increment PK).
-	 * @param int    $skill_id        FK to gratis_ai_agent_skills.id.
-	 * @param int    $session_id      FK to gratis_ai_agent_sessions.id (0 = no session).
+	 * @param int    $skill_id        FK to sd_ai_agent_skills.id.
+	 * @param int    $session_id      FK to sd_ai_agent_sessions.id (0 = no session).
 	 * @param string $trigger_type    How the skill was loaded: 'auto', 'manual', 'tool_call'.
 	 * @param int    $injected_tokens Estimated token cost of the injected content.
 	 * @param string $outcome         Heuristic quality signal: 'helpful', 'neutral', 'negative', 'unknown'.

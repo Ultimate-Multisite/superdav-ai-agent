@@ -8,13 +8,13 @@ declare(strict_types=1);
  * compares content hashes per slug, and applies updates to built-in unmodified skills.
  * Uses If-None-Match / If-Modified-Since headers to skip unnecessary transfers.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Models\Skill;
+use SdAiAgent\Models\Skill;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,12 +25,12 @@ class SkillUpdateChecker {
 	/**
 	 * WP-Cron hook name for the daily skill update check.
 	 */
-	const CRON_HOOK = 'gratis_ai_agent_skill_update_check';
+	const CRON_HOOK = 'sd_ai_agent_skill_update_check';
 
 	/**
 	 * Option key for conditional-request caching headers (ETag, Last-Modified).
 	 */
-	const MANIFEST_CACHE_OPTION = 'gratis_ai_agent_skill_manifest_cache';
+	const MANIFEST_CACHE_OPTION = 'sd_ai_agent_skill_manifest_cache';
 
 	// ── Registration ─────────────────────────────────────────────────────
 

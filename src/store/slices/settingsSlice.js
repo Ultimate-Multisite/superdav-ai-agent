@@ -46,7 +46,7 @@ export const actions = {
 			dispatch( { type: 'SET_SETTINGS_LOADING', loading: true } );
 			try {
 				const settings = await apiFetch( {
-					path: '/gratis-ai-agent/v1/settings',
+					path: '/sd-ai-agent/v1/settings',
 				} );
 				dispatch.setSettings( settings );
 			} catch ( err ) {
@@ -60,7 +60,7 @@ export const actions = {
 							err?.message ||
 							__(
 								'Unable to connect to the AI Agent API.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 						status,
 					} );
@@ -81,7 +81,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const settings = await apiFetch( {
-					path: '/gratis-ai-agent/v1/settings',
+					path: '/sd-ai-agent/v1/settings',
 					method: 'POST',
 					data,
 				} );

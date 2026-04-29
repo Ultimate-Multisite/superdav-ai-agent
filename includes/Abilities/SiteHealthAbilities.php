@@ -11,11 +11,11 @@ declare(strict_types=1);
  *  - Security checks (file permissions, admin users, debug mode)
  *  - Performance indicators (autoloaded options, transients, object cache)
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 use WP_Error;
 
@@ -50,11 +50,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_check_plugin_updates(): void {
 		wp_register_ability(
-			'gratis-ai-agent/check-plugin-updates',
+			'sd-ai-agent/check-plugin-updates',
 			[
-				'label'               => __( 'Check Plugin Updates', 'gratis-ai-agent' ),
-				'description'         => __( 'List all installed plugins that have updates available, including current and new version numbers.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Check Plugin Updates', 'sd-ai-agent' ),
+				'description'         => __( 'List all installed plugins that have updates available, including current and new version numbers.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -82,7 +82,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_plugin_updates' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-plugin-updates' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/check-plugin-updates' );
 				},
 			]
 		);
@@ -93,11 +93,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_scan_php_error_log(): void {
 		wp_register_ability(
-			'gratis-ai-agent/scan-php-error-log',
+			'sd-ai-agent/scan-php-error-log',
 			[
-				'label'               => __( 'Scan PHP Error Log', 'gratis-ai-agent' ),
-				'description'         => __( 'Read the PHP/WordPress debug log and return recent errors, warnings, and notices. Returns the most recent entries up to the specified limit.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Scan PHP Error Log', 'sd-ai-agent' ),
+				'description'         => __( 'Read the PHP/WordPress debug log and return recent errors, warnings, and notices. Returns the most recent entries up to the specified limit.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -138,7 +138,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_scan_php_error_log' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/scan-php-error-log' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/scan-php-error-log' );
 				},
 			]
 		);
@@ -149,11 +149,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_check_disk_space(): void {
 		wp_register_ability(
-			'gratis-ai-agent/check-disk-space',
+			'sd-ai-agent/check-disk-space',
 			[
-				'label'               => __( 'Check Disk Space', 'gratis-ai-agent' ),
-				'description'         => __( 'Report disk space usage for the WordPress installation: total, used, free space, and wp-content directory size.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Check Disk Space', 'sd-ai-agent' ),
+				'description'         => __( 'Report disk space usage for the WordPress installation: total, used, free space, and wp-content directory size.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => (object) [],
@@ -179,7 +179,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_disk_space' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-disk-space' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/check-disk-space' );
 				},
 			]
 		);
@@ -190,11 +190,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_check_security(): void {
 		wp_register_ability(
-			'gratis-ai-agent/check-security',
+			'sd-ai-agent/check-security',
 			[
-				'label'               => __( 'Check Security', 'gratis-ai-agent' ),
-				'description'         => __( 'Run security checks: debug mode status, admin user enumeration risk, file editor status, inactive plugins, and WordPress version currency.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Check Security', 'sd-ai-agent' ),
+				'description'         => __( 'Run security checks: debug mode status, admin user enumeration risk, file editor status, inactive plugins, and WordPress version currency.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => (object) [],
@@ -217,7 +217,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_security' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-security' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/check-security' );
 				},
 			]
 		);
@@ -228,11 +228,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_check_performance(): void {
 		wp_register_ability(
-			'gratis-ai-agent/check-performance',
+			'sd-ai-agent/check-performance',
 			[
-				'label'               => __( 'Check Performance', 'gratis-ai-agent' ),
-				'description'         => __( 'Check performance indicators: autoloaded options size, expired transients count, object cache status, and post revision count.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Check Performance', 'sd-ai-agent' ),
+				'description'         => __( 'Check performance indicators: autoloaded options size, expired transients count, object cache status, and post revision count.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => (object) [],
@@ -258,7 +258,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_check_performance' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/check-performance' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/check-performance' );
 				},
 			]
 		);
@@ -269,11 +269,11 @@ class SiteHealthAbilities {
 	 */
 	private static function register_site_health_summary(): void {
 		wp_register_ability(
-			'gratis-ai-agent/site-health-summary',
+			'sd-ai-agent/site-health-summary',
 			[
-				'label'               => __( 'Site Health Summary', 'gratis-ai-agent' ),
-				'description'         => __( 'Run all site health checks (plugins, errors, disk, security, performance) in one call and return a consolidated summary report.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Site Health Summary', 'sd-ai-agent' ),
+				'description'         => __( 'Run all site health checks (plugins, errors, disk, security, performance) in one call and return a consolidated summary report.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -305,7 +305,7 @@ class SiteHealthAbilities {
 				],
 				'execute_callback'    => [ __CLASS__, 'handle_site_health_summary' ],
 				'permission_callback' => function () {
-					return ToolCapabilities::current_user_can( 'gratis-ai-agent/site-health-summary' );
+					return ToolCapabilities::current_user_can( 'sd-ai-agent/site-health-summary' );
 				},
 			]
 		);
@@ -408,7 +408,7 @@ class SiteHealthAbilities {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- WP_Filesystem does not support fseek/streaming reads needed for large log files.
 		$handle = fopen( $log_path, 'r' );
 		if ( ! $handle ) {
-			return new WP_Error( 'log_read_error', __( 'Could not open error log file.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'log_read_error', __( 'Could not open error log file.', 'sd-ai-agent' ) );
 		}
 
 		if ( $offset > 0 ) {
@@ -456,7 +456,7 @@ class SiteHealthAbilities {
 		$disk_free  = disk_free_space( $abspath );
 
 		if ( false === $disk_total || false === $disk_free ) {
-			return new WP_Error( 'disk_check_failed', __( 'Could not retrieve disk space information.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'disk_check_failed', __( 'Could not retrieve disk space information.', 'sd-ai-agent' ) );
 		}
 
 		$disk_used         = $disk_total - $disk_free;

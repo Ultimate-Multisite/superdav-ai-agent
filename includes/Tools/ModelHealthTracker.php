@@ -24,11 +24,11 @@ declare(strict_types=1);
  * model_id => { success, validation_error, nudge, last_used }.
  * LRU-pruned at MAX_ENTRIES.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Tools;
+namespace SdAiAgent\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,7 +39,7 @@ class ModelHealthTracker {
 	/**
 	 * Option name for the persisted health map.
 	 */
-	public const OPTION_NAME = 'gratis_ai_agent_model_health';
+	public const OPTION_NAME = 'sd_ai_agent_model_health';
 
 	/**
 	 * Maximum number of distinct model ids tracked. Older entries (lowest

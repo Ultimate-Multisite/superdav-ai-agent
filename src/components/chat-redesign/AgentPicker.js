@@ -199,7 +199,7 @@ export default function AgentPicker() {
 					ref={ popoverRef }
 					className="gaa-cr-popover gaa-cr-popover-fixed"
 					role="menu"
-					aria-label={ __( 'Select agent', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Select agent', 'sd-ai-agent' ) }
 					style={ {
 						left: pos.left,
 						bottom: pos.bottom,
@@ -208,7 +208,7 @@ export default function AgentPicker() {
 					} }
 				>
 					<div className="gaa-cr-popover-section-label">
-						{ __( 'Agent', 'gratis-ai-agent' ) }
+						{ __( 'Agent', 'sd-ai-agent' ) }
 					</div>
 					{ enabledAgents.map( ( agent ) => {
 						const active =
@@ -247,12 +247,11 @@ export default function AgentPicker() {
 				onClick={ () => setOpen( ( v ) => ! v ) }
 				aria-haspopup="menu"
 				aria-expanded={ open }
-				title={ __( 'Change agent', 'gratis-ai-agent' ) }
+				title={ __( 'Change agent', 'sd-ai-agent' ) }
 			>
 				<AgentIcon icon={ activeAgent?.avatar_icon } />
 				<span className="gaa-cr-model-chip-model">
-					{ activeAgent?.name ||
-						__( '(default)', 'gratis-ai-agent' ) }
+					{ activeAgent?.name || __( '(default)', 'sd-ai-agent' ) }
 				</span>
 				<Icon icon={ chevronDown } size={ 14 } />
 			</button>

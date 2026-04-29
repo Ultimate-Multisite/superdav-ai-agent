@@ -23,7 +23,7 @@
 #   0 - Success
 #   1 - Error (PR not merged, task not found, git error, etc.)
 #
-# Fixes: https://github.com/Ultimate-Multisite/gratis-ai-agent/issues/466
+# Fixes: https://github.com/Ultimate-Multisite/sd-ai-agent/issues/466
 
 set -euo pipefail
 

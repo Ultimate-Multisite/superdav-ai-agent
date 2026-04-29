@@ -6,13 +6,13 @@ declare(strict_types=1);
  *
  * Auto-indexes posts on save/delete and schedules batch re-indexing.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Knowledge;
+namespace SdAiAgent\Knowledge;
 
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,11 +27,11 @@ class KnowledgeHooks {
 		add_action( 'save_post', [ __CLASS__, 'handle_save_post' ], 20, 2 );
 		add_action( 'delete_post', [ __CLASS__, 'handle_delete_post' ], 10, 1 );
 		add_action( 'wp_ai_agent_reindex', [ __CLASS__, 'handle_cron_reindex' ] );
-		add_action( 'wp_gratis_ai_agent_reindex', [ __CLASS__, 'handle_cron_reindex' ] );
+		add_action( 'wp_sd_ai_agent_reindex', [ __CLASS__, 'handle_cron_reindex' ] );
 
 		// Schedule hourly reindex if not already scheduled.
 		// NOTE: Using legacy 'wp_ai_agent_reindex' hook for backward compatibility.
-		// The migration in Database.php renames schedules from 'wp_ai_agent_reindex' to 'wp_gratis_ai_agent_reindex'
+		// The migration in Database.php renames schedules from 'wp_ai_agent_reindex' to 'wp_sd_ai_agent_reindex'
 		// during plugin upgrade. See Database::migrate_from_ai_agent().
 		if ( ! wp_next_scheduled( 'wp_ai_agent_reindex' ) ) {
 			wp_schedule_event( time(), 'hourly', 'wp_ai_agent_reindex' );

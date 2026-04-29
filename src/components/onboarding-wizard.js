@@ -20,7 +20,7 @@ import ProviderSelector from './provider-selector';
  */
 function getConnectorsUrl() {
 	return (
-		window.gratisAiAgentData?.connectorsUrl ||
+		window.sdAiAgentData?.connectorsUrl ||
 		'options-general.php?page=options-connectors-wp-admin'
 	);
 }
@@ -34,7 +34,7 @@ function getConnectorsUrl() {
  * @return {boolean} True when the Connectors page exists.
  */
 function isConnectorsAvailable() {
-	return !! window.gratisAiAgentData?.connectorsAvailable;
+	return !! window.sdAiAgentData?.connectorsAvailable;
 }
 
 /**
@@ -63,7 +63,7 @@ function GutenbergInstallButton() {
 		} catch ( err ) {
 			setInstallError(
 				err?.message ||
-					__( 'Failed to install Gutenberg.', 'gratis-ai-agent' )
+					__( 'Failed to install Gutenberg.', 'sd-ai-agent' )
 			);
 			setBusy( false );
 		}
@@ -81,11 +81,11 @@ function GutenbergInstallButton() {
 				onClick={ handleInstall }
 				isBusy={ busy }
 				disabled={ busy }
-				className="gratis-ai-agent-wizard-connectors-link"
+				className="sd-ai-agent-wizard-connectors-link"
 			>
 				{ busy
-					? __( 'Installing Gutenberg…', 'gratis-ai-agent' )
-					: __( 'Install & Activate Gutenberg', 'gratis-ai-agent' ) }
+					? __( 'Installing Gutenberg…', 'sd-ai-agent' )
+					: __( 'Install & Activate Gutenberg', 'sd-ai-agent' ) }
 			</Button>
 		</>
 	);
@@ -125,7 +125,7 @@ export default function OnboardingWizard( { onComplete } ) {
 	);
 
 	useEffect( () => {
-		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
+		apiFetch( { path: '/sd-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
 	}, [] );
@@ -136,7 +136,7 @@ export default function OnboardingWizard( { onComplete } ) {
 			return;
 		}
 		setWooLoading( true );
-		apiFetch( { path: '/gratis-ai-agent/v1/woocommerce/status' } )
+		apiFetch( { path: '/sd-ai-agent/v1/woocommerce/status' } )
 			.then( ( data ) => {
 				setWooStatus( data );
 				setWooLoading( false );
@@ -168,28 +168,26 @@ export default function OnboardingWizard( { onComplete } ) {
 	const renderWooCommerceStep = () => {
 		if ( wooLoading ) {
 			return (
-				<div className="gratis-ai-agent-wizard-woo">
+				<div className="sd-ai-agent-wizard-woo">
 					<Spinner />
-					<p>
-						{ __( 'Checking for WooCommerce…', 'gratis-ai-agent' ) }
-					</p>
+					<p>{ __( 'Checking for WooCommerce…', 'sd-ai-agent' ) }</p>
 				</div>
 			);
 		}
 
 		if ( ! wooStatus || ! wooStatus.active ) {
 			return (
-				<div className="gratis-ai-agent-wizard-woo">
+				<div className="sd-ai-agent-wizard-woo">
 					<p>
 						{ __(
 							'WooCommerce is not active on this site. You can skip this step.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					<p className="description">
 						{ __(
 							'If you install WooCommerce later, the AI agent will automatically detect it and offer product management abilities.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -206,35 +204,32 @@ export default function OnboardingWizard( { onComplete } ) {
 		} = wooStatus;
 
 		return (
-			<div className="gratis-ai-agent-wizard-woo">
+			<div className="sd-ai-agent-wizard-woo">
 				<Notice status="success" isDismissible={ false }>
-					{ __( 'WooCommerce store detected!', 'gratis-ai-agent' ) }
+					{ __( 'WooCommerce store detected!', 'sd-ai-agent' ) }
 				</Notice>
 
-				<div className="gratis-ai-agent-wizard-woo-stats">
+				<div className="sd-ai-agent-wizard-woo-stats">
 					<p>
 						<strong>
-							{ __( 'Store overview:', 'gratis-ai-agent' ) }
+							{ __( 'Store overview:', 'sd-ai-agent' ) }
 						</strong>
 					</p>
 					<ul>
 						{ version && (
 							<li>
-								{ __(
-									'WooCommerce version:',
-									'gratis-ai-agent'
-								) }{ ' ' }
+								{ __( 'WooCommerce version:', 'sd-ai-agent' ) }{ ' ' }
 								<strong>{ version }</strong>
 							</li>
 						) }
 						{ currency && (
 							<li>
-								{ __( 'Currency:', 'gratis-ai-agent' ) }{ ' ' }
+								{ __( 'Currency:', 'sd-ai-agent' ) }{ ' ' }
 								<strong>{ currency }</strong>
 							</li>
 						) }
 						<li>
-							{ __( 'Published products:', 'gratis-ai-agent' ) }{ ' ' }
+							{ __( 'Published products:', 'sd-ai-agent' ) }{ ' ' }
 							<strong>{ publishedProducts ?? 0 }</strong>
 							{ totalProducts > publishedProducts && (
 								<span className="description">
@@ -243,7 +238,7 @@ export default function OnboardingWizard( { onComplete } ) {
 										/* translators: %d: number of total products */
 										__(
 											'(%d total including drafts)',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										),
 										totalProducts
 									) }
@@ -252,7 +247,7 @@ export default function OnboardingWizard( { onComplete } ) {
 						</li>
 						{ ( pendingOrders > 0 || processingOrders > 0 ) && (
 							<li>
-								{ __( 'Active orders:', 'gratis-ai-agent' ) }{ ' ' }
+								{ __( 'Active orders:', 'sd-ai-agent' ) }{ ' ' }
 								<strong>
 									{ ( pendingOrders ?? 0 ) +
 										( processingOrders ?? 0 ) }
@@ -262,7 +257,7 @@ export default function OnboardingWizard( { onComplete } ) {
 										/* translators: 1: pending count, 2: processing count */
 										__(
 											'(%1$d pending, %2$d processing)',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										),
 										pendingOrders ?? 0,
 										processingOrders ?? 0
@@ -273,30 +268,30 @@ export default function OnboardingWizard( { onComplete } ) {
 					</ul>
 				</div>
 
-				<div className="gratis-ai-agent-wizard-woo-offer">
+				<div className="sd-ai-agent-wizard-woo-offer">
 					<p>
 						{ __(
 							'The AI agent can help you manage your store:',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					<ul>
 						<li>
 							{ __(
 								'Create products from a description or idea',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</li>
 						<li>
 							{ __(
 								'List, search, and update existing products',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</li>
 						<li>
 							{ __(
 								'Query orders and check store statistics',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</li>
 					</ul>
@@ -304,11 +299,11 @@ export default function OnboardingWizard( { onComplete } ) {
 					<ToggleControl
 						label={ __(
 							'Enable WooCommerce abilities',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						help={ __(
 							'Allows the AI agent to create and manage products and query orders. You can change this later in Settings.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						checked={ wooOfferAccepted }
 						onChange={ setWooOfferAccepted }
@@ -319,7 +314,7 @@ export default function OnboardingWizard( { onComplete } ) {
 						<Notice status="info" isDismissible={ false }>
 							{ __(
 								'WooCommerce abilities will be enabled. Try asking: "Create a product called Summer T-Shirt for $29.99"',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</Notice>
 					) }
@@ -331,19 +326,19 @@ export default function OnboardingWizard( { onComplete } ) {
 	const steps = [
 		// Step 0: Welcome
 		{
-			title: __( 'Welcome to Gratis AI Agent', 'gratis-ai-agent' ),
+			title: __( 'Welcome to Superdav AI Agent', 'sd-ai-agent' ),
 			content: (
-				<div className="gratis-ai-agent-wizard-welcome">
+				<div className="sd-ai-agent-wizard-welcome">
 					<p>
 						{ __(
-							'Gratis AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools).',
-							'gratis-ai-agent'
+							'Superdav AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools).',
+							'sd-ai-agent'
 						) }
 					</p>
 					<p>
 						{ __(
 							"It can manage content, query data, run commands, and more — all through a natural chat interface. Let's get set up!",
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -351,13 +346,13 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 1: Provider setup — directs to the Connectors page
 		{
-			title: __( 'Set Up an AI Provider', 'gratis-ai-agent' ),
+			title: __( 'Set Up an AI Provider', 'sd-ai-agent' ),
 			content: (
-				<div className="gratis-ai-agent-wizard-provider">
+				<div className="sd-ai-agent-wizard-provider">
 					<p>
 						{ __(
 							'The AI agent needs an API key for at least one AI provider (OpenAI, Anthropic, or Google AI). API keys are managed on the Connectors page.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 
@@ -365,11 +360,11 @@ export default function OnboardingWizard( { onComplete } ) {
 						<Notice status="info" isDismissible={ false }>
 							<a
 								href={ getConnectorsUrl() }
-								className="gratis-ai-agent-wizard-connectors-link"
+								className="sd-ai-agent-wizard-connectors-link"
 							>
 								{ __(
 									'Open Connectors page to configure a provider →',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</a>
 						</Notice>
@@ -378,7 +373,7 @@ export default function OnboardingWizard( { onComplete } ) {
 							<Notice status="warning" isDismissible={ false }>
 								{ __(
 									'Your WordPress version does not include the Connectors page. Install the Gutenberg plugin (version 22.8.0 or newer) to continue.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</Notice>
 							<GutenbergInstallButton />
@@ -388,16 +383,16 @@ export default function OnboardingWizard( { onComplete } ) {
 					<p className="description">
 						{ __(
 							'Once you have configured a connector, come back here and continue the setup.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 
 					{ hasAnyProvider && (
-						<div className="gratis-ai-agent-wizard-provider-selector">
-							<p className="gratis-ai-agent-wizard-provider-selector__label">
+						<div className="sd-ai-agent-wizard-provider-selector">
+							<p className="sd-ai-agent-wizard-provider-selector__label">
 								{ __(
 									'Choose your default provider and model:',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</p>
 							<ProviderSelector />
@@ -408,13 +403,13 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 2: Abilities overview (auto-discovery — no curation needed).
 		{
-			title: __( 'Abilities', 'gratis-ai-agent' ),
+			title: __( 'Abilities', 'sd-ai-agent' ),
 			content: (
-				<div className="gratis-ai-agent-wizard-abilities">
+				<div className="sd-ai-agent-wizard-abilities">
 					<p>
 						{ __(
 							'The agent will automatically discover and use any ability registered by your installed plugins. You do not need to curate them — frequently-used abilities are loaded directly each turn, and the rest are reachable via the built-in ability search.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					{ abilities.length > 0 && (
@@ -423,7 +418,7 @@ export default function OnboardingWizard( { onComplete } ) {
 								/* translators: %d: number of abilities */
 								__(
 									'%d abilities are currently registered on this site.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								),
 								abilities.length
 							) }
@@ -434,32 +429,32 @@ export default function OnboardingWizard( { onComplete } ) {
 		},
 		// Step 3: WooCommerce (content adapts based on detection result)
 		{
-			title: __( 'WooCommerce Store', 'gratis-ai-agent' ),
+			title: __( 'WooCommerce Store', 'sd-ai-agent' ),
 			content: renderWooCommerceStep(),
 		},
 		// Step 4: Done
 		{
-			title: __( 'All Set!', 'gratis-ai-agent' ),
+			title: __( 'All Set!', 'sd-ai-agent' ),
 			content: (
-				<div className="gratis-ai-agent-wizard-done">
+				<div className="sd-ai-agent-wizard-done">
 					<p>
 						{ __(
-							"You're all set! Gratis AI Agent is ready to help you manage your WordPress site.",
-							'gratis-ai-agent'
+							"You're all set! Superdav AI Agent is ready to help you manage your WordPress site.",
+							'sd-ai-agent'
 						) }
 					</p>
 					{ wooStatus?.active && wooOfferAccepted && (
 						<p>
 							{ __(
 								'WooCommerce abilities are enabled. Try asking the agent to create a product or check your store stats.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</p>
 					) }
 					<p>
 						{ __(
-							'You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > Gratis AI Agent.',
-							'gratis-ai-agent'
+							'You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > Superdav AI Agent.',
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -471,49 +466,47 @@ export default function OnboardingWizard( { onComplete } ) {
 	const isLast = step === steps.length - 1;
 
 	return (
-		<div className="gratis-ai-agent-wizard">
-			<div className="gratis-ai-agent-wizard-header">
+		<div className="sd-ai-agent-wizard">
+			<div className="sd-ai-agent-wizard-header">
 				<h2>{ current.title }</h2>
-				<div className="gratis-ai-agent-wizard-progress">
+				<div className="sd-ai-agent-wizard-progress">
 					{ steps.map( ( _, i ) => (
 						<span
 							key={ i }
-							className={ `gratis-ai-agent-wizard-dot ${
+							className={ `sd-ai-agent-wizard-dot ${
 								i === step ? 'is-active' : ''
 							} ${ i < step ? 'is-complete' : '' }` }
 						/>
 					) ) }
 				</div>
 			</div>
-			<div className="gratis-ai-agent-wizard-body">
-				{ current.content }
-			</div>
-			<div className="gratis-ai-agent-wizard-footer">
+			<div className="sd-ai-agent-wizard-body">{ current.content }</div>
+			<div className="sd-ai-agent-wizard-footer">
 				{ step > 0 && (
 					<Button
 						variant="tertiary"
 						onClick={ () => setStep( step - 1 ) }
 					>
-						{ __( 'Back', 'gratis-ai-agent' ) }
+						{ __( 'Back', 'sd-ai-agent' ) }
 					</Button>
 				) }
 				<Button
 					variant="link"
 					onClick={ handleFinish }
-					className="gratis-ai-agent-wizard-skip"
+					className="sd-ai-agent-wizard-skip"
 				>
-					{ __( 'Skip', 'gratis-ai-agent' ) }
+					{ __( 'Skip', 'sd-ai-agent' ) }
 				</Button>
 				{ isLast ? (
 					<Button variant="primary" onClick={ handleFinish }>
-						{ __( 'Start Chatting', 'gratis-ai-agent' ) }
+						{ __( 'Start Chatting', 'sd-ai-agent' ) }
 					</Button>
 				) : (
 					<Button
 						variant="primary"
 						onClick={ () => setStep( step + 1 ) }
 					>
-						{ __( 'Next', 'gratis-ai-agent' ) }
+						{ __( 'Next', 'sd-ai-agent' ) }
 					</Button>
 				) }
 			</div>

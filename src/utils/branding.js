@@ -1,7 +1,7 @@
 /**
  * White-label branding helpers (t075).
  *
- * Reads the `window.gratisAiAgentBranding` object injected by FloatingWidget.php
+ * Reads the `window.sdAiAgentBranding` object injected by FloatingWidget.php
  * via wp_localize_script and provides typed accessors with safe fallbacks.
  *
  * The object is only present when the floating widget is enqueued (admin and
@@ -25,7 +25,7 @@
  */
 export function getBranding() {
 	return (
-		( typeof window !== 'undefined' && window.gratisAiAgentBranding ) || {
+		( typeof window !== 'undefined' && window.sdAiAgentBranding ) || {
 			agentName: '',
 			primaryColor: '',
 			textColor: '',

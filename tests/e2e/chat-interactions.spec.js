@@ -20,9 +20,9 @@ const {
  * Set up interception for auto-title tests.
  *
  * How the agent job flow works (current implementation):
- *   1. The store POSTs to gratis-ai-agent/v1/run with the message and session_id.
+ *   1. The store POSTs to sd-ai-agent/v1/run with the message and session_id.
  *      The server enqueues the agent job and returns { job_id }.
- *   2. The store polls gratis-ai-agent/v1/job/{job_id} every 3 s until the job
+ *   2. The store polls sd-ai-agent/v1/job/{job_id} every 3 s until the job
  *      status is 'complete', 'error', or 'awaiting_confirmation'.
  *   3. On 'complete' it reloads the session from the DB, optionally records
  *      generated_title via updateSessionTitle(), and calls fetchSessions() to
@@ -63,7 +63,7 @@ async function interceptStream( page, options = {} ) {
 	// permalinks (?rest_route=%2F...) where slashes are URL-encoded — a regex
 	// against the raw URL would never match.
 	await page.route(
-		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+		( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/run' ),
 		async ( route ) => {
 		try {
 			const postBody = route.request().postDataJSON();
@@ -91,7 +91,7 @@ async function interceptStream( page, options = {} ) {
 	// capturedSessionId is guaranteed set before the first poll: the browser
 	// sends POST /run synchronously before fetching GET /job/:id.
 	await page.route(
-		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+		( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/job/' ),
 		async ( route ) => {
 		jobPollCount += 1;
 		if ( jobPollCount <= processingPolls ) {
@@ -126,7 +126,7 @@ async function interceptStream( page, options = {} ) {
 		( url ) => {
 			const decoded = decodeURIComponent( url.toString() );
 			return (
-				decoded.includes( 'gratis-ai-agent/v1/sessions/' ) &&
+				decoded.includes( 'sd-ai-agent/v1/sessions/' ) &&
 				! decoded.includes( '/sessions/shared' ) &&
 				/\/sessions\/\d+/.test( decoded )
 			);
@@ -166,7 +166,7 @@ async function interceptStream( page, options = {} ) {
 		( url ) => {
 			const decoded = decodeURIComponent( url.toString() );
 			return (
-				decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
+				decoded.includes( 'sd-ai-agent/v1/sessions' ) &&
 				! decoded.includes( '/sessions/shared' ) &&
 				! /\/sessions\/\d+/.test( decoded )
 			);
@@ -277,7 +277,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 	} );
 
@@ -285,7 +285,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Core commands should be listed.
@@ -300,11 +300,11 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/rem' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Only /remember should match /rem.
-		const items = page.locator( '.gratis-ai-agent-slash-item' );
+		const items = page.locator( '.sd-ai-agent-slash-item' );
 		const count = await items.count();
 		expect( count ).toBeGreaterThanOrEqual( 1 );
 
@@ -315,7 +315,7 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		await input.press( 'Escape' );
@@ -328,11 +328,11 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/new' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
 		// Click the /new item.
-		const newItem = page.locator( '.gratis-ai-agent-slash-item' ).filter( {
+		const newItem = page.locator( '.sd-ai-agent-slash-item' ).filter( {
 			hasText: '/new',
 		} );
 		await newItem.click();
@@ -348,16 +348,16 @@ test.describe( 'Slash Command Menu', () => {
 		const input = getMessageInput( page );
 		await input.fill( '/help' );
 
-		const slashMenu = page.locator( '.gratis-ai-agent-slash-menu' );
+		const slashMenu = page.locator( '.sd-ai-agent-slash-menu' );
 		await expect( slashMenu ).toBeVisible();
 
-		const helpItem = page.locator( '.gratis-ai-agent-slash-item' ).filter( {
+		const helpItem = page.locator( '.sd-ai-agent-slash-item' ).filter( {
 			hasText: '/help',
 		} );
 		await helpItem.click();
 
 		// Shortcuts dialog should open.
-		const shortcutsDialog = page.locator( '.gratis-ai-agent-shortcuts-overlay' );
+		const shortcutsDialog = page.locator( '.sd-ai-agent-shortcuts-overlay' );
 		await expect( shortcutsDialog ).toBeVisible();
 	} );
 } );
@@ -372,7 +372,7 @@ test.describe( 'Provider Selector', () => {
 		page,
 	} ) => {
 		// Wait for ChatRedesign to mount before checking the model chip.
-		// ChatRoute polls for window.gratisAiAgentChat (exposed by admin-page.js),
+		// ChatRoute polls for window.sdAiAgentChat (exposed by admin-page.js),
 		// so .gaa-cr may appear after a short delay post-navigation.
 		await page
 			.locator( '.gaa-cr' )
@@ -433,7 +433,7 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await loginToWordPress( page );
 		await goToAgentPage( page );
 		// Wait for ChatRedesign to mount before interacting. ChatRoute polls for
-		// window.gratisAiAgentChat, so .gaa-cr may appear after a short delay.
+		// window.sdAiAgentChat, so .gaa-cr may appear after a short delay.
 		await page
 			.locator( '.gaa-cr' )
 			.waitFor( { state: 'visible', timeout: 30_000 } );
@@ -459,7 +459,7 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// .first() is unreliable when previous tests have left sessions in the
 		// sidebar — the current session may not be the first item.
 		//
-		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .sd-ai-agent-session-item).
 		//
 		// 20 s timeout: the full chain (POST /sessions → POST /run → job poll
 		// at 3 s interval → fetchSessions → React re-render) takes 8-15 s on
@@ -473,7 +473,7 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// The title arrives via the SSE done event (generated_title field),
 		// not via a direct store dispatch, so this assertion validates the
 		// full stream-event handling path.
-		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .sd-ai-agent-session-title).
 		await expect( activeItem ).toContainText( expectedTitle, {
 			timeout: 10_000,
 		} );
@@ -493,13 +493,13 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		await input.press( 'Enter' );
 
 		// Wait for the active session row (see timeout rationale in first test).
-		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .sd-ai-agent-session-item).
 		const activeItem = page.locator( '.gaa-cr-session-row.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 20_000 } );
 
 		// The title element inside the active session row should not say "Untitled".
 		// The title arrives via the SSE done event, not a direct store dispatch.
-		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .sd-ai-agent-session-title).
 		const titleEl = activeItem.locator( '.gaa-cr-session-row-title' );
 		await expect( titleEl ).not.toContainText( 'Untitled', {
 			timeout: 10_000,
@@ -525,13 +525,13 @@ test.describe( 'Auto-Title Sessions (t099)', () => {
 		// Wait for the active session row to appear in the sidebar. fetchSessions()
 		// runs after the intercepted stream completes, so the session is in
 		// state.sessions at this point.
-		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row (was .sd-ai-agent-session-item).
 		const activeItem = page.locator( '.gaa-cr-session-row.is-active' );
 		await expect( activeItem ).toBeVisible( { timeout: 15_000 } );
 
 		// The intercepted done event carries no generated_title, so the title
 		// should still be "Untitled" (or empty) at this point.
-		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .gratis-ai-agent-session-title).
+		// ChatRedesign Sidebar uses .gaa-cr-session-row-title (was .sd-ai-agent-session-title).
 		const titleEl = activeItem.locator( '.gaa-cr-session-row-title' );
 		const titleText = await titleEl.textContent();
 		// Title is either empty or "Untitled" — no auto-title was injected.

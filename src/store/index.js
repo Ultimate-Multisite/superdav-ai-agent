@@ -93,12 +93,12 @@ import {
 	reducer as jobReducer,
 } from './slices/jobSlice';
 
-const STORE_NAME = 'gratis-ai-agent';
+const STORE_NAME = 'sd-ai-agent';
 
-// Migrate localStorage keys from old "aiAgent" prefix to "gratisAiAgent".
+// Migrate localStorage keys from old "aiAgent" prefix to "sdAiAgent".
 [ 'Provider', 'Model', 'DebugMode' ].forEach( ( key ) => {
 	const oldKey = `aiAgent${ key }`;
-	const newKey = `gratisAiAgent${ key }`;
+	const newKey = `sdAiAgent${ key }`;
 	if (
 		localStorage.getItem( oldKey ) !== null &&
 		localStorage.getItem( newKey ) === null
@@ -187,7 +187,7 @@ const selectors = {
 };
 
 /**
- * Redux reducer for the Gratis AI Agent store.
+ * Redux reducer for the Superdav AI Agent store.
  * Delegates to each domain slice reducer in turn.
  *
  * @param {StoreState} state  - Current state (defaults to DEFAULT_STATE).

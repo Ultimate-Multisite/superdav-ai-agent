@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Abstract Ability base class for GratisAiAgent abilities.
+ * Abstract Ability base class for SdAiAgent abilities.
  *
  * Extends WP_Ability (WordPress 7.0+ core) with typed abstract methods
  * for defining abilities in a structured, OOP style.
@@ -15,7 +15,7 @@ declare(strict_types=1);
  * Usage:
  *
  *     class MyAbility extends AbstractAbility {
- *         protected function category(): string { return 'gratis-ai-agent'; }
+ *         protected function category(): string { return 'sd-ai-agent'; }
  *         protected function input_schema(): array { return [...]; }
  *         protected function output_schema(): array { return [...]; }
  *         protected function execute_callback( $input ) { ... }
@@ -24,25 +24,25 @@ declare(strict_types=1);
  *     }
  *
  *     // Register via wp_register_ability() with ability_class:
- *     wp_register_ability( 'gratis-ai-agent/my-ability', [
- *         'label'         => __( 'My Ability', 'gratis-ai-agent' ),
- *         'description'   => __( 'Does something.', 'gratis-ai-agent' ),
+ *     wp_register_ability( 'sd-ai-agent/my-ability', [
+ *         'label'         => __( 'My Ability', 'sd-ai-agent' ),
+ *         'description'   => __( 'Does something.', 'sd-ai-agent' ),
  *         'ability_class' => MyAbility::class,
  *     ] );
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @since 1.0.0
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Abstract base class for GratisAiAgent abilities.
+ * Abstract base class for SdAiAgent abilities.
  *
  * Extends WP_Ability (WordPress 7.0+ core). Subclasses must implement the
  * abstract methods: label(), description(), category(), input_schema(),
@@ -65,11 +65,11 @@ abstract class AbstractAbility extends \WP_Ability {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string              $name       The namespaced ability name (e.g. 'gratis-ai-agent/memory-save').
+	 * @param string              $name       The namespaced ability name (e.g. 'sd-ai-agent/memory-save').
 	 * @param array<string,mixed> $properties Optional overrides. Supports 'label' and 'description'.
 	 */
 	public function __construct( string $name, array $properties = array() ) {
-		$input_schema = \GratisAiAgent\Infrastructure\Schema\SchemaNormalizer::normalize( $this->input_schema() );
+		$input_schema = \SdAiAgent\Infrastructure\Schema\SchemaNormalizer::normalize( $this->input_schema() );
 
 		parent::__construct(
 			$name,
@@ -133,7 +133,7 @@ abstract class AbstractAbility extends \WP_Ability {
 	 * @return string The category slug (must be registered via wp_register_ability_category()).
 	 */
 	protected function category(): string {
-		return 'gratis-ai-agent';
+		return 'sd-ai-agent';
 	}
 
 	/**
@@ -239,7 +239,7 @@ abstract class AbstractAbility extends \WP_Ability {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log(
 				sprintf(
-					'[Gratis AI Agent] Ability "%s" exception: %s in %s:%d',
+					'[Superdav AI Agent] Ability "%s" exception: %s in %s:%d',
 					$this->get_name(),
 					$e->getMessage(),
 					$e->getFile(),
@@ -260,7 +260,7 @@ abstract class AbstractAbility extends \WP_Ability {
 				'ability_callback_exception',
 				sprintf(
 					/* translators: 1: Ability name, 2: Exception message. */
-					__( 'Ability "%1$s" threw an error: %2$s', 'gratis-ai-agent' ),
+					__( 'Ability "%1$s" threw an error: %2$s', 'sd-ai-agent' ),
 					$this->get_name(),
 					$e->getMessage()
 				),
@@ -305,8 +305,8 @@ abstract class AbstractAbility extends \WP_Ability {
 	 * @return string Model ID or empty string.
 	 */
 	protected function get_configured_model(): string {
-		if ( class_exists( \GratisAiAgent\Core\Settings::class ) ) {
-			$model = \GratisAiAgent\Core\Settings::instance()->get( 'default_model' );
+		if ( class_exists( \SdAiAgent\Core\Settings::class ) ) {
+			$model = \SdAiAgent\Core\Settings::instance()->get( 'default_model' );
 			return is_string( $model ) ? $model : '';
 		}
 		return '';

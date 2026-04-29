@@ -6,14 +6,14 @@ declare(strict_types=1);
  *
  * Flow: backup → stage → test → swap → verify → rollback on failure.
  *
- * Backups land in wp-content/gratis-ai-backups/{slug}-{timestamp}/.
- * Staging uses    wp-content/gratis-ai-staging/{slug}/.
+ * Backups land in wp-content/sd-ai-backups/{slug}-{timestamp}/.
+ * Staging uses    wp-content/sd-ai-staging/{slug}/.
  *
- * @package GratisAiAgent\PluginBuilder
+ * @package SdAiAgent\PluginBuilder
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\PluginBuilder;
+namespace SdAiAgent\PluginBuilder;
 
 use WP_Error;
 
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PluginUpdater {
 
 	/**
-	 * Backup an installed plugin to wp-content/gratis-ai-backups/{slug}-{timestamp}/.
+	 * Backup an installed plugin to wp-content/sd-ai-backups/{slug}-{timestamp}/.
 	 *
 	 * @param string $slug Plugin slug (directory name under wp-content/plugins/).
 	 * @return string|\WP_Error Absolute path to the backup directory on success.
@@ -38,22 +38,22 @@ class PluginUpdater {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
 		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				/* translators: %s: plugin directory */
-				sprintf( __( 'Plugin directory not found: %s', 'gratis-ai-agent' ), $plugin_dir )
+				sprintf( __( 'Plugin directory not found: %s', 'sd-ai-agent' ), $plugin_dir )
 			);
 		}
 
 		$timestamp  = gmdate( 'Y-m-d-His' );
-		$backup_dir = WP_CONTENT_DIR . '/gratis-ai-backups/' . $slug . '-' . $timestamp . '/';
+		$backup_dir = WP_CONTENT_DIR . '/sd-ai-backups/' . $slug . '-' . $timestamp . '/';
 
 		$result = $this->copy_directory( $plugin_dir, $backup_dir );
 		if ( is_wp_error( $result ) ) {
@@ -77,21 +77,21 @@ class PluginUpdater {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
 		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				/* translators: %s: plugin directory */
-				sprintf( __( 'Plugin directory not found: %s', 'gratis-ai-agent' ), $plugin_dir )
+				sprintf( __( 'Plugin directory not found: %s', 'sd-ai-agent' ), $plugin_dir )
 			);
 		}
 
-		$staging_dir = WP_CONTENT_DIR . '/gratis-ai-staging/' . $slug . '/';
+		$staging_dir = WP_CONTENT_DIR . '/sd-ai-staging/' . $slug . '/';
 
 		// Remove stale staging dir if it exists.
 		if ( is_dir( $staging_dir ) ) {
@@ -113,9 +113,9 @@ class PluginUpdater {
 			if ( false === file_put_contents( $abs_path, $content ) ) {
 				$this->remove_directory( $staging_dir );
 				return new WP_Error(
-					'gratis_ai_agent_staging_write_failed',
+					'sd_ai_agent_staging_write_failed',
 					/* translators: %s: relative file path */
-					sprintf( __( 'Could not write staging file: %s', 'gratis-ai-agent' ), $relative_path )
+					sprintf( __( 'Could not write staging file: %s', 'sd-ai-agent' ), $relative_path )
 				);
 			}
 		}
@@ -158,9 +158,9 @@ class PluginUpdater {
 	public function swap( string $slug, string $staging_dir, string $backup_dir ): array|\WP_Error {
 		if ( ! is_dir( $staging_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_staging_not_found',
+				'sd_ai_agent_staging_not_found',
 				/* translators: %s: staging directory */
-				sprintf( __( 'Staging directory not found: %s', 'gratis-ai-agent' ), $staging_dir )
+				sprintf( __( 'Staging directory not found: %s', 'sd-ai-agent' ), $staging_dir )
 			);
 		}
 
@@ -184,9 +184,9 @@ class PluginUpdater {
 			// Restore backup.
 			$this->rollback( $slug, $backup_dir );
 			return new WP_Error(
-				'gratis_ai_agent_swap_copy_failed',
+				'sd_ai_agent_swap_copy_failed',
 				/* translators: %s: underlying error message */
-				sprintf( __( 'Swap failed, backup restored: %s', 'gratis-ai-agent' ), $copy_result->get_error_message() )
+				sprintf( __( 'Swap failed, backup restored: %s', 'sd-ai-agent' ), $copy_result->get_error_message() )
 			);
 		}
 
@@ -198,10 +198,10 @@ class PluginUpdater {
 				$this->remove_directory( $plugin_dir );
 				$this->rollback( $slug, $backup_dir );
 				return new WP_Error(
-					'gratis_ai_agent_reactivation_failed',
+					'sd_ai_agent_reactivation_failed',
 					sprintf(
 						/* translators: 1: plugin file, 2: underlying error */
-						__( 'Reactivation of "%1$s" failed after swap, backup restored: %2$s', 'gratis-ai-agent' ),
+						__( 'Reactivation of "%1$s" failed after swap, backup restored: %2$s', 'sd-ai-agent' ),
 						$plugin_file,
 						$activate_result->get_error_message()
 					)
@@ -226,9 +226,9 @@ class PluginUpdater {
 	public function rollback( string $slug, string $backup_dir ): array|\WP_Error {
 		if ( ! is_dir( $backup_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_backup_not_found',
+				'sd_ai_agent_backup_not_found',
 				/* translators: %s: backup directory */
-				sprintf( __( 'Backup directory not found: %s', 'gratis-ai-agent' ), $backup_dir )
+				sprintf( __( 'Backup directory not found: %s', 'sd-ai-agent' ), $backup_dir )
 			);
 		}
 
@@ -254,7 +254,7 @@ class PluginUpdater {
 	 * Remove old plugin backups beyond the configured retention window.
 	 *
 	 * Never deletes the most recent backup for any slug regardless of age.
-	 * Retention window is configurable via the `gratis_ai_agent_backup_retention_days` filter.
+	 * Retention window is configurable via the `sd_ai_agent_backup_retention_days` filter.
 	 *
 	 * @param int $max_age_days Maximum backup age in days. Default 7.
 	 * @return int Number of backup directories removed.
@@ -265,8 +265,8 @@ class PluginUpdater {
 		 *
 		 * @param int $max_age_days Default retention in days.
 		 */
-		$max_age_days = (int) apply_filters( 'gratis_ai_agent_backup_retention_days', $max_age_days );
-		$backups_root = WP_CONTENT_DIR . '/gratis-ai-backups/';
+		$max_age_days = (int) apply_filters( 'sd_ai_agent_backup_retention_days', $max_age_days );
+		$backups_root = WP_CONTENT_DIR . '/sd-ai-backups/';
 
 		if ( ! is_dir( $backups_root ) ) {
 			return 0;
@@ -347,7 +347,7 @@ class PluginUpdater {
 		if ( ! $test_result['passed'] ) {
 			$this->remove_directory( $staging_dir );
 			return new WP_Error(
-				'gratis_ai_agent_sandbox_failed',
+				'sd_ai_agent_sandbox_failed',
 				implode( '; ', $test_result['errors'] )
 			);
 		}
@@ -380,9 +380,9 @@ class PluginUpdater {
 	private function copy_directory( string $source, string $destination ): bool|\WP_Error {
 		if ( ! wp_mkdir_p( $destination ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_mkdir_failed',
+				'sd_ai_agent_mkdir_failed',
 				/* translators: %s: directory path */
-				sprintf( __( 'Could not create directory: %s', 'gratis-ai-agent' ), $destination )
+				sprintf( __( 'Could not create directory: %s', 'sd-ai-agent' ), $destination )
 			);
 		}
 

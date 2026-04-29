@@ -6,14 +6,14 @@ declare(strict_types=1);
  *
  * Orchestrates indexing, search, and context retrieval.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Knowledge;
+namespace SdAiAgent\Knowledge;
 
-use GratisAiAgent\Models\Chunker;
-use GratisAiAgent\Models\DocumentParser;
+use SdAiAgent\Models\Chunker;
+use SdAiAgent\Models\DocumentParser;
 use WP_Error;
 
 class Knowledge {
@@ -29,7 +29,7 @@ class Knowledge {
 		$post = get_post( $post_id );
 
 		if ( ! $post || 'publish' !== $post->post_status ) {
-			return new WP_Error( 'invalid_post', __( 'Post not found or not published.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'invalid_post', __( 'Post not found or not published.', 'sd-ai-agent' ) );
 		}
 
 		// Build text content: title + plain-text body.
@@ -37,7 +37,7 @@ class Knowledge {
 		$content = trim( $content );
 
 		if ( empty( $content ) ) {
-			return new WP_Error( 'empty_content', __( 'Post has no text content to index.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'empty_content', __( 'Post has no text content to index.', 'sd-ai-agent' ) );
 		}
 
 		// Compute hash for change detection.
@@ -75,7 +75,7 @@ class Knowledge {
 			);
 
 			if ( ! $source_id ) {
-				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'gratis-ai-agent' ) );
+				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'sd-ai-agent' ) );
 			}
 		}
 
@@ -185,7 +185,7 @@ class Knowledge {
 			);
 
 			if ( ! $source_id ) {
-				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'gratis-ai-agent' ) );
+				return new WP_Error( 'db_error', __( 'Failed to create source record.', 'sd-ai-agent' ) );
 			}
 		}
 
@@ -221,7 +221,7 @@ class Knowledge {
 		$collection = KnowledgeDatabase::get_collection( $collection_id );
 
 		if ( ! $collection ) {
-			return new WP_Error( 'not_found', __( 'Collection not found.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'not_found', __( 'Collection not found.', 'sd-ai-agent' ) );
 		}
 
 		$config     = $collection->source_config;

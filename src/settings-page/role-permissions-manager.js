@@ -80,43 +80,43 @@ function RoleRow( { roleSlug, roleLabel, config, abilities, onChange } ) {
 	);
 
 	return (
-		<div className="gratis-ai-agent-role-row">
-			<div className="gratis-ai-agent-role-header">
-				<h3 className="gratis-ai-agent-role-name">{ roleLabel }</h3>
+		<div className="sd-ai-agent-role-row">
+			<div className="sd-ai-agent-role-header">
+				<h3 className="sd-ai-agent-role-name">{ roleLabel }</h3>
 				<ToggleControl
-					label={ __( 'Chat Access', 'gratis-ai-agent' ) }
+					label={ __( 'Chat Access', 'sd-ai-agent' ) }
 					checked={ chatAccess }
 					onChange={ handleChatToggle }
 					help={ __(
 						'Allow this role to use the AI chat.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 					__nextHasNoMarginBottom
 				/>
 			</div>
 
 			{ chatAccess && (
-				<div className="gratis-ai-agent-role-abilities">
+				<div className="sd-ai-agent-role-abilities">
 					<ToggleControl
 						label={ __(
 							'All abilities (unrestricted)',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						checked={ allAllowed }
 						onChange={ handleAllAbilitiesToggle }
 						help={ __(
 							'When enabled, this role can use all available abilities. Disable to select specific abilities.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 
 					{ ! allAllowed && abilities.length > 0 && (
-						<div className="gratis-ai-agent-ability-list">
+						<div className="sd-ai-agent-ability-list">
 							<p className="description">
 								{ __(
 									'Select which abilities this role can use:',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</p>
 							{ abilities.map( ( ability ) => (
@@ -160,11 +160,9 @@ export default function RolePermissionsManager() {
 
 	useEffect( () => {
 		Promise.all( [
-			apiFetch( { path: '/gratis-ai-agent/v1/role-permissions' } ),
-			apiFetch( { path: '/gratis-ai-agent/v1/role-permissions/roles' } ),
-			apiFetch( { path: '/gratis-ai-agent/v1/abilities' } ).catch(
-				() => []
-			),
+			apiFetch( { path: '/sd-ai-agent/v1/role-permissions' } ),
+			apiFetch( { path: '/sd-ai-agent/v1/role-permissions/roles' } ),
+			apiFetch( { path: '/sd-ai-agent/v1/abilities' } ).catch( () => [] ),
 		] )
 			.then( ( [ permData, rolesData, abilitiesData ] ) => {
 				setPermissions( permData.permissions || {} );
@@ -177,7 +175,7 @@ export default function RolePermissionsManager() {
 					status: 'error',
 					message: __(
 						'Failed to load role permissions.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					),
 				} );
 			} )
@@ -193,21 +191,21 @@ export default function RolePermissionsManager() {
 		setNotice( null );
 		try {
 			const result = await apiFetch( {
-				path: '/gratis-ai-agent/v1/role-permissions',
+				path: '/sd-ai-agent/v1/role-permissions',
 				method: 'POST',
 				data: { permissions },
 			} );
 			setPermissions( result.permissions || {} );
 			setNotice( {
 				status: 'success',
-				message: __( 'Role permissions saved.', 'gratis-ai-agent' ),
+				message: __( 'Role permissions saved.', 'sd-ai-agent' ),
 			} );
 		} catch {
 			setNotice( {
 				status: 'error',
 				message: __(
 					'Failed to save role permissions.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		}
@@ -216,14 +214,14 @@ export default function RolePermissionsManager() {
 
 	if ( loading ) {
 		return (
-			<div className="gratis-ai-agent-role-permissions-loading">
+			<div className="sd-ai-agent-role-permissions-loading">
 				<Spinner />
 			</div>
 		);
 	}
 
 	return (
-		<div className="gratis-ai-agent-role-permissions">
+		<div className="sd-ai-agent-role-permissions">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -237,7 +235,7 @@ export default function RolePermissionsManager() {
 			<p className="description">
 				{ __(
 					'Configure which WordPress user roles can access the AI chat and which abilities are available per role. Administrators always have full access.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 			</p>
 
@@ -246,14 +244,14 @@ export default function RolePermissionsManager() {
 					<em>
 						{ __(
 							'Always allowed (cannot be restricted):',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }{ ' ' }
 						{ alwaysAllowed.join( ', ' ) }
 					</em>
 				</p>
 			) }
 
-			<div className="gratis-ai-agent-role-list">
+			<div className="sd-ai-agent-role-list">
 				{ Object.entries( roles )
 					.filter( ( [ slug ] ) => ! alwaysAllowed.includes( slug ) )
 					.map( ( [ slug, label ] ) => (
@@ -268,14 +266,14 @@ export default function RolePermissionsManager() {
 					) ) }
 			</div>
 
-			<div className="gratis-ai-agent-role-permissions-actions">
+			<div className="sd-ai-agent-role-permissions-actions">
 				<Button
 					variant="primary"
 					onClick={ handleSave }
 					isBusy={ saving }
 					disabled={ saving }
 				>
-					{ __( 'Save Permissions', 'gratis-ai-agent' ) }
+					{ __( 'Save Permissions', 'sd-ai-agent' ) }
 				</Button>
 			</div>
 		</div>

@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Update Plugin (Sandboxed) ability — safe plugin code updates with rollback.
  *
- * @package GratisAiAgent\Abilities
+ * @package SdAiAgent\Abilities
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\PluginBuilder\PluginUpdater;
+use SdAiAgent\PluginBuilder\PluginUpdater;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,11 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UpdatePluginSandboxedAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Update Plugin (Sandboxed)', 'gratis-ai-agent' );
+		return __( 'Update Plugin (Sandboxed)', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Update a running plugin with new code: backup → stage → sandbox test → swap. Rolls back automatically on failure.', 'gratis-ai-agent' );
+		return __( 'Update a running plugin with new code: backup → stage → sandbox test → swap. Rolls back automatically on failure.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -73,10 +73,10 @@ class UpdatePluginSandboxedAbility extends AbstractAbility {
 		);
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'slug is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_slug', __( 'slug is required.', 'sd-ai-agent' ) );
 		}
 		if ( empty( $files ) ) {
-			return new WP_Error( 'gratis_ai_agent_no_files', __( 'files must not be empty.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_no_files', __( 'files must not be empty.', 'sd-ai-agent' ) );
 		}
 
 		return ( new PluginUpdater() )->update( $slug, $files );

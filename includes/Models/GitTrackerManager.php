@@ -9,14 +9,14 @@ declare(strict_types=1);
  * into FileAbilities write/edit operations to automatically snapshot files
  * before they are modified by the AI agent.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @since   1.1.0
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Core\Database;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -52,10 +52,10 @@ class GitTrackerManager {
 
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_plugin_not_found',
+				'sd_ai_agent_git_tracker_plugin_not_found',
 				sprintf(
 					/* translators: %s: plugin file */
-					__( 'Plugin directory not found for: %s', 'gratis-ai-agent' ),
+					__( 'Plugin directory not found for: %s', 'sd-ai-agent' ),
 					$plugin_file
 				)
 			);
@@ -83,10 +83,10 @@ class GitTrackerManager {
 
 		if ( ! is_dir( $theme_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_theme_not_found',
+				'sd_ai_agent_git_tracker_theme_not_found',
 				sprintf(
 					/* translators: %s: theme slug */
-					__( 'Theme directory not found for: %s', 'gratis-ai-agent' ),
+					__( 'Theme directory not found for: %s', 'sd-ai-agent' ),
 					$theme_slug
 				)
 			);
@@ -141,10 +141,10 @@ class GitTrackerManager {
 		}
 
 		return new WP_Error(
-			'gratis_ai_agent_git_tracker_outside_packages',
+			'sd_ai_agent_git_tracker_outside_packages',
 			sprintf(
 				/* translators: %s: file path */
-				__( 'File is not inside a plugin or theme directory: %s', 'gratis-ai-agent' ),
+				__( 'File is not inside a plugin or theme directory: %s', 'sd-ai-agent' ),
 				$absolute_path
 			)
 		);
@@ -364,14 +364,14 @@ class GitTrackerManager {
 	/**
 	 * Register WordPress hooks to auto-snapshot files before FileAbilities modifies them.
 	 *
-	 * Hooks into the `gratis_ai_agent_before_file_write` and
-	 * `gratis_ai_agent_before_file_edit` actions fired by FileAbilities.
+	 * Hooks into the `sd_ai_agent_before_file_write` and
+	 * `sd_ai_agent_before_file_edit` actions fired by FileAbilities.
 	 */
 	public static function register(): void {
-		add_action( 'gratis_ai_agent_before_file_write', [ self::class, 'on_before_file_write' ] );
-		add_action( 'gratis_ai_agent_before_file_edit', [ self::class, 'on_before_file_edit' ] );
-		add_action( 'gratis_ai_agent_after_file_write', [ self::class, 'on_after_file_write' ] );
-		add_action( 'gratis_ai_agent_after_file_edit', [ self::class, 'on_after_file_edit' ] );
+		add_action( 'sd_ai_agent_before_file_write', [ self::class, 'on_before_file_write' ] );
+		add_action( 'sd_ai_agent_before_file_edit', [ self::class, 'on_before_file_edit' ] );
+		add_action( 'sd_ai_agent_after_file_write', [ self::class, 'on_after_file_write' ] );
+		add_action( 'sd_ai_agent_after_file_edit', [ self::class, 'on_after_file_edit' ] );
 	}
 
 	/**
@@ -443,10 +443,10 @@ class GitTrackerManager {
 		}
 
 		return new WP_Error(
-			'gratis_ai_agent_git_tracker_plugin_file_not_found',
+			'sd_ai_agent_git_tracker_plugin_file_not_found',
 			sprintf(
 				/* translators: %s: plugin directory slug */
-				__( 'Cannot resolve main plugin file for directory: %s', 'gratis-ai-agent' ),
+				__( 'Cannot resolve main plugin file for directory: %s', 'sd-ai-agent' ),
 				$plugin_dir_slug
 			)
 		);

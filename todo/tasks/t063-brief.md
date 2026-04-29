@@ -26,14 +26,14 @@ smarter, more relevant responses from the very first interaction.
 Two new classes in `includes/Core/`:
 
 ### `SiteScanner`
-- WP-Cron hook: `gratis_ai_agent_site_scan` (single event, fires 10s after activation)
+- WP-Cron hook: `sd_ai_agent_site_scan` (single event, fires 10s after activation)
 - Collects: site name/URL/tagline, WP version, language, active theme, active plugins,
   public post types, published post count, top-level categories, WooCommerce status
 - Detects site type: `ecommerce`, `lms`, `membership`, `portfolio`, `blog`, `brochure`
 - Stores results as `site_info` and `technical_notes` memories via `Memory::create()`
 - Seeds knowledge base: creates `onboarding-site-content` collection (if knowledge
   feature enabled) and indexes up to 50 recent published posts
-- Status tracked in `gratis_ai_agent_onboarding_scan` option
+- Status tracked in `sd_ai_agent_onboarding_scan` option
 
 ### `OnboardingManager`
 - Registers `SiteScanner` cron handler
@@ -41,10 +41,10 @@ Two new classes in `includes/Core/`:
 - `maybe_trigger()` — called on `admin_init`, triggers scan if no memories exist
   and scan has never run (handles upgrades from pre-onboarding versions)
 - REST endpoints:
-  - `GET /gratis-ai-agent/v1/onboarding/status` — poll scan progress
-  - `POST /gratis-ai-agent/v1/onboarding/rescan` — reset and re-run scan
+  - `GET /sd-ai-agent/v1/onboarding/status` — poll scan progress
+  - `POST /sd-ai-agent/v1/onboarding/rescan` — reset and re-run scan
 
-### `gratis-ai-agent.php` changes
+### `sd-ai-agent.php` changes
 - `use` imports for `OnboardingManager` and `SiteScanner`
 - `register_activation_hook` → `OnboardingManager::on_activation`
 - `register_deactivation_hook` → `SiteScanner::unschedule`
@@ -56,8 +56,8 @@ Two new classes in `includes/Core/`:
 - [ ] After the scan, `site_info` and `technical_notes` memories are populated
 - [ ] Site type is correctly detected and stored as a memory
 - [ ] Knowledge base is seeded with up to 50 posts (when knowledge feature enabled)
-- [ ] `GET /gratis-ai-agent/v1/onboarding/status` returns scan status
-- [ ] `POST /gratis-ai-agent/v1/onboarding/rescan` resets and re-triggers the scan
+- [ ] `GET /sd-ai-agent/v1/onboarding/status` returns scan status
+- [ ] `POST /sd-ai-agent/v1/onboarding/rescan` resets and re-triggers the scan
 - [ ] Scan does not re-run on subsequent activations (idempotent)
 - [ ] Existing installs with memories are not re-scanned automatically
 
@@ -71,4 +71,4 @@ Files created:
 - `includes/Core/OnboardingManager.php`
 
 Files modified:
-- `gratis-ai-agent.php` (activation hooks + bootstrap registration)
+- `sd-ai-agent.php` (activation hooks + bootstrap registration)

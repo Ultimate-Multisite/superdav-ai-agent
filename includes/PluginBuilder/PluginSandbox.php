@@ -12,11 +12,11 @@ declare(strict_types=1);
  *           shutdown function. Transient flag auto-deactivates on next request
  *           after a fatal. Immediate rollback on failure.
  *
- * @package GratisAiAgent\PluginBuilder
+ * @package SdAiAgent\PluginBuilder
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\PluginBuilder;
+namespace SdAiAgent\PluginBuilder;
 
 use WP_Error;
 
@@ -34,7 +34,7 @@ class PluginSandbox {
 	/**
 	 * Transient key prefix used to flag a plugin that caused a fatal on activation.
 	 */
-	const FATAL_TRANSIENT_PREFIX = 'gratis_ai_agent_plugin_fatal_';
+	const FATAL_TRANSIENT_PREFIX = 'sd_ai_agent_plugin_fatal_';
 
 	/**
 	 * Run all three safety layers against a plugin directory.
@@ -88,9 +88,9 @@ class PluginSandbox {
 	public static function layer1_syntax_check( string $plugin_dir ): bool|\WP_Error {
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_sandbox_dir_not_found',
+				'sd_ai_agent_sandbox_dir_not_found',
 				/* translators: %s: directory path */
-				sprintf( __( 'Plugin directory not found: %s', 'gratis-ai-agent' ), $plugin_dir )
+				sprintf( __( 'Plugin directory not found: %s', 'sd-ai-agent' ), $plugin_dir )
 			);
 		}
 
@@ -103,10 +103,10 @@ class PluginSandbox {
 			exec( 'php -l ' . escapeshellarg( $file ) . ' 2>&1', $output, $exit_code );
 			if ( 0 !== $exit_code ) {
 				return new WP_Error(
-					'gratis_ai_agent_syntax_error',
+					'sd_ai_agent_syntax_error',
 					sprintf(
 						/* translators: 1: file path 2: error output */
-						__( 'Syntax error in %1$s: %2$s', 'gratis-ai-agent' ),
+						__( 'Syntax error in %1$s: %2$s', 'sd-ai-agent' ),
 						str_replace( $plugin_dir . '/', '', $file ),
 						implode( "\n", $output )
 					)
@@ -133,16 +133,16 @@ class PluginSandbox {
 
 		if ( ! file_exists( $main_file ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_sandbox_file_not_found',
+				'sd_ai_agent_sandbox_file_not_found',
 				/* translators: %s: file path */
-				sprintf( __( 'Plugin main file not found: %s', 'gratis-ai-agent' ), $main_file )
+				sprintf( __( 'Plugin main file not found: %s', 'sd-ai-agent' ), $main_file )
 			);
 		}
 
 		// Build a tiny PHP script that attempts to include the plugin file.
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- var_export needed to safely embed path in PHP code string.
 		$test_php = '<?php @include_once ' . var_export( $main_file, true ) . '; echo "OK";';
-		$tmp_file = wp_tempnam( 'gratis_sandbox_' );
+		$tmp_file = wp_tempnam( 'sd_sandbox_' );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing temp file; WP_Filesystem not available at this stage.
 		file_put_contents( $tmp_file, $test_php );
 
@@ -172,10 +172,10 @@ class PluginSandbox {
 
 		if ( 0 !== $exit_code || false === strpos( $output_str, 'OK' ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_isolated_include_failed',
+				'sd_ai_agent_isolated_include_failed',
 				sprintf(
 					/* translators: 1: exit code 2: output */
-					__( 'Isolated include failed (exit %1$d): %2$s', 'gratis-ai-agent' ),
+					__( 'Isolated include failed (exit %1$d): %2$s', 'sd-ai-agent' ),
 					$exit_code,
 					$output_str
 				)
@@ -210,9 +210,9 @@ class PluginSandbox {
 		if ( get_transient( $transient_key ) ) {
 			delete_transient( $transient_key );
 			return new WP_Error(
-				'gratis_ai_agent_previous_fatal',
+				'sd_ai_agent_previous_fatal',
 				/* translators: %s: plugin file */
-				sprintf( __( 'Plugin "%s" caused a fatal error on a previous activation attempt and was automatically deactivated.', 'gratis-ai-agent' ), $plugin_file )
+				sprintf( __( 'Plugin "%s" caused a fatal error on a previous activation attempt and was automatically deactivated.', 'sd-ai-agent' ), $plugin_file )
 			);
 		}
 
@@ -252,7 +252,7 @@ class PluginSandbox {
 			'plugin_file' => $plugin_file,
 			'message'     => sprintf(
 				/* translators: %s: plugin file */
-				__( 'Plugin "%s" activated successfully via sandboxed activation.', 'gratis-ai-agent' ),
+				__( 'Plugin "%s" activated successfully via sandboxed activation.', 'sd-ai-agent' ),
 				$plugin_file
 			),
 		];
@@ -276,7 +276,7 @@ class PluginSandbox {
 				delete_transient( $transient_key );
 				// Log the auto-deactivation.
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Logging fatal deactivation is intentional operational telemetry.
-				error_log( 'GratisAiAgent: Auto-deactivated plugin after fatal: ' . $plugin_file );
+				error_log( 'SdAiAgent: Auto-deactivated plugin after fatal: ' . $plugin_file );
 			}
 		}
 	}

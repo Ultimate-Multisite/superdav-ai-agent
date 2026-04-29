@@ -7,19 +7,19 @@
  * attributes.
  *
  * The detection and caching logic lives in
- * {@see \GratisAiAgent\Core\FreshInstallDetector}. This handler is a thin
+ * {@see \SdAiAgent\Core\FreshInstallDetector}. This handler is a thin
  * DI bridge — its only job is hook registration and forwarding to the
  * static `clearCache()` method.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Core\FreshInstallDetector;
+use SdAiAgent\Core\FreshInstallDetector;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * can fire in REST, CLI, and cron contexts as well as admin.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

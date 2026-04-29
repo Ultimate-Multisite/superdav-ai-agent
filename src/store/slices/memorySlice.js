@@ -33,7 +33,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const memories = await apiFetch( {
-					path: '/gratis-ai-agent/v1/memory',
+					path: '/sd-ai-agent/v1/memory',
 				} );
 				dispatch.setMemories( memories );
 			} catch {
@@ -52,7 +52,7 @@ export const actions = {
 	createMemory( category, content ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/memory',
+				path: '/sd-ai-agent/v1/memory',
 				method: 'POST',
 				data: { category, content },
 			} );
@@ -70,7 +70,7 @@ export const actions = {
 	updateMemory( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/memory/${ id }`,
+				path: `/sd-ai-agent/v1/memory/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -87,7 +87,7 @@ export const actions = {
 	deleteMemory( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/memory/${ id }`,
+				path: `/sd-ai-agent/v1/memory/${ id }`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchMemories();

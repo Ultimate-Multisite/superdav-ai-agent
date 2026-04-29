@@ -29,13 +29,13 @@ function getTooltip( warningLevel ) {
 	if ( warningLevel === 'exceeded' ) {
 		return __(
 			'Budget exceeded — new requests are blocked.',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		);
 	}
 	if ( warningLevel === 'warning' ) {
-		return __( 'Approaching budget limit.', 'gratis-ai-agent' );
+		return __( 'Approaching budget limit.', 'sd-ai-agent' );
 	}
-	return __( 'Budget usage', 'gratis-ai-agent' );
+	return __( 'Budget usage', 'sd-ai-agent' );
 }
 
 /**
@@ -54,7 +54,7 @@ export default function BudgetIndicator() {
 		let cancelled = false;
 
 		const fetchStatus = () => {
-			apiFetch( { path: '/gratis-ai-agent/v1/budget' } )
+			apiFetch( { path: '/sd-ai-agent/v1/budget' } )
 				.then( ( data ) => {
 					if ( ! cancelled ) {
 						setStatus( data );
@@ -100,20 +100,20 @@ export default function BudgetIndicator() {
 	const spend = hasDailyCap ? dailySpend : monthlySpend;
 	const cap = hasDailyCap ? dailyCap : monthlyCap;
 	const label = hasDailyCap
-		? __( 'today', 'gratis-ai-agent' )
-		: __( 'this month', 'gratis-ai-agent' );
+		? __( 'today', 'sd-ai-agent' )
+		: __( 'this month', 'sd-ai-agent' );
 
 	const classMap = {
-		ok: 'gratis-ai-agent-budget-indicator--ok',
-		warning: 'gratis-ai-agent-budget-indicator--warning',
-		exceeded: 'gratis-ai-agent-budget-indicator--exceeded',
+		ok: 'sd-ai-agent-budget-indicator--ok',
+		warning: 'sd-ai-agent-budget-indicator--warning',
+		exceeded: 'sd-ai-agent-budget-indicator--exceeded',
 	};
 
 	const levelClass = classMap[ warningLevel ] || classMap.ok;
 
 	return (
 		<span
-			className={ `gratis-ai-agent-budget-indicator ${ levelClass }` }
+			className={ `sd-ai-agent-budget-indicator ${ levelClass }` }
 			title={ getTooltip( warningLevel ) }
 		>
 			{ formatCost( spend ) } / { formatCost( cap ) } { label }

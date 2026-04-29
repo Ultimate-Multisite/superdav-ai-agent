@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * REST API controller for skills.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Models\Skill;
-use GratisAiAgent\Repositories\SkillUsageRepository;
-use GratisAiAgent\Services\SkillService;
+use SdAiAgent\Core\Settings;
+use SdAiAgent\Models\Skill;
+use SdAiAgent\Repositories\SkillUsageRepository;
+use SdAiAgent\Services\SkillService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'skills',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class SkillController extends XWP_REST_Controller {
 
@@ -93,7 +93,7 @@ final class SkillController extends XWP_REST_Controller {
 		$skill = Skill::get( $id );
 
 		if ( ! $skill ) {
-			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_skill_not_found', __( 'Skill not found after creation.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( SkillService::format_skill( $skill ), 201 );
@@ -132,8 +132,8 @@ final class SkillController extends XWP_REST_Controller {
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_update_failed',
-				__( 'Failed to update skill.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_update_failed',
+				__( 'Failed to update skill.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -141,7 +141,7 @@ final class SkillController extends XWP_REST_Controller {
 		$skill = Skill::get( $id );
 
 		if ( ! $skill ) {
-			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_skill_not_found', __( 'Skill not found after update.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( SkillService::format_skill( $skill ), 200 );
@@ -188,8 +188,8 @@ final class SkillController extends XWP_REST_Controller {
 
 		if ( ! $reset ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_reset_failed',
-				__( 'Failed to reset skill. Only built-in skills can be reset.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_reset_failed',
+				__( 'Failed to reset skill. Only built-in skills can be reset.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -197,7 +197,7 @@ final class SkillController extends XWP_REST_Controller {
 		$skill = Skill::get( $id );
 
 		if ( ! $skill ) {
-			return new WP_Error( 'gratis_ai_agent_skill_not_found', __( 'Skill not found after reset.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_skill_not_found', __( 'Skill not found after reset.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( SkillService::format_skill( $skill ), 200 );
@@ -329,8 +329,8 @@ final class SkillController extends XWP_REST_Controller {
 
 		if ( '' === $manifest_url ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_manifest_url',
-				__( 'No skill manifest URL configured. Set skill_manifest_url in settings.', 'gratis-ai-agent' ),
+				'sd_ai_agent_no_manifest_url',
+				__( 'No skill manifest URL configured. Set skill_manifest_url in settings.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -340,8 +340,8 @@ final class SkillController extends XWP_REST_Controller {
 		// plain-http manifests and prevents probing cloud metadata endpoints.
 		if ( ! str_starts_with( strtolower( $manifest_url ), 'https://' ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_manifest_invalid_scheme',
-				__( 'Skill manifest URL must use HTTPS.', 'gratis-ai-agent' ),
+				'sd_ai_agent_manifest_invalid_scheme',
+				__( 'Skill manifest URL must use HTTPS.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -357,10 +357,10 @@ final class SkillController extends XWP_REST_Controller {
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_manifest_fetch_failed',
+				'sd_ai_agent_manifest_fetch_failed',
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to fetch skill manifest: %s', 'gratis-ai-agent' ),
+					__( 'Failed to fetch skill manifest: %s', 'sd-ai-agent' ),
 					$response->get_error_message()
 				),
 				array( 'status' => 502 )
@@ -370,10 +370,10 @@ final class SkillController extends XWP_REST_Controller {
 		$status_code = wp_remote_retrieve_response_code( $response );
 		if ( 200 !== (int) $status_code ) {
 			return new WP_Error(
-				'gratis_ai_agent_manifest_bad_status',
+				'sd_ai_agent_manifest_bad_status',
 				sprintf(
 					/* translators: %d: HTTP status code */
-					__( 'Skill manifest returned HTTP %d.', 'gratis-ai-agent' ),
+					__( 'Skill manifest returned HTTP %d.', 'sd-ai-agent' ),
 					$status_code
 				),
 				array( 'status' => 502 )
@@ -385,8 +385,8 @@ final class SkillController extends XWP_REST_Controller {
 
 		if ( ! is_array( $manifest ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_manifest_invalid',
-				__( 'Skill manifest is not valid JSON or not an array.', 'gratis-ai-agent' ),
+				'sd_ai_agent_manifest_invalid',
+				__( 'Skill manifest is not valid JSON or not an array.', 'sd-ai-agent' ),
 				array( 'status' => 502 )
 			);
 		}

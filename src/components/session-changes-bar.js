@@ -16,7 +16,7 @@ import STORE_NAME from '../store';
  * Persistent bar shown at the bottom of the chat panel whenever the current
  * session has un-reverted AI-made changes.
  *
- * Fetches from GET /gratis-ai-agent/v1/changes?session_id=X&reverted=false
+ * Fetches from GET /sd-ai-agent/v1/changes?session_id=X&reverted=false
  * after every agent turn (when `sending` transitions true→false).
  * Provides one-click "Revert all" and a link to the full Changes page.
  *
@@ -48,7 +48,7 @@ export default function SessionChangesBar() {
 		setLoading( true );
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&per_page=100`,
+				path: `/sd-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&per_page=100`,
 			} );
 			const items = data.items || [];
 			setChanges( items );
@@ -90,7 +90,7 @@ export default function SessionChangesBar() {
 		for ( const change of changes ) {
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/changes/${ change.id }/revert`,
+					path: `/sd-ai-agent/v1/changes/${ change.id }/revert`,
 					method: 'POST',
 				} );
 				reverted++;
@@ -123,27 +123,27 @@ export default function SessionChangesBar() {
 			revertedCount === 1
 				? sprintf(
 						/* translators: %d: number of changes reverted */
-						__( '%d change reverted.', 'gratis-ai-agent' ),
+						__( '%d change reverted.', 'sd-ai-agent' ),
 						revertedCount
 				  )
 				: sprintf(
 						/* translators: %d: number of changes reverted */
-						__( '%d changes reverted.', 'gratis-ai-agent' ),
+						__( '%d changes reverted.', 'sd-ai-agent' ),
 						revertedCount
 				  );
 
 		return (
-			<div className="gratis-ai-agent-changes-bar gratis-ai-agent-changes-bar--reverted">
-				<span className="gratis-ai-agent-changes-bar__text">
+			<div className="sd-ai-agent-changes-bar sd-ai-agent-changes-bar--reverted">
+				<span className="sd-ai-agent-changes-bar__text">
 					{ revertedLabel }
 				</span>
 				<Button
 					variant="link"
-					className="gratis-ai-agent-changes-bar__dismiss"
+					className="sd-ai-agent-changes-bar__dismiss"
 					onClick={ () => setDismissed( true ) }
 					size="small"
 				>
-					{ __( 'Dismiss', 'gratis-ai-agent' ) }
+					{ __( 'Dismiss', 'sd-ai-agent' ) }
 				</Button>
 			</div>
 		);
@@ -156,34 +156,34 @@ export default function SessionChangesBar() {
 		changes.length === 1
 			? sprintf(
 					/* translators: %d: number of AI-made changes in this session */
-					__( '%d change made', 'gratis-ai-agent' ),
+					__( '%d change made', 'sd-ai-agent' ),
 					changes.length
 			  )
 			: sprintf(
 					/* translators: %d: number of AI-made changes in this session */
-					__( '%d changes made', 'gratis-ai-agent' ),
+					__( '%d changes made', 'sd-ai-agent' ),
 					changes.length
 			  );
 
 	let revertButtonLabel;
 	if ( reverting ) {
-		revertButtonLabel = __( 'Reverting\u2026', 'gratis-ai-agent' );
+		revertButtonLabel = __( 'Reverting\u2026', 'sd-ai-agent' );
 	} else if ( changes.length === 1 ) {
-		revertButtonLabel = __( 'Revert', 'gratis-ai-agent' );
+		revertButtonLabel = __( 'Revert', 'sd-ai-agent' );
 	} else {
 		revertButtonLabel = sprintf(
 			/* translators: %d: number of changes to revert */
-			__( 'Revert all (%d)', 'gratis-ai-agent' ),
+			__( 'Revert all (%d)', 'sd-ai-agent' ),
 			changes.length
 		);
 	}
 
 	return (
-		<div className="gratis-ai-agent-changes-bar">
-			<span className="gratis-ai-agent-changes-bar__text">
+		<div className="sd-ai-agent-changes-bar">
+			<span className="sd-ai-agent-changes-bar__text">
 				{ changesLabel }
 			</span>
-			<div className="gratis-ai-agent-changes-bar__actions">
+			<div className="sd-ai-agent-changes-bar__actions">
 				<Button
 					variant="secondary"
 					isDestructive
@@ -197,10 +197,10 @@ export default function SessionChangesBar() {
 				<Button
 					variant="link"
 					href={ changesUrl }
-					className="gratis-ai-agent-changes-bar__view-link"
+					className="sd-ai-agent-changes-bar__view-link"
 					size="small"
 				>
-					{ __( 'View changes \u2197', 'gratis-ai-agent' ) }
+					{ __( 'View changes \u2197', 'sd-ai-agent' ) }
 				</Button>
 			</div>
 		</div>

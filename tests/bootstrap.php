@@ -2,7 +2,7 @@
 /**
  * PHPUnit bootstrap file.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
@@ -76,7 +76,7 @@ function _manually_load_plugin() {
 
 	// Install database tables (normally done on activation).
 	// Database::install() includes KnowledgeDatabase schema.
-	GratisAiAgent\Core\Database::install();
+	SdAiAgent\Core\Database::install();
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
@@ -89,7 +89,7 @@ require "{$_tests_dir}/includes/bootstrap.php";
  * runs, so the one-time WP_UnitTestCase::_backup_hooks() snapshot captures
  * them. Without this, the backup is taken by the first test class (often an
  * Ability test that never fires rest_api_init), leaving the snapshot without
- * the 'xwp_di_hooks_loaded_*' and 'gratis-ai-agent/v1/basename' callbacks.
+ * the 'xwp_di_hooks_loaded_*' and 'sd-ai-agent/v1/basename' callbacks.
  * Every subsequent _restore_hooks() then silently removes those callbacks,
  * making all REST routes return 404 in tests 2+ of any class that follows.
  *

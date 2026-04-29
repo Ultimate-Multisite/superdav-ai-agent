@@ -5,20 +5,20 @@
  * Replaces the `ChangeLogger::register()` call in CoreServicesHandler by
  * wiring each WordPress hook directly via `#[Action]` attributes.
  *
- * The underlying logic lives in {@see \GratisAiAgent\Core\ChangeLogger},
+ * The underlying logic lives in {@see \SdAiAgent\Core\ChangeLogger},
  * which maintains the thread-local `$active` flag and does the actual
  * recording. This handler is a thin DI bridge — its only job is hook
  * registration and arg forwarding.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Core\ChangeLogger;
+use SdAiAgent\Core\ChangeLogger;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * from any of them.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

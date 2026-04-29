@@ -59,7 +59,7 @@ export default function MessageList() {
 				store.getSettings()?.greeting_message ||
 				__(
 					'Ask the agent to make a change, write a post, or audit your site.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			ttsEnabled: store.isTtsEnabled(),
 			ttsVoiceURI: store.getTtsVoiceURI(),
@@ -238,8 +238,8 @@ export default function MessageList() {
 
 	const runningToolName = getRunningToolName( runningToolCalls );
 	const runningStep = runningToolName
-		? `${ __( 'Running', 'gratis-ai-agent' ) } ${ runningToolName }…`
-		: __( 'Composing reply…', 'gratis-ai-agent' );
+		? `${ __( 'Running', 'sd-ai-agent' ) } ${ runningToolName }…`
+		: __( 'Composing reply…', 'sd-ai-agent' );
 
 	// ── Render ────────────────────────────────────────────────────────────────
 
@@ -302,7 +302,7 @@ export default function MessageList() {
 						onClick={ scrollToBottom }
 						aria-label={ __(
 							'Scroll to latest messages',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					>
 						{ /* Down-arrow chevron */ }

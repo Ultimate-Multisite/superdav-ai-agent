@@ -5,24 +5,24 @@ declare(strict_types=1);
  * REST API controller for sessions, messages, folders, sharing, export/import,
  * site-builder, job-status, process, and tool confirmation.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Core\AgentLoop;
-use GratisAiAgent\Core\ConversationSerializer;
-use GratisAiAgent\Core\ConversationTrimmer;
-use GratisAiAgent\Core\CostCalculator;
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Core\Export;
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Core\SystemInstructionBuilder;
-use GratisAiAgent\Core\ToolPermissionResolver;
-use GratisAiAgent\Models\ActiveJobRepository;
-use GratisAiAgent\Models\Agent;
-use GratisAiAgent\Models\DTO\ActiveJobRow;
+use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\ConversationSerializer;
+use SdAiAgent\Core\ConversationTrimmer;
+use SdAiAgent\Core\CostCalculator;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Core\Export;
+use SdAiAgent\Core\Settings;
+use SdAiAgent\Core\SystemInstructionBuilder;
+use SdAiAgent\Core\ToolPermissionResolver;
+use SdAiAgent\Models\ActiveJobRepository;
+use SdAiAgent\Models\Agent;
+use SdAiAgent\Models\DTO\ActiveJobRow;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * basenames (/sessions, /run, /process, /job, /site-builder).
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -625,7 +625,7 @@ final class SessionController {
 				$data['folder'] = sanitize_text_field( $request->get_param( 'folder' ) ?? '' );
 				break;
 			default:
-				return new WP_Error( 'gratis_ai_agent_invalid_action', __( 'Invalid bulk action.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+				return new WP_Error( 'sd_ai_agent_invalid_action', __( 'Invalid bulk action.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$count = $this->database->bulk_update_sessions( $ids, get_current_user_id(), $data );
@@ -656,8 +656,8 @@ final class SessionController {
 
 		if ( ! $session ) {
 			return new WP_Error(
-				'gratis_ai_agent_session_not_found',
-				__( 'Session not found.', 'gratis-ai-agent' ),
+				'sd_ai_agent_session_not_found',
+				__( 'Session not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -722,8 +722,8 @@ final class SessionController {
 
 		if ( ! $session_id ) {
 			return new WP_Error(
-				'gratis_ai_agent_session_create_failed',
-				__( 'Failed to create session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_session_create_failed',
+				__( 'Failed to create session.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -731,7 +731,7 @@ final class SessionController {
 		$session = $this->database->get_session( $session_id );
 
 		if ( ! $session ) {
-			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_session_not_found', __( 'Session not found after creation.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -776,15 +776,15 @@ final class SessionController {
 		}
 
 		if ( empty( $data ) ) {
-			return new WP_Error( 'gratis_ai_agent_no_data', __( 'No fields to update.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'sd_ai_agent_no_data', __( 'No fields to update.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$updated = $this->database->update_session( $session_id, $data );
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'gratis_ai_agent_session_update_failed',
-				__( 'Failed to update session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_session_update_failed',
+				__( 'Failed to update session.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -792,7 +792,7 @@ final class SessionController {
 		$session = $this->database->get_session( $session_id );
 
 		if ( ! $session ) {
-			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_session_not_found', __( 'Session not found after update.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -824,8 +824,8 @@ final class SessionController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'gratis_ai_agent_session_delete_failed',
-				__( 'Failed to delete session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_session_delete_failed',
+				__( 'Failed to delete session.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -856,8 +856,8 @@ final class SessionController {
 
 		if ( ! $success ) {
 			return new WP_Error(
-				'gratis_ai_agent_share_failed',
-				__( 'Failed to share session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_share_failed',
+				__( 'Failed to share session.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -877,8 +877,8 @@ final class SessionController {
 
 		if ( ! $success ) {
 			return new WP_Error(
-				'gratis_ai_agent_unshare_failed',
-				__( 'Failed to unshare session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_unshare_failed',
+				__( 'Failed to unshare session.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -898,7 +898,7 @@ final class SessionController {
 		$session    = $this->database->get_session( $session_id );
 
 		if ( ! $session ) {
-			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'sd_ai_agent_session_not_found', __( 'Session not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		// @phpstan-ignore-next-line
@@ -917,7 +917,7 @@ final class SessionController {
 		$data = $request->get_json_params();
 
 		if ( empty( $data ) ) {
-			return new WP_Error( 'gratis_ai_agent_import_empty', __( 'No import data provided.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'sd_ai_agent_import_empty', __( 'No import data provided.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$session_id = Export::import_json( $data, get_current_user_id() );
@@ -929,7 +929,7 @@ final class SessionController {
 		$session = $this->database->get_session( $session_id );
 
 		if ( ! $session ) {
-			return new WP_Error( 'gratis_ai_agent_session_not_found', __( 'Session not found after import.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_session_not_found', __( 'Session not found after import.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -960,8 +960,8 @@ final class SessionController {
 			$db_row = ActiveJobRepository::get_by_job_id( $job_id );
 			if ( null === $db_row ) {
 				return new WP_Error(
-					'gratis_ai_agent_job_not_found',
-					__( 'Job not found or expired.', 'gratis-ai-agent' ),
+					'sd_ai_agent_job_not_found',
+					__( 'Job not found or expired.', 'sd-ai-agent' ),
 					array( 'status' => 404 )
 				);
 			}
@@ -1109,14 +1109,14 @@ final class SessionController {
 
 		if ( ! is_array( $job ) || 'awaiting_confirmation' !== ( $job['status'] ?? '' ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_job',
-				__( 'Job not found or not awaiting confirmation.', 'gratis-ai-agent' ),
+				'sd_ai_agent_invalid_job',
+				__( 'Job not found or not awaiting confirmation.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
 
 		if ( ( $job['user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return new WP_Error( 'gratis_ai_agent_forbidden', __( 'Not authorized.', 'gratis-ai-agent' ), array( 'status' => 403 ) );
+			return new WP_Error( 'sd_ai_agent_forbidden', __( 'Not authorized.', 'sd-ai-agent' ), array( 'status' => 403 ) );
 		}
 
 		// "Always allow" — persist permission so this tool auto-executes in future.
@@ -1151,14 +1151,14 @@ final class SessionController {
 
 		if ( ! is_array( $job ) || 'awaiting_confirmation' !== ( $job['status'] ?? '' ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_job',
-				__( 'Job not found or not awaiting confirmation.', 'gratis-ai-agent' ),
+				'sd_ai_agent_invalid_job',
+				__( 'Job not found or not awaiting confirmation.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
 
 		if ( ( $job['user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return new WP_Error( 'gratis_ai_agent_forbidden', __( 'Not authorized.', 'gratis-ai-agent' ), array( 'status' => 403 ) );
+			return new WP_Error( 'sd_ai_agent_forbidden', __( 'Not authorized.', 'sd-ai-agent' ), array( 'status' => 403 ) );
 		}
 
 		return $this->resume_job( $job_id, $job, 'reject' );
@@ -1183,14 +1183,14 @@ final class SessionController {
 
 		if ( ! is_array( $job ) || 'processing' !== ( $job['status'] ?? '' ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_job',
-				__( 'Job not found or not currently processing.', 'gratis-ai-agent' ),
+				'sd_ai_agent_invalid_job',
+				__( 'Job not found or not currently processing.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
 
 		if ( ( $job['user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return new WP_Error( 'gratis_ai_agent_forbidden', __( 'Not authorized.', 'gratis-ai-agent' ), array( 'status' => 403 ) );
+			return new WP_Error( 'sd_ai_agent_forbidden', __( 'Not authorized.', 'sd-ai-agent' ), array( 'status' => 403 ) );
 		}
 
 		// Append the interrupt message to the job's pending interrupts.
@@ -1411,7 +1411,7 @@ final class SessionController {
 				$history = ConversationTrimmer::validate_tool_pairs( $history );
 			} catch ( \Exception $e ) {
 				$job['status'] = 'error';
-				$job['error']  = __( 'Invalid conversation history format.', 'gratis-ai-agent' );
+				$job['error']  = __( 'Invalid conversation history format.', 'sd-ai-agent' );
 				unset( $job['token'] );
 				set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 				return new WP_REST_Response( array( 'ok' => false ), 200 );
@@ -1536,7 +1536,7 @@ final class SessionController {
 			// Log the full exception so stdClass and similar runtime errors
 			// are visible in debug.log instead of silently swallowed.
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( '[Gratis AI Agent] AgentLoop error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString() );
+			error_log( '[Superdav AI Agent] AgentLoop error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString() );
 
 			$job['status'] = 'error';
 			$job['error']  = $e->getMessage();
@@ -1801,8 +1801,8 @@ final class SessionController {
 
 		if ( null === $db_row ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_active_job',
-				__( 'No active job for this session.', 'gratis-ai-agent' ),
+				'sd_ai_agent_no_active_job',
+				__( 'No active job for this session.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -1858,7 +1858,7 @@ final class SessionController {
 		$session_id = Database::create_session(
 			array(
 				'user_id'     => get_current_user_id(),
-				'title'       => __( 'Site Builder', 'gratis-ai-agent' ),
+				'title'       => __( 'Site Builder', 'sd-ai-agent' ),
 				'provider_id' => $this->settings->get( 'default_provider' ) ?: '',
 				'model_id'    => $this->settings->get( 'default_model' ) ?: '',
 			)
@@ -1870,7 +1870,7 @@ final class SessionController {
 				'site_builder_mode' => true,
 				'session_id'        => $session_id,
 				'system_prompt'     => SystemInstructionBuilder::get_site_builder_system_prompt(),
-				'message'           => __( 'Site builder mode enabled. The widget will open automatically.', 'gratis-ai-agent' ),
+				'message'           => __( 'Site builder mode enabled. The widget will open automatically.', 'sd-ai-agent' ),
 			),
 			200
 		);
@@ -1885,7 +1885,7 @@ final class SessionController {
 		$settings = $this->settings->get();
 
 		// Run fresh install detection.
-		$fresh_install = \GratisAiAgent\Abilities\SiteBuilderAbilities::check_fresh_install();
+		$fresh_install = \SdAiAgent\Abilities\SiteBuilderAbilities::check_fresh_install();
 
 		return new WP_REST_Response(
 			array(

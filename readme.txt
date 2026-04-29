@@ -1,4 +1,4 @@
-=== AI Agent for WP ===
+=== Superdav AI Agent ===
 Contributors: superdav42
 Tags: ai, chatbot, assistant, automation, tools
 Requires at least: 7.0
@@ -12,22 +12,22 @@ An AI assistant in your dashboard. Chat with it, teach it about your site, and l
 
 == Description ==
 
-Gratis AI Agent adds a powerful AI assistant directly inside your WordPress admin. Ask it questions, give it tasks, and it will use your site's tools to get the job done — creating posts, managing users, checking site health, calling external APIs, and more.
+Superdav AI Agent adds a powerful AI assistant directly inside your WordPress admin. Ask it questions, give it tasks, and it will use your site's tools to get the job done — creating posts, managing users, checking site health, calling external APIs, and more.
 
-**You bring your own API key.** Gratis AI Agent connects directly to your chosen AI provider (OpenAI, Anthropic, or any OpenAI-compatible service). There is no middleman, no markup on API costs, and no data routed through third-party servers. You pay only what your provider charges, and you can see every cent in their dashboard.
+**You bring your own API key.** Superdav AI Agent connects directly to your chosen AI provider (OpenAI, Anthropic, or any OpenAI-compatible service). There is no middleman, no markup on API costs, and no data routed through third-party servers. You pay only what your provider charges, and you can see every cent in their dashboard.
 
 = Built on WordPress Core =
 
-Gratis AI Agent is built on official WordPress APIs shipping in version 7.0:
+Superdav AI Agent is built on official WordPress APIs shipping in version 7.0:
 
-* **AI Client SDK** — One interface for all AI providers. Install a connector plugin for OpenAI, Anthropic, Ollama, or any compatible service and Gratis AI Agent works immediately.
+* **AI Client SDK** — One interface for all AI providers. Install a connector plugin for OpenAI, Anthropic, Ollama, or any compatible service and Superdav AI Agent works immediately.
 * **Abilities API** — The WordPress-native tool registry. Every tool registered by any plugin on your site is automatically available to the agent. As your site grows, so does the agent's capabilities.
 
 This means no fragile custom API wrappers, no vendor lock-in, and automatic improvements as WordPress core evolves.
 
 = Two Ways to Chat =
 
-* **Full-page chat** at Tools > Gratis AI Agent — A complete workspace with session history, folder organization, search, and export.
+* **Full-page chat** at Tools > Superdav AI Agent — A complete workspace with session history, folder organization, search, and export.
 * **Floating widget** — A small button on every admin page that expands into a chat panel. Always available, never in the way.
 
 = It Remembers =
@@ -92,7 +92,7 @@ Export any conversation to JSON (for backup and reimport) or Markdown (for shari
 
 = Extending with Ability Plugins =
 
-The Gratis AI Agent discovers abilities at runtime from any plugin that registers them via `wp_register_ability()`. The more abilities installed, the more capable the agent.
+The Superdav AI Agent discovers abilities at runtime from any plugin that registers them via `wp_register_ability()`. The more abilities installed, the more capable the agent.
 
 **Recommended ability plugins:**
 
@@ -102,11 +102,11 @@ The Gratis AI Agent discovers abilities at runtime from any plugin that register
 
 == Installation ==
 
-1. Upload the `gratis-ai-agent` folder to `/wp-content/plugins/` or install through the WordPress plugin screen.
+1. Upload the `sd-ai-agent` folder to `/wp-content/plugins/` or install through the WordPress plugin screen.
 2. Activate the plugin.
 3. Go to **Settings > AI Credentials** and configure a connector for your AI provider (OpenAI, Anthropic, etc.). You will need an API key from your provider.
-4. Visit **Tools > Gratis AI Agent Settings** to choose your default provider and model.
-5. Open **Tools > Gratis AI Agent** and start chatting.
+4. Visit **Tools > Superdav AI Agent Settings** to choose your default provider and model.
+5. Open **Tools > Superdav AI Agent** and start chatting.
 
 = Requirements =
 
@@ -139,7 +139,7 @@ Any provider that has a connector plugin for the WordPress AI Client SDK. This c
 
 = How much does it cost to use? =
 
-The plugin itself is free. You pay only for the API usage from your chosen provider at their published rates. There is no markup, subscription, or usage fee from Gratis AI Agent. The Usage tab in settings tracks your token consumption and estimated costs.
+The plugin itself is free. You pay only for the API usage from your chosen provider at their published rates. There is no markup, subscription, or usage fee from Superdav AI Agent. The Usage tab in settings tracks your token consumption and estimated costs.
 
 = Is my data sent to a third party? =
 
@@ -147,7 +147,7 @@ Your conversations go directly from your WordPress site to your configured AI pr
 
 = Can I use a local AI model? =
 
-Yes. If you run a local model through Ollama or any OpenAI-compatible server, configure it as a provider through the WordPress Connectors API and Gratis AI Agent will use it. All inference happens on your hardware with zero API costs.
+Yes. If you run a local model through Ollama or any OpenAI-compatible server, configure it as a provider through the WordPress Connectors API and Superdav AI Agent will use it. All inference happens on your hardware with zero API costs.
 
 = What can the agent actually do? =
 
@@ -359,7 +359,7 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * New: Slack and Discord notification forwarding for automation results
 * New: Sortable, filterable DataTable rendering for tabular chat responses
 * New: Chart.js chart rendering in chat responses
-* New: Per-tool WordPress capabilities (gratis_ai_agent_tool_{name})
+* New: Per-tool WordPress capabilities (sd_ai_agent_tool_{name})
 * New: Site builder conversation flow — interview user then generate a full site
 * New: Site builder mode triggered on fresh WordPress installs
 * New: Changes Admin page — view diffs, revert changes, and export patches
@@ -390,7 +390,7 @@ Yes, the plugin works on both single-site and multisite WordPress installations.
 * New: SEO abilities — URL auditing and content SEO analysis
 * New: Content analysis and performance reporting abilities
 * New: Marketing abilities — URL fetching and HTTP header analysis
-* New: WP-CLI command (`wp gratis-ai-agent`) for running the agent from the command line
+* New: WP-CLI command (`wp sd-ai-agent`) for running the agent from the command line
 * New: Block editor context provider — reports block theme status, registered blocks, and pattern counts
 * New: Content Creator tool profile — scoped set of block, media, and post management tools
 * New: Gutenberg Blocks built-in skill (enabled by default)

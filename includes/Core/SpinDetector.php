@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Extracted from AgentLoop so the spin-detection concern — tracking
  * consecutive identical tool-call rounds — lives in one focused class.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
 

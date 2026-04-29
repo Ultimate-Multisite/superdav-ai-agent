@@ -19,38 +19,38 @@ import { getBranding } from '../../utils/branding';
  */
 const DEFAULT_SUGGESTIONS = [
 	{
-		title: __( 'Site health check', 'gratis-ai-agent' ),
+		title: __( 'Site health check', 'sd-ai-agent' ),
 		description: __(
 			'Run a full report and summarize issues',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		prompt: __(
 			'Run a site health check and summarize the issues you find.',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 	},
 	{
-		title: __( 'Draft a blog post', 'gratis-ai-agent' ),
-		description: __( "Pick a topic and I'll set it up", 'gratis-ai-agent' ),
+		title: __( 'Draft a blog post', 'sd-ai-agent' ),
+		description: __( "Pick a topic and I'll set it up", 'sd-ai-agent' ),
 		prompt: __(
 			'Help me draft a new blog post - suggest a topic, then create a draft.',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 	},
 	{
-		title: __( 'Review installed plugins', 'gratis-ai-agent' ),
-		description: __( 'Find unused or outdated ones', 'gratis-ai-agent' ),
+		title: __( 'Review installed plugins', 'sd-ai-agent' ),
+		description: __( 'Find unused or outdated ones', 'sd-ai-agent' ),
 		prompt: __(
 			'Review my installed plugins. Flag any that are unused or outdated.',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 	},
 	{
-		title: __( 'List recent signups', 'gratis-ai-agent' ),
-		description: __( 'Last 7 days, grouped by role', 'gratis-ai-agent' ),
+		title: __( 'List recent signups', 'sd-ai-agent' ),
+		description: __( 'Last 7 days, grouped by role', 'sd-ai-agent' ),
 		prompt: __(
 			'List users who signed up in the last 7 days, grouped by role.',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 	},
 ];
@@ -70,7 +70,7 @@ export default function WidgetEmpty() {
 	const greeting =
 		selectedAgent?.greeting ||
 		branding.greeting ||
-		__( 'What can I help you with?', 'gratis-ai-agent' );
+		__( 'What can I help you with?', 'sd-ai-agent' );
 
 	// Agent-aware suggestions.
 	const agentSuggestions = selectedAgent?.suggestions;
@@ -83,7 +83,7 @@ export default function WidgetEmpty() {
 	const agentName =
 		selectedAgent?.name ||
 		branding.agentName ||
-		__( 'AI Agent', 'gratis-ai-agent' );
+		__( 'AI Agent', 'sd-ai-agent' );
 
 	return (
 		<div className="gaa-w-empty">
@@ -93,11 +93,11 @@ export default function WidgetEmpty() {
 					branding.tagline ||
 					__(
 						'I can manage content, products, users, SEO and more - across every plugin on your site.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 			</p>
 			<div className="gaa-w-empty-label">
-				{ __( 'Suggested', 'gratis-ai-agent' ) }
+				{ __( 'Suggested', 'sd-ai-agent' ) }
 			</div>
 			<div className="gaa-w-suggestion-list">
 				{ suggestions.map( ( s, i ) => (

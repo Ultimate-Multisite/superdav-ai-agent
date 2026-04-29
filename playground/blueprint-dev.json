@@ -6,7 +6,7 @@
     "author": "Ultimate-Multisite",
     "categories": ["AI", "Automation", "Chat"]
   },
-  "landingPage": "/wp-admin/admin.php?page=gratis-ai-agent",
+  "landingPage": "/wp-admin/admin.php?page=sd-ai-agent",
   "login": {
     "username": "admin",
     "password": "password"
@@ -32,7 +32,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip",
+        "url": "https://github.com/Ultimate-Multisite/sd-ai-agent/releases/latest/download/sd-ai-agent.zip",
         "caption": "Downloading AI Agent..."
       },
       "options": {

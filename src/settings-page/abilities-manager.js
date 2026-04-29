@@ -17,15 +17,15 @@ import { __, sprintf } from '@wordpress/i18n';
  */
 const PERMISSION_OPTIONS = [
 	{
-		label: __( 'Auto (always allow)', 'gratis-ai-agent' ),
+		label: __( 'Auto (always allow)', 'sd-ai-agent' ),
 		value: 'auto',
 	},
 	{
-		label: __( 'Confirm (ask before use)', 'gratis-ai-agent' ),
+		label: __( 'Confirm (ask before use)', 'sd-ai-agent' ),
 		value: 'confirm',
 	},
 	{
-		label: __( 'Disabled', 'gratis-ai-agent' ),
+		label: __( 'Disabled', 'sd-ai-agent' ),
 		value: 'disabled',
 	},
 ];
@@ -72,39 +72,39 @@ function AbilityCategorySection( {
 	} ).length;
 
 	return (
-		<div className="gratis-ai-agent-abilities-category">
+		<div className="sd-ai-agent-abilities-category">
 			<button
 				type="button"
-				className="gratis-ai-agent-abilities-category-header"
+				className="sd-ai-agent-abilities-category-header"
 				onClick={ () => setOpen( ( v ) => ! v ) }
 				aria-expanded={ open }
 			>
-				<span className="gratis-ai-agent-abilities-category-chevron">
+				<span className="sd-ai-agent-abilities-category-chevron">
 					{ open ? '▾' : '▸' }
 				</span>
-				<span className="gratis-ai-agent-abilities-category-name">
+				<span className="sd-ai-agent-abilities-category-name">
 					{ category }
 				</span>
-				<span className="gratis-ai-agent-abilities-category-count">
+				<span className="sd-ai-agent-abilities-category-count">
 					{ abilities.length }
 				</span>
 				{ nonDefaultCount > 0 && (
-					<span className="gratis-ai-agent-abilities-category-badge">
+					<span className="sd-ai-agent-abilities-category-badge">
 						{ nonDefaultCount }{ ' ' }
-						{ __( 'customised', 'gratis-ai-agent' ) }
+						{ __( 'customised', 'sd-ai-agent' ) }
 					</span>
 				) }
 			</button>
 
 			{ open && (
-				<div className="gratis-ai-agent-abilities-category-body">
+				<div className="sd-ai-agent-abilities-category-body">
 					{ abilities.map( ( ability ) => {
 						const currentPerm =
 							toolPermissions[ ability.name ] || 'auto';
 						return (
 							<div
 								key={ ability.name }
-								className="gratis-ai-agent-ability-row"
+								className="sd-ai-agent-ability-row"
 							>
 								<SelectControl
 									label={ ability.label || ability.name }
@@ -153,12 +153,12 @@ export default function AbilitiesManager( {
 		const cats = [
 			...new Set(
 				abilities.map(
-					( a ) => a.category || __( 'General', 'gratis-ai-agent' )
+					( a ) => a.category || __( 'General', 'sd-ai-agent' )
 				)
 			),
 		].sort();
 		return [
-			{ label: __( 'All Categories', 'gratis-ai-agent' ), value: '' },
+			{ label: __( 'All Categories', 'sd-ai-agent' ), value: '' },
 			...cats.map( ( c ) => ( { label: c, value: c } ) ),
 		];
 	}, [ abilities ] );
@@ -176,7 +176,7 @@ export default function AbilitiesManager( {
 					.includes( searchLower );
 
 			const abilityCategory =
-				ability.category || __( 'General', 'gratis-ai-agent' );
+				ability.category || __( 'General', 'sd-ai-agent' );
 			const matchesCategory =
 				! categoryFilter || abilityCategory === categoryFilter;
 
@@ -188,7 +188,7 @@ export default function AbilitiesManager( {
 	const grouped = useMemo( () => {
 		const map = {};
 		filtered.forEach( ( ability ) => {
-			const cat = ability.category || __( 'General', 'gratis-ai-agent' );
+			const cat = ability.category || __( 'General', 'sd-ai-agent' );
 			if ( ! map[ cat ] ) {
 				map[ cat ] = [];
 			}
@@ -211,66 +211,66 @@ export default function AbilitiesManager( {
 	}, [] );
 
 	if ( abilities.length === 0 ) {
-		return <p>{ __( 'No abilities registered.', 'gratis-ai-agent' ) }</p>;
+		return <p>{ __( 'No abilities registered.', 'sd-ai-agent' ) }</p>;
 	}
 
 	const isFiltering = search || categoryFilter;
 
 	return (
-		<div className="gratis-ai-agent-abilities-manager">
+		<div className="sd-ai-agent-abilities-manager">
 			{ /* Toolbar: search + category filter + expand/collapse */ }
-			<div className="gratis-ai-agent-abilities-toolbar">
-				<div className="gratis-ai-agent-abilities-search">
+			<div className="sd-ai-agent-abilities-toolbar">
+				<div className="sd-ai-agent-abilities-search">
 					<SearchControl
-						label={ __( 'Search abilities', 'gratis-ai-agent' ) }
+						label={ __( 'Search abilities', 'sd-ai-agent' ) }
 						value={ search }
 						onChange={ handleSearchChange }
 						placeholder={ __(
 							'Search by name or description…',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					/>
 				</div>
-				<div className="gratis-ai-agent-abilities-filters">
+				<div className="sd-ai-agent-abilities-filters">
 					<SelectControl
-						label={ __( 'Category', 'gratis-ai-agent' ) }
+						label={ __( 'Category', 'sd-ai-agent' ) }
 						value={ categoryFilter }
 						options={ categoryOptions }
 						onChange={ setCategoryFilter }
 						__nextHasNoMarginBottom
 					/>
-					<div className="gratis-ai-agent-abilities-expand-buttons">
+					<div className="sd-ai-agent-abilities-expand-buttons">
 						<Button
 							variant="tertiary"
 							size="small"
 							onClick={ handleExpandAll }
 						>
-							{ __( 'Expand all', 'gratis-ai-agent' ) }
+							{ __( 'Expand all', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							size="small"
 							onClick={ handleCollapseAll }
 						>
-							{ __( 'Collapse all', 'gratis-ai-agent' ) }
+							{ __( 'Collapse all', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
 			</div>
 
 			{ /* Result count */ }
-			<p className="gratis-ai-agent-abilities-count description">
+			<p className="sd-ai-agent-abilities-count description">
 				{ filtered.length === abilities.length
 					? sprintf(
 							/* translators: %d: total number of abilities */
-							__( '%d abilities', 'gratis-ai-agent' ),
+							__( '%d abilities', 'sd-ai-agent' ),
 							abilities.length
 					  )
 					: sprintf(
 							/* translators: 1: filtered count, 2: total count */
 							__(
 								'Showing %1$d of %2$d abilities',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 							filtered.length,
 							abilities.length
@@ -280,15 +280,12 @@ export default function AbilitiesManager( {
 			{ /* No results */ }
 			{ filtered.length === 0 && (
 				<p className="description">
-					{ __(
-						'No abilities match your search.',
-						'gratis-ai-agent'
-					) }
+					{ __( 'No abilities match your search.', 'sd-ai-agent' ) }
 				</p>
 			) }
 
 			{ /* Category sections */ }
-			<div className="gratis-ai-agent-abilities-sections">
+			<div className="sd-ai-agent-abilities-sections">
 				{ grouped.map( ( [ category, categoryAbilities ] ) => (
 					<AbilityCategorySection
 						key={ category }

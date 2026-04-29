@@ -2,11 +2,11 @@
 /**
  * HTTP method enum.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Enums;
+namespace SdAiAgent\Enums;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

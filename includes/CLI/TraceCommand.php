@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Provides `wp ai-agent trace list|show|clear` commands for inspecting
  * captured LLM provider HTTP traffic from the command line.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\CLI;
+namespace SdAiAgent\CLI;
 
-use GratisAiAgent\Models\ProviderTrace;
+use SdAiAgent\Models\ProviderTrace;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {

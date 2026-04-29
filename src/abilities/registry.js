@@ -1,10 +1,10 @@
 /**
- * Client-side abilities registry for gratis-ai-agent-js namespace.
+ * Client-side abilities registry for sd-ai-agent-js namespace.
  *
  * Thin wrapper around @wordpress/abilities (exposed by core 7.0 as the
  * `wp.abilities` global, populated when the script module loads) that:
  *
- *   - Registers the gratis-ai-agent-js category (idempotent, async).
+ *   - Registers the sd-ai-agent-js category (idempotent, async).
  *   - Provides registerClientAbility() to register abilities with the
  *     correct shape required by the WP 7.0 API (single options object,
  *     with `name` as a property).
@@ -37,10 +37,10 @@
  *     registration pipeline properly async-aware.
  */
 
-const CATEGORY_SLUG = 'gratis-ai-agent-js';
-const CATEGORY_LABEL = 'Gratis AI Agent (Client)';
+const CATEGORY_SLUG = 'sd-ai-agent-js';
+const CATEGORY_LABEL = 'Superdav AI Agent (Client)';
 const CATEGORY_DESCRIPTION =
-	'Client-side abilities provided by the Gratis AI Agent plugin. Execute in the browser without a server round-trip.';
+	'Client-side abilities provided by the Superdav AI Agent plugin. Execute in the browser without a server round-trip.';
 
 /**
  * Single category-registration Promise shared across all callers in the
@@ -117,7 +117,7 @@ async function waitForAbilitiesApi( maxWaitMs = 30_000 ) {
 }
 
 /**
- * Register the gratis-ai-agent-js category (idempotent, async).
+ * Register the sd-ai-agent-js category (idempotent, async).
  *
  * Must be awaited before any registerClientAbility() call — the WP 7.0
  * `registerAbilityCategory` API is async, and abilities registered
@@ -177,7 +177,7 @@ export async function registerCategory() {
  * arguments throws "Ability name is required". The call is also async.
  *
  * @param {Object}   def              Ability definition.
- * @param {string}   def.name         Fully-qualified ability name (gratis-ai-agent-js/...).
+ * @param {string}   def.name         Fully-qualified ability name (sd-ai-agent-js/...).
  * @param {string}   def.label        Human-readable label.
  * @param {string}   def.description  Description of what the ability does.
  * @param {Object}   def.inputSchema  JSON Schema for the ability's input.
@@ -193,7 +193,7 @@ export async function registerClientAbility( def ) {
 	if ( ! def || typeof def.name !== 'string' || def.name === '' ) {
 		// eslint-disable-next-line no-console
 		console.warn(
-			'[gratis-ai-agent] registerClientAbility called without a name; skipping.'
+			'[sd-ai-agent] registerClientAbility called without a name; skipping.'
 		);
 		return;
 	}
@@ -230,7 +230,7 @@ export async function registerClientAbility( def ) {
 }
 
 /**
- * Snapshot the current gratis-ai-agent-js/* ability descriptors as plain objects.
+ * Snapshot the current sd-ai-agent-js/* ability descriptors as plain objects.
  *
  * Returns an array of descriptor objects suitable for posting to the server
  * as `client_abilities` in the /chat request body. The server validates each
@@ -303,7 +303,7 @@ export async function snapshotDescriptors() {
  * `pending_client_tool_calls`. The ability must have been registered via
  * `registerClientAbility()` in the same page lifetime.
  *
- * @param {string} name Fully-qualified ability name (gratis-ai-agent-js/...).
+ * @param {string} name Fully-qualified ability name (sd-ai-agent-js/...).
  * @param {Object} args Ability arguments from the model's tool call.
  * @return {Promise<Object>} The ability's result object.
  * @throws {Error} When the ability is not registered in the current page.

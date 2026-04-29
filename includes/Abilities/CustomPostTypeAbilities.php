@@ -8,11 +8,11 @@ declare(strict_types=1);
  * with persistence via WordPress options (stored in the database so
  * CPTs survive page reloads and are re-registered on every init).
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 use WP_Error;
 
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Custom post type abilities.
  *
- * Persists CPT definitions in the `gratis_ai_agent_custom_post_types` option
+ * Persists CPT definitions in the `sd_ai_agent_custom_post_types` option
  * (an array keyed by post-type slug) and re-registers them on every `init`
  * hook so they survive page reloads.
  *
@@ -34,7 +34,7 @@ class CustomPostTypeAbilities {
 	/**
 	 * WordPress option key used to persist CPT definitions.
 	 */
-	const OPTION_KEY = 'gratis_ai_agent_custom_post_types';
+	const OPTION_KEY = 'sd_ai_agent_custom_post_types';
 
 	/**
 	 * Re-register all CPTs that were previously persisted via the register ability.
@@ -69,11 +69,11 @@ class CustomPostTypeAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/register-post-type',
+			'sd-ai-agent/register-post-type',
 			[
-				'label'               => __( 'Register Custom Post Type', 'gratis-ai-agent' ),
-				'description'         => __( 'Register a new custom post type and persist it in the database so it survives page reloads. Supports labels, public visibility, REST API support, menu icon, and hierarchical settings.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Register Custom Post Type', 'sd-ai-agent' ),
+				'description'         => __( 'Register a new custom post type and persist it in the database so it survives page reloads. Supports labels, public visibility, REST API support, menu icon, and hierarchical settings.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -146,11 +146,11 @@ class CustomPostTypeAbilities {
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/list-post-types',
+			'sd-ai-agent/list-post-types',
 			[
-				'label'               => __( 'List Custom Post Types', 'gratis-ai-agent' ),
-				'description'         => __( 'List all registered custom post types, including those persisted by the AI agent. Returns slug, labels, public status, and whether the type was registered by the AI agent.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'List Custom Post Types', 'sd-ai-agent' ),
+				'description'         => __( 'List all registered custom post types, including those persisted by the AI agent. Returns slug, labels, public status, and whether the type was registered by the AI agent.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -182,11 +182,11 @@ class CustomPostTypeAbilities {
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/delete-post-type',
+			'sd-ai-agent/delete-post-type',
 			[
-				'label'               => __( 'Delete Custom Post Type', 'gratis-ai-agent' ),
-				'description'         => __( 'Remove a custom post type that was registered by the AI agent. This unregisters the post type and removes it from the database so it will not be re-registered on future page loads. Only AI-registered post types can be deleted via this ability.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Delete Custom Post Type', 'sd-ai-agent' ),
+				'description'         => __( 'Remove a custom post type that was registered by the AI agent. This unregisters the post type and removes it from the database so it will not be re-registered on future page loads. Only AI-registered post types can be deleted via this ability.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -245,50 +245,50 @@ class CustomPostTypeAbilities {
 			: $default_supports;
 
 		if ( empty( $post_type ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_post_type', __( 'post_type is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_empty_post_type', __( 'post_type is required.', 'sd-ai-agent' ) );
 		}
 
 		if ( strlen( $post_type ) > 20 ) {
 			return new WP_Error(
-				'gratis_ai_agent_post_type_too_long',
-				__( 'post_type slug must be 20 characters or fewer.', 'gratis-ai-agent' )
+				'sd_ai_agent_post_type_too_long',
+				__( 'post_type slug must be 20 characters or fewer.', 'sd-ai-agent' )
 			);
 		}
 
 		if ( empty( $singular ) || empty( $plural ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_labels', __( 'singular and plural labels are required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_empty_labels', __( 'singular and plural labels are required.', 'sd-ai-agent' ) );
 		}
 
 		// Prevent overwriting built-in post types.
 		$builtin_types = [ 'post', 'page', 'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation' ];
 		if ( in_array( $post_type, $builtin_types, true ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_builtin_post_type',
+				'sd_ai_agent_builtin_post_type',
 				/* translators: %s: post type slug */
-				sprintf( __( '"%s" is a built-in WordPress post type and cannot be overwritten.', 'gratis-ai-agent' ), $post_type )
+				sprintf( __( '"%s" is a built-in WordPress post type and cannot be overwritten.', 'sd-ai-agent' ), $post_type )
 			);
 		}
 
 		$labels = [
 			'name'               => $plural,
 			'singular_name'      => $singular,
-			'add_new'            => __( 'Add New', 'gratis-ai-agent' ),
+			'add_new'            => __( 'Add New', 'sd-ai-agent' ),
 			/* translators: %s: singular label */
-			'add_new_item'       => sprintf( __( 'Add New %s', 'gratis-ai-agent' ), $singular ),
+			'add_new_item'       => sprintf( __( 'Add New %s', 'sd-ai-agent' ), $singular ),
 			/* translators: %s: singular label */
-			'edit_item'          => sprintf( __( 'Edit %s', 'gratis-ai-agent' ), $singular ),
+			'edit_item'          => sprintf( __( 'Edit %s', 'sd-ai-agent' ), $singular ),
 			/* translators: %s: singular label */
-			'new_item'           => sprintf( __( 'New %s', 'gratis-ai-agent' ), $singular ),
+			'new_item'           => sprintf( __( 'New %s', 'sd-ai-agent' ), $singular ),
 			/* translators: %s: singular label */
-			'view_item'          => sprintf( __( 'View %s', 'gratis-ai-agent' ), $singular ),
+			'view_item'          => sprintf( __( 'View %s', 'sd-ai-agent' ), $singular ),
 			/* translators: %s: plural label */
-			'search_items'       => sprintf( __( 'Search %s', 'gratis-ai-agent' ), $plural ),
+			'search_items'       => sprintf( __( 'Search %s', 'sd-ai-agent' ), $plural ),
 			/* translators: %s: plural label */
-			'not_found'          => sprintf( __( 'No %s found.', 'gratis-ai-agent' ), strtolower( $plural ) ),
+			'not_found'          => sprintf( __( 'No %s found.', 'sd-ai-agent' ), strtolower( $plural ) ),
 			/* translators: %s: plural label */
-			'not_found_in_trash' => sprintf( __( 'No %s found in Trash.', 'gratis-ai-agent' ), strtolower( $plural ) ),
+			'not_found_in_trash' => sprintf( __( 'No %s found in Trash.', 'sd-ai-agent' ), strtolower( $plural ) ),
 			/* translators: %s: plural label */
-			'all_items'          => sprintf( __( 'All %s', 'gratis-ai-agent' ), $plural ),
+			'all_items'          => sprintf( __( 'All %s', 'sd-ai-agent' ), $plural ),
 			/* translators: %s: singular label */
 			'menu_name'          => $plural,
 		];
@@ -381,16 +381,16 @@ class CustomPostTypeAbilities {
 		$post_type = sanitize_key( $input['post_type'] ?? '' );
 
 		if ( empty( $post_type ) ) {
-			return new WP_Error( 'gratis_ai_agent_empty_post_type', __( 'post_type is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_empty_post_type', __( 'post_type is required.', 'sd-ai-agent' ) );
 		}
 
 		$stored = get_option( self::OPTION_KEY, [] );
 
 		if ( ! is_array( $stored ) || ! array_key_exists( $post_type, $stored ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_post_type_not_found',
+				'sd_ai_agent_post_type_not_found',
 				/* translators: %s: post type slug */
-				sprintf( __( 'Post type "%s" was not registered by the AI agent and cannot be deleted via this ability.', 'gratis-ai-agent' ), $post_type )
+				sprintf( __( 'Post type "%s" was not registered by the AI agent and cannot be deleted via this ability.', 'sd-ai-agent' ), $post_type )
 			);
 		}
 

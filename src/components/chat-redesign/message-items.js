@@ -233,7 +233,7 @@ export function UserMessage( { msg, index } ) {
 							className="gaa-cr-btn-sm"
 							onClick={ () => setEditingMessageIndex( null ) }
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</button>
 						<button
 							type="button"
@@ -241,7 +241,7 @@ export function UserMessage( { msg, index } ) {
 							onClick={ handleSubmit }
 							disabled={ sending || ! draft.trim() }
 						>
-							{ __( 'Send', 'gratis-ai-agent' ) }
+							{ __( 'Send', 'sd-ai-agent' ) }
 						</button>
 					</div>
 				</div>
@@ -286,8 +286,8 @@ export function UserMessage( { msg, index } ) {
 							setEditingMessageIndex( index );
 						} }
 						disabled={ sending }
-						title={ __( 'Edit & resend', 'gratis-ai-agent' ) }
-						aria-label={ __( 'Edit & resend', 'gratis-ai-agent' ) }
+						title={ __( 'Edit & resend', 'sd-ai-agent' ) }
+						aria-label={ __( 'Edit & resend', 'sd-ai-agent' ) }
 					>
 						<Icon icon={ pencil } size={ 16 } />
 					</button>
@@ -297,13 +297,13 @@ export function UserMessage( { msg, index } ) {
 						onClick={ handleCopy }
 						title={
 							copied
-								? __( 'Copied!', 'gratis-ai-agent' )
-								: __( 'Copy', 'gratis-ai-agent' )
+								? __( 'Copied!', 'sd-ai-agent' )
+								: __( 'Copy', 'sd-ai-agent' )
 						}
 						aria-label={
 							copied
-								? __( 'Copied!', 'gratis-ai-agent' )
-								: __( 'Copy message', 'gratis-ai-agent' )
+								? __( 'Copied!', 'sd-ai-agent' )
+								: __( 'Copy message', 'sd-ai-agent' )
 						}
 					>
 						<Icon icon={ copied ? check : copyIcon } size={ 16 } />
@@ -390,13 +390,13 @@ export function AssistantMessage( {
 							onClick={ handleCopy }
 							title={
 								copied
-									? __( 'Copied!', 'gratis-ai-agent' )
-									: __( 'Copy', 'gratis-ai-agent' )
+									? __( 'Copied!', 'sd-ai-agent' )
+									: __( 'Copy', 'sd-ai-agent' )
 							}
 							aria-label={
 								copied
-									? __( 'Copied!', 'gratis-ai-agent' )
-									: __( 'Copy message', 'gratis-ai-agent' )
+									? __( 'Copied!', 'sd-ai-agent' )
+									: __( 'Copy message', 'sd-ai-agent' )
 							}
 						>
 							<Icon
@@ -410,11 +410,11 @@ export function AssistantMessage( {
 							onClick={ () => onThumbsDown?.( index ) }
 							title={ __(
 								'Report an issue with this response',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							aria-label={ __(
 								'Report an issue with this response',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						>
 							<Icon icon={ thumbsDown } size={ 16 } />

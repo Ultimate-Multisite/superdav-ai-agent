@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * REST API controller for knowledge collections, sources, search, stats, and upload.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Knowledge\Knowledge;
-use GratisAiAgent\Knowledge\KnowledgeDatabase;
+use SdAiAgent\Knowledge\Knowledge;
+use SdAiAgent\Knowledge\KnowledgeDatabase;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manages knowledge collections, sources, search, stats, and upload via REST.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -285,8 +285,8 @@ final class KnowledgeController {
 		$existing = KnowledgeDatabase::get_collection_by_slug( $slug );
 		if ( $existing ) {
 			return new WP_Error(
-				'gratis_ai_agent_collection_exists',
-				__( 'A collection with this slug already exists.', 'gratis-ai-agent' ),
+				'sd_ai_agent_collection_exists',
+				__( 'A collection with this slug already exists.', 'sd-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}
@@ -303,8 +303,8 @@ final class KnowledgeController {
 
 		if ( ! $id ) {
 			return new WP_Error(
-				'gratis_ai_agent_collection_create_failed',
-				__( 'Failed to create collection.', 'gratis-ai-agent' ),
+				'sd_ai_agent_collection_create_failed',
+				__( 'Failed to create collection.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -312,7 +312,7 @@ final class KnowledgeController {
 		$collection = KnowledgeDatabase::get_collection( $id );
 
 		if ( ! $collection ) {
-			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_collection_not_found', __( 'Collection not found after creation.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -360,8 +360,8 @@ final class KnowledgeController {
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'gratis_ai_agent_collection_update_failed',
-				__( 'Failed to update collection.', 'gratis-ai-agent' ),
+				'sd_ai_agent_collection_update_failed',
+				__( 'Failed to update collection.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -369,7 +369,7 @@ final class KnowledgeController {
 		$collection = KnowledgeDatabase::get_collection( $id );
 
 		if ( ! $collection ) {
-			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_collection_not_found', __( 'Collection not found after update.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -402,8 +402,8 @@ final class KnowledgeController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'gratis_ai_agent_collection_delete_failed',
-				__( 'Failed to delete collection.', 'gratis-ai-agent' ),
+				'sd_ai_agent_collection_delete_failed',
+				__( 'Failed to delete collection.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -481,18 +481,18 @@ final class KnowledgeController {
 		$files = $request->get_file_params();
 
 		if ( empty( $files['file'] ) ) {
-			return new WP_Error( 'gratis_ai_agent_no_file', __( 'No file uploaded.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'sd_ai_agent_no_file', __( 'No file uploaded.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$collection_id = self::get_int_param( $request, 'collection_id' );
 
 		if ( ! $collection_id ) {
-			return new WP_Error( 'gratis_ai_agent_no_collection', __( 'Collection ID is required.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'sd_ai_agent_no_collection', __( 'Collection ID is required.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$collection = KnowledgeDatabase::get_collection( $collection_id );
 		if ( ! $collection ) {
-			return new WP_Error( 'gratis_ai_agent_collection_not_found', __( 'Collection not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'sd_ai_agent_collection_not_found', __( 'Collection not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		// Use WordPress media handling to create an attachment.
@@ -541,8 +541,8 @@ final class KnowledgeController {
 
 		if ( ! $deleted ) {
 			return new WP_Error(
-				'gratis_ai_agent_source_delete_failed',
-				__( 'Failed to delete source.', 'gratis-ai-agent' ),
+				'sd_ai_agent_source_delete_failed',
+				__( 'Failed to delete source.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}

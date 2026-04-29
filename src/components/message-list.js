@@ -67,20 +67,20 @@ function MessageAttachments( { attachments } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-message-attachments">
+		<div className="sd-ai-agent-message-attachments">
 			{ attachments.map( ( att, i ) => (
 				<a
 					key={ i }
 					href={ att.dataUrl || att.image_url }
 					target="_blank"
 					rel="noopener noreferrer"
-					className="gratis-ai-agent-message-attachment-link"
+					className="sd-ai-agent-message-attachment-link"
 					aria-label={ att.name || att.image_name }
 				>
 					<img
 						src={ att.dataUrl || att.image_url }
 						alt={ att.name || att.image_name || '' }
-						className="gratis-ai-agent-message-attachment-img"
+						className="sd-ai-agent-message-attachment-img"
 					/>
 				</a>
 			) ) }
@@ -100,9 +100,9 @@ function MessageAttachments( { attachments } ) {
  */
 function MessageBubble( { role, text, attachments, queued } ) {
 	const classMap = {
-		user: 'gratis-ai-agent-bubble gratis-ai-agent-user',
-		model: 'gratis-ai-agent-bubble gratis-ai-agent-assistant',
-		system: 'gratis-ai-agent-bubble gratis-ai-agent-system',
+		user: 'sd-ai-agent-bubble sd-ai-agent-user',
+		model: 'sd-ai-agent-bubble sd-ai-agent-assistant',
+		system: 'sd-ai-agent-bubble sd-ai-agent-system',
 	};
 
 	if ( role === 'model' ) {
@@ -123,8 +123,8 @@ function MessageBubble( { role, text, attachments, queued } ) {
 				<MessageAttachments attachments={ attachments } />
 				{ text }
 				{ queued && (
-					<span className="gratis-ai-agent-queued-badge">
-						{ __( 'Queued', 'gratis-ai-agent' ) }
+					<span className="sd-ai-agent-queued-badge">
+						{ __( 'Queued', 'sd-ai-agent' ) }
 					</span>
 				) }
 			</div>
@@ -152,12 +152,12 @@ function SuggestionChips( { suggestions, onSelect } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-suggestion-chips">
+		<div className="sd-ai-agent-suggestion-chips">
 			{ suggestions.map( ( suggestion, i ) => (
 				<Button
 					key={ i }
 					variant="tertiary"
-					className="gratis-ai-agent-suggestion-chip"
+					className="sd-ai-agent-suggestion-chip"
 					onClick={ () => onSelect( suggestion ) }
 				>
 					{ suggestion }
@@ -176,8 +176,8 @@ function SuggestionChips( { suggestions, onSelect } ) {
  */
 function EmptyStateWelcome( { greeting } ) {
 	return (
-		<div className="gratis-ai-agent-empty-state">
-			<p className="gratis-ai-agent-welcome__greeting">{ greeting }</p>
+		<div className="sd-ai-agent-empty-state">
+			<p className="sd-ai-agent-welcome__greeting">{ greeting }</p>
 		</div>
 	);
 }
@@ -236,26 +236,26 @@ function LiveToolProgress( { toolCalls } ) {
 	};
 
 	return (
-		<div className="gratis-ai-agent-live-progress">
+		<div className="sd-ai-agent-live-progress">
 			{ responses.length > 0 && (
-				<div className="gratis-ai-agent-live-progress-completed">
+				<div className="sd-ai-agent-live-progress-completed">
 					{ responses.length }{ ' ' }
 					{ responses.length === 1
-						? __( 'tool completed', 'gratis-ai-agent' )
-						: __( 'tools completed', 'gratis-ai-agent' ) }
+						? __( 'tool completed', 'sd-ai-agent' )
+						: __( 'tools completed', 'sd-ai-agent' ) }
 				</div>
 			) }
 			{ lastCall && (
-				<div className="gratis-ai-agent-live-progress-current">
+				<div className="sd-ai-agent-live-progress-current">
 					{ responses.length < calls.length
-						? __( 'Running', 'gratis-ai-agent' )
-						: __( 'Composing reply…', 'gratis-ai-agent' ) }
+						? __( 'Running', 'sd-ai-agent' )
+						: __( 'Composing reply…', 'sd-ai-agent' ) }
 					{ responses.length < calls.length && (
 						<>
 							{ ' ' }
 							<code>{ formatName( lastCall.name ) }</code>
 							{ calls.length > 1 && (
-								<span className="gratis-ai-agent-live-progress-count">
+								<span className="sd-ai-agent-live-progress-count">
 									{ ' ' }
 									({ calls.length })
 								</span>
@@ -323,7 +323,7 @@ export default function MessageList() {
 	const greeting =
 		settingsGreeting ||
 		getBranding().greetingMessage ||
-		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
+		__( 'Send a message to start a conversation.', 'sd-ai-agent' );
 
 	const {
 		sendMessage,
@@ -429,7 +429,7 @@ export default function MessageList() {
 	}, [] );
 
 	return (
-		<div className="gratis-ai-agent-messages" ref={ messagesRef }>
+		<div className="sd-ai-agent-messages" ref={ messagesRef }>
 			{ visibleMessages.length === 0 && ! sending && (
 				<EmptyStateWelcome greeting={ greeting } />
 			) }
@@ -454,7 +454,7 @@ export default function MessageList() {
 					i === visibleMessages.length - 1;
 
 				return (
-					<div key={ i } className="gratis-ai-agent-message-row">
+					<div key={ i } className="sd-ai-agent-message-row">
 						{ msg.toolCalls?.length > 0 && (
 							<ToolCallDetails toolCalls={ msg.toolCalls } />
 						) }
@@ -495,13 +495,13 @@ export default function MessageList() {
 							/>
 						) }
 						{ isLastSystemError && (
-							<div className="gratis-ai-agent-retry-row">
+							<div className="sd-ai-agent-retry-row">
 								<Button
 									variant="secondary"
-									className="gratis-ai-agent-retry-btn"
+									className="sd-ai-agent-retry-btn"
 									onClick={ retryLastMessage }
 								>
-									{ __( 'Try again', 'gratis-ai-agent' ) }
+									{ __( 'Try again', 'sd-ai-agent' ) }
 								</Button>
 							</div>
 						) }
@@ -509,7 +509,7 @@ export default function MessageList() {
 				);
 			} ) }
 			{ pendingActionCard && (
-				<div className="gratis-ai-agent-message-row gratis-ai-agent-message-row-action-card">
+				<div className="sd-ai-agent-message-row sd-ai-agent-message-row-action-card">
 					<ActionCard
 						card={ pendingActionCard }
 						onConfirm={
@@ -537,55 +537,55 @@ export default function MessageList() {
 				</div>
 			) }
 			{ inabilityReported && ! sending && (
-				<div className="gratis-ai-agent-message-row gratis-ai-agent-inability-banner">
-					<div className="gratis-ai-agent-inability-banner__content">
-						<p className="gratis-ai-agent-inability-banner__text">
+				<div className="sd-ai-agent-message-row sd-ai-agent-inability-banner">
+					<div className="sd-ai-agent-inability-banner__content">
+						<p className="sd-ai-agent-inability-banner__text">
 							{ __(
 								'The AI was unable to complete your request.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</p>
 						<Button
 							variant="link"
-							className="gratis-ai-agent-inability-banner__dismiss"
+							className="sd-ai-agent-inability-banner__dismiss"
 							onClick={ () => setInabilityReported( null ) }
 							aria-label={ __(
 								'Dismiss inability notice',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						>
-							{ __( 'Dismiss', 'gratis-ai-agent' ) }
+							{ __( 'Dismiss', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
 			) }
 			{ feedbackBanner && ! sending && (
-				<div className="gratis-ai-agent-message-row gratis-ai-agent-feedback-banner">
-					<div className="gratis-ai-agent-feedback-banner__content">
-						<p className="gratis-ai-agent-feedback-banner__text">
+				<div className="sd-ai-agent-message-row sd-ai-agent-feedback-banner">
+					<div className="sd-ai-agent-feedback-banner__content">
+						<p className="sd-ai-agent-feedback-banner__text">
 							{ __(
 								'The AI had trouble completing your request. Would you like to send a report to help us improve?',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</p>
-						<div className="gratis-ai-agent-feedback-banner__actions">
+						<div className="sd-ai-agent-feedback-banner__actions">
 							<Button
 								variant="secondary"
-								className="gratis-ai-agent-feedback-banner__send-btn"
+								className="sd-ai-agent-feedback-banner__send-btn"
 								onClick={ () => setFeedbackModalOpen( true ) }
 							>
-								{ __( 'Send Report', 'gratis-ai-agent' ) }
+								{ __( 'Send Report', 'sd-ai-agent' ) }
 							</Button>
 							<Button
 								variant="link"
-								className="gratis-ai-agent-feedback-banner__dismiss"
+								className="sd-ai-agent-feedback-banner__dismiss"
 								onClick={ () => setFeedbackBanner( null ) }
 								aria-label={ __(
 									'Dismiss feedback notice',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							>
-								{ __( 'Dismiss', 'gratis-ai-agent' ) }
+								{ __( 'Dismiss', 'sd-ai-agent' ) }
 							</Button>
 						</div>
 					</div>
@@ -610,7 +610,7 @@ export default function MessageList() {
 				/>
 			) }
 			{ sending && ! pendingActionCard && (
-				<div className="gratis-ai-agent-bubble gratis-ai-agent-assistant gratis-ai-agent-thinking">
+				<div className="sd-ai-agent-bubble sd-ai-agent-assistant sd-ai-agent-thinking">
 					<Spinner />
 					{ ( () => {
 						// Use per-session job tool calls if available,
@@ -625,7 +625,7 @@ export default function MessageList() {
 						return tc?.length > 0 ? (
 							<LiveToolProgress toolCalls={ tc } />
 						) : (
-							__( 'Thinking…', 'gratis-ai-agent' )
+							__( 'Thinking…', 'sd-ai-agent' )
 						);
 					} )() }
 				</div>

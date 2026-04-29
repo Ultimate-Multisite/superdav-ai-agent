@@ -4,15 +4,15 @@ declare(strict_types=1);
 /**
  * Register skill-related WordPress abilities (tools) for the AI agent.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Models\Skill;
-use GratisAiAgent\Repositories\SkillUsageRepository;
-use GratisAiAgent\Tools\ModelHealthTracker;
+use SdAiAgent\Models\Skill;
+use SdAiAgent\Repositories\SkillUsageRepository;
+use SdAiAgent\Tools\ModelHealthTracker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -31,9 +31,9 @@ class SkillAbilities {
 		wp_register_ability(
 			'ai-agent/skill-load',
 			[
-				'label'               => __( 'Load Skill', 'gratis-ai-agent' ),
-				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Load Skill', 'sd-ai-agent' ),
+				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -69,9 +69,9 @@ class SkillAbilities {
 		wp_register_ability(
 			'ai-agent/skill-list',
 			[
-				'label'               => __( 'List Skills', 'gratis-ai-agent' ),
-				'description'         => __( 'List all available skill guides with their slugs, names, and descriptions.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'List Skills', 'sd-ai-agent' ),
+				'description'         => __( 'List all available skill guides with their slugs, names, and descriptions.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => (object) [],

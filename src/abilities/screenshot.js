@@ -445,7 +445,7 @@ async function executeScreenshotUrl( args ) {
  */
 export async function registerCaptureScreenshotAbility() {
 	await registerClientAbility( {
-		name: 'gratis-ai-agent-js/capture-screenshot',
+		name: 'sd-ai-agent-js/capture-screenshot',
 		label: 'Capture Screenshot',
 		description:
 			'Capture a screenshot of the current page the user is viewing. ' +
@@ -500,7 +500,7 @@ export async function registerCaptureScreenshotAbility() {
  */
 export async function registerScreenshotUrlAbility() {
 	await registerClientAbility( {
-		name: 'gratis-ai-agent-js/screenshot-url',
+		name: 'sd-ai-agent-js/screenshot-url',
 		label: 'Screenshot URL',
 		description:
 			'Load any page on this WordPress site in a hidden iframe and capture a screenshot. ' +

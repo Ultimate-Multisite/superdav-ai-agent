@@ -22,21 +22,21 @@ declare(strict_types=1);
  *   - Shared constants (NAMESPACE, JOB_PREFIX, JOB_TTL)
  *   - sanitize_page_context() (used by route args in SessionController)
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Core\AgentLoop;
-use GratisAiAgent\Core\ConversationSerializer;
-use GratisAiAgent\Core\ConversationTrimmer;
-use GratisAiAgent\Core\CostCalculator;
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Core\RolePermissions;
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Models\ActiveJobRepository;
-use GratisAiAgent\Models\Agent;
+use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\ConversationSerializer;
+use SdAiAgent\Core\ConversationTrimmer;
+use SdAiAgent\Core\CostCalculator;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Core\RolePermissions;
+use SdAiAgent\Core\Settings;
+use SdAiAgent\Models\ActiveJobRepository;
+use SdAiAgent\Models\Agent;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -54,7 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and self-register via their own #[Handler] / #[REST_Handler] attributes.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -62,12 +62,12 @@ final class RestController {
 
 	use PermissionTrait;
 
-	const NAMESPACE = 'gratis-ai-agent/v1';
+	const NAMESPACE = 'sd-ai-agent/v1';
 
 	/**
 	 * Transient prefix for job data.
 	 */
-	const JOB_PREFIX = 'gratis_ai_agent_job_';
+	const JOB_PREFIX = 'sd_ai_agent_job_';
 
 	/**
 	 * How long job data persists (seconds).
@@ -250,8 +250,8 @@ final class RestController {
 	 */
 	public static function handle_chat( WP_REST_Request $request ) {
 		return new WP_Error(
-			'gratis_ai_agent_endpoint_removed',
-			__( 'The /chat endpoint has been removed. Use /run instead.', 'gratis-ai-agent' ),
+			'sd_ai_agent_endpoint_removed',
+			__( 'The /chat endpoint has been removed. Use /run instead.', 'sd-ai-agent' ),
 			array( 'status' => 410 )
 		);
 	}
@@ -359,16 +359,16 @@ Assistant: %s',
 
 		if ( ! $session_id ) {
 			return new WP_Error(
-				'gratis_ai_agent_missing_session',
-				__( 'session_id is required.', 'gratis-ai-agent' ),
+				'sd_ai_agent_missing_session',
+				__( 'session_id is required.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
 
 		if ( ! is_array( $tool_results ) || empty( $tool_results ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_missing_results',
-				__( 'tool_results must be a non-empty array.', 'gratis-ai-agent' ),
+				'sd_ai_agent_missing_results',
+				__( 'tool_results must be a non-empty array.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -378,8 +378,8 @@ Assistant: %s',
 
 		if ( null === $paused_state ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_paused_state',
-				__( 'No paused agent state found for this session. The session may have already been resumed or expired.', 'gratis-ai-agent' ),
+				'sd_ai_agent_no_paused_state',
+				__( 'No paused agent state found for this session. The session may have already been resumed or expired.', 'sd-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}

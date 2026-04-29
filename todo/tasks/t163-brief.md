@@ -10,19 +10,19 @@ plumbing. This is PR 1 of 2.
 
 ## What
 
-Land the foundation for client-side abilities in the Gratis AI Agent plugin:
+Land the foundation for client-side abilities in the Superdav AI Agent plugin:
 
-- A PHP `JsAbilityCatalog` class that mirrors the metadata of the `gratis-ai-agent-js/*`
+- A PHP `JsAbilityCatalog` class that mirrors the metadata of the `sd-ai-agent-js/*`
   abilities the plugin registers in the browser. Pure metadata; no execute callback.
   Used later by AgentLoop (t164) to validate client-posted descriptors and by the
   abilities-explorer UI to list client abilities. Populated statically from a
   single source of truth that the JS side also reads, so PHP and JS never drift.
-- A JS registry module that registers a `gratis-ai-agent-js` category and two
+- A JS registry module that registers a `sd-ai-agent-js` category and two
   initial abilities into the core `core/abilities` store:
-  - `gratis-ai-agent-js/navigate-to` — client-side admin navigation (no reload
+  - `sd-ai-agent-js/navigate-to` — client-side admin navigation (no reload
     required when the target is inside the admin SPA). Read-only w.r.t. data,
     annotated with `readonly: true` since it does not mutate site state.
-  - `gratis-ai-agent-js/insert-block` — inserts a block into the active block
+  - `sd-ai-agent-js/insert-block` — inserts a block into the active block
     editor. Guarded on `select('core/block-editor')` being defined; no-ops cleanly
     on screens where the editor is not mounted.
 - Wiring: every plugin entry point (`unified-admin`, `floating-widget`,
@@ -58,27 +58,27 @@ the plan.
 ### Files to add
 
 - **NEW**: `includes/Abilities/Js/JsAbilityCatalog.php` — class under
-  `GratisAiAgent\Abilities\Js`. Single static method `get_descriptors(): array`
+  `SdAiAgent\Abilities\Js`. Single static method `get_descriptors(): array`
   returning a list of `{name,label,description,category,input_schema,output_schema,annotations,screens}`
-  entries for the `gratis-ai-agent-js/*` namespace. Entries are hard-coded in
+  entries for the `sd-ai-agent-js/*` namespace. Entries are hard-coded in
   PHP (mirrored by the JS source), so t164 can validate client-posted descriptors
   against this list without trusting the client. No hooks registered in this
   slice; purely a data class.
 - **NEW**: `src/abilities/registry.js` — thin wrapper around `@wordpress/abilities`.
   Exports `registerCategory()` (idempotent), `registerClientAbility(def)` which
-  shapes the definition with `meta.annotations`, `category: 'gratis-ai-agent-js'`,
+  shapes the definition with `meta.annotations`, `category: 'sd-ai-agent-js'`,
   and guards against double-registration, and `snapshotDescriptors()` which
-  returns the current `gratis-ai-agent-js/*` ability definitions as plain objects
+  returns the current `sd-ai-agent-js/*` ability definitions as plain objects
   for posting to the server in t164 (included now so t164 does not have to
   touch this file).
 - **NEW**: `src/abilities/navigation.js` — registers
-  `gratis-ai-agent-js/navigate-to`. Input schema: `{ path: string }` where
+  `sd-ai-agent-js/navigate-to`. Input schema: `{ path: string }` where
   `path` is a wp-admin-relative path (e.g. `plugins.php`, `edit.php?post_type=page`).
   Uses `window.location.assign()` for now (full-page nav) — we can upgrade to
   SPA navigation once core ships a router primitive; this is still a UX win
   because the model does not have to ask the user to click.
   `meta.annotations.readonly: true`.
-- **NEW**: `src/abilities/editor.js` — registers `gratis-ai-agent-js/insert-block`.
+- **NEW**: `src/abilities/editor.js` — registers `sd-ai-agent-js/insert-block`.
   Guards on `wp.data && wp.data.select('core/block-editor')` (using dynamic
   access so the module is safe to import on non-editor screens). Uses
   `dispatch('core/block-editor').insertBlocks(createBlock(name, attrs))`.
@@ -91,7 +91,7 @@ the plan.
 
 ### Files to modify
 
-- **EDIT**: `gratis-ai-agent.php` — add a new bootstrap action that calls
+- **EDIT**: `sd-ai-agent.php` — add a new bootstrap action that calls
   `wp_enqueue_script_module('@wordpress/abilities')` on the hooks where our
   entry points enqueue their own bundles (unified admin page, floating widget,
   screen meta, front end). Single helper function to avoid repetition. Model
@@ -119,7 +119,7 @@ the plan.
   meta.annotations).
 - Existing JS entry points in `src/*/index.js` for import ordering and the
   mount pattern.
-- Existing PHP enqueue helper(s) in `gratis-ai-agent.php` for the action-hook
+- Existing PHP enqueue helper(s) in `sd-ai-agent.php` for the action-hook
   priority and script-handle conventions.
 
 ### Out of scope for this slice
@@ -138,12 +138,12 @@ the plan.
 2. `composer phpcs` passes on the new PHP file with zero violations.
 3. `composer phpstan` passes.
 4. On any admin page (e.g. the plugins list) after a fresh reload,
-   `wp.data.select('core/abilities').getAbilities({ category: 'gratis-ai-agent-js' })`
+   `wp.data.select('core/abilities').getAbilities({ category: 'sd-ai-agent-js' })`
    in the browser console returns at least `navigate-to` (and, on a block-editor
    screen, also `insert-block`).
-5. Calling `wp.data.dispatch('core/abilities').executeAbility('gratis-ai-agent-js/navigate-to', { path: 'plugins.php' })`
+5. Calling `wp.data.dispatch('core/abilities').executeAbility('sd-ai-agent-js/navigate-to', { path: 'plugins.php' })`
    from the dashboard navigates to the plugins page.
-6. On a non-editor screen, `getAbility('gratis-ai-agent-js/insert-block')` returns
+6. On a non-editor screen, `getAbility('sd-ai-agent-js/insert-block')` returns
    `undefined` (self-guard works) and no console errors are emitted.
 7. The floating-widget chat still mounts and responds normally (regression check
    — no behaviour change expected since the agent loop is untouched).
@@ -157,15 +157,15 @@ npm run build
 composer phpcs includes/Abilities/Js/JsAbilityCatalog.php
 composer phpstan
 wp plugin activate ai-agent
-wp shell <<< 'var_dump(GratisAiAgent\\Abilities\\Js\\JsAbilityCatalog::get_descriptors());'
+wp shell <<< 'var_dump(SdAiAgent\\Abilities\\Js\\JsAbilityCatalog::get_descriptors());'
 ```
 
 Then in the browser console on a fresh admin page load:
 
 ```js
-wp.data.select('core/abilities').getAbilities({ category: 'gratis-ai-agent-js' });
+wp.data.select('core/abilities').getAbilities({ category: 'sd-ai-agent-js' });
 await wp.data.dispatch('core/abilities').executeAbility(
-  'gratis-ai-agent-js/navigate-to',
+  'sd-ai-agent-js/navigate-to',
   { path: 'plugins.php' }
 );
 ```
@@ -179,4 +179,4 @@ await wp.data.dispatch('core/abilities').executeAbility(
 - Key existing files: `includes/Core/AgentLoop.php` (unchanged this slice),
   `includes/REST/RestController.php` (unchanged this slice),
   `src/store/slices/sessionsSlice.js` (unchanged this slice),
-  `gratis-ai-agent.php` (bootstrap edit only).
+  `sd-ai-agent.php` (bootstrap edit only).

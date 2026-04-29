@@ -56,12 +56,12 @@ function DiffViewer( { before, after } ) {
 	const afterLines = ( after || '' ).split( '\n' );
 
 	return (
-		<div className="gratis-changes-diff">
-			<div className="gratis-changes-diff__pane gratis-changes-diff__pane--before">
-				<div className="gratis-changes-diff__label">
-					{ __( 'Before', 'gratis-ai-agent' ) }
+		<div className="sd-changes-diff">
+			<div className="sd-changes-diff__pane sd-changes-diff__pane--before">
+				<div className="sd-changes-diff__label">
+					{ __( 'Before', 'sd-ai-agent' ) }
 				</div>
-				<pre className="gratis-changes-diff__code">
+				<pre className="sd-changes-diff__code">
 					{ beforeLines.map( ( line, i ) => {
 						const afterLine = afterLines[ i ];
 						const changed = line !== afterLine;
@@ -70,8 +70,8 @@ function DiffViewer( { before, after } ) {
 								key={ i }
 								className={
 									changed
-										? 'gratis-changes-diff__line gratis-changes-diff__line--removed'
-										: 'gratis-changes-diff__line'
+										? 'sd-changes-diff__line sd-changes-diff__line--removed'
+										: 'sd-changes-diff__line'
 								}
 							>
 								{ line }
@@ -80,11 +80,11 @@ function DiffViewer( { before, after } ) {
 					} ) }
 				</pre>
 			</div>
-			<div className="gratis-changes-diff__pane gratis-changes-diff__pane--after">
-				<div className="gratis-changes-diff__label">
-					{ __( 'After', 'gratis-ai-agent' ) }
+			<div className="sd-changes-diff__pane sd-changes-diff__pane--after">
+				<div className="sd-changes-diff__label">
+					{ __( 'After', 'sd-ai-agent' ) }
 				</div>
-				<pre className="gratis-changes-diff__code">
+				<pre className="sd-changes-diff__code">
 					{ afterLines.map( ( line, i ) => {
 						const beforeLine = beforeLines[ i ];
 						const changed = line !== beforeLine;
@@ -93,8 +93,8 @@ function DiffViewer( { before, after } ) {
 								key={ i }
 								className={
 									changed
-										? 'gratis-changes-diff__line gratis-changes-diff__line--added'
-										: 'gratis-changes-diff__line'
+										? 'sd-changes-diff__line sd-changes-diff__line--added'
+										: 'sd-changes-diff__line'
 								}
 							>
 								{ line }
@@ -140,7 +140,7 @@ export default function ChangesApp() {
 				params.set( 'reverted', filterReverted );
 			}
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?${ params.toString() }`,
+				path: `/sd-ai-agent/v1/changes?${ params.toString() }`,
 			} );
 			setChanges( data.items || [] );
 			setTotal( data.total || 0 );
@@ -149,7 +149,7 @@ export default function ChangesApp() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to load changes.', 'gratis-ai-agent' ),
+					__( 'Failed to load changes.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setLoading( false );
@@ -183,7 +183,7 @@ export default function ChangesApp() {
 		setDiffModal( { change, diff: null } );
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes/${ change.id }/diff`,
+				path: `/sd-ai-agent/v1/changes/${ change.id }/diff`,
 			} );
 			setDiffModal( { change, diff: data } );
 		} catch ( err ) {
@@ -191,8 +191,7 @@ export default function ChangesApp() {
 				change,
 				diff: null,
 				error:
-					err?.message ||
-					__( 'Failed to load diff.', 'gratis-ai-agent' ),
+					err?.message || __( 'Failed to load diff.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setDiffLoading( false );
@@ -205,7 +204,7 @@ export default function ChangesApp() {
 			const confirmed = window.confirm(
 				__(
 					'Revert this change? The original value will be restored.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				)
 			); // eslint-disable-line no-alert
 			if ( ! confirmed ) {
@@ -215,12 +214,12 @@ export default function ChangesApp() {
 			setNotice( null );
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/changes/${ id }/revert`,
+					path: `/sd-ai-agent/v1/changes/${ id }/revert`,
 					method: 'POST',
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Change reverted.', 'gratis-ai-agent' ),
+					message: __( 'Change reverted.', 'sd-ai-agent' ),
 				} );
 				fetchChanges();
 			} catch ( err ) {
@@ -228,7 +227,7 @@ export default function ChangesApp() {
 					status: 'error',
 					message:
 						err?.message ||
-						__( 'Failed to revert change.', 'gratis-ai-agent' ),
+						__( 'Failed to revert change.', 'sd-ai-agent' ),
 				} );
 			} finally {
 				setReverting( null );
@@ -243,7 +242,7 @@ export default function ChangesApp() {
 				status: 'warning',
 				message: __(
 					'Select at least one change to export.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 			return;
@@ -252,7 +251,7 @@ export default function ChangesApp() {
 		setNotice( null );
 		try {
 			const data = await apiFetch( {
-				path: '/gratis-ai-agent/v1/changes/export',
+				path: '/sd-ai-agent/v1/changes/export',
 				method: 'POST',
 				data: { ids: selectedIds },
 			} );
@@ -261,7 +260,7 @@ export default function ChangesApp() {
 			const url = URL.createObjectURL( blob );
 			const a = document.createElement( 'a' );
 			a.href = url;
-			a.download = data.filename || 'gratis-ai-agent-changes.patch';
+			a.download = data.filename || 'sd-ai-agent-changes.patch';
 			document.body.appendChild( a );
 			a.click();
 			document.body.removeChild( a );
@@ -271,7 +270,7 @@ export default function ChangesApp() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to export changes.', 'gratis-ai-agent' ),
+					__( 'Failed to export changes.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setExporting( false );
@@ -285,7 +284,7 @@ export default function ChangesApp() {
 		currentPageIds.every( ( id ) => selectedIds.includes( id ) );
 
 	return (
-		<div className="gratis-changes-app">
+		<div className="sd-changes-app">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -297,54 +296,54 @@ export default function ChangesApp() {
 			) }
 
 			{ /* Filters */ }
-			<div className="gratis-changes-filters">
+			<div className="sd-changes-filters">
 				<SelectControl
 					__next40pxDefaultSize
-					label={ __( 'Object Type', 'gratis-ai-agent' ) }
+					label={ __( 'Object Type', 'sd-ai-agent' ) }
 					value={ filterType }
 					options={ [
 						{
-							label: __( 'All Types', 'gratis-ai-agent' ),
+							label: __( 'All Types', 'sd-ai-agent' ),
 							value: '',
 						},
 						{
-							label: __( 'Post', 'gratis-ai-agent' ),
+							label: __( 'Post', 'sd-ai-agent' ),
 							value: 'post',
 						},
 						{
-							label: __( 'Page', 'gratis-ai-agent' ),
+							label: __( 'Page', 'sd-ai-agent' ),
 							value: 'page',
 						},
 						{
-							label: __( 'Post Meta', 'gratis-ai-agent' ),
+							label: __( 'Post Meta', 'sd-ai-agent' ),
 							value: 'post_meta',
 						},
 						{
-							label: __( 'Option', 'gratis-ai-agent' ),
+							label: __( 'Option', 'sd-ai-agent' ),
 							value: 'option',
 						},
 						{
-							label: __( 'Term', 'gratis-ai-agent' ),
+							label: __( 'Term', 'sd-ai-agent' ),
 							value: 'term',
 						},
 						{
-							label: __( 'User', 'gratis-ai-agent' ),
+							label: __( 'User', 'sd-ai-agent' ),
 							value: 'user',
 						},
 						{
-							label: __( 'Nav Menu', 'gratis-ai-agent' ),
+							label: __( 'Nav Menu', 'sd-ai-agent' ),
 							value: 'nav_menu',
 						},
 						{
-							label: __( 'File', 'gratis-ai-agent' ),
+							label: __( 'File', 'sd-ai-agent' ),
 							value: 'file',
 						},
 						{
-							label: __( 'Media', 'gratis-ai-agent' ),
+							label: __( 'Media', 'sd-ai-agent' ),
 							value: 'media',
 						},
 						{
-							label: __( 'WP-CLI', 'gratis-ai-agent' ),
+							label: __( 'WP-CLI', 'sd-ai-agent' ),
 							value: 'wp_cli',
 						},
 					] }
@@ -355,16 +354,16 @@ export default function ChangesApp() {
 				/>
 				<SelectControl
 					__next40pxDefaultSize
-					label={ __( 'Status', 'gratis-ai-agent' ) }
+					label={ __( 'Status', 'sd-ai-agent' ) }
 					value={ filterReverted }
 					options={ [
-						{ label: __( 'All', 'gratis-ai-agent' ), value: '' },
+						{ label: __( 'All', 'sd-ai-agent' ), value: '' },
 						{
-							label: __( 'Active', 'gratis-ai-agent' ),
+							label: __( 'Active', 'sd-ai-agent' ),
 							value: 'false',
 						},
 						{
-							label: __( 'Reverted', 'gratis-ai-agent' ),
+							label: __( 'Reverted', 'sd-ai-agent' ),
 							value: 'true',
 						},
 					] }
@@ -373,14 +372,14 @@ export default function ChangesApp() {
 						setPage( 1 );
 					} }
 				/>
-				<div className="gratis-changes-filters__actions">
+				<div className="sd-changes-filters__actions">
 					<Button
 						variant="secondary"
 						onClick={ handleExport }
 						disabled={ exporting || selectedIds.length === 0 }
 						isBusy={ exporting }
 					>
-						{ __( 'Export Patch', 'gratis-ai-agent' ) }
+						{ __( 'Export Patch', 'sd-ai-agent' ) }
 						{ selectedIds.length > 0 &&
 							` (${ selectedIds.length })` }
 					</Button>
@@ -389,13 +388,13 @@ export default function ChangesApp() {
 
 			{ /* Table */ }
 			{ loading ? (
-				<div className="gratis-changes-loading">
+				<div className="sd-changes-loading">
 					<Spinner />
-					<span>{ __( 'Loading changes…', 'gratis-ai-agent' ) }</span>
+					<span>{ __( 'Loading changes…', 'sd-ai-agent' ) }</span>
 				</div>
 			) : (
 				<>
-					<table className="wp-list-table widefat fixed striped gratis-changes-table">
+					<table className="wp-list-table widefat fixed striped sd-changes-table">
 						<thead>
 							<tr>
 								<th className="check-column">
@@ -405,18 +404,18 @@ export default function ChangesApp() {
 										label=""
 										aria-label={ __(
 											'Select all',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									/>
 								</th>
-								<th>{ __( 'Object', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Field', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Ability', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Before', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'After', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Date', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Status', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Actions', 'gratis-ai-agent' ) }</th>
+								<th>{ __( 'Object', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Field', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Ability', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Before', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'After', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Date', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Status', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Actions', 'sd-ai-agent' ) }</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -424,11 +423,11 @@ export default function ChangesApp() {
 								<tr>
 									<td
 										colSpan={ 9 }
-										className="gratis-changes-empty"
+										className="sd-changes-empty"
 									>
 										{ __(
 											'No changes recorded yet. Changes made by the AI agent will appear here.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</td>
 								</tr>
@@ -449,7 +448,7 @@ export default function ChangesApp() {
 												label=""
 												aria-label={ __(
 													'Select',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											/>
 										</td>
@@ -459,7 +458,7 @@ export default function ChangesApp() {
 													`${ change.object_type } #${ change.object_id }` }
 											</strong>
 											<br />
-											<span className="gratis-changes-meta">
+											<span className="sd-changes-meta">
 												{ change.object_type }
 												{ change.object_id > 0 &&
 													` #${ change.object_id }` }
@@ -469,30 +468,30 @@ export default function ChangesApp() {
 											<code>{ change.field_name }</code>
 										</td>
 										<td>
-											<span className="gratis-changes-ability">
+											<span className="sd-changes-ability">
 												{ change.ability_name || '—' }
 											</span>
 										</td>
-										<td className="gratis-changes-value">
+										<td className="sd-changes-value">
 											{ truncate(
 												change.before_value
 											) || (
 												<em>
 													{ __(
 														'(empty)',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</em>
 											) }
 										</td>
-										<td className="gratis-changes-value">
+										<td className="sd-changes-value">
 											{ truncate(
 												change.after_value
 											) || (
 												<em>
 													{ __(
 														'(empty)',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</em>
 											) }
@@ -503,31 +502,31 @@ export default function ChangesApp() {
 										<td>
 											{ /* eslint-disable no-nested-ternary */ }
 											{ change.reverted ? (
-												<span className="gratis-changes-badge gratis-changes-badge--reverted">
+												<span className="sd-changes-badge sd-changes-badge--reverted">
 													{ __(
 														'Reverted',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</span>
 											) : change.revertable === false ? (
-												<span className="gratis-changes-badge gratis-changes-badge--unrevertable">
+												<span className="sd-changes-badge sd-changes-badge--unrevertable">
 													{ __(
 														'Cannot undo',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</span>
 											) : (
-												<span className="gratis-changes-badge gratis-changes-badge--active">
+												<span className="sd-changes-badge sd-changes-badge--active">
 													{ __(
 														'Active',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</span>
 											) }
 											{ /* eslint-enable no-nested-ternary */ }
 										</td>
 										<td>
-											<div className="gratis-changes-actions">
+											<div className="sd-changes-actions">
 												<Button
 													variant="link"
 													onClick={ () =>
@@ -536,7 +535,7 @@ export default function ChangesApp() {
 												>
 													{ __(
 														'Diff',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</Button>
 												{ ! change.reverted &&
@@ -561,7 +560,7 @@ export default function ChangesApp() {
 														>
 															{ __(
 																'Revert',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</Button>
 													) }
@@ -575,13 +574,13 @@ export default function ChangesApp() {
 
 					{ /* Pagination */ }
 					{ totalPages > 1 && (
-						<div className="gratis-changes-pagination">
+						<div className="sd-changes-pagination">
 							<Button
 								variant="secondary"
 								disabled={ page <= 1 }
 								onClick={ () => setPage( ( p ) => p - 1 ) }
 							>
-								{ __( '← Previous', 'gratis-ai-agent' ) }
+								{ __( '← Previous', 'sd-ai-agent' ) }
 							</Button>
 							<span>
 								{ page } / { totalPages }
@@ -591,7 +590,7 @@ export default function ChangesApp() {
 								disabled={ page >= totalPages }
 								onClick={ () => setPage( ( p ) => p + 1 ) }
 							>
-								{ __( 'Next →', 'gratis-ai-agent' ) }
+								{ __( 'Next →', 'sd-ai-agent' ) }
 							</Button>
 						</div>
 					) }
@@ -603,17 +602,17 @@ export default function ChangesApp() {
 				<Modal
 					title={ sprintf(
 						/* translators: %s: object title */
-						__( 'Diff — %s', 'gratis-ai-agent' ),
+						__( 'Diff — %s', 'sd-ai-agent' ),
 						diffModal.change.object_title ||
 							`${ diffModal.change.object_type } #${ diffModal.change.object_id }`
 					) }
 					onRequestClose={ () => setDiffModal( null ) }
-					className="gratis-changes-diff-modal"
+					className="sd-changes-diff-modal"
 					size="large"
 				>
 					{ /* eslint-disable no-nested-ternary */ }
 					{ diffLoading ? (
-						<div className="gratis-changes-loading">
+						<div className="sd-changes-loading">
 							<Spinner />
 						</div>
 					) : diffModal.error ? (
@@ -624,17 +623,14 @@ export default function ChangesApp() {
 						<>
 							<p>
 								<strong>
-									{ __( 'Field:', 'gratis-ai-agent' ) }
+									{ __( 'Field:', 'sd-ai-agent' ) }
 								</strong>{ ' ' }
 								<code>{ diffModal.change.field_name }</code>
 								{ diffModal.change.ability_name && (
 									<>
 										{ ' ' }
 										<strong>
-											{ __(
-												'Ability:',
-												'gratis-ai-agent'
-											) }
+											{ __( 'Ability:', 'sd-ai-agent' ) }
 										</strong>{ ' ' }
 										{ diffModal.change.ability_name }
 									</>
@@ -652,7 +648,7 @@ export default function ChangesApp() {
 							/>
 							{ ! diffModal.change.reverted &&
 								diffModal.change.revertable !== false && (
-									<div className="gratis-changes-diff-modal__actions">
+									<div className="sd-changes-diff-modal__actions">
 										<Button
 											variant="primary"
 											isDestructive
@@ -665,22 +661,19 @@ export default function ChangesApp() {
 										>
 											{ __(
 												'Revert This Change',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</Button>
 									</div>
 								) }
 							{ diffModal.change.revertable === false && (
-								<div className="gratis-changes-diff-modal__notice">
-									<span className="gratis-changes-badge gratis-changes-badge--unrevertable">
-										{ __(
-											'Cannot undo',
-											'gratis-ai-agent'
-										) }
+								<div className="sd-changes-diff-modal__notice">
+									<span className="sd-changes-badge sd-changes-badge--unrevertable">
+										{ __( 'Cannot undo', 'sd-ai-agent' ) }
 									</span>{ ' ' }
 									{ __(
 										'This change was made outside of WordPress core (filesystem, WP-CLI, media deletion) and cannot be automatically reversed.',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								</div>
 							) }

@@ -32,19 +32,19 @@ The `FileAbilities` class can write/edit arbitrary files in `wp-content`. Withou
 - `get_blob(int $id): array|null` — returns a single blob record.
 - `delete_blob(int $id): bool` — removes a blob record.
 
-### Database table: `wp_gratis_ai_agent_git_blobs`
+### Database table: `wp_sd_ai_agent_git_blobs`
 - `id`, `path` (relative to wp-content), `content_hash` (SHA-1), `content` (longtext), `created_at`
 - DB_VERSION bumped to `10.0.0`.
 
 ### Abilities: `includes/Abilities/GitAbilities.php`
-- `gratis-ai-agent/git-snapshot` — snapshot a file before editing.
-- `gratis-ai-agent/git-diff` — show diff between snapshot and current.
-- `gratis-ai-agent/git-restore` — restore file to snapshot.
-- `gratis-ai-agent/git-list` — list all tracked files.
+- `sd-ai-agent/git-snapshot` — snapshot a file before editing.
+- `sd-ai-agent/git-diff` — show diff between snapshot and current.
+- `sd-ai-agent/git-restore` — restore file to snapshot.
+- `sd-ai-agent/git-list` — list all tracked files.
 
 ### Registration
-- `GitAbilities::register()` called in `gratis-ai-agent.php`.
-- `gratis-ai-agent/git-` prefix added to `developer` tool profile.
+- `GitAbilities::register()` called in `sd-ai-agent.php`.
+- `sd-ai-agent/git-` prefix added to `developer` tool profile.
 
 ## Acceptance Criteria
 

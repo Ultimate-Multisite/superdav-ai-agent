@@ -8,13 +8,13 @@ declare(strict_types=1);
  * Contains the logic for building ability listings with truncation, parameter
  * counting, configuration status checks, and sorting.
  *
- * @package GratisAiAgent\Services
+ * @package SdAiAgent\Services
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Services;
+namespace SdAiAgent\Services;
 
-use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
+use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

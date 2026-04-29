@@ -8,13 +8,13 @@ declare(strict_types=1);
  * in one focused class. Handles stub registration, name resolution, and
  * message partitioning.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
+use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
 
@@ -116,7 +116,7 @@ final class ClientAbilityRouter {
 				array(
 					'label'        => (string) ( $descriptor['label'] ?? $name ),
 					'description'  => (string) ( $descriptor['description'] ?? '' ),
-					'category'     => 'gratis-ai-agent-js',
+					'category'     => 'sd-ai-agent-js',
 					'callback'     => static function ( array $args ): array {
 						// No-op: client-side abilities are never executed server-side.
 						return array( 'error' => 'Client-side ability cannot be executed server-side.' );

@@ -41,24 +41,24 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 	}, [ foldersLoaded, fetchFolders ] );
 
 	return (
-		<div className="gratis-ai-agent-folder-picker">
-			<div className="gratis-ai-agent-folder-picker-header">
-				{ __( 'Move to Folder', 'gratis-ai-agent' ) }
+		<div className="sd-ai-agent-folder-picker">
+			<div className="sd-ai-agent-folder-picker-header">
+				{ __( 'Move to Folder', 'sd-ai-agent' ) }
 			</div>
 			{ currentFolder && (
 				<button
 					type="button"
-					className="gratis-ai-agent-folder-picker-item"
+					className="sd-ai-agent-folder-picker-item"
 					onClick={ () => onSelect( '' ) }
 				>
-					{ __( 'Remove from folder', 'gratis-ai-agent' ) }
+					{ __( 'Remove from folder', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ folders.map( ( folder ) => (
 				<button
 					key={ folder }
 					type="button"
-					className={ `gratis-ai-agent-folder-picker-item ${
+					className={ `sd-ai-agent-folder-picker-item ${
 						folder === currentFolder ? 'is-current' : ''
 					}` }
 					onClick={ () => onSelect( folder ) }
@@ -66,10 +66,10 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 					{ folder }
 				</button>
 			) ) }
-			<div className="gratis-ai-agent-folder-picker-new">
+			<div className="sd-ai-agent-folder-picker-new">
 				<input
 					type="text"
-					placeholder={ __( 'New folder…', 'gratis-ai-agent' ) }
+					placeholder={ __( 'New folder…', 'sd-ai-agent' ) }
 					value={ newFolder }
 					onChange={ ( e ) => setNewFolder( e.target.value ) }
 					onKeyDown={ ( e ) => {
@@ -86,7 +86,7 @@ export default function FolderPicker( { currentFolder, onSelect, onClose } ) {
 						type="button"
 						onClick={ () => onSelect( newFolder.trim() ) }
 					>
-						{ __( 'Create', 'gratis-ai-agent' ) }
+						{ __( 'Create', 'sd-ai-agent' ) }
 					</button>
 				) }
 			</div>

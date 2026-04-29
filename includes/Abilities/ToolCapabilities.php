@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 /**
- * Per-tool WordPress capability checks for Gratis AI Agent abilities.
+ * Per-tool WordPress capability checks for Superdav AI Agent abilities.
  *
  * Provides granular capability checks so each ability can be granted
  * independently via user roles. Capability names follow the pattern
- * `gratis_ai_agent_tool_{name}` where `{name}` is derived from the ability ID
- * (e.g. `gratis-ai-agent/memory-save` → `gratis_ai_agent_tool_memory_save`).
+ * `sd_ai_agent_tool_{name}` where `{name}` is derived from the ability ID
+ * (e.g. `sd-ai-agent/memory-save` → `sd_ai_agent_tool_memory_save`).
  *
  * Fallback: if the capability has not been granted to any role, the check
  * falls back to `manage_options` (admin only) so the default behaviour is
  * unchanged until an administrator explicitly delegates a capability.
  *
- * Filter: `gratis_ai_agent_tool_capability` allows overriding the resolved
+ * Filter: `sd_ai_agent_tool_capability` allows overriding the resolved
  * capability name per tool.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,49 +43,49 @@ class ToolCapabilities {
 	 * Derive the tool-specific capability name from an ability ID.
 	 *
 	 * Examples:
-	 *   gratis-ai-agent/memory-save  → gratis_ai_agent_tool_memory_save
-	 *   ai-agent/memory-save         → gratis_ai_agent_tool_memory_save
-	 *   gratis-ai-agent/db-query     → gratis_ai_agent_tool_db_query
-	 *   gratis-ai-agent/run-php      → gratis_ai_agent_tool_run_php
+	 *   sd-ai-agent/memory-save  → sd_ai_agent_tool_memory_save
+	 *   ai-agent/memory-save         → sd_ai_agent_tool_memory_save
+	 *   sd-ai-agent/db-query     → sd_ai_agent_tool_db_query
+	 *   sd-ai-agent/run-php      → sd_ai_agent_tool_run_php
 	 *
-	 * Both "gratis-ai-agent/" and the WordPress core "ai-agent/" namespace
+	 * Both "sd-ai-agent/" and the WordPress core "ai-agent/" namespace
 	 * prefixes are stripped so that abilities registered under either prefix
 	 * resolve to the same capability name.
 	 *
-	 * @param string $ability_id The ability ID (e.g. "gratis-ai-agent/memory-save" or "ai-agent/create-post").
+	 * @param string $ability_id The ability ID (e.g. "sd-ai-agent/memory-save" or "ai-agent/create-post").
 	 * @return string The derived capability name.
 	 */
 	public static function cap_name( string $ability_id ): string {
-		// Strip either the "gratis-ai-agent/" or the WP core "ai-agent/" namespace prefix.
-		$name = str_replace( [ 'gratis-ai-agent/', 'ai-agent/' ], '', $ability_id );
+		// Strip either the "sd-ai-agent/" or the WP core "ai-agent/" namespace prefix.
+		$name = str_replace( [ 'sd-ai-agent/', 'ai-agent/' ], '', $ability_id );
 
 		// Replace hyphens and slashes with underscores.
 		$name = str_replace( [ '-', '/' ], '_', $name );
 
-		return 'gratis_ai_agent_tool_' . $name;
+		return 'sd_ai_agent_tool_' . $name;
 	}
 
 	/**
 	 * Check whether the current user can execute a given ability.
 	 *
 	 * Resolution order:
-	 * 1. Apply the `gratis_ai_agent_tool_capability` filter to allow overrides.
+	 * 1. Apply the `sd_ai_agent_tool_capability` filter to allow overrides.
 	 * 2. If the resolved capability exists in any role, use it.
 	 * 3. Otherwise fall back to `manage_options`.
 	 *
-	 * @param string $ability_id The ability ID (e.g. "gratis-ai-agent/memory-save").
+	 * @param string $ability_id The ability ID (e.g. "sd-ai-agent/memory-save").
 	 * @return bool True if the current user has permission.
 	 */
 	public static function current_user_can( string $ability_id ): bool {
 		$tool_cap = self::cap_name( $ability_id );
 
 		/**
-		 * Filter the capability name used to gate a specific Gratis AI Agent tool.
+		 * Filter the capability name used to gate a specific Superdav AI Agent tool.
 		 *
-		 * @param string $tool_cap   The derived capability name (e.g. "gratis_ai_agent_tool_memory_save").
-		 * @param string $ability_id The full ability ID (e.g. "gratis-ai-agent/memory-save").
+		 * @param string $tool_cap   The derived capability name (e.g. "sd_ai_agent_tool_memory_save").
+		 * @param string $ability_id The full ability ID (e.g. "sd-ai-agent/memory-save").
 		 */
-		$resolved_cap = (string) apply_filters( 'gratis_ai_agent_tool_capability', $tool_cap, $ability_id );
+		$resolved_cap = (string) apply_filters( 'sd_ai_agent_tool_capability', $tool_cap, $ability_id );
 
 		// If the capability has been granted to at least one role, use it.
 		// Otherwise fall back to manage_options so the default is admin-only.
@@ -123,7 +123,7 @@ class ToolCapabilities {
 	}
 
 	/**
-	 * Register all Gratis AI Agent tool capabilities on the Administrator role.
+	 * Register all Superdav AI Agent tool capabilities on the Administrator role.
 	 *
 	 * Called on plugin activation and `admin_init` so that the capabilities
 	 * are available for role-management plugins (e.g. Members, User Role Editor)
@@ -151,7 +151,7 @@ class ToolCapabilities {
 			 * @param string $cap        The derived capability name.
 			 * @param string $ability_id The full ability ID.
 			 */
-			$cap = (string) apply_filters( 'gratis_ai_agent_tool_capability', $cap, $ability_id );
+			$cap = (string) apply_filters( 'sd_ai_agent_tool_capability', $cap, $ability_id );
 
 			if ( ! isset( $admin_role->capabilities[ $cap ] ) ) {
 				$admin_role->add_cap( $cap, true );
@@ -160,7 +160,7 @@ class ToolCapabilities {
 	}
 
 	/**
-	 * Return the list of all Gratis AI Agent ability IDs that have tool capabilities.
+	 * Return the list of all Superdav AI Agent ability IDs that have tool capabilities.
 	 *
 	 * This list is used both for capability registration and for documentation.
 	 *
@@ -195,8 +195,8 @@ class ToolCapabilities {
 			'ai-agent/delete-menu',
 			'ai-agent/add-menu-item',
 			// Images.
-			'gratis-ai-agent/stock-image',
-			'gratis-ai-agent/generate-image',
+			'sd-ai-agent/stock-image',
+			'sd-ai-agent/generate-image',
 			// SEO (registered under the WP core "ai-agent/" prefix).
 			'ai-agent/seo-audit-url',
 			'ai-agent/seo-analyze-content',
@@ -215,46 +215,46 @@ class ToolCapabilities {
 			'ai-agent/create-block-content',
 			'ai-agent/parse-block-content',
 			// Files.
-			'gratis-ai-agent/file-read',
-			'gratis-ai-agent/file-write',
-			'gratis-ai-agent/file-edit',
-			'gratis-ai-agent/file-delete',
-			'gratis-ai-agent/file-list',
-			'gratis-ai-agent/file-search',
-			'gratis-ai-agent/content-search',
+			'sd-ai-agent/file-read',
+			'sd-ai-agent/file-write',
+			'sd-ai-agent/file-edit',
+			'sd-ai-agent/file-delete',
+			'sd-ai-agent/file-list',
+			'sd-ai-agent/file-search',
+			'sd-ai-agent/content-search',
 			// Database.
-			'gratis-ai-agent/db-query',
+			'sd-ai-agent/db-query',
 			// WordPress management.
-			'gratis-ai-agent/get-plugins',
-			'gratis-ai-agent/get-themes',
-			'gratis-ai-agent/install-plugin',
-			'gratis-ai-agent/run-php',
+			'sd-ai-agent/get-plugins',
+			'sd-ai-agent/get-themes',
+			'sd-ai-agent/install-plugin',
+			'sd-ai-agent/run-php',
 			// Options management.
-			'gratis-ai-agent/get-option',
-			'gratis-ai-agent/update-option',
-			'gratis-ai-agent/delete-option',
-			'gratis-ai-agent/list-options',
+			'sd-ai-agent/get-option',
+			'sd-ai-agent/update-option',
+			'sd-ai-agent/delete-option',
+			'sd-ai-agent/list-options',
 			// Navigation.
-			'gratis-ai-agent/navigate',
-			'gratis-ai-agent/get-page-html',
+			'sd-ai-agent/navigate',
+			'sd-ai-agent/get-page-html',
 			// Git.
-			'gratis-ai-agent/git-list',
-			'gratis-ai-agent/git-diff',
-			'gratis-ai-agent/git-snapshot',
-			'gratis-ai-agent/git-restore',
-			'gratis-ai-agent/git-revert-package',
-			'gratis-ai-agent/git-package-summary',
+			'sd-ai-agent/git-list',
+			'sd-ai-agent/git-diff',
+			'sd-ai-agent/git-snapshot',
+			'sd-ai-agent/git-restore',
+			'sd-ai-agent/git-revert-package',
+			'sd-ai-agent/git-package-summary',
 			// Site health.
-			'gratis-ai-agent/site-health-summary',
-			'gratis-ai-agent/check-plugin-updates',
-			'gratis-ai-agent/check-security',
-			'gratis-ai-agent/check-performance',
-			'gratis-ai-agent/check-disk-space',
-			'gratis-ai-agent/scan-php-error-log',
+			'sd-ai-agent/site-health-summary',
+			'sd-ai-agent/check-plugin-updates',
+			'sd-ai-agent/check-security',
+			'sd-ai-agent/check-performance',
+			'sd-ai-agent/check-disk-space',
+			'sd-ai-agent/scan-php-error-log',
 			// Google Analytics.
-			'gratis-ai-agent/ga-traffic-summary',
-			'gratis-ai-agent/ga-top-pages',
-			'gratis-ai-agent/ga-realtime',
+			'sd-ai-agent/ga-traffic-summary',
+			'sd-ai-agent/ga-top-pages',
+			'sd-ai-agent/ga-realtime',
 		];
 	}
 }

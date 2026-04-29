@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Provider Trace model — stores HTTP request/response pairs for LLM provider debugging.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Models\DTO\ProviderTraceRow;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Models\DTO\ProviderTraceRow;
 
 class ProviderTrace {
 
@@ -28,12 +28,12 @@ class ProviderTrace {
 	/**
 	 * Option name for the provider trace setting.
 	 */
-	const ENABLED_OPTION = 'gratis_ai_agent_provider_trace_enabled';
+	const ENABLED_OPTION = 'sd_ai_agent_provider_trace_enabled';
 
 	/**
 	 * Option name for the max rows setting.
 	 */
-	const MAX_ROWS_OPTION = 'gratis_ai_agent_provider_trace_max_rows';
+	const MAX_ROWS_OPTION = 'sd_ai_agent_provider_trace_max_rows';
 
 	/**
 	 * Get the provider trace table name.
@@ -41,7 +41,7 @@ class ProviderTrace {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_provider_trace';
+		return $wpdb->prefix . 'sd_ai_agent_provider_trace';
 	}
 
 	/**
@@ -111,7 +111,7 @@ class ProviderTrace {
 		 *
 		 * @param bool|null $enabled Null to defer to the option, true/false to override.
 		 */
-		$filter_value = apply_filters( 'gratis_ai_agent_provider_trace_enabled', null );
+		$filter_value = apply_filters( 'sd_ai_agent_provider_trace_enabled', null );
 
 		if ( is_bool( $filter_value ) ) {
 			return $filter_value;

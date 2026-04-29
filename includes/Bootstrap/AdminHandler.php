@@ -5,22 +5,22 @@
  * Replaces the inline `add_action('admin_menu', ...)` and
  * `add_action('admin_init', ...)` calls in `ai-agent-for-wp.php`.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Abilities\ToolCapabilities;
-use GratisAiAgent\Admin\FloatingWidget;
-use GratisAiAgent\Admin\ModelBenchmarkPage;
-use GratisAiAgent\Admin\ScreenMetaPanel;
-use GratisAiAgent\Admin\UnifiedAdminMenu;
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\REST\ConnectorsController;
-use GratisAiAgent\REST\SettingsController;
+use SdAiAgent\Abilities\ToolCapabilities;
+use SdAiAgent\Admin\FloatingWidget;
+use SdAiAgent\Admin\ModelBenchmarkPage;
+use SdAiAgent\Admin\ScreenMetaPanel;
+use SdAiAgent\Admin\UnifiedAdminMenu;
+use SdAiAgent\Core\Database;
+use SdAiAgent\REST\ConnectorsController;
+use SdAiAgent\REST\SettingsController;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * saving hook registration overhead on frontend/REST/CLI requests.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_ADMIN,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -133,18 +133,18 @@ final class AdminHandler {
 			? admin_url( 'options-connectors.php' )
 			: admin_url( 'options-general.php?page=options-connectors-wp-admin' );
 
-		$chat_url = admin_url( 'admin.php?page=gratis-ai-agent#chat' );
+		$chat_url = admin_url( 'admin.php?page=sd-ai-agent#chat' );
 
-		$actions['gratis_chat'] = sprintf(
+		$actions['sd_chat'] = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $chat_url ),
-			esc_html__( 'Start Chat', 'gratis-ai-agent' )
+			esc_html__( 'Start Chat', 'sd-ai-agent' )
 		);
 
-		$actions['gratis_connections'] = sprintf(
+		$actions['sd_connections'] = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $connectors_url ),
-			esc_html__( 'Configure Connections', 'gratis-ai-agent' )
+			esc_html__( 'Configure Connections', 'sd-ai-agent' )
 		);
 
 		return $actions;

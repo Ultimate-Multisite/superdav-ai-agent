@@ -28,7 +28,7 @@ export const actions = {
 		return async ( { dispatch, select } ) => {
 			try {
 				const agents = await apiFetch( {
-					path: '/gratis-ai-agent/v1/agents',
+					path: '/sd-ai-agent/v1/agents',
 				} );
 				dispatch.setAgents( agents );
 
@@ -46,7 +46,7 @@ export const actions = {
 	createAgent( data ) {
 		return async ( { dispatch } ) => {
 			const agent = await apiFetch( {
-				path: '/gratis-ai-agent/v1/agents',
+				path: '/sd-ai-agent/v1/agents',
 				method: 'POST',
 				data,
 			} );
@@ -58,7 +58,7 @@ export const actions = {
 	updateAgent( id, data ) {
 		return async ( { dispatch, select } ) => {
 			const updated = await apiFetch( {
-				path: `/gratis-ai-agent/v1/agents/${ id }`,
+				path: `/sd-ai-agent/v1/agents/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -77,7 +77,7 @@ export const actions = {
 	deleteAgent( id ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/agents/${ id }`,
+				path: `/sd-ai-agent/v1/agents/${ id }`,
 				method: 'DELETE',
 			} );
 			// Clear selection if the deleted agent was selected.
@@ -136,9 +136,9 @@ export function reducer( state, action ) {
 		case 'AUTO_SELECT_DEFAULT_AGENT': {
 			const agents = action.agents || [];
 			// Check if onboarding is complete via settings (injected into
-			// window.gratisAiAgentData by the PHP enqueue).
+			// window.sdAiAgentData by the PHP enqueue).
 			const onboardingComplete =
-				window.gratisAiAgentData?.onboarding_complete;
+				window.sdAiAgentData?.onboarding_complete;
 
 			let defaultAgent;
 			if ( ! onboardingComplete ) {

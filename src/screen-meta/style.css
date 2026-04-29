@@ -1,6 +1,6 @@
 /* Screen-meta Help tab chat panel */
 
-.gratis-ai-agent-screen-meta-wrap {
+.sd-ai-agent-screen-meta-wrap {
 	display: flex;
 	flex-direction: column;
 	height: 400px;
@@ -9,7 +9,7 @@
 	box-sizing: border-box;
 }
 
-.gratis-ai-agent-screen-meta-intro {
+.sd-ai-agent-screen-meta-intro {
 	margin: 0 0 8px;
 	font-size: 13px;
 	color: #646970;
@@ -17,7 +17,7 @@
 }
 
 /* Override chat panel sizing for the compact Help tab context */
-.gratis-ai-agent-screen-meta-wrap .gratis-ai-agent-chat-panel {
+.sd-ai-agent-screen-meta-wrap .sd-ai-agent-chat-panel {
 	flex: 1;
 	min-height: 0;
 	border: 1px solid #dcdcde;
@@ -25,6 +25,6 @@
 	overflow: hidden;
 }
 
-.gratis-ai-agent-screen-meta-wrap .gratis-ai-agent-chat-panel.is-compact {
+.sd-ai-agent-screen-meta-wrap .sd-ai-agent-chat-panel.is-compact {
 	height: 100%;
 }

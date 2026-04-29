@@ -12,13 +12,13 @@
  * Solution: this class implements both JsonSerializable (for JSON `{}`) and
  * ArrayAccess + IteratorAggregate + Countable (for WP core compatibility).
  *
- * @package GratisAiAgent\Infrastructure\Schema
+ * @package SdAiAgent\Infrastructure\Schema
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Infrastructure\Schema;
+namespace SdAiAgent\Infrastructure\Schema;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

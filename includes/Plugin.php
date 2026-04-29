@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin entry-point module for the Gratis AI Agent DI container.
+ * Plugin entry-point module for the Superdav AI Agent DI container.
  *
  * This class is decorated with `#[Module]` so the `x-wp/di` library discovers
  * it when bootstrapping the container via `xwp_load_app()`.
@@ -10,52 +10,52 @@
  * attributes to declare its hooks declaratively — no `add_action()` /
  * `add_filter()` calls appear outside of the handler classes themselves.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent;
+namespace SdAiAgent;
 
-use GratisAiAgent\Bootstrap\AbilitiesHandler;
-use GratisAiAgent\Bootstrap\AdminHandler;
-use GratisAiAgent\Bootstrap\AutomationsHandler;
-use GratisAiAgent\Bootstrap\ChangeLoggingHandler;
-use GratisAiAgent\Bootstrap\CliHandler;
-use GratisAiAgent\Bootstrap\FreshInstallHandler;
-use GratisAiAgent\Bootstrap\FrontendAssetsHandler;
-use GratisAiAgent\Bootstrap\GitTrackingHandler;
-use GratisAiAgent\Bootstrap\HttpTraceHandler;
-use GratisAiAgent\Bootstrap\KnowledgeHooksHandler;
-use GratisAiAgent\Bootstrap\OnboardingHandler;
-use GratisAiAgent\Bootstrap\ToolDiscoveryHandler;
-use GratisAiAgent\Contracts\BudgetCheckerInterface;
-use GratisAiAgent\Contracts\SessionRepositoryInterface;
-use GratisAiAgent\Contracts\SettingsProviderInterface;
-use GratisAiAgent\Infrastructure\Adapters\BudgetManagerAdapter;
-use GratisAiAgent\Infrastructure\Adapters\DatabaseSessionAdapter;
-use GratisAiAgent\Infrastructure\Adapters\StaticSettingsAdapter;
-use GratisAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
-use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
-use GratisAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
-use GratisAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
-use GratisAiAgent\REST\AgentController;
-use GratisAiAgent\REST\AutomationController;
-use GratisAiAgent\REST\ConnectorsController;
-use GratisAiAgent\REST\BenchmarkController;
-use GratisAiAgent\REST\ChangesController;
-use GratisAiAgent\REST\FeedbackController;
-use GratisAiAgent\REST\KnowledgeController;
-use GratisAiAgent\REST\McpController;
-use GratisAiAgent\REST\MemoryController;
-use GratisAiAgent\REST\RestController;
-use GratisAiAgent\REST\SessionController;
-use GratisAiAgent\REST\SettingsController;
-use GratisAiAgent\REST\SkillController;
-use GratisAiAgent\REST\ToolController;
-use GratisAiAgent\REST\TraceController;
-use GratisAiAgent\REST\WebhookController;
+use SdAiAgent\Bootstrap\AbilitiesHandler;
+use SdAiAgent\Bootstrap\AdminHandler;
+use SdAiAgent\Bootstrap\AutomationsHandler;
+use SdAiAgent\Bootstrap\ChangeLoggingHandler;
+use SdAiAgent\Bootstrap\CliHandler;
+use SdAiAgent\Bootstrap\FreshInstallHandler;
+use SdAiAgent\Bootstrap\FrontendAssetsHandler;
+use SdAiAgent\Bootstrap\GitTrackingHandler;
+use SdAiAgent\Bootstrap\HttpTraceHandler;
+use SdAiAgent\Bootstrap\KnowledgeHooksHandler;
+use SdAiAgent\Bootstrap\OnboardingHandler;
+use SdAiAgent\Bootstrap\ToolDiscoveryHandler;
+use SdAiAgent\Contracts\BudgetCheckerInterface;
+use SdAiAgent\Contracts\SessionRepositoryInterface;
+use SdAiAgent\Contracts\SettingsProviderInterface;
+use SdAiAgent\Infrastructure\Adapters\BudgetManagerAdapter;
+use SdAiAgent\Infrastructure\Adapters\DatabaseSessionAdapter;
+use SdAiAgent\Infrastructure\Adapters\StaticSettingsAdapter;
+use SdAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
+use SdAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
+use SdAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
+use SdAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
+use SdAiAgent\REST\AgentController;
+use SdAiAgent\REST\AutomationController;
+use SdAiAgent\REST\ConnectorsController;
+use SdAiAgent\REST\BenchmarkController;
+use SdAiAgent\REST\ChangesController;
+use SdAiAgent\REST\FeedbackController;
+use SdAiAgent\REST\KnowledgeController;
+use SdAiAgent\REST\McpController;
+use SdAiAgent\REST\MemoryController;
+use SdAiAgent\REST\RestController;
+use SdAiAgent\REST\SessionController;
+use SdAiAgent\REST\SettingsController;
+use SdAiAgent\REST\SkillController;
+use SdAiAgent\REST\ToolController;
+use SdAiAgent\REST\TraceController;
+use SdAiAgent\REST\WebhookController;
 use XWP\DI\Decorators\Module;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -66,16 +66,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Root application module for the DI container.
  *
  * The `#[Module]` attribute is consumed by `x-wp/di` when the plugin calls
- * {@see xwp_load_app()} in `gratis-ai-agent.php`. The container ID
- * `gratis-ai-agent` matches the plugin slug and is the key used by the rest of
+ * {@see xwp_load_app()} in `sd-ai-agent.php`. The container ID
+ * `sd-ai-agent` matches the plugin slug and is the key used by the rest of
  * the codebase to resolve the container through {@see xwp_app()}.
  *
- * `extendable: true` publishes the `xwp_extend_import_gratis-ai-agent` filter so
+ * `extendable: true` publishes the `xwp_extend_import_sd-ai-agent` filter so
  * companion plugins (e.g. Ultimate Multisite add-ons) can register additional
  * modules against our container without having to patch this class.
  */
 #[Module(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	hook: 'plugins_loaded',
 	priority: 1,
 	imports: array(),
@@ -123,7 +123,7 @@ final class Plugin {
 	 *
 	 * Keys are intentionally namespaced under `plugin.*` so later modules can
 	 * inject the plugin version / paths via `#[Infuse('plugin.version')]`
-	 * without relying on the legacy `GRATIS_AI_AGENT_*` constants.
+	 * without relying on the legacy `SD_AI_AGENT_*` constants.
 	 *
 	 * @see https://php-di.org/doc/php-definitions.html
 	 *
@@ -132,12 +132,12 @@ final class Plugin {
 	public static function configure(): array {
 		return array(
 			// Note: Using factory() instead of value() ensures these resolve at runtime
-			// from the constants defined in gratis-ai-agent.php, not at compile-time.
+			// from the constants defined in sd-ai-agent.php, not at compile-time.
 			// This allows the compiled container to ship in distributions
 			// while still resolving to the correct paths on each installation.
-			'plugin.version'                  => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_VERSION' ) ? (string) constant( 'GRATIS_AI_AGENT_VERSION' ) : '' ),
-			'plugin.dir'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_DIR' ) ? (string) constant( 'GRATIS_AI_AGENT_DIR' ) : '' ),
-			'plugin.url'                      => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_URL' ) ? (string) constant( 'GRATIS_AI_AGENT_URL' ) : '' ),
+			'plugin.version'                  => \DI\factory( static fn(): string => defined( 'SD_AI_AGENT_VERSION' ) ? (string) constant( 'SD_AI_AGENT_VERSION' ) : '' ),
+			'plugin.dir'                      => \DI\factory( static fn(): string => defined( 'SD_AI_AGENT_DIR' ) ? (string) constant( 'SD_AI_AGENT_DIR' ) : '' ),
+			'plugin.url'                      => \DI\factory( static fn(): string => defined( 'SD_AI_AGENT_URL' ) ? (string) constant( 'SD_AI_AGENT_URL' ) : '' ),
 
 			// Interface → implementation bindings (t197).
 			// These adapters delegate to the existing static classes so all

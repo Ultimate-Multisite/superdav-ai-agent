@@ -98,32 +98,32 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 	}, [ ttsEnabled, setTtsEnabled ] );
 
 	return (
-		<ErrorBoundary label={ __( 'Chat', 'gratis-ai-agent' ) }>
+		<ErrorBoundary label={ __( 'Chat', 'sd-ai-agent' ) }>
 			<div
-				className={ `gratis-ai-agent-chat-panel ${
+				className={ `sd-ai-agent-chat-panel ${
 					compact ? 'is-compact' : ''
 				}` }
 			>
 				{ ! compact && <ChatTabBar /> }
-				<div className="gratis-ai-agent-header">
+				<div className="sd-ai-agent-header">
 					<ProviderSelector compact={ compact } />
 					<AgentSelector compact={ compact } />
 					<BudgetIndicator />
 					{ isTTSSupported && (
 						<Button
 							onClick={ handleTtsToggle }
-							className={ `gratis-ai-agent-tts-btn${
+							className={ `sd-ai-agent-tts-btn${
 								ttsEnabled ? ' is-active' : ''
 							}` }
 							label={
 								ttsEnabled
 									? __(
 											'Disable text-to-speech',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 									: __(
 											'Enable text-to-speech',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 							}
 							showTooltip
@@ -132,15 +132,11 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					) }
 				</div>
 				<ContextIndicator />
-				<ErrorBoundary
-					label={ __( 'Message list', 'gratis-ai-agent' ) }
-				>
+				<ErrorBoundary label={ __( 'Message list', 'sd-ai-agent' ) }>
 					<MessageList />
 				</ErrorBoundary>
 				<SessionChangesBar />
-				<ErrorBoundary
-					label={ __( 'Message input', 'gratis-ai-agent' ) }
-				>
+				<ErrorBoundary label={ __( 'Message input', 'sd-ai-agent' ) }>
 					<MessageInput
 						compact={ compact }
 						onSlashCommand={ onSlashCommand }
@@ -174,11 +170,11 @@ export default function ChatPanel( { compact = false, onSlashCommand } ) {
 					<Tooltip
 						text={ __(
 							'YOLO mode is active — all tool confirmations are skipped automatically.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					>
-						<span className="gratis-ai-agent-yolo-badge">
-							{ __( 'YOLO', 'gratis-ai-agent' ) }
+						<span className="sd-ai-agent-yolo-badge">
+							{ __( 'YOLO', 'sd-ai-agent' ) }
 						</span>
 					</Tooltip>
 				) }

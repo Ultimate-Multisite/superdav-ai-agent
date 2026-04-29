@@ -6,11 +6,11 @@ declare(strict_types=1);
  *
  * Provides URL navigation and page HTML inspection.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 use WP_Error;
 
@@ -30,10 +30,10 @@ class NavigationAbilities {
 	 */
 	public static function handle_navigate( array $input = [] ) {
 		$ability = new NavigateAbility(
-			'gratis-ai-agent/navigate',
+			'sd-ai-agent/navigate',
 			[
-				'label'       => __( 'Navigate', 'gratis-ai-agent' ),
-				'description' => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
+				'label'       => __( 'Navigate', 'sd-ai-agent' ),
+				'description' => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -48,10 +48,10 @@ class NavigationAbilities {
 	 */
 	public static function handle_get_page_html( array $input = [] ) {
 		$ability = new GetPageHtmlAbility(
-			'gratis-ai-agent/get-page-html',
+			'sd-ai-agent/get-page-html',
 			[
-				'label'       => __( 'Get Page HTML', 'gratis-ai-agent' ),
-				'description' => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
+				'label'       => __( 'Get Page HTML', 'sd-ai-agent' ),
+				'description' => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -67,19 +67,19 @@ class NavigationAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/navigate',
+			'sd-ai-agent/navigate',
 			[
-				'label'         => __( 'Navigate', 'gratis-ai-agent' ),
-				'description'   => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'gratis-ai-agent' ),
+				'label'         => __( 'Navigate', 'sd-ai-agent' ),
+				'description'   => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'sd-ai-agent' ),
 				'ability_class' => NavigateAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/get-page-html',
+			'sd-ai-agent/get-page-html',
 			[
-				'label'         => __( 'Get Page HTML', 'gratis-ai-agent' ),
-				'description'   => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'gratis-ai-agent' ),
+				'label'         => __( 'Get Page HTML', 'sd-ai-agent' ),
+				'description'   => __( 'Get the HTML content of elements on the current page the user is viewing. Use CSS selectors to query specific elements. Returns the outer HTML of matched elements.', 'sd-ai-agent' ),
 				'ability_class' => GetPageHtmlAbility::class,
 			]
 		);

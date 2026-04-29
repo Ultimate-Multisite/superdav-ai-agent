@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Built-in templates are seeded on install and cannot be deleted (only
  * hidden). User-created templates are fully editable and deletable.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Models\DTO\ConversationTemplateRow;
+use SdAiAgent\Models\DTO\ConversationTemplateRow;
 
 class ConversationTemplate {
 
@@ -23,7 +23,7 @@ class ConversationTemplate {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_conversation_templates';
+		return $wpdb->prefix . 'sd_ai_agent_conversation_templates';
 	}
 
 	/**

@@ -8,11 +8,11 @@ declare(strict_types=1);
  * Knows about WordPress object types and applies the appropriate WordPress API
  * calls to restore prior values.
  *
- * @package GratisAiAgent\Services
+ * @package SdAiAgent\Services
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Services;
+namespace SdAiAgent\Services;
 
 use WP_Error;
 
@@ -30,7 +30,7 @@ final class ChangeRevertService {
 	 *
 	 * Dispatches to the appropriate WordPress API function based on the
 	 * object type. Third-party code can extend support for custom object
-	 * types via the `gratis_ai_agent_revert_change` filter.
+	 * types via the `sd_ai_agent_revert_change` filter.
 	 *
 	 * Object types handled natively:
 	 *   - Any registered post type (post, page, CPTs) → wp_update_post()
@@ -50,7 +50,7 @@ final class ChangeRevertService {
 		if ( isset( $change->revertable ) && ! $change->revertable ) {
 			return new WP_Error(
 				'not_revertable',
-				__( 'This change cannot be automatically undone.', 'gratis-ai-agent' ),
+				__( 'This change cannot be automatically undone.', 'sd-ai-agent' ),
 				array( 'status' => 422 )
 			);
 		}
@@ -60,7 +60,7 @@ final class ChangeRevertService {
 		if ( '[REDACTED]' === $change->before_value ) {
 			return new WP_Error(
 				'cannot_revert_redacted',
-				__( 'This field was redacted for security and cannot be reverted automatically.', 'gratis-ai-agent' ),
+				__( 'This field was redacted for security and cannot be reverted automatically.', 'sd-ai-agent' ),
 				array( 'status' => 422 )
 			);
 		}
@@ -100,7 +100,7 @@ final class ChangeRevertService {
 					if ( empty( $roles ) ) {
 						return new WP_Error(
 							'no_role_to_restore',
-							__( 'No previous role recorded; cannot revert role change.', 'gratis-ai-agent' ),
+							__( 'No previous role recorded; cannot revert role change.', 'sd-ai-agent' ),
 							array( 'status' => 422 )
 						);
 					}
@@ -108,7 +108,7 @@ final class ChangeRevertService {
 					if ( ! $user ) {
 						return new WP_Error(
 							'user_not_found',
-							__( 'User not found.', 'gratis-ai-agent' ),
+							__( 'User not found.', 'sd-ai-agent' ),
 							array( 'status' => 404 )
 						);
 					}
@@ -163,7 +163,7 @@ final class ChangeRevertService {
 				// branch is a fallback safety net.
 				return new WP_Error(
 					'nav_menu_deletion_unrevertable',
-					__( 'Deleted navigation menus cannot be automatically restored.', 'gratis-ai-agent' ),
+					__( 'Deleted navigation menus cannot be automatically restored.', 'sd-ai-agent' ),
 					array( 'status' => 422 )
 				);
 
@@ -190,12 +190,12 @@ final class ChangeRevertService {
 				 * @param object        $change  Change record row.
 				 */
 				$result = apply_filters(
-					'gratis_ai_agent_revert_change',
+					'sd_ai_agent_revert_change',
 					new WP_Error(
 						'unsupported_object_type',
 						sprintf(
 							/* translators: %s: object type slug */
-							__( 'Revert is not supported for object type "%s".', 'gratis-ai-agent' ),
+							__( 'Revert is not supported for object type "%s".', 'sd-ai-agent' ),
 							$change->object_type
 						),
 						array( 'status' => 422 )

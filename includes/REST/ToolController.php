@@ -4,15 +4,15 @@ declare(strict_types=1);
 /**
  * REST API controller for custom-tools, abilities, and abilities-explorer.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Services\AbilityExplorerService;
-use GratisAiAgent\Tools\CustomToolExecutor;
-use GratisAiAgent\Tools\CustomTools;
+use SdAiAgent\Services\AbilityExplorerService;
+use SdAiAgent\Tools\CustomToolExecutor;
+use SdAiAgent\Tools\CustomTools;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the REST_Handler decorator supports only a single basename per class.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -213,7 +213,7 @@ final class ToolController {
 		$id   = CustomTools::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create custom tool.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'create_failed', __( 'Failed to create custom tool.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( CustomTools::get( $id ), 201 );
@@ -227,7 +227,7 @@ final class ToolController {
 		$data = $request->get_json_params();
 
 		if ( ! CustomTools::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update custom tool.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'update_failed', __( 'Failed to update custom tool.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( CustomTools::get( $id ), 200 );
@@ -240,7 +240,7 @@ final class ToolController {
 		$id = self::get_int_param( $request, 'id' );
 
 		if ( ! CustomTools::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete custom tool.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete custom tool.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );
@@ -255,7 +255,7 @@ final class ToolController {
 		$tool  = CustomTools::get( $id );
 
 		if ( ! $tool ) {
-			return new WP_Error( 'not_found', __( 'Tool not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Tool not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		// @phpstan-ignore-next-line

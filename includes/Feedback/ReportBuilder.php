@@ -8,13 +8,13 @@ declare(strict_types=1);
  * environment information. The resulting array is passed to ReportSanitizer
  * before transmission.
  *
- * @package GratisAiAgent\Feedback
+ * @package SdAiAgent\Feedback
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Feedback;
+namespace SdAiAgent\Feedback;
 
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Core\Database;
 
 class ReportBuilder {
 
@@ -148,7 +148,7 @@ class ReportBuilder {
 	 * @return array<string, mixed>
 	 */
 	private static function collect_environment(): array {
-		$plugin_version = defined( 'GRATIS_AI_AGENT_VERSION' ) ? GRATIS_AI_AGENT_VERSION : '';
+		$plugin_version = defined( 'SD_AI_AGENT_VERSION' ) ? SD_AI_AGENT_VERSION : '';
 
 		// Active plugins: folder slug only, no paths.
 		$raw_plugins    = get_option( 'active_plugins', [] );

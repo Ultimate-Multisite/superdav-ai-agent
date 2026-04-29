@@ -54,7 +54,7 @@ function startTitleFlash() {
 	// Build the flash title once so we don't call __() on every interval tick.
 	const flashTitle =
 		'\u26A0 ' +
-		__( 'Approval needed', 'gratis-ai-agent' ) +
+		__( 'Approval needed', 'sd-ai-agent' ) +
 		' \u2014 ' +
 		originalTitle;
 	let toggle = false;
@@ -140,17 +140,17 @@ export function notifyConfirmationNeeded( jobId, toolName ) {
 	}
 
 	const body = toolName
-		? `${ __( 'Tool approval needed:', 'gratis-ai-agent' ) } ${ toolName }`
-		: __( 'A tool is awaiting your approval.', 'gratis-ai-agent' );
+		? `${ __( 'Tool approval needed:', 'sd-ai-agent' ) } ${ toolName }`
+		: __( 'A tool is awaiting your approval.', 'sd-ai-agent' );
 
 	const notification = new Notification(
-		__( 'AI Agent — Approval Required', 'gratis-ai-agent' ),
+		__( 'AI Agent — Approval Required', 'sd-ai-agent' ),
 		{
 			body,
 			requireInteraction: true,
 			tag: `job-confirm-${ jobId }`,
-			icon: window.gratisAiAgentData?.pluginUrl
-				? `${ window.gratisAiAgentData.pluginUrl }assets/icon-128.png`
+			icon: window.sdAiAgentData?.pluginUrl
+				? `${ window.sdAiAgentData.pluginUrl }assets/icon-128.png`
 				: undefined,
 		}
 	);

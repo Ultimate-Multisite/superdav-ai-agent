@@ -36,9 +36,9 @@ permanently as memories.
   - `mark_complete()`, `mark_skipped()`, `reset()`
 
 - `includes/Core/OnboardingManager.php` — extended:
-  - `GET /gratis-ai-agent/v1/onboarding/interview` — returns `{ready, done, questions}`
-  - `POST /gratis-ai-agent/v1/onboarding/interview` — saves answers or marks skipped
-  - `GET /gratis-ai-agent/v1/onboarding/status` — now includes `interview_ready` and
+  - `GET /sd-ai-agent/v1/onboarding/interview` — returns `{ready, done, questions}`
+  - `POST /sd-ai-agent/v1/onboarding/interview` — saves answers or marks skipped
+  - `GET /sd-ai-agent/v1/onboarding/status` — now includes `interview_ready` and
     `interview_done` fields
   - `rest_rescan()` — now also resets interview state
 
@@ -76,7 +76,7 @@ permanently as memories.
 
 ## Context
 
-- t063 stores scan results in `gratis_ai_agent_onboarding_scan` option with
+- t063 stores scan results in `sd_ai_agent_onboarding_scan` option with
   `site_type`, `post_count`, `woocommerce_active` fields.
 - Memory categories: `site_info`, `user_preferences`, `technical_notes`,
   `workflows`, `general`.

@@ -8,11 +8,11 @@ declare(strict_types=1);
  * fake implementation and the real class can be converted to an injectable
  * DI singleton (t192) without breaking callsites.
  *
- * @package GratisAiAgent\Contracts
+ * @package SdAiAgent\Contracts
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Contracts;
+namespace SdAiAgent\Contracts;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

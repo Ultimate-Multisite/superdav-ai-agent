@@ -20,8 +20,8 @@ import MessageList from './MessageList';
 import InputArea from './InputArea';
 import './chat-redesign.css';
 
-const SIDEBAR_STORAGE_KEY = 'gratisAiAgentChatSidebarCollapsed';
-const DENSITY_STORAGE_KEY = 'gratisAiAgentChatDensity';
+const SIDEBAR_STORAGE_KEY = 'sdAiAgentChatSidebarCollapsed';
+const DENSITY_STORAGE_KEY = 'sdAiAgentChatDensity';
 
 /**
  *
@@ -94,7 +94,7 @@ export default function ChatRedesign() {
 		}
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&revertable=true&per_page=1`,
+				path: `/sd-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&revertable=true&per_page=1`,
 			} );
 			setChangesCount( data?.total ?? ( data?.items?.length || 0 ) );
 		} catch {
@@ -119,7 +119,7 @@ export default function ChatRedesign() {
 					sidebarCollapsed ? ' is-sidebar-collapsed' : ''
 				}` }
 			>
-				<ErrorBoundary label={ __( 'Sidebar', 'gratis-ai-agent' ) }>
+				<ErrorBoundary label={ __( 'Sidebar', 'sd-ai-agent' ) }>
 					<Sidebar
 						collapsed={ sidebarCollapsed }
 						onToggleCollapse={ toggleSidebar }
@@ -143,13 +143,13 @@ export default function ChatRedesign() {
 					) }
 
 					<ErrorBoundary
-						label={ __( 'Message list', 'gratis-ai-agent' ) }
+						label={ __( 'Message list', 'sd-ai-agent' ) }
 					>
 						<MessageList />
 					</ErrorBoundary>
 
 					<ErrorBoundary
-						label={ __( 'Message input', 'gratis-ai-agent' ) }
+						label={ __( 'Message input', 'sd-ai-agent' ) }
 					>
 						<InputArea />
 					</ErrorBoundary>

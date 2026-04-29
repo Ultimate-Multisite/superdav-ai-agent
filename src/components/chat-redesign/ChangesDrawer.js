@@ -1,7 +1,7 @@
 /**
  * Changes drawer — popover anchored to the convo header changes pill.
  *
- * Reads /gratis-ai-agent/v1/changes?session_id=X&reverted=false directly
+ * Reads /sd-ai-agent/v1/changes?session_id=X&reverted=false directly
  * so it does not depend on the deprecated session-changes-bar.
  */
 
@@ -20,9 +20,7 @@ function changeTitle( change ) {
 		return change.title;
 	}
 	const action =
-		change.action ||
-		change.change_type ||
-		__( 'Change', 'gratis-ai-agent' );
+		change.action || change.change_type || __( 'Change', 'sd-ai-agent' );
 	const object = change.object_type || change.entity || '';
 	const label = change.object_label || change.label || '';
 	return [ action, object, label ].filter( Boolean ).join( ' ' );
@@ -70,7 +68,7 @@ export default function ChangesDrawer( {
 		setLoading( true );
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ sessionId }&reverted=false&revertable=true&per_page=100`,
+				path: `/sd-ai-agent/v1/changes?session_id=${ sessionId }&reverted=false&revertable=true&per_page=100`,
 			} );
 			const items = data.items || [];
 			setChanges( items );
@@ -90,7 +88,7 @@ export default function ChangesDrawer( {
 		async ( id ) => {
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/changes/${ id }/revert`,
+					path: `/sd-ai-agent/v1/changes/${ id }/revert`,
 					method: 'POST',
 				} );
 				await refresh();
@@ -109,7 +107,7 @@ export default function ChangesDrawer( {
 		for ( const c of changes ) {
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/changes/${ c.id }/revert`,
+					path: `/sd-ai-agent/v1/changes/${ c.id }/revert`,
 					method: 'POST',
 				} );
 			} catch {
@@ -126,7 +124,7 @@ export default function ChangesDrawer( {
 			'%d change in this session',
 			'%d changes in this session',
 			changes.length,
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		changes.length
 	);
@@ -135,7 +133,7 @@ export default function ChangesDrawer( {
 		<div
 			className="gaa-cr-changes-drawer"
 			role="dialog"
-			aria-label={ __( 'Session changes', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Session changes', 'sd-ai-agent' ) }
 		>
 			<div className="gaa-cr-changes-drawer-head">
 				<span>{ headerLabel }</span>
@@ -143,10 +141,7 @@ export default function ChangesDrawer( {
 					type="button"
 					className="gaa-cr-icon-btn"
 					onClick={ onClose }
-					aria-label={ __(
-						'Close changes drawer',
-						'gratis-ai-agent'
-					) }
+					aria-label={ __( 'Close changes drawer', 'sd-ai-agent' ) }
 				>
 					<Icon icon={ closeSmall } size={ 18 } />
 				</button>
@@ -154,12 +149,12 @@ export default function ChangesDrawer( {
 			<div className="gaa-cr-changes-drawer-body">
 				{ loading && changes.length === 0 && (
 					<div className="gaa-cr-changes-drawer-empty">
-						{ __( 'Loading changes…', 'gratis-ai-agent' ) }
+						{ __( 'Loading changes…', 'sd-ai-agent' ) }
 					</div>
 				) }
 				{ ! loading && changes.length === 0 && (
 					<div className="gaa-cr-changes-drawer-empty">
-						{ __( 'No un-reverted changes.', 'gratis-ai-agent' ) }
+						{ __( 'No un-reverted changes.', 'sd-ai-agent' ) }
 					</div>
 				) }
 				{ changes.map( ( c ) => (
@@ -178,7 +173,7 @@ export default function ChangesDrawer( {
 							onClick={ () => handleRevert( c.id ) }
 							aria-label={ __(
 								'Revert this change',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						>
 							<Icon icon={ undo } size={ 14 } />
@@ -190,11 +185,11 @@ export default function ChangesDrawer( {
 				<a
 					className="gaa-cr-btn-sm"
 					href={
-						window.gratisAiAgentData?.changesPageUrl ||
+						window.sdAiAgentData?.changesPageUrl ||
 						window.location.href.split( '#' )[ 0 ] + '#/changes'
 					}
 				>
-					{ __( 'View full history', 'gratis-ai-agent' ) }
+					{ __( 'View full history', 'sd-ai-agent' ) }
 				</a>
 				<button
 					type="button"
@@ -203,10 +198,10 @@ export default function ChangesDrawer( {
 					disabled={ reverting || changes.length === 0 }
 				>
 					{ reverting
-						? __( 'Reverting…', 'gratis-ai-agent' )
+						? __( 'Reverting…', 'sd-ai-agent' )
 						: sprintf(
 								/* translators: %d: number of changes to revert */
-								__( 'Revert all (%d)', 'gratis-ai-agent' ),
+								__( 'Revert all (%d)', 'sd-ai-agent' ),
 								changes.length
 						  ) }
 				</button>

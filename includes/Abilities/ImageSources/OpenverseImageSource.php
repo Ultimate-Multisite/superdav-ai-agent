@@ -8,11 +8,11 @@ declare(strict_types=1);
  * Wikimedia, NASA, SpaceX, and other openly-licensed sources.
  * No API key required - free to use.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageSources;
+namespace SdAiAgent\Abilities\ImageSources;
 
 use WP_Error;
 

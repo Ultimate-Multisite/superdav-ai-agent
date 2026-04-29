@@ -26,7 +26,7 @@
 }
 
 /* ── TTS toggle button ─────────────────────────────────────────────────────── */
-.gratis-ai-agent-tts-btn.components-button {
+.sd-ai-agent-tts-btn.components-button {
 	min-width: auto;
 	width: 32px;
 	height: 32px;
@@ -38,20 +38,20 @@
 	transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.gratis-ai-agent-tts-btn.components-button:hover {
+.sd-ai-agent-tts-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: #c3c4c7;
 	background: transparent;
 }
 
-.gratis-ai-agent-tts-btn.components-button.is-active {
+.sd-ai-agent-tts-btn.components-button.is-active {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: #f0f6fc;
 }
 
 /* ── Debug mode badge ──────────────────────────────────────────────────────── */
-.gratis-ai-agent-debug-badge {
+.sd-ai-agent-debug-badge {
 	display: inline-block;
 	background: #dba617;
 	color: #fff;
@@ -66,7 +66,7 @@
 }
 
 /* ── YOLO mode badge ───────────────────────────────────────────────────────── */
-.gratis-ai-agent-yolo-badge {
+.sd-ai-agent-yolo-badge {
 	display: inline-block;
 	background: #cc1818;
 	color: #fff;
@@ -82,7 +82,7 @@
 }
 
 /* ── Budget indicator ──────────────────────────────────────────────────────── */
-.gratis-ai-agent-budget-indicator {
+.sd-ai-agent-budget-indicator {
 	display: inline-block;
 	font-size: 10px;
 	font-weight: 600;
@@ -95,44 +95,44 @@
 	white-space: nowrap;
 }
 
-.gratis-ai-agent-budget-indicator--ok {
+.sd-ai-agent-budget-indicator--ok {
 	background: #e0e0e0;
 	color: #50575e;
 }
 
-.gratis-ai-agent-budget-indicator--warning {
+.sd-ai-agent-budget-indicator--warning {
 	background: #dba617;
 	color: #fff;
 }
 
-.gratis-ai-agent-budget-indicator--exceeded {
+.sd-ai-agent-budget-indicator--exceeded {
 	background: #cc1818;
 	color: #fff;
 }
 
 /* ── Context Indicator ─────────────────────────────────────────────────────── */
-.gratis-ai-agent-context-indicator {
+.sd-ai-agent-context-indicator {
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-context-bar-track {
+.sd-ai-agent-context-bar-track {
 	height: 3px;
 	background: #dcdcde;
 }
 
-.gratis-ai-agent-context-bar-fill {
+.sd-ai-agent-context-bar-fill {
 	height: 100%;
 	transition: width 0.3s, background-color 0.3s;
 }
 
 /* ── Debug panel ───────────────────────────────────────────────────────────── */
-.gratis-ai-agent-debug-panel {
+.sd-ai-agent-debug-panel {
 	align-self: flex-start;
 	max-width: 85%;
 	margin-top: 2px;
 }
 
-.gratis-ai-agent-debug-toggle {
+.sd-ai-agent-debug-toggle {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -147,19 +147,19 @@
 	transition: color 0.15s;
 }
 
-.gratis-ai-agent-debug-toggle:hover {
+.sd-ai-agent-debug-toggle:hover {
 	color: #646970;
 }
 
-.gratis-ai-agent-debug-summary {
+.sd-ai-agent-debug-summary {
 	white-space: nowrap;
 }
 
-.gratis-ai-agent-debug-caret {
+.sd-ai-agent-debug-caret {
 	font-size: 10px;
 }
 
-.gratis-ai-agent-debug-details {
+.sd-ai-agent-debug-details {
 	background: #f6f7f7;
 	border: 1px solid #e0e0e0;
 	border-radius: 4px;
@@ -169,7 +169,7 @@
 	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-.gratis-ai-agent-debug-row {
+.sd-ai-agent-debug-row {
 	display: flex;
 	justify-content: space-between;
 	gap: 16px;
@@ -177,25 +177,25 @@
 	line-height: 1.5;
 }
 
-.gratis-ai-agent-debug-label {
+.sd-ai-agent-debug-label {
 	color: #646970;
 	white-space: nowrap;
 }
 
-.gratis-ai-agent-debug-value {
+.sd-ai-agent-debug-value {
 	color: #1d2327;
 	font-weight: 500;
 	text-align: right;
 }
 
-.gratis-ai-agent-debug-detail {
+.sd-ai-agent-debug-detail {
 	font-weight: 400;
 	color: #a7aaad;
 	margin-left: 4px;
 }
 
 /* ── Suggestion chips ──────────────────────────────────────────────────────── */
-.gratis-ai-agent-suggestion-chips {
+.sd-ai-agent-suggestion-chips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
@@ -203,7 +203,7 @@
 	padding-left: 4px;
 }
 
-.gratis-ai-agent-suggestion-chip.components-button {
+.sd-ai-agent-suggestion-chip.components-button {
 	font-size: 13px;
 	padding: 4px 12px;
 	border-radius: 16px;
@@ -216,17 +216,17 @@
 	transition: background 0.15s, border-color 0.15s;
 }
 
-.gratis-ai-agent-suggestion-chip.components-button:hover {
+.sd-ai-agent-suggestion-chip.components-button:hover {
 	background: #e0e0e0;
 	border-color: #bbb;
 }
 
 /* ── Action card — inline confirmation (t074) ──────────────────────────────── */
-.gratis-ai-agent-message-row-action-card {
+.sd-ai-agent-message-row-action-card {
 	margin: 4px 0 8px;
 }
 
-.gratis-ai-agent-action-card {
+.sd-ai-agent-action-card {
 	background: #fff8f0;
 	border: 1px solid #f0b849;
 	border-left: 4px solid #d63638;
@@ -235,7 +235,7 @@
 	max-width: 520px;
 }
 
-.gratis-ai-agent-action-card-header {
+.sd-ai-agent-action-card-header {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -244,23 +244,23 @@
 	background: #fef8ec;
 }
 
-.gratis-ai-agent-action-card-icon {
+.sd-ai-agent-action-card-icon {
 	font-size: 14px;
 	color: #d63638;
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-action-card-heading {
+.sd-ai-agent-action-card-heading {
 	font-weight: 600;
 	font-size: 13px;
 	color: #d63638;
 }
 
-.gratis-ai-agent-action-card-body {
+.sd-ai-agent-action-card-body {
 	padding: 10px 14px;
 }
 
-.gratis-ai-agent-action-card-tool {
+.sd-ai-agent-action-card-tool {
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -268,35 +268,35 @@
 	margin-bottom: 6px;
 }
 
-.gratis-ai-agent-action-card-tool:last-child {
+.sd-ai-agent-action-card-tool:last-child {
 	margin-bottom: 0;
 }
 
-.gratis-ai-agent-action-card-tool-title {
+.sd-ai-agent-action-card-tool-title {
 	font-weight: 600;
 	font-size: 13px;
 	color: #1d2327;
 	margin-bottom: 2px;
 }
 
-.gratis-ai-agent-action-card-tool-desc {
+.sd-ai-agent-action-card-tool-desc {
 	font-size: 12px;
 	color: #50575e;
 	margin-bottom: 4px;
 }
 
-.gratis-ai-agent-action-card-tool-args-details {
+.sd-ai-agent-action-card-tool-args-details {
 	margin-top: 4px;
 }
 
-.gratis-ai-agent-action-card-tool-args-details summary {
+.sd-ai-agent-action-card-tool-args-details summary {
 	font-size: 11px;
 	color: #646970;
 	cursor: pointer;
 	user-select: none;
 }
 
-.gratis-ai-agent-action-card-tool-args {
+.sd-ai-agent-action-card-tool-args {
 	margin: 4px 0 0;
 	padding: 6px 8px;
 	background: #f6f7f7;
@@ -311,7 +311,7 @@
 	word-break: break-all;
 }
 
-.gratis-ai-agent-action-card-footer {
+.sd-ai-agent-action-card-footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
@@ -320,16 +320,16 @@
 	background: #fef8ec;
 }
 
-.gratis-ai-agent-action-card-btn-cancel {
+.sd-ai-agent-action-card-btn-cancel {
 	min-width: 72px;
 }
 
-.gratis-ai-agent-action-card-btn-confirm {
+.sd-ai-agent-action-card-btn-confirm {
 	min-width: 80px;
 }
 
 /* ── Chart blocks (Chart.js) ───────────────────────────────────────────────── */
-.gratis-ai-agent-chart-block {
+.sd-ai-agent-chart-block {
 	margin: 0.75em 0;
 	padding: 12px;
 	background: #fff;
@@ -339,23 +339,23 @@
 	overflow: hidden;
 }
 
-.gratis-ai-agent-chart-block canvas {
+.sd-ai-agent-chart-block canvas {
 	display: block;
 	max-width: 100%;
 	height: auto !important;
 }
 
-.gratis-ai-agent-chart-error {
+.sd-ai-agent-chart-error {
 	margin: 0.5em 0;
 }
 
-.gratis-ai-agent-chart-error-msg {
+.sd-ai-agent-chart-error-msg {
 	margin: 0 0 6px;
 	font-size: 12px;
 	color: #d63638;
 }
 
-.gratis-ai-agent-chart-error-msg code {
+.sd-ai-agent-chart-error-msg code {
 	font-size: 11px;
 	background: #f6f7f7;
 	padding: 1px 4px;
@@ -363,7 +363,7 @@
 }
 
 /* ── Dialog overlay (shared by shortcuts-help, export, import, tool-confirm) ── */
-.gratis-ai-agent-shortcuts-overlay {
+.sd-ai-agent-shortcuts-overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -377,7 +377,7 @@
 }
 
 /* ── Tool confirmation dialog ──────────────────────────────────────────────── */
-.gratis-ai-agent-tool-confirm-dialog {
+.sd-ai-agent-tool-confirm-dialog {
 	background: #fff;
 	border-radius: 8px;
 	width: 480px;
@@ -388,31 +388,31 @@
 	flex-direction: column;
 }
 
-.gratis-ai-agent-tool-confirm-header {
+.sd-ai-agent-tool-confirm-header {
 	display: flex;
 	align-items: center;
 	padding: 16px 20px 12px;
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-tool-confirm-header h3 {
+.sd-ai-agent-tool-confirm-header h3 {
 	margin: 0;
 	font-size: 16px;
 	color: #d63638;
 }
 
-.gratis-ai-agent-tool-confirm-body {
+.sd-ai-agent-tool-confirm-body {
 	padding: 16px 20px;
 	overflow-y: auto;
 }
 
-.gratis-ai-agent-tool-confirm-desc {
+.sd-ai-agent-tool-confirm-desc {
 	margin: 0 0 12px;
 	font-size: 13px;
 	color: #50575e;
 }
 
-.gratis-ai-agent-tool-confirm-item {
+.sd-ai-agent-tool-confirm-item {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -420,39 +420,39 @@
 	margin-bottom: 8px;
 }
 
-.gratis-ai-agent-tool-confirm-name {
+.sd-ai-agent-tool-confirm-name {
 	font-weight: 600;
 	font-size: 14px;
 	color: #1d2327;
 	margin-bottom: 4px;
 }
 
-.gratis-ai-agent-tool-confirm-description {
+.sd-ai-agent-tool-confirm-description {
 	margin: 0 0 8px;
 	font-size: 13px;
 	line-height: 1.5;
 	color: #50575e;
 }
 
-.gratis-ai-agent-tool-confirm-details {
+.sd-ai-agent-tool-confirm-details {
 	margin-top: 8px;
 	font-size: 12px;
 }
 
-.gratis-ai-agent-tool-confirm-details summary {
+.sd-ai-agent-tool-confirm-details summary {
 	cursor: pointer;
 	color: #50575e;
 	user-select: none;
 }
 
-.gratis-ai-agent-tool-confirm-tool-name {
+.sd-ai-agent-tool-confirm-tool-name {
 	margin-top: 6px;
 	font-family: monospace;
 	font-size: 12px;
 	color: #1d2327;
 }
 
-.gratis-ai-agent-tool-confirm-args {
+.sd-ai-agent-tool-confirm-args {
 	margin: 0;
 	padding: 8px;
 	background: #fff;
@@ -467,7 +467,7 @@
 	word-break: break-all;
 }
 
-.gratis-ai-agent-tool-confirm-always {
+.sd-ai-agent-tool-confirm-always {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -477,11 +477,11 @@
 	cursor: pointer;
 }
 
-.gratis-ai-agent-tool-confirm-always input[type="checkbox"] {
+.sd-ai-agent-tool-confirm-always input[type="checkbox"] {
 	margin: 0;
 }
 
-.gratis-ai-agent-tool-confirm-footer {
+.sd-ai-agent-tool-confirm-footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
@@ -490,7 +490,7 @@
 }
 
 /* ── Feedback consent modal ────────────────────────────────────────────────── */
-.gratis-ai-agent-feedback-modal {
+.sd-ai-agent-feedback-modal {
 	background: #fff;
 	border-radius: 8px;
 	width: 480px;
@@ -502,7 +502,7 @@
 	overflow: hidden;
 }
 
-.gratis-ai-agent-feedback-modal__header {
+.sd-ai-agent-feedback-modal__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -510,13 +510,13 @@
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-feedback-modal__header h3 {
+.sd-ai-agent-feedback-modal__header h3 {
 	margin: 0;
 	font-size: 16px;
 	color: #1d2327;
 }
 
-.gratis-ai-agent-feedback-modal__close {
+.sd-ai-agent-feedback-modal__close {
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -526,11 +526,11 @@
 	padding: 0 4px;
 }
 
-.gratis-ai-agent-feedback-modal__close:hover {
+.sd-ai-agent-feedback-modal__close:hover {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-feedback-modal__body {
+.sd-ai-agent-feedback-modal__body {
 	padding: 16px 20px;
 	overflow-y: auto;
 	display: flex;
@@ -538,7 +538,7 @@
 	gap: 10px;
 }
 
-.gratis-ai-agent-feedback-modal__notice {
+.sd-ai-agent-feedback-modal__notice {
 	margin: 0;
 	font-size: 12px;
 	color: #646970;
@@ -549,13 +549,13 @@
 	line-height: 1.5;
 }
 
-.gratis-ai-agent-feedback-modal__label {
+.sd-ai-agent-feedback-modal__label {
 	font-size: 13px;
 	font-weight: 600;
 	color: #1d2327;
 }
 
-.gratis-ai-agent-feedback-modal__textarea {
+.sd-ai-agent-feedback-modal__textarea {
 	width: 100%;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -567,19 +567,19 @@
 	font-family: inherit;
 }
 
-.gratis-ai-agent-feedback-modal__textarea:focus {
+.sd-ai-agent-feedback-modal__textarea:focus {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	outline: none;
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-feedback-modal__error {
+.sd-ai-agent-feedback-modal__error {
 	margin: 0;
 	font-size: 12px;
 	color: #d63638;
 }
 
-.gratis-ai-agent-feedback-modal__success {
+.sd-ai-agent-feedback-modal__success {
 	margin: 0;
 	font-size: 14px;
 	color: #008a20;
@@ -587,7 +587,7 @@
 	padding: 8px 0;
 }
 
-.gratis-ai-agent-feedback-modal__footer {
+.sd-ai-agent-feedback-modal__footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
@@ -596,7 +596,7 @@
 }
 
 /* ── Feedback modal — payload preview / stats (t182) ──────────────────────── */
-.gratis-ai-agent-feedback-modal__stats {
+.sd-ai-agent-feedback-modal__stats {
 	margin: 8px 0;
 	padding: 10px 12px;
 	background: #f6f7f7;
@@ -605,13 +605,13 @@
 	font-size: 13px;
 }
 
-.gratis-ai-agent-feedback-modal__stats-loading {
+.sd-ai-agent-feedback-modal__stats-loading {
 	margin: 0;
 	color: #757575;
 	font-style: italic;
 }
 
-.gratis-ai-agent-feedback-modal__stats-list {
+.sd-ai-agent-feedback-modal__stats-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -620,12 +620,12 @@
 	gap: 6px 16px;
 }
 
-.gratis-ai-agent-feedback-modal__stats-list li {
+.sd-ai-agent-feedback-modal__stats-list li {
 	margin: 0;
 	color: #3c434a;
 }
 
-.gratis-ai-agent-feedback-modal__strip-label {
+.sd-ai-agent-feedback-modal__strip-label {
 	display: flex;
 	align-items: flex-start;
 	gap: 6px;
@@ -635,16 +635,16 @@
 	cursor: pointer;
 }
 
-.gratis-ai-agent-feedback-modal__strip-checkbox {
+.sd-ai-agent-feedback-modal__strip-checkbox {
 	flex-shrink: 0;
 	margin-top: 2px;
 }
 
-.gratis-ai-agent-feedback-modal__payload-section {
+.sd-ai-agent-feedback-modal__payload-section {
 	margin: 8px 0;
 }
 
-.gratis-ai-agent-feedback-modal__payload-toggle {
+.sd-ai-agent-feedback-modal__payload-toggle {
 	background: none;
 	border: none;
 	padding: 0;
@@ -654,11 +654,11 @@
 	text-decoration: underline;
 }
 
-.gratis-ai-agent-feedback-modal__payload-toggle:hover {
+.sd-ai-agent-feedback-modal__payload-toggle:hover {
 	color: #135e96;
 }
 
-.gratis-ai-agent-feedback-modal__payload-json {
+.sd-ai-agent-feedback-modal__payload-json {
 	margin: 8px 0 0;
 	max-height: 200px;
 	overflow: auto;
@@ -673,11 +673,11 @@
 }
 
 /* ── Feedback banner (t183) ────────────────────────────────────────────────── */
-.gratis-ai-agent-feedback-banner {
+.sd-ai-agent-feedback-banner {
 	margin: 4px 0;
 }
 
-.gratis-ai-agent-feedback-banner__content {
+.sd-ai-agent-feedback-banner__content {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -689,27 +689,27 @@
 	font-size: 13px;
 }
 
-.gratis-ai-agent-feedback-banner__text {
+.sd-ai-agent-feedback-banner__text {
 	margin: 0;
 	color: #1d2327;
 	flex: 1;
 }
 
-.gratis-ai-agent-feedback-banner__actions {
+.sd-ai-agent-feedback-banner__actions {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-feedback-banner__send-btn {
+.sd-ai-agent-feedback-banner__send-btn {
 	font-size: 12px !important;
 	padding: 4px 10px !important;
 	height: auto !important;
 	min-height: 0 !important;
 }
 
-.gratis-ai-agent-feedback-banner__dismiss {
+.sd-ai-agent-feedback-banner__dismiss {
 	font-size: 12px !important;
 	color: #646970 !important;
 	text-decoration: none !important;
@@ -717,7 +717,7 @@
 
 /* ── Boot error screen ─────────────────────────────────────────────────────── */
 
-.gratis-ai-agent-boot-error {
+.sd-ai-agent-boot-error {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -726,7 +726,7 @@
 	flex: 1;
 }
 
-.gratis-ai-agent-boot-error__card {
+.sd-ai-agent-boot-error__card {
 	max-width: 420px;
 	text-align: center;
 	background: #fff;
@@ -736,34 +736,34 @@
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.gratis-ai-agent-boot-error__card h2 {
+.sd-ai-agent-boot-error__card h2 {
 	margin: 0 0 12px;
 	font-size: 18px;
 	color: #1e1e1e;
 }
 
-.gratis-ai-agent-boot-error__card p {
+.sd-ai-agent-boot-error__card p {
 	margin: 0 0 16px;
 	color: #646970;
 	font-size: 14px;
 	line-height: 1.5;
 }
 
-.gratis-ai-agent-boot-error__actions {
+.sd-ai-agent-boot-error__actions {
 	display: flex;
 	gap: 8px;
 	justify-content: center;
 	margin-bottom: 16px;
 }
 
-.gratis-ai-agent-boot-error__hint {
+.sd-ai-agent-boot-error__hint {
 	font-size: 12px !important;
 	color: #a7aaad !important;
 	margin-bottom: 0 !important;
 }
 
 /* ── Session changes bar ───────────────────────────────────────────────────── */
-.gratis-ai-agent-changes-bar {
+.sd-ai-agent-changes-bar {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -774,33 +774,33 @@
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-changes-bar--reverted {
+.sd-ai-agent-changes-bar--reverted {
 	background: #edfaef;
 	border-top-color: #7dd68d;
 }
 
-.gratis-ai-agent-changes-bar__text {
+.sd-ai-agent-changes-bar__text {
 	color: #3c2f00;
 	font-weight: 500;
 }
 
-.gratis-ai-agent-changes-bar--reverted .gratis-ai-agent-changes-bar__text {
+.sd-ai-agent-changes-bar--reverted .sd-ai-agent-changes-bar__text {
 	color: #1b4c26;
 }
 
-.gratis-ai-agent-changes-bar__actions {
+.sd-ai-agent-changes-bar__actions {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	margin-left: auto;
 }
 
-.gratis-ai-agent-changes-bar__dismiss.components-button,
-.gratis-ai-agent-changes-bar__view-link.components-button {
+.sd-ai-agent-changes-bar__dismiss.components-button,
+.sd-ai-agent-changes-bar__view-link.components-button {
 	font-size: 12px;
 }
 
 /* Compact mode: slightly smaller padding */
-.is-compact .gratis-ai-agent-changes-bar {
+.is-compact .sd-ai-agent-changes-bar {
 	padding: 4px 10px;
 }

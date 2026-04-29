@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Deploy Gratis AI Agent to the WordPress.org plugin directory via SVN.
+# Deploy Superdav AI Agent to the WordPress.org plugin directory via SVN.
 #
 # Usage:
-#   bin/deploy-wporg.sh --version 1.2.0 --username YOUR_WP_USERNAME [--svn-dir ~/svn/gratis-ai-agent]
+#   bin/deploy-wporg.sh --version 1.2.0 --username YOUR_WP_USERNAME [--svn-dir ~/svn/sd-ai-agent]
 #
 # Prerequisites:
 #   1. Plugin approved on WordPress.org (SVN repo must exist)
-#   2. SVN checked out: svn checkout https://plugins.svn.wordpress.org/gratis-ai-agent/ ~/svn/gratis-ai-agent
+#   2. SVN checked out: svn checkout https://plugins.svn.wordpress.org/sd-ai-agent/ ~/svn/sd-ai-agent
 #   3. svn CLI installed (apt-get install subversion / brew install subversion)
 #
 # What this script does:
@@ -23,7 +23,7 @@ set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SVN_DIR="${HOME}/svn/gratis-ai-agent"
+SVN_DIR="${HOME}/svn/sd-ai-agent"
 WP_USERNAME=""
 VERSION=""
 DRY_RUN=false
@@ -38,7 +38,7 @@ Required:
   --username WP_USERNAME  WordPress.org username for SVN authentication
 
 Options:
-  --svn-dir DIR           Path to SVN checkout (default: ~/svn/gratis-ai-agent)
+  --svn-dir DIR           Path to SVN checkout (default: ~/svn/sd-ai-agent)
   --dry-run               Build and sync but do not commit or tag
   --help                  Show this help
 
@@ -92,7 +92,7 @@ if [ ! -d "${SVN_DIR}/.svn" ]; then
 	echo "ERROR: SVN checkout not found at: ${SVN_DIR}" >&2
 	echo ""
 	echo "Check out the repository first:" >&2
-	echo "  svn checkout https://plugins.svn.wordpress.org/gratis-ai-agent/ ${SVN_DIR} --username ${WP_USERNAME}" >&2
+	echo "  svn checkout https://plugins.svn.wordpress.org/sd-ai-agent/ ${SVN_DIR} --username ${WP_USERNAME}" >&2
 	echo ""
 	echo "If the checkout fails with a 404, the plugin has not been approved yet." >&2
 	echo "See docs/wordpress-org-submission.md for the submission process." >&2
@@ -100,10 +100,10 @@ if [ ! -d "${SVN_DIR}/.svn" ]; then
 fi
 
 # ── Verify version matches plugin header ──────────────────────────────────────
-PLUGIN_VERSION="$(grep -m1 '^ \* Version:' "${PLUGIN_DIR}/gratis-ai-agent.php" | sed 's/^.*Version:[[:space:]]*//' | tr -d '[:space:]')"
+PLUGIN_VERSION="$(grep -m1 '^ \* Version:' "${PLUGIN_DIR}/sd-ai-agent.php" | sed 's/^.*Version:[[:space:]]*//' | tr -d '[:space:]')"
 if [ "$PLUGIN_VERSION" != "$VERSION" ]; then
 	echo "ERROR: --version ${VERSION} does not match plugin header version ${PLUGIN_VERSION}." >&2
-	echo "Update the Version: field in gratis-ai-agent.php before deploying." >&2
+	echo "Update the Version: field in sd-ai-agent.php before deploying." >&2
 	exit 1
 fi
 
@@ -115,11 +115,11 @@ if [ "$README_STABLE" != "$VERSION" ]; then
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
-echo "==> Building Gratis AI Agent v${VERSION}..."
+echo "==> Building Superdav AI Agent v${VERSION}..."
 cd "$PLUGIN_DIR"
 bin/build.sh
 
-ZIP_PATH="${PLUGIN_DIR}/gratis-ai-agent-${VERSION}.zip"
+ZIP_PATH="${PLUGIN_DIR}/sd-ai-agent-${VERSION}.zip"
 if [ ! -f "$ZIP_PATH" ]; then
 	echo "ERROR: Expected ZIP not found: ${ZIP_PATH}" >&2
 	exit 1
@@ -134,10 +134,10 @@ cleanup() {
 trap cleanup EXIT
 
 unzip -q "$ZIP_PATH" -d "$EXTRACT_DIR"
-EXTRACTED_PLUGIN="${EXTRACT_DIR}/gratis-ai-agent"
+EXTRACTED_PLUGIN="${EXTRACT_DIR}/sd-ai-agent"
 
 if [ ! -d "$EXTRACTED_PLUGIN" ]; then
-	echo "ERROR: ZIP does not contain a top-level gratis-ai-agent/ directory." >&2
+	echo "ERROR: ZIP does not contain a top-level sd-ai-agent/ directory." >&2
 	exit 1
 fi
 
@@ -179,7 +179,7 @@ fi
 echo ""
 echo "==> Committing trunk (you will be prompted for your WP.org password)..."
 svn commit trunk/ \
-	-m "Update trunk to Gratis AI Agent v${VERSION}" \
+	-m "Update trunk to Superdav AI Agent v${VERSION}" \
 	--username "$WP_USERNAME"
 
 echo "    Trunk committed."
@@ -191,7 +191,7 @@ if svn info "tags/${VERSION}" >/dev/null 2>&1; then
 	echo "    WARNING: Tag ${VERSION} already exists — skipping tag creation."
 else
 	svn copy trunk/ "tags/${VERSION}" \
-		-m "Tag Gratis AI Agent v${VERSION}" \
+		-m "Tag Superdav AI Agent v${VERSION}" \
 		--username "$WP_USERNAME"
 	echo "    Tag created: tags/${VERSION}"
 fi
@@ -199,8 +199,8 @@ fi
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "==> Deployment complete!"
-echo "    Plugin URL: https://wordpress.org/plugins/gratis-ai-agent/"
-echo "    SVN trunk:  https://plugins.svn.wordpress.org/gratis-ai-agent/trunk/"
-echo "    SVN tag:    https://plugins.svn.wordpress.org/gratis-ai-agent/tags/${VERSION}/"
+echo "    Plugin URL: https://wordpress.org/plugins/sd-ai-agent/"
+echo "    SVN trunk:  https://plugins.svn.wordpress.org/sd-ai-agent/trunk/"
+echo "    SVN tag:    https://plugins.svn.wordpress.org/sd-ai-agent/tags/${VERSION}/"
 echo ""
 echo "    WP.org CDN may take up to 15 minutes to reflect the update."

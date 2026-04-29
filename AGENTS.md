@@ -1,4 +1,4 @@
-# Gratis AI Agent - WordPress Plugin Development Guide
+# Superdav AI Agent - WordPress Plugin Development Guide
 
 **Requires:** WordPress 7.0+, PHP 8.2+
 
@@ -21,7 +21,7 @@
 ## Code Style & Architecture
 
 ### PHP (PSR-4 + PHP 8.2+)
-- **Namespace**: PSR-4 namespaces under `GratisAiAgent\` (e.g., `namespace GratisAiAgent\Core;`)
+- **Namespace**: PSR-4 namespaces under `SdAiAgent\` (e.g., `namespace SdAiAgent\Core;`)
 - **Class names**: PascalCase (e.g., `AgentLoop`, `RestController`)
 - **File naming**: `{ClassName}.php` matching the class name exactly
 - **Directory structure**:
@@ -50,8 +50,8 @@
 - **State**: Redux via `@wordpress/data` store (see `src/store/index.js`)
 - **Imports**: WordPress packages first, then internal dependencies
 - **File structure**: React components in `src/components/`, entry points in `src/`
-- **Styling**: CSS files in same directory as component (`style.css`), prefix all classes with `gratis-ai-agent-`
-- **i18n**: Always use `__( 'text', 'gratis-ai-agent' )` for translatable strings
+- **Styling**: CSS files in same directory as component (`style.css`), prefix all classes with `sd-ai-agent-`
+- **i18n**: Always use `__( 'text', 'sd-ai-agent' )` for translatable strings
 - **Hooks**: Use WordPress data hooks (`useSelect`, `useDispatch`) consistently
 - **Build**: Webpack via `@wordpress/scripts` with entry points defined in `webpack.config.js`
 
@@ -61,13 +61,13 @@
 - **Classes**: PascalCase (e.g., `AgentLoop`, `MemoryAbilities`)
 - **Components**: PascalCase (e.g., `ChatPanel`, `MessageList`)
 - **Enums**: PascalCase with PascalCase cases (e.g., `MemoryCategory::SiteInfo`)
-- **Database tables**: Prefixed with `{$wpdb->prefix}gratis_ai_agent_` (23 tables across 4 schema files)
-- **REST routes**: `/gratis-ai-agent/v1/{endpoint}` namespace
-- **CSS classes**: Prefixed with `gratis-ai-agent-` (e.g., `gratis-ai-agent-chat-panel`)
+- **Database tables**: Prefixed with `{$wpdb->prefix}sd_ai_agent_` (23 tables across 4 schema files)
+- **REST routes**: `/sd-ai-agent/v1/{endpoint}` namespace
+- **CSS classes**: Prefixed with `sd-ai-agent-` (e.g., `sd-ai-agent-chat-panel`)
 
 ## Dependency Injection (x-wp/di)
 
-All hook wiring flows through an `x-wp/di` container. `gratis-ai-agent.php` is ~70 lines — just constants, autoloader, and `xwp_load_app()`. The 24 `#[Handler]` classes in `Plugin.php` manage everything.
+All hook wiring flows through an `x-wp/di` container. `sd-ai-agent.php` is ~70 lines — just constants, autoloader, and `xwp_load_app()`. The 24 `#[Handler]` classes in `Plugin.php` manage everything.
 
 **Read [`docs/x-wp-di.md`](docs/x-wp-di.md)** before:
 - Adding new handlers or REST controllers

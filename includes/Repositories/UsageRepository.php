@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * Repository for AI Agent usage-log persistence.
  *
- * Extracted from GratisAiAgent\Core\Database to keep domain logic focused.
+ * Extracted from SdAiAgent\Core\Database to keep domain logic focused.
  * Database::* methods delegate here for backward compatibility.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Repositories;
+namespace SdAiAgent\Repositories;
 
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Core\Database;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

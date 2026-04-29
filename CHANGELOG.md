@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get-plugins` truncator field mismatch fixed (`status`/`slug` → `active`/`file`) (#636)
 - `google/` OpenRouter prefix removed from Google direct provider model IDs (#637)
 - `update-post` benchmark schema aligned with implementation (#638)
-- Export fallback filename updated from `ai-changes.patch` to `gratis-ai-changes.patch` (#640)
+- Export fallback filename updated from `ai-changes.patch` to `sd-ai-changes.patch` (#640)
 - Collapsed sections now force-open when filtering activates in the abilities manager (#641)
 - `package_type` schema/runtime inconsistency fixed in `GitAbilities` (#644)
 - ShellCheck violations resolved in `tests/` and `.husky/` (#588)
@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Composer package renamed from `ultimate-multisite/gratis-ai-agent` to `ultimate-multisite/ai-agent`
+- Composer package renamed from `ultimate-multisite/sd-ai-agent` to `ultimate-multisite/ai-agent`
 
 ## [1.2.0] - 2026-03-19
 
@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Slack and Discord notification forwarding for automation results
 - Sortable, filterable DataTable rendering for tabular chat responses
 - Chart.js chart rendering in chat responses
-- Per-tool WordPress capabilities (`gratis_ai_agent_tool_{name}`)
+- Per-tool WordPress capabilities (`sd_ai_agent_tool_{name}`)
 - Site builder conversation flow — interview user then generate a full site
 - Site builder mode triggered on fresh WordPress installs
 - Onboarding interview — ask user about site goals after site scan
@@ -117,7 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PHPStan level raised from 6 to 7 with all new errors resolved
 - Improved multi-step agentic workflows
 - Model benchmark suite added
-- Plugin renamed to Gratis AI Agent across all JS sources
+- Plugin renamed to Superdav AI Agent across all JS sources
 - Configurable default model (replaces hardcoded fallback)
 - Constructor injection for Settings and Database dependencies
 - Credential management extracted to dedicated `CredentialResolver` class
@@ -156,5 +156,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - wp-env override JSON passed via env var to avoid shell quote stripping
 - PHPUnit (WP trunk) fatal resolved — `ClientWithOptionsInterface` namespace mismatch
 
-[1.3.0]: https://github.com/Ultimate-Multisite/gratis-ai-agent/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/Ultimate-Multisite/gratis-ai-agent/compare/v1.1.0...v1.2.0
+[1.3.0]: https://github.com/Ultimate-Multisite/sd-ai-agent/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/Ultimate-Multisite/sd-ai-agent/compare/v1.1.0...v1.2.0

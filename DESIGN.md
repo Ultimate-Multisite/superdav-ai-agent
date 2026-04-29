@@ -1,4 +1,4 @@
-# Design System: gratis-ai-agent
+# Design System: sd-ai-agent
 
 The design language for this plugin is **modern WordPress Admin** — clean, minimal, and immediately familiar to anyone who uses wp-admin daily. Every decision should reduce visual noise, guide the user's eye to what matters, and feel like a natural extension of WordPress rather than a foreign product dropped inside it.
 
@@ -345,12 +345,12 @@ When instructing an AI agent to build or modify UI in this plugin, include this 
 > Add an entry to `SUGGESTION_CARDS` in `src/components/message-list.js` with `title`, `description`, `prompt`, and `icon` (a `<Icon icon={X} size={20} />` from `@wordpress/icons`). The card renders with a 32×32px icon badge, 13px bold title, and 11px description. Hover adds a theme-colour border and `box-shadow: 0 2px 8px rgba(0,0,0,.06)`.
 
 **"Add a message action button"**
-> Use `<Button className="gratis-ai-agent-action-btn">` with `icon`, `label`, `showTooltip`, and `size="small"`. It will render at `26×26px` with a white background and subtle border, appearing only on message row hover via CSS opacity transition.
+> Use `<Button className="sd-ai-agent-action-btn">` with `icon`, `label`, `showTooltip`, and `size="small"`. It will render at `26×26px` with a white background and subtle border, appearing only on message row hover via CSS opacity transition.
 
 **"Add a new panel / modal dialog"**
 > Use `border-radius: 8px`, `box-shadow: 0 8px 32px rgba(0,0,0,.20)`. Header: `border-bottom: 1px solid #dcdcde`, `padding: 16px 20px`. Body: `padding: 16px 20px`. Footer: `border-top: 1px solid #dcdcde`, `display: flex; justify-content: flex-end; gap: 8px`. Use `<Button variant="primary">` for confirm and `<Button variant="tertiary">` for cancel.
 
 <!--
-Design system for gratis-ai-agent WordPress plugin.
+Design system for sd-ai-agent WordPress plugin.
 Reflects the interface decisions made during the chat UI redesign (April 2026).
 -->

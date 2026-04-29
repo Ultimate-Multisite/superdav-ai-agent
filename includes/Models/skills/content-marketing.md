@@ -4,9 +4,9 @@
 Use this skill for content strategy planning, editorial workflows, content audits, and content repurposing.
 
 ## Available Tools
-- `gratis-ai-agent/content-analyze` — Analyze content strategy across posts (frequency, word counts, categories, gaps)
-- `gratis-ai-agent/content-performance-report` — Generate content performance summaries for a time period
-- `gratis-ai-agent/import-stock-image` — Import stock images for content
+- `sd-ai-agent/content-analyze` — Analyze content strategy across posts (frequency, word counts, categories, gaps)
+- `sd-ai-agent/content-performance-report` — Generate content performance summaries for a time period
+- `sd-ai-agent/import-stock-image` — Import stock images for content
 
 ## Content Strategy Patterns
 
@@ -14,7 +14,7 @@ Use this skill for content strategy planning, editorial workflows, content audit
 - Identify a pillar topic (broad, high-volume keyword)
 - Create cluster content (specific, long-tail subtopics)
 - Interlink cluster posts back to the pillar page
-- Use `gratis-ai-agent/content-analyze` to identify category distribution and gaps
+- Use `sd-ai-agent/content-analyze` to identify category distribution and gaps
 
 ### Content Gaps
 - Run content analysis to find categories with few posts

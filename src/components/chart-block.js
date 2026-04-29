@@ -72,7 +72,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must be a JSON object.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			};
 		}
@@ -81,7 +81,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must include a "type" field (e.g. "bar", "line", "pie").',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			};
 		}
@@ -90,7 +90,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must include a "data" field.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			};
 		}
@@ -154,8 +154,8 @@ function ChartCanvas( { config } ) {
 
 	if ( runtimeError ) {
 		return (
-			<p className="gratis-ai-agent-chart-error-msg">
-				{ __( 'Chart render error:', 'gratis-ai-agent' ) }
+			<p className="sd-ai-agent-chart-error-msg">
+				{ __( 'Chart render error:', 'sd-ai-agent' ) }
 				<code>{ runtimeError }</code>
 			</p>
 		);
@@ -178,9 +178,9 @@ export default function ChartBlock( { children } ) {
 	// Synchronous parse/validation error — render immediately without useEffect.
 	if ( error ) {
 		return (
-			<div className="gratis-ai-agent-chart-error">
-				<p className="gratis-ai-agent-chart-error-msg">
-					{ __( 'Chart render error:', 'gratis-ai-agent' ) }
+			<div className="sd-ai-agent-chart-error">
+				<p className="sd-ai-agent-chart-error-msg">
+					{ __( 'Chart render error:', 'sd-ai-agent' ) }
 					<code>{ error }</code>
 				</p>
 				<CodeBlock language="json">{ raw }</CodeBlock>
@@ -189,7 +189,7 @@ export default function ChartBlock( { children } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-chart-block">
+		<div className="sd-ai-agent-chart-block">
 			<ChartCanvas config={ config } />
 		</div>
 	);

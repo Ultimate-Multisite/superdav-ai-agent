@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * Event Trigger Handler — hooks into WordPress, resolves placeholders, fires Agent_Loop.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Automations;
+namespace SdAiAgent\Automations;
 
-use GratisAiAgent\Core\AgentLoop;
-use GratisAiAgent\Core\PlaceholderResolver;
-use GratisAiAgent\Core\ProviderCredentialLoader;
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\PlaceholderResolver;
+use SdAiAgent\Core\ProviderCredentialLoader;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,7 +43,7 @@ class EventTriggerHandler {
 		add_action( 'init', [ __CLASS__, 'attach_hooks' ], 99 );
 
 		// Register the cron action that executes an event automation run.
-		add_action( 'gratis_ai_agent_run_event_automation', [ __CLASS__, 'execute_event_run' ] );
+		add_action( 'sd_ai_agent_run_event_automation', [ __CLASS__, 'execute_event_run' ] );
 	}
 
 	/**
@@ -124,9 +124,9 @@ class EventTriggerHandler {
 			];
 
 			// Use a transient to pass data to the cron callback.
-			$run_key = 'gratis_ai_agent_event_run_' . wp_generate_uuid4();
+			$run_key = 'sd_ai_agent_event_run_' . wp_generate_uuid4();
 			set_transient( $run_key, $run_data, HOUR_IN_SECONDS );
-			wp_schedule_single_event( time(), 'gratis_ai_agent_run_event_automation', [ $run_key ] );
+			wp_schedule_single_event( time(), 'sd_ai_agent_run_event_automation', [ $run_key ] );
 
 			// Spawn the cron immediately.
 			spawn_cron();
@@ -200,7 +200,7 @@ class EventTriggerHandler {
 		 * @param string $hook_name The hook that triggered it.
 		 * @param bool   $is_error  Whether the run failed.
 		 */
-		do_action( 'gratis_ai_agent_event_automation_complete', $event_id, $hook_name, $is_error );
+		do_action( 'sd_ai_agent_event_automation_complete', $event_id, $hook_name, $is_error );
 
 		self::$executing = false;
 	}

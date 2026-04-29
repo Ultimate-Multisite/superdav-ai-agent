@@ -15,7 +15,7 @@ In multi-admin WordPress sites, admins need to collaborate on AI-assisted tasks.
 
 ## How
 
-1. **Database**: Add `gratis_ai_agent_shared_sessions` table (`session_id`, `shared_by`, `shared_at`). Bump DB version to `11.0.0`.
+1. **Database**: Add `sd_ai_agent_shared_sessions` table (`session_id`, `shared_by`, `shared_at`). Bump DB version to `11.0.0`.
 2. **REST permission**: Update `check_session_permission` to also allow access when the session is shared (any admin can read/write shared sessions).
 3. **REST endpoints**:
    - `POST /sessions/{id}/share` — share a session (owner only)

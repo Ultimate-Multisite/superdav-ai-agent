@@ -3,7 +3,7 @@
  *
  * Mounts a compact AI Agent chat panel inside the WordPress admin Help tab
  * (the ? icon in the top-right corner). The panel is context-aware: it reads
- * the current screen data injected by PHP (gratisAiAgentScreenMeta.screenContext)
+ * the current screen data injected by PHP (sdAiAgentScreenMeta.screenContext)
  * and passes it to the AI via the store's setPageContext action.
  */
 
@@ -18,7 +18,7 @@ import { __ } from '@wordpress/i18n';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-// Register gratis-ai-agent-js/* client-side abilities into core/abilities
+// Register sd-ai-agent-js/* client-side abilities into core/abilities
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import ChatPanel from '../components/ChatPanel';
@@ -27,7 +27,7 @@ import './style.css';
 
 /**
  * Build a human-readable context string from the screen context object
- * injected by PHP (gratisAiAgentScreenMeta.screenContext).
+ * injected by PHP (sdAiAgentScreenMeta.screenContext).
  *
  * @param {Object} screenContext Screen context from PHP.
  * @return {string} Formatted context string for the AI.
@@ -96,7 +96,7 @@ function ScreenMetaChat() {
 
 	// Set context from PHP-injected screen data on mount.
 	useEffect( () => {
-		const screenMeta = window.gratisAiAgentScreenMeta;
+		const screenMeta = window.sdAiAgentScreenMeta;
 		if ( screenMeta && screenMeta.screenContext ) {
 			const contextString = buildContextString(
 				screenMeta.screenContext
@@ -108,11 +108,11 @@ function ScreenMetaChat() {
 	}, [ setPageContext ] );
 
 	return (
-		<div className="gratis-ai-agent-screen-meta-wrap">
-			<p className="gratis-ai-agent-screen-meta-intro">
+		<div className="sd-ai-agent-screen-meta-wrap">
+			<p className="sd-ai-agent-screen-meta-intro">
 				{ __(
 					'Ask the AI Agent about this screen or any WordPress task.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 			</p>
 			<ChatPanel compact />
@@ -146,13 +146,12 @@ function mountWhenReady( mountId ) {
 if ( document.readyState === 'loading' ) {
 	document.addEventListener( 'DOMContentLoaded', () => {
 		const mountId =
-			window.gratisAiAgentScreenMeta?.mountId ??
-			'gratis-ai-agent-screen-meta-root';
+			window.sdAiAgentScreenMeta?.mountId ??
+			'sd-ai-agent-screen-meta-root';
 		mountWhenReady( mountId );
 	} );
 } else {
 	const mountId =
-		window.gratisAiAgentScreenMeta?.mountId ??
-		'gratis-ai-agent-screen-meta-root';
+		window.sdAiAgentScreenMeta?.mountId ?? 'sd-ai-agent-screen-meta-root';
 	mountWhenReady( mountId );
 }

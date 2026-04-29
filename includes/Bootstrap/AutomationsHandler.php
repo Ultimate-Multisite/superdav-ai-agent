@@ -4,22 +4,22 @@
  *
  * Replaces the `AutomationRunner::register()` and
  * `EventTriggerHandler::register()` calls in CoreServicesHandler, plus the
- * inline `add_action('gratis_ai_agent_run_event_automation', ...)` that
+ * inline `add_action('sd_ai_agent_run_event_automation', ...)` that
  * CoreServicesHandler wired directly.
  *
  * All hook registrations are now declared via `#[Action]` / `#[Filter]`
  * attributes so the DI container owns the lifecycle.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Automations\AutomationRunner;
-use GratisAiAgent\Automations\EventTriggerHandler;
+use SdAiAgent\Automations\AutomationRunner;
+use SdAiAgent\Automations\EventTriggerHandler;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - `init` (for attaching event hooks) fires in all contexts.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -82,7 +82,7 @@ final class AutomationsHandler {
 	 *
 	 * @param string $run_key Unique key identifying the event automation run.
 	 */
-	#[Action( tag: 'gratis_ai_agent_run_event_automation', priority: 10 )]
+	#[Action( tag: 'sd_ai_agent_run_event_automation', priority: 10 )]
 	public function execute_event_run( string $run_key ): void {
 		EventTriggerHandler::execute_event_run( $run_key );
 	}

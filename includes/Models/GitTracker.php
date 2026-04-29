@@ -11,15 +11,15 @@ declare(strict_types=1);
  * Design: one GitTracker instance per tracked package (plugin or theme). The manager
  * (GitTrackerManager) owns the collection of trackers across all packages.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @since   1.1.0
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Models\DTO\GitTrackedFileRow;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Models\DTO\GitTrackedFileRow;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -129,10 +129,10 @@ class GitTracker {
 	public function snapshot_file( string $absolute_path ) {
 		if ( ! file_exists( $absolute_path ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_file_not_found',
+				'sd_ai_agent_git_tracker_file_not_found',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot snapshot: file not found: %s', 'gratis-ai-agent' ),
+					__( 'Cannot snapshot: file not found: %s', 'sd-ai-agent' ),
 					$absolute_path
 				)
 			);
@@ -152,10 +152,10 @@ class GitTracker {
 		$content = file_get_contents( $absolute_path );
 		if ( false === $content ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_read_failed',
+				'sd_ai_agent_git_tracker_read_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot snapshot: failed to read file: %s', 'gratis-ai-agent' ),
+					__( 'Cannot snapshot: failed to read file: %s', 'sd-ai-agent' ),
 					$absolute_path
 				)
 			);
@@ -181,10 +181,10 @@ class GitTracker {
 
 		if ( ! $this->is_tracked( $relative_path ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_not_tracked',
+				'sd_ai_agent_git_tracker_not_tracked',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot record modification: file not tracked: %s', 'gratis-ai-agent' ),
+					__( 'Cannot record modification: file not tracked: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);
@@ -198,10 +198,10 @@ class GitTracker {
 		$content = file_get_contents( $absolute_path );
 		if ( false === $content ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_read_failed',
+				'sd_ai_agent_git_tracker_read_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot record modification: failed to read file: %s', 'gratis-ai-agent' ),
+					__( 'Cannot record modification: failed to read file: %s', 'sd-ai-agent' ),
 					$absolute_path
 				)
 			);
@@ -226,10 +226,10 @@ class GitTracker {
 		$row = $this->get_tracked_row( $relative_path );
 		if ( null === $row ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_not_tracked',
+				'sd_ai_agent_git_tracker_not_tracked',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot revert: file not tracked: %s', 'gratis-ai-agent' ),
+					__( 'Cannot revert: file not tracked: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);
@@ -246,10 +246,10 @@ class GitTracker {
 
 		if ( ! $wp_filesystem->put_contents( $absolute_path, $original_content, FS_CHMOD_FILE ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_revert_failed',
+				'sd_ai_agent_git_tracker_revert_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Failed to revert file: %s', 'gratis-ai-agent' ),
+					__( 'Failed to revert file: %s', 'sd-ai-agent' ),
 					$absolute_path
 				)
 			);
@@ -276,10 +276,10 @@ class GitTracker {
 		$row = $this->get_tracked_row( $relative_path );
 		if ( null === $row ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_not_tracked',
+				'sd_ai_agent_git_tracker_not_tracked',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot diff: file not tracked: %s', 'gratis-ai-agent' ),
+					__( 'Cannot diff: file not tracked: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);
@@ -303,10 +303,10 @@ class GitTracker {
 		$current_content = file_get_contents( $absolute_path );
 		if ( false === $current_content ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_read_failed',
+				'sd_ai_agent_git_tracker_read_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Cannot diff: failed to read current file: %s', 'gratis-ai-agent' ),
+					__( 'Cannot diff: failed to read current file: %s', 'sd-ai-agent' ),
 					$absolute_path
 				)
 			);
@@ -412,10 +412,10 @@ class GitTracker {
 
 		if ( false === $real_package ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_invalid_package',
+				'sd_ai_agent_git_tracker_invalid_package',
 				sprintf(
 					/* translators: %s: package path */
-					__( 'Package path does not exist: %s', 'gratis-ai-agent' ),
+					__( 'Package path does not exist: %s', 'sd-ai-agent' ),
 					$this->package_path
 				)
 			);
@@ -429,10 +429,10 @@ class GitTracker {
 		$package_prefix = rtrim( $real_package, '/\\' ) . '/';
 		if ( strpos( $real_absolute, $package_prefix ) !== 0 ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_outside_package',
+				'sd_ai_agent_git_tracker_outside_package',
 				sprintf(
 					/* translators: 1: file path, 2: package path */
-					__( 'File %1$s is outside the package directory %2$s', 'gratis-ai-agent' ),
+					__( 'File %1$s is outside the package directory %2$s', 'sd-ai-agent' ),
 					$absolute_path,
 					$this->package_path
 				)
@@ -501,10 +501,10 @@ class GitTracker {
 
 		if ( false === $result ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_insert_failed',
+				'sd_ai_agent_git_tracker_insert_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Failed to insert tracking record for: %s', 'gratis-ai-agent' ),
+					__( 'Failed to insert tracking record for: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);
@@ -546,10 +546,10 @@ class GitTracker {
 
 		if ( false === $result ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_update_failed',
+				'sd_ai_agent_git_tracker_update_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Failed to update tracking record for: %s', 'gratis-ai-agent' ),
+					__( 'Failed to update tracking record for: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);
@@ -589,10 +589,10 @@ class GitTracker {
 
 		if ( false === $result ) {
 			return new WP_Error(
-				'gratis_ai_agent_git_tracker_update_failed',
+				'sd_ai_agent_git_tracker_update_failed',
 				sprintf(
 					/* translators: %s: file path */
-					__( 'Failed to update status for: %s', 'gratis-ai-agent' ),
+					__( 'Failed to update status for: %s', 'sd-ai-agent' ),
 					$relative_path
 				)
 			);

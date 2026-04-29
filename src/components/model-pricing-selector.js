@@ -59,15 +59,15 @@ const AVG_SESSION_OUTPUT_TOKENS = 2000;
  * Threshold is the maximum input price per million tokens for that tier.
  */
 const TIERS = [
-	{ id: 'budget', label: __( 'Budget', 'gratis-ai-agent' ), maxInput: 0.5 },
+	{ id: 'budget', label: __( 'Budget', 'sd-ai-agent' ), maxInput: 0.5 },
 	{
 		id: 'standard',
-		label: __( 'Standard', 'gratis-ai-agent' ),
+		label: __( 'Standard', 'sd-ai-agent' ),
 		maxInput: 3.0,
 	},
 	{
 		id: 'premium',
-		label: __( 'Premium', 'gratis-ai-agent' ),
+		label: __( 'Premium', 'sd-ai-agent' ),
 		maxInput: Infinity,
 	},
 ];
@@ -86,119 +86,119 @@ const MODEL_CATALOG = [
 		id: 'claude-haiku-4',
 		provider: 'anthropic',
 		name: 'Claude Haiku 4',
-		note: __( 'fastest', 'gratis-ai-agent' ),
+		note: __( 'fastest', 'sd-ai-agent' ),
 	},
 	{
 		id: 'claude-3-5-haiku-20241022',
 		provider: 'anthropic',
 		name: 'Claude 3.5 Haiku',
-		note: __( 'budget', 'gratis-ai-agent' ),
+		note: __( 'budget', 'sd-ai-agent' ),
 	},
 	{
 		id: 'claude-sonnet-4',
 		provider: 'anthropic',
 		name: 'Claude Sonnet 4',
-		note: __( 'balanced', 'gratis-ai-agent' ),
+		note: __( 'balanced', 'sd-ai-agent' ),
 	},
 	{
 		id: 'claude-opus-4',
 		provider: 'anthropic',
 		name: 'Claude Opus 4',
-		note: __( 'most capable', 'gratis-ai-agent' ),
+		note: __( 'most capable', 'sd-ai-agent' ),
 	},
 	// OpenAI GPT-4.1
 	{
 		id: 'gpt-4.1-nano',
 		provider: 'openai',
 		name: 'GPT-4.1 Nano',
-		note: __( 'best value', 'gratis-ai-agent' ),
+		note: __( 'best value', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gpt-4.1-mini',
 		provider: 'openai',
 		name: 'GPT-4.1 Mini',
-		note: __( 'fast & affordable', 'gratis-ai-agent' ),
+		note: __( 'fast & affordable', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gpt-4.1',
 		provider: 'openai',
 		name: 'GPT-4.1',
-		note: __( 'high quality', 'gratis-ai-agent' ),
+		note: __( 'high quality', 'sd-ai-agent' ),
 	},
 	// OpenAI GPT-4o
 	{
 		id: 'gpt-4o-mini',
 		provider: 'openai',
 		name: 'GPT-4o Mini',
-		note: __( 'affordable', 'gratis-ai-agent' ),
+		note: __( 'affordable', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gpt-4o',
 		provider: 'openai',
 		name: 'GPT-4o',
-		note: __( 'multimodal', 'gratis-ai-agent' ),
+		note: __( 'multimodal', 'sd-ai-agent' ),
 	},
 	// OpenAI o-series
 	{
 		id: 'o4-mini',
 		provider: 'openai',
 		name: 'o4-mini',
-		note: __( 'reasoning', 'gratis-ai-agent' ),
+		note: __( 'reasoning', 'sd-ai-agent' ),
 	},
 	{
 		id: 'o3-mini',
 		provider: 'openai',
 		name: 'o3-mini',
-		note: __( 'reasoning', 'gratis-ai-agent' ),
+		note: __( 'reasoning', 'sd-ai-agent' ),
 	},
 	{
 		id: 'o3',
 		provider: 'openai',
 		name: 'o3',
-		note: __( 'advanced reasoning', 'gratis-ai-agent' ),
+		note: __( 'advanced reasoning', 'sd-ai-agent' ),
 	},
 	// Google Gemini
 	{
 		id: 'gemini-2.0-flash-lite',
 		provider: 'google',
 		name: 'Gemini 2.0 Flash Lite',
-		note: __( 'best value', 'gratis-ai-agent' ),
+		note: __( 'best value', 'sd-ai-agent' ),
 	},
 	{
 		id: 'google/gemini-2.5-flash-lite-preview',
 		provider: 'google',
 		name: 'Gemini 2.5 Flash Lite',
-		note: __( 'budget', 'gratis-ai-agent' ),
+		note: __( 'budget', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gemini-2.0-flash',
 		provider: 'google',
 		name: 'Gemini 2.0 Flash',
-		note: __( 'fast & affordable', 'gratis-ai-agent' ),
+		note: __( 'fast & affordable', 'sd-ai-agent' ),
 	},
 	{
 		id: 'google/gemini-2.5-flash-preview',
 		provider: 'google',
 		name: 'Gemini 2.5 Flash',
-		note: __( 'fast & capable', 'gratis-ai-agent' ),
+		note: __( 'fast & capable', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gemini-1.5-flash',
 		provider: 'google',
 		name: 'Gemini 1.5 Flash',
-		note: __( 'affordable', 'gratis-ai-agent' ),
+		note: __( 'affordable', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gemini-1.5-pro',
 		provider: 'google',
 		name: 'Gemini 1.5 Pro',
-		note: __( 'high quality', 'gratis-ai-agent' ),
+		note: __( 'high quality', 'sd-ai-agent' ),
 	},
 	{
 		id: 'gemini-2.5-pro-preview-05-06',
 		provider: 'google',
 		name: 'Gemini 2.5 Pro',
-		note: __( 'most capable', 'gratis-ai-agent' ),
+		note: __( 'most capable', 'sd-ai-agent' ),
 	},
 ];
 
@@ -302,7 +302,7 @@ function buildModelLabel( catalogEntry ) {
 export function buildPricedModelOptions( models, providerName, defaultLabel ) {
 	const options = [
 		{
-			label: defaultLabel || __( '(default)', 'gratis-ai-agent' ),
+			label: defaultLabel || __( '(default)', 'sd-ai-agent' ),
 			value: '',
 		},
 	];
@@ -365,9 +365,7 @@ export function buildPricedModelOptions( models, providerName, defaultLabel ) {
 	// Append uncatalogued models under a separator.
 	if ( uncatalogued.length ) {
 		options.push( {
-			label: `── ${
-				providerName || __( 'Other', 'gratis-ai-agent' )
-			} ──`,
+			label: `── ${ providerName || __( 'Other', 'sd-ai-agent' ) } ──`,
 			value: '__tier_other__',
 			disabled: true,
 		} );
@@ -407,25 +405,23 @@ export function ModelPricingHint( { modelId } ) {
 	const sessionCost = estimateSessionCost( modelId );
 
 	return (
-		<p className="gratis-ai-agent-model-pricing-hint">
+		<p className="sd-ai-agent-model-pricing-hint">
 			<span
-				className={ `gratis-ai-agent-model-pricing-hint__tier gratis-ai-agent-model-pricing-hint__tier--${ tier.id }` }
+				className={ `sd-ai-agent-model-pricing-hint__tier sd-ai-agent-model-pricing-hint__tier--${ tier.id }` }
 			>
 				{ tier.label }
 			</span>{ ' ' }
-			<span className="gratis-ai-agent-model-pricing-hint__prices">
-				{ formatPrice( inputPrice ) }{ ' ' }
-				{ __( 'input', 'gratis-ai-agent' ) }
+			<span className="sd-ai-agent-model-pricing-hint__prices">
+				{ formatPrice( inputPrice ) } { __( 'input', 'sd-ai-agent' ) }
 				{ ' / ' }
-				{ formatPrice( outputPrice ) }{ ' ' }
-				{ __( 'output', 'gratis-ai-agent' ) }
+				{ formatPrice( outputPrice ) } { __( 'output', 'sd-ai-agent' ) }
 			</span>
 			{ sessionCost && (
 				<>
 					{ ' · ' }
-					<span className="gratis-ai-agent-model-pricing-hint__session">
+					<span className="sd-ai-agent-model-pricing-hint__session">
 						{ sessionCost }{ ' ' }
-						{ __( '(avg. session estimate)', 'gratis-ai-agent' ) }
+						{ __( '(avg. session estimate)', 'sd-ai-agent' ) }
 					</span>
 				</>
 			) }
@@ -460,7 +456,7 @@ export default function ModelPricingSelector( {
 	const options = buildPricedModelOptions(
 		models,
 		providerName,
-		__( '(default)', 'gratis-ai-agent' )
+		__( '(default)', 'sd-ai-agent' )
 	);
 
 	const handleChange = ( newValue ) => {
@@ -472,7 +468,7 @@ export default function ModelPricingSelector( {
 	};
 
 	return (
-		<div className="gratis-ai-agent-model-pricing-selector">
+		<div className="sd-ai-agent-model-pricing-selector">
 			<SelectControl
 				id={ id }
 				label={ label }

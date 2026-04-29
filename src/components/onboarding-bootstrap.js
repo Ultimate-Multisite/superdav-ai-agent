@@ -42,7 +42,7 @@ export default function OnboardingBootstrap() {
 		bootstrappedRef.current = true;
 
 		apiFetch( {
-			path: '/gratis-ai-agent/v1/onboarding/bootstrap-start',
+			path: '/sd-ai-agent/v1/onboarding/bootstrap-start',
 			method: 'POST',
 		} )
 			.then( ( data ) => {
@@ -60,7 +60,7 @@ export default function OnboardingBootstrap() {
 						data.kickoff_message ||
 							__(
 								"Hello! I'm just getting set up. Please explore this WordPress site and introduce yourself — tell me what you notice and what you can help with.",
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 						[],
 						data.bootstrap_system_prompt
@@ -79,7 +79,7 @@ export default function OnboardingBootstrap() {
 	}, [ openSession, sendMessage ] );
 
 	return (
-		<div className="gratis-ai-agent-onboarding-bootstrap">
+		<div className="sd-ai-agent-onboarding-bootstrap">
 			<ChatPanel />
 		</div>
 	);

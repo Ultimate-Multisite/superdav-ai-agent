@@ -1,31 +1,31 @@
 /**
  * Connectors page styles.
  *
- * Scoped to .gratis-ai-connectors__ BEM prefix.
+ * Scoped to .sd-ai-connectors__ BEM prefix.
  */
 
 /* ── Page header ── */
-.gratis-ai-agent-route-connectors {
+.sd-ai-agent-route-connectors {
 	padding: 0 0 24px;
 }
 
-.gratis-ai-connectors__header {
+.sd-ai-connectors__header {
 	margin-bottom: 24px;
 }
 
-.gratis-ai-connectors__header h2 {
+.sd-ai-connectors__header h2 {
 	margin: 0 0 8px;
 	font-size: 1.5rem;
 	font-weight: 600;
 }
 
-.gratis-ai-connectors__intro {
+.sd-ai-connectors__intro {
 	margin: 0;
 	color: #50575e;
 }
 
 /* ── Loading ── */
-.gratis-ai-connectors__loading {
+.sd-ai-connectors__loading {
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -34,37 +34,37 @@
 }
 
 /* ── Native redirect (WP 7.0+) ── */
-.gratis-ai-connectors__native-redirect {
+.sd-ai-connectors__native-redirect {
 	max-width: 600px;
 }
 
-.gratis-ai-connectors__native-redirect h2 {
+.sd-ai-connectors__native-redirect h2 {
 	margin: 0 0 16px;
 	font-size: 1.5rem;
 	font-weight: 600;
 }
 
-.gratis-ai-connectors__native-redirect .components-notice {
+.sd-ai-connectors__native-redirect .components-notice {
 	margin-bottom: 16px;
 }
 
 /* ── Provider grid ── */
-.gratis-ai-connectors__grid {
+.sd-ai-connectors__grid {
 	display: grid;
 	grid-template-columns: repeat( auto-fill, minmax( 380px, 1fr ) );
 	gap: 20px;
 }
 
 /* ── Provider card ── */
-.gratis-ai-connectors__provider-card .components-card__header {
+.sd-ai-connectors__provider-card .components-card__header {
 	padding: 16px;
 }
 
-.gratis-ai-connectors__provider-card .components-card__body {
+.sd-ai-connectors__provider-card .components-card__body {
 	padding: 16px;
 }
 
-.gratis-ai-connectors__provider-header {
+.sd-ai-connectors__provider-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -72,26 +72,26 @@
 	gap: 12px;
 }
 
-.gratis-ai-connectors__provider-title {
+.sd-ai-connectors__provider-title {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 }
 
-.gratis-ai-connectors__provider-title h3 {
+.sd-ai-connectors__provider-title h3 {
 	margin: 0;
 	font-size: 1.05rem;
 	font-weight: 600;
 }
 
-.gratis-ai-connectors__provider-actions {
+.sd-ai-connectors__provider-actions {
 	display: flex;
 	gap: 8px;
 	flex-shrink: 0;
 }
 
 /* ── Status badge ── */
-.gratis-ai-connectors__status {
+.sd-ai-connectors__status {
 	display: inline-block;
 	padding: 2px 8px;
 	border-radius: 3px;
@@ -101,40 +101,40 @@
 	letter-spacing: 0.04em;
 }
 
-.gratis-ai-connectors__status--active {
+.sd-ai-connectors__status--active {
 	background: #d8f0e6;
 	color: #1a6b3e;
 }
 
-.gratis-ai-connectors__status--inactive {
+.sd-ai-connectors__status--inactive {
 	background: #fff3cd;
 	color: #856404;
 }
 
-.gratis-ai-connectors__status--not-installed {
+.sd-ai-connectors__status--not-installed {
 	background: #f0f0f0;
 	color: #50575e;
 }
 
 /* ── Card notice ── */
-.gratis-ai-connectors__card-notice {
+.sd-ai-connectors__card-notice {
 	margin-bottom: 12px;
 }
 
 /* ── Description ── */
-.gratis-ai-connectors__description {
+.sd-ai-connectors__description {
 	margin: 0 0 16px;
 	color: #50575e;
 	font-size: 0.9rem;
 }
 
 /* ── API key section ── */
-.gratis-ai-connectors__api-key-section {
+.sd-ai-connectors__api-key-section {
 	border-top: 1px solid #ddd;
 	padding-top: 16px;
 }
 
-.gratis-ai-connectors__api-key-label {
+.sd-ai-connectors__api-key-label {
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -142,54 +142,54 @@
 	font-size: 0.875rem;
 }
 
-.gratis-ai-connectors__api-key-configured {
+.sd-ai-connectors__api-key-configured {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	color: #1a6b3e;
 }
 
-.gratis-ai-connectors__api-key-configured code {
+.sd-ai-connectors__api-key-configured code {
 	font-size: 0.8rem;
 	background: #f0f0f0;
 	padding: 1px 5px;
 	border-radius: 3px;
 }
 
-.gratis-ai-connectors__clear-key-btn {
+.sd-ai-connectors__clear-key-btn {
 	padding: 0;
 	height: auto;
 	min-height: 0;
 	font-size: 0.8rem;
 }
 
-.gratis-ai-connectors__api-key-input {
+.sd-ai-connectors__api-key-input {
 	display: flex;
 	gap: 8px;
 	align-items: flex-end;
 }
 
-.gratis-ai-connectors__api-key-input .components-base-control {
+.sd-ai-connectors__api-key-input .components-base-control {
 	flex: 1;
 	margin-bottom: 0;
 }
 
-.gratis-ai-connectors__api-key-input .components-text-control__input {
+.sd-ai-connectors__api-key-input .components-text-control__input {
 	min-width: 0;
 }
 
 /* ── Responsive ── */
 @media ( max-width: 782px ) {
-	.gratis-ai-connectors__grid {
+	.sd-ai-connectors__grid {
 		grid-template-columns: 1fr;
 	}
 
-	.gratis-ai-connectors__provider-header {
+	.sd-ai-connectors__provider-header {
 		flex-direction: column;
 		align-items: flex-start;
 	}
 
-	.gratis-ai-connectors__api-key-input {
+	.sd-ai-connectors__api-key-input {
 		flex-direction: column;
 		align-items: stretch;
 	}

@@ -19,13 +19,13 @@ When the AI agent modifies plugin files (via `file-write` or `file-edit` abiliti
 
 t036 is marked "blocked by t033" (GitTracker), but the core value can be delivered without git-blob tracking:
 
-1. **New DB table** `gratis_ai_agent_modified_files` — records every file write/edit by the AI agent (plugin_slug, file_path, session_id, modified_at). Populated by hooks in `FileWriteAbility` and `FileEditAbility`.
+1. **New DB table** `sd_ai_agent_modified_files` — records every file write/edit by the AI agent (plugin_slug, file_path, session_id, modified_at). Populated by hooks in `FileWriteAbility` and `FileEditAbility`.
 
-2. **New class** `includes/Abilities/PluginDownloadAbilities.php` — registers a `gratis-ai-agent/download-modified-plugin` ability that zips a plugin directory and returns a signed download URL.
+2. **New class** `includes/Abilities/PluginDownloadAbilities.php` — registers a `sd-ai-agent/download-modified-plugin` ability that zips a plugin directory and returns a signed download URL.
 
 3. **New REST endpoints** in `RestController`:
-   - `GET /gratis-ai-agent/v1/modified-plugins` — returns list of plugins with AI-modified files
-   - `GET /gratis-ai-agent/v1/download-plugin/{slug}` — streams a zip of the plugin directory (admin-only, nonce-protected)
+   - `GET /sd-ai-agent/v1/modified-plugins` — returns list of plugins with AI-modified files
+   - `GET /sd-ai-agent/v1/download-plugin/{slug}` — streams a zip of the plugin directory (admin-only, nonce-protected)
 
 4. **DB version bump** from `8.0.0` to `9.0.0` to trigger schema migration.
 
@@ -35,16 +35,16 @@ t036 is marked "blocked by t033" (GitTracker), but the core value can be deliver
 - `includes/Abilities/FileAbilities.php` — hook write/edit callbacks to record modifications
 - `includes/Abilities/PluginDownloadAbilities.php` — new file, download ability
 - `includes/REST/RestController.php` — add modified-plugins list + download endpoints
-- `gratis-ai-agent.php` — register PluginDownloadAbilities
+- `sd-ai-agent.php` — register PluginDownloadAbilities
 
 ## Acceptance criteria
 
-- [ ] When AI writes/edits a file in `plugins/my-plugin/`, a record is inserted into `gratis_ai_agent_modified_files`
-- [ ] `GET /gratis-ai-agent/v1/modified-plugins` returns JSON list of plugin slugs with modification counts and timestamps
-- [ ] `GET /gratis-ai-agent/v1/download-plugin/{slug}` returns a zip file of the plugin directory
+- [ ] When AI writes/edits a file in `plugins/my-plugin/`, a record is inserted into `sd_ai_agent_modified_files`
+- [ ] `GET /sd-ai-agent/v1/modified-plugins` returns JSON list of plugin slugs with modification counts and timestamps
+- [ ] `GET /sd-ai-agent/v1/download-plugin/{slug}` returns a zip file of the plugin directory
 - [ ] Download endpoint requires `manage_options` capability
 - [ ] Download endpoint is nonce-protected (or uses WP REST auth)
-- [ ] `gratis-ai-agent/download-modified-plugin` ability is registered and callable by the AI agent
+- [ ] `sd-ai-agent/download-modified-plugin` ability is registered and callable by the AI agent
 - [ ] DB version bumped and migration runs cleanly
 - [ ] All existing tests pass
 

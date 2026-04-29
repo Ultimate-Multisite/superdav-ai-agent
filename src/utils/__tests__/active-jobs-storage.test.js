@@ -49,21 +49,21 @@ beforeEach( () => {
 describe( 'setActiveJob', () => {
 	test( 'persists a job entry to sessionStorage', () => {
 		setActiveJob( 42, 'job_abc' );
-		const raw = sessionStorage.getItem( 'gratisAiAgent_activeJobs' );
+		const raw = sessionStorage.getItem( 'sdAiAgent_activeJobs' );
 		expect( JSON.parse( raw ) ).toEqual( { 42: 'job_abc' } );
 	} );
 
 	test( 'adds a second session without overwriting the first', () => {
 		setActiveJob( 1, 'job_a' );
 		setActiveJob( 2, 'job_b' );
-		const raw = sessionStorage.getItem( 'gratisAiAgent_activeJobs' );
+		const raw = sessionStorage.getItem( 'sdAiAgent_activeJobs' );
 		expect( JSON.parse( raw ) ).toEqual( { 1: 'job_a', 2: 'job_b' } );
 	} );
 
 	test( 'updates an existing session entry', () => {
 		setActiveJob( 1, 'job_old' );
 		setActiveJob( 1, 'job_new' );
-		const raw = sessionStorage.getItem( 'gratisAiAgent_activeJobs' );
+		const raw = sessionStorage.getItem( 'sdAiAgent_activeJobs' );
 		expect( JSON.parse( raw ) ).toEqual( { 1: 'job_new' } );
 	} );
 
@@ -100,9 +100,7 @@ describe( 'clearActiveJob', () => {
 	test( 'removes the key entirely when the map becomes empty', () => {
 		setActiveJob( 7, 'job_seven' );
 		clearActiveJob( 7 );
-		expect(
-			sessionStorage.getItem( 'gratisAiAgent_activeJobs' )
-		).toBeNull();
+		expect( sessionStorage.getItem( 'sdAiAgent_activeJobs' ) ).toBeNull();
 	} );
 
 	test( 'is a no-op when sessionStorage is empty', () => {
@@ -152,22 +150,22 @@ describe( 'getActiveJobs', () => {
 	} );
 
 	test( 'returns an empty object when storage contains malformed JSON', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', 'not-json{' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', 'not-json{' );
 		expect( getActiveJobs() ).toEqual( {} );
 	} );
 
 	test( 'returns an empty object when storage contains JSON null', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', 'null' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', 'null' );
 		expect( getActiveJobs() ).toEqual( {} );
 	} );
 
 	test( 'returns an empty object when storage contains a JSON array', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', '["a","b"]' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', '["a","b"]' );
 		expect( getActiveJobs() ).toEqual( {} );
 	} );
 
 	test( 'returns an empty object when storage contains a JSON primitive', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', '42' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', '42' );
 		expect( getActiveJobs() ).toEqual( {} );
 	} );
 } );
@@ -176,19 +174,19 @@ describe( 'getActiveJobs', () => {
 
 describe( 'corrupt storage resilience', () => {
 	test( 'setActiveJob recovers gracefully when storage contains null JSON', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', 'null' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', 'null' );
 		expect( () => setActiveJob( 1, 'job_x' ) ).not.toThrow();
 		expect( getActiveJobs() ).toEqual( { 1: 'job_x' } );
 	} );
 
 	test( 'setActiveJob recovers gracefully when storage contains a JSON array', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', '["stale"]' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', '["stale"]' );
 		expect( () => setActiveJob( 2, 'job_y' ) ).not.toThrow();
 		expect( getActiveJobs() ).toEqual( { 2: 'job_y' } );
 	} );
 
 	test( 'clearActiveJob does not throw when storage contains null JSON', () => {
-		sessionStorage.setItem( 'gratisAiAgent_activeJobs', 'null' );
+		sessionStorage.setItem( 'sdAiAgent_activeJobs', 'null' );
 		expect( () => clearActiveJob( 1 ) ).not.toThrow();
 	} );
 } );

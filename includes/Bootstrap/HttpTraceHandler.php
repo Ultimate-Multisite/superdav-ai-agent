@@ -7,19 +7,19 @@
  * attributes.
  *
  * The underlying recording logic lives in
- * {@see \GratisAiAgent\Core\ProviderTraceLogger}. This handler is a thin
+ * {@see \SdAiAgent\Core\ProviderTraceLogger}. This handler is a thin
  * DI bridge — its sole responsibility is hook registration and arg forwarding.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Core\ProviderTraceLogger;
-use GratisAiAgent\Models\ProviderTrace;
+use SdAiAgent\Core\ProviderTraceLogger;
+use SdAiAgent\Models\ProviderTrace;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
 
@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * happens on production sites where WP_DEBUG is false or undefined.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

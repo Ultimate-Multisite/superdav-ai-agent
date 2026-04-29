@@ -32,9 +32,9 @@ export default function ModelSelector( {
 		// Start with WP AI Client (empty provider_id uses SDK default)
 		models.push( {
 			provider_id: '',
-			provider_name: __( 'WordPress AI Client', 'gratis-ai-agent' ),
+			provider_name: __( 'WordPress AI Client', 'sd-ai-agent' ),
 			model_id: '',
-			model_name: __( 'Default Model', 'gratis-ai-agent' ),
+			model_name: __( 'Default Model', 'sd-ai-agent' ),
 		} );
 
 		// Add all models from configured providers
@@ -56,7 +56,7 @@ export default function ModelSelector( {
 						provider_id: provider.id,
 						provider_name: provider.name,
 						model_id: '',
-						model_name: __( 'Default Model', 'gratis-ai-agent' ),
+						model_name: __( 'Default Model', 'sd-ai-agent' ),
 					} );
 				}
 			} );
@@ -134,15 +134,15 @@ export default function ModelSelector( {
 	};
 
 	return (
-		<div className="gratis-ai-agent-model-selector">
+		<div className="sd-ai-agent-model-selector">
 			<SearchControl
 				value={ searchTerm }
 				onChange={ setSearchTerm }
-				placeholder={ __( 'Search models…', 'gratis-ai-agent' ) }
+				placeholder={ __( 'Search models…', 'sd-ai-agent' ) }
 			/>
 
 			<div
-				className="gratis-ai-agent-model-selector-actions"
+				className="sd-ai-agent-model-selector-actions"
 				style={ { margin: '12px 0' } }
 			>
 				<Button
@@ -151,7 +151,7 @@ export default function ModelSelector( {
 					disabled={ disabled }
 					size="small"
 				>
-					{ __( 'Select All', 'gratis-ai-agent' ) }
+					{ __( 'Select All', 'sd-ai-agent' ) }
 				</Button>
 				<Button
 					variant="secondary"
@@ -160,11 +160,11 @@ export default function ModelSelector( {
 					size="small"
 					style={ { marginLeft: '8px' } }
 				>
-					{ __( 'Deselect All', 'gratis-ai-agent' ) }
+					{ __( 'Deselect All', 'sd-ai-agent' ) }
 				</Button>
 				<span style={ { marginLeft: '12px', color: '#646970' } }>
 					{ selectedModels.length }{ ' ' }
-					{ __( 'models selected', 'gratis-ai-agent' ) }
+					{ __( 'models selected', 'sd-ai-agent' ) }
 				</span>
 			</div>
 
@@ -172,14 +172,14 @@ export default function ModelSelector( {
 				( [ providerName, models ] ) => (
 					<div
 						key={ providerName }
-						className="gratis-ai-agent-model-provider"
+						className="sd-ai-agent-model-provider"
 					>
 						<h4>{ providerName }</h4>
-						<div className="gratis-ai-agent-model-list">
+						<div className="sd-ai-agent-model-list">
 							{ models.map( ( model ) => (
 								<div
 									key={ `${ model.provider_id }-${ model.model_id }` }
-									className="gratis-ai-agent-model-item"
+									className="sd-ai-agent-model-item"
 								>
 									<CheckboxControl
 										label={ model.model_name }
@@ -204,7 +204,7 @@ export default function ModelSelector( {
 				>
 					{ __(
 						'No models found matching your search.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }

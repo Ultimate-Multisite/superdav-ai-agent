@@ -59,7 +59,7 @@ function Badge( { label, color = 'blue' } ) {
 	const scheme = colors[ color ] || colors.blue;
 
 	return (
-		<span className="gratis-ai-agent-tool-badge" style={ scheme }>
+		<span className="sd-ai-agent-tool-badge" style={ scheme }>
 			{ label }
 		</span>
 	);
@@ -89,12 +89,12 @@ function ExpandableContent( { content, label, maxPreview = 200 } ) {
 			: content.substring( 0, maxPreview ) + '...';
 
 	return (
-		<div className="gratis-ai-agent-tool-expandable">
+		<div className="sd-ai-agent-tool-expandable">
 			<details>
-				<summary className="gratis-ai-agent-tool-expandable-toggle">
+				<summary className="sd-ai-agent-tool-expandable-toggle">
 					{ label }
 					{ isLong && (
-						<span className="gratis-ai-agent-tool-expandable-size">
+						<span className="sd-ai-agent-tool-expandable-size">
 							{ ' ' }
 							({ formatSize( content.length ) })
 						</span>
@@ -102,7 +102,7 @@ function ExpandableContent( { content, label, maxPreview = 200 } ) {
 				</summary>
 				{ /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- the pre is supplementary; the button below is the primary expand control */ }
 				<pre
-					className="gratis-ai-agent-tool-expandable-content"
+					className="sd-ai-agent-tool-expandable-content"
 					onClick={
 						isLong && ! expanded
 							? () => setExpanded( true )
@@ -113,13 +113,13 @@ function ExpandableContent( { content, label, maxPreview = 200 } ) {
 					{ isLong && ! expanded && (
 						<button
 							type="button"
-							className="gratis-ai-agent-tool-expand-btn"
+							className="sd-ai-agent-tool-expand-btn"
 							onClick={ ( e ) => {
 								e.stopPropagation();
 								setExpanded( true );
 							} }
 						>
-							{ __( 'Show full', 'gratis-ai-agent' ) }
+							{ __( 'Show full', 'sd-ai-agent' ) }
 						</button>
 					) }
 				</pre>
@@ -216,36 +216,36 @@ function ToolCallPair( { call, response } ) {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-tool-pair${
-				isSkill ? ' gratis-ai-agent-tool-pair--skill' : ''
+			className={ `sd-ai-agent-tool-pair${
+				isSkill ? ' sd-ai-agent-tool-pair--skill' : ''
 			}` }
 		>
-			<div className="gratis-ai-agent-tool-pair-header">
-				<span className="gratis-ai-agent-tool-pair-icon">
+			<div className="sd-ai-agent-tool-pair-header">
+				<span className="sd-ai-agent-tool-pair-icon">
 					{ isSkill ? '\u{1F4DA}' : '\u{2699}\u{FE0F}' }
 				</span>
-				<code className="gratis-ai-agent-tool-pair-name">
+				<code className="sd-ai-agent-tool-pair-name">
 					{ displayName }
 				</code>
 				{ ranInBrowser && (
 					<Badge
-						label={ __( 'Browser', 'gratis-ai-agent' ) }
+						label={ __( 'Browser', 'sd-ai-agent' ) }
 						color="blue"
 					/>
 				) }
 				{ isSkill && (
 					<Badge
-						label={ __( 'Skill', 'gratis-ai-agent' ) }
+						label={ __( 'Skill', 'sd-ai-agent' ) }
 						color="purple"
 					/>
 				) }
 				{ hasResponse && response.response?.success === false ? (
-					<span className="gratis-ai-agent-tool-pair-status gratis-ai-agent-tool-pair-status--error">
+					<span className="sd-ai-agent-tool-pair-status sd-ai-agent-tool-pair-status--error">
 						{ '✗' }
 					</span>
 				) : (
 					hasResponse && (
-						<span className="gratis-ai-agent-tool-pair-status gratis-ai-agent-tool-pair-status--ok">
+						<span className="sd-ai-agent-tool-pair-status sd-ai-agent-tool-pair-status--ok">
 							{ '✓' }
 						</span>
 					)
@@ -255,7 +255,7 @@ function ToolCallPair( { call, response } ) {
 			{ argsStr && argsStr !== '{}' && argsStr !== 'null' && (
 				<ExpandableContent
 					content={ argsStr }
-					label={ __( 'Arguments', 'gratis-ai-agent' ) }
+					label={ __( 'Arguments', 'sd-ai-agent' ) }
 					maxPreview={ 200 }
 				/>
 			) }
@@ -263,7 +263,7 @@ function ToolCallPair( { call, response } ) {
 			{ responseStr && (
 				<ExpandableContent
 					content={ responseStr }
-					label={ __( 'Response', 'gratis-ai-agent' ) }
+					label={ __( 'Response', 'sd-ai-agent' ) }
 					maxPreview={ 300 }
 				/>
 			) }
@@ -299,29 +299,25 @@ export default function ToolCallDetails( { toolCalls } ) {
 	if ( toolCount > 0 ) {
 		summaryParts.push(
 			toolCount === 1
-				? __( '1 tool used', 'gratis-ai-agent' )
-				: `${ toolCount } ${ __( 'tools used', 'gratis-ai-agent' ) }`
+				? __( '1 tool used', 'sd-ai-agent' )
+				: `${ toolCount } ${ __( 'tools used', 'sd-ai-agent' ) }`
 		);
 	}
 	if ( skillCount > 0 ) {
 		summaryParts.push(
 			skillCount === 1
-				? __( '1 skill loaded', 'gratis-ai-agent' )
-				: `${ skillCount } ${ __(
-						'skills loaded',
-						'gratis-ai-agent'
-				  ) }`
+				? __( '1 skill loaded', 'sd-ai-agent' )
+				: `${ skillCount } ${ __( 'skills loaded', 'sd-ai-agent' ) }`
 		);
 	}
 	const summaryText =
-		summaryParts.join( ', ' ) ||
-		__( 'tool calls executed', 'gratis-ai-agent' );
+		summaryParts.join( ', ' ) || __( 'tool calls executed', 'sd-ai-agent' );
 
 	return (
-		<div className="gratis-ai-agent-tool-calls">
+		<div className="sd-ai-agent-tool-calls">
 			<details>
 				<summary>{ summaryText }</summary>
-				<div className="gratis-ai-agent-tool-list">
+				<div className="sd-ai-agent-tool-list">
 					{ pairs.map( ( pair, i ) => (
 						<ToolCallPair
 							key={ pair.call.id || i }

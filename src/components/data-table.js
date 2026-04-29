@@ -147,43 +147,43 @@ export default function DataTable( { children } ) {
 	const sortIndicator = ( colIndex ) => {
 		if ( sortCol !== colIndex ) {
 			return (
-				<span className="gratis-ai-agent-table-sort-icon gratis-ai-agent-table-sort-none">
+				<span className="sd-ai-agent-table-sort-icon sd-ai-agent-table-sort-none">
 					⇅
 				</span>
 			);
 		}
 		return (
-			<span className="gratis-ai-agent-table-sort-icon gratis-ai-agent-table-sort-active">
+			<span className="sd-ai-agent-table-sort-icon sd-ai-agent-table-sort-active">
 				{ sortDir === 'asc' ? '↑' : '↓' }
 			</span>
 		);
 	};
 
 	return (
-		<div className="gratis-ai-agent-data-table-wrap">
+		<div className="sd-ai-agent-data-table-wrap">
 			{ /* Filter bar — only shown when the table has more than 10 rows */ }
 			{ rawRows.length > 10 && (
-				<div className="gratis-ai-agent-data-table-toolbar">
-					<div className="gratis-ai-agent-data-table-filter">
+				<div className="sd-ai-agent-data-table-toolbar">
+					<div className="sd-ai-agent-data-table-filter">
 						<input
 							type="search"
-							className="gratis-ai-agent-data-table-filter-input"
-							placeholder={ __( 'Filter…', 'gratis-ai-agent' ) }
+							className="sd-ai-agent-data-table-filter-input"
+							placeholder={ __( 'Filter…', 'sd-ai-agent' ) }
 							value={ filter }
 							onChange={ handleFilterChange }
 							aria-label={ __(
 								'Filter table rows',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						/>
 						{ filter && (
 							<button
 								type="button"
-								className="gratis-ai-agent-data-table-filter-clear"
+								className="sd-ai-agent-data-table-filter-clear"
 								onClick={ handleFilterClear }
 								aria-label={ __(
 									'Clear filter',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							>
 								✕
@@ -191,15 +191,15 @@ export default function DataTable( { children } ) {
 						) }
 					</div>
 					{ filter && (
-						<span className="gratis-ai-agent-data-table-count">
+						<span className="sd-ai-agent-data-table-count">
 							{ filteredRows.length } / { rawRows.length }
 						</span>
 					) }
 				</div>
 			) }
 
-			<div className="gratis-ai-agent-data-table-scroll">
-				<table className="gratis-ai-agent-data-table">
+			<div className="sd-ai-agent-data-table-scroll">
+				<table className="sd-ai-agent-data-table">
 					{ headers.length > 0 && (
 						<thead>
 							<tr>
@@ -208,8 +208,8 @@ export default function DataTable( { children } ) {
 										key={ i }
 										className={
 											sortCol === i
-												? 'gratis-ai-agent-data-table-th is-sorted'
-												: 'gratis-ai-agent-data-table-th'
+												? 'sd-ai-agent-data-table-th is-sorted'
+												: 'sd-ai-agent-data-table-th'
 										}
 										onClick={ () => handleSort( i ) }
 										aria-sort={ ( () => {
@@ -232,7 +232,7 @@ export default function DataTable( { children } ) {
 											}
 										} }
 									>
-										<span className="gratis-ai-agent-data-table-th-label">
+										<span className="sd-ai-agent-data-table-th-label">
 											{ header }
 										</span>
 										{ sortIndicator( i ) }
@@ -248,7 +248,7 @@ export default function DataTable( { children } ) {
 									{ row.map( ( cell, cellIdx ) => (
 										<td
 											key={ cellIdx }
-											className="gratis-ai-agent-data-table-td"
+											className="sd-ai-agent-data-table-td"
 										>
 											{ cell.node }
 										</td>
@@ -259,12 +259,9 @@ export default function DataTable( { children } ) {
 							<tr>
 								<td
 									colSpan={ headers.length || 1 }
-									className="gratis-ai-agent-data-table-empty"
+									className="sd-ai-agent-data-table-empty"
 								>
-									{ __(
-										'No matching rows.',
-										'gratis-ai-agent'
-									) }
+									{ __( 'No matching rows.', 'sd-ai-agent' ) }
 								</td>
 							</tr>
 						) }

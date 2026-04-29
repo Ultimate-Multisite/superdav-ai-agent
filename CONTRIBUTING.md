@@ -1,4 +1,4 @@
-# Contributing to Gratis AI Agent
+# Contributing to Superdav AI Agent
 
 Thank you for your interest in contributing! This guide covers everything you need to get started: local environment setup, running the test suite and linters, commit conventions, and the PR workflow.
 
@@ -470,7 +470,7 @@ export function MyComponent() {
 
 ## WordPress.org Plugin Directory
 
-The plugin is distributed through the [WordPress.org plugin directory](https://wordpress.org/plugins/gratis-ai-agent/).
+The plugin is distributed through the [WordPress.org plugin directory](https://wordpress.org/plugins/sd-ai-agent/).
 Releases are published via SVN after passing the WP.org review process.
 
 For the complete submission and release workflow — including the initial review
@@ -480,7 +480,7 @@ submission, SVN checkout, trunk deployment, and version tagging — see
 ### Quick reference: releasing a new version
 
 ```bash
-# 1. Update Version: in gratis-ai-agent.php and Stable tag: in readme.txt
+# 1. Update Version: in sd-ai-agent.php and Stable tag: in readme.txt
 # 2. Add changelog entry to readme.txt
 
 # 3. Deploy to WP.org SVN (requires prior SVN checkout)

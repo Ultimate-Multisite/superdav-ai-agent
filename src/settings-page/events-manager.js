@@ -46,8 +46,8 @@ export default function EventsManager() {
 	const fetchAll = useCallback( async () => {
 		try {
 			const [ result, trigs ] = await Promise.all( [
-				apiFetch( { path: '/gratis-ai-agent/v1/event-automations' } ),
-				apiFetch( { path: '/gratis-ai-agent/v1/event-triggers' } ),
+				apiFetch( { path: '/sd-ai-agent/v1/event-automations' } ),
+				apiFetch( { path: '/sd-ai-agent/v1/event-triggers' } ),
 			] );
 			setEvents( result );
 			setTriggers( trigs );
@@ -91,13 +91,13 @@ export default function EventsManager() {
 
 			if ( editId ) {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/event-automations/${ editId }`,
+					path: `/sd-ai-agent/v1/event-automations/${ editId }`,
 					method: 'PATCH',
 					data,
 				} );
 			} else {
 				await apiFetch( {
-					path: '/gratis-ai-agent/v1/event-automations',
+					path: '/sd-ai-agent/v1/event-automations',
 					method: 'POST',
 					data,
 				} );
@@ -106,13 +106,12 @@ export default function EventsManager() {
 			fetchAll();
 			setNotice( {
 				status: 'success',
-				message: __( 'Event automation saved.', 'gratis-ai-agent' ),
+				message: __( 'Event automation saved.', 'sd-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message:
-					err.message || __( 'Failed to save.', 'gratis-ai-agent' ),
+				message: err.message || __( 'Failed to save.', 'sd-ai-agent' ),
 			} );
 		}
 	}, [ form, editId, resetForm, fetchAll ] );
@@ -136,11 +135,11 @@ export default function EventsManager() {
 			if (
 				// eslint-disable-next-line no-alert
 				window.confirm(
-					__( 'Delete this event automation?', 'gratis-ai-agent' )
+					__( 'Delete this event automation?', 'sd-ai-agent' )
 				)
 			) {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/event-automations/${ id }`,
+					path: `/sd-ai-agent/v1/event-automations/${ id }`,
 					method: 'DELETE',
 				} );
 				fetchAll();
@@ -152,7 +151,7 @@ export default function EventsManager() {
 	const handleToggle = useCallback(
 		async ( ev ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/event-automations/${ ev.id }`,
+				path: `/sd-ai-agent/v1/event-automations/${ ev.id }`,
 				method: 'PATCH',
 				data: { enabled: ! ev.enabled },
 			} );
@@ -170,7 +169,7 @@ export default function EventsManager() {
 			}
 			try {
 				const result = await apiFetch( {
-					path: '/gratis-ai-agent/v1/automation-logs?trigger_type=event&limit=20',
+					path: '/sd-ai-agent/v1/automation-logs?trigger_type=event&limit=20',
 				} );
 				setLogs( result );
 				setViewLogsId( id );
@@ -191,7 +190,7 @@ export default function EventsManager() {
 	}, {} );
 
 	const triggerOptions = [
-		{ label: __( 'Select a trigger…', 'gratis-ai-agent' ), value: '' },
+		{ label: __( 'Select a trigger…', 'sd-ai-agent' ), value: '' },
 		...Object.entries( triggersByCategory ).flatMap(
 			( [ category, items ] ) => [
 				{
@@ -214,16 +213,14 @@ export default function EventsManager() {
 	);
 
 	return (
-		<div className="gratis-ai-agent-events-manager">
-			<div className="gratis-ai-agent-skill-header">
+		<div className="sd-ai-agent-events-manager">
+			<div className="sd-ai-agent-skill-header">
 				<div>
-					<h3>
-						{ __( 'Event-Driven Automations', 'gratis-ai-agent' ) }
-					</h3>
+					<h3>{ __( 'Event-Driven Automations', 'sd-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Trigger AI actions when WordPress hooks fire — post published, user registered, order placed, etc.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -237,7 +234,7 @@ export default function EventsManager() {
 						} }
 						size="compact"
 					>
-						{ __( 'Add Event', 'gratis-ai-agent' ) }
+						{ __( 'Add Event', 'sd-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -253,25 +250,25 @@ export default function EventsManager() {
 			) }
 
 			{ showForm && (
-				<div className="gratis-ai-agent-skill-form">
+				<div className="sd-ai-agent-skill-form">
 					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
+						label={ __( 'Name', 'sd-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => updateForm( 'name', v ) }
 						placeholder={ __(
 							'e.g., "Auto-tag new posts"',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'sd-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) => updateForm( 'description', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Trigger Hook', 'gratis-ai-agent' ) }
+						label={ __( 'Trigger Hook', 'sd-ai-agent' ) }
 						value={ form.hook_name }
 						options={ triggerOptions }
 						onChange={ ( v ) => {
@@ -284,7 +281,7 @@ export default function EventsManager() {
 					/>
 
 					{ selectedTrigger && (
-						<div className="gratis-ai-agent-trigger-info">
+						<div className="sd-ai-agent-trigger-info">
 							<p className="description">
 								{ selectedTrigger.description }
 							</p>
@@ -302,7 +299,7 @@ export default function EventsManager() {
 										<strong>
 											{ __(
 												'Available placeholders:',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</strong>{ ' ' }
 										{ keys
@@ -322,7 +319,7 @@ export default function EventsManager() {
 										<strong>
 											{ __(
 												'Available conditions:',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</strong>{ ' ' }
 										{ keys.join( ', ' ) }
@@ -333,27 +330,27 @@ export default function EventsManager() {
 					) }
 
 					<TextareaControl
-						label={ __( 'Prompt Template', 'gratis-ai-agent' ) }
+						label={ __( 'Prompt Template', 'sd-ai-agent' ) }
 						value={ form.prompt_template }
 						onChange={ ( v ) => updateForm( 'prompt_template', v ) }
 						rows={ 6 }
 						help={ __(
 							'Use {{placeholders}} for dynamic data from the triggering event.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					/>
 					<TextareaControl
-						label={ __( 'Conditions (JSON)', 'gratis-ai-agent' ) }
+						label={ __( 'Conditions (JSON)', 'sd-ai-agent' ) }
 						value={ form.conditions }
 						onChange={ ( v ) => updateForm( 'conditions', v ) }
 						rows={ 3 }
 						help={ __(
 							'Optional. e.g., {"post_type":"post","new_status":"publish"}',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					/>
 					<TextControl
-						label={ __( 'Max Iterations', 'gratis-ai-agent' ) }
+						label={ __( 'Max Iterations', 'sd-ai-agent' ) }
 						type="number"
 						min={ 1 }
 						max={ 50 }
@@ -366,7 +363,7 @@ export default function EventsManager() {
 						}
 						__nextHasNoMarginBottom
 					/>
-					<div className="gratis-ai-agent-skill-form-actions">
+					<div className="sd-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -378,15 +375,15 @@ export default function EventsManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'gratis-ai-agent' )
-								: __( 'Create', 'gratis-ai-agent' ) }
+								? __( 'Update', 'sd-ai-agent' )
+								: __( 'Create', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -394,7 +391,7 @@ export default function EventsManager() {
 
 			{ ! loaded && (
 				<p className="description">
-					{ __( 'Loading…', 'gratis-ai-agent' ) }
+					{ __( 'Loading…', 'sd-ai-agent' ) }
 				</p>
 			) }
 
@@ -402,59 +399,59 @@ export default function EventsManager() {
 				<p className="description">
 					{ __(
 						'No event automations configured yet.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }
 
 			{ events.length > 0 && (
 				<div
-					className="gratis-ai-agent-skill-cards"
+					className="sd-ai-agent-skill-cards"
 					style={ { marginTop: '16px' } }
 				>
 					{ events.map( ( ev ) => (
 						<div
 							key={ ev.id }
-							className={ `gratis-ai-agent-skill-card ${
+							className={ `sd-ai-agent-skill-card ${
 								! ev.enabled
-									? 'gratis-ai-agent-skill-card--disabled'
+									? 'sd-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="gratis-ai-agent-skill-card-header">
+							<div className="sd-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ ev.enabled }
 									onChange={ () => handleToggle( ev ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="gratis-ai-agent-skill-card-title">
+								<div className="sd-ai-agent-skill-card-title">
 									<strong>{ ev.name }</strong>
-									<span className="gratis-ai-agent-skill-badge">
+									<span className="sd-ai-agent-skill-badge">
 										{ ev.hook_name }
 									</span>
 								</div>
 							</div>
-							<p className="gratis-ai-agent-skill-card-description">
+							<p className="sd-ai-agent-skill-card-description">
 								{ ev.description ||
 									ev.prompt_template.slice( 0, 100 ) + '...' }
 							</p>
-							<div className="gratis-ai-agent-skill-card-footer">
-								<span className="gratis-ai-agent-skill-word-count">
+							<div className="sd-ai-agent-skill-card-footer">
+								<span className="sd-ai-agent-skill-word-count">
 									{ ev.run_count }{ ' ' }
-									{ __( 'runs', 'gratis-ai-agent' ) }
+									{ __( 'runs', 'sd-ai-agent' ) }
 									{ ev.last_run_at && (
 										<>
 											{ ' ' }
 											&middot;{ ' ' }
 											{ __(
 												'Last:',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }{ ' ' }
 											{ ev.last_run_at }
 										</>
 									) }
 								</span>
-								<div className="gratis-ai-agent-skill-card-actions">
+								<div className="sd-ai-agent-skill-card-actions">
 									<Button
 										variant="tertiary"
 										size="small"
@@ -463,28 +460,19 @@ export default function EventsManager() {
 										}
 									>
 										{ viewLogsId === ev.id
-											? __(
-													'Hide Logs',
-													'gratis-ai-agent'
-											  )
-											: __( 'Logs', 'gratis-ai-agent' ) }
+											? __( 'Hide Logs', 'sd-ai-agent' )
+											: __( 'Logs', 'sd-ai-agent' ) }
 									</Button>
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __(
-											'Edit',
-											'gratis-ai-agent'
-										) }
+										label={ __( 'Edit', 'sd-ai-agent' ) }
 										onClick={ () => handleEdit( ev ) }
 									/>
 									<Button
 										icon={ trash }
 										size="small"
-										label={ __(
-											'Delete',
-											'gratis-ai-agent'
-										) }
+										label={ __( 'Delete', 'sd-ai-agent' ) }
 										isDestructive
 										onClick={ () => handleDelete( ev.id ) }
 									/>
@@ -492,23 +480,23 @@ export default function EventsManager() {
 							</div>
 
 							{ viewLogsId === ev.id && (
-								<div className="gratis-ai-agent-automation-logs">
+								<div className="sd-ai-agent-automation-logs">
 									{ logs.length === 0 && (
 										<p className="description">
 											{ __(
 												'No logs yet.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 									) }
 									{ logs.map( ( log ) => (
 										<div
 											key={ log.id }
-											className={ `gratis-ai-agent-log-entry gratis-ai-agent-log--${ log.status }` }
+											className={ `sd-ai-agent-log-entry sd-ai-agent-log--${ log.status }` }
 										>
-											<div className="gratis-ai-agent-log-meta">
+											<div className="sd-ai-agent-log-meta">
 												<span
-													className={ `gratis-ai-agent-log-status gratis-ai-agent-log-status--${ log.status }` }
+													className={ `sd-ai-agent-log-status sd-ai-agent-log-status--${ log.status }` }
 												>
 													{ log.status }
 												</span>
@@ -522,7 +510,7 @@ export default function EventsManager() {
 												</span>
 											</div>
 											{ log.error_message && (
-												<p className="gratis-ai-agent-log-error">
+												<p className="sd-ai-agent-log-error">
 													{ log.error_message }
 												</p>
 											) }
@@ -531,10 +519,10 @@ export default function EventsManager() {
 													<summary>
 														{ __(
 															'Response',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</summary>
-													<pre className="gratis-ai-agent-log-reply">
+													<pre className="sd-ai-agent-log-reply">
 														{ log.reply }
 													</pre>
 												</details>

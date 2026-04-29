@@ -76,53 +76,50 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 		const names = card.toolNames || [];
 		return (
 			<div
-				className="gratis-ai-agent-action-card gratis-ai-agent-action-card--retry"
+				className="sd-ai-agent-action-card sd-ai-agent-action-card--retry"
 				role="region"
-				aria-label={ __( 'Retry tool submission', 'gratis-ai-agent' ) }
+				aria-label={ __( 'Retry tool submission', 'sd-ai-agent' ) }
 			>
-				<div className="gratis-ai-agent-action-card-header">
+				<div className="sd-ai-agent-action-card-header">
 					<span
-						className="gratis-ai-agent-action-card-icon"
+						className="sd-ai-agent-action-card-icon"
 						aria-hidden="true"
 					>
 						&#8635;
 					</span>
-					<span className="gratis-ai-agent-action-card-heading">
-						{ __(
-							'Submission failed — retry?',
-							'gratis-ai-agent'
-						) }
+					<span className="sd-ai-agent-action-card-heading">
+						{ __( 'Submission failed — retry?', 'sd-ai-agent' ) }
 					</span>
 				</div>
-				<div className="gratis-ai-agent-action-card-body">
+				<div className="sd-ai-agent-action-card-body">
 					<p>
 						{ __(
 							'The browser finished the tool calls but could not deliver the results to the server. Your work is preserved — click Retry to resubmit without re-running the tools.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					{ names.length > 0 && (
-						<p className="gratis-ai-agent-action-card-tool-names">
-							{ __( 'Completed tools:', 'gratis-ai-agent' ) }{ ' ' }
+						<p className="sd-ai-agent-action-card-tool-names">
+							{ __( 'Completed tools:', 'sd-ai-agent' ) }{ ' ' }
 							<code>{ names.join( ', ' ) }</code>
 						</p>
 					) }
 				</div>
-				<div className="gratis-ai-agent-action-card-footer">
+				<div className="sd-ai-agent-action-card-footer">
 					<button
 						type="button"
-						className="button gratis-ai-agent-action-card-btn-cancel"
+						className="button sd-ai-agent-action-card-btn-cancel"
 						onClick={ onCancel }
 					>
-						{ __( 'Cancel', 'gratis-ai-agent' ) }
+						{ __( 'Cancel', 'sd-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						ref={ confirmRef }
-						className="button button-primary gratis-ai-agent-action-card-btn-confirm"
+						className="button button-primary sd-ai-agent-action-card-btn-confirm"
 						onClick={ () => onConfirm() }
 					>
-						{ __( 'Retry', 'gratis-ai-agent' ) }
+						{ __( 'Retry', 'sd-ai-agent' ) }
 					</button>
 				</div>
 			</div>
@@ -135,23 +132,23 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 
 	return (
 		<div
-			className="gratis-ai-agent-action-card"
+			className="sd-ai-agent-action-card"
 			role="region"
-			aria-label={ __( 'Action confirmation', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Action confirmation', 'sd-ai-agent' ) }
 		>
-			<div className="gratis-ai-agent-action-card-header">
+			<div className="sd-ai-agent-action-card-header">
 				<span
-					className="gratis-ai-agent-action-card-icon"
+					className="sd-ai-agent-action-card-icon"
 					aria-hidden="true"
 				>
 					&#9888;
 				</span>
-				<span className="gratis-ai-agent-action-card-heading">
-					{ __( 'Confirm Action', 'gratis-ai-agent' ) }
+				<span className="sd-ai-agent-action-card-heading">
+					{ __( 'Confirm Action', 'sd-ai-agent' ) }
 				</span>
 			</div>
 
-			<div className="gratis-ai-agent-action-card-body">
+			<div className="sd-ai-agent-action-card-body">
 				{ card.tools.map( ( tool ) => {
 					const { title, description } = describeToolCall(
 						tool.name,
@@ -160,25 +157,22 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 					return (
 						<div
 							key={ tool.id || tool.name }
-							className="gratis-ai-agent-action-card-tool"
+							className="sd-ai-agent-action-card-tool"
 						>
-							<div className="gratis-ai-agent-action-card-tool-title">
+							<div className="sd-ai-agent-action-card-tool-title">
 								{ title }
 							</div>
 							{ description && (
-								<div className="gratis-ai-agent-action-card-tool-desc">
+								<div className="sd-ai-agent-action-card-tool-desc">
 									{ description }
 								</div>
 							) }
 							{ tool.args && (
-								<details className="gratis-ai-agent-action-card-tool-args-details">
+								<details className="sd-ai-agent-action-card-tool-args-details">
 									<summary>
-										{ __(
-											'View details',
-											'gratis-ai-agent'
-										) }
+										{ __( 'View details', 'sd-ai-agent' ) }
 									</summary>
-									<pre className="gratis-ai-agent-action-card-tool-args">
+									<pre className="sd-ai-agent-action-card-tool-args">
 										{ JSON.stringify( tool.args, null, 2 ) }
 									</pre>
 								</details>
@@ -188,21 +182,21 @@ export default function ActionCard( { card, onConfirm, onCancel } ) {
 				} ) }
 			</div>
 
-			<div className="gratis-ai-agent-action-card-footer">
+			<div className="sd-ai-agent-action-card-footer">
 				<button
 					type="button"
-					className="button gratis-ai-agent-action-card-btn-cancel"
+					className="button sd-ai-agent-action-card-btn-cancel"
 					onClick={ onCancel }
 				>
-					{ __( 'Cancel', 'gratis-ai-agent' ) }
+					{ __( 'Cancel', 'sd-ai-agent' ) }
 				</button>
 				<button
 					type="button"
 					ref={ confirmRef }
-					className="button button-primary gratis-ai-agent-action-card-btn-confirm"
+					className="button button-primary sd-ai-agent-action-card-btn-confirm"
 					onClick={ () => onConfirm( false ) }
 				>
-					{ __( 'Confirm', 'gratis-ai-agent' ) }
+					{ __( 'Confirm', 'sd-ai-agent' ) }
 				</button>
 			</div>
 		</div>

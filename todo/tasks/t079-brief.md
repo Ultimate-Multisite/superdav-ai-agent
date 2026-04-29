@@ -32,14 +32,14 @@ help new users discover what the agent can do.
   - `get_all()`, `get()`, `create()`, `update()`, `delete()` static methods
   - `seed_builtins()` called from `Database::install()`
   - Built-in templates cannot be deleted (guarded in `delete()`)
-- `includes/Core/Database.php` — new `gratis_ai_agent_conversation_templates`
+- `includes/Core/Database.php` — new `sd_ai_agent_conversation_templates`
   table, DB version bumped to `9.0.0`, `ConversationTemplate::seed_builtins()`
   called on install
 - `includes/REST/RestController.php` — four new endpoints:
-  - `GET  /gratis-ai-agent/v1/conversation-templates[?category=X]`
-  - `POST /gratis-ai-agent/v1/conversation-templates`
-  - `PATCH /gratis-ai-agent/v1/conversation-templates/{id}`
-  - `DELETE /gratis-ai-agent/v1/conversation-templates/{id}`
+  - `GET  /sd-ai-agent/v1/conversation-templates[?category=X]`
+  - `POST /sd-ai-agent/v1/conversation-templates`
+  - `PATCH /sd-ai-agent/v1/conversation-templates/{id}`
+  - `DELETE /sd-ai-agent/v1/conversation-templates/{id}`
 
 ### JavaScript
 
@@ -56,8 +56,8 @@ help new users discover what the agent can do.
   - Selecting a template calls `onSelect(prompt)` and closes the panel
 - `src/components/message-input.js` — "Templates" button added to input area;
   selecting a template inserts the prompt text into the textarea
-- `src/admin-page/style.css` — CSS for `.gratis-ai-agent-template-menu`,
-  `.gratis-ai-agent-template-card`, `.ai-agent-input-row`,
+- `src/admin-page/style.css` — CSS for `.sd-ai-agent-template-menu`,
+  `.sd-ai-agent-template-card`, `.ai-agent-input-row`,
   `.ai-agent-templates-btn`
 - `src/floating-widget/style.css` — compact overrides for the floating panel
 
@@ -70,7 +70,7 @@ help new users discover what the agent can do.
 - [ ] Selecting a template inserts its prompt text into the message input
 - [ ] The panel closes after selection
 - [ ] Built-in templates are seeded on plugin install/upgrade
-- [ ] REST API returns templates at `GET /gratis-ai-agent/v1/conversation-templates`
+- [ ] REST API returns templates at `GET /sd-ai-agent/v1/conversation-templates`
 - [ ] Built-in templates cannot be deleted via the API
 - [ ] User-created templates can be created, updated, and deleted via the API
 - [ ] Build passes (`npm run build`)

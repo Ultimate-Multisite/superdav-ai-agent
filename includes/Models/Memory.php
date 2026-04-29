@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Memory system — persistent storage for agent knowledge.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Models\DTO\MemoryRow;
+use SdAiAgent\Models\DTO\MemoryRow;
 
 class Memory {
 
@@ -25,7 +25,7 @@ class Memory {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_memories';
+		return $wpdb->prefix . 'sd_ai_agent_memories';
 	}
 
 	/**

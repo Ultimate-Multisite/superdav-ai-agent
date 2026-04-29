@@ -18,10 +18,10 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const path = category
-					? `/gratis-ai-agent/v1/conversation-templates?category=${ encodeURIComponent(
+					? `/sd-ai-agent/v1/conversation-templates?category=${ encodeURIComponent(
 							category
 					  ) }`
-					: '/gratis-ai-agent/v1/conversation-templates';
+					: '/sd-ai-agent/v1/conversation-templates';
 				const templates = await apiFetch( { path } );
 				dispatch.setConversationTemplates( templates );
 			} catch {
@@ -33,7 +33,7 @@ export const actions = {
 	createConversationTemplate( data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/conversation-templates',
+				path: '/sd-ai-agent/v1/conversation-templates',
 				method: 'POST',
 				data,
 			} );
@@ -44,7 +44,7 @@ export const actions = {
 	updateConversationTemplate( id, data ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/conversation-templates/${ id }`,
+				path: `/sd-ai-agent/v1/conversation-templates/${ id }`,
 				method: 'PATCH',
 				data,
 			} );
@@ -55,7 +55,7 @@ export const actions = {
 	deleteConversationTemplate( id ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/conversation-templates/${ id }`,
+				path: `/sd-ai-agent/v1/conversation-templates/${ id }`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchConversationTemplates();

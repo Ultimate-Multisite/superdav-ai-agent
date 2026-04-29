@@ -110,7 +110,7 @@ export default function FeedbackConsentModal( {
 			messageIndex !== null &&
 			! includeFullConversation;
 
-		let path = `/gratis-ai-agent/v1/feedback/preview?session_id=${ sessionId }&strip_tool_results=${
+		let path = `/sd-ai-agent/v1/feedback/preview?session_id=${ sessionId }&strip_tool_results=${
 			stripToolResults ? '1' : '0'
 		}`;
 		if ( useMessageScope ) {
@@ -162,7 +162,7 @@ export default function FeedbackConsentModal( {
 			}
 
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/feedback/send',
+				path: '/sd-ai-agent/v1/feedback/send',
 				method: 'POST',
 				data: postData,
 			} );
@@ -171,10 +171,7 @@ export default function FeedbackConsentModal( {
 			setTimeout( onClose, 1500 );
 		} catch {
 			setError(
-				__(
-					'Failed to send report. Please try again.',
-					'gratis-ai-agent'
-				)
+				__( 'Failed to send report. Please try again.', 'sd-ai-agent' )
 			);
 			setIsSending( false );
 		}
@@ -191,61 +188,58 @@ export default function FeedbackConsentModal( {
 	const summary = preview?.summary;
 
 	return (
-		<div className="gratis-ai-agent-shortcuts-overlay">
+		<div className="sd-ai-agent-shortcuts-overlay">
 			<div
-				className="gratis-ai-agent-feedback-modal"
+				className="sd-ai-agent-feedback-modal"
 				ref={ dialogRef }
 				role="dialog"
 				aria-modal="true"
-				aria-labelledby="gratis-ai-agent-feedback-title"
+				aria-labelledby="sd-ai-agent-feedback-title"
 			>
-				<div className="gratis-ai-agent-feedback-modal__header">
-					<h3 id="gratis-ai-agent-feedback-title">
-						{ __( 'Send Feedback Report', 'gratis-ai-agent' ) }
+				<div className="sd-ai-agent-feedback-modal__header">
+					<h3 id="sd-ai-agent-feedback-title">
+						{ __( 'Send Feedback Report', 'sd-ai-agent' ) }
 					</h3>
 					<button
 						type="button"
-						className="gratis-ai-agent-feedback-modal__close"
+						className="sd-ai-agent-feedback-modal__close"
 						onClick={ onClose }
-						aria-label={ __( 'Close', 'gratis-ai-agent' ) }
+						aria-label={ __( 'Close', 'sd-ai-agent' ) }
 					>
 						&times;
 					</button>
 				</div>
-				<div className="gratis-ai-agent-feedback-modal__body">
+				<div className="sd-ai-agent-feedback-modal__body">
 					{ isSent ? (
-						<p className="gratis-ai-agent-feedback-modal__success">
-							{ __(
-								'Report sent. Thank you!',
-								'gratis-ai-agent'
-							) }
+						<p className="sd-ai-agent-feedback-modal__success">
+							{ __( 'Report sent. Thank you!', 'sd-ai-agent' ) }
 						</p>
 					) : (
 						<>
-							<p className="gratis-ai-agent-feedback-modal__notice">
+							<p className="sd-ai-agent-feedback-modal__notice">
 								{ __(
 									'No passwords, API keys, or credentials are included. Server paths are anonymized. Review the full payload below.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</p>
 
 							{ /* Summary stats — shown when a session is loaded */ }
 							{ sessionId && (
-								<div className="gratis-ai-agent-feedback-modal__stats">
+								<div className="sd-ai-agent-feedback-modal__stats">
 									{ previewLoading && (
-										<p className="gratis-ai-agent-feedback-modal__stats-loading">
+										<p className="sd-ai-agent-feedback-modal__stats-loading">
 											{ __(
 												'Loading report preview…',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 									) }
 									{ ! previewLoading && summary && (
-										<ul className="gratis-ai-agent-feedback-modal__stats-list">
+										<ul className="sd-ai-agent-feedback-modal__stats-list">
 											<li>
 												{ __(
 													'Messages:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }{ ' ' }
 												<strong>
 													{ summary.message_count }
@@ -254,7 +248,7 @@ export default function FeedbackConsentModal( {
 											<li>
 												{ __(
 													'Tool calls:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }{ ' ' }
 												<strong>
 													{ summary.tool_call_count }
@@ -263,7 +257,7 @@ export default function FeedbackConsentModal( {
 											<li>
 												{ __(
 													'Environment keys:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }{ ' ' }
 												<strong>
 													{ summary.environment_keys
@@ -274,7 +268,7 @@ export default function FeedbackConsentModal( {
 												<li>
 													{ __(
 														'Model:',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }{ ' ' }
 													<strong>
 														{ summary.model_id }
@@ -291,13 +285,13 @@ export default function FeedbackConsentModal( {
 								messageIndex !== undefined &&
 								messageIndex !== null && (
 									<label
-										htmlFor="gratis-ai-agent-full-conversation"
-										className="gratis-ai-agent-feedback-modal__strip-label"
+										htmlFor="sd-ai-agent-full-conversation"
+										className="sd-ai-agent-feedback-modal__strip-label"
 									>
 										<input
-											id="gratis-ai-agent-full-conversation"
+											id="sd-ai-agent-full-conversation"
 											type="checkbox"
-											className="gratis-ai-agent-feedback-modal__strip-checkbox"
+											className="sd-ai-agent-feedback-modal__strip-checkbox"
 											checked={ includeFullConversation }
 											onChange={ ( e ) =>
 												setIncludeFullConversation(
@@ -307,7 +301,7 @@ export default function FeedbackConsentModal( {
 										/>
 										{ __(
 											'Include full conversation (by default only the selected response and 2 surrounding messages are sent)',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</label>
 								) }
@@ -315,13 +309,13 @@ export default function FeedbackConsentModal( {
 							{ /* Strip tool results checkbox */ }
 							{ sessionId && (
 								<label
-									htmlFor="gratis-ai-agent-strip-tool-results"
-									className="gratis-ai-agent-feedback-modal__strip-label"
+									htmlFor="sd-ai-agent-strip-tool-results"
+									className="sd-ai-agent-feedback-modal__strip-label"
 								>
 									<input
-										id="gratis-ai-agent-strip-tool-results"
+										id="sd-ai-agent-strip-tool-results"
 										type="checkbox"
-										className="gratis-ai-agent-feedback-modal__strip-checkbox"
+										className="sd-ai-agent-feedback-modal__strip-checkbox"
 										checked={ stripToolResults }
 										onChange={ ( e ) =>
 											setStripToolResults(
@@ -331,17 +325,17 @@ export default function FeedbackConsentModal( {
 									/>
 									{ __(
 										'Strip tool results (aggressive privacy — keeps tool names and arguments but redacts all outputs)',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								</label>
 							) }
 
 							{ /* Collapsible payload preview */ }
 							{ sessionId && preview?.payload && (
-								<div className="gratis-ai-agent-feedback-modal__payload-section">
+								<div className="sd-ai-agent-feedback-modal__payload-section">
 									<button
 										type="button"
-										className="gratis-ai-agent-feedback-modal__payload-toggle"
+										className="sd-ai-agent-feedback-modal__payload-toggle"
 										onClick={ () =>
 											setPayloadExpanded( ( v ) => ! v )
 										}
@@ -350,15 +344,15 @@ export default function FeedbackConsentModal( {
 										{ payloadExpanded
 											? __(
 													'Hide full payload ▲',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 											  )
 											: __(
 													'View full payload ▼',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 											  ) }
 									</button>
 									{ payloadExpanded && (
-										<pre className="gratis-ai-agent-feedback-modal__payload-json">
+										<pre className="sd-ai-agent-feedback-modal__payload-json">
 											{ JSON.stringify(
 												preview.payload,
 												null,
@@ -370,17 +364,17 @@ export default function FeedbackConsentModal( {
 							) }
 
 							<label
-								htmlFor="gratis-ai-agent-feedback-description"
-								className="gratis-ai-agent-feedback-modal__label"
+								htmlFor="sd-ai-agent-feedback-description"
+								className="sd-ai-agent-feedback-modal__label"
 							>
 								{ __(
 									'Describe the issue (optional):',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</label>
 							<textarea
-								id="gratis-ai-agent-feedback-description"
-								className="gratis-ai-agent-feedback-modal__textarea"
+								id="sd-ai-agent-feedback-description"
+								className="sd-ai-agent-feedback-modal__textarea"
 								value={ description }
 								onChange={ ( e ) =>
 									setDescription( e.target.value )
@@ -388,11 +382,11 @@ export default function FeedbackConsentModal( {
 								rows={ 4 }
 								placeholder={ __(
 									'What went wrong?',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							/>
 							{ error && (
-								<p className="gratis-ai-agent-feedback-modal__error">
+								<p className="sd-ai-agent-feedback-modal__error">
 									{ error }
 								</p>
 							) }
@@ -400,14 +394,14 @@ export default function FeedbackConsentModal( {
 					) }
 				</div>
 				{ ! isSent && (
-					<div className="gratis-ai-agent-feedback-modal__footer">
+					<div className="sd-ai-agent-feedback-modal__footer">
 						<button
 							type="button"
 							className="button"
 							onClick={ onClose }
 							disabled={ isSending }
 						>
-							{ __( 'Dismiss', 'gratis-ai-agent' ) }
+							{ __( 'Dismiss', 'sd-ai-agent' ) }
 						</button>
 						<button
 							type="button"
@@ -416,8 +410,8 @@ export default function FeedbackConsentModal( {
 							disabled={ isSending }
 						>
 							{ isSending
-								? __( 'Sending\u2026', 'gratis-ai-agent' )
-								: __( 'Send Report', 'gratis-ai-agent' ) }
+								? __( 'Sending\u2026', 'sd-ai-agent' )
+								: __( 'Send Report', 'sd-ai-agent' ) }
 						</button>
 					</div>
 				) }

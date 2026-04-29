@@ -42,17 +42,17 @@ jobs:
       - name: Create ZIP files
         run: |
           # npm run build → archive.js → composer archive-project → ai-agent-for-wp.zip
-          cp ai-agent-for-wp.zip gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip
+          cp ai-agent-for-wp.zip sd-ai-agent-${{ steps.version.outputs.VERSION }}.zip
           # Stable-name zip so playground blueprints can reference /releases/latest/download/
-          cp ai-agent-for-wp.zip gratis-ai-agent.zip
+          cp ai-agent-for-wp.zip sd-ai-agent.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            gratis-ai-agent-${{ steps.version.outputs.VERSION }}.zip
-            gratis-ai-agent.zip
-          name: Gratis AI Agent v${{ steps.version.outputs.VERSION }}
+            sd-ai-agent-${{ steps.version.outputs.VERSION }}.zip
+            sd-ai-agent.zip
+          name: Superdav AI Agent v${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Searches Openverse (CC0) or Pixabay for a keyword and imports the result
  * into the WordPress media library. Never falls back to AI generation.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageAbilities;
+namespace SdAiAgent\Abilities\ImageAbilities;
 
-use GratisAiAgent\Abilities\ImageSources\ImageSourceFactory;
+use SdAiAgent\Abilities\ImageSources\ImageSourceFactory;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.6.0
  */
-class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
+class StockImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 
 	/**
 	 * Register this ability.
@@ -36,10 +36,10 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/stock-image',
+			'sd-ai-agent/stock-image',
 			[
-				'label'         => __( 'Stock Image', 'gratis-ai-agent' ),
-				'description'   => __( 'Search for a free stock photo by keyword (Openverse CC0 or Pixabay) and import it into the media library. Returns attachment ID and URL. Use this when you need a real photograph or illustration from existing stock libraries.', 'gratis-ai-agent' ),
+				'label'         => __( 'Stock Image', 'sd-ai-agent' ),
+				'description'   => __( 'Search for a free stock photo by keyword (Openverse CC0 or Pixabay) and import it into the media library. Returns attachment ID and URL. Use this when you need a real photograph or illustration from existing stock libraries.', 'sd-ai-agent' ),
 				'ability_class' => self::class,
 			]
 		);
@@ -49,14 +49,14 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 	 * {@inheritdoc}
 	 */
 	protected function label(): string {
-		return __( 'Stock Image', 'gratis-ai-agent' );
+		return __( 'Stock Image', 'sd-ai-agent' );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	protected function description(): string {
-		return __( 'Search for a free stock photo by keyword (Openverse CC0 or Pixabay) and import it into the media library. Returns attachment ID and URL. Use this when you need a real photograph or illustration from existing stock libraries.', 'gratis-ai-agent' );
+		return __( 'Search for a free stock photo by keyword (Openverse CC0 or Pixabay) and import it into the media library. Returns attachment ID and URL. Use this when you need a real photograph or illustration from existing stock libraries.', 'sd-ai-agent' );
 	}
 
 	/**
@@ -166,7 +166,7 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 				'title'         => '',
 				'source'        => '',
 				'error'         => 'No free stock image source is available. Configure Openverse or Pixabay.',
-				'tip'           => 'Use gratis-ai-agent/generate-image to create an AI-generated image instead.',
+				'tip'           => 'Use sd-ai-agent/generate-image to create an AI-generated image instead.',
 			];
 		}
 
@@ -189,7 +189,7 @@ class StockImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 				'source'        => '',
 				// Error message from the factory lists each source tried and why it failed.
 				'error'         => $result->get_error_message(),
-				'tip'           => 'Use gratis-ai-agent/generate-image to create an AI-generated image instead.',
+				'tip'           => 'Use sd-ai-agent/generate-image to create an AI-generated image instead.',
 			];
 		}
 

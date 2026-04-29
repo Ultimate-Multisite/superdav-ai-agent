@@ -1,7 +1,7 @@
 /**
  * Client-side abilities entry point.
  *
- * Registers the gratis-ai-agent-js category and all client-side abilities
+ * Registers the sd-ai-agent-js category and all client-side abilities
  * into the WP 7.0 `core/abilities` store. Import this module at the top of
  * each plugin entry point so registration happens before the chat UI mounts.
  *
@@ -27,7 +27,7 @@
  * was aborted and logged a console error.
  *
  * The fix: `ensureRegistered()` checks a page-level window global
- * (`window.__gratisAiAgentAbilitiesRegistering`) before creating a new
+ * (`window.__sdAiAgentAbilitiesRegistering`) before creating a new
  * Promise. If another bundle on the same page has already started or
  * completed the pipeline, the second bundle awaits the same Promise instead
  * of launching a duplicate registration.
@@ -50,7 +50,7 @@ import {
  *
  * @type {string}
  */
-const WIN_REGISTRATION_KEY = '__gratisAiAgentAbilitiesRegistering';
+const WIN_REGISTRATION_KEY = '__sdAiAgentAbilitiesRegistering';
 
 /**
  * Single in-flight registration Promise for this module instance, so
@@ -67,7 +67,7 @@ let registrationPromise = null;
  *
  * Idempotent — calling this multiple times within a single bundle returns
  * the same in-flight Promise. Cross-bundle dedup is provided by the
- * page-level `window.__gratisAiAgentAbilitiesRegistering` key: if another
+ * page-level `window.__sdAiAgentAbilitiesRegistering` key: if another
  * bundle on the same page has already started or completed registration,
  * this call returns the existing Promise without re-running the pipeline.
  *

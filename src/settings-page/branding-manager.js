@@ -3,7 +3,7 @@
  *
  * Allows site owners to customise the AI agent's display name, greeting
  * message, brand colours, and logo/avatar URL. All values are stored in
- * the gratis_ai_agent_settings WordPress option and applied at runtime in
+ * the sd_ai_agent_settings WordPress option and applied at runtime in
  * the floating widget via CSS custom properties and React props.
  */
 
@@ -40,19 +40,19 @@ function BrandingPreview( {
 } ) {
 	const fabBg = primaryColor || 'var(--wp-admin-theme-color, #2271b1)';
 	const fabColor = textColor || '#ffffff';
-	const displayName = agentName || __( 'AI Agent', 'gratis-ai-agent' );
+	const displayName = agentName || __( 'AI Agent', 'sd-ai-agent' );
 	const greeting =
 		greetingMessage ||
-		__( 'Send a message to start a conversation.', 'gratis-ai-agent' );
+		__( 'Send a message to start a conversation.', 'sd-ai-agent' );
 
 	return (
-		<div className="gratis-ai-agent-branding-preview">
+		<div className="sd-ai-agent-branding-preview">
 			<p className="description">
-				{ __( 'Live preview', 'gratis-ai-agent' ) }
+				{ __( 'Live preview', 'sd-ai-agent' ) }
 			</p>
 			{ /* FAB preview */ }
 			<div
-				className="gratis-ai-agent-branding-preview__fab"
+				className="sd-ai-agent-branding-preview__fab"
 				style={ { background: fabBg, color: fabColor } }
 				aria-hidden="true"
 			>
@@ -60,7 +60,7 @@ function BrandingPreview( {
 					<img
 						src={ logoUrl }
 						alt=""
-						className="gratis-ai-agent-branding-preview__logo"
+						className="sd-ai-agent-branding-preview__logo"
 					/>
 				) : (
 					<svg
@@ -76,7 +76,7 @@ function BrandingPreview( {
 			</div>
 			{ /* Title bar preview */ }
 			<div
-				className="gratis-ai-agent-branding-preview__titlebar"
+				className="sd-ai-agent-branding-preview__titlebar"
 				style={ { background: fabBg, color: fabColor } }
 				aria-hidden="true"
 			>
@@ -84,13 +84,13 @@ function BrandingPreview( {
 					<img
 						src={ logoUrl }
 						alt=""
-						className="gratis-ai-agent-branding-preview__titlebar-logo"
+						className="sd-ai-agent-branding-preview__titlebar-logo"
 					/>
 				) }
 				<span>{ displayName }</span>
 			</div>
 			{ /* Greeting preview */ }
-			<div className="gratis-ai-agent-branding-preview__greeting">
+			<div className="sd-ai-agent-branding-preview__greeting">
 				{ greeting }
 			</div>
 		</div>
@@ -113,38 +113,38 @@ export default function BrandingManager( { local, updateField } ) {
 	const [ showTextPicker, setShowTextPicker ] = useState( false );
 
 	return (
-		<div className="gratis-ai-agent-branding-manager">
+		<div className="sd-ai-agent-branding-manager">
 			<p className="description">
 				{ __(
 					'Customise how the AI agent appears to users. Leave fields empty to use the plugin defaults.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 			</p>
 
 			<TextControl
-				label={ __( 'Agent Display Name', 'gratis-ai-agent' ) }
+				label={ __( 'Agent Display Name', 'sd-ai-agent' ) }
 				value={ local.agent_name || '' }
 				onChange={ ( v ) => updateField( 'agent_name', v ) }
-				placeholder={ __( 'AI Agent', 'gratis-ai-agent' ) }
+				placeholder={ __( 'AI Agent', 'sd-ai-agent' ) }
 				help={ __(
 					'Name shown in the chat title bar and floating button tooltip. Defaults to "AI Agent".',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 				__nextHasNoMarginBottom
 			/>
 
 			{ /* Primary / background colour */ }
 			<BaseControl
-				label={ __( 'Primary Brand Color', 'gratis-ai-agent' ) }
+				label={ __( 'Primary Brand Color', 'sd-ai-agent' ) }
 				help={ __(
 					'Background colour for the FAB button and chat title bar. Leave empty to use the WordPress admin theme colour.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
-				id="gratis-ai-agent-brand-primary-color"
+				id="sd-ai-agent-brand-primary-color"
 			>
-				<div className="gratis-ai-agent-color-field">
+				<div className="sd-ai-agent-color-field">
 					<div
-						className="gratis-ai-agent-color-swatch"
+						className="sd-ai-agent-color-swatch"
 						style={ {
 							background:
 								local.brand_primary_color ||
@@ -153,7 +153,7 @@ export default function BrandingManager( { local, updateField } ) {
 						aria-hidden="true"
 					/>
 					<TextControl
-						id="gratis-ai-agent-brand-primary-color"
+						id="sd-ai-agent-brand-primary-color"
 						value={ local.brand_primary_color || '' }
 						onChange={ ( v ) =>
 							updateField( 'brand_primary_color', v )
@@ -170,8 +170,8 @@ export default function BrandingManager( { local, updateField } ) {
 						} }
 					>
 						{ showPrimaryPicker
-							? __( 'Close', 'gratis-ai-agent' )
-							: __( 'Pick', 'gratis-ai-agent' ) }
+							? __( 'Close', 'sd-ai-agent' )
+							: __( 'Pick', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 				{ showPrimaryPicker && (
@@ -187,16 +187,16 @@ export default function BrandingManager( { local, updateField } ) {
 
 			{ /* Text / icon colour */ }
 			<BaseControl
-				label={ __( 'Text & Icon Color', 'gratis-ai-agent' ) }
+				label={ __( 'Text & Icon Color', 'sd-ai-agent' ) }
 				help={ __(
 					'Colour for text and icons inside the FAB button and title bar. Defaults to white (#ffffff).',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
-				id="gratis-ai-agent-brand-text-color"
+				id="sd-ai-agent-brand-text-color"
 			>
-				<div className="gratis-ai-agent-color-field">
+				<div className="sd-ai-agent-color-field">
 					<div
-						className="gratis-ai-agent-color-swatch"
+						className="sd-ai-agent-color-swatch"
 						style={ {
 							background: local.brand_text_color || '#ffffff',
 							border: '1px solid #c3c4c7',
@@ -204,7 +204,7 @@ export default function BrandingManager( { local, updateField } ) {
 						aria-hidden="true"
 					/>
 					<TextControl
-						id="gratis-ai-agent-brand-text-color"
+						id="sd-ai-agent-brand-text-color"
 						value={ local.brand_text_color || '' }
 						onChange={ ( v ) =>
 							updateField( 'brand_text_color', v )
@@ -221,8 +221,8 @@ export default function BrandingManager( { local, updateField } ) {
 						} }
 					>
 						{ showTextPicker
-							? __( 'Close', 'gratis-ai-agent' )
-							: __( 'Pick', 'gratis-ai-agent' ) }
+							? __( 'Close', 'sd-ai-agent' )
+							: __( 'Pick', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 				{ showTextPicker && (
@@ -238,29 +238,29 @@ export default function BrandingManager( { local, updateField } ) {
 
 			{ /* Logo / avatar URL */ }
 			<TextControl
-				label={ __( 'Logo / Avatar URL', 'gratis-ai-agent' ) }
+				label={ __( 'Logo / Avatar URL', 'sd-ai-agent' ) }
 				value={ local.brand_logo_url || '' }
 				onChange={ ( v ) => updateField( 'brand_logo_url', v ) }
 				placeholder="https://example.com/logo.png"
 				help={ __(
 					'URL of an image to display inside the FAB button and title bar instead of the default chat icon. Recommended size: 24×24 px.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 				__nextHasNoMarginBottom
 			/>
 
 			{ /* Greeting message */ }
 			<TextareaControl
-				label={ __( 'Greeting Message', 'gratis-ai-agent' ) }
+				label={ __( 'Greeting Message', 'sd-ai-agent' ) }
 				value={ local.greeting_message || '' }
 				onChange={ ( v ) => updateField( 'greeting_message', v ) }
 				placeholder={ __(
 					'Send a message to start a conversation.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 				help={ __(
 					'Text shown in the chat before the first message. Leave empty to use the default.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }
 				rows={ 2 }
 			/>

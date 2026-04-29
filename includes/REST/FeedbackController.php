@@ -10,15 +10,15 @@ declare(strict_types=1);
  *
  * The API key is held server-side and never exposed to the browser.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Feedback\ReportBuilder;
-use GratisAiAgent\Feedback\ReportSanitizer;
-use GratisAiAgent\Feedback\ReportSender;
+use SdAiAgent\Feedback\ReportBuilder;
+use SdAiAgent\Feedback\ReportSanitizer;
+use SdAiAgent\Feedback\ReportSender;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'feedback',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class FeedbackController extends XWP_REST_Controller {
 
@@ -68,7 +68,7 @@ final class FeedbackController extends XWP_REST_Controller {
 		if ( null === $summary ) {
 			return new WP_Error(
 				'feedback_session_not_found',
-				__( 'Session not found or access denied.', 'gratis-ai-agent' ),
+				__( 'Session not found or access denied.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -84,7 +84,7 @@ final class FeedbackController extends XWP_REST_Controller {
 		if ( null === $raw_payload ) {
 			return new WP_Error(
 				'feedback_build_error',
-				__( 'Could not build report payload.', 'gratis-ai-agent' ),
+				__( 'Could not build report payload.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -134,7 +134,7 @@ final class FeedbackController extends XWP_REST_Controller {
 			if ( null === $payload ) {
 				return new WP_Error(
 					'feedback_session_not_found',
-					__( 'Session not found or access denied.', 'gratis-ai-agent' ),
+					__( 'Session not found or access denied.', 'sd-ai-agent' ),
 					array( 'status' => 404 )
 				);
 			}

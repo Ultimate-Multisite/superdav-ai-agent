@@ -9,16 +9,16 @@
  * Both classes register abilities on the same hook; combining them here avoids
  * two separate handler classes for essentially the same lifecycle step.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Tools\CustomToolExecutor;
-use GratisAiAgent\Tools\ToolDiscovery;
+use SdAiAgent\Tools\CustomToolExecutor;
+use SdAiAgent\Tools\ToolDiscovery;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -33,13 +33,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * queued during `plugins_loaded` — before `init` fires the hook.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
 final class ToolDiscoveryHandler {
 
 	/**
-	 * Register the gratis-ai-agent-js ability category server-side.
+	 * Register the sd-ai-agent-js ability category server-side.
 	 *
 	 * Must run on wp_abilities_api_categories_init (which fires inside
 	 * WP_Ability_Categories_Registry::get_instance(), before

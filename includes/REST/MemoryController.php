@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * REST API controller for memories.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Models\Memory;
-use GratisAiAgent\Models\DTO\MemoryRow;
+use SdAiAgent\Models\Memory;
+use SdAiAgent\Models\DTO\MemoryRow;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'memory',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class MemoryController extends XWP_REST_Controller {
 
@@ -94,7 +94,7 @@ final class MemoryController extends XWP_REST_Controller {
 		$id = Memory::create( $category, $content );
 
 		if ( false === $id ) {
-			return new WP_Error( 'gratis_ai_agent_memory_create_failed', __( 'Failed to create memory.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_memory_create_failed', __( 'Failed to create memory.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -133,7 +133,7 @@ final class MemoryController extends XWP_REST_Controller {
 		$updated = Memory::update( $id, $data );
 
 		if ( ! $updated ) {
-			return new WP_Error( 'gratis_ai_agent_memory_update_failed', __( 'Failed to update memory.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_memory_update_failed', __( 'Failed to update memory.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -162,7 +162,7 @@ final class MemoryController extends XWP_REST_Controller {
 		$deleted = Memory::delete( $id );
 
 		if ( ! $deleted ) {
-			return new WP_Error( 'gratis_ai_agent_memory_delete_failed', __( 'Failed to delete memory.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_memory_delete_failed', __( 'Failed to delete memory.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );

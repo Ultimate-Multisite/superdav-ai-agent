@@ -4,19 +4,19 @@ declare(strict_types=1);
 /**
  * WP-CLI Command for the AI Agent.
  *
- * Provides a `wp gratis-ai-agent` command to send prompts to the AI agent
+ * Provides a `wp sd-ai-agent` command to send prompts to the AI agent
  * directly from the terminal for development testing and debugging.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @since   1.1.0
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\CLI;
+namespace SdAiAgent\CLI;
 
-use GratisAiAgent\Core\AgentLoop;
-use GratisAiAgent\Core\ConversationSerializer;
-use GratisAiAgent\Models\Agent;
+use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\ConversationSerializer;
+use SdAiAgent\Models\Agent;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,19 +29,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * ## EXAMPLES
  *
  *     # Simple prompt
- *     wp gratis-ai-agent prompt "hello"
+ *     wp sd-ai-agent prompt "hello"
  *
  *     # With a specific agent
- *     wp gratis-ai-agent prompt "write a blog post intro about WordPress" --agent=content-creator
+ *     wp sd-ai-agent prompt "write a blog post intro about WordPress" --agent=content-creator
  *
  *     # With a specific model
- *     wp gratis-ai-agent prompt "how many plugins are active?" --model=qwen3.5
+ *     wp sd-ai-agent prompt "how many plugins are active?" --model=qwen3.5
  *
  *     # With verbose output showing tool calls and token usage
- *     wp gratis-ai-agent prompt "list all plugins" --verbose
+ *     wp sd-ai-agent prompt "list all plugins" --verbose
  *
  *     # Skip all tool usage
- *     wp gratis-ai-agent prompt "what day is it?" --skip-tools
+ *     wp sd-ai-agent prompt "what day is it?" --skip-tools
  *
  * @since 1.1.0
  */
@@ -80,11 +80,11 @@ class CliCommand extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp gratis-ai-agent prompt "how many plugins are active?"
-	 *     wp gratis-ai-agent prompt "write a blog post intro" --agent=content-creator
-	 *     wp gratis-ai-agent prompt "audit my SEO" --agent=seo-specialist --verbose
-	 *     wp gratis-ai-agent prompt "list products" --agent=e-commerce
-	 *     wp gratis-ai-agent prompt "what day is it?" --skip-tools
+	 *     wp sd-ai-agent prompt "how many plugins are active?"
+	 *     wp sd-ai-agent prompt "write a blog post intro" --agent=content-creator
+	 *     wp sd-ai-agent prompt "audit my SEO" --agent=seo-specialist --verbose
+	 *     wp sd-ai-agent prompt "list products" --agent=e-commerce
+	 *     wp sd-ai-agent prompt "what day is it?" --skip-tools
 	 *
 	 * @when after_wp_load
 	 *

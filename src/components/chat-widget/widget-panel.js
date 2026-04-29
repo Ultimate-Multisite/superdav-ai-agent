@@ -71,7 +71,7 @@ export default function WidgetPanel() {
 		}
 		try {
 			const data = await apiFetch( {
-				path: `/gratis-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&revertable=true&per_page=1`,
+				path: `/sd-ai-agent/v1/changes?session_id=${ currentSessionId }&reverted=false&revertable=true&per_page=1`,
 			} );
 			setChangesCount( data?.total ?? ( data?.items?.length || 0 ) );
 		} catch {
@@ -196,7 +196,7 @@ export default function WidgetPanel() {
 								'change this session',
 								'changes this session',
 								changesCount,
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</span>
 						<button
@@ -206,8 +206,8 @@ export default function WidgetPanel() {
 							aria-expanded={ showChanges }
 						>
 							{ showChanges
-								? __( 'Hide', 'gratis-ai-agent' )
-								: __( 'View', 'gratis-ai-agent' ) }
+								? __( 'Hide', 'sd-ai-agent' )
+								: __( 'View', 'sd-ai-agent' ) }
 							<span aria-hidden="true">
 								{ showChanges ? ' ↑' : ' →' }
 							</span>
@@ -218,7 +218,7 @@ export default function WidgetPanel() {
 				{ ! isMinimized && (
 					<div className="gaa-w-body-wrap">
 						<ErrorBoundary
-							label={ __( 'Message list', 'gratis-ai-agent' ) }
+							label={ __( 'Message list', 'sd-ai-agent' ) }
 						>
 							{ showEmpty ? (
 								<WidgetEmpty />
@@ -240,7 +240,7 @@ export default function WidgetPanel() {
 
 				{ ! isMinimized && (
 					<ErrorBoundary
-						label={ __( 'Message input', 'gratis-ai-agent' ) }
+						label={ __( 'Message input', 'sd-ai-agent' ) }
 					>
 						<WidgetInput />
 					</ErrorBoundary>

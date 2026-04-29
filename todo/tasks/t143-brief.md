@@ -20,7 +20,7 @@ Deliverables:
 5. Harden CLI tool execution or add `escapeshellarg()` on user-controlled command parts
 6. Wrap `error_log()` calls in WP_DEBUG check
 7. Add `MODELS.md` to `.distignore`
-8. Fix blueprint slugs to use current `gratis-ai-agent` naming
+8. Fix blueprint slugs to use current `sd-ai-agent` naming
 9. Update PHPCS `minimum_supported_wp_version` to 6.9
 
 ## Why
@@ -43,13 +43,13 @@ Files:
 ### Uninstall (Critical)
 Create `uninstall.php` at plugin root. Must:
 - Check `defined('WP_UNINSTALL_PLUGIN')` guard
-- Drop all 10 `{$wpdb->prefix}gratis_ai_agent_*` tables
-- Delete all `gratis_ai_agent_*` options from `wp_options`
-- Delete user meta with `gratis_ai_agent_*` prefix
+- Drop all 10 `{$wpdb->prefix}sd_ai_agent_*` tables
+- Delete all `sd_ai_agent_*` options from `wp_options`
+- Delete user meta with `sd_ai_agent_*` prefix
 - Reference `includes/Core/Database.php` for table names
 
 ### i18n (Critical)
-- Add `load_plugin_textdomain('gratis-ai-agent', false, dirname(plugin_basename(__FILE__)) . '/languages')` on `init` hook in `gratis-ai-agent.php`
+- Add `load_plugin_textdomain('sd-ai-agent', false, dirname(plugin_basename(__FILE__)) . '/languages')` on `init` hook in `sd-ai-agent.php`
 - Add `wp_set_script_translations()` calls for all 8 JS entry points (admin-page, floating-widget, screen-meta, settings-page, changes-page, abilities-explorer, benchmark-page, unified-admin)
 
 ### Permission Callbacks (High)
@@ -64,7 +64,7 @@ Wrap `error_log()` calls in `NotificationDispatcher.php:337,356` with `if (defin
 
 ### Minor Fixes (Medium)
 - Add `MODELS.md` to `.distignore`
-- Update `.wordpress-org/blueprints/blueprint.json` line 9: `page=ai-agent` → `page=gratis-ai-agent`, line 46: `ai_agent_settings` → `gratis_ai_agent_settings`
+- Update `.wordpress-org/blueprints/blueprint.json` line 9: `page=ai-agent` → `page=sd-ai-agent`, line 46: `ai_agent_settings` → `sd_ai_agent_settings`
 - Update `phpcs.xml` line 24: `minimum_supported_wp_version` from `6.7` to `6.9`
 
 ## Acceptance Criteria
@@ -85,8 +85,8 @@ Wrap `error_log()` calls in `NotificationDispatcher.php:337,356` with `if (defin
   ```yaml
   verify:
     method: codebase
-    pattern: "load_plugin_textdomain.*gratis-ai-agent"
-    path: "gratis-ai-agent.php"
+    pattern: "load_plugin_textdomain.*sd-ai-agent"
+    path: "sd-ai-agent.php"
   ```
 - [ ] `wp_set_script_translations()` called for all 8 JS entry points
   ```yaml
@@ -113,7 +113,7 @@ Wrap `error_log()` calls in `NotificationDispatcher.php:337,356` with `if (defin
     pattern: "MODELS\\.md"
     path: ".distignore"
   ```
-- [ ] Blueprint uses `gratis-ai-agent` slug
+- [ ] Blueprint uses `sd-ai-agent` slug
   ```yaml
   verify:
     method: bash
@@ -144,7 +144,7 @@ Wrap `error_log()` calls in `NotificationDispatcher.php:337,356` with `if (defin
 
 ## Relevant Files
 
-- `gratis-ai-agent.php` — main plugin file, add i18n loading
+- `sd-ai-agent.php` — main plugin file, add i18n loading
 - `includes/Core/AgentLoop.php:1146,1205` — SSL verification
 - `includes/Core/OpenAIProxy.php:117` — SSL verification
 - `includes/REST/RestController.php:2241,2431,6390` — SSL verification

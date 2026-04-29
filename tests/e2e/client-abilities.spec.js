@@ -1,9 +1,9 @@
 /**
- * E2E tests for client-side abilities (gratis-ai-agent-js namespace).
+ * E2E tests for client-side abilities (sd-ai-agent-js namespace).
  *
  * Exercises the real browser pipeline for the two client-side abilities:
- *   - gratis-ai-agent-js/navigate-to
- *   - gratis-ai-agent-js/insert-block
+ *   - sd-ai-agent-js/navigate-to
+ *   - sd-ai-agent-js/insert-block
  *
  * These tests exist because the entire #806 → #815 → #821 → #822 chain
  * shipped, failed at runtime for three separate reasons, and each round of
@@ -56,7 +56,7 @@ async function goToDashboard( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the launcher button — it renders once React has mounted and the
 	// floating-widget bundle has executed (triggering ensureRegistered()).
-	// The redesign (#1157) renamed .gratis-ai-agent-fab to .gaa-w-launcher.
+	// The redesign (#1157) renamed .sd-ai-agent-fab to .gaa-w-launcher.
 	await page
 		.locator( '.gaa-w-launcher' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
@@ -109,7 +109,7 @@ async function skipIfNoAbilitiesApi( page ) {
 }
 
 /**
- * Wait for the gratis-ai-agent-js abilities to be registered.
+ * Wait for the sd-ai-agent-js abilities to be registered.
  *
  * Polls wp.abilities.getAbilities() until both abilities appear or the
  * timeout is reached. This is necessary because registration is async —
@@ -154,22 +154,22 @@ async function waitForAbilitiesRegistered( page, timeout = 45_000 ) {
 				if ( result && typeof result.then === 'function' ) {
 					// Async path: can't await inside waitForFunction, so we
 					// attach a side-effect that sets a flag when resolved.
-					if ( ! window.__gratisAbilitiesResolved ) {
+					if ( ! window.__sdAbilitiesResolved ) {
 						result.then( ( abilities ) => {
-							window.__gratisAbilitiesResolved = Array.isArray( abilities )
+							window.__sdAbilitiesResolved = Array.isArray( abilities )
 								? abilities.filter( ( a ) =>
-										a?.name?.startsWith( 'gratis-ai-agent-js/' )
+										a?.name?.startsWith( 'sd-ai-agent-js/' )
 								  ).length >= 2
 								: false;
 						} );
 					}
-					return !! window.__gratisAbilitiesResolved;
+					return !! window.__sdAbilitiesResolved;
 				}
 				// Sync path.
 				const abilities = Array.isArray( result ) ? result : [];
 				return (
 					abilities.filter( ( a ) =>
-						a?.name?.startsWith( 'gratis-ai-agent-js/' )
+						a?.name?.startsWith( 'sd-ai-agent-js/' )
 					).length >= 2
 				);
 			} catch ( _e ) {
@@ -231,7 +231,7 @@ test.describe( 'client-abilities — category registration', () => {
 			}
 			try {
 				return await wp.abilities.getAbilityCategory(
-					'gratis-ai-agent-js'
+					'sd-ai-agent-js'
 				);
 			} catch ( _e ) {
 				return null;
@@ -240,7 +240,7 @@ test.describe( 'client-abilities — category registration', () => {
 
 		expect( category ).not.toBeNull();
 		expect( category ).toMatchObject( {
-			label: expect.stringContaining( 'Gratis AI Agent' ),
+			label: expect.stringContaining( 'Superdav AI Agent' ),
 			description: expect.stringContaining( 'client' ),
 		} );
 	} );
@@ -273,7 +273,7 @@ test.describe( 'client-abilities — ability registration', () => {
 			try {
 				const all = await wp.abilities.getAbilities();
 				return ( Array.isArray( all ) ? all : [] ).filter( ( a ) =>
-					a?.name?.startsWith( 'gratis-ai-agent-js/' )
+					a?.name?.startsWith( 'sd-ai-agent-js/' )
 				);
 			} catch ( _e ) {
 				return [];
@@ -281,16 +281,16 @@ test.describe( 'client-abilities — ability registration', () => {
 		} );
 
 		const names = abilities.map( ( a ) => a.name );
-		expect( names ).toContain( 'gratis-ai-agent-js/navigate-to' );
-		expect( names ).toContain( 'gratis-ai-agent-js/insert-block' );
+		expect( names ).toContain( 'sd-ai-agent-js/navigate-to' );
+		expect( names ).toContain( 'sd-ai-agent-js/insert-block' );
 
 		// Verify expected schema shape for navigate-to.
 		const navigateTo = abilities.find(
-			( a ) => a.name === 'gratis-ai-agent-js/navigate-to'
+			( a ) => a.name === 'sd-ai-agent-js/navigate-to'
 		);
 		expect( navigateTo ).toBeDefined();
 		expect( navigateTo ).toMatchObject( {
-			name: 'gratis-ai-agent-js/navigate-to',
+			name: 'sd-ai-agent-js/navigate-to',
 			label: expect.any( String ),
 			description: expect.any( String ),
 		} );
@@ -304,11 +304,11 @@ test.describe( 'client-abilities — ability registration', () => {
 
 		// Verify expected schema shape for insert-block.
 		const insertBlock = abilities.find(
-			( a ) => a.name === 'gratis-ai-agent-js/insert-block'
+			( a ) => a.name === 'sd-ai-agent-js/insert-block'
 		);
 		expect( insertBlock ).toBeDefined();
 		expect( insertBlock ).toMatchObject( {
-			name: 'gratis-ai-agent-js/insert-block',
+			name: 'sd-ai-agent-js/insert-block',
 			label: expect.any( String ),
 			description: expect.any( String ),
 		} );
@@ -363,7 +363,7 @@ test.describe( 'client-abilities — navigate-to execution', () => {
 				};
 
 				const ret = await wp.abilities.executeAbility(
-					'gratis-ai-agent-js/navigate-to',
+					'sd-ai-agent-js/navigate-to',
 					{ path: 'plugins.php' }
 				);
 
@@ -429,7 +429,7 @@ test.describe( 'client-abilities — insert-block on editor screen', () => {
 			}
 			try {
 				return await wp.abilities.executeAbility(
-					'gratis-ai-agent-js/insert-block',
+					'sd-ai-agent-js/insert-block',
 					{
 						blockName: 'core/paragraph',
 						attributes: { content: 'hello from playwright' },
@@ -486,7 +486,7 @@ test.describe( 'client-abilities — insert-block no-op on non-editor screen', (
 			}
 			try {
 				return await wp.abilities.executeAbility(
-					'gratis-ai-agent-js/insert-block',
+					'sd-ai-agent-js/insert-block',
 					{ blockName: 'core/paragraph' }
 				);
 			} catch ( err ) {
@@ -537,7 +537,7 @@ test.describe( 'client-abilities — snapshotDescriptors', () => {
 						( ability ) =>
 							ability &&
 							ability.name &&
-							ability.name.startsWith( 'gratis-ai-agent-js/' )
+							ability.name.startsWith( 'sd-ai-agent-js/' )
 					)
 					.map( ( ability ) => ( {
 						name: ability.name,
@@ -558,7 +558,7 @@ test.describe( 'client-abilities — snapshotDescriptors', () => {
 		// Each descriptor must have the expected shape.
 		for ( const descriptor of descriptors ) {
 			expect( descriptor ).toMatchObject( {
-				name: expect.stringMatching( /^gratis-ai-agent-js\// ),
+				name: expect.stringMatching( /^sd-ai-agent-js\// ),
 				label: expect.any( String ),
 				description: expect.any( String ),
 				input_schema: expect.any( Object ),
@@ -572,8 +572,8 @@ test.describe( 'client-abilities — snapshotDescriptors', () => {
 
 		// Verify the two expected ability names are present.
 		const names = descriptors.map( ( d ) => d.name );
-		expect( names ).toContain( 'gratis-ai-agent-js/navigate-to' );
-		expect( names ).toContain( 'gratis-ai-agent-js/insert-block' );
+		expect( names ).toContain( 'sd-ai-agent-js/navigate-to' );
+		expect( names ).toContain( 'sd-ai-agent-js/insert-block' );
 	} );
 } );
 
@@ -590,7 +590,7 @@ test.describe( 'client-abilities — no relevant console errors', () => {
 		'Ability name is required',
 		'must contain a `description` string',
 		'references non-existent category',
-		'Category not found: gratis-ai-agent-js',
+		'Category not found: sd-ai-agent-js',
 		'Failed to resolve module specifier "@wordpress/abilities"',
 	];
 
@@ -629,10 +629,10 @@ test.describe( 'client-abilities — no relevant console errors', () => {
 		const { consoleErrors, pageErrors } = collectErrors( page );
 
 		await loginToWordPress( page );
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+		await page.goto( '/wp-admin/admin.php?page=sd-ai-agent' );
 		await page.waitForLoadState( 'domcontentloaded' );
 		await page
-			.locator( '.gratis-ai-agent-unified-admin' )
+			.locator( '.sd-ai-agent-unified-admin' )
 			.waitFor( { state: 'visible', timeout: 45_000 } );
 		await skipIfNoAbilitiesApi( page );
 		await waitForAbilitiesRegistered( page );

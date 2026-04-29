@@ -7,16 +7,16 @@ declare(strict_types=1);
  * Enqueues a lightweight React app that renders a FAB button
  * and expandable chat panel in the bottom-right corner.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Admin;
+namespace SdAiAgent\Admin;
 
-use GratisAiAgent\Core\Features;
-use GratisAiAgent\Core\FreshInstallDetector;
-use GratisAiAgent\Core\OnboardingManager;
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Core\Features;
+use SdAiAgent\Core\FreshInstallDetector;
+use SdAiAgent\Core\OnboardingManager;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -93,7 +93,7 @@ class FloatingWidget {
 	 * Shared asset enqueueing logic for both admin and frontend contexts.
 	 */
 	private static function enqueue_widget_assets(): void {
-		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$build_dir  = (string) apply_filters( 'sd_ai_agent_build_dir', SD_AI_AGENT_DIR . '/build' );
 		$asset_file = $build_dir . '/floating-widget.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
@@ -104,29 +104,29 @@ class FloatingWidget {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'gratis-ai-agent-floating-widget',
-			GRATIS_AI_AGENT_URL . 'build/floating-widget.css',
+			'sd-ai-agent-floating-widget',
+			SD_AI_AGENT_URL . 'build/floating-widget.css',
 			[ 'wp-components' ],
 			$asset['version']
 		);
 
-		wp_style_add_data( 'gratis-ai-agent-floating-widget', 'rtl', 'replace' );
+		wp_style_add_data( 'sd-ai-agent-floating-widget', 'rtl', 'replace' );
 
 		wp_enqueue_script(
-			'gratis-ai-agent-floating-widget',
-			GRATIS_AI_AGENT_URL . 'build/floating-widget.js',
+			'sd-ai-agent-floating-widget',
+			SD_AI_AGENT_URL . 'build/floating-widget.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
 		);
 
-		wp_set_script_translations( 'gratis-ai-agent-floating-widget', 'gratis-ai-agent' );
+		wp_set_script_translations( 'sd-ai-agent-floating-widget', 'sd-ai-agent' );
 
 		// WP 7.0+: enqueue the `@wordpress/abilities` script module so our
 		// client-side ability registry (src/abilities/*) can resolve the
 		// bare specifier via the document import map at runtime. Without
 		// this, the dynamic import() in registry.js throws a module
-		// resolution error and the gratis-ai-agent-js/* abilities are never
+		// resolution error and the sd-ai-agent-js/* abilities are never
 		// registered. (t165 — fixes the missing enqueue in #815.)
 		//
 		// Also enqueue `@wordpress/core-abilities` explicitly. Despite the
@@ -153,8 +153,8 @@ class FloatingWidget {
 		}
 
 		wp_localize_script(
-			'gratis-ai-agent-floating-widget',
-			'gratisAiAgentSiteBuilder',
+			'sd-ai-agent-floating-widget',
+			'sdAiAgentSiteBuilder',
 			[
 				'isFreshInstall'  => $is_fresh,
 				'siteBuilderMode' => $site_builder,
@@ -166,8 +166,8 @@ class FloatingWidget {
 		if ( Features::is_enabled( Features::BRANDING ) ) {
 			$branding = Settings::instance()->get();
 			wp_localize_script(
-				'gratis-ai-agent-floating-widget',
-				'gratisAiAgentBranding',
+				'sd-ai-agent-floating-widget',
+				'sdAiAgentBranding',
 				array(
 					// @phpstan-ignore-next-line
 					'agentName'       => (string) ( $branding['agent_name'] ?? '' ),
@@ -184,12 +184,12 @@ class FloatingWidget {
 		}
 
 		wp_localize_script(
-			'gratis-ai-agent-floating-widget',
-			'gratisAiAgentData',
+			'sd-ai-agent-floating-widget',
+			'sdAiAgentData',
 			[
 				'currentUserId'       => get_current_user_id(),
 				'onboarding_complete' => OnboardingManager::is_complete(),
-				'changesPageUrl'      => admin_url( 'admin.php?page=gratis-ai-agent#/changes' ),
+				'changesPageUrl'      => admin_url( 'admin.php?page=sd-ai-agent#/changes' ),
 			]
 		);
 	}

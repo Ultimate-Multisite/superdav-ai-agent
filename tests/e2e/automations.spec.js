@@ -1,12 +1,12 @@
 /**
- * E2E tests for the Gratis AI Agent automations system (t080/t081).
+ * E2E tests for the Superdav AI Agent automations system (t080/t081).
  *
  * Covers:
  *   - Scheduled automations: create, list, enable/disable toggle
  *   - Event-driven automations: create, list, enable/disable toggle
  *   - Proactive alert badge on the FAB
  *
- * All REST calls to /gratis-ai-agent/v1/* are intercepted and mocked so
+ * All REST calls to /sd-ai-agent/v1/* are intercepted and mocked so
  * these tests run without a real AI provider or a live WordPress back-end.
  *
  * Run: npm run test:e2e:playwright -- --grep automations
@@ -24,7 +24,7 @@ const MOCK_AUTOMATION = {
 	id: 1,
 	// Use a name that does NOT match any built-in template name so that
 	// filter({ hasText }) always resolves to the automation card, never to
-	// a template card (templates also use .gratis-ai-agent-skill-card).
+	// a template card (templates also use .sd-ai-agent-skill-card).
 	name: 'Test Scheduled Automation',
 	description: 'Run a test site health check.',
 	prompt: 'Check site health and report issues.',
@@ -101,7 +101,7 @@ const MOCK_TEMPLATES = [
  * Minimal settings object returned by the /settings endpoint.
  *
  * The SettingsApp component blocks rendering until settingsLoaded is true,
- * which requires a successful response from /gratis-ai-agent/v1/settings.
+ * which requires a successful response from /sd-ai-agent/v1/settings.
  * Without this mock the page stays in a loading spinner and all tab content
  * (including the automations and events managers) is never rendered.
  */
@@ -138,7 +138,7 @@ const MOCK_SETTINGS = {
 /**
  * Install REST API mocks for the automations endpoints.
  *
- * Intercepts all /wp-json/gratis-ai-agent/v1/* requests and returns
+ * Intercepts all /wp-json/sd-ai-agent/v1/* requests and returns
  * controlled JSON responses so tests run without a live WordPress back-end.
  *
  * Critically, this also mocks the /settings, /providers, /abilities, and
@@ -174,8 +174,8 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 	await page.unrouteAll( { behavior: 'ignoreErrors' } );
 
 	// Use '**' to catch ALL requests, then filter by decoded URL.
-	// wp-env uses plain permalinks (?rest_route=%2Fgratis-ai-agent%2Fv1%2F...)
-	// so the path-based glob '**/gratis-ai-agent/v1/**' does NOT match — the
+	// wp-env uses plain permalinks (?rest_route=%2Fsd-ai-agent%2Fv1%2F...)
+	// so the path-based glob '**/sd-ai-agent/v1/**' does NOT match — the
 	// plugin path appears in the query string, not the URL path. Decoding first
 	// and matching on the decoded string handles both pretty-permalink and
 	// plain-permalink URL formats reliably.
@@ -190,7 +190,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		const effectiveMethod = override || method;
 
 		// Only handle requests for our plugin's REST namespace.
-		if ( ! url.includes( 'gratis-ai-agent/v1' ) ) {
+		if ( ! url.includes( 'sd-ai-agent/v1' ) ) {
 			return route.continue();
 		}
 
@@ -219,7 +219,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		// format the URL is ?rest_route=.../settings which may have additional
 		// query params appended, so a $ anchor would not match.
 		if (
-			url.includes( '/gratis-ai-agent/v1/settings' ) &&
+			url.includes( '/sd-ai-agent/v1/settings' ) &&
 			! url.includes( '/settings/google-analytics' )
 		) {
 			return route.fulfill( {
@@ -230,7 +230,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		}
 
 		// Providers list.
-		if ( url.includes( '/gratis-ai-agent/v1/providers' ) ) {
+		if ( url.includes( '/sd-ai-agent/v1/providers' ) ) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
@@ -239,7 +239,7 @@ async function mockAutomationRoutes( page, overrides = {} ) {
 		}
 
 		// Abilities list.
-		if ( url.includes( '/gratis-ai-agent/v1/abilities' ) ) {
+		if ( url.includes( '/sd-ai-agent/v1/abilities' ) ) {
 			return route.fulfill( {
 				status: 200,
 				contentType: 'application/json',
@@ -389,21 +389,21 @@ async function mockAutomationRoutes( page, overrides = {} ) {
  */
 async function goToAutomationsTab( page ) {
 	// UnifiedAdminMenu uses hash-based routing. The settings route is at
-	// admin.php?page=gratis-ai-agent#/settings. The old URL
-	// (tools.php?page=gratis-ai-agent-settings) triggers a wp_safe_redirect()
+	// admin.php?page=sd-ai-agent#/settings. The old URL
+	// (tools.php?page=sd-ai-agent-settings) triggers a wp_safe_redirect()
 	// which causes Playwright to hang — use the canonical hash URL directly.
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-agent-route-settings' )
+		.locator( '.sd-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	const manager = page.locator( '.gratis-ai-agent-automations-manager' );
+	const manager = page.locator( '.sd-ai-agent-automations-manager' );
 	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
 	// Wait for the async fetchAll() to complete: the "Loading…" text is shown
 	// while loaded=false and disappears once fetchAll resolves or rejects.
@@ -421,29 +421,29 @@ async function goToAutomationsTab( page ) {
  *
  * The EventsManager is rendered inside the Automations tab (together with
  * AutomationsManager) — there is no separate "Events" tab in the settings
- * page. Waiting for .gratis-ai-agent-events-manager ensures the events
+ * page. Waiting for .sd-ai-agent-events-manager ensures the events
  * section has rendered and the initial data fetch has completed.
  *
  * @param {import('@playwright/test').Page} page - Playwright page.
  */
 async function goToEventsTab( page ) {
 	// UnifiedAdminMenu uses hash-based routing. The settings route is at
-	// admin.php?page=gratis-ai-agent#/settings. The old URL
-	// (tools.php?page=gratis-ai-agent-settings) triggers a wp_safe_redirect()
+	// admin.php?page=sd-ai-agent#/settings. The old URL
+	// (tools.php?page=sd-ai-agent-settings) triggers a wp_safe_redirect()
 	// which causes Playwright to hang — use the canonical hash URL directly.
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-agent-route-settings' )
+		.locator( '.sd-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// EventsManager lives inside the Automations tab, not a separate Events tab.
 	const tab = page.getByRole( 'tab', { name: /automations/i } );
 	await tab.click();
 	// Wait for the manager container to confirm the tab content has rendered.
-	const manager = page.locator( '.gratis-ai-agent-events-manager' );
+	const manager = page.locator( '.sd-ai-agent-events-manager' );
 	await manager.waitFor( { state: 'visible', timeout: 15_000 } );
 	// Wait for the async fetchAll() to complete.
 	await manager
@@ -467,7 +467,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 	test( 'automations tab renders the manager heading', async ( { page } ) => {
 		await goToAutomationsTab( page );
 
-		const manager = page.locator( '.gratis-ai-agent-automations-manager' );
+		const manager = page.locator( '.sd-ai-agent-automations-manager' );
 		await expect( manager ).toBeVisible();
 
 		// Heading text.
@@ -481,7 +481,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 
 		// The mock returns one automation — its name should appear in a card.
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 		await expect( card ).toBeVisible();
 	} );
@@ -490,7 +490,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -498,7 +498,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
 		// Schedule badge (e.g. "daily").
-		const badge = card.locator( '.gratis-ai-agent-skill-badge' ).first();
+		const badge = card.locator( '.sd-ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_AUTOMATION.schedule );
 	} );
 
@@ -506,7 +506,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		await expect( card ).toContainText(
@@ -524,7 +524,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await addButton.click();
 
 		// Form fields should appear.
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		// Name and Prompt fields are required.
@@ -541,7 +541,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		const createButton = form.getByRole( 'button', { name: /^create$/i } );
 
 		// Both fields empty → disabled.
@@ -578,9 +578,9 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			// Only handle the /automations list endpoint (not /automations/ID
 			// or /automation-templates).
 			if (
-				! decodedUrl.includes( 'gratis-ai-agent/v1/automations' ) ||
+				! decodedUrl.includes( 'sd-ai-agent/v1/automations' ) ||
 				decodedUrl.includes( '/automation-templates' ) ||
-				/gratis-ai-agent\/v1\/automations\/\d/.test( decodedUrl )
+				/sd-ai-agent\/v1\/automations\/\d/.test( decodedUrl )
 			) {
 				return route.continue();
 			}
@@ -609,7 +609,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await form.getByLabel( /^name/i ).fill( 'My New Automation' );
 		await form.getByLabel( /prompt/i ).fill( 'Do something useful.' );
 
@@ -630,7 +630,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		// The new automation should appear in the list after the GET refresh.
 		await expect(
 			page
-				.locator( '.gratis-ai-agent-skill-cards' )
+				.locator( '.sd-ai-agent-skill-cards' )
 				.filter( { hasText: 'My New Automation' } )
 		).toBeVisible( { timeout: 10_000 } );
 	} );
@@ -662,7 +662,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			const effectiveMethod = override || method;
 
 			// Match /automations/1 for PATCH and individual GET.
-			if ( /gratis-ai-agent\/v1\/automations\/1\b/.test( decodedUrl ) ) {
+			if ( /sd-ai-agent\/v1\/automations\/1\b/.test( decodedUrl ) ) {
 				if ( effectiveMethod === 'PATCH' ) {
 					patchCalled = true;
 					patchBody = JSON.parse(
@@ -691,7 +691,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			// beforeEach mock's default data.
 			if (
 				patchCalled &&
-				/gratis-ai-agent\/v1\/automations\b/.test( decodedUrl ) &&
+				/sd-ai-agent\/v1\/automations\b/.test( decodedUrl ) &&
 				! /\/automations\/\d/.test( decodedUrl ) &&
 				effectiveMethod === 'GET'
 			) {
@@ -710,7 +710,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_AUTOMATION.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -753,7 +753,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: disabledAutomation.name } );
 
 		await expect( card ).toHaveClass( /ai-agent-skill-card--disabled/ );
@@ -766,7 +766,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		await form.getByRole( 'button', { name: /cancel/i } ).click();
@@ -781,7 +781,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 			.getByRole( 'button', { name: /add automation/i } )
 			.click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		const scheduleSelect = form.getByLabel( /schedule/i );
 
 		// Verify the four standard WP cron schedules are present.
@@ -805,10 +805,10 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await goToAutomationsTab( page );
 
 		// No automation cards should be rendered (templates also use
-		// .gratis-ai-agent-skill-card, so we check the automations list container
+		// .sd-ai-agent-skill-card, so we check the automations list container
 		// directly — it is only rendered when automations.length > 0).
 		await expect(
-			page.locator( '.gratis-ai-agent-automations-manager .gratis-ai-agent-skill-cards' )
+			page.locator( '.sd-ai-agent-automations-manager .sd-ai-agent-skill-cards' )
 		).toHaveCount( 0 );
 	} );
 
@@ -824,7 +824,7 @@ test.describe( 'Scheduled Automations (t080)', () => {
 		await useTemplateButton.click();
 
 		// Form should open pre-filled with the template name.
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		const nameInput = form.getByLabel( /^name/i );
@@ -847,7 +847,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 	test( 'events tab renders the manager heading', async ( { page } ) => {
 		await goToEventsTab( page );
 
-		const manager = page.locator( '.gratis-ai-agent-events-manager' );
+		const manager = page.locator( '.sd-ai-agent-events-manager' );
 		await expect( manager ).toBeVisible();
 
 		await expect(
@@ -861,7 +861,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 		await expect( card ).toBeVisible();
 	} );
@@ -870,13 +870,13 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
 		await expect( card ).toBeVisible( { timeout: 10_000 } );
 
-		const badge = card.locator( '.gratis-ai-agent-skill-badge' ).first();
+		const badge = card.locator( '.sd-ai-agent-skill-badge' ).first();
 		await expect( badge ).toContainText( MOCK_EVENT.hook_name );
 	} );
 
@@ -884,7 +884,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		await expect( card ).toContainText( `${ MOCK_EVENT.run_count } runs` );
@@ -897,7 +897,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await expect( addButton ).toBeVisible();
 		await addButton.click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		// Required fields.
@@ -913,7 +913,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		const createButton = form.getByRole( 'button', { name: /^create$/i } );
 
 		// All empty → disabled.
@@ -953,8 +953,8 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 			const decodedUrl = decodeURIComponent( route.request().url() );
 			// Only handle the /event-automations list endpoint (not /event-automations/ID).
 			if (
-				! decodedUrl.includes( 'gratis-ai-agent/v1/event-automations' ) ||
-				/gratis-ai-agent\/v1\/event-automations\/\d/.test( decodedUrl )
+				! decodedUrl.includes( 'sd-ai-agent/v1/event-automations' ) ||
+				/sd-ai-agent\/v1\/event-automations\/\d/.test( decodedUrl )
 			) {
 				return route.continue();
 			}
@@ -980,7 +980,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await form.getByLabel( /^name/i ).fill( 'My New Event' );
 		await form
 			.getByLabel( /trigger hook/i )
@@ -1008,7 +1008,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		// The new event should appear in the list after the GET refresh.
 		await expect(
 			page
-				.locator( '.gratis-ai-agent-skill-cards' )
+				.locator( '.sd-ai-agent-skill-cards' )
 				.filter( { hasText: 'My New Event' } )
 		).toBeVisible( { timeout: 10_000 } );
 	} );
@@ -1020,7 +1020,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		const hookSelect = form.getByLabel( /trigger hook/i );
 
 		// The mock trigger should appear as an option.
@@ -1037,13 +1037,13 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await form
 			.getByLabel( /trigger hook/i )
 			.selectOption( MOCK_TRIGGER.hook_name );
 
 		// Trigger info block should appear.
-		const triggerInfo = form.locator( '.gratis-ai-agent-trigger-info' );
+		const triggerInfo = form.locator( '.sd-ai-agent-trigger-info' );
 		await expect( triggerInfo ).toBeVisible();
 		await expect( triggerInfo ).toContainText(
 			MOCK_TRIGGER.description
@@ -1084,7 +1084,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 			// Match /event-automations/1 for PATCH and individual GET.
 			if (
-				/gratis-ai-agent\/v1\/event-automations\/1\b/.test(
+				/sd-ai-agent\/v1\/event-automations\/1\b/.test(
 					decodedUrl
 				)
 			) {
@@ -1114,7 +1114,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 			// Match /event-automations list endpoint (fetchAll after PATCH).
 			if (
 				patchCalled &&
-				/gratis-ai-agent\/v1\/event-automations\b/.test(
+				/sd-ai-agent\/v1\/event-automations\b/.test(
 					decodedUrl
 				) &&
 				! /\/event-automations\/\d/.test( decodedUrl ) &&
@@ -1135,7 +1135,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: MOCK_EVENT.name } );
 
 		// Wait for the card to be in the DOM before accessing sub-elements.
@@ -1176,7 +1176,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 		await goToEventsTab( page );
 
 		const card = page
-			.locator( '.gratis-ai-agent-skill-card' )
+			.locator( '.sd-ai-agent-skill-card' )
 			.filter( { hasText: disabledEvent.name } );
 
 		await expect( card ).toHaveClass( /ai-agent-skill-card--disabled/ );
@@ -1199,7 +1199,7 @@ test.describe( 'Event-Driven Automations (t081)', () => {
 
 		await page.getByRole( 'button', { name: /add event/i } ).click();
 
-		const form = page.locator( '.gratis-ai-agent-skill-form' );
+		const form = page.locator( '.sd-ai-agent-skill-form' );
 		await expect( form ).toBeVisible();
 
 		await form.getByRole( 'button', { name: /cancel/i } ).click();

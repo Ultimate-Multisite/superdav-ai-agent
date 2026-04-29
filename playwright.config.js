@@ -1,5 +1,5 @@
 /**
- * Playwright E2E test configuration for Gratis AI Agent.
+ * Playwright E2E test configuration for Superdav AI Agent.
  *
  * Tests run against a wp-env WordPress environment.
  * Start the environment with `npm run wp-env:start` before running tests.

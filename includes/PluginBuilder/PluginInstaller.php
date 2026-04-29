@@ -5,13 +5,13 @@ declare(strict_types=1);
  * Plugin Installer — writes AI-generated plugin files to wp-content/plugins/
  * and tracks them in the generated_plugins database table.
  *
- * @package GratisAiAgent\PluginBuilder
+ * @package SdAiAgent\PluginBuilder
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\PluginBuilder;
+namespace SdAiAgent\PluginBuilder;
 
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Core\Database;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,24 +55,24 @@ class PluginInstaller {
 	public static function validate_plugin_path( string $slug, string $relative_path ): string|\WP_Error {
 		if ( '' === $relative_path ) {
 			return new WP_Error(
-				'gratis_ai_agent_empty_path',
-				__( 'File path must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_empty_path',
+				__( 'File path must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
 		// Reject null bytes.
 		if ( str_contains( $relative_path, "\0" ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_path',
-				__( 'File path contains invalid characters.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_path',
+				__( 'File path contains invalid characters.', 'sd-ai-agent' )
 			);
 		}
 
 		// Reject explicit traversal sequences.
 		if ( str_contains( $relative_path, '../' ) || str_contains( $relative_path, '..' . DIRECTORY_SEPARATOR ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_path_traversal',
-				__( 'File path contains directory traversal sequences.', 'gratis-ai-agent' )
+				'sd_ai_agent_path_traversal',
+				__( 'File path contains directory traversal sequences.', 'sd-ai-agent' )
 			);
 		}
 
@@ -86,8 +86,8 @@ class PluginInstaller {
 
 		if ( '' === $normalised ) {
 			return new WP_Error(
-				'gratis_ai_agent_empty_path',
-				__( 'File path resolves to an empty path after normalisation.', 'gratis-ai-agent' )
+				'sd_ai_agent_empty_path',
+				__( 'File path resolves to an empty path after normalisation.', 'sd-ai-agent' )
 			);
 		}
 
@@ -107,8 +107,8 @@ class PluginInstaller {
 					$real_dir = realpath( $dir_candidate );
 					if ( false !== $real_dir && ! str_starts_with( $real_dir . '/', $real_plugin_dir . '/' ) ) {
 						return new WP_Error(
-							'gratis_ai_agent_path_traversal',
-							__( 'File path escapes the plugin directory.', 'gratis-ai-agent' )
+							'sd_ai_agent_path_traversal',
+							__( 'File path escapes the plugin directory.', 'sd-ai-agent' )
 						);
 					}
 				}
@@ -138,8 +138,8 @@ class PluginInstaller {
 	): array|\WP_Error {
 		if ( ! preg_match( self::SLUG_PATTERN, $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must contain only lowercase letters, digits, and hyphens.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must contain only lowercase letters, digits, and hyphens.', 'sd-ai-agent' )
 			);
 		}
 
@@ -177,15 +177,15 @@ class PluginInstaller {
 	): array|\WP_Error {
 		if ( ! preg_match( self::SLUG_PATTERN, $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must contain only lowercase letters, digits, and hyphens.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must contain only lowercase letters, digits, and hyphens.', 'sd-ai-agent' )
 			);
 		}
 
 		if ( empty( $files ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_files',
-				__( 'No plugin files provided for installation.', 'gratis-ai-agent' )
+				'sd_ai_agent_no_files',
+				__( 'No plugin files provided for installation.', 'sd-ai-agent' )
 			);
 		}
 
@@ -232,24 +232,24 @@ class PluginInstaller {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
 		if ( empty( $files ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_files',
-				__( 'No files provided for update.', 'gratis-ai-agent' )
+				'sd_ai_agent_no_files',
+				__( 'No files provided for update.', 'sd-ai-agent' )
 			);
 		}
 
 		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				/* translators: %s: plugin slug */
-				sprintf( __( 'Plugin directory not found for slug: %s', 'gratis-ai-agent' ), $slug )
+				sprintf( __( 'Plugin directory not found for slug: %s', 'sd-ai-agent' ), $slug )
 			);
 		}
 
@@ -278,9 +278,9 @@ class PluginInstaller {
 
 			if ( ! $wp_filesystem->put_contents( $abs_path, $content, FS_CHMOD_FILE ) ) {
 				return new WP_Error(
-					'gratis_ai_agent_write_failed',
+					'sd_ai_agent_write_failed',
 					/* translators: %s: file path */
-					sprintf( __( 'Could not write file: %s', 'gratis-ai-agent' ), $relative_path )
+					sprintf( __( 'Could not write file: %s', 'sd-ai-agent' ), $relative_path )
 				);
 			}
 
@@ -308,7 +308,7 @@ class PluginInstaller {
 	 *
 	 * Deactivates the plugin if it is currently active, removes its directory
 	 * from disk, and deletes the database record. Only works on plugins that
-	 * have a record in gratis_ai_agent_generated_plugins (i.e. AI-generated).
+	 * have a record in sd_ai_agent_generated_plugins (i.e. AI-generated).
 	 *
 	 * @param string $slug Plugin slug.
 	 * @return array{deleted: bool, deactivated: bool}|\WP_Error
@@ -320,8 +320,8 @@ class PluginInstaller {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
@@ -335,9 +335,9 @@ class PluginInstaller {
 
 		if ( null === $record ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				/* translators: %s: plugin slug */
-				sprintf( __( 'No generated plugin record found for slug: %s', 'gratis-ai-agent' ), $slug )
+				sprintf( __( 'No generated plugin record found for slug: %s', 'sd-ai-agent' ), $slug )
 			);
 		}
 
@@ -400,15 +400,15 @@ class PluginInstaller {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_slug',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
 		if ( empty( $files ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_no_files',
-				__( 'No plugin files provided for installation.', 'gratis-ai-agent' )
+				'sd_ai_agent_no_files',
+				__( 'No plugin files provided for installation.', 'sd-ai-agent' )
 			);
 		}
 
@@ -419,17 +419,17 @@ class PluginInstaller {
 		$canonical_plugins = realpath( $plugins_dir );
 		if ( false === $canonical_plugins ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugins_dir_missing',
-				__( 'WordPress plugins directory not found.', 'gratis-ai-agent' )
+				'sd_ai_agent_plugins_dir_missing',
+				__( 'WordPress plugins directory not found.', 'sd-ai-agent' )
 			);
 		}
 
 		// Create plugin directory.
 		if ( ! wp_mkdir_p( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_mkdir_failed',
+				'sd_ai_agent_mkdir_failed',
 				/* translators: %s: directory path */
-				sprintf( __( 'Could not create plugin directory: %s', 'gratis-ai-agent' ), $plugin_dir )
+				sprintf( __( 'Could not create plugin directory: %s', 'sd-ai-agent' ), $plugin_dir )
 			);
 		}
 
@@ -444,9 +444,9 @@ class PluginInstaller {
 			$dest_real = dirname( $abs_path );
 			if ( false === wp_mkdir_p( $dest_real ) ) {
 				return new WP_Error(
-					'gratis_ai_agent_mkdir_failed',
+					'sd_ai_agent_mkdir_failed',
 					/* translators: %s: directory path */
-					sprintf( __( 'Could not create directory: %s', 'gratis-ai-agent' ), $dest_real )
+					sprintf( __( 'Could not create directory: %s', 'sd-ai-agent' ), $dest_real )
 				);
 			}
 
@@ -454,9 +454,9 @@ class PluginInstaller {
 			$result = file_put_contents( $abs_path, $content );
 			if ( false === $result ) {
 				return new WP_Error(
-					'gratis_ai_agent_write_failed',
+					'sd_ai_agent_write_failed',
 					/* translators: %s: file path */
-					sprintf( __( 'Could not write file: %s', 'gratis-ai-agent' ), $relative_path )
+					sprintf( __( 'Could not write file: %s', 'sd-ai-agent' ), $relative_path )
 				);
 			}
 
@@ -490,9 +490,9 @@ class PluginInstaller {
 
 		if ( false === $insert ) {
 			return new WP_Error(
-				'gratis_ai_agent_db_insert_failed',
+				'sd_ai_agent_db_insert_failed',
 				/* translators: %s: database error */
-				sprintf( __( 'Database insert failed: %s', 'gratis-ai-agent' ), $wpdb->last_error )
+				sprintf( __( 'Database insert failed: %s', 'sd-ai-agent' ), $wpdb->last_error )
 			);
 		}
 

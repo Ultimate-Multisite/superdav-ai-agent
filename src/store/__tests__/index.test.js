@@ -144,7 +144,7 @@ describe( 'actions', () => {
 			type: 'SET_SELECTED_PROVIDER',
 			providerId: 'anthropic',
 		} );
-		expect( localStorage.getItem( 'gratisAiAgentProvider' ) ).toBe(
+		expect( localStorage.getItem( 'sdAiAgentProvider' ) ).toBe(
 			'anthropic'
 		);
 	} );
@@ -155,9 +155,7 @@ describe( 'actions', () => {
 			type: 'SET_SELECTED_MODEL',
 			modelId: 'claude-3',
 		} );
-		expect( localStorage.getItem( 'gratisAiAgentModel' ) ).toBe(
-			'claude-3'
-		);
+		expect( localStorage.getItem( 'sdAiAgentModel' ) ).toBe( 'claude-3' );
 	} );
 
 	test( 'setFloatingOpen returns correct action', () => {

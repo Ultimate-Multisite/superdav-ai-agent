@@ -193,7 +193,7 @@ export default function ToolCard( {
 					}` }
 				>
 					{ status === 'running' && (
-						<span>{ __( 'Running…', 'gratis-ai-agent' ) }</span>
+						<span>{ __( 'Running…', 'sd-ai-agent' ) }</span>
 					) }
 					<span className="gaa-cr-tool-card-chevron">
 						<Icon icon={ chevronDown } size={ 16 } />
@@ -205,7 +205,7 @@ export default function ToolCard( {
 					{ args && args !== '{}' && args !== 'null' && (
 						<div>
 							<div className="gaa-cr-tool-detail-label">
-								{ __( 'Arguments', 'gratis-ai-agent' ) }
+								{ __( 'Arguments', 'sd-ai-agent' ) }
 							</div>
 							<pre className="gaa-cr-tool-detail-value">
 								{ args }
@@ -215,7 +215,7 @@ export default function ToolCard( {
 					{ result && (
 						<div>
 							<div className="gaa-cr-tool-detail-label">
-								{ __( 'Result', 'gratis-ai-agent' ) }
+								{ __( 'Result', 'sd-ai-agent' ) }
 							</div>
 							<pre className="gaa-cr-tool-detail-value">
 								{ result }
@@ -228,7 +228,7 @@ export default function ToolCard( {
 								<Icon icon={ caution } size={ 14 } />
 								{ __(
 									'This action modified your site.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</span>
 							{ onRevert && (
@@ -238,7 +238,7 @@ export default function ToolCard( {
 									onClick={ onRevert }
 								>
 									<Icon icon={ undo } size={ 12 } />
-									{ __( 'Revert this', 'gratis-ai-agent' ) }
+									{ __( 'Revert this', 'sd-ai-agent' ) }
 								</button>
 							) }
 						</div>

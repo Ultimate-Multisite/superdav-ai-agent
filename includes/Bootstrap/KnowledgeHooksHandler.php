@@ -6,18 +6,18 @@
  * wiring each WordPress action directly via `#[Action]` attributes.
  *
  * The underlying sync logic lives in
- * {@see \GratisAiAgent\Knowledge\KnowledgeHooks}. This handler is a thin
+ * {@see \SdAiAgent\Knowledge\KnowledgeHooks}. This handler is a thin
  * DI bridge — its only job is hook registration and arg forwarding.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Knowledge\KnowledgeHooks;
+use SdAiAgent\Knowledge\KnowledgeHooks;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and cron contexts, and the reindex cron hook fires in CTX_CRON.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

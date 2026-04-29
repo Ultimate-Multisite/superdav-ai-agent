@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Tracks the lifecycle of background AI jobs so that clients can reconnect
  * after page navigation and resume polling for completion.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Models\DTO\ActiveJobRow;
+use SdAiAgent\Models\DTO\ActiveJobRow;
 
 class ActiveJobRepository {
 
@@ -28,7 +28,7 @@ class ActiveJobRepository {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_active_jobs';
+		return $wpdb->prefix . 'sd_ai_agent_active_jobs';
 	}
 
 	/**

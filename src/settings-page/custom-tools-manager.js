@@ -15,9 +15,9 @@ import { trash, pencil, plus, seen } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 
 const TOOL_TYPES = [
-	{ label: __( 'HTTP Request', 'gratis-ai-agent' ), value: 'http' },
-	{ label: __( 'WordPress Action', 'gratis-ai-agent' ), value: 'action' },
-	{ label: __( 'WP-CLI Command', 'gratis-ai-agent' ), value: 'cli' },
+	{ label: __( 'HTTP Request', 'sd-ai-agent' ), value: 'http' },
+	{ label: __( 'WordPress Action', 'sd-ai-agent' ), value: 'action' },
+	{ label: __( 'WP-CLI Command', 'sd-ai-agent' ), value: 'cli' },
 ];
 
 const HTTP_METHODS = [
@@ -58,7 +58,7 @@ export default function CustomToolsManager() {
 	const fetchTools = useCallback( async () => {
 		try {
 			const result = await apiFetch( {
-				path: '/gratis-ai-agent/v1/custom-tools',
+				path: '/sd-ai-agent/v1/custom-tools',
 			} );
 			setTools( result );
 		} catch {
@@ -108,13 +108,13 @@ export default function CustomToolsManager() {
 			};
 			if ( editId ) {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/custom-tools/${ editId }`,
+					path: `/sd-ai-agent/v1/custom-tools/${ editId }`,
 					method: 'PATCH',
 					data,
 				} );
 			} else {
 				await apiFetch( {
-					path: '/gratis-ai-agent/v1/custom-tools',
+					path: '/sd-ai-agent/v1/custom-tools',
 					method: 'POST',
 					data,
 				} );
@@ -123,14 +123,13 @@ export default function CustomToolsManager() {
 			fetchTools();
 			setNotice( {
 				status: 'success',
-				message: __( 'Tool saved.', 'gratis-ai-agent' ),
+				message: __( 'Tool saved.', 'sd-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
 				message:
-					err.message ||
-					__( 'Failed to save tool.', 'gratis-ai-agent' ),
+					err.message || __( 'Failed to save tool.', 'sd-ai-agent' ),
 			} );
 		}
 	}, [ form, editId, resetForm, fetchTools ] );
@@ -155,11 +154,11 @@ export default function CustomToolsManager() {
 			if (
 				// eslint-disable-next-line no-alert
 				window.confirm(
-					__( 'Delete this custom tool?', 'gratis-ai-agent' )
+					__( 'Delete this custom tool?', 'sd-ai-agent' )
 				)
 			) {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/custom-tools/${ id }`,
+					path: `/sd-ai-agent/v1/custom-tools/${ id }`,
 					method: 'DELETE',
 				} );
 				fetchTools();
@@ -171,7 +170,7 @@ export default function CustomToolsManager() {
 	const handleToggle = useCallback(
 		async ( tool ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/custom-tools/${ tool.id }`,
+				path: `/sd-ai-agent/v1/custom-tools/${ tool.id }`,
 				method: 'PATCH',
 				data: { enabled: ! tool.enabled },
 			} );
@@ -187,7 +186,7 @@ export default function CustomToolsManager() {
 		setTestResult( null );
 		try {
 			const result = await apiFetch( {
-				path: `/gratis-ai-agent/v1/custom-tools/${ editId }/test`,
+				path: `/sd-ai-agent/v1/custom-tools/${ editId }/test`,
 				method: 'POST',
 				data: { args: {} },
 			} );
@@ -205,25 +204,25 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<SelectControl
-							label={ __( 'HTTP Method', 'gratis-ai-agent' ) }
+							label={ __( 'HTTP Method', 'sd-ai-agent' ) }
 							value={ cfg.method || 'GET' }
 							options={ HTTP_METHODS }
 							onChange={ ( v ) => updateConfig( 'method', v ) }
 							__nextHasNoMarginBottom
 						/>
 						<TextControl
-							label={ __( 'URL', 'gratis-ai-agent' ) }
+							label={ __( 'URL', 'sd-ai-agent' ) }
 							value={ cfg.url || '' }
 							onChange={ ( v ) => updateConfig( 'url', v ) }
 							placeholder="https://api.example.com/endpoint?q={{query}}"
 							help={ __(
 								'Use {{param}} placeholders for dynamic values.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 						<TextareaControl
-							label={ __( 'Headers (JSON)', 'gratis-ai-agent' ) }
+							label={ __( 'Headers (JSON)', 'sd-ai-agent' ) }
 							value={
 								typeof cfg.headers === 'object'
 									? JSON.stringify( cfg.headers, null, 2 )
@@ -233,13 +232,13 @@ export default function CustomToolsManager() {
 							rows={ 3 }
 						/>
 						<TextareaControl
-							label={ __( 'Body Template', 'gratis-ai-agent' ) }
+							label={ __( 'Body Template', 'sd-ai-agent' ) }
 							value={ cfg.body || '' }
 							onChange={ ( v ) => updateConfig( 'body', v ) }
 							rows={ 3 }
 							help={ __(
 								'Use {{param}} placeholders. Leave empty for GET requests.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						/>
 					</>
@@ -249,13 +248,13 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<TextControl
-							label={ __( 'Hook Name', 'gratis-ai-agent' ) }
+							label={ __( 'Hook Name', 'sd-ai-agent' ) }
 							value={ cfg.hook_name || '' }
 							onChange={ ( v ) => updateConfig( 'hook_name', v ) }
 							placeholder="my_custom_action"
 							help={ __(
 								'The WordPress action hook to call via do_action().',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
@@ -266,13 +265,13 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<TextControl
-							label={ __( 'WP-CLI Command', 'gratis-ai-agent' ) }
+							label={ __( 'WP-CLI Command', 'sd-ai-agent' ) }
 							value={ cfg.command || '' }
 							onChange={ ( v ) => updateConfig( 'command', v ) }
 							placeholder="cache flush"
 							help={ __(
 								'Command to run (without the "wp" prefix). Use {{param}} placeholders.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
@@ -285,14 +284,14 @@ export default function CustomToolsManager() {
 	};
 
 	return (
-		<div className="gratis-ai-agent-custom-tools-manager">
-			<div className="gratis-ai-agent-skill-header">
+		<div className="sd-ai-agent-custom-tools-manager">
+			<div className="sd-ai-agent-skill-header">
 				<div>
-					<h3>{ __( 'Custom Tools', 'gratis-ai-agent' ) }</h3>
+					<h3>{ __( 'Custom Tools', 'sd-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Create custom tools that the AI can use — HTTP APIs, WordPress actions, or WP-CLI commands.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -303,7 +302,7 @@ export default function CustomToolsManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Tool', 'gratis-ai-agent' ) }
+						{ __( 'Add Tool', 'sd-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -319,37 +318,37 @@ export default function CustomToolsManager() {
 			) }
 
 			{ showForm && (
-				<div className="gratis-ai-agent-skill-form">
+				<div className="sd-ai-agent-skill-form">
 					{ ! editId && (
 						<TextControl
-							label={ __( 'Slug', 'gratis-ai-agent' ) }
+							label={ __( 'Slug', 'sd-ai-agent' ) }
 							value={ form.slug }
 							onChange={ ( v ) => updateForm( 'slug', v ) }
 							help={ __(
 								'Unique identifier (lowercase, hyphens).',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 					) }
 					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
+						label={ __( 'Name', 'sd-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => updateForm( 'name', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'sd-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) => updateForm( 'description', v ) }
 						help={ __(
 							'Explains to the AI when this tool should be used.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Type', 'gratis-ai-agent' ) }
+						label={ __( 'Type', 'sd-ai-agent' ) }
 						value={ form.type }
 						options={ TOOL_TYPES }
 						onChange={ ( v ) => {
@@ -374,17 +373,17 @@ export default function CustomToolsManager() {
 					{ renderConfigFields() }
 
 					<TextareaControl
-						label={ __( 'Input Schema (JSON)', 'gratis-ai-agent' ) }
+						label={ __( 'Input Schema (JSON)', 'sd-ai-agent' ) }
 						value={ form.input_schema }
 						onChange={ ( v ) => updateForm( 'input_schema', v ) }
 						rows={ 4 }
 						help={ __(
 							'JSON Schema describing the parameters the AI should provide.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					/>
 
-					<div className="gratis-ai-agent-skill-form-actions">
+					<div className="sd-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -395,8 +394,8 @@ export default function CustomToolsManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'gratis-ai-agent' )
-								: __( 'Create', 'gratis-ai-agent' ) }
+								? __( 'Update', 'sd-ai-agent' )
+								: __( 'Create', 'sd-ai-agent' ) }
 						</Button>
 						{ editId && (
 							<Button
@@ -405,7 +404,7 @@ export default function CustomToolsManager() {
 								onClick={ handleTest }
 								size="compact"
 							>
-								{ __( 'Test', 'gratis-ai-agent' ) }
+								{ __( 'Test', 'sd-ai-agent' ) }
 							</Button>
 						) }
 						<Button
@@ -413,20 +412,20 @@ export default function CustomToolsManager() {
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 
 					{ testResult && (
 						<div
-							className={ `gratis-ai-agent-test-result ${
+							className={ `sd-ai-agent-test-result ${
 								testResult.success ? 'is-success' : 'is-error'
 							}` }
 						>
 							<strong>
 								{ testResult.success
-									? __( 'Success', 'gratis-ai-agent' )
-									: __( 'Error', 'gratis-ai-agent' ) }
+									? __( 'Success', 'sd-ai-agent' )
+									: __( 'Error', 'sd-ai-agent' ) }
 							</strong>
 							<pre>
 								{ typeof testResult.output === 'object'
@@ -444,7 +443,7 @@ export default function CustomToolsManager() {
 
 			{ ! loaded && (
 				<p className="description">
-					{ __( 'Loading…', 'gratis-ai-agent' ) }
+					{ __( 'Loading…', 'sd-ai-agent' ) }
 				</p>
 			) }
 
@@ -452,59 +451,53 @@ export default function CustomToolsManager() {
 				<p className="description">
 					{ __(
 						'No custom tools yet. Create one or deactivate/reactivate the plugin to seed examples.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }
 
 			{ tools.length > 0 && (
-				<div className="gratis-ai-agent-skill-cards">
+				<div className="sd-ai-agent-skill-cards">
 					{ tools.map( ( tool ) => (
 						<div
 							key={ tool.id }
-							className={ `gratis-ai-agent-skill-card ${
+							className={ `sd-ai-agent-skill-card ${
 								! tool.enabled
-									? 'gratis-ai-agent-skill-card--disabled'
+									? 'sd-ai-agent-skill-card--disabled'
 									: ''
 							}` }
 						>
-							<div className="gratis-ai-agent-skill-card-header">
+							<div className="sd-ai-agent-skill-card-header">
 								<ToggleControl
 									checked={ tool.enabled }
 									onChange={ () => handleToggle( tool ) }
 									__nextHasNoMarginBottom
 								/>
-								<div className="gratis-ai-agent-skill-card-title">
+								<div className="sd-ai-agent-skill-card-title">
 									<strong>{ tool.name }</strong>
-									<span className="gratis-ai-agent-skill-badge">
+									<span className="sd-ai-agent-skill-badge">
 										{ tool.type.toUpperCase() }
 									</span>
 								</div>
 							</div>
-							<p className="gratis-ai-agent-skill-card-description">
+							<p className="sd-ai-agent-skill-card-description">
 								{ tool.description }
 							</p>
-							<div className="gratis-ai-agent-skill-card-footer">
-								<span className="gratis-ai-agent-skill-word-count">
+							<div className="sd-ai-agent-skill-card-footer">
+								<span className="sd-ai-agent-skill-word-count">
 									{ tool.slug }
 								</span>
-								<div className="gratis-ai-agent-skill-card-actions">
+								<div className="sd-ai-agent-skill-card-actions">
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __(
-											'Edit',
-											'gratis-ai-agent'
-										) }
+										label={ __( 'Edit', 'sd-ai-agent' ) }
 										onClick={ () => handleEdit( tool ) }
 									/>
 									<Button
 										icon={ trash }
 										size="small"
-										label={ __(
-											'Delete',
-											'gratis-ai-agent'
-										) }
+										label={ __( 'Delete', 'sd-ai-agent' ) }
 										isDestructive
 										onClick={ () =>
 											handleDelete( tool.id )

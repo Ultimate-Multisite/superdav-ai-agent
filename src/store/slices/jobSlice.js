@@ -132,7 +132,7 @@ export const actions = {
 			for ( let attempt = 0; attempt < 3; attempt++ ) {
 				try {
 					await apiFetch( {
-						path: '/gratis-ai-agent/v1/chat/tool-result',
+						path: '/sd-ai-agent/v1/chat/tool-result',
 						method: 'POST',
 						data: {
 							session_id: sessionId,
@@ -147,7 +147,7 @@ export const actions = {
 					// on a prior attempt but the response was lost) — resume.
 					if (
 						err?.data?.status === 409 ||
-						err?.code === 'rest_gratis_ai_agent_no_paused_state'
+						err?.code === 'rest_sd_ai_agent_no_paused_state'
 					) {
 						postSucceeded = true;
 						break;
@@ -182,12 +182,12 @@ export const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
+							text: `${ __( 'Error:', 'sd-ai-agent' ) } ${
 								lastErr instanceof Error
 									? lastErr.message
 									: __(
 											'Failed to submit client tool results.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 							}`,
 						},
@@ -275,7 +275,7 @@ export const actions = {
 
 				try {
 					const result = await apiFetch( {
-						path: `/gratis-ai-agent/v1/job/${ jobId }`,
+						path: `/sd-ai-agent/v1/job/${ jobId }`,
 					} );
 
 					if ( result.status === 'processing' ) {
@@ -405,7 +405,7 @@ export const actions = {
 										name: call.name,
 										error: __(
 											'Client-side ability requires user confirmation (not yet supported for non-readonly abilities).',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										),
 									};
 								}
@@ -450,7 +450,7 @@ export const actions = {
 						for ( let attempt = 0; attempt < 3; attempt++ ) {
 							try {
 								await apiFetch( {
-									path: '/gratis-ai-agent/v1/chat/tool-result',
+									path: '/sd-ai-agent/v1/chat/tool-result',
 									method: 'POST',
 									data: {
 										session_id: currentSessionId,
@@ -464,7 +464,7 @@ export const actions = {
 								if (
 									err?.data?.status === 409 ||
 									err?.code ===
-										'rest_gratis_ai_agent_no_paused_state'
+										'rest_sd_ai_agent_no_paused_state'
 								) {
 									// Already processed on a prior attempt.
 									postSucceeded = true;
@@ -506,17 +506,17 @@ export const actions = {
 										{
 											text: `${ __(
 												'Error:',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) } ${
 												postErr instanceof Error
 													? postErr.message
 													: __(
 															'Failed to submit client tool results.',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 													  )
 											} ${ __(
 												'Use the Retry button to resubmit without re-running the tools.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }`,
 										},
 									],
@@ -537,10 +537,9 @@ export const actions = {
 						// this is the primary fix for the infinite-reload loop
 						// caused by navigate-to calling window.location.assign()
 						// before the POST could complete.
-						if ( window._gratisAiAgentPendingNavigation ) {
-							const target =
-								window._gratisAiAgentPendingNavigation;
-							delete window._gratisAiAgentPendingNavigation;
+						if ( window._sdAiAgentPendingNavigation ) {
+							const target = window._sdAiAgentPendingNavigation;
+							delete window._sdAiAgentPendingNavigation;
 							clearActiveJob( sessionId );
 							unsubscribeVisibility();
 							window.location.assign( target );
@@ -558,18 +557,15 @@ export const actions = {
 					}
 
 					if ( result.status === 'error' ) {
-						let errorText = `${ __(
-							'Error:',
-							'gratis-ai-agent'
-						) } ${
+						let errorText = `${ __( 'Error:', 'sd-ai-agent' ) } ${
 							result.message ||
-							__( 'Unknown error', 'gratis-ai-agent' )
+							__( 'Unknown error', 'sd-ai-agent' )
 						}`;
 						if ( result.error_context ) {
 							const ctx = result.error_context;
 							errorText += `\n\n**${ __(
 								'Location:',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }** \`${ ctx.file }:${ ctx.line }\``;
 							if (
 								Array.isArray( ctx.trace ) &&
@@ -577,7 +573,7 @@ export const actions = {
 							) {
 								errorText +=
 									'\n\n**' +
-									__( 'Stack trace:', 'gratis-ai-agent' ) +
+									__( 'Stack trace:', 'sd-ai-agent' ) +
 									'**\n```\n' +
 									ctx.trace.join( '\n' ) +
 									'\n```';
@@ -609,7 +605,7 @@ export const actions = {
 						) {
 							try {
 								const session = await apiFetch( {
-									path: `/gratis-ai-agent/v1/sessions/${ result.session_id }`,
+									path: `/sd-ai-agent/v1/sessions/${ result.session_id }`,
 								} );
 								// Guard: still the active session after the async fetch.
 								if (

@@ -6,11 +6,11 @@ declare(strict_types=1);
  *
  * Allows advanced users to benchmark AI models against WordPress knowledge tests.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Admin;
+namespace SdAiAgent\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,15 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ModelBenchmarkPage {
 
-	const SLUG = 'gratis-ai-agent-benchmark';
+	const SLUG = 'sd-ai-agent-benchmark';
 
 	/**
 	 * Register the admin menu page under Tools.
 	 */
 	public static function register(): void {
 		$hook = add_management_page(
-			__( 'Model Benchmark', 'gratis-ai-agent' ),
-			__( 'Model Benchmark', 'gratis-ai-agent' ),
+			__( 'Model Benchmark', 'sd-ai-agent' ),
+			__( 'Model Benchmark', 'sd-ai-agent' ),
 			'manage_options',
 			self::SLUG,
 			[ __CLASS__, 'render' ]
@@ -47,7 +47,7 @@ class ModelBenchmarkPage {
 			return;
 		}
 
-		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$build_dir  = (string) apply_filters( 'sd_ai_agent_build_dir', SD_AI_AGENT_DIR . '/build' );
 		$asset_file = $build_dir . '/benchmark-page.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
@@ -58,28 +58,28 @@ class ModelBenchmarkPage {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'gratis-ai-agent-benchmark-page',
-			GRATIS_AI_AGENT_URL . 'build/style-benchmark-page.css',
+			'sd-ai-agent-benchmark-page',
+			SD_AI_AGENT_URL . 'build/style-benchmark-page.css',
 			[ 'wp-components' ],
 			$asset['version']
 		);
 
 		wp_enqueue_script(
-			'gratis-ai-agent-benchmark-page',
-			GRATIS_AI_AGENT_URL . 'build/benchmark-page.js',
+			'sd-ai-agent-benchmark-page',
+			SD_AI_AGENT_URL . 'build/benchmark-page.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
 		);
 
-		wp_set_script_translations( 'gratis-ai-agent-benchmark-page', 'gratis-ai-agent' );
+		wp_set_script_translations( 'sd-ai-agent-benchmark-page', 'sd-ai-agent' );
 
 		wp_localize_script(
-			'gratis-ai-agent-benchmark-page',
-			'gratisAiBenchmarkData',
+			'sd-ai-agent-benchmark-page',
+			'sdAiBenchmarkData',
 			[
 				'currentUserId' => get_current_user_id(),
-				'restNamespace' => 'gratis-ai-agent/v1',
+				'restNamespace' => 'sd-ai-agent/v1',
 			]
 		);
 	}
@@ -89,12 +89,12 @@ class ModelBenchmarkPage {
 	 */
 	public static function render(): void {
 		?>
-		<div class="wrap gratis-ai-agent-benchmark-wrap">
-			<h1><?php esc_html_e( 'Model Benchmark', 'gratis-ai-agent' ); ?></h1>
+		<div class="wrap sd-ai-agent-benchmark-wrap">
+			<h1><?php esc_html_e( 'Model Benchmark', 'sd-ai-agent' ); ?></h1>
 			<p class="description">
-				<?php esc_html_e( 'Benchmark AI models against WordPress knowledge and coding tasks. Compare performance, accuracy, and cost across different providers.', 'gratis-ai-agent' ); ?>
+				<?php esc_html_e( 'Benchmark AI models against WordPress knowledge and coding tasks. Compare performance, accuracy, and cost across different providers.', 'sd-ai-agent' ); ?>
 			</p>
-			<div id="gratis-ai-agent-benchmark-root"></div>
+			<div id="sd-ai-agent-benchmark-root"></div>
 		</div>
 		<?php
 	}

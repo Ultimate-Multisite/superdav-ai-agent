@@ -145,7 +145,7 @@ export default function InputArea() {
 			const fact = trimmed.slice( 10 ).trim();
 			if ( fact ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory',
+					path: '/sd-ai-agent/v1/memory',
 					method: 'POST',
 					data: { category: 'general', content: fact },
 				} ).catch( () => {} );
@@ -159,7 +159,7 @@ export default function InputArea() {
 			const topic = trimmed.slice( 8 ).trim();
 			if ( topic ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory/forget',
+					path: '/sd-ai-agent/v1/memory/forget',
 					method: 'POST',
 					data: { topic },
 				} ).catch( () => {} );
@@ -348,10 +348,10 @@ export default function InputArea() {
 			{ queueCount > 0 && (
 				<div className="gaa-cr-queue-indicator">
 					{ queueCount === 1
-						? __( '1 message queued', 'gratis-ai-agent' )
+						? __( '1 message queued', 'sd-ai-agent' )
 						: sprintf(
 								/* translators: %d: queued message count */
-								__( '%d messages queued', 'gratis-ai-agent' ),
+								__( '%d messages queued', 'sd-ai-agent' ),
 								queueCount
 						  ) }
 				</div>
@@ -405,7 +405,7 @@ export default function InputArea() {
 										}
 										aria-label={ __(
 											'Remove attachment',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									>
 										&times;
@@ -421,11 +421,11 @@ export default function InputArea() {
 							sending
 								? __(
 										'Type to queue a message…',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 								  )
 								: __(
 										'Ask the agent to do something, or type / for commands…',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 								  )
 						}
 						value={ text }
@@ -455,7 +455,7 @@ export default function InputArea() {
 								onClick={ () => fileRef.current?.click() }
 								aria-label={ __(
 									'Attach file',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							>
 								<Paperclip />
@@ -475,12 +475,9 @@ export default function InputArea() {
 										isListening
 											? __(
 													'Stop recording',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 											  )
-											: __(
-													'Voice input',
-													'gratis-ai-agent'
-											  )
+											: __( 'Voice input', 'sd-ai-agent' )
 									}
 									aria-pressed={ isListening }
 								>
@@ -494,7 +491,7 @@ export default function InputArea() {
 									onClick={ stopGeneration }
 									aria-label={ __(
 										'Stop generation',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								>
 									<Stop />
@@ -507,7 +504,7 @@ export default function InputArea() {
 									disabled={ ! canSend }
 									aria-label={ __(
 										'Send message',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								>
 									<Icon icon={ arrowUp } size={ 16 } />

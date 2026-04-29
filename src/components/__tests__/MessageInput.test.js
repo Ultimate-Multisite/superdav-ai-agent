@@ -98,7 +98,7 @@ jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 
 // ─── Mock store ───────────────────────────────────────────────────────────────
 
-jest.mock( '../../store', () => 'gratis-ai-agent' );
+jest.mock( '../../store', () => 'sd-ai-agent' );
 
 // ─── Mock child components ────────────────────────────────────────────────────
 
@@ -235,7 +235,7 @@ describe( 'MessageInput rendering', () => {
 	test( 'renders ai-agent-input-area wrapper', () => {
 		setupMocks();
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-input-area' );
+		expect( html ).toContain( 'sd-ai-agent-input-area' );
 	} );
 
 	test( 'applies is-compact class in compact mode', () => {
@@ -261,29 +261,29 @@ describe( 'MessageInput rendering', () => {
 	test( 'renders send button when not sending', () => {
 		setupMocks( { sending: false } );
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-send-btn' );
-		expect( html ).not.toContain( 'gratis-ai-agent-stop-btn' );
+		expect( html ).toContain( 'sd-ai-agent-send-btn' );
+		expect( html ).not.toContain( 'sd-ai-agent-stop-btn' );
 	} );
 
 	test( 'renders stop button when sending is true', () => {
 		setupMocks( { sending: true } );
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-stop-btn' );
-		expect( html ).not.toContain( 'gratis-ai-agent-send-btn' );
+		expect( html ).toContain( 'sd-ai-agent-stop-btn' );
+		expect( html ).not.toContain( 'sd-ai-agent-send-btn' );
 	} );
 
-	// Templates button was removed in the gratis-ai-agent CSS prefix refactor.
+	// Templates button was removed in the sd-ai-agent CSS prefix refactor.
 
 	test( 'renders upload button (paperclip)', () => {
 		setupMocks();
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-upload-btn' );
+		expect( html ).toContain( 'sd-ai-agent-upload-btn' );
 	} );
 
 	test( 'renders hidden file input', () => {
 		setupMocks();
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-file-input' );
+		expect( html ).toContain( 'sd-ai-agent-file-input' );
 	} );
 } );
 
@@ -313,7 +313,7 @@ describe( 'MessageInput interactions', () => {
 			root.render( createElement( MessageInput, {} ) );
 		} );
 
-		const sendBtn = container.querySelector( '.gratis-ai-agent-send-btn' );
+		const sendBtn = container.querySelector( '.sd-ai-agent-send-btn' );
 		expect( sendBtn ).not.toBeNull();
 		expect( sendBtn.disabled ).toBe( true );
 	} );
@@ -326,7 +326,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		// Use the native value setter + React-compatible change event to trigger
@@ -343,7 +343,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		// After the state update, the send button should be enabled.
-		const sendBtn = container.querySelector( '.gratis-ai-agent-send-btn' );
+		const sendBtn = container.querySelector( '.sd-ai-agent-send-btn' );
 		expect( sendBtn ).not.toBeNull();
 		// canSend = text.trim().length > 0 && !sending — should be enabled.
 		expect( sendBtn.disabled ).toBe( false );
@@ -357,7 +357,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 		expect( textarea.disabled ).toBe( true );
 	} );
@@ -370,7 +370,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 		expect( textarea.disabled ).toBe( false );
 	} );
@@ -382,7 +382,7 @@ describe( 'MessageInput interactions', () => {
 			root.render( createElement( MessageInput, {} ) );
 		} );
 
-		const stopBtn = container.querySelector( '.gratis-ai-agent-stop-btn' );
+		const stopBtn = container.querySelector( '.sd-ai-agent-stop-btn' );
 		expect( stopBtn ).not.toBeNull();
 		act( () => {
 			stopBtn.click();
@@ -398,7 +398,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		// Set text value via React synthetic event.
@@ -431,7 +431,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -464,7 +464,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -490,7 +490,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -516,7 +516,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -548,7 +548,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -580,7 +580,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		// Simulate typing /report-issue something broke
@@ -626,7 +626,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		// A trailing space hides the slash menu so Enter reaches handleSend.
@@ -668,7 +668,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -703,7 +703,7 @@ describe( 'MessageInput interactions', () => {
 		} );
 
 		const textarea = container.querySelector(
-			'textarea.gratis-ai-agent-input'
+			'textarea.sd-ai-agent-input'
 		);
 
 		act( () => {
@@ -824,6 +824,6 @@ describe( 'AttachmentPreviews rendering', () => {
 	test( 'no attachment previews rendered initially', () => {
 		setupMocks();
 		const html = renderToStaticMarkup( createElement( MessageInput, {} ) );
-		expect( html ).not.toContain( 'gratis-ai-agent-attachment-previews' );
+		expect( html ).not.toContain( 'sd-ai-agent-attachment-previews' );
 	} );
 } );

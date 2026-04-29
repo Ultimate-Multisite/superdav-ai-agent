@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Provides post creation, retrieval, update, and deletion.
  * Ported from the WordPress/ai experiments plugin pattern.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Models\MarkdownToBlocks;
+use SdAiAgent\Models\MarkdownToBlocks;
 use WP_Error;
 use WP_Post;
 
@@ -34,9 +34,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/get-post',
 			[
-				'label'               => __( 'Get Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Retrieve a WordPress post by ID. Returns title, content, excerpt, status, author, categories, tags, featured image, and meta.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Get Post', 'sd-ai-agent' ),
+				'description'         => __( 'Retrieve a WordPress post by ID. Returns title, content, excerpt, status, author, categories, tags, featured image, and meta.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -87,9 +87,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/create-post',
 			[
-				'label'               => __( 'Create Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Create a new WordPress post or page. This is the PRIMARY tool for creating any content — blog posts, landing pages, about pages, etc. Write content directly as HTML or markdown (auto-converted to Gutenberg blocks). Set post_type to "page" for pages or "post" for blog posts. Set status to "publish" to make it live immediately.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Create Post', 'sd-ai-agent' ),
+				'description'         => __( 'Create a new WordPress post or page. This is the PRIMARY tool for creating any content — blog posts, landing pages, about pages, etc. Write content directly as HTML or markdown (auto-converted to Gutenberg blocks). Set post_type to "page" for pages or "post" for blog posts. Set status to "publish" to make it live immediately.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -174,9 +174,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/update-post',
 			[
-				'label'               => __( 'Update Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. IMPORTANT: You must supply post_id — if you do not know it, call list-posts first (search by title) to find it. Do NOT call create-post when the intent is to update an existing post.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Update Post', 'sd-ai-agent' ),
+				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. IMPORTANT: You must supply post_id — if you do not know it, call list-posts first (search by title) to find it. Do NOT call create-post when the intent is to update an existing post.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -261,9 +261,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/list-posts',
 			[
-				'label'               => __( 'List Posts', 'gratis-ai-agent' ),
-				'description'         => __( 'Query and list WordPress posts or pages. Filter by post_type, status, search term, category, tag, and date. Returns id, title, excerpt, status, post_type, date, permalink, and featured_image_url for each match. Default: 10 most recent published posts.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'List Posts', 'sd-ai-agent' ),
+				'description'         => __( 'Query and list WordPress posts or pages. Filter by post_type, status, search term, category, tag, and date. Returns id, title, excerpt, status, post_type, date, permalink, and featured_image_url for each match. Default: 10 most recent published posts.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -352,9 +352,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/batch-create-posts',
 			[
-				'label'               => __( 'Batch Create Posts', 'gratis-ai-agent' ),
-				'description'         => __( 'Create multiple WordPress posts or pages in a single call. Accepts an array of post definitions and returns an array of results. Use this instead of calling create-post repeatedly when building a full site — reduces ~7 sequential calls to 1.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Batch Create Posts', 'sd-ai-agent' ),
+				'description'         => __( 'Create multiple WordPress posts or pages in a single call. Accepts an array of post definitions and returns an array of results. Use this instead of calling create-post repeatedly when building a full site — reduces ~7 sequential calls to 1.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -460,9 +460,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/delete-post',
 			[
-				'label'               => __( 'Delete Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Move a WordPress post to the trash, or permanently delete it. Defaults to trash (recoverable). Set force_delete to true for permanent deletion.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Delete Post', 'sd-ai-agent' ),
+				'description'         => __( 'Move a WordPress post to the trash, or permanently delete it. Defaults to trash (recoverable). Set force_delete to true for permanent deletion.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -507,9 +507,9 @@ class PostAbilities {
 		wp_register_ability(
 			'ai-agent/set-featured-image',
 			[
-				'label'               => __( 'Set Featured Image', 'gratis-ai-agent' ),
-				'description'         => __( 'Set or remove the featured image (post thumbnail) for any WordPress post or page. Pass featured_image_id to set a new image, or 0 to remove the existing thumbnail. Use this as a focused single-purpose call after uploading a stock or generated image — no other post fields are changed.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Set Featured Image', 'sd-ai-agent' ),
+				'description'         => __( 'Set or remove the featured image (post thumbnail) for any WordPress post or page. Pass featured_image_id to set a new image, or 0 to remove the existing thumbnail. Use this as a focused single-purpose call after uploading a stock or generated image — no other post fields are changed.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -683,7 +683,7 @@ class PostAbilities {
 		$post_type = sanitize_text_field( $input['post_type'] ?? 'any' );
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$post = get_post( $post_id );
@@ -692,7 +692,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 
@@ -700,7 +700,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_type_mismatch',
 				/* translators: 1: post ID, 2: expected type, 3: actual type */
-				sprintf( __( 'Post %1$d is of type "%2$s", not "%3$s".', 'gratis-ai-agent' ), $post_id, $post->post_type, $post_type )
+				sprintf( __( 'Post %1$d is of type "%2$s", not "%3$s".', 'sd-ai-agent' ), $post_id, $post->post_type, $post_type )
 			);
 		}
 
@@ -753,7 +753,7 @@ class PostAbilities {
 		$site_url  = $input['site_url'] ?? '';
 
 		if ( empty( $title ) ) {
-			return new WP_Error( 'ai_agent_empty_title', __( 'Post title is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_title', __( 'Post title is required.', 'sd-ai-agent' ) );
 		}
 
 		$allowed_statuses = [ 'draft', 'publish', 'pending', 'private', 'future' ];
@@ -862,7 +862,7 @@ class PostAbilities {
 		if ( ! is_array( $posts_input ) || empty( $posts_input ) ) {
 			return new WP_Error(
 				'ai_agent_batch_empty',
-				__( 'posts array is required and must not be empty.', 'gratis-ai-agent' )
+				__( 'posts array is required and must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
@@ -878,7 +878,7 @@ class PostAbilities {
 					'permalink' => '',
 					'title'     => '',
 					'status'    => '',
-					'error'     => __( 'Post definition must be an object.', 'gratis-ai-agent' ),
+					'error'     => __( 'Post definition must be an object.', 'sd-ai-agent' ),
 				];
 				continue;
 			}
@@ -925,7 +925,7 @@ class PostAbilities {
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -953,7 +953,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 
@@ -1049,7 +1049,7 @@ class PostAbilities {
 		$site_url     = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -1077,7 +1077,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 
@@ -1092,7 +1092,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_delete_failed',
 				/* translators: %d: post ID */
-				sprintf( __( 'Failed to delete post %d.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Failed to delete post %d.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 
@@ -1118,7 +1118,7 @@ class PostAbilities {
 		$site_url          = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -1146,7 +1146,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 
@@ -1166,7 +1166,7 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_set_thumbnail_failed',
 				/* translators: %d: post ID */
-				sprintf( __( 'Failed to update featured image for post %d.', 'gratis-ai-agent' ), $post_id )
+				sprintf( __( 'Failed to update featured image for post %d.', 'sd-ai-agent' ), $post_id )
 			);
 		}
 

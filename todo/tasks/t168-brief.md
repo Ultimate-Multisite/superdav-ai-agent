@@ -13,7 +13,7 @@ browser pipeline.
 ## What
 
 Write a Playwright E2E spec that exercises the real browser pipeline
-for `gratis-ai-agent-js/*` client-side abilities and make it run in
+for `sd-ai-agent-js/*` client-side abilities and make it run in
 the existing `npm run test:e2e:playwright` job.
 
 Start from the ad-hoc smoke test script that lives at
@@ -28,7 +28,7 @@ spec on the first PR. Specifically:
 
 | Bug | What would have caught it |
 |---|---|
-| Entry points never imported `src/abilities` (t165 Gap 1) | Asserting `wp.abilities.getAbilities()` contains `gratis-ai-agent-js/navigate-to` |
+| Entry points never imported `src/abilities` (t165 Gap 1) | Asserting `wp.abilities.getAbilities()` contains `sd-ai-agent-js/navigate-to` |
 | `@wordpress/abilities` script module never enqueued (t165 Gap 2) | Asserting `wp.abilities` is defined on the page |
 | `registerAbility()` wrong signature (t166 Bug A) | pageerror assertion on `Ability name is required` |
 | `registerAbilityCategory()` missing description (t166 Bug B) | pageerror assertion on `must contain a description string` |
@@ -59,25 +59,25 @@ Model on `tests/e2e/unified-admin-menu.spec.js` for:
 
 1. **`registers on dashboard`** — log in, navigate to
    `/wp-admin/index.php`, wait for async registration, assert
-   `wp.abilities.getAbilityCategory('gratis-ai-agent-js')` returns an
+   `wp.abilities.getAbilityCategory('sd-ai-agent-js')` returns an
    object with the expected label and description.
 
 2. **`navigate-to and insert-block appear in getAbilities()`** — on
    the dashboard, assert
    `wp.abilities.getAbilities()` includes both
-   `gratis-ai-agent-js/navigate-to` and `gratis-ai-agent-js/insert-block`
+   `sd-ai-agent-js/navigate-to` and `sd-ai-agent-js/insert-block`
    with the expected schemas and annotations.
 
 3. **`executeAbility navigate-to actually navigates`** — from the
    dashboard, call
-   `await wp.abilities.executeAbility('gratis-ai-agent-js/navigate-to', { path: 'plugins.php' })`,
+   `await wp.abilities.executeAbility('sd-ai-agent-js/navigate-to', { path: 'plugins.php' })`,
    assert the return is `{ navigated: true, path: 'plugins.php' }`,
    and assert the final URL is `.../wp-admin/plugins.php`.
 
 4. **`executeAbility insert-block inserts on editor screen`** —
    navigate to `/wp-admin/post-new.php`, wait for the block editor
    to mount, call
-   `await wp.abilities.executeAbility('gratis-ai-agent-js/insert-block', { blockName: 'core/paragraph', attributes: { content: 'hello from playwright' } })`,
+   `await wp.abilities.executeAbility('sd-ai-agent-js/insert-block', { blockName: 'core/paragraph', attributes: { content: 'hello from playwright' } })`,
    assert the return is `{ inserted: true, clientId: <string>, blockName: 'core/paragraph' }`,
    and assert the block actually appears in the editor DOM.
 
@@ -99,7 +99,7 @@ Model on `tests/e2e/unified-admin-menu.spec.js` for:
    - `Ability name is required`
    - `must contain a \`description\` string`
    - `references non-existent category`
-   - `Category not found: gratis-ai-agent-js`
+   - `Category not found: sd-ai-agent-js`
    - `Failed to resolve module specifier "@wordpress/abilities"`
 
 ### Reference patterns

@@ -2,22 +2,22 @@
  * WordPress admin helpers for Playwright E2E tests.
  *
  * Provides login, navigation, and common assertion utilities
- * for testing the Gratis AI Agent plugin in a wp-env environment.
+ * for testing the Superdav AI Agent plugin in a wp-env environment.
  *
  * Selector reference — chat redesign (gaa-cr-* classes)
  * -------------------------------------------------------
- * The admin page chat UI was redesigned. Old gratis-ai-agent-chat-panel
+ * The admin page chat UI was redesigned. Old sd-ai-agent-chat-panel
  * selectors no longer apply. Mapping used throughout this file:
  *
  *   Old selector                                     → New selector
- *   .gratis-ai-agent-chat-panel:not(.is-compact)     → .gaa-cr
- *   …chat-panel .gratis-ai-agent-input               → .gaa-cr .gaa-cr-input-textarea
- *   …chat-panel .gratis-ai-agent-send-btn            → .gaa-cr .gaa-cr-send-btn:not(.is-stop)
- *   …chat-panel .gratis-ai-agent-stop-btn            → .gaa-cr .gaa-cr-send-btn.is-stop
- *   …chat-panel .gratis-ai-agent-messages            → .gaa-cr .gaa-cr-messages
- *   …chat-panel .gratis-ai-agent-message-row         → .gaa-cr .gaa-cr-msg-row
- *   .gratis-ai-agent-session-item                    → .gaa-cr-session-row
- *   .gratis-ai-agent-session-empty                   → .gaa-cr-session-empty
+ *   .sd-ai-agent-chat-panel:not(.is-compact)     → .gaa-cr
+ *   …chat-panel .sd-ai-agent-input               → .gaa-cr .gaa-cr-input-textarea
+ *   …chat-panel .sd-ai-agent-send-btn            → .gaa-cr .gaa-cr-send-btn:not(.is-stop)
+ *   …chat-panel .sd-ai-agent-stop-btn            → .gaa-cr .gaa-cr-send-btn.is-stop
+ *   …chat-panel .sd-ai-agent-messages            → .gaa-cr .gaa-cr-messages
+ *   …chat-panel .sd-ai-agent-message-row         → .gaa-cr .gaa-cr-msg-row
+ *   .sd-ai-agent-session-item                    → .gaa-cr-session-row
+ *   .sd-ai-agent-session-empty                   → .gaa-cr-session-empty
  */
 
 const WP_ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
@@ -45,10 +45,10 @@ async function loginToWordPress(
 }
 
 /**
- * Navigate to the Gratis AI Agent admin page (Chat route).
+ * Navigate to the Superdav AI Agent admin page (Chat route).
  *
  * The UnifiedAdminMenu consolidates all admin pages into a single React SPA
- * at admin.php?page=gratis-ai-agent with hash-based routing. The chat route
+ * at admin.php?page=sd-ai-agent with hash-based routing. The chat route
  * is the default (no hash or #/chat).
  *
  * Waits for both the sessions list and shared sessions REST responses so that
@@ -73,8 +73,8 @@ async function goToAgentPage( page ) {
 			( resp ) => {
 				const decoded = decodeURIComponent( resp.url() );
 				return (
-					decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
-					! decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) &&
+					decoded.includes( 'sd-ai-agent/v1/sessions' ) &&
+					! decoded.includes( 'sd-ai-agent/v1/sessions/shared' ) &&
 					resp.status() === 200
 				);
 			},
@@ -91,7 +91,7 @@ async function goToAgentPage( page ) {
 			( resp ) => {
 				const decoded = decodeURIComponent( resp.url() );
 				return (
-					decoded.includes( 'gratis-ai-agent/v1/sessions/shared' ) &&
+					decoded.includes( 'sd-ai-agent/v1/sessions/shared' ) &&
 					resp.status() === 200
 				);
 			},
@@ -101,28 +101,28 @@ async function goToAgentPage( page ) {
 
 	// UnifiedAdminMenu registers a top-level menu page at admin.php (not
 	// tools.php). The chat route is the default — no hash suffix needed.
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for both responses so the sidebar is fully populated before returning.
 	await Promise.all( [ sessionsResponsePromise, sharedSessionsResponsePromise ] );
 
 	// Wait for the unified admin app root to be present. The SPA mounts into
-	// #gratis-ai-agent-root and renders .gratis-ai-agent-unified-admin once React
+	// #sd-ai-agent-root and renders .sd-ai-agent-unified-admin once React
 	// has hydrated. Use 30 s — WP 6.9 CI runners can be slow to render the SPA
 	// even with 2 parallel workers.
 	await page
-		.locator( '.gratis-ai-agent-unified-admin' )
+		.locator( '.sd-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 30_000 } )
 		.catch( () => {} ); // Non-fatal: some tests navigate away before app renders.
 
 	// Wait for the chat container or a visible session row/empty state.
-	// ChatRoute mounts the chat app into #gratis-ai-agent-chat-container.
-	// The redesigned sidebar uses gaa-cr-session-row (was gratis-ai-agent-session-item)
-	// and gaa-cr-session-empty (was gratis-ai-agent-session-empty).
+	// ChatRoute mounts the chat app into #sd-ai-agent-chat-container.
+	// The redesigned sidebar uses gaa-cr-session-row (was sd-ai-agent-session-item)
+	// and gaa-cr-session-empty (was sd-ai-agent-session-empty).
 	await page
 		.locator(
-			'#gratis-ai-agent-chat-container, .gaa-cr-session-row, .gaa-cr-session-empty'
+			'#sd-ai-agent-chat-container, .gaa-cr-session-row, .gaa-cr-session-empty'
 		)
 		.first()
 		.waitFor( { state: 'visible', timeout: 10_000 } )
@@ -144,7 +144,7 @@ async function goToAdminDashboard( page ) {
 	// The launcher (FAB) renders after FloatingWidget mounts and fetchSettings()
 	// resolves. Without this wait, tests that immediately click the launcher can
 	// time out when the CI runner is under load.
-	// The redesign (#1157) renamed .gratis-ai-agent-fab to .gaa-w-launcher.
+	// The redesign (#1157) renamed .sd-ai-agent-fab to .gaa-w-launcher.
 	await page
 		.locator( '.gaa-w-launcher' )
 		.waitFor( { state: 'visible', timeout: 15_000 } )
@@ -154,7 +154,7 @@ async function goToAdminDashboard( page ) {
 /**
  * Wait for the floating action button (launcher) to be visible.
  *
- * The redesign (#1157) replaced the legacy .gratis-ai-agent-fab class with
+ * The redesign (#1157) replaced the legacy .sd-ai-agent-fab class with
  * .gaa-w-launcher in the new WidgetLauncher component.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
@@ -167,7 +167,7 @@ function getFloatingButton( page ) {
 /**
  * Get the floating widget panel.
  *
- * The redesign (#1157) replaced the legacy .gratis-ai-agent-floating-panel
+ * The redesign (#1157) replaced the legacy .sd-ai-agent-floating-panel
  * class with .gaa-w-panel in the new WidgetPanel component.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
@@ -233,7 +233,7 @@ function getMessageList( page ) {
  * Get all message rows in the chat.
  *
  * In the ChatRedesign message-items, every rendered message row has class
- * gaa-cr-msg-row (was gratis-ai-agent-message-row in the old ChatPanel).
+ * gaa-cr-msg-row (was sd-ai-agent-message-row in the old ChatPanel).
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  * @return {import('@playwright/test').Locator} The message rows locator.
@@ -246,7 +246,7 @@ function getMessageRows( page ) {
  * Get the admin page chat root (the ChatRedesign .gaa-cr element).
  *
  * The admin page now renders ChatRedesign with root class .gaa-cr instead of
- * the old ChatPanel (.gratis-ai-agent-chat-panel). The floating widget and
+ * the old ChatPanel (.sd-ai-agent-chat-panel). The floating widget and
  * compact panels do not render the ChatRedesign root, so this is unambiguous.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
@@ -257,18 +257,18 @@ function getChatPanel( page ) {
 }
 
 /**
- * Navigate to the Gratis AI Agent Changes admin page.
+ * Navigate to the Superdav AI Agent Changes admin page.
  *
  * The UnifiedAdminMenu uses hash-based routing. The changes route is at
- * admin.php?page=gratis-ai-agent#/changes. The old URL
- * (tools.php?page=gratis-ai-agent-changes) triggers a wp_safe_redirect()
+ * admin.php?page=sd-ai-agent#/changes. The old URL
+ * (tools.php?page=sd-ai-agent-changes) triggers a wp_safe_redirect()
  * which causes Playwright to hang waiting for networkidle on the redirect
  * target — use the canonical hash URL directly to avoid the redirect.
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function goToChangesPage( page ) {
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/changes' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/changes' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the unified admin app and the changes route container to render.
@@ -276,16 +276,16 @@ async function goToChangesPage( page ) {
 	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
 	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.gratis-ai-agent-route-changes' )
+		.locator( '.sd-ai-agent-route-changes' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 /**
- * Navigate to the Gratis AI Agent settings page and optionally activate a tab.
+ * Navigate to the Superdav AI Agent settings page and optionally activate a tab.
  *
  * The UnifiedAdminMenu uses hash-based routing. The settings route is at
- * admin.php?page=gratis-ai-agent#/settings. The old URL
- * (tools.php?page=gratis-ai-agent-settings) triggers a wp_safe_redirect()
+ * admin.php?page=sd-ai-agent#/settings. The old URL
+ * (tools.php?page=sd-ai-agent-settings) triggers a wp_safe_redirect()
  * which causes Playwright to hang — use the canonical hash URL directly.
  *
  * The settings route renders a TabPanel with tabs: general, providers, advanced.
@@ -295,7 +295,7 @@ async function goToChangesPage( page ) {
  * @param {string}                          [tabName] - Optional tab name to activate (e.g. 'general').
  */
 async function goToSettingsPage( page, tabName ) {
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the settings route container to render.
@@ -303,7 +303,7 @@ async function goToSettingsPage( page, tabName ) {
 	// under load. CI currently uses 2 parallel workers for both WP 6.9 and
 	// trunk to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.gratis-ai-agent-route-settings' )
+		.locator( '.sd-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 
 	if ( tabName ) {
@@ -314,44 +314,44 @@ async function goToSettingsPage( page, tabName ) {
 		} );
 		await tabButton.click();
 		// Wait for the tab panel content to render after clicking.
-		// The settings route wraps tabs in .gratis-ai-agent-route-settings.
+		// The settings route wraps tabs in .sd-ai-agent-route-settings.
 		await page
-			.locator( '.gratis-ai-agent-route-settings [role="tabpanel"]' )
+			.locator( '.sd-ai-agent-route-settings [role="tabpanel"]' )
 			.waitFor( { state: 'visible', timeout: 10_000 } )
 			.catch( () => {} );
 	}
 }
 
 /**
- * Navigate to the Gratis AI Agent Abilities admin page.
+ * Navigate to the Superdav AI Agent Abilities admin page.
  *
  * The UnifiedAdminMenu uses hash-based routing. The abilities route is at
- * admin.php?page=gratis-ai-agent#/abilities and renders AbilitiesExplorerApp
+ * admin.php?page=sd-ai-agent#/abilities and renders AbilitiesExplorerApp
  * directly (not as a tab inside the settings page).
  *
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function goToAbilitiesPage( page ) {
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/abilities' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/abilities' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for AbilitiesExplorerApp to finish loading abilities.
-	// .gratis-ai-agent-abilities-manager is the outer wrapper rendered by
+	// .sd-ai-agent-abilities-manager is the outer wrapper rendered by
 	// AbilitiesExplorerApp once the REST fetch completes.
 	// Use 45 s — the abilities REST fetch can be slow on CI runners under
 	// load. CI currently uses 2 parallel workers for both WP 6.9 and trunk
 	// to reduce resource contention, but a generous timeout is still needed.
 	await page
-		.locator( '.gratis-ai-agent-abilities-manager' )
+		.locator( '.sd-ai-agent-abilities-manager' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
 /**
- * Navigate to the Gratis AI Agent Model Benchmark admin page.
+ * Navigate to the Superdav AI Agent Model Benchmark admin page.
  *
  * The benchmark page is a standalone React SPA registered under Tools:
- * tools.php?page=gratis-ai-agent-benchmark. It renders BenchmarkPageApp
- * inside #gratis-ai-agent-benchmark-root once the bundle loads.
+ * tools.php?page=sd-ai-agent-benchmark. It renders BenchmarkPageApp
+ * inside #sd-ai-agent-benchmark-root once the bundle loads.
  *
  * Waits for the benchmark page root element to be present before returning
  * so that tests can immediately assert on page content.
@@ -359,14 +359,14 @@ async function goToAbilitiesPage( page ) {
  * @param {import('@playwright/test').Page} page - Playwright page object.
  */
 async function goToBenchmarkPage( page ) {
-	await page.goto( '/wp-admin/tools.php?page=gratis-ai-agent-benchmark' );
+	await page.goto( '/wp-admin/tools.php?page=sd-ai-agent-benchmark' );
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for the React app to mount into the benchmark root container.
 	// Use 30 s to match the Playwright test timeout — the benchmark bundle
 	// can be slow to mount on CI runners under load.
 	await page
-		.locator( '#gratis-ai-agent-benchmark-root, .gratis-ai-agent-benchmark-page' )
+		.locator( '#sd-ai-agent-benchmark-root, .sd-ai-agent-benchmark-page' )
 		.first()
 		.waitFor( { state: 'visible', timeout: 30_000 } )
 		.catch( () => {} ); // Non-fatal: some tests may assert on the wrap before React mounts.
@@ -380,7 +380,7 @@ async function goToBenchmarkPage( page ) {
  * persists regardless of whether the backend job succeeds or fails quickly.
  *
  * In the ChatRedesign, message rows use class gaa-cr-msg-row
- * (was gratis-ai-agent-message-row in the old ChatPanel).
+ * (was sd-ai-agent-message-row in the old ChatPanel).
  *
  * @param {import('@playwright/test').Page} page    - Playwright page object.
  * @param {number}                          timeout - Max wait in ms (default 5 000).

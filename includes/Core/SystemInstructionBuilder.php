@@ -8,17 +8,17 @@ declare(strict_types=1);
  * memory/skill injection, context providers, manifest, and nudges —
  * lives in one focused class.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Knowledge\Knowledge;
-use GratisAiAgent\Models\Memory;
-use GratisAiAgent\Models\Skill;
-use GratisAiAgent\Tools\ModelHealthTracker;
-use GratisAiAgent\Tools\ToolDiscovery;
+use SdAiAgent\Knowledge\Knowledge;
+use SdAiAgent\Models\Memory;
+use SdAiAgent\Models\Skill;
+use SdAiAgent\Tools\ModelHealthTracker;
+use SdAiAgent\Tools\ToolDiscovery;
 
 class SystemInstructionBuilder {
 
@@ -213,8 +213,8 @@ class SystemInstructionBuilder {
 			. "- Set `status` to `publish` to make it live, or `draft` to save without publishing.\n"
 			. "- Include `categories` and `tags` arrays for blog posts.\n"
 			. "- Include `excerpt` for SEO meta descriptions.\n"
-			. "- To add a featured image: first call `gratis-ai-agent/stock-image` or `gratis-ai-agent/generate-image`, then pass the returned attachment_id as `featured_image_id` in create-post or update-post.\n"
-			. "- For WooCommerce products, use `gratis-ai-agent/woo-create-product` instead.\n\n"
+			. "- To add a featured image: first call `sd-ai-agent/stock-image` or `sd-ai-agent/generate-image`, then pass the returned attachment_id as `featured_image_id` in create-post or update-post.\n"
+			. "- For WooCommerce products, use `sd-ai-agent/woo-create-product` instead.\n\n"
 			. "## Tips\n"
 			. "- Chain operations: create content first, then configure settings.\n"
 			. "- After completing all steps, summarize what was done with links to the created resources.\n\n"
@@ -223,7 +223,7 @@ class SystemInstructionBuilder {
 			. "- Never stop after a single error — complete as many steps as possible.\n"
 			. "- If you've retried the same tool 2 times with similar args, move on.\n\n"
 			. "## Reporting Inability\n"
-			. "- If you have genuinely tried and cannot complete the user's request, call `gratis-ai-agent/report-inability` with a clear reason and the steps you attempted.\n"
+			. "- If you have genuinely tried and cannot complete the user's request, call `sd-ai-agent/report-inability` with a clear reason and the steps you attempted.\n"
 			. "- Use this only as a last resort — after at least 2 different approaches have failed.\n"
 			. '- Always provide a helpful text response explaining what you tried before calling the ability.';
 	}
@@ -253,7 +253,7 @@ class SystemInstructionBuilder {
 			. "## Your first task: discover before you ask\n\n"
 			. "Before asking the user *anything*, silently explore the site using your tools:\n"
 			. "1. Read recent posts and pages (use `ai-agent/list-posts`).\n"
-			. "2. Check site settings: title, tagline, active plugins (`gratis-ai-agent/list-options` or `gratis-ai-agent/get-plugins`).\n"
+			. "2. Check site settings: title, tagline, active plugins (`sd-ai-agent/list-options` or `sd-ai-agent/get-plugins`).\n"
 			. "3. Note the content style, tone, and apparent audience from what you read.\n"
 			. "4. Check if WooCommerce is active and, if so, note the store size.\n\n"
 			. "## After exploring\n\n"
@@ -332,15 +332,15 @@ class SystemInstructionBuilder {
 			. "Wait for the user to confirm (\"yes\", \"go ahead\", \"build it\", etc.) before proceeding to Phase 3.\n\n"
 			. "### Phase 3 — Plugin Discovery (before building)\n"
 			. "Before building, check whether any needed capabilities require plugins:\n\n"
-			. "1. **Check available abilities** — Use `gratis-ai-agent/ability-search` to find abilities for each needed feature.\n"
+			. "1. **Check available abilities** — Use `sd-ai-agent/ability-search` to find abilities for each needed feature.\n"
 			. "   - Search for: \"menu\", \"nav\", \"options\", \"custom post type\", \"form\", \"seo\", etc.\n"
 			. "2. **Identify gaps** — If a needed capability has no ability, check installed plugins:\n"
-			. "   - Use `gratis-ai-agent/get-plugins` to list installed and active plugins.\n"
+			. "   - Use `sd-ai-agent/get-plugins` to list installed and active plugins.\n"
 			. "3. **Recommend plugins for gaps** — If a plugin can fill the gap:\n"
-			. "   - Use `gratis-ai-agent/recommend-plugin` (if available) to get ranked recommendations.\n"
-			. "   - Or use `gratis-ai-agent/search-plugin-directory` (if available) to search WordPress.org.\n"
+			. "   - Use `sd-ai-agent/recommend-plugin` (if available) to get ranked recommendations.\n"
+			. "   - Or use `sd-ai-agent/search-plugin-directory` (if available) to search WordPress.org.\n"
 			. "   - Prefer plugins with Abilities API support > block-based plugins > popular plugins.\n"
-			. "4. **Install needed plugins** — Use `gratis-ai-agent/install-plugin` to install and activate.\n"
+			. "4. **Install needed plugins** — Use `sd-ai-agent/install-plugin` to install and activate.\n"
 			. "   - Only install plugins that are genuinely needed for the site type.\n"
 			. "   - Common needs by site type:\n"
 			. "     - Contact forms: WPForms Lite (slug: wpforms-lite)\n"
@@ -351,8 +351,8 @@ class SystemInstructionBuilder {
 			. "Build the complete site in this order. After each major step, output a progress update:\n"
 			. "\"**Progress:** [step description] ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 1 — Site identity**\n"
-			. "- If `gratis-ai-agent/manage-options` is available: use it to set blogname and blogdescription.\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `update_option('blogname', '...')` and `update_option('blogdescription', '...')`.\n"
+			. "- If `sd-ai-agent/manage-options` is available: use it to set blogname and blogdescription.\n"
+			. "- Otherwise use `sd-ai-agent/run-php` with `update_option('blogname', '...')` and `update_option('blogdescription', '...')`.\n"
 			. "- Output: \"**Progress:** Site identity set ✓ (1/[total] steps done)\"\n\n"
 			. "**Step 2 — Create all pages**\n"
 			. "- Use `ai-agent/create-post` with `post_type: page`, `status: publish`.\n"
@@ -364,20 +364,20 @@ class SystemInstructionBuilder {
 			. "- Any additional pages the user requested.\n"
 			. "- After each page: \"**Progress:** [Page name] page created ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 3 — Set static homepage**\n"
-			. "- If `gratis-ai-agent/manage-options` is available: set show_on_front=page and page_on_front=[home_page_id].\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `update_option('show_on_front', 'page')` and `update_option('page_on_front', [id])`.\n"
+			. "- If `sd-ai-agent/manage-options` is available: set show_on_front=page and page_on_front=[home_page_id].\n"
+			. "- Otherwise use `sd-ai-agent/run-php` with `update_option('show_on_front', 'page')` and `update_option('page_on_front', [id])`.\n"
 			. "- Output: \"**Progress:** Homepage configured ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 4 — Navigation menu**\n"
-			. "- If `gratis-ai-agent/manage-nav-menu` is available: use it to create menu, add pages, assign to primary location.\n"
-			. "- Otherwise use `gratis-ai-agent/run-php` with `wp_create_nav_menu('Main Menu')`, `wp_update_nav_menu_item()` for each page, and `set_theme_mod('nav_menu_locations', ...)`.\n"
+			. "- If `sd-ai-agent/manage-nav-menu` is available: use it to create menu, add pages, assign to primary location.\n"
+			. "- Otherwise use `sd-ai-agent/run-php` with `wp_create_nav_menu('Main Menu')`, `wp_update_nav_menu_item()` for each page, and `set_theme_mod('nav_menu_locations', ...)`.\n"
 			. "- Output: \"**Progress:** Navigation menu created ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 5 — Hero image** (optional but recommended)\n"
-			. "- Use `gratis-ai-agent/stock-image` with a keyword matching the business type.\n"
+			. "- Use `sd-ai-agent/stock-image` with a keyword matching the business type.\n"
 			. "- Set as featured image on the home page using `ai-agent/update-post`.\n"
 			. "- Output: \"**Progress:** Hero image imported ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 6 — Custom post types / taxonomies** (if needed for the site type)\n"
-			. "- If `gratis-ai-agent/register-custom-post-type` is available and the site needs CPTs (e.g. restaurant menu items, portfolio projects, team members): register them.\n"
-			. "- If `gratis-ai-agent/register-custom-taxonomy` is available and needed: register taxonomies.\n"
+			. "- If `sd-ai-agent/register-custom-post-type` is available and the site needs CPTs (e.g. restaurant menu items, portfolio projects, team members): register them.\n"
+			. "- If `sd-ai-agent/register-custom-taxonomy` is available and needed: register taxonomies.\n"
 			. "- Output: \"**Progress:** Custom post types registered ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 7 — Global styles** (if available)\n"
 			. "- Use `ai-agent/update-global-styles` to apply a color palette and typography matching the site tone.\n"
@@ -386,7 +386,7 @@ class SystemInstructionBuilder {
 			. "- Use `ai-agent/memory-save` to store: business name, type, goals, page IDs, installed plugins.\n"
 			. "- Output: \"**Progress:** Site info saved to memory ✓ ([N]/[total] steps done)\"\n\n"
 			. "**Step 9 — Mark site builder complete**\n"
-			. "- Call `gratis-ai-agent/complete-site-builder` to disable site builder mode.\n"
+			. "- Call `sd-ai-agent/complete-site-builder` to disable site builder mode.\n"
 			. "- Output: \"**Progress:** Site builder complete ✓ ([total]/[total] steps done)\"\n\n"
 			. "### Phase 5 — Summary\n"
 			. "After building, provide a complete summary:\n\n"
@@ -414,7 +414,7 @@ class SystemInstructionBuilder {
 			. "- **Track failures** — keep a mental list of what failed to include in the summary.\n"
 			. "- **Fallback chain for options:** manage-options → run-php with update_option → skip with note.\n"
 			. "- **Fallback chain for menus:** manage-nav-menu → run-php with wp_create_nav_menu → skip with note.\n"
-			. "- **Fallback chain for pages:** ai-agent/create-post → gratis-ai-agent/run-php with wp_insert_post → skip with note.\n"
+			. "- **Fallback chain for pages:** ai-agent/create-post → sd-ai-agent/run-php with wp_insert_post → skip with note.\n"
 			. "- If you've retried the same tool twice with similar arguments, move on.\n\n"
 			. "## Important Rules\n"
 			. "- **Never use placeholder text.** Write real, specific content based on what the user told you.\n"

@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Extracted from AgentLoop::ensure_provider_credentials_static() so the
  * credential-loading concern lives in one focused class.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 class ProviderCredentialLoader {
 

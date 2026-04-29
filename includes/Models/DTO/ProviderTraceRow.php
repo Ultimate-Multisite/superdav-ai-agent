@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Typed DTO for a provider-trace row returned by wpdb::get_row() / wpdb::get_results().
  *
- * @package GratisAiAgent\Models\DTO
+ * @package SdAiAgent\Models\DTO
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models\DTO;
+namespace SdAiAgent\Models\DTO;
 
 /**
- * Immutable DTO for the gratis_ai_agent_provider_trace table row.
+ * Immutable DTO for the sd_ai_agent_provider_trace table row.
  */
 readonly class ProviderTraceRow {
 

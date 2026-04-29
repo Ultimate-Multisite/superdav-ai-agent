@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Git Restore ability — revert a file to its original snapshot.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Models\GitTrackerManager;
+use SdAiAgent\Models\GitTrackerManager;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,11 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GitRestoreAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Restore File', 'gratis-ai-agent' );
+		return __( 'Restore File', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Restore a file to its original snapshotted content, undoing all AI modifications.', 'gratis-ai-agent' );
+		return __( 'Restore a file to its original snapshotted content, undoing all AI modifications.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -72,11 +72,11 @@ class GitRestoreAbility extends AbstractAbility {
 		$package_type = $input['package_type'] ?? null;
 
 		if ( ! is_string( $path ) || '' === $path ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_path', __( 'Path must be a non-empty string.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_path', __( 'Path must be a non-empty string.', 'sd-ai-agent' ) );
 		}
 
 		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'sd-ai-agent' ) );
 		}
 
 		if ( ! is_string( $package_type ) || '' === $package_type ) {
@@ -104,7 +104,7 @@ class GitRestoreAbility extends AbstractAbility {
 			'action'  => 'restored',
 			'message' => sprintf(
 				/* translators: %s: file path */
-				__( 'File restored to original snapshot: %s', 'gratis-ai-agent' ),
+				__( 'File restored to original snapshot: %s', 'sd-ai-agent' ),
 				$path
 			),
 		];

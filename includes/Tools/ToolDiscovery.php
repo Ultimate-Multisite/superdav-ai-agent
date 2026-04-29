@@ -18,23 +18,23 @@ declare(strict_types=1);
  *
  * Two meta-tools:
  *
- *   • gratis-ai-agent/ability-search — keyword / select: / +substr search
+ *   • sd-ai-agent/ability-search — keyword / select: / +substr search
  *     across the registered ability catalog. Returns full input/output
  *     schemas inline so the agent gets everything it needs in one call.
  *
- *   • gratis-ai-agent/ability-call — execute any ability by id with an
+ *   • sd-ai-agent/ability-call — execute any ability by id with an
  *     `arguments` object. (The bridge for Tier 2 abilities the model can't
  *     call directly because their FunctionDeclaration wasn't sent in the
  *     current turn.)
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Tools;
+namespace SdAiAgent\Tools;
 
-use GratisAiAgent\Abilities\Js\JsAbilityCatalog;
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Abilities\Js\JsAbilityCatalog;
+use SdAiAgent\Core\Settings;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,10 +53,10 @@ class ToolDiscovery {
 	 * @var string[]
 	 */
 	public const DEFAULT_TIER_1 = array(
-		'gratis-ai-agent/ability-search',
-		'gratis-ai-agent/ability-call',
+		'sd-ai-agent/ability-search',
+		'sd-ai-agent/ability-call',
 		// Memory + skill + knowledge are registered under the `ai-agent/`
-		// prefix by their feature classes, not under `gratis-ai-agent/`.
+		// prefix by their feature classes, not under `sd-ai-agent/`.
 		'ai-agent/memory-save',
 		'ai-agent/memory-list',
 		'ai-agent/skill-load',
@@ -83,8 +83,8 @@ class ToolDiscovery {
 	 * @var string[]
 	 */
 	private const META_TOOLS = array(
-		'gratis-ai-agent/ability-search',
-		'gratis-ai-agent/ability-call',
+		'sd-ai-agent/ability-search',
+		'sd-ai-agent/ability-call',
 	);
 
 	/**
@@ -98,7 +98,7 @@ class ToolDiscovery {
 	}
 
 	/**
-	 * Register the gratis-ai-agent-js ability category server-side.
+	 * Register the sd-ai-agent-js ability category server-side.
 	 *
 	 * This mirrors the client-side registerAbilityCategory() call in registry.js.
 	 * Must run on wp_abilities_api_categories_init so that the JS ability stubs
@@ -114,10 +114,10 @@ class ToolDiscovery {
 			return;
 		}
 		wp_register_ability_category(
-			'gratis-ai-agent-js',
+			'sd-ai-agent-js',
 			array(
-				'label'       => __( 'Gratis AI Agent (Client)', 'gratis-ai-agent' ),
-				'description' => __( 'Client-side abilities provided by the Gratis AI Agent plugin. Execute in the browser without a server round-trip.', 'gratis-ai-agent' ),
+				'label'       => __( 'Superdav AI Agent (Client)', 'sd-ai-agent' ),
+				'description' => __( 'Client-side abilities provided by the Superdav AI Agent plugin. Execute in the browser without a server round-trip.', 'sd-ai-agent' ),
 			)
 		);
 	}
@@ -133,11 +133,11 @@ class ToolDiscovery {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/ability-search',
+			'sd-ai-agent/ability-search',
 			array(
-				'label'               => __( 'Search Abilities', 'gratis-ai-agent' ),
-				'description'         => __( 'Search the full catalog of registered WordPress abilities and return matching ids together with their full input/output schemas. Use this whenever you need an ability that is not already loaded in your tool list. Query forms: bare keywords for ranked search ("create site"), `select:foo,bar` to fetch specific abilities by id, or `+substr keyword` to require a substring before ranking.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Search Abilities', 'sd-ai-agent' ),
+				'description'         => __( 'Search the full catalog of registered WordPress abilities and return matching ids together with their full input/output schemas. Use this whenever you need an ability that is not already loaded in your tool list. Query forms: bare keywords for ranked search ("create site"), `select:foo,bar` to fetch specific abilities by id, or `+substr keyword` to require a substring before ranking.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
@@ -169,11 +169,11 @@ class ToolDiscovery {
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/ability-call',
+			'sd-ai-agent/ability-call',
 			array(
-				'label'               => __( 'Call Ability', 'gratis-ai-agent' ),
-				'description'         => __( 'Execute any ability by id with a complete arguments object. CRITICAL: ALWAYS call ability-search FIRST to fetch the target ability\'s input_schema with example_arguments, copy that stub, replace placeholders with real values, then call this tool. Never call without valid arguments.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Call Ability', 'sd-ai-agent' ),
+				'description'         => __( 'Execute any ability by id with a complete arguments object. CRITICAL: ALWAYS call ability-search FIRST to fetch the target ability\'s input_schema with example_arguments, copy that stub, replace placeholders with real values, then call this tool. Never call without valid arguments.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
@@ -227,7 +227,7 @@ class ToolDiscovery {
 				array(
 					'label'               => $descriptor['label'] ?? $name,
 					'description'         => $descriptor['description'] ?? '',
-					'category'            => 'gratis-ai-agent-js',
+					'category'            => 'sd-ai-agent-js',
 					'input_schema'        => $descriptor['input_schema'] ?? array(),
 					'meta'                => array(
 						'annotations'    => $descriptor['annotations'] ?? array(),
@@ -389,7 +389,7 @@ class ToolDiscovery {
 
 		$lines   = array();
 		$lines[] = '## Available Abilities';
-		$lines[] = 'The abilities listed below are NOT loaded as direct tools — call `gratis-ai-agent/ability-search` with a keyword query (or `select:id1,id2`) to retrieve their full schemas, then call `gratis-ai-agent/ability-call` to invoke them.';
+		$lines[] = 'The abilities listed below are NOT loaded as direct tools — call `sd-ai-agent/ability-search` with a keyword query (or `select:id1,id2`) to retrieve their full schemas, then call `sd-ai-agent/ability-call` to invoke them.';
 		$lines[] = '';
 
 		foreach ( $by_cat as $cat => $entries ) {
@@ -433,7 +433,7 @@ class ToolDiscovery {
 
 	/**
 	 * Per-category usage instructions, supplied by plugin authors via the
-	 * `gratis_ai_agent_ability_usage_instructions` filter. Maps category
+	 * `sd_ai_agent_ability_usage_instructions` filter. Maps category
 	 * slug => prose blurb the model sees in the manifest.
 	 *
 	 * @return array<string, string>
@@ -445,7 +445,7 @@ class ToolDiscovery {
 		 *
 		 * @param array<string, string> $blocks
 		 */
-		$blocks = (array) apply_filters( 'gratis_ai_agent_ability_usage_instructions', array() );
+		$blocks = (array) apply_filters( 'sd_ai_agent_ability_usage_instructions', array() );
 		$out    = array();
 		foreach ( $blocks as $cat => $text ) {
 			if ( is_string( $cat ) && '' !== $cat && is_string( $text ) && '' !== $text ) {
@@ -458,14 +458,14 @@ class ToolDiscovery {
 	// ─── ability-search handler ──────────────────────────────────────────
 
 	/**
-	 * Handle a call to gratis-ai-agent/ability-search.
+	 * Handle a call to sd-ai-agent/ability-search.
 	 *
 	 * @param array<string, mixed> $input The input arguments from the model.
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	public static function handle_ability_search( array $input ) {
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
-			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'sd-ai-agent' ) );
 		}
 
 		$query_raw = isset( $input['query'] ) ? trim( (string) $input['query'] ) : '';
@@ -631,14 +631,14 @@ class ToolDiscovery {
 			'total'   => $total,
 			'count'   => count( $results ),
 			'results' => $results,
-			'hint'    => 'Use gratis-ai-agent/ability-call with the chosen `id` and an `arguments` object that matches `input_schema`.',
+			'hint'    => 'Use sd-ai-agent/ability-call with the chosen `id` and an `arguments` object that matches `input_schema`.',
 		);
 	}
 
 	// ─── ability-call handler ────────────────────────────────────────────
 
 	/**
-	 * Handle a call to gratis-ai-agent/ability-call.
+	 * Handle a call to sd-ai-agent/ability-call.
 	 *
 	 * @param array<string, mixed> $input The input arguments from the model.
 	 * @return array<string, mixed>|\WP_Error
@@ -648,11 +648,11 @@ class ToolDiscovery {
 		$args       = $input['arguments'] ?? array();
 
 		if ( '' === $ability_id ) {
-			return new WP_Error( 'invalid_argument', __( 'ability is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'invalid_argument', __( 'ability is required.', 'sd-ai-agent' ) );
 		}
 
 		if ( ! function_exists( 'wp_get_ability' ) ) {
-			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'api_unavailable', __( 'Abilities API not available.', 'sd-ai-agent' ) );
 		}
 
 		// @phpstan-ignore-next-line
@@ -662,7 +662,7 @@ class ToolDiscovery {
 				'ability_not_found',
 				sprintf(
 					/* translators: %s: ability id */
-					__( 'Ability "%s" not found.', 'gratis-ai-agent' ),
+					__( 'Ability "%s" not found.', 'sd-ai-agent' ),
 					$ability_id
 				)
 			);
@@ -674,7 +674,7 @@ class ToolDiscovery {
 				'ability_disabled',
 				sprintf(
 					/* translators: %s: ability id */
-					__( 'Ability "%s" is disabled.', 'gratis-ai-agent' ),
+					__( 'Ability "%s" is disabled.', 'sd-ai-agent' ),
 					$ability_id
 				)
 			);
@@ -700,7 +700,7 @@ class ToolDiscovery {
 					'invalid_ability_arguments',
 					sprintf(
 						/* translators: %s: JSON decode error message. */
-						__( 'arguments must be valid JSON: %s', 'gratis-ai-agent' ),
+						__( 'arguments must be valid JSON: %s', 'sd-ai-agent' ),
 						json_last_error_msg()
 					)
 				);
@@ -708,7 +708,7 @@ class ToolDiscovery {
 			if ( ! is_array( $decoded ) ) {
 				return new WP_Error(
 					'invalid_ability_arguments',
-					__( 'arguments must decode to a JSON object.', 'gratis-ai-agent' )
+					__( 'arguments must decode to a JSON object.', 'sd-ai-agent' )
 				);
 			}
 			$args = $decoded;
@@ -743,7 +743,7 @@ class ToolDiscovery {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log(
 				sprintf(
-					'[Gratis AI Agent] ability-call: ability=%s raw_type=%s raw_size=%d normalized_keys=[%s]%s',
+					'[Superdav AI Agent] ability-call: ability=%s raw_type=%s raw_size=%d normalized_keys=[%s]%s',
 					$ability_id,
 					$raw_type,
 					$raw_size,
@@ -783,10 +783,10 @@ class ToolDiscovery {
 
 			// Per-call spin detection: after the second identical failure,
 			// inject a hard stop-and-rethink nudge.
-			$count = \GratisAiAgent\Core\IdenticalFailureTracker::record( $ability_id, $input_data, $error_code );
-			if ( \GratisAiAgent\Core\IdenticalFailureTracker::should_nudge( $count ) ) {
+			$count = \SdAiAgent\Core\IdenticalFailureTracker::record( $ability_id, $input_data, $error_code );
+			if ( \SdAiAgent\Core\IdenticalFailureTracker::should_nudge( $count ) ) {
 				$schema_for_nudge = $payload['input_schema'] ?? $ability->get_input_schema();
-				$payload['nudge'] = \GratisAiAgent\Core\IdenticalFailureTracker::nudge_message( $ability_id, $schema_for_nudge );
+				$payload['nudge'] = \SdAiAgent\Core\IdenticalFailureTracker::nudge_message( $ability_id, $schema_for_nudge );
 				ModelHealthTracker::record_nudge();
 			}
 

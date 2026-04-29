@@ -14,7 +14,7 @@
  */
 
 /** @type {string} sessionStorage key for the active-jobs map. */
-const STORAGE_KEY = 'gratisAiAgent_activeJobs';
+const STORAGE_KEY = 'sdAiAgent_activeJobs';
 
 /**
  * Parse and normalise raw sessionStorage content into a plain-object map.

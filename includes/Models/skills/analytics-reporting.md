@@ -4,8 +4,8 @@
 Use this skill for generating content reports, tracking publishing activity, measuring site growth, and understanding content performance.
 
 ## Available Tools
-- `gratis-ai-agent/content-performance-report` — Content publishing summary with period comparisons
-- `gratis-ai-agent/content-analyze` — Content health and strategy metrics
+- `sd-ai-agent/content-performance-report` — Content publishing summary with period comparisons
+- `sd-ai-agent/content-analyze` — Content health and strategy metrics
 
 ## WP-CLI Commands for Data
 
@@ -44,14 +44,14 @@ Use this skill for generating content reports, tracking publishing activity, mea
 ## Reporting Workflows
 
 ### Weekly Content Summary
-1. Run `gratis-ai-agent/content-performance-report` with `days: 7`
+1. Run `sd-ai-agent/content-performance-report` with `days: 7`
 2. Highlight posts published this week
 3. Note drafts pending review
 4. Compare with previous week
 
 ### Monthly Growth Report
-1. Run `gratis-ai-agent/content-performance-report` with `days: 30`
-2. Run `gratis-ai-agent/content-analyze` for content health
+1. Run `sd-ai-agent/content-performance-report` with `days: 30`
+2. Run `sd-ai-agent/content-analyze` for content health
 3. Report publishing velocity vs last month
 4. Identify top categories and content gaps
 5. List actionable recommendations

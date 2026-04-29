@@ -8,11 +8,11 @@ declare(strict_types=1);
  * BudgetManager class so tests can inject a fake that always allows or
  * always blocks, without touching WordPress options or the database.
  *
- * @package GratisAiAgent\Contracts
+ * @package SdAiAgent\Contracts
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Contracts;
+namespace SdAiAgent\Contracts;
 
 use WP_Error;
 

@@ -9,15 +9,15 @@ declare(strict_types=1);
  * stores the results as memories and optionally seeds the knowledge base
  * with the first 50 published posts.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Knowledge\Knowledge;
-use GratisAiAgent\Knowledge\KnowledgeDatabase;
-use GratisAiAgent\Models\Memory;
+use SdAiAgent\Knowledge\Knowledge;
+use SdAiAgent\Knowledge\KnowledgeDatabase;
+use SdAiAgent\Models\Memory;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,12 +28,12 @@ class SiteScanner {
 	/**
 	 * WP-Cron hook name for the background scan.
 	 */
-	const CRON_HOOK = 'gratis_ai_agent_site_scan';
+	const CRON_HOOK = 'sd_ai_agent_site_scan';
 
 	/**
 	 * Option key that stores the scan status / results.
 	 */
-	const STATUS_OPTION = 'gratis_ai_agent_onboarding_scan';
+	const STATUS_OPTION = 'sd_ai_agent_onboarding_scan';
 
 	/**
 	 * Maximum number of posts to seed into the knowledge base.
@@ -480,9 +480,9 @@ class SiteScanner {
 
 		return KnowledgeDatabase::create_collection(
 			[
-				'name'          => __( 'Site Content', 'gratis-ai-agent' ),
+				'name'          => __( 'Site Content', 'sd-ai-agent' ),
 				'slug'          => 'onboarding-site-content',
-				'description'   => __( 'Auto-indexed during onboarding scan.', 'gratis-ai-agent' ),
+				'description'   => __( 'Auto-indexed during onboarding scan.', 'sd-ai-agent' ),
 				'auto_index'    => true,
 				'source_config' => [
 					'post_types' => $post_types,

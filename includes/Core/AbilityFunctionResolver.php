@@ -6,20 +6,20 @@ declare(strict_types=1);
  *
  * Subclasses the WordPress core resolver to fix one paper cut: when the model
  * issues a tool call with no arguments (e.g. for a parameterless ability like
- * `gratis-ai-agent/get-plugins`), the parent resolver passes `null` to
+ * `sd-ai-agent/get-plugins`), the parent resolver passes `null` to
  * `WP_Ability::execute()`, which fails schema validation with
  * `input is not of type object`. We pass an empty associative array instead
  * so object-typed schemas with no required properties accept the call.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Tools\AbilityUsageTracker;
-use GratisAiAgent\Tools\ModelHealthTracker;
-use GratisAiAgent\Tools\SchemaExampleBuilder;
+use SdAiAgent\Tools\AbilityUsageTracker;
+use SdAiAgent\Tools\ModelHealthTracker;
+use SdAiAgent\Tools\SchemaExampleBuilder;
 use WordPress\AiClient\Tools\DTO\FunctionCall;
 use WordPress\AiClient\Tools\DTO\FunctionResponse;
 
@@ -67,7 +67,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$function_id,
 				$function_name,
 				array(
-					'error' => __( 'Not an ability function call', 'gratis-ai-agent' ),
+					'error' => __( 'Not an ability function call', 'sd-ai-agent' ),
 					'code'  => 'invalid_ability_call',
 				)
 			);
@@ -82,7 +82,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				array(
 					'error' => sprintf(
 						/* translators: %s: ability name */
-						__( 'Ability "%s" was not specified in the allowed abilities list.', 'gratis-ai-agent' ),
+						__( 'Ability "%s" was not specified in the allowed abilities list.', 'sd-ai-agent' ),
 						$ability_name
 					),
 					'code'  => 'ability_not_allowed',
@@ -98,7 +98,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				array(
 					'error' => sprintf(
 						/* translators: %s: ability name */
-						__( 'Ability "%s" not found', 'gratis-ai-agent' ),
+						__( 'Ability "%s" not found', 'sd-ai-agent' ),
 						$ability_name
 					),
 					'code'  => 'ability_not_found',

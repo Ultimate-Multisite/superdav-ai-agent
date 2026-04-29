@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Sandbox Test Plugin ability — PHP syntax and isolation checks.
  *
- * @package GratisAiAgent\Abilities
+ * @package SdAiAgent\Abilities
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\PluginBuilder\PluginSandbox;
+use SdAiAgent\PluginBuilder\PluginSandbox;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -27,11 +27,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SandboxTestPluginAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Sandbox Test Plugin', 'gratis-ai-agent' );
+		return __( 'Sandbox Test Plugin', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Run layers 1 and 2 of the sandbox safety check against a plugin: PHP syntax validation and isolated subprocess include test.', 'gratis-ai-agent' );
+		return __( 'Run layers 1 and 2 of the sandbox safety check against a plugin: PHP syntax validation and isolated subprocess include test.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -72,10 +72,10 @@ class SandboxTestPluginAbility extends AbstractAbility {
 		$plugin_file = (string) ( $input['plugin_file'] ?? '' );
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'slug is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_slug', __( 'slug is required.', 'sd-ai-agent' ) );
 		}
 		if ( empty( $plugin_file ) ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_plugin_file', __( 'plugin_file is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_plugin_file', __( 'plugin_file is required.', 'sd-ai-agent' ) );
 		}
 
 		$plugin_dir = WP_CONTENT_DIR . '/plugins/' . $slug . '/';

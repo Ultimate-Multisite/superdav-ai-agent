@@ -6,16 +6,16 @@
  * commands that use the same BenchmarkRunner/BenchmarkSuite backend
  * as the browser-based benchmark UI.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\CLI;
+namespace SdAiAgent\CLI;
 
-use GratisAiAgent\Benchmark\BenchmarkRunner;
-use GratisAiAgent\Benchmark\BenchmarkSuite;
+use SdAiAgent\Benchmark\BenchmarkRunner;
+use SdAiAgent\Benchmark\BenchmarkSuite;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {

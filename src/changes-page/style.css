@@ -1,12 +1,12 @@
 /* Changes Admin Page */
 
-.gratis-changes-app {
+.sd-changes-app {
 	max-width: 1200px;
 	margin-top: 1rem;
 }
 
 /* Filters bar */
-.gratis-changes-filters {
+.sd-changes-filters {
 	display: flex;
 	align-items: flex-end;
 	gap: 1rem;
@@ -14,16 +14,16 @@
 	flex-wrap: wrap;
 }
 
-.gratis-changes-filters .components-base-control {
+.sd-changes-filters .components-base-control {
 	margin-bottom: 0;
 }
 
-.gratis-changes-filters__actions {
+.sd-changes-filters__actions {
 	margin-left: auto;
 }
 
 /* Loading state */
-.gratis-changes-loading {
+.sd-changes-loading {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -32,32 +32,32 @@
 }
 
 /* Table */
-.gratis-changes-table {
+.sd-changes-table {
 	margin-top: 0;
 }
 
-.gratis-changes-table .check-column {
+.sd-changes-table .check-column {
 	width: 2.5rem;
 }
 
-.gratis-changes-empty {
+.sd-changes-empty {
 	text-align: center;
 	color: #757575;
 	padding: 2rem !important;
 }
 
-.gratis-changes-meta {
+.sd-changes-meta {
 	font-size: 0.8em;
 	color: #757575;
 }
 
-.gratis-changes-ability {
+.sd-changes-ability {
 	font-size: 0.85em;
 	color: #555;
 	word-break: break-all;
 }
 
-.gratis-changes-value {
+.sd-changes-value {
 	font-size: 0.85em;
 	max-width: 200px;
 	overflow: hidden;
@@ -65,14 +65,14 @@
 	white-space: nowrap;
 }
 
-.gratis-changes-actions {
+.sd-changes-actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
 }
 
 /* Pagination */
-.gratis-changes-pagination {
+.sd-changes-pagination {
 	display: flex;
 	align-items: center;
 	gap: 1rem;
@@ -81,20 +81,20 @@
 }
 
 /* Diff viewer */
-.gratis-changes-diff {
+.sd-changes-diff {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 1rem;
 	margin-top: 1rem;
 }
 
-.gratis-changes-diff__pane {
+.sd-changes-diff__pane {
 	border: 1px solid #ddd;
 	border-radius: 4px;
 	overflow: hidden;
 }
 
-.gratis-changes-diff__label {
+.sd-changes-diff__label {
 	background: #f0f0f0;
 	padding: 0.4rem 0.75rem;
 	font-weight: 600;
@@ -102,15 +102,15 @@
 	border-bottom: 1px solid #ddd;
 }
 
-.gratis-changes-diff__pane--before .gratis-changes-diff__label {
+.sd-changes-diff__pane--before .sd-changes-diff__label {
 	background: #fff0f0;
 }
 
-.gratis-changes-diff__pane--after .gratis-changes-diff__label {
+.sd-changes-diff__pane--after .sd-changes-diff__label {
 	background: #f0fff0;
 }
 
-.gratis-changes-diff__code {
+.sd-changes-diff__code {
 	margin: 0;
 	padding: 0.5rem;
 	font-size: 0.8em;
@@ -120,25 +120,25 @@
 	background: #fafafa;
 }
 
-.gratis-changes-diff__line {
+.sd-changes-diff__line {
 	display: block;
 	padding: 1px 4px;
 	white-space: pre-wrap;
 	word-break: break-all;
 }
 
-.gratis-changes-diff__line--removed {
+.sd-changes-diff__line--removed {
 	background: #ffd7d7;
 	color: #a00;
 }
 
-.gratis-changes-diff__line--added {
+.sd-changes-diff__line--added {
 	background: #d7ffd7;
 	color: #060;
 }
 
 /* Status badges (replace @wordpress/components Badge which is not universally available) */
-.gratis-changes-badge {
+.sd-changes-badge {
 	display: inline-block;
 	padding: 2px 8px;
 	border-radius: 10px;
@@ -148,33 +148,33 @@
 	white-space: nowrap;
 }
 
-.gratis-changes-badge--active {
+.sd-changes-badge--active {
 	background: #d7f5e5;
 	color: #1a6140;
 }
 
-.gratis-changes-badge--reverted {
+.sd-changes-badge--reverted {
 	background: #f0f0f0;
 	color: #757575;
 }
 
-.gratis-changes-badge--unrevertable {
+.sd-changes-badge--unrevertable {
 	background: #fff3cd;
 	color: #856404;
 }
 
 /* Diff modal */
-.gratis-changes-diff-modal .components-modal__content {
+.sd-changes-diff-modal .components-modal__content {
 	min-width: min( 80vw, 900px );
 }
 
-.gratis-changes-diff-modal__actions {
+.sd-changes-diff-modal__actions {
 	margin-top: 1.5rem;
 	display: flex;
 	justify-content: flex-end;
 }
 
-.gratis-changes-diff-modal__notice {
+.sd-changes-diff-modal__notice {
 	margin-top: 1rem;
 	padding: 0.6rem 0.75rem;
 	background: #fff3cd;

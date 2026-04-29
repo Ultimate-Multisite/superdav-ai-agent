@@ -1,13 +1,13 @@
 /**
  * E2E tests for the UnifiedAdminMenu — the React SPA that consolidates all
  * admin pages into a single hash-based router at:
- *   admin.php?page=gratis-ai-agent
+ *   admin.php?page=sd-ai-agent
  *
  * Routes:
- *   Chat:      admin.php?page=gratis-ai-agent          (or #/chat)
- *   Abilities: admin.php?page=gratis-ai-agent#/abilities
- *   Changes:   admin.php?page=gratis-ai-agent#/changes
- *   Settings:  admin.php?page=gratis-ai-agent#/settings
+ *   Chat:      admin.php?page=sd-ai-agent          (or #/chat)
+ *   Abilities: admin.php?page=sd-ai-agent#/abilities
+ *   Changes:   admin.php?page=sd-ai-agent#/changes
+ *   Settings:  admin.php?page=sd-ai-agent#/settings
  *
  * Test coverage:
  *   1. Menu renders with all nav items for admin users
@@ -40,10 +40,10 @@ const {
  * @param {import('@playwright/test').Page} page
  */
 async function goToUnifiedAdmin( page ) {
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
-		.locator( '.gratis-ai-agent-unified-admin' )
+		.locator( '.sd-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -54,10 +54,10 @@ async function goToUnifiedAdmin( page ) {
  * @param {string}                          hash e.g. '#/settings'
  */
 async function goToHashRoute( page, hash ) {
-	await page.goto( `/wp-admin/admin.php?page=gratis-ai-agent${ hash }` );
+	await page.goto( `/wp-admin/admin.php?page=sd-ai-agent${ hash }` );
 	await page.waitForLoadState( 'domcontentloaded' );
 	await page
-		.locator( '.gratis-ai-agent-unified-admin' )
+		.locator( '.sd-ai-agent-unified-admin' )
 		.waitFor( { state: 'visible', timeout: 45_000 } );
 }
 
@@ -68,7 +68,7 @@ async function goToHashRoute( page, hash ) {
 // Menu Rendering, Navigation, and Active State suites are skipped because
 // the unified admin SPA no longer renders a custom navigation sidebar —
 // routing is handled via WordPress's standard admin menu and hash URLs.
-// These tests referenced .gratis-ai-nav-* elements that don't exist.
+// These tests referenced .sd-ai-nav-* elements that don't exist.
 test.describe.skip( 'UnifiedAdminMenu - Menu Rendering', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
@@ -79,34 +79,34 @@ test.describe.skip( 'UnifiedAdminMenu - Menu Rendering', () => {
 		page,
 	} ) => {
 		// Outer SPA wrapper.
-		await expect( page.locator( '.gratis-ai-agent-unified-admin' ) ).toBeVisible();
+		await expect( page.locator( '.sd-ai-agent-unified-admin' ) ).toBeVisible();
 
 		// Navigation sidebar.
-		await expect( page.locator( '.gratis-ai-admin-nav' ) ).toBeVisible();
+		await expect( page.locator( '.sd-ai-admin-nav' ) ).toBeVisible();
 
 		// Main content area.
-		await expect( page.locator( '.gratis-ai-admin-main' ) ).toBeVisible();
+		await expect( page.locator( '.sd-ai-admin-main' ) ).toBeVisible();
 	} );
 
 	test( 'navigation sidebar contains at least the core menu items', async ( {
 		page,
 	} ) => {
 		// The nav menu is a <ul role="menubar"> with <li> items.
-		const navMenu = page.locator( '.gratis-ai-nav-menu' );
+		const navMenu = page.locator( '.sd-ai-nav-menu' );
 		await expect( navMenu ).toBeVisible();
 
 		// There must be at least 4 items (chat, abilities, changes, settings).
-		const items = navMenu.locator( '.gratis-ai-nav-item' );
+		const items = navMenu.locator( '.sd-ai-nav-item' );
 		const count = await items.count();
 		expect( count ).toBeGreaterThanOrEqual( 4 );
 	} );
 
 	test( 'nav header shows the AI Agent logo and title', async ( { page } ) => {
-		const header = page.locator( '.gratis-ai-nav-header' );
+		const header = page.locator( '.sd-ai-nav-header' );
 		await expect( header ).toBeVisible();
 
 		// Logo icon.
-		await expect( header.locator( '.gratis-ai-nav-logo' ) ).toBeVisible();
+		await expect( header.locator( '.sd-ai-nav-logo' ) ).toBeVisible();
 
 		// Title text.
 		await expect( header.locator( 'h1' ) ).toContainText( 'AI Agent' );
@@ -127,9 +127,9 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 	} ) => {
 		await goToUnifiedAdmin( page );
 
-		// ChatRoute mounts the chat app into #gratis-ai-agent-chat-container.
+		// ChatRoute mounts the chat app into #sd-ai-agent-chat-container.
 		await expect(
-			page.locator( '#gratis-ai-agent-chat-container' )
+			page.locator( '#sd-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 
@@ -137,7 +137,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToHashRoute( page, '#/chat' );
 
 		await expect(
-			page.locator( '#gratis-ai-agent-chat-container' )
+			page.locator( '#sd-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 
@@ -145,7 +145,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToSettingsPage( page );
 
 		await expect(
-			page.locator( '.gratis-ai-agent-route-settings' )
+			page.locator( '.sd-ai-agent-route-settings' )
 		).toBeVisible();
 	} );
 
@@ -153,7 +153,7 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToChangesPage( page );
 
 		await expect(
-			page.locator( '.gratis-ai-agent-route-changes' )
+			page.locator( '.sd-ai-agent-route-changes' )
 		).toBeVisible();
 	} );
 
@@ -163,16 +163,16 @@ test.describe( 'UnifiedAdminMenu - Hash-Based Routing', () => {
 		await goToAbilitiesPage( page );
 
 		await expect(
-			page.locator( '.gratis-ai-agent-abilities-manager' )
+			page.locator( '.sd-ai-agent-abilities-manager' )
 		).toBeVisible();
 	} );
 
 	test( 'unknown hash route shows a not-found message', async ( { page } ) => {
 		await goToHashRoute( page, '#/this-route-does-not-exist' );
 
-		// Router renders .gratis-ai-agent-route-not-found for unrecognised routes.
+		// Router renders .sd-ai-agent-route-not-found for unrecognised routes.
 		await expect(
-			page.locator( '.gratis-ai-agent-route-not-found' )
+			page.locator( '.sd-ai-agent-route-not-found' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
@@ -189,10 +189,10 @@ test.describe.skip( 'UnifiedAdminMenu - Navigation', () => {
 
 	test( 'clicking a nav item updates the URL hash', async ( { page } ) => {
 		// Find the settings nav link (aria-label or text "Settings").
-		// The nav renders items from window.gratisAiAgentData.menuItems, so we
+		// The nav renders items from window.sdAiAgentData.menuItems, so we
 		// locate by the nav-link role and label rather than a hardcoded slug.
 		const settingsLink = page
-			.locator( '.gratis-ai-nav-link' )
+			.locator( '.sd-ai-nav-link' )
 			.filter( { hasText: /settings/i } )
 			.first();
 
@@ -207,7 +207,7 @@ test.describe.skip( 'UnifiedAdminMenu - Navigation', () => {
 		page,
 	} ) => {
 		const changesLink = page
-			.locator( '.gratis-ai-nav-link' )
+			.locator( '.sd-ai-nav-link' )
 			.filter( { hasText: /changes/i } )
 			.first();
 
@@ -216,7 +216,7 @@ test.describe.skip( 'UnifiedAdminMenu - Navigation', () => {
 
 		// Wait for the changes route container.
 		await expect(
-			page.locator( '.gratis-ai-agent-route-changes' )
+			page.locator( '.sd-ai-agent-route-changes' )
 		).toBeVisible( { timeout: 30_000 } );
 	} );
 
@@ -225,23 +225,23 @@ test.describe.skip( 'UnifiedAdminMenu - Navigation', () => {
 	} ) => {
 		// Go to settings first.
 		const settingsLink = page
-			.locator( '.gratis-ai-nav-link' )
+			.locator( '.sd-ai-nav-link' )
 			.filter( { hasText: /settings/i } )
 			.first();
 		await settingsLink.click();
-		await expect( page.locator( '.gratis-ai-agent-route-settings' ) ).toBeVisible( {
+		await expect( page.locator( '.sd-ai-agent-route-settings' ) ).toBeVisible( {
 			timeout: 30_000,
 		} );
 
 		// Navigate back to chat.
 		const chatLink = page
-			.locator( '.gratis-ai-nav-link' )
+			.locator( '.sd-ai-nav-link' )
 			.filter( { hasText: /chat/i } )
 			.first();
 		await chatLink.click();
 
 		await expect(
-			page.locator( '#gratis-ai-agent-chat-container' )
+			page.locator( '#sd-ai-agent-chat-container' )
 		).toBeVisible( { timeout: 15_000 } );
 	} );
 } );
@@ -261,7 +261,7 @@ test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 		await goToUnifiedAdmin( page );
 
 		// The active <li> gets the is-active class.
-		const activeItem = page.locator( '.gratis-ai-nav-item.is-active' );
+		const activeItem = page.locator( '.sd-ai-nav-item.is-active' );
 		await expect( activeItem ).toBeVisible();
 
 		// The active item's link text should contain "Chat" (or similar).
@@ -273,7 +273,7 @@ test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 	} ) => {
 		await goToSettingsPage( page );
 
-		const activeItem = page.locator( '.gratis-ai-nav-item.is-active' );
+		const activeItem = page.locator( '.sd-ai-nav-item.is-active' );
 		await expect( activeItem ).toBeVisible();
 		await expect( activeItem ).toContainText( /settings/i );
 	} );
@@ -283,7 +283,7 @@ test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 
 		// The active Button renders aria-current="page".
 		const activeLink = page.locator(
-			'.gratis-ai-nav-item.is-active .gratis-ai-nav-link'
+			'.sd-ai-nav-item.is-active .sd-ai-nav-link'
 		);
 		await expect( activeLink ).toHaveAttribute( 'aria-current', 'page' );
 	} );
@@ -295,7 +295,7 @@ test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 
 		// All nav links that are NOT in the active item should lack aria-current.
 		const inactiveLinks = page.locator(
-			'.gratis-ai-nav-item:not(.is-active) .gratis-ai-nav-link'
+			'.sd-ai-nav-item:not(.is-active) .sd-ai-nav-link'
 		);
 		const count = await inactiveLinks.count();
 		expect( count ).toBeGreaterThan( 0 );
@@ -313,18 +313,18 @@ test.describe.skip( 'UnifiedAdminMenu - Active State', () => {
 		await goToUnifiedAdmin( page );
 
 		// Initially chat is active.
-		let activeItem = page.locator( '.gratis-ai-nav-item.is-active' );
+		let activeItem = page.locator( '.sd-ai-nav-item.is-active' );
 		await expect( activeItem ).toContainText( /chat/i );
 
 		// Click settings.
 		const settingsLink = page
-			.locator( '.gratis-ai-nav-link' )
+			.locator( '.sd-ai-nav-link' )
 			.filter( { hasText: /settings/i } )
 			.first();
 		await settingsLink.click();
 
 		// Active item should now be settings.
-		activeItem = page.locator( '.gratis-ai-nav-item.is-active' );
+		activeItem = page.locator( '.sd-ai-nav-item.is-active' );
 		await expect( activeItem ).toContainText( /settings/i );
 	} );
 } );
@@ -364,13 +364,13 @@ test.describe( 'UnifiedAdminMenu - Access Control', () => {
 		await page.waitForURL( /wp-admin|wp-login/, { timeout: 30_000 } );
 
 		// Attempt to access the plugin admin page.
-		await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent' );
+		await page.goto( '/wp-admin/admin.php?page=sd-ai-agent' );
 		await page.waitForLoadState( 'domcontentloaded' );
 
 		// WordPress should redirect to the dashboard or show an error.
 		// The unified admin SPA must NOT be rendered for non-admin users.
 		const spaVisible = await page
-			.locator( '.gratis-ai-agent-unified-admin' )
+			.locator( '.sd-ai-agent-unified-admin' )
 			.isVisible()
 			.catch( () => false );
 		expect( spaVisible ).toBe( false );

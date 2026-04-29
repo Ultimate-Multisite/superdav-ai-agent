@@ -38,10 +38,10 @@ export default function WidgetLauncher() {
 	const label = branding.agentName
 		? sprintf(
 				/* translators: %s: agent display name */
-				__( 'Open %s', 'gratis-ai-agent' ),
+				__( 'Open %s', 'sd-ai-agent' ),
 				branding.agentName
 		  )
-		: __( 'Open AI Agent', 'gratis-ai-agent' );
+		: __( 'Open AI Agent', 'sd-ai-agent' );
 
 	const { position, moved, handleMouseDown } = useDrag( {
 		storageKey: LAUNCHER_POSITION_STORAGE_KEY,
@@ -94,7 +94,7 @@ export default function WidgetLauncher() {
 					className="gaa-w-launcher-badge"
 					aria-label={ sprintf(
 						/* translators: %d: number of alerts */
-						__( '%d alert(s)', 'gratis-ai-agent' ),
+						__( '%d alert(s)', 'sd-ai-agent' ),
 						alertCount
 					) }
 				>

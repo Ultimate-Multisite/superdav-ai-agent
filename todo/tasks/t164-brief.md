@@ -11,7 +11,7 @@ control-flow surgery ships in its own reviewable PR after the foundation
 ## What
 
 Teach the agent loop to execute client-side abilities by pausing after the
-model emits a tool call for a `gratis-ai-agent-js/*` ability, returning the
+model emits a tool call for a `sd-ai-agent-js/*` ability, returning the
 pending call to the browser, having the client dispatch it via
 `executeAbility(name, args)`, and POSTing the result back to a new
 `/chat/tool-result` endpoint that resumes the loop.
@@ -21,7 +21,7 @@ pending call to the browser, having the client dispatch it via
 Foundation (t163) gets client-side abilities discoverable and executable from
 the browser, but the model itself still does not see them. This slice merges
 the two registries at request time, so the model's tool list is the union of
-PHP abilities + `gratis-ai-agent-js/*` descriptors, and tool calls are routed
+PHP abilities + `sd-ai-agent-js/*` descriptors, and tool calls are routed
 to the right executor.
 
 ## How
@@ -55,12 +55,12 @@ to the right executor.
 - **EDIT**: `includes/REST/RestController.php`
   - `handle_chat()`: accept `client_abilities` in the request body and
     pass through to `AgentLoop` options.
-  - New route: `POST /gratis-ai-agent/v1/chat/tool-result` with args
+  - New route: `POST /sd-ai-agent/v1/chat/tool-result` with args
     `{ session_id, tool_results: [{ id, name, result|error }...] }`.
     Handler loads paused state from the session row, instantiates
     `AgentLoop` with the persisted history, and calls
     `resume_after_client_tools()`.
-- **NEW**: `tests/GratisAiAgent/Core/AgentLoopClientToolsTest.php` —
+- **NEW**: `tests/SdAiAgent/Core/AgentLoopClientToolsTest.php` —
   focused PHPUnit coverage:
   - Posting a fake `client_abilities` descriptor causes a model tool call
     for that name to return `pending_client_tool_calls` instead of
@@ -87,7 +87,7 @@ to the right executor.
 - **EDIT**: `src/components/tool-call-details.js` — accept and render the
   "Ran in browser" annotation.
 - **EDIT**: `src/abilities-explorer/abilities-explorer-app.js` — list
-  `gratis-ai-agent-js/*` abilities alongside PHP ones with a "client"
+  `sd-ai-agent-js/*` abilities alongside PHP ones with a "client"
   badge (fetched from the local `core/abilities` store filtered by
   category).
 
@@ -142,6 +142,6 @@ Plus the browser smoke tests from the acceptance criteria above.
   (`snapshotDescriptors` — added in t163).
 - Risks: loop-state persistence shape (new column vs meta row), schema
   collision between server abilities mirrored via `core-abilities` and our
-  `gratis-ai-agent-js/*` namespace (distinct namespace prevents this), and
+  `sd-ai-agent-js/*` namespace (distinct namespace prevents this), and
   the edit-state being stale by the time the resume POST arrives (mitigated
   by persisting full history on pause).

@@ -14,7 +14,7 @@ import { useDispatch, useSelect } from '@wordpress/data';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-// Register gratis-ai-agent-js/* client-side abilities into core/abilities
+// Register sd-ai-agent-js/* client-side abilities into core/abilities
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import ChatRedesign from '../components/chat-redesign';
@@ -137,7 +137,7 @@ function AdminPageApp() {
 			'mod+n': () => clearCurrentSession(),
 			'mod+k': () => {
 				const searchInput = document.querySelector(
-					'.gaa-cr-search-input, .gratis-ai-agent-sidebar-search'
+					'.gaa-cr-search-input, .sd-ai-agent-sidebar-search'
 				);
 				if ( searchInput ) {
 					searchInput.focus();
@@ -208,7 +208,7 @@ function AdminPageApp() {
 /**
  * Mount the AdminPageApp into a given container element.
  *
- * Called by the unified admin's ChatRoute via window.gratisAiAgentChat.mount().
+ * Called by the unified admin's ChatRoute via window.sdAiAgentChat.mount().
  * Returns a root instance so the caller can unmount cleanly.
  *
  * @param {HTMLElement} container - DOM element to mount into.
@@ -224,12 +224,12 @@ function mountAdminPageApp( container ) {
  * Expose the mount/unmount API for the unified admin's ChatRoute.
  *
  * The unified admin (src/unified-admin/routes/chat.js) calls
- * window.gratisAiAgentChat.mount(container) to embed the full chat UI
- * (sidebar + chat panel) inside the #gratis-ai-agent-chat-container div that
+ * window.sdAiAgentChat.mount(container) to embed the full chat UI
+ * (sidebar + chat panel) inside the #sd-ai-agent-chat-container div that
  * ChatRoute renders. This avoids the old pattern of both the unified admin
- * and the admin-page bundle competing to mount into #gratis-ai-agent-root.
+ * and the admin-page bundle competing to mount into #sd-ai-agent-root.
  */
-window.gratisAiAgentChat = {
+window.sdAiAgentChat = {
 	/**
 	 * Mount the admin page app into the given container.
 	 *
@@ -240,7 +240,7 @@ window.gratisAiAgentChat = {
 			return;
 		}
 		// Store the root so unmount() can tear it down cleanly.
-		container.__gratisAiRoot = mountAdminPageApp( container );
+		container.__sdAiRoot = mountAdminPageApp( container );
 	},
 
 	/**
@@ -249,9 +249,9 @@ window.gratisAiAgentChat = {
 	 * @param {HTMLElement} container - Target DOM element.
 	 */
 	unmount( container ) {
-		if ( container && container.__gratisAiRoot ) {
-			container.__gratisAiRoot.unmount();
-			delete container.__gratisAiRoot;
+		if ( container && container.__sdAiRoot ) {
+			container.__sdAiRoot.unmount();
+			delete container.__sdAiRoot;
 		}
 	},
 };
@@ -259,4 +259,4 @@ window.gratisAiAgentChat = {
 // Notify ChatRoute that the mount API is now available. ChatRoute listens for
 // this event and calls mount() immediately, replacing the previous 0–50 ms
 // polling interval with a near-zero-latency handshake.
-window.dispatchEvent( new CustomEvent( 'gratis-ai-agent-chat-ready' ) );
+window.dispatchEvent( new CustomEvent( 'sd-ai-agent-chat-ready' ) );

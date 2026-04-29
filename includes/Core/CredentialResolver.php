@@ -12,11 +12,11 @@ declare(strict_types=1);
  *  - Claude Max OAuth token
  *  - WordPress 7.0 Connectors API (read-only, delegated to WP functions)
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,7 +39,7 @@ class CredentialResolver {
 	/**
 	 * WordPress option that stores the Claude Max OAuth access token.
 	 */
-	const CLAUDE_MAX_TOKEN_OPTION = 'gratis_ai_agent_claude_max_token';
+	const CLAUDE_MAX_TOKEN_OPTION = 'sd_ai_agent_claude_max_token';
 
 	/**
 	 * Sentinel value used when no real API key is available but a non-empty

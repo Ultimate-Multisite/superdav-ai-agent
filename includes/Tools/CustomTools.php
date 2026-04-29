@@ -7,13 +7,13 @@
  *  - ACTION: Calls do_action() with arguments (integrates with any WP plugin).
  *  - CLI:    Runs WP-CLI commands with argument schema.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Tools;
+namespace SdAiAgent\Tools;
 
 /**
  * Prevents direct access to the file.
@@ -38,7 +38,7 @@ class CustomTools {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
+		return $wpdb->prefix . 'sd_ai_agent_custom_tools';
 	}
 
 	/**
@@ -239,11 +239,11 @@ class CustomTools {
 	 */
 	public static function validate( array $data ) {
 		if ( empty( $data['name'] ) ) {
-			return new \WP_Error( 'missing_name', __( 'Tool name is required.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'missing_name', __( 'Tool name is required.', 'sd-ai-agent' ) );
 		}
 
 		if ( empty( $data['type'] ) || ! in_array( $data['type'], self::VALID_TYPES, true ) ) {
-			return new \WP_Error( 'invalid_type', __( 'Tool type must be http, action, or cli.', 'gratis-ai-agent' ) );
+			return new \WP_Error( 'invalid_type', __( 'Tool type must be http, action, or cli.', 'sd-ai-agent' ) );
 		}
 
 		// Auto-generate slug from name if not provided.
@@ -266,11 +266,11 @@ class CustomTools {
 			case self::TYPE_HTTP:
 				// @phpstan-ignore-next-line
 				if ( empty( $config['url'] ) ) {
-					return new \WP_Error( 'missing_url', __( 'HTTP tools require a URL.', 'gratis-ai-agent' ) );
+					return new \WP_Error( 'missing_url', __( 'HTTP tools require a URL.', 'sd-ai-agent' ) );
 				}
 				// @phpstan-ignore-next-line
 				if ( ! empty( $config['method'] ) && ! in_array( strtoupper( $config['method'] ), self::VALID_HTTP_METHODS, true ) ) {
-					return new \WP_Error( 'invalid_method', __( 'Invalid HTTP method.', 'gratis-ai-agent' ) );
+					return new \WP_Error( 'invalid_method', __( 'Invalid HTTP method.', 'sd-ai-agent' ) );
 				}
 				// @phpstan-ignore-next-line
 				$config['method'] = strtoupper( $config['method'] ?? 'GET' );
@@ -279,14 +279,14 @@ class CustomTools {
 			case self::TYPE_ACTION:
 				// @phpstan-ignore-next-line
 				if ( empty( $config['hook_name'] ) ) {
-					return new \WP_Error( 'missing_hook', __( 'Action tools require a hook_name.', 'gratis-ai-agent' ) );
+					return new \WP_Error( 'missing_hook', __( 'Action tools require a hook_name.', 'sd-ai-agent' ) );
 				}
 				break;
 
 			case self::TYPE_CLI:
 				// @phpstan-ignore-next-line
 				if ( empty( $config['command'] ) ) {
-					return new \WP_Error( 'missing_command', __( 'CLI tools require a command template.', 'gratis-ai-agent' ) );
+					return new \WP_Error( 'missing_command', __( 'CLI tools require a command template.', 'sd-ai-agent' ) );
 				}
 				break;
 		}
@@ -300,7 +300,7 @@ class CustomTools {
 	 * Seed example tools on first install.
 	 */
 	public static function seed_examples(): void {
-		if ( get_option( 'gratis_ai_agent_custom_tools_seeded' ) ) {
+		if ( get_option( 'sd_ai_agent_custom_tools_seeded' ) ) {
 			return;
 		}
 
@@ -390,7 +390,7 @@ class CustomTools {
 				'description'  => 'Fire the site health check action to trigger health checks.',
 				'type'         => self::TYPE_ACTION,
 				'config'       => [
-					'hook_name' => 'gratis_ai_agent_site_health_check',
+					'hook_name' => 'sd_ai_agent_site_health_check',
 					'args'      => [],
 				],
 				'input_schema' => [
@@ -405,7 +405,7 @@ class CustomTools {
 			self::create( $example );
 		}
 
-		update_option( 'gratis_ai_agent_custom_tools_seeded', true );
+		update_option( 'sd_ai_agent_custom_tools_seeded', true );
 	}
 
 	/**

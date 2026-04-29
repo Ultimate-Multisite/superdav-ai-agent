@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Gratis AI Agent — Model Benchmark Suite
+ * Superdav AI Agent — Model Benchmark Suite
  *
  * Tests WordPress admin operation prompts against all models available on
  * synthetic.new, scoring each model's ability to:
@@ -252,7 +252,7 @@ const TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'gratis-ai-agent/woo-create-product',
+			name: 'sd-ai-agent/woo-create-product',
 			description:
 				'Create a WooCommerce product with name, description, price, SKU, stock, categories, images, and attributes.',
 			parameters: {
@@ -298,7 +298,7 @@ const TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'gratis-ai-agent/get-plugins',
+			name: 'sd-ai-agent/get-plugins',
 			description:
 				'List all installed WordPress plugins with their status (active/inactive).',
 			parameters: { type: 'object', properties: {} },
@@ -307,7 +307,7 @@ const TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'gratis-ai-agent/install-plugin',
+			name: 'sd-ai-agent/install-plugin',
 			description:
 				'Install a plugin from the WordPress.org plugin directory by slug. Optionally activate after installation.',
 			parameters: {
@@ -351,7 +351,7 @@ const TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'gratis-ai-agent/navigate',
+			name: 'sd-ai-agent/navigate',
 			description:
 				'Navigate to a URL and return the page content. Useful for checking what a page looks like.',
 			parameters: {
@@ -369,7 +369,7 @@ const TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'gratis-ai-agent/db-query',
+			name: 'sd-ai-agent/db-query',
 			description:
 				'Execute a read-only SQL SELECT query against the WordPress database. Use {prefix} as the table prefix placeholder.',
 			parameters: {
@@ -460,7 +460,7 @@ const PROMPTS = [
 		name: 'Create WooCommerce Product',
 		prompt:
 			'Create a new WooCommerce product: "Ergonomic Standing Desk" priced at $599.99 (on sale for $449.99). SKU: DESK-ERG-001. Stock: 50 units. Category: "Office Furniture". Write a compelling product description highlighting adjustable height (28-48 inches), bamboo desktop, cable management system, and 10-year warranty. Set it as published.',
-		expected_tools: [ 'gratis-ai-agent/woo-create-product' ],
+		expected_tools: [ 'sd-ai-agent/woo-create-product' ],
 		scoring: {
 			tool_selection: {
 				weight: 25,
@@ -556,8 +556,8 @@ const PROMPTS = [
 		prompt:
 			'Check what plugins are currently installed, then install the "contact-form-7" plugin and activate it.',
 		expected_tools: [
-			'gratis-ai-agent/get-plugins',
-			'gratis-ai-agent/install-plugin',
+			'sd-ai-agent/get-plugins',
+			'sd-ai-agent/install-plugin',
 		],
 		scoring: {
 			tool_selection: {
@@ -629,7 +629,7 @@ To create any page or blog post, use \`ai-agent/create-post\`. This is the ONLY 
 - Set \`status\` to \`publish\` to make it live, or \`draft\` to save without publishing.
 - Include \`categories\` and \`tags\` arrays for blog posts.
 - Include \`excerpt\` for SEO meta descriptions.
-- For WooCommerce products, use \`gratis-ai-agent/woo-create-product\` instead.`;
+- For WooCommerce products, use \`sd-ai-agent/woo-create-product\` instead.`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1320,7 +1320,7 @@ async function main() {
 
 	// Save markdown report.
 	const mdFile = join( RESULTS_DIR, `benchmark-${ timestamp }.md` );
-	let md = `# Gratis AI Agent — Model Benchmark Results\n\n`;
+	let md = `# Superdav AI Agent — Model Benchmark Results\n\n`;
 	md += `**Date:** ${ new Date().toISOString() }\n`;
 	md += `**API:** ${ API_BASE }\n`;
 	md += `**Models tested:** ${ allResults.length }\n`;

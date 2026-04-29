@@ -9,20 +9,20 @@
  *   - Per-attachment remove button
  *   - Send button enabled when only attachments are present (no text)
  *
- * Tests run against the admin page at /wp-admin/admin.php?page=gratis-ai-agent.
+ * Tests run against the admin page at /wp-admin/admin.php?page=sd-ai-agent.
  * No live AI provider is required — file attachment state is purely client-side.
  *
  * Selector mapping (ChatRedesign gaa-cr-* classes replace old ChatPanel classes):
- *   .gratis-ai-agent-chat-panel:not(.is-compact)         → .gaa-cr
- *   .gratis-ai-agent-upload-btn                          → .gaa-cr-icon-btn[aria-label="Attach file"]
- *   .gratis-ai-agent-file-input                          → .gaa-cr-input-toolbar-left input[type="file"]
- *   .gratis-ai-agent-attachment-previews                 → .gaa-cr-attachments
- *   .gratis-ai-agent-attachment-thumb                    → .gaa-cr-attachment-thumb
- *   .gratis-ai-agent-input-area (drag-drop target)       → .gaa-cr-input-frame
- *   .gratis-ai-agent-attachment-thumb__img               → .gaa-cr-attachment-thumb img
- *   .gratis-ai-agent-attachment-thumb__ext               → .gaa-cr-attachment-thumb span:first-child
- *   .gratis-ai-agent-attachment-thumb__name              → .gaa-cr-attachment-thumb-name
- *   .gratis-ai-agent-attachment-thumb__remove            → .gaa-cr-attachment-thumb-remove
+ *   .sd-ai-agent-chat-panel:not(.is-compact)         → .gaa-cr
+ *   .sd-ai-agent-upload-btn                          → .gaa-cr-icon-btn[aria-label="Attach file"]
+ *   .sd-ai-agent-file-input                          → .gaa-cr-input-toolbar-left input[type="file"]
+ *   .sd-ai-agent-attachment-previews                 → .gaa-cr-attachments
+ *   .sd-ai-agent-attachment-thumb                    → .gaa-cr-attachment-thumb
+ *   .sd-ai-agent-input-area (drag-drop target)       → .gaa-cr-input-frame
+ *   .sd-ai-agent-attachment-thumb__img               → .gaa-cr-attachment-thumb img
+ *   .sd-ai-agent-attachment-thumb__ext               → .gaa-cr-attachment-thumb span:first-child
+ *   .sd-ai-agent-attachment-thumb__name              → .gaa-cr-attachment-thumb-name
+ *   .sd-ai-agent-attachment-thumb__remove            → .gaa-cr-attachment-thumb-remove
  *
  * Run: npm run test:e2e:playwright
  */
@@ -162,7 +162,7 @@ function createMinimalPng() {
  * This bypasses the OS file picker and directly sets the file on the input.
  *
  * Waits for the file input to be attached to the DOM before setting files,
- * since the ChatRedesign InputArea is lazy-mounted after window.gratisAiAgentChat
+ * since the ChatRedesign InputArea is lazy-mounted after window.sdAiAgentChat
  * becomes available.
  *
  * @param {import('@playwright/test').Page} page
@@ -204,7 +204,7 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 		await goToAgentPage( page );
-		// Wait for ChatRedesign to mount. ChatRoute polls for window.gratisAiAgentChat
+		// Wait for ChatRedesign to mount. ChatRoute polls for window.sdAiAgentChat
 		// (exposed by admin-page.js), so the .gaa-cr root may appear after a short
 		// delay. Both .gaa-cr and the file input must be visible before interacting.
 		await page
@@ -243,7 +243,7 @@ test.describe( 'Chat Upload - Upload Button (t122)', () => {
 		await page.route(
 			( url ) =>
 				decodeURIComponent( url.toString() ).includes(
-					'gratis-ai-agent/v1/run'
+					'sd-ai-agent/v1/run'
 				),
 			async ( route ) => {
 				await runPending;
@@ -573,7 +573,7 @@ test.describe( 'Chat Upload - Send Button State (t122)', () => {
 	} ) => {
 		// Intercept POST /run so the job completes quickly.
 		await page.route(
-			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+			( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/run' ),
 			async ( route ) => {
 				await route.fulfill( {
 					status: 200,
@@ -584,7 +584,7 @@ test.describe( 'Chat Upload - Send Button State (t122)', () => {
 		);
 		// Intercept GET /job/:id — return complete immediately.
 		await page.route(
-			( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+			( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/job/' ),
 			async ( route ) => {
 				await route.fulfill( {
 					status: 200,

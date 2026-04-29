@@ -13,21 +13,21 @@ declare(strict_types=1);
  *
  * ### Actions
  *
- * `gratis_ai_agent_before_ability`
+ * `sd_ai_agent_before_ability`
  *   Fires before an ability is executed.
  *
- *   @param string $ability_name  The ability name (e.g. "gratis-ai-agent/memory-save").
+ *   @param string $ability_name  The ability name (e.g. "sd-ai-agent/memory-save").
  *   @param array  $args          The arguments passed to the ability.
  *   @param string $call_id       The unique function call ID from the model.
  *
- * `gratis_ai_agent_after_ability`
+ * `sd_ai_agent_after_ability`
  *   Fires after an ability has executed (whether it succeeded or failed).
  *   @param string $ability_name  The ability name.
  *   @param array  $args          The arguments that were passed.
  *   @param mixed  $result        The result returned by the ability (array or WP_Error).
  *   @param string $call_id       The unique function call ID.
  *
- * `gratis_ai_agent_ability_error`
+ * `sd_ai_agent_ability_error`
  *   Fires when an ability returns a WP_Error.
  *   @param string   $ability_name  The ability name.
  *   @param array    $args          The arguments that were passed.
@@ -36,7 +36,7 @@ declare(strict_types=1);
  *
  * ### Filters
  *
- * `gratis_ai_agent_ability_args`
+ * `sd_ai_agent_ability_args`
  *   Filters the arguments before they are passed to an ability.
  *   Return a modified array to change what the ability receives.
  *   Return null to use the original args.
@@ -44,7 +44,7 @@ declare(strict_types=1);
  *   @param string     $ability_name The ability name.
  *   @param string     $call_id      The unique function call ID.
  *
- * `gratis_ai_agent_ability_result`
+ * `sd_ai_agent_ability_result`
  *   Filters the result after an ability executes.
  *   Return a modified array or WP_Error to change what the model sees.
  *   @param mixed  $result        The result returned by the ability.
@@ -52,7 +52,7 @@ declare(strict_types=1);
  *   @param array  $args          The arguments that were passed.
  *   @param string $call_id       The unique function call ID.
  *
- * `gratis_ai_agent_ability_blocked`
+ * `sd_ai_agent_ability_blocked`
  *   Filters whether an ability should be blocked before execution.
  *   Return true to block the ability (the model will receive an error response).
  *   @param bool   $blocked       Whether the ability is blocked (default false).
@@ -60,11 +60,11 @@ declare(strict_types=1);
  *   @param array  $args          The arguments that would be passed.
  *   @param string $call_id       The unique function call ID.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -84,11 +84,11 @@ class AbilityHooks {
 		/**
 		 * Fires before an ability is executed.
 		 *
-		 * @param string     $ability_name The ability name (e.g. "gratis-ai-agent/memory-save").
+		 * @param string     $ability_name The ability name (e.g. "sd-ai-agent/memory-save").
 		 * @param array|null $args         The arguments passed to the ability.
 		 * @param string     $call_id      The unique function call ID from the model.
 		 */
-		do_action( 'gratis_ai_agent_before_ability', $ability_name, $args, $call_id );
+		do_action( 'sd_ai_agent_before_ability', $ability_name, $args, $call_id );
 
 		/**
 		 * Filters the arguments before they are passed to an ability.
@@ -98,7 +98,7 @@ class AbilityHooks {
 		 * @param string     $call_id      The unique function call ID.
 		 */
 		/** @var array<string, mixed>|null $filtered */
-		$filtered = apply_filters( 'gratis_ai_agent_ability_args', $args, $ability_name, $call_id );
+		$filtered = apply_filters( 'sd_ai_agent_ability_args', $args, $ability_name, $call_id );
 		return $filtered;
 	}
 
@@ -122,7 +122,7 @@ class AbilityHooks {
 		 * @param array|null $args         The arguments that would be passed.
 		 * @param string     $call_id      The unique function call ID.
 		 */
-		return (bool) apply_filters( 'gratis_ai_agent_ability_blocked', false, $ability_name, $args, $call_id );
+		return (bool) apply_filters( 'sd_ai_agent_ability_blocked', false, $ability_name, $args, $call_id );
 	}
 
 	/**
@@ -144,7 +144,7 @@ class AbilityHooks {
 			 * @param \WP_Error $error        The WP_Error returned by the ability.
 			 * @param string    $call_id      The unique function call ID.
 			 */
-			do_action( 'gratis_ai_agent_ability_error', $ability_name, $args, $result, $call_id );
+			do_action( 'sd_ai_agent_ability_error', $ability_name, $args, $result, $call_id );
 		}
 
 		/**
@@ -155,7 +155,7 @@ class AbilityHooks {
 		 * @param mixed      $result       The result returned by the ability (array or WP_Error).
 		 * @param string     $call_id      The unique function call ID.
 		 */
-		do_action( 'gratis_ai_agent_after_ability', $ability_name, $args, $result, $call_id );
+		do_action( 'sd_ai_agent_after_ability', $ability_name, $args, $result, $call_id );
 
 		/**
 		 * Filters the result after an ability executes.
@@ -167,6 +167,6 @@ class AbilityHooks {
 		 * @param array|null $args         The arguments that were passed.
 		 * @param string     $call_id      The unique function call ID.
 		 */
-		return apply_filters( 'gratis_ai_agent_ability_result', $result, $ability_name, $args, $call_id );
+		return apply_filters( 'sd_ai_agent_ability_result', $result, $ability_name, $args, $call_id );
 	}
 }

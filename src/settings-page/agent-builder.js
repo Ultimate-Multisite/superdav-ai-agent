@@ -93,20 +93,20 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 	);
 
 	return (
-		<div className="gratis-ai-agent-tier1-editor">
-			<div className="gratis-ai-agent-tier1-list">
+		<div className="sd-ai-agent-tier1-editor">
+			<div className="sd-ai-agent-tier1-list">
 				{ tools.map( ( toolId ) => (
-					<span key={ toolId } className="gratis-ai-agent-tier1-chip">
-						<span className="gratis-ai-agent-tier1-chip-label">
+					<span key={ toolId } className="sd-ai-agent-tier1-chip">
+						<span className="sd-ai-agent-tier1-chip-label">
 							{ getLabel( toolId ) }
 						</span>
 						<button
 							type="button"
-							className="gratis-ai-agent-tier1-chip-remove"
+							className="sd-ai-agent-tier1-chip-remove"
 							onClick={ () => handleRemove( toolId ) }
 							aria-label={ sprintf(
 								/* translators: %s: tool name */
-								__( 'Remove %s', 'gratis-ai-agent' ),
+								__( 'Remove %s', 'sd-ai-agent' ),
 								getLabel( toolId )
 							) }
 						>
@@ -116,18 +116,18 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 				) ) }
 			</div>
 			{ tools.length > 10 && (
-				<p className="gratis-ai-agent-tier1-warning">
+				<p className="sd-ai-agent-tier1-warning">
 					{ __(
 						'Tip: Keep tier 1 tools to around 10 to minimize context size and cost.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }
-			<div className="gratis-ai-agent-tier1-add">
+			<div className="sd-ai-agent-tier1-add">
 				<TextControl
 					placeholder={ __(
 						'Search abilities to add…',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 					value={ search }
 					onChange={ ( v ) => {
@@ -142,18 +142,18 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 					__nextHasNoMarginBottom
 				/>
 				{ showResults && filtered.length > 0 && (
-					<ul className="gratis-ai-agent-tier1-results">
+					<ul className="sd-ai-agent-tier1-results">
 						{ filtered.slice( 0, 10 ).map( ( ability ) => (
 							<li key={ ability.id }>
 								<button
 									type="button"
-									className="gratis-ai-agent-tier1-result-item"
+									className="sd-ai-agent-tier1-result-item"
 									onClick={ () => handleAdd( ability.id ) }
 								>
-									<span className="gratis-ai-agent-tier1-result-name">
+									<span className="sd-ai-agent-tier1-result-name">
 										{ ability.label }
 									</span>
-									<span className="gratis-ai-agent-tier1-result-id">
+									<span className="sd-ai-agent-tier1-result-id">
 										{ ability.id }
 									</span>
 								</button>
@@ -162,11 +162,8 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 					</ul>
 				) }
 				{ showResults && search.trim() && filtered.length === 0 && (
-					<p className="gratis-ai-agent-tier1-no-results">
-						{ __(
-							'No matching abilities found.',
-							'gratis-ai-agent'
-						) }
+					<p className="sd-ai-agent-tier1-no-results">
+						{ __( 'No matching abilities found.', 'sd-ai-agent' ) }
 					</p>
 				) }
 			</div>
@@ -207,7 +204,7 @@ export default function AgentBuilder() {
 		fetchAgents();
 		fetchProviders();
 		// Fetch abilities catalog for the tier 1 tool picker.
-		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
+		apiFetch( { path: '/sd-ai-agent/v1/abilities' } )
 			.then( setAllAbilities )
 			.catch( () => {} );
 	}, [ fetchAgents, fetchProviders ] );
@@ -252,7 +249,7 @@ export default function AgentBuilder() {
 		// are populated — the list response may omit or truncate large fields.
 		try {
 			const full = await apiFetch( {
-				path: `/gratis-ai-agent/v1/agents/${ agent.id }`,
+				path: `/sd-ai-agent/v1/agents/${ agent.id }`,
 			} );
 			setForm( ( prev ) => ( {
 				...prev,
@@ -269,14 +266,14 @@ export default function AgentBuilder() {
 		if ( ! form.name.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Agent name is required.', 'gratis-ai-agent' ),
+				message: __( 'Agent name is required.', 'sd-ai-agent' ),
 			} );
 			return;
 		}
 		if ( ! editId && ! form.slug.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Agent slug is required.', 'gratis-ai-agent' ),
+				message: __( 'Agent slug is required.', 'sd-ai-agent' ),
 			} );
 			return;
 		}
@@ -312,14 +309,14 @@ export default function AgentBuilder() {
 				await updateAgent( editId, payload );
 				setNotice( {
 					status: 'success',
-					message: __( 'Agent updated.', 'gratis-ai-agent' ),
+					message: __( 'Agent updated.', 'sd-ai-agent' ),
 				} );
 			} else {
 				payload.slug = form.slug;
 				await createAgent( payload );
 				setNotice( {
 					status: 'success',
-					message: __( 'Agent created.', 'gratis-ai-agent' ),
+					message: __( 'Agent created.', 'sd-ai-agent' ),
 				} );
 				resetForm();
 			}
@@ -328,7 +325,7 @@ export default function AgentBuilder() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save agent.', 'gratis-ai-agent' ),
+					__( 'Failed to save agent.', 'sd-ai-agent' ),
 			} );
 		}
 
@@ -342,7 +339,7 @@ export default function AgentBuilder() {
 					status: 'error',
 					message: __(
 						'The General agent cannot be deleted.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					),
 				} );
 				return;
@@ -352,7 +349,7 @@ export default function AgentBuilder() {
 				! window.confirm(
 					sprintf(
 						/* translators: %s: agent name */
-						__( 'Delete agent "%s"?', 'gratis-ai-agent' ),
+						__( 'Delete agent "%s"?', 'sd-ai-agent' ),
 						agent.name
 					)
 				)
@@ -366,7 +363,7 @@ export default function AgentBuilder() {
 					status: 'error',
 					message:
 						err?.message ||
-						__( 'Failed to delete agent.', 'gratis-ai-agent' ),
+						__( 'Failed to delete agent.', 'sd-ai-agent' ),
 				} );
 			}
 		},
@@ -379,7 +376,7 @@ export default function AgentBuilder() {
 			! window.confirm(
 				__(
 					'Reset all built-in agents to their factory defaults? Your customizations to built-in agents will be lost.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				)
 			)
 		) {
@@ -391,7 +388,7 @@ export default function AgentBuilder() {
 
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/agents/reset-defaults',
+				path: '/sd-ai-agent/v1/agents/reset-defaults',
 				method: 'POST',
 			} );
 			fetchAgents();
@@ -399,7 +396,7 @@ export default function AgentBuilder() {
 				status: 'success',
 				message: __(
 					'Built-in agents reset to factory defaults.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		} catch ( err ) {
@@ -407,7 +404,7 @@ export default function AgentBuilder() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to reset agents.', 'gratis-ai-agent' ),
+					__( 'Failed to reset agents.', 'sd-ai-agent' ),
 			} );
 		}
 
@@ -417,7 +414,7 @@ export default function AgentBuilder() {
 	// Build provider options for the dropdown.
 	const providerOptions = [
 		{
-			label: __( '(use global default)', 'gratis-ai-agent' ),
+			label: __( '(use global default)', 'sd-ai-agent' ),
 			value: '',
 		},
 		...providers.map( ( p ) => ( { label: p.name, value: p.id } ) ),
@@ -429,7 +426,7 @@ export default function AgentBuilder() {
 	);
 	const modelOptions = [
 		{
-			label: __( '(use global default)', 'gratis-ai-agent' ),
+			label: __( '(use global default)', 'sd-ai-agent' ),
 			value: '',
 		},
 		...( selectedProvider?.models || [] ).map( ( m ) => ( {
@@ -440,14 +437,14 @@ export default function AgentBuilder() {
 
 	if ( ! agentsLoaded ) {
 		return (
-			<div className="gratis-ai-agent-loading">
+			<div className="sd-ai-agent-loading">
 				<Spinner />
 			</div>
 		);
 	}
 
 	return (
-		<div className="gratis-ai-agent-builder">
+		<div className="sd-ai-agent-builder">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -463,31 +460,31 @@ export default function AgentBuilder() {
 					<p className="description">
 						{ __(
 							'Agents have specialized system prompts, tools, and settings. Select an agent in the chat to use it. The General agent is used by default.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 
 					{ agents.map( ( agent ) => (
-						<Card key={ agent.id } className="gratis-ai-agent-card">
+						<Card key={ agent.id } className="sd-ai-agent-card">
 							<CardHeader>
-								<div className="gratis-ai-agent-card-header">
-									<div className="gratis-ai-agent-card-title">
-										<div className="gratis-ai-agent-card-title-row">
+								<div className="sd-ai-agent-card-header">
+									<div className="sd-ai-agent-card-title">
+										<div className="sd-ai-agent-card-title-row">
 											<strong>{ agent.name }</strong>
 											{ agent.is_builtin && (
-												<span className="gratis-ai-agent-card-badge">
+												<span className="sd-ai-agent-card-badge">
 													{ __(
 														'Built-in',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</span>
 											) }
-											<div className="gratis-ai-agent-card-actions">
+											<div className="sd-ai-agent-card-actions">
 												<Button
 													icon={ pencil }
 													label={ __(
 														'Edit agent',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 													onClick={ () =>
 														handleEdit( agent )
@@ -499,7 +496,7 @@ export default function AgentBuilder() {
 														icon={ trash }
 														label={ __(
 															'Delete agent',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 														onClick={ () =>
 															handleDelete(
@@ -513,7 +510,7 @@ export default function AgentBuilder() {
 											</div>
 										</div>
 										{ agent.description && (
-											<p className="gratis-ai-agent-card-desc">
+											<p className="sd-ai-agent-card-desc">
 												{ agent.description }
 											</p>
 										) }
@@ -521,13 +518,13 @@ export default function AgentBuilder() {
 								</div>
 							</CardHeader>
 							<CardBody>
-								<div className="gratis-ai-agent-card-meta">
+								<div className="sd-ai-agent-card-meta">
 									{ agent.provider_id && (
 										<span>
 											<strong>
 												{ __(
 													'Provider:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.provider_id }
@@ -538,7 +535,7 @@ export default function AgentBuilder() {
 											<strong>
 												{ __(
 													'Model:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.model_id }
@@ -549,7 +546,7 @@ export default function AgentBuilder() {
 											<strong>
 												{ __(
 													'Tools:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.tier_1_tools.length }
@@ -557,7 +554,7 @@ export default function AgentBuilder() {
 									) }
 								</div>
 								{ agent.system_prompt && (
-									<p className="gratis-ai-agent-prompt-preview">
+									<p className="sd-ai-agent-prompt-preview">
 										{ agent.system_prompt.length > 120
 											? agent.system_prompt.slice(
 													0,
@@ -570,7 +567,7 @@ export default function AgentBuilder() {
 						</Card>
 					) ) }
 
-					<div className="gratis-ai-agent-builder-actions">
+					<div className="sd-ai-agent-builder-actions">
 						<Button
 							variant="secondary"
 							icon={ plus }
@@ -580,7 +577,7 @@ export default function AgentBuilder() {
 								setForm( { ...EMPTY_FORM } );
 							} }
 						>
-							{ __( 'Add Agent', 'gratis-ai-agent' ) }
+							{ __( 'Add Agent', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
@@ -589,27 +586,27 @@ export default function AgentBuilder() {
 							isBusy={ resetting }
 							disabled={ resetting }
 						>
-							{ __( 'Reset to Defaults', 'gratis-ai-agent' ) }
+							{ __( 'Reset to Defaults', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</>
 			) }
 
 			{ showForm && (
-				<div className="gratis-ai-agent-form">
+				<div className="sd-ai-agent-form">
 					<h3>
 						{ editId
-							? __( 'Edit Agent', 'gratis-ai-agent' )
-							: __( 'New Agent', 'gratis-ai-agent' ) }
+							? __( 'Edit Agent', 'sd-ai-agent' )
+							: __( 'New Agent', 'sd-ai-agent' ) }
 					</h3>
 
-					<table className="form-table gratis-ai-agent-form-table">
+					<table className="form-table sd-ai-agent-form-table">
 						<tbody>
 							{ ! editId && (
 								<tr>
 									<th scope="row">
 										<label htmlFor="agent-slug">
-											{ __( 'Slug', 'gratis-ai-agent' ) }
+											{ __( 'Slug', 'sd-ai-agent' ) }
 										</label>
 									</th>
 									<td>
@@ -624,7 +621,7 @@ export default function AgentBuilder() {
 										<p className="description">
 											{ __(
 												'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 									</td>
@@ -634,7 +631,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-name">
-										{ __( 'Name', 'gratis-ai-agent' ) }
+										{ __( 'Name', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -652,10 +649,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-description">
-										{ __(
-											'Description',
-											'gratis-ai-agent'
-										) }
+										{ __( 'Description', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -671,7 +665,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Short description shown in the agent list.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -680,10 +674,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-system-prompt">
-										{ __(
-											'System Prompt',
-											'gratis-ai-agent'
-										) }
+										{ __( 'System Prompt', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -699,7 +690,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Instructions that define how this agent behaves.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -708,7 +699,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-greeting">
-										{ __( 'Greeting', 'gratis-ai-agent' ) }
+										{ __( 'Greeting', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -724,7 +715,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Message shown when this agent starts a conversation.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -732,13 +723,13 @@ export default function AgentBuilder() {
 
 							<tr>
 								<th scope="row">
-									{ __( 'Tier 1 Tools', 'gratis-ai-agent' ) }
+									{ __( 'Tier 1 Tools', 'sd-ai-agent' ) }
 								</th>
 								<td>
 									<p className="description">
 										{ __(
 											'Tools immediately available to this agent. Others can still be found via search. Aim for ~10 to keep context size low.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 									<Tier1ToolsEditor
@@ -754,7 +745,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-provider">
-										{ __( 'Provider', 'gratis-ai-agent' ) }
+										{ __( 'Provider', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -771,7 +762,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override the AI provider for this agent.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -780,7 +771,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-model">
-										{ __( 'Model', 'gratis-ai-agent' ) }
+										{ __( 'Model', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -796,7 +787,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override the AI model for this agent.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -805,10 +796,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-temperature">
-										{ __(
-											'Temperature',
-											'gratis-ai-agent'
-										) }
+										{ __( 'Temperature', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -828,7 +816,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override temperature (0–2). Leave empty to use the global default (0.2).',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -839,7 +827,7 @@ export default function AgentBuilder() {
 									<label htmlFor="agent-max-iterations">
 										{ __(
 											'Max Iterations',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</label>
 								</th>
@@ -859,7 +847,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override max tool-call iterations. Leave empty to use the global default (50).',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -868,10 +856,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-avatar-icon">
-										{ __(
-											'Avatar Icon',
-											'gratis-ai-agent'
-										) }
+										{ __( 'Avatar Icon', 'sd-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -885,26 +870,26 @@ export default function AgentBuilder() {
 										__nextHasNoMarginBottom
 									/>
 									{ form.avatar_icon && (
-										<div className="gratis-ai-agent-icon-preview">
+										<div className="sd-ai-agent-icon-preview">
 											{ form.avatar_icon.startsWith(
 												'dashicons-'
 											) ? (
 												<span
-													className={ `dashicons ${ form.avatar_icon } gratis-ai-agent-icon-preview-dash` }
+													className={ `dashicons ${ form.avatar_icon } sd-ai-agent-icon-preview-dash` }
 													aria-hidden="true"
 												/>
 											) : (
 												<span
-													className="gratis-ai-agent-icon-preview-emoji"
+													className="sd-ai-agent-icon-preview-emoji"
 													aria-hidden="true"
 												>
 													{ form.avatar_icon }
 												</span>
 											) }
-											<span className="gratis-ai-agent-icon-preview-label">
+											<span className="sd-ai-agent-icon-preview-label">
 												{ __(
 													'Preview',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</span>
 										</div>
@@ -912,7 +897,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Dashicon name (e.g. dashicons-cart) or an emoji.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</p>
 								</td>
@@ -920,7 +905,7 @@ export default function AgentBuilder() {
 						</tbody>
 					</table>
 
-					<div className="gratis-ai-agent-form-actions">
+					<div className="sd-ai-agent-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -928,11 +913,11 @@ export default function AgentBuilder() {
 							disabled={ saving }
 						>
 							{ editId
-								? __( 'Update Agent', 'gratis-ai-agent' )
-								: __( 'Create Agent', 'gratis-ai-agent' ) }
+								? __( 'Update Agent', 'sd-ai-agent' )
+								: __( 'Create Agent', 'sd-ai-agent' ) }
 						</Button>
 						<Button variant="tertiary" onClick={ resetForm }>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>

@@ -53,7 +53,7 @@ export default function ConvoHeader( {
 		}
 	}, [ editing ] );
 
-	const title = session?.title || __( 'New conversation', 'gratis-ai-agent' );
+	const title = session?.title || __( 'New conversation', 'sd-ai-agent' );
 
 	const startRename = useCallback( () => {
 		if ( ! session ) {
@@ -77,7 +77,7 @@ export default function ConvoHeader( {
 					type="button"
 					className="gaa-cr-icon-btn"
 					onClick={ onExpandSidebar }
-					aria-label={ __( 'Expand sidebar', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Expand sidebar', 'sd-ai-agent' ) }
 				>
 					<Icon icon={ sidebarIcon } size={ 16 } />
 				</button>
@@ -113,12 +113,12 @@ export default function ConvoHeader( {
 					{ isRunning && (
 						<span
 							className="gaa-cr-dot"
-							title={ __( 'Agent running', 'gratis-ai-agent' ) }
+							title={ __( 'Agent running', 'sd-ai-agent' ) }
 						/>
 					) }
 					{ session && (
 						<span className="gaa-cr-convo-head-rename-hint">
-							{ __( 'Click to rename', 'gratis-ai-agent' ) }
+							{ __( 'Click to rename', 'sd-ai-agent' ) }
 						</span>
 					) }
 				</button>
@@ -136,36 +136,33 @@ export default function ConvoHeader( {
 						className="gaa-cr-changes-pill"
 						title={ __(
 							'Changes made in this session',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					>
 						<span className="gaa-cr-changes-pill-count">
 							{ changesCount }
 						</span>
-						<span>{ __( 'changes', 'gratis-ai-agent' ) }</span>
+						<span>{ __( 'changes', 'sd-ai-agent' ) }</span>
 						<button
 							type="button"
 							className="gaa-cr-changes-pill-btn"
 							onClick={ onShowChanges }
 						>
-							{ __( 'View', 'gratis-ai-agent' ) }
+							{ __( 'View', 'sd-ai-agent' ) }
 						</button>
 					</span>
 				) }
 				{ isTTSSupported && (
 					<button
 						type="button"
-						className={ `gaa-cr-icon-btn gratis-ai-agent-tts-btn${
+						className={ `gaa-cr-icon-btn sd-ai-agent-tts-btn${
 							ttsEnabled ? ' is-active' : ''
 						}` }
 						onClick={ () => setTtsEnabled( ! ttsEnabled ) }
 						aria-label={
 							ttsEnabled
-								? __( 'Disable read aloud', 'gratis-ai-agent' )
-								: __(
-										'Read responses aloud',
-										'gratis-ai-agent'
-								  )
+								? __( 'Disable read aloud', 'sd-ai-agent' )
+								: __( 'Read responses aloud', 'sd-ai-agent' )
 						}
 						aria-pressed={ ttsEnabled }
 					>
@@ -176,7 +173,7 @@ export default function ConvoHeader( {
 					<button
 						type="button"
 						className="gaa-cr-icon-btn"
-						aria-label={ __( 'More options', 'gratis-ai-agent' ) }
+						aria-label={ __( 'More options', 'sd-ai-agent' ) }
 						aria-haspopup="menu"
 						aria-expanded={ showMenu }
 						disabled={ ! session }

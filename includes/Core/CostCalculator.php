@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * Cost calculation for AI model usage.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 class CostCalculator {
 

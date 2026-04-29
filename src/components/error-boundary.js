@@ -16,7 +16,7 @@ import { Button } from '@wordpress/components';
  *   </ErrorBoundary>
  *
  * Or with a custom fallback label:
- *   <ErrorBoundary label={ __( 'Message List', 'gratis-ai-agent' ) }>
+ *   <ErrorBoundary label={ __( 'Message List', 'sd-ai-agent' ) }>
  *     <MessageList />
  *   </ErrorBoundary>
  */
@@ -44,24 +44,24 @@ export default class ErrorBoundary extends Component {
 	render() {
 		if ( this.state.hasError ) {
 			const { label } = this.props;
-			const areaLabel = label || __( 'This section', 'gratis-ai-agent' );
+			const areaLabel = label || __( 'This section', 'sd-ai-agent' );
 
 			return (
-				<div className="gratis-ai-agent-error-boundary" role="alert">
-					<p className="gratis-ai-agent-error-boundary-message">
+				<div className="sd-ai-agent-error-boundary" role="alert">
+					<p className="sd-ai-agent-error-boundary-message">
 						{ /* translators: %s: name of the UI area that failed */ }
 						{ areaLabel }{ ' ' }
 						{ __(
 							'encountered an unexpected error.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					<Button
 						variant="secondary"
 						onClick={ this.handleReset }
-						className="gratis-ai-agent-error-boundary-retry"
+						className="sd-ai-agent-error-boundary-retry"
 					>
-						{ __( 'Try again', 'gratis-ai-agent' ) }
+						{ __( 'Try again', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 			);

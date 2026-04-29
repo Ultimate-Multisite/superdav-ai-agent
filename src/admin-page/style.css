@@ -6,10 +6,10 @@
 /* stylelint-disable selector-class-pattern */
 
 /* Lock viewport scrolling and establish a height basis for the flex chain. */
-html:has(body.toplevel_page_gratis-ai-agent .gratis-ai-agent-layout),
-body.toplevel_page_gratis-ai-agent:has(.gratis-ai-agent-layout),
-html:has(body.toplevel_page_gratis-ai-agent .gaa-cr),
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) {
+html:has(body.toplevel_page_sd-ai-agent .sd-ai-agent-layout),
+body.toplevel_page_sd-ai-agent:has(.sd-ai-agent-layout),
+html:has(body.toplevel_page_sd-ai-agent .gaa-cr),
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) {
 	overflow: hidden;
 	height: 100%;
 }
@@ -19,17 +19,17 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) {
    its natural height as a flex item and the React app fills the remainder.
    Without this chain, .gaa-cr must rely on calc(100vh - Npx) which breaks
    whenever a plugin adds content above the plugin page. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpwrap {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #wpwrap {
 	height: 100%;
 }
 
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpcontent {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #wpcontent {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 }
 
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #wpbody {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -38,10 +38,10 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody {
 
 /* #wpbody-content becomes a flex column so injected nodes (Hello Dolly,
    notices that survive the display:none rules below) take their natural
-   height and .wrap.gratis-ai-agent-wrap with flex:1 gets the rest.
+   height and .wrap.sd-ai-agent-wrap with flex:1 gets the rest.
    Reset WP's default padding-bottom (footer clearance) and float:left —
    both are irrelevant and harmful inside a flex container. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody-content {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #wpbody-content {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -54,7 +54,7 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpbody-content {
    fires after all admin_notices).  flex:1 claims all space not consumed by
    injected siblings above it.  Reset .wrap's default top margin so
    injected content above doesn't create a double gap. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .wrap.gratis-ai-agent-wrap {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .wrap.sd-ai-agent-wrap {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -63,8 +63,8 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .wrap.gratis-ai-agent-wrap {
 }
 
 /* React root and app container propagate height into the unified-admin tree. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #gratis-ai-agent-root,
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-app {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #sd-ai-agent-root,
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .sd-ai-agent-app {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -73,17 +73,17 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-app {
 
 /* unified-admin already declares display:flex; flex-direction:column — just
    add flex:1 so it stretches to fill its parent. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-unified-admin {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .sd-ai-agent-unified-admin {
 	flex: 1;
 	min-height: 0;
 }
 
-/* .gratis-ai-admin-main is display:block by default (unified-admin/style.css).
-   That means flex properties on its child .gratis-ai-agent-route-chat are
+/* .sd-ai-admin-main is display:block by default (unified-admin/style.css).
+   That means flex properties on its child .sd-ai-agent-route-chat are
    inert, so the route grows to its content height and overflows the viewport.
    Making it a flex column here (scoped to the chat page) allows the route to
    participate in the height distribution chain. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-admin-main {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .sd-ai-admin-main {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
@@ -91,8 +91,8 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-admin-main {
 
 /* Chat route wrapper and the mount container that ChatRoute renders into both
    need to be flex columns so .gaa-cr (which uses flex:1) can fill them. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-route-chat,
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-chat-container {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .sd-ai-agent-route-chat,
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) .sd-ai-agent-chat-container {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
@@ -102,52 +102,52 @@ body.toplevel_page_gratis-ai-agent:has(.gaa-cr) .gratis-ai-agent-chat-container 
 /* The WP admin footer (#wpfooter) is a flex sibling of #wpbody inside
    #wpcontent. Leaving it visible costs flex space that the chat panel needs,
    causing the input area to be pushed off-screen on smaller viewports. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #wpfooter {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #wpfooter {
 	display: none;
 }
 
 /* Allow the wp-admin left menu to scroll independently when its items don't
    fit, since body overflow:hidden (above) otherwise traps the overflow. */
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #adminmenuwrap {
 	height: calc(100vh - 32px);
 	overflow-y: auto;
 }
 
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar {
 	width: 8px;
 }
 
-body.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar-thumb {
+body.toplevel_page_sd-ai-agent:has(.gaa-cr) #adminmenuwrap::-webkit-scrollbar-thumb {
 	background: rgb(255 255 255 / 15%);
 	border-radius: 8px;
 }
 
 /* wp-admin folded menu state also needs the override */
-body.folded.toplevel_page_gratis-ai-agent:has(.gaa-cr) #adminmenuwrap {
+body.folded.toplevel_page_sd-ai-agent:has(.gaa-cr) #adminmenuwrap {
 	height: calc(100vh - 32px);
 	overflow-y: auto;
 }
 
 /* Hide all admin notices on the AI Agent page */
-.gratis-ai-agent-admin-wrap ~ .notice,
-.gratis-ai-agent-admin-wrap ~ .updated,
-.gratis-ai-agent-admin-wrap ~ .error,
-.gratis-ai-agent-admin-wrap ~ .update-nag,
-body.toplevel_page_gratis-ai-agent .notice,
-body.toplevel_page_gratis-ai-agent .updated,
-body.toplevel_page_gratis-ai-agent .error,
-body.toplevel_page_gratis-ai-agent .update-nag,
-body.toplevel_page_gratis-ai-agent #wpbody-content > .notice,
-body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
+.sd-ai-agent-admin-wrap ~ .notice,
+.sd-ai-agent-admin-wrap ~ .updated,
+.sd-ai-agent-admin-wrap ~ .error,
+.sd-ai-agent-admin-wrap ~ .update-nag,
+body.toplevel_page_sd-ai-agent .notice,
+body.toplevel_page_sd-ai-agent .updated,
+body.toplevel_page_sd-ai-agent .error,
+body.toplevel_page_sd-ai-agent .update-nag,
+body.toplevel_page_sd-ai-agent #wpbody-content > .notice,
+body.toplevel_page_sd-ai-agent #wpbody-content > .updated {
 	display: none !important;
 }
 /* stylelint-enable selector-class-pattern */
 
-.gratis-ai-agent-admin-wrap {
+.sd-ai-agent-admin-wrap {
 	margin-right: 0;
 }
 
-.gratis-ai-agent-layout {
+.sd-ai-agent-layout {
 	display: flex;
 	height: calc(100vh - 140px);
 	min-height: 500px;
@@ -159,7 +159,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Sidebar */
-.gratis-ai-agent-sidebar {
+.sd-ai-agent-sidebar {
 	width: 280px;
 	min-width: 280px;
 	border-right: 1px solid #c3c4c7;
@@ -168,24 +168,24 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	background: #f6f7f7;
 }
 
-.gratis-ai-agent-sidebar-header {
+.sd-ai-agent-sidebar-header {
 	padding: 12px;
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-sidebar-actions {
+.sd-ai-agent-sidebar-actions {
 	display: flex;
 	gap: 6px;
 	margin-bottom: 8px;
 }
 
-.gratis-ai-agent-new-chat-btn.components-button {
+.sd-ai-agent-new-chat-btn.components-button {
 	flex: 1;
 	justify-content: center;
 	border-radius: 6px;
 }
 
-.gratis-ai-agent-import-btn.components-button {
+.sd-ai-agent-import-btn.components-button {
 	min-width: auto;
 	width: 32px;
 	height: 32px;
@@ -193,7 +193,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-radius: 6px;
 }
 
-.gratis-ai-agent-sidebar-close-btn.components-button {
+.sd-ai-agent-sidebar-close-btn.components-button {
 	min-width: auto;
 	width: 32px;
 	height: 32px;
@@ -204,12 +204,12 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border: none;
 }
 
-.gratis-ai-agent-sidebar-close-btn.components-button:hover {
+.sd-ai-agent-sidebar-close-btn.components-button:hover {
 	background: #f0f0f1;
 	color: #1d2327;
 }
 
-.gratis-ai-agent-sidebar-search {
+.sd-ai-agent-sidebar-search {
 	width: 100%;
 	padding: 6px 10px;
 	border: 1px solid #c3c4c7;
@@ -218,20 +218,20 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	box-sizing: border-box;
 }
 
-.gratis-ai-agent-sidebar-search:focus {
+.sd-ai-agent-sidebar-search:focus {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	outline: none;
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
 }
 
 /* Filter tabs — wp-admin subsubsub style */
-.gratis-ai-agent-sidebar-filters {
+.sd-ai-agent-sidebar-filters {
 	display: flex;
 	border-bottom: 1px solid #dcdcde;
 	padding: 0 4px;
 }
 
-.gratis-ai-agent-filter-tab {
+.sd-ai-agent-filter-tab {
 	flex: 1;
 	padding: 8px 4px;
 	background: none;
@@ -246,24 +246,24 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	line-height: 1.4;
 }
 
-.gratis-ai-agent-filter-tab:hover {
+.sd-ai-agent-filter-tab:hover {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-filter-tab:focus-visible {
+.sd-ai-agent-filter-tab:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
 	border-radius: 2px;
 }
 
-.gratis-ai-agent-filter-tab.is-active {
+.sd-ai-agent-filter-tab.is-active {
 	color: #1d2327;
 	border-bottom-color: var(--wp-admin-theme-color, #2271b1);
 	font-weight: 600;
 }
 
 /* Folder tabs */
-.gratis-ai-agent-sidebar-folders {
+.sd-ai-agent-sidebar-folders {
 	display: flex;
 	gap: 4px;
 	padding: 6px 8px;
@@ -271,7 +271,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-folder-tab {
+.sd-ai-agent-folder-tab {
 	padding: 3px 8px;
 	background: #e0e0e0;
 	border: none;
@@ -283,27 +283,27 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: background 0.15s, color 0.15s;
 }
 
-.gratis-ai-agent-folder-tab:hover {
+.sd-ai-agent-folder-tab:hover {
 	background: #d0d0d0;
 }
 
-.gratis-ai-agent-folder-tab:focus-visible {
+.sd-ai-agent-folder-tab:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: 2px;
 }
 
-.gratis-ai-agent-folder-tab.is-active {
+.sd-ai-agent-folder-tab.is-active {
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 }
 
-.gratis-ai-agent-session-list {
+.sd-ai-agent-session-list {
 	flex: 1;
 	overflow-y: auto;
 	padding: 0;
 }
 
-.gratis-ai-agent-session-empty {
+.sd-ai-agent-session-empty {
 	padding: 20px 16px;
 	color: #646970;
 	text-align: center;
@@ -311,7 +311,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Session item — mirrors wp-admin list table row conventions */
-.gratis-ai-agent-session-item {
+.sd-ai-agent-session-item {
 	position: relative;
 	padding: 7px 32px 7px 12px;
 	cursor: pointer;
@@ -320,27 +320,27 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	box-sizing: border-box;
 }
 
-.gratis-ai-agent-session-item:hover {
+.sd-ai-agent-session-item:hover {
 	background: #f0f0f1;
 }
 
-.gratis-ai-agent-session-item:focus-visible {
+.sd-ai-agent-session-item:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
 }
 
 /* Active state: left accent bar without shifting content */
-.gratis-ai-agent-session-item.is-active {
+.sd-ai-agent-session-item.is-active {
 	background: #f0f6fc;
 	box-shadow: inset 3px 0 0 var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-session-item.is-active .gratis-ai-agent-session-title {
+.sd-ai-agent-session-item.is-active .sd-ai-agent-session-title {
 	color: var(--wp-admin-theme-color, #2271b1);
 	font-weight: 600;
 }
 
-.gratis-ai-agent-session-title {
+.sd-ai-agent-session-title {
 	font-size: 13px;
 	font-weight: 400;
 	color: #1d2327;
@@ -351,46 +351,46 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Pulsing dot badge for sessions with active background jobs */
-.gratis-ai-agent-session-job-badge {
+.sd-ai-agent-session-job-badge {
 	display: inline-block;
 	color: #2271b1;
 	font-size: 18px;
 	line-height: 1;
 	margin-left: 4px;
 	vertical-align: middle;
-	animation: gratis-ai-agent-pulse 1.5s ease-in-out infinite;
+	animation: sd-ai-agent-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes gratis-ai-agent-pulse {
+@keyframes sd-ai-agent-pulse {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.3; }
 }
 
 /* Warning badge for sessions with a pending tool confirmation */
-.gratis-ai-agent-session-confirm-badge {
+.sd-ai-agent-session-confirm-badge {
 	display: inline-block;
 	color: #d63638;
 	font-size: 14px;
 	line-height: 1;
 	margin-left: 4px;
 	vertical-align: middle;
-	animation: gratis-ai-agent-confirm-pulse 1s ease-in-out infinite;
+	animation: sd-ai-agent-confirm-pulse 1s ease-in-out infinite;
 }
 
-@keyframes gratis-ai-agent-confirm-pulse {
+@keyframes sd-ai-agent-confirm-pulse {
 	0%, 100% { opacity: 1; transform: scale(1); }
 	50% { opacity: 0.6; transform: scale(1.2); }
 }
 
-.gratis-ai-agent-session-meta {
+.sd-ai-agent-session-meta {
 	font-size: 11px;
 	color: #8c8f94;
 	margin-top: 1px;
 }
 
 /* Pin / shared indicators */
-.gratis-ai-agent-pin-icon,
-.gratis-ai-agent-shared-icon {
+.sd-ai-agent-pin-icon,
+.sd-ai-agent-shared-icon {
 	display: inline-flex;
 	align-items: center;
 	vertical-align: middle;
@@ -398,7 +398,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	color: #a7aaad;
 }
 
-.gratis-ai-agent-session-folder-badge {
+.sd-ai-agent-session-folder-badge {
 	display: inline-block;
 	background: #e0e0e0;
 	padding: 0 5px;
@@ -409,7 +409,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* More button (three dots) — shown on hover/focus, wp-admin row-action style */
-.gratis-ai-agent-session-more {
+.sd-ai-agent-session-more {
 	position: absolute;
 	top: 50%;
 	right: 4px;
@@ -429,17 +429,17 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: opacity 0.1s, background 0.1s, color 0.1s;
 }
 
-.gratis-ai-agent-session-item:hover .gratis-ai-agent-session-more,
-.gratis-ai-agent-session-item.is-active .gratis-ai-agent-session-more {
+.sd-ai-agent-session-item:hover .sd-ai-agent-session-more,
+.sd-ai-agent-session-item.is-active .sd-ai-agent-session-more {
 	opacity: 1;
 }
 
-.gratis-ai-agent-session-more:hover {
+.sd-ai-agent-session-more:hover {
 	color: #1d2327;
 	background: #e0e0e0;
 }
 
-.gratis-ai-agent-session-more:focus-visible {
+.sd-ai-agent-session-more:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: 1px;
 	opacity: 1;
@@ -447,7 +447,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Context menu */
-.gratis-ai-agent-context-menu {
+.sd-ai-agent-context-menu {
 	position: absolute;
 	top: 100%;
 	right: 4px;
@@ -460,7 +460,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	padding: 4px 0;
 }
 
-.gratis-ai-agent-context-menu button {
+.sd-ai-agent-context-menu button {
 	display: block;
 	width: 100%;
 	padding: 6px 12px;
@@ -473,36 +473,36 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: background 0.1s;
 }
 
-.gratis-ai-agent-context-menu button:hover {
+.sd-ai-agent-context-menu button:hover {
 	background: #f0f0f1;
 }
 
-.gratis-ai-agent-context-menu button:focus-visible {
+.sd-ai-agent-context-menu button:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
 }
 
-.gratis-ai-agent-context-menu-danger {
+.sd-ai-agent-context-menu-danger {
 	color: #d63638 !important;
 }
 
-.gratis-ai-agent-context-menu-danger:hover {
+.sd-ai-agent-context-menu-danger:hover {
 	background: #fcf0f1 !important;
 }
 
-.gratis-ai-agent-context-menu hr {
+.sd-ai-agent-context-menu hr {
 	margin: 4px 0;
 	border: none;
 	border-top: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-context-menu-rename {
+.sd-ai-agent-context-menu-rename {
 	display: flex;
 	gap: 4px;
 	padding: 6px 8px;
 }
 
-.gratis-ai-agent-context-menu-rename input {
+.sd-ai-agent-context-menu-rename input {
 	flex: 1;
 	padding: 4px 6px;
 	border: 1px solid #c3c4c7;
@@ -510,7 +510,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	font-size: 13px;
 }
 
-.gratis-ai-agent-context-menu-rename button {
+.sd-ai-agent-context-menu-rename button {
 	width: auto;
 	padding: 4px 10px;
 	background: var(--wp-admin-theme-color, #2271b1);
@@ -520,18 +520,18 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Folder picker */
-.gratis-ai-agent-folder-picker {
+.sd-ai-agent-folder-picker {
 	padding: 4px 0;
 }
 
-.gratis-ai-agent-folder-picker-header {
+.sd-ai-agent-folder-picker-header {
 	padding: 6px 12px;
 	font-size: 12px;
 	font-weight: 600;
 	color: #50575e;
 }
 
-.gratis-ai-agent-folder-picker-item {
+.sd-ai-agent-folder-picker-item {
 	display: block;
 	width: 100%;
 	padding: 6px 12px;
@@ -542,16 +542,16 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	cursor: pointer;
 }
 
-.gratis-ai-agent-folder-picker-item:hover {
+.sd-ai-agent-folder-picker-item:hover {
 	background: #f0f0f1;
 }
 
-.gratis-ai-agent-folder-picker-item.is-current {
+.sd-ai-agent-folder-picker-item.is-current {
 	font-weight: 600;
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-folder-picker-new {
+.sd-ai-agent-folder-picker-new {
 	display: flex;
 	gap: 4px;
 	padding: 6px 8px;
@@ -559,7 +559,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	margin-top: 4px;
 }
 
-.gratis-ai-agent-folder-picker-new input {
+.sd-ai-agent-folder-picker-new input {
 	flex: 1;
 	padding: 4px 6px;
 	border: 1px solid #c3c4c7;
@@ -567,7 +567,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	font-size: 12px;
 }
 
-.gratis-ai-agent-folder-picker-new button {
+.sd-ai-agent-folder-picker-new button {
 	width: auto;
 	padding: 4px 8px;
 	background: var(--wp-admin-theme-color, #2271b1);
@@ -579,7 +579,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Main area */
-.gratis-ai-agent-main {
+.sd-ai-agent-main {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -587,7 +587,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Shared Chat Panel */
-.gratis-ai-agent-chat-panel {
+.sd-ai-agent-chat-panel {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -595,7 +595,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Header */
-.gratis-ai-agent-header {
+.sd-ai-agent-header {
 	padding: 6px 12px;
 	border-bottom: 1px solid #dcdcde;
 	background: #fafafa;
@@ -606,7 +606,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	min-height: 44px;
 }
 
-.gratis-ai-agent-provider-selector {
+.sd-ai-agent-provider-selector {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -614,26 +614,26 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	flex: 1;
 }
 
-.gratis-ai-agent-provider-selector .components-select-control {
+.sd-ai-agent-provider-selector .components-select-control {
 	min-width: 160px;
 }
 
-.gratis-ai-agent-provider-selector__row {
+.sd-ai-agent-provider-selector__row {
 	display: flex;
 	align-items: flex-end;
 	gap: 4px;
 }
 
-.gratis-ai-agent-provider-selector__refresh {
+.sd-ai-agent-provider-selector__refresh {
 	flex-shrink: 0;
 	margin-bottom: 2px;
 }
 
-.gratis-ai-agent-provider-selector__refresh svg {
+.sd-ai-agent-provider-selector__refresh svg {
 	transition: transform 0.3s ease;
 }
 
-.gratis-ai-agent-provider-selector__refresh:disabled svg {
+.sd-ai-agent-provider-selector__refresh:disabled svg {
 	animation: spin 1s linear infinite;
 }
 
@@ -647,7 +647,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Messages */
-.gratis-ai-agent-messages {
+.sd-ai-agent-messages {
 	flex: 1;
 	overflow-y: auto;
 	padding: 16px;
@@ -656,7 +656,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	gap: 12px;
 }
 
-.gratis-ai-agent-empty-state {
+.sd-ai-agent-empty-state {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -666,7 +666,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Welcome screen — simplified, reduced visual weight */
-.gratis-ai-agent-welcome {
+.sd-ai-agent-welcome {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -677,7 +677,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	text-align: center;
 }
 
-.gratis-ai-agent-welcome__greeting {
+.sd-ai-agent-welcome__greeting {
 	margin: 0;
 	font-size: 15px;
 	font-weight: 600;
@@ -685,14 +685,14 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	line-height: 1.4;
 }
 
-.gratis-ai-agent-welcome__grid {
+.sd-ai-agent-welcome__grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 8px;
 	width: 100%;
 }
 
-.gratis-ai-agent-welcome__card {
+.sd-ai-agent-welcome__card {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
@@ -707,18 +707,18 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 
-.gratis-ai-agent-welcome__card:hover {
+.sd-ai-agent-welcome__card:hover {
 	background: #f8f9fa;
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.gratis-ai-agent-welcome__card:focus-visible {
+.sd-ai-agent-welcome__card:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: 2px;
 }
 
-.gratis-ai-agent-welcome__card-icon {
+.sd-ai-agent-welcome__card-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -731,20 +731,20 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-welcome__card-title {
+.sd-ai-agent-welcome__card-title {
 	font-size: 13px;
 	font-weight: 600;
 	color: #1d2327;
 	line-height: 1.3;
 }
 
-.gratis-ai-agent-welcome__card-desc {
+.sd-ai-agent-welcome__card-desc {
 	font-size: 11px;
 	color: #646970;
 	line-height: 1.4;
 }
 
-.gratis-ai-agent-welcome__hint {
+.sd-ai-agent-welcome__hint {
 	margin: 0;
 	font-size: 12px;
 	color: #a7aaad;
@@ -753,7 +753,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 /* Responsive: 2 columns on medium screens */
 @media (max-width: 780px) {
 
-	.gratis-ai-agent-welcome__grid {
+	.sd-ai-agent-welcome__grid {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
@@ -761,17 +761,17 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 /* Responsive: 1 column on small screens */
 @media (max-width: 480px) {
 
-	.gratis-ai-agent-welcome__grid {
+	.sd-ai-agent-welcome__grid {
 		grid-template-columns: 1fr;
 	}
 
-	.gratis-ai-agent-welcome {
+	.sd-ai-agent-welcome {
 		padding: 16px 12px;
 	}
 }
 
 /* Bubbles */
-.gratis-ai-agent-bubble {
+.sd-ai-agent-bubble {
 	padding: 9px 13px;
 	border-radius: 8px;
 	max-width: 85%;
@@ -781,7 +781,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	font-size: 13px;
 }
 
-.gratis-ai-agent-user {
+.sd-ai-agent-user {
 	background: #f0f6fc;
 	color: #1d2327;
 	align-self: flex-end;
@@ -789,7 +789,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-radius: 8px 8px 2px 8px;
 }
 
-.gratis-ai-agent-assistant {
+.sd-ai-agent-assistant {
 	background: #fff;
 	color: #1d2327;
 	align-self: flex-start;
@@ -799,40 +799,40 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Markdown inside assistant bubbles — wp-admin 13px typography */
-.gratis-ai-agent-assistant p {
+.sd-ai-agent-assistant p {
 	margin: 0 0 0.6em;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-assistant p:last-child {
+.sd-ai-agent-assistant p:last-child {
 	margin-bottom: 0;
 }
 
-.gratis-ai-agent-assistant ul,
-.gratis-ai-agent-assistant ol {
+.sd-ai-agent-assistant ul,
+.sd-ai-agent-assistant ol {
 	margin: 0.4em 0;
 	padding-left: 1.4em;
 }
 
-.gratis-ai-agent-assistant li {
+.sd-ai-agent-assistant li {
 	margin-bottom: 0.2em;
 }
 
-.gratis-ai-agent-assistant h1,
-.gratis-ai-agent-assistant h2,
-.gratis-ai-agent-assistant h3,
-.gratis-ai-agent-assistant h4 {
+.sd-ai-agent-assistant h1,
+.sd-ai-agent-assistant h2,
+.sd-ai-agent-assistant h3,
+.sd-ai-agent-assistant h4 {
 	margin: 0.6em 0 0.3em;
 	line-height: 1.3;
 }
 
-.gratis-ai-agent-assistant h1 { font-size: 1.3em; }
+.sd-ai-agent-assistant h1 { font-size: 1.3em; }
 
-.gratis-ai-agent-assistant h2 { font-size: 1.15em; }
+.sd-ai-agent-assistant h2 { font-size: 1.15em; }
 
-.gratis-ai-agent-assistant h3 { font-size: 1.05em; }
+.sd-ai-agent-assistant h3 { font-size: 1.05em; }
 
-.gratis-ai-agent-assistant code {
+.sd-ai-agent-assistant code {
 	background: #e0e0e0;
 	padding: 1px 5px;
 	border-radius: 3px;
@@ -840,14 +840,14 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Code blocks (CodeMirror 6) */
-.gratis-ai-agent-code-block {
+.sd-ai-agent-code-block {
 	margin: 0.5em 0;
 	border-radius: 4px;
 	overflow: hidden;
 	border: 1px solid #3a3a3a;
 }
 
-.gratis-ai-agent-code-header {
+.sd-ai-agent-code-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -856,12 +856,12 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	font-size: 12px;
 }
 
-.gratis-ai-agent-code-language {
+.sd-ai-agent-code-language {
 	color: #a0a0a0;
 	text-transform: lowercase;
 }
 
-.gratis-ai-agent-code-copy {
+.sd-ai-agent-code-copy {
 	background: none;
 	border: 1px solid #555;
 	color: #ccc;
@@ -872,22 +872,22 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: background 0.15s, color 0.15s;
 }
 
-.gratis-ai-agent-code-copy:hover {
+.sd-ai-agent-code-copy:hover {
 	background: #555;
 	color: #fff;
 }
 
 /* CodeMirror mount container */
-.gratis-ai-agent-code-cm .cm-editor {
+.sd-ai-agent-code-cm .cm-editor {
 	border-radius: 0 0 4px 4px;
 }
 
 /* Prevent CodeMirror from adding its own focus outline inside chat bubbles */
-.gratis-ai-agent-code-cm .cm-editor.cm-focused {
+.sd-ai-agent-code-cm .cm-editor.cm-focused {
 	outline: none;
 }
 
-.gratis-ai-agent-assistant pre {
+.sd-ai-agent-assistant pre {
 	background: #1d2327;
 	color: #e0e0e0;
 	padding: 10px 12px;
@@ -898,7 +898,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	line-height: 1.5;
 }
 
-.gratis-ai-agent-assistant pre code {
+.sd-ai-agent-assistant pre code {
 	background: none;
 	padding: 0;
 	border-radius: 0;
@@ -907,42 +907,42 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Tables — legacy wrapper (kept for any non-DataTable usage) */
-.gratis-ai-agent-table-wrap {
+.sd-ai-agent-table-wrap {
 	overflow-x: auto;
 	margin: 0.5em 0;
 }
 
-.gratis-ai-agent-assistant table {
+.sd-ai-agent-assistant table {
 	border-collapse: collapse;
 	width: 100%;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-assistant th,
-.gratis-ai-agent-assistant td {
+.sd-ai-agent-assistant th,
+.sd-ai-agent-assistant td {
 	border: 1px solid #dcdcde;
 	padding: 6px 10px;
 	text-align: left;
 }
 
-.gratis-ai-agent-assistant th {
+.sd-ai-agent-assistant th {
 	background: #f0f0f1;
 	font-weight: 600;
 }
 
-.gratis-ai-agent-assistant tr:nth-child(even) td {
+.sd-ai-agent-assistant tr:nth-child(even) td {
 	background: #fafafa;
 }
 
 /* DataTable — sortable, filterable table (t072) */
-.gratis-ai-agent-data-table-wrap {
+.sd-ai-agent-data-table-wrap {
 	margin: 0.5em 0;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 	overflow: hidden;
 }
 
-.gratis-ai-agent-data-table-toolbar {
+.sd-ai-agent-data-table-toolbar {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -951,12 +951,12 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-data-table-filter {
+.sd-ai-agent-data-table-filter {
 	position: relative;
 	flex: 1;
 }
 
-.gratis-ai-agent-data-table-filter-input {
+.sd-ai-agent-data-table-filter-input {
 	width: 100%;
 	padding: 4px 28px 4px 8px;
 	border: 1px solid #c3c4c7;
@@ -966,13 +966,13 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	background: #fff;
 }
 
-.gratis-ai-agent-data-table-filter-input:focus {
+.sd-ai-agent-data-table-filter-input:focus {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	outline: none;
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-data-table-filter-clear {
+.sd-ai-agent-data-table-filter-clear {
 	position: absolute;
 	right: 6px;
 	top: 50%;
@@ -986,27 +986,27 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	line-height: 1;
 }
 
-.gratis-ai-agent-data-table-filter-clear:hover {
+.sd-ai-agent-data-table-filter-clear:hover {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-data-table-count {
+.sd-ai-agent-data-table-count {
 	font-size: 11px;
 	color: #646970;
 	white-space: nowrap;
 }
 
-.gratis-ai-agent-data-table-scroll {
+.sd-ai-agent-data-table-scroll {
 	overflow-x: auto;
 }
 
-.gratis-ai-agent-data-table {
+.sd-ai-agent-data-table {
 	border-collapse: collapse;
 	width: 100%;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-data-table-th {
+.sd-ai-agent-data-table-th {
 	background: #f0f0f1;
 	border: 1px solid #dcdcde;
 	padding: 6px 10px;
@@ -1018,49 +1018,49 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: background 0.1s;
 }
 
-.gratis-ai-agent-data-table-th:hover {
+.sd-ai-agent-data-table-th:hover {
 	background: #e0e0e0;
 }
 
-.gratis-ai-agent-data-table-th.is-sorted {
+.sd-ai-agent-data-table-th.is-sorted {
 	background: #e0e6ed;
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-data-table-th:focus {
+.sd-ai-agent-data-table-th:focus {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
 }
 
-.gratis-ai-agent-data-table-th-label {
+.sd-ai-agent-data-table-th-label {
 	margin-right: 4px;
 }
 
-.gratis-ai-agent-table-sort-icon {
+.sd-ai-agent-table-sort-icon {
 	font-size: 11px;
 	vertical-align: middle;
 }
 
-.gratis-ai-agent-table-sort-none {
+.sd-ai-agent-table-sort-none {
 	color: #a7aaad;
 }
 
-.gratis-ai-agent-table-sort-active {
+.sd-ai-agent-table-sort-active {
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-data-table-td {
+.sd-ai-agent-data-table-td {
 	border: 1px solid #dcdcde;
 	padding: 6px 10px;
 	text-align: left;
 	vertical-align: top;
 }
 
-.gratis-ai-agent-data-table tr:nth-child(even) .gratis-ai-agent-data-table-td {
+.sd-ai-agent-data-table tr:nth-child(even) .sd-ai-agent-data-table-td {
 	background: #fafafa;
 }
 
-.gratis-ai-agent-data-table-empty {
+.sd-ai-agent-data-table-empty {
 	padding: 12px 10px;
 	color: #646970;
 	font-style: italic;
@@ -1069,7 +1069,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Blockquote */
-.gratis-ai-agent-assistant blockquote {
+.sd-ai-agent-assistant blockquote {
 	margin: 0.5em 0;
 	padding: 4px 12px;
 	border-left: 3px solid #dcdcde;
@@ -1077,30 +1077,30 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Task lists (GFM) */
-.gratis-ai-agent-assistant .contains-task-list {
+.sd-ai-agent-assistant .contains-task-list {
 	list-style: none;
 	padding-left: 0.5em;
 }
 
-.gratis-ai-agent-assistant .task-list-item input[type="checkbox"] {
+.sd-ai-agent-assistant .task-list-item input[type="checkbox"] {
 	margin-right: 6px;
 }
 
-.gratis-ai-agent-assistant a {
+.sd-ai-agent-assistant a {
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-assistant strong {
+.sd-ai-agent-assistant strong {
 	font-weight: 600;
 }
 
-.gratis-ai-agent-assistant hr {
+.sd-ai-agent-assistant hr {
 	border: none;
 	border-top: 1px solid #dcdcde;
 	margin: 0.6em 0;
 }
 
-.gratis-ai-agent-system {
+.sd-ai-agent-system {
 	background: #fcf0f1;
 	color: #8a2424;
 	align-self: center;
@@ -1109,7 +1109,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-radius: 2px;
 }
 
-.gratis-ai-agent-thinking {
+.sd-ai-agent-thinking {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -1118,28 +1118,28 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	font-size: 13px;
 }
 
-.gratis-ai-agent-thinking .components-spinner {
+.sd-ai-agent-thinking .components-spinner {
 	margin: 0;
 }
 
 /* Live tool progress (shown inside the Thinking bubble) */
-.gratis-ai-agent-live-progress {
+.sd-ai-agent-live-progress {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
-.gratis-ai-agent-live-progress-completed {
+.sd-ai-agent-live-progress-completed {
 	font-size: 12px;
 	color: #50575e;
 	font-style: normal;
 }
 
-.gratis-ai-agent-live-progress-current {
+.sd-ai-agent-live-progress-current {
 	font-style: italic;
 }
 
-.gratis-ai-agent-live-progress-current code {
+.sd-ai-agent-live-progress-current code {
 	font-style: normal;
 	font-size: 12px;
 	background: rgba(0, 0, 0, 0.05);
@@ -1147,26 +1147,26 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	border-radius: 3px;
 }
 
-.gratis-ai-agent-live-progress-count {
+.sd-ai-agent-live-progress-count {
 	font-style: normal;
 	font-size: 12px;
 	color: #50575e;
 }
 
 /* Tool calls — outer container */
-.gratis-ai-agent-tool-calls {
+.sd-ai-agent-tool-calls {
 	align-self: flex-start;
 	max-width: 85%;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-tool-calls > details {
+.sd-ai-agent-tool-calls > details {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	border-radius: 6px;
 }
 
-.gratis-ai-agent-tool-calls > details > summary {
+.sd-ai-agent-tool-calls > details > summary {
 	padding: 8px 12px;
 	cursor: pointer;
 	color: #50575e;
@@ -1176,7 +1176,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	list-style: none;
 }
 
-.gratis-ai-agent-tool-calls > details > summary::before {
+.sd-ai-agent-tool-calls > details > summary::before {
 	content: "\25B6";
 	display: inline-block;
 	margin-right: 6px;
@@ -1184,20 +1184,20 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: transform 0.15s;
 }
 
-.gratis-ai-agent-tool-calls > details[open] > summary::before {
+.sd-ai-agent-tool-calls > details[open] > summary::before {
 	transform: rotate(90deg);
 }
 
-.gratis-ai-agent-tool-calls > details > summary::-webkit-details-marker {
+.sd-ai-agent-tool-calls > details > summary::-webkit-details-marker {
 	display: none;
 }
 
-.gratis-ai-agent-tool-calls > details > summary:hover {
+.sd-ai-agent-tool-calls > details > summary:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
 /* Tool list inside the outer details */
-.gratis-ai-agent-tool-list {
+.sd-ai-agent-tool-list {
 	padding: 4px 10px 10px;
 	display: flex;
 	flex-direction: column;
@@ -1205,18 +1205,18 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Individual tool call pair */
-.gratis-ai-agent-tool-pair {
+.sd-ai-agent-tool-pair {
 	background: #fff;
 	border: 1px solid #e0e0e0;
 	border-radius: 4px;
 	overflow: hidden;
 }
 
-.gratis-ai-agent-tool-pair--skill {
+.sd-ai-agent-tool-pair--skill {
 	border-left: 3px solid #a36ec5;
 }
 
-.gratis-ai-agent-tool-pair-header {
+.sd-ai-agent-tool-pair-header {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -1227,12 +1227,12 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	line-height: 1.4;
 }
 
-.gratis-ai-agent-tool-pair-icon {
+.sd-ai-agent-tool-pair-icon {
 	font-size: 12px;
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-tool-pair-name {
+.sd-ai-agent-tool-pair-name {
 	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 	font-size: 12px;
 	font-weight: 600;
@@ -1241,22 +1241,22 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	padding: 0;
 }
 
-.gratis-ai-agent-tool-pair-status {
+.sd-ai-agent-tool-pair-status {
 	margin-left: auto;
 	font-size: 12px;
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-tool-pair-status--ok {
+.sd-ai-agent-tool-pair-status--ok {
 	color: #00a32a;
 }
 
-.gratis-ai-agent-tool-pair-status--error {
+.sd-ai-agent-tool-pair-status--error {
 	color: #d63638;
 }
 
 /* Badge styling */
-.gratis-ai-agent-tool-badge {
+.sd-ai-agent-tool-badge {
 	display: inline-flex;
 	align-items: center;
 	padding: 0 5px;
@@ -1270,11 +1270,11 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 }
 
 /* Expandable content (args / response) */
-.gratis-ai-agent-tool-expandable {
+.sd-ai-agent-tool-expandable {
 	border-top: 1px solid #f0f0f0;
 }
 
-.gratis-ai-agent-tool-expandable-toggle {
+.sd-ai-agent-tool-expandable-toggle {
 	padding: 5px 10px;
 	cursor: pointer;
 	color: #646970;
@@ -1284,7 +1284,7 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	list-style: none;
 }
 
-.gratis-ai-agent-tool-expandable-toggle::before {
+.sd-ai-agent-tool-expandable-toggle::before {
 	content: "\25B6";
 	display: inline-block;
 	margin-right: 4px;
@@ -1292,24 +1292,24 @@ body.toplevel_page_gratis-ai-agent #wpbody-content > .updated {
 	transition: transform 0.15s;
 }
 
-details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
+details[open] > .sd-ai-agent-tool-expandable-toggle::before {
 	transform: rotate(90deg);
 }
 
-.gratis-ai-agent-tool-expandable-toggle::-webkit-details-marker {
+.sd-ai-agent-tool-expandable-toggle::-webkit-details-marker {
 	display: none;
 }
 
-.gratis-ai-agent-tool-expandable-toggle:hover {
+.sd-ai-agent-tool-expandable-toggle:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-tool-expandable-size {
+.sd-ai-agent-tool-expandable-size {
 	color: #a7aaad;
 	font-weight: 400;
 }
 
-.gratis-ai-agent-tool-expandable-content {
+.sd-ai-agent-tool-expandable-content {
 	margin: 0;
 	padding: 8px 10px;
 	background: #f9f9f9;
@@ -1325,7 +1325,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-tool-expand-btn {
+.sd-ai-agent-tool-expand-btn {
 	display: block;
 	margin-top: 4px;
 	background: none;
@@ -1337,29 +1337,29 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	text-decoration: underline;
 }
 
-.gratis-ai-agent-tool-expand-btn:hover {
+.sd-ai-agent-tool-expand-btn:hover {
 	color: #135e96;
 }
 
 /* Legacy flat entries (backwards compat) */
-.gratis-ai-agent-tool-entry {
+.sd-ai-agent-tool-entry {
 	font-size: 12px;
 	line-height: 1.4;
 }
 
-.gratis-ai-agent-tool-label {
+.sd-ai-agent-tool-label {
 	font-weight: 600;
 	color: #50575e;
 }
 
-.gratis-ai-agent-tool-entry code {
+.sd-ai-agent-tool-entry code {
 	background: #e0e0e0;
 	padding: 1px 5px;
 	border-radius: 3px;
 	font-size: 12px;
 }
 
-.gratis-ai-agent-tool-entry pre {
+.sd-ai-agent-tool-entry pre {
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 3px;
@@ -1372,18 +1372,18 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Message row */
-.gratis-ai-agent-message-row {
+.sd-ai-agent-message-row {
 	position: relative;
 	display: flex;
 	flex-direction: column;
 }
 
-.gratis-ai-agent-message-row:hover .gratis-ai-agent-message-actions {
+.sd-ai-agent-message-row:hover .sd-ai-agent-message-actions {
 	opacity: 1;
 }
 
 /* Message actions — align to match bubble side */
-.gratis-ai-agent-message-actions {
+.sd-ai-agent-message-actions {
 	display: flex;
 	gap: 2px;
 	margin-top: 3px;
@@ -1393,11 +1393,11 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* User message rows: bubble + actions both right-aligned */
-.gratis-ai-agent-message-row:has(.gratis-ai-agent-user) .gratis-ai-agent-message-actions {
+.sd-ai-agent-message-row:has(.sd-ai-agent-user) .sd-ai-agent-message-actions {
 	align-self: flex-end;
 }
 
-.gratis-ai-agent-action-btn.components-button {
+.sd-ai-agent-action-btn.components-button {
 	min-width: 26px;
 	width: 26px;
 	height: 26px;
@@ -1410,30 +1410,30 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
-.gratis-ai-agent-action-btn.components-button:hover {
+.sd-ai-agent-action-btn.components-button:hover {
 	background: #f0f0f1;
 	color: #1d2327;
 	border-color: #c3c4c7;
 }
 
-.gratis-ai-agent-action-btn.components-button:disabled {
+.sd-ai-agent-action-btn.components-button:disabled {
 	opacity: 0.4;
 	cursor: default;
 }
 
 /* Thumbs-down feedback button — subtle negative hover (t186) */
-.gratis-ai-agent-thumbs-down-btn.components-button:hover {
+.sd-ai-agent-thumbs-down-btn.components-button:hover {
 	background: #fef8f8;
 	color: #c0392b;
 	border-color: #e8b4b0;
 }
 
 /* Edit inline */
-.gratis-ai-agent-message-edit {
+.sd-ai-agent-message-edit {
 	margin-top: 4px;
 }
 
-.gratis-ai-agent-message-edit-input {
+.sd-ai-agent-message-edit-input {
 	width: 100%;
 	padding: 6px 8px;
 	border: 1px solid var(--wp-admin-theme-color, #2271b1);
@@ -1444,14 +1444,14 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	box-sizing: border-box;
 }
 
-.gratis-ai-agent-message-edit-actions {
+.sd-ai-agent-message-edit-actions {
 	display: flex;
 	gap: 6px;
 	margin-top: 6px;
 }
 
 /* Stop button — icon-only, matches send/mic sizing */
-.gratis-ai-agent-stop-btn.components-button {
+.sd-ai-agent-stop-btn.components-button {
 	flex-shrink: 0;
 	min-width: auto;
 	width: 32px;
@@ -1465,14 +1465,14 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.gratis-ai-agent-stop-btn.components-button:hover {
+.sd-ai-agent-stop-btn.components-button:hover {
 	background: #d63638;
 	border-color: #d63638;
 	color: #fff;
 }
 
 /* Input area */
-.gratis-ai-agent-input-area {
+.sd-ai-agent-input-area {
 	display: flex;
 	flex-direction: column;
 	position: relative;
@@ -1481,7 +1481,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	background: #fff;
 }
 
-.gratis-ai-agent-input {
+.sd-ai-agent-input {
 	flex: 1;
 	resize: none;
 	font-size: 13px;
@@ -1497,13 +1497,13 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.gratis-ai-agent-input:focus {
+.sd-ai-agent-input:focus {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
 	outline: none;
 }
 
-.gratis-ai-agent-input:disabled {
+.sd-ai-agent-input:disabled {
 	background: #f6f7f7;
 	color: #a7aaad;
 	cursor: not-allowed;
@@ -1511,7 +1511,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 
 /* ── Message queue indicator ─────────────────────────────────── */
 
-.gratis-ai-agent-queue-indicator {
+.sd-ai-agent-queue-indicator {
 	font-size: 11px;
 	color: #8c8f94;
 	padding: 2px 0 4px;
@@ -1521,12 +1521,12 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 
 /* ── Queued message badge ────────────────────────────────────── */
 
-.gratis-ai-agent-bubble.gratis-ai-agent-user.is-queued {
+.sd-ai-agent-bubble.sd-ai-agent-user.is-queued {
 	opacity: 0.7;
 	border-style: dashed;
 }
 
-.gratis-ai-agent-queued-badge {
+.sd-ai-agent-queued-badge {
 	display: inline-block;
 	font-size: 10px;
 	color: #8c8f94;
@@ -1536,10 +1536,10 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* ── Shared icon-button sizing for input row ─────────────────── */
-.gratis-ai-agent-send-btn.components-button,
-.gratis-ai-agent-mic-btn.components-button,
-.gratis-ai-agent-upload-btn.components-button,
-.gratis-ai-agent-templates-btn.components-button {
+.sd-ai-agent-send-btn.components-button,
+.sd-ai-agent-mic-btn.components-button,
+.sd-ai-agent-upload-btn.components-button,
+.sd-ai-agent-templates-btn.components-button {
 	flex-shrink: 0;
 	min-width: auto;
 	width: 32px;
@@ -1550,57 +1550,57 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Send button — filled primary style */
-.gratis-ai-agent-send-btn.components-button {
+.sd-ai-agent-send-btn.components-button {
 	background: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 	border: none;
 	transition: background 0.15s, opacity 0.15s;
 }
 
-.gratis-ai-agent-send-btn.components-button:hover:not(:disabled) {
+.sd-ai-agent-send-btn.components-button:hover:not(:disabled) {
 	background: var(--wp-admin-theme-color-darker-10, #135e96);
 	color: #fff;
 }
 
-.gratis-ai-agent-send-btn.components-button:disabled {
+.sd-ai-agent-send-btn.components-button:disabled {
 	background: #c3c4c7;
 	color: #fff;
 	opacity: 1;
 }
 
-.gratis-ai-agent-send-btn svg {
+.sd-ai-agent-send-btn svg {
 	width: 18px;
 	height: 18px;
 }
 
 /* Mic / push-to-talk button */
-.gratis-ai-agent-mic-btn.components-button {
+.sd-ai-agent-mic-btn.components-button {
 	color: #646970;
 	background: transparent;
 	border: 1px solid #c3c4c7;
 	transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.gratis-ai-agent-mic-btn.components-button svg {
+.sd-ai-agent-mic-btn.components-button svg {
 	width: 18px;
 	height: 18px;
 }
 
-.gratis-ai-agent-mic-btn.components-button:hover {
+.sd-ai-agent-mic-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
-.gratis-ai-agent-mic-btn.components-button.is-listening {
+.sd-ai-agent-mic-btn.components-button.is-listening {
 	color: #fff;
 	background: #d63638;
 	border-color: #d63638;
 	box-shadow: 0 0 0 3px rgba(214, 54, 56, 0.25);
-	animation: gratis-ai-agent-mic-pulse 1.2s ease-in-out infinite;
+	animation: sd-ai-agent-mic-pulse 1.2s ease-in-out infinite;
 }
 
-@keyframes gratis-ai-agent-mic-pulse {
+@keyframes sd-ai-agent-mic-pulse {
 
 	0%, 100% { box-shadow: 0 0 0 3px rgba(214, 54, 56, 0.25); }
 
@@ -1608,7 +1608,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Context Indicator (full-page) — base styles in shared.css */
-.gratis-ai-agent-context-stats {
+.sd-ai-agent-context-stats {
 	display: flex;
 	justify-content: space-between;
 	padding: 3px 12px 2px;
@@ -1616,23 +1616,23 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	color: #646970;
 }
 
-.gratis-ai-agent-context-tokens {
+.sd-ai-agent-context-tokens {
 	font-weight: 500;
 }
 
-.gratis-ai-agent-context-detail {
+.sd-ai-agent-context-detail {
 	font-weight: 400;
 	margin-left: 4px;
 	color: #a7aaad;
 }
 
-.gratis-ai-agent-context-pct {
+.sd-ai-agent-context-pct {
 	font-weight: 500;
 }
 
 /* context-bar-track, context-bar-fill — in shared.css */
 
-.gratis-ai-agent-context-warning {
+.sd-ai-agent-context-warning {
 	padding: 8px 16px;
 	background: #fcf0f1;
 	border-bottom: 1px solid #d63638;
@@ -1644,17 +1644,17 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	flex-wrap: wrap;
 }
 
-.gratis-ai-agent-context-warning span {
+.sd-ai-agent-context-warning span {
 	color: #8a2424;
 }
 
-.gratis-ai-agent-context-warning-actions {
+.sd-ai-agent-context-warning-actions {
 	display: flex;
 	gap: 6px;
 }
 
 /* Onboarding Wizard */
-.gratis-ai-agent-wizard {
+.sd-ai-agent-wizard {
 	max-width: 600px;
 	margin: 40px auto;
 	background: #fff;
@@ -1663,22 +1663,22 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	overflow: hidden;
 }
 
-.gratis-ai-agent-wizard-header {
+.sd-ai-agent-wizard-header {
 	padding: 24px 32px 16px;
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-wizard-header h2 {
+.sd-ai-agent-wizard-header h2 {
 	margin: 0 0 12px;
 	font-size: 20px;
 }
 
-.gratis-ai-agent-wizard-progress {
+.sd-ai-agent-wizard-progress {
 	display: flex;
 	gap: 8px;
 }
 
-.gratis-ai-agent-wizard-dot {
+.sd-ai-agent-wizard-dot {
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
@@ -1686,27 +1686,27 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.2s;
 }
 
-.gratis-ai-agent-wizard-dot.is-active {
+.sd-ai-agent-wizard-dot.is-active {
 	background: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-wizard-dot.is-complete {
+.sd-ai-agent-wizard-dot.is-complete {
 	background: #00a32a;
 }
 
-.gratis-ai-agent-wizard-body {
+.sd-ai-agent-wizard-body {
 	padding: 24px 32px;
 	min-height: 200px;
 	max-height: calc(100vh - 300px);
 	overflow-y: auto;
 }
 
-.gratis-ai-agent-wizard-body p {
+.sd-ai-agent-wizard-body p {
 	font-size: 14px;
 	line-height: 1.6;
 }
 
-.gratis-ai-agent-wizard-footer {
+.sd-ai-agent-wizard-footer {
 	padding: 16px 32px;
 	border-top: 1px solid #dcdcde;
 	display: flex;
@@ -1716,12 +1716,12 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	background: #f6f7f7;
 }
 
-.gratis-ai-agent-wizard-skip {
+.sd-ai-agent-wizard-skip {
 	margin-right: auto;
 }
 
 /* Provider list inside the wizard */
-.gratis-ai-agent-wizard-provider-list {
+.sd-ai-agent-wizard-provider-list {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
@@ -1729,7 +1729,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Individual provider row */
-.gratis-ai-agent-wizard-provider-row {
+.sd-ai-agent-wizard-provider-row {
 	border: 1px solid #dcdcde;
 	border-radius: 6px;
 	padding: 14px 16px;
@@ -1737,26 +1737,26 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: border-color 0.15s;
 }
 
-.gratis-ai-agent-wizard-provider-row--configured {
+.sd-ai-agent-wizard-provider-row--configured {
 	border-color: #00a32a;
 	background: #f0faf0;
 }
 
-.gratis-ai-agent-wizard-provider-row__header {
+.sd-ai-agent-wizard-provider-row__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 4px;
 }
 
-.gratis-ai-agent-wizard-provider-row__title {
+.sd-ai-agent-wizard-provider-row__title {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	font-size: 14px;
 }
 
-.gratis-ai-agent-wizard-provider-row__badge {
+.sd-ai-agent-wizard-provider-row__badge {
 	display: inline-block;
 	background: #00a32a;
 	color: #fff;
@@ -1767,36 +1767,36 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	line-height: 1.6;
 }
 
-.gratis-ai-agent-wizard-provider-row__docs {
+.sd-ai-agent-wizard-provider-row__docs {
 	font-size: 12px;
 	color: var(--wp-admin-theme-color, #2271b1);
 	text-decoration: none;
 	white-space: nowrap;
 }
 
-.gratis-ai-agent-wizard-provider-row__docs:hover {
+.sd-ai-agent-wizard-provider-row__docs:hover {
 	text-decoration: underline;
 }
 
-.gratis-ai-agent-wizard-provider-row__desc {
+.sd-ai-agent-wizard-provider-row__desc {
 	font-size: 13px;
 	color: #50575e;
 	margin: 0 0 10px;
 }
 
-.gratis-ai-agent-wizard-provider-row__key-row {
+.sd-ai-agent-wizard-provider-row__key-row {
 	display: flex;
 	align-items: flex-end;
 	gap: 8px;
 	flex-wrap: wrap;
 }
 
-.gratis-ai-agent-wizard-provider-row__key-row .components-base-control {
+.sd-ai-agent-wizard-provider-row__key-row .components-base-control {
 	flex: 1;
 	min-width: 200px;
 }
 
-.gratis-ai-agent-wizard-provider-row__actions {
+.sd-ai-agent-wizard-provider-row__actions {
 	display: flex;
 	gap: 6px;
 	flex-shrink: 0;
@@ -1804,13 +1804,13 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Provider selector shown after at least one key is saved */
-.gratis-ai-agent-wizard-provider-selector {
+.sd-ai-agent-wizard-provider-selector {
 	border-top: 1px solid #dcdcde;
 	padding-top: 16px;
 	margin-top: 4px;
 }
 
-.gratis-ai-agent-wizard-provider-selector__label {
+.sd-ai-agent-wizard-provider-selector__label {
 	font-size: 13px;
 	font-weight: 600;
 	color: #1d2327;
@@ -1818,7 +1818,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Slash command menu */
-.gratis-ai-agent-slash-menu {
+.sd-ai-agent-slash-menu {
 	position: absolute;
 	bottom: 100%;
 	left: 12px;
@@ -1833,7 +1833,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	z-index: 100;
 }
 
-.gratis-ai-agent-slash-item {
+.sd-ai-agent-slash-item {
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -1842,87 +1842,87 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.1s;
 }
 
-.gratis-ai-agent-slash-item:hover,
-.gratis-ai-agent-slash-item.is-selected {
+.sd-ai-agent-slash-item:hover,
+.sd-ai-agent-slash-item.is-selected {
 	background: #f0f0f1;
 }
 
-.gratis-ai-agent-slash-item:focus-visible {
+.sd-ai-agent-slash-item:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: -2px;
 }
 
-.gratis-ai-agent-slash-name {
+.sd-ai-agent-slash-name {
 	font-weight: 600;
 	font-size: 13px;
 	color: var(--wp-admin-theme-color, #2271b1);
 	min-width: 80px;
 }
 
-.gratis-ai-agent-slash-desc {
+.sd-ai-agent-slash-desc {
 	font-size: 13px;
 	color: #50575e;
 }
 
 /* Input row (wraps templates button + textarea + send/stop) */
-.gratis-ai-agent-input-row {
+.sd-ai-agent-input-row {
 	display: flex;
 	align-items: flex-end;
 	gap: 5px;
 	width: 100%;
 }
 
-.gratis-ai-agent-input-row .gratis-ai-agent-input {
+.sd-ai-agent-input-row .sd-ai-agent-input {
 	flex: 1;
 }
 
 /* Templates button — icon-only, subtle */
-.gratis-ai-agent-templates-btn.components-button {
+.sd-ai-agent-templates-btn.components-button {
 	color: #787c82;
 	background: transparent;
 	border: 1px solid #c3c4c7;
 	transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.gratis-ai-agent-templates-btn.components-button:hover {
+.sd-ai-agent-templates-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
-.gratis-ai-agent-templates-btn.components-button.is-active {
+.sd-ai-agent-templates-btn.components-button.is-active {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: #f0f6fc;
 }
 
 /* ── File upload button (paperclip) ─────────────────────────── */
-.gratis-ai-agent-upload-btn.components-button {
+.sd-ai-agent-upload-btn.components-button {
 	color: #787c82;
 	background: transparent;
 	border: 1px solid #c3c4c7;
 	transition: color 0.15s, border-color 0.15s;
 }
 
-.gratis-ai-agent-upload-btn.components-button:hover {
+.sd-ai-agent-upload-btn.components-button:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
 /* Hidden native file input */
-.gratis-ai-agent-file-input {
+.sd-ai-agent-file-input {
 	display: none;
 }
 
 /* ── Drag-over state ─────────────────────────────────────────── */
-.gratis-ai-agent-input-area.is-drag-over {
+.sd-ai-agent-input-area.is-drag-over {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: #f0f6fc;
 }
 
 /* Drop overlay label */
-.gratis-ai-agent-drop-overlay {
+.sd-ai-agent-drop-overlay {
 	position: absolute;
 	inset: 0;
 	display: flex;
@@ -1939,7 +1939,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* ── Attachment thumbnail strip (above input) ────────────────── */
-.gratis-ai-agent-attachment-previews {
+.sd-ai-agent-attachment-previews {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
@@ -1947,7 +1947,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	width: 100%;
 }
 
-.gratis-ai-agent-attachment-thumb {
+.sd-ai-agent-attachment-thumb {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -1956,7 +1956,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	gap: 4px;
 }
 
-.gratis-ai-agent-attachment-thumb__img {
+.sd-ai-agent-attachment-thumb__img {
 	width: 72px;
 	height: 72px;
 	object-fit: cover;
@@ -1964,7 +1964,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	border: 1px solid #c3c4c7;
 }
 
-.gratis-ai-agent-attachment-thumb__file {
+.sd-ai-agent-attachment-thumb__file {
 	width: 72px;
 	height: 72px;
 	display: flex;
@@ -1975,14 +1975,14 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	border-radius: 4px;
 }
 
-.gratis-ai-agent-attachment-thumb__ext {
+.sd-ai-agent-attachment-thumb__ext {
 	font-size: 11px;
 	font-weight: 700;
 	color: #50575e;
 	text-transform: uppercase;
 }
 
-.gratis-ai-agent-attachment-thumb__name {
+.sd-ai-agent-attachment-thumb__name {
 	font-size: 10px;
 	color: #50575e;
 	max-width: 72px;
@@ -1992,7 +1992,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	text-align: center;
 }
 
-.gratis-ai-agent-attachment-thumb__remove {
+.sd-ai-agent-attachment-thumb__remove {
 	position: absolute;
 	top: -6px;
 	right: -6px;
@@ -2012,24 +2012,24 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.15s;
 }
 
-.gratis-ai-agent-attachment-thumb__remove:hover {
+.sd-ai-agent-attachment-thumb__remove:hover {
 	background: #b32d2e;
 }
 
 /* ── Inline images in sent messages ─────────────────────────── */
-.gratis-ai-agent-message-attachments {
+.sd-ai-agent-message-attachments {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
 	margin-bottom: 6px;
 }
 
-.gratis-ai-agent-message-attachment-link {
+.sd-ai-agent-message-attachment-link {
 	display: inline-block;
 	line-height: 0;
 }
 
-.gratis-ai-agent-message-attachment-img {
+.sd-ai-agent-message-attachment-img {
 	max-width: 240px;
 	max-height: 240px;
 	border-radius: 6px;
@@ -2039,7 +2039,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 }
 
 /* Conversation template menu */
-.gratis-ai-agent-template-menu {
+.sd-ai-agent-template-menu {
 	position: absolute;
 	bottom: 100%;
 	left: 0;
@@ -2056,7 +2056,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	overflow: hidden;
 }
 
-.gratis-ai-agent-template-menu__header {
+.sd-ai-agent-template-menu__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2065,18 +2065,18 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	flex-shrink: 0;
 }
 
-.gratis-ai-agent-template-menu__title {
+.sd-ai-agent-template-menu__title {
 	font-weight: 600;
 	font-size: 13px;
 	color: #1d2327;
 }
 
-.gratis-ai-agent-template-menu__close {
+.sd-ai-agent-template-menu__close {
 	min-width: auto;
 	padding: 2px;
 }
 
-.gratis-ai-agent-template-menu__categories {
+.sd-ai-agent-template-menu__categories {
 	display: flex;
 	gap: 4px;
 	padding: 8px 14px 6px;
@@ -2085,7 +2085,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	flex-wrap: wrap;
 }
 
-.gratis-ai-agent-template-menu__cat-tab {
+.sd-ai-agent-template-menu__cat-tab {
 	background: none;
 	border: 1px solid #c3c4c7;
 	border-radius: 12px;
@@ -2096,17 +2096,17 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.1s, color 0.1s;
 }
 
-.gratis-ai-agent-template-menu__cat-tab:hover {
+.sd-ai-agent-template-menu__cat-tab:hover {
 	background: #f0f0f1;
 }
 
-.gratis-ai-agent-template-menu__cat-tab.is-active {
+.sd-ai-agent-template-menu__cat-tab.is-active {
 	background: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	color: #fff;
 }
 
-.gratis-ai-agent-template-menu__grid {
+.sd-ai-agent-template-menu__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 	gap: 8px;
@@ -2114,20 +2114,20 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	overflow-y: auto;
 }
 
-.gratis-ai-agent-template-menu__loading {
+.sd-ai-agent-template-menu__loading {
 	display: flex;
 	justify-content: center;
 	padding: 16px;
 }
 
-.gratis-ai-agent-template-menu__empty {
+.sd-ai-agent-template-menu__empty {
 	color: #50575e;
 	font-size: 13px;
 	margin: 0;
 	padding: 8px 0;
 }
 
-.gratis-ai-agent-template-card {
+.sd-ai-agent-template-card {
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
@@ -2141,24 +2141,24 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	font-family: inherit;
 }
 
-.gratis-ai-agent-template-card:hover {
+.sd-ai-agent-template-card:hover {
 	background: #f0f0f1;
 	border-color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-template-card:focus-visible {
+.sd-ai-agent-template-card:focus-visible {
 	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
 	outline-offset: 2px;
 }
 
-.gratis-ai-agent-template-card__name {
+.sd-ai-agent-template-card__name {
 	font-size: 13px;
 	font-weight: 600;
 	color: #1d2327;
 	line-height: 1.3;
 }
 
-.gratis-ai-agent-template-card__desc {
+.sd-ai-agent-template-card__desc {
 	font-size: 11px;
 	color: #50575e;
 	line-height: 1.3;
@@ -2166,7 +2166,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 
 /* Shortcuts help overlay — in shared.css (used by floating-widget bundle too) */
 
-.gratis-ai-agent-shortcuts-dialog {
+.sd-ai-agent-shortcuts-dialog {
 	background: #fff;
 	border-radius: 8px;
 	width: 400px;
@@ -2174,7 +2174,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.gratis-ai-agent-shortcuts-header {
+.sd-ai-agent-shortcuts-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2182,12 +2182,12 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-shortcuts-header h3 {
+.sd-ai-agent-shortcuts-header h3 {
 	margin: 0;
 	font-size: 16px;
 }
 
-.gratis-ai-agent-shortcuts-header button {
+.sd-ai-agent-shortcuts-header button {
 	background: none;
 	border: none;
 	font-size: 20px;
@@ -2196,11 +2196,11 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	padding: 4px 8px;
 }
 
-.gratis-ai-agent-shortcuts-list {
+.sd-ai-agent-shortcuts-list {
 	padding: 12px 20px;
 }
 
-.gratis-ai-agent-shortcut-row {
+.sd-ai-agent-shortcut-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2208,11 +2208,11 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	font-size: 13px;
 }
 
-.gratis-ai-agent-shortcut-label {
+.sd-ai-agent-shortcut-label {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-shortcut-key {
+.sd-ai-agent-shortcut-key {
 	background: #f0f0f1;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -2222,25 +2222,25 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	color: #50575e;
 }
 
-.gratis-ai-agent-shortcuts-footer {
+.sd-ai-agent-shortcuts-footer {
 	padding: 12px 20px 16px;
 	border-top: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-shortcuts-footer h4 {
+.sd-ai-agent-shortcuts-footer h4 {
 	margin: 0 0 8px;
 	font-size: 13px;
 	color: #50575e;
 }
 
-.gratis-ai-agent-shortcuts-footer .gratis-ai-agent-shortcut-row span:first-child {
+.sd-ai-agent-shortcuts-footer .sd-ai-agent-shortcut-row span:first-child {
 	font-family: monospace;
 	font-weight: 600;
 	color: var(--wp-admin-theme-color, #2271b1);
 }
 
 /* Export / Import dialogs */
-.gratis-ai-agent-export-dialog {
+.sd-ai-agent-export-dialog {
 	background: #fff;
 	border-radius: 8px;
 	width: 420px;
@@ -2248,7 +2248,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.gratis-ai-agent-export-header {
+.sd-ai-agent-export-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2256,12 +2256,12 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-export-header h3 {
+.sd-ai-agent-export-header h3 {
 	margin: 0;
 	font-size: 16px;
 }
 
-.gratis-ai-agent-export-header button {
+.sd-ai-agent-export-header button {
 	background: none;
 	border: none;
 	font-size: 20px;
@@ -2270,15 +2270,15 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	padding: 4px 8px;
 }
 
-.gratis-ai-agent-export-header button:hover {
+.sd-ai-agent-export-header button:hover {
 	color: #1d2327;
 }
 
-.gratis-ai-agent-export-body {
+.sd-ai-agent-export-body {
 	padding: 16px 20px;
 }
 
-.gratis-ai-agent-export-option {
+.sd-ai-agent-export-option {
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
@@ -2290,27 +2290,27 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: border-color 0.15s;
 }
 
-.gratis-ai-agent-export-option:hover {
+.sd-ai-agent-export-option:hover {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-export-option input[type="radio"] {
+.sd-ai-agent-export-option input[type="radio"] {
 	margin-top: 3px;
 }
 
-.gratis-ai-agent-export-option div strong {
+.sd-ai-agent-export-option div strong {
 	display: block;
 	font-size: 13px;
 	margin-bottom: 2px;
 }
 
-.gratis-ai-agent-export-option div p {
+.sd-ai-agent-export-option div p {
 	margin: 0;
 	font-size: 12px;
 	color: #646970;
 }
 
-.gratis-ai-agent-export-footer {
+.sd-ai-agent-export-footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
@@ -2318,7 +2318,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	border-top: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-import-dropzone {
+.sd-ai-agent-import-dropzone {
 	border: 2px dashed #c3c4c7;
 	border-radius: 6px;
 	padding: 32px 20px;
@@ -2327,35 +2327,35 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: border-color 0.15s, background 0.15s;
 }
 
-.gratis-ai-agent-import-dropzone:hover {
+.sd-ai-agent-import-dropzone:hover {
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: #f0f6fc;
 }
 
-.gratis-ai-agent-import-dropzone p {
+.sd-ai-agent-import-dropzone p {
 	margin: 0;
 	color: #646970;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-import-file {
+.sd-ai-agent-import-file {
 	text-align: center;
 }
 
-.gratis-ai-agent-import-file strong {
+.sd-ai-agent-import-file strong {
 	display: block;
 	font-size: 14px;
 	color: #1d2327;
 	margin-bottom: 4px;
 }
 
-.gratis-ai-agent-import-file p {
+.sd-ai-agent-import-file p {
 	margin: 4px 0 0;
 	font-size: 13px;
 	color: #50575e;
 }
 
-.gratis-ai-agent-import-error {
+.sd-ai-agent-import-error {
 	color: #d63638;
 	font-size: 13px;
 	margin: 8px 0 0;
@@ -2366,14 +2366,14 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 /* Large-screen bubble width — prevent bubbles from stretching too wide */
 @media (min-width: 1200px) {
 
-	.gratis-ai-agent-bubble {
+	.sd-ai-agent-bubble {
 		max-width: min(90%, 900px);
 	}
 }
 
 @media (min-width: 1600px) {
 
-	.gratis-ai-agent-bubble {
+	.sd-ai-agent-bubble {
 		max-width: min(92%, 1100px);
 	}
 }
@@ -2381,7 +2381,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 /* Responsive */
 @media (max-width: 900px) {
 
-	.gratis-ai-agent-sidebar {
+	.sd-ai-agent-sidebar {
 		width: 200px;
 		min-width: 200px;
 	}
@@ -2390,25 +2390,25 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 /* ── Mobile drawer (< 700px) ─────────────────────────────────────────────── */
 
 /* Hamburger toggle — hidden on desktop, shown on mobile */
-.gratis-ai-agent-sidebar-toggle {
+.sd-ai-agent-sidebar-toggle {
 	display: none;
 }
 
 /* Sidebar close button — hidden on desktop, shown on mobile */
-.gratis-ai-agent-sidebar-close-btn {
+.sd-ai-agent-sidebar-close-btn {
 	display: none;
 }
 
 @media (max-width: 700px) {
 
 	/* Layout stays as a row; sidebar becomes a fixed overlay */
-	.gratis-ai-agent-layout {
+	.sd-ai-agent-layout {
 		position: relative;
 		height: calc(100vh - 140px);
 	}
 
 	/* Sidebar: hidden off-screen by default */
-	.gratis-ai-agent-sidebar {
+	.sd-ai-agent-sidebar {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -2423,12 +2423,12 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	}
 
 	/* Sidebar open state */
-	.gratis-ai-agent-layout.sidebar-is-open .gratis-ai-agent-sidebar {
+	.sd-ai-agent-layout.sidebar-is-open .sd-ai-agent-sidebar {
 		transform: translateX(0);
 	}
 
 	/* Backdrop */
-	.gratis-ai-agent-sidebar-backdrop {
+	.sd-ai-agent-sidebar-backdrop {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
@@ -2436,13 +2436,13 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	}
 
 	/* Chat area takes full width */
-	.gratis-ai-agent-main {
+	.sd-ai-agent-main {
 		width: 100%;
 		position: relative;
 	}
 
 	/* Hamburger button */
-	.gratis-ai-agent-sidebar-toggle {
+	.sd-ai-agent-sidebar-toggle {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -2461,18 +2461,18 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 		transition: background 0.15s, color 0.15s;
 	}
 
-	.gratis-ai-agent-sidebar-toggle:hover {
+	.sd-ai-agent-sidebar-toggle:hover {
 		background: #f0f0f1;
 		color: #1d2327;
 	}
 
 	/* Shift the chat header content to make room for the hamburger */
-	.gratis-ai-agent-header {
+	.sd-ai-agent-header {
 		padding-left: 48px;
 	}
 
 	/* Close button inside the drawer */
-	.gratis-ai-agent-sidebar-close-btn {
+	.sd-ai-agent-sidebar-close-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -2488,7 +2488,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 		transition: background 0.15s, color 0.15s;
 	}
 
-	.gratis-ai-agent-sidebar-close-btn:hover {
+	.sd-ai-agent-sidebar-close-btn:hover {
 		background: #f0f0f1;
 		color: #1d2327;
 	}
@@ -2498,7 +2498,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
    suggestion chips, action card, and chart block styles are in shared.css */
 
 /* TTS toggle button in chat header (admin-page) */
-.gratis-ai-agent-tts-btn {
+.sd-ai-agent-tts-btn {
 	min-width: auto;
 	width: 28px;
 	height: 28px;
@@ -2514,19 +2514,19 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	justify-content: center;
 }
 
-.gratis-ai-agent-tts-btn:hover {
+.sd-ai-agent-tts-btn:hover {
 	color: var(--wp-admin-theme-color, #2271b1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 	background: transparent;
 }
 
-.gratis-ai-agent-tts-btn.is-active {
+.sd-ai-agent-tts-btn.is-active {
 	color: var(--wp-admin-theme-color, #2271b1);
 	background: rgba(34, 113, 177, 0.1);
 	border-color: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-tts-btn svg {
+.sd-ai-agent-tts-btn svg {
 	width: 18px;
 	height: 18px;
 }
@@ -2534,7 +2534,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 /* Debug panel, suggestion chips, action card, chart block — in shared.css */
 
 /* Onboarding Interview (t064) */
-.gratis-ai-agent-interview {
+.sd-ai-agent-interview {
 	max-width: 640px;
 	margin: 40px auto;
 	background: #fff;
@@ -2543,7 +2543,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	overflow: hidden;
 }
 
-.gratis-ai-agent-interview--loading {
+.sd-ai-agent-interview--loading {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -2554,28 +2554,28 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	font-size: 14px;
 }
 
-.gratis-ai-agent-interview__header {
+.sd-ai-agent-interview__header {
 	padding: 24px 32px 16px;
 	border-bottom: 1px solid #dcdcde;
 }
 
-.gratis-ai-agent-interview__header h2 {
+.sd-ai-agent-interview__header h2 {
 	margin: 0 0 6px;
 	font-size: 20px;
 }
 
-.gratis-ai-agent-interview__subtitle {
+.sd-ai-agent-interview__subtitle {
 	margin: 0 0 16px;
 	color: #757575;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-interview__progress {
+.sd-ai-agent-interview__progress {
 	display: flex;
 	gap: 8px;
 }
 
-.gratis-ai-agent-interview__dot {
+.sd-ai-agent-interview__dot {
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
@@ -2583,45 +2583,45 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	transition: background 0.2s;
 }
 
-.gratis-ai-agent-interview__dot.is-active {
+.sd-ai-agent-interview__dot.is-active {
 	background: var(--wp-admin-theme-color, #2271b1);
 }
 
-.gratis-ai-agent-interview__dot.is-complete {
+.sd-ai-agent-interview__dot.is-complete {
 	background: #00a32a;
 }
 
-.gratis-ai-agent-interview__summary {
+.sd-ai-agent-interview__summary {
 	padding: 16px 32px 0;
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
 }
 
-.gratis-ai-agent-interview__summary-item {
+.sd-ai-agent-interview__summary-item {
 	background: #f6f7f7;
 	border-radius: 6px;
 	padding: 10px 14px;
 	font-size: 13px;
 }
 
-.gratis-ai-agent-interview__summary-q {
+.sd-ai-agent-interview__summary-q {
 	display: block;
 	color: #757575;
 	margin-bottom: 2px;
 }
 
-.gratis-ai-agent-interview__summary-a {
+.sd-ai-agent-interview__summary-a {
 	display: block;
 	color: #1e1e1e;
 	font-weight: 500;
 }
 
-.gratis-ai-agent-interview__question-card {
+.sd-ai-agent-interview__question-card {
 	padding: 24px 32px;
 }
 
-.gratis-ai-agent-interview__question-label {
+.sd-ai-agent-interview__question-label {
 	display: block;
 	font-size: 15px;
 	font-weight: 600;
@@ -2630,17 +2630,17 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	color: #1e1e1e;
 }
 
-.gratis-ai-agent-interview__required {
+.sd-ai-agent-interview__required {
 	color: #d63638;
 }
 
-.gratis-ai-agent-interview__optional-hint {
+.sd-ai-agent-interview__optional-hint {
 	margin: 6px 0 0;
 	font-size: 12px;
 	color: #757575;
 }
 
-.gratis-ai-agent-interview__error {
+.sd-ai-agent-interview__error {
 	margin: 0 32px;
 	padding: 10px 14px;
 	background: #fcf0f1;
@@ -2650,7 +2650,7 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	font-size: 13px;
 }
 
-.gratis-ai-agent-interview__footer {
+.sd-ai-agent-interview__footer {
 	padding: 16px 32px;
 	border-top: 1px solid #dcdcde;
 	display: flex;
@@ -2660,6 +2660,6 @@ details[open] > .gratis-ai-agent-tool-expandable-toggle::before {
 	background: #f6f7f7;
 }
 
-.gratis-ai-agent-interview__skip {
+.sd-ai-agent-interview__skip {
 	margin-right: auto;
 }

@@ -27,8 +27,8 @@ export const initialState = {
 	// Site builder mode — true when a fresh WordPress install is detected.
 	// Seeded from the PHP-injected global so the widget can open immediately
 	// without waiting for a REST round-trip.
-	siteBuilderMode: window.gratisAiAgentSiteBuilder?.siteBuilderMode ?? false,
-	isFreshInstall: window.gratisAiAgentSiteBuilder?.isFreshInstall ?? false,
+	siteBuilderMode: window.sdAiAgentSiteBuilder?.siteBuilderMode ?? false,
+	isFreshInstall: window.sdAiAgentSiteBuilder?.isFreshInstall ?? false,
 	siteBuilderStep: 0,
 	siteBuilderTotalSteps: 0,
 
@@ -38,22 +38,17 @@ export const initialState = {
 	isBootstrapSession: false,
 
 	// Text-to-speech (t084) — persisted to localStorage.
-	ttsEnabled: localStorage.getItem( 'gratisAiAgentTtsEnabled' ) === 'true',
-	ttsVoiceURI: localStorage.getItem( 'gratisAiAgentTtsVoiceURI' ) || '',
-	ttsRate: parseFloat(
-		localStorage.getItem( 'gratisAiAgentTtsRate' ) || '1'
-	),
-	ttsPitch: parseFloat(
-		localStorage.getItem( 'gratisAiAgentTtsPitch' ) || '1'
-	),
+	ttsEnabled: localStorage.getItem( 'sdAiAgentTtsEnabled' ) === 'true',
+	ttsVoiceURI: localStorage.getItem( 'sdAiAgentTtsVoiceURI' ) || '',
+	ttsRate: parseFloat( localStorage.getItem( 'sdAiAgentTtsRate' ) || '1' ),
+	ttsPitch: parseFloat( localStorage.getItem( 'sdAiAgentTtsPitch' ) || '1' ),
 
 	// Sound notifications — persisted to localStorage.
 	soundSuccessEnabled:
-		localStorage.getItem( 'gratisAiAgentSoundSuccess' ) === 'true',
-	soundErrorEnabled:
-		localStorage.getItem( 'gratisAiAgentSoundError' ) === 'true',
+		localStorage.getItem( 'sdAiAgentSoundSuccess' ) === 'true',
+	soundErrorEnabled: localStorage.getItem( 'sdAiAgentSoundError' ) === 'true',
 	soundThinkingEnabled:
-		localStorage.getItem( 'gratisAiAgentSoundThinking' ) === 'true',
+		localStorage.getItem( 'sdAiAgentSoundThinking' ) === 'true',
 };
 
 export const actions = {
@@ -144,7 +139,7 @@ export const actions = {
 	 */
 	setTtsEnabled( enabled ) {
 		localStorage.setItem(
-			'gratisAiAgentTtsEnabled',
+			'sdAiAgentTtsEnabled',
 			enabled ? 'true' : 'false'
 		);
 		return { type: 'SET_TTS_ENABLED', enabled };
@@ -157,7 +152,7 @@ export const actions = {
 	 * @return {Object} Redux action.
 	 */
 	setTtsVoiceURI( voiceURI ) {
-		localStorage.setItem( 'gratisAiAgentTtsVoiceURI', voiceURI );
+		localStorage.setItem( 'sdAiAgentTtsVoiceURI', voiceURI );
 		return { type: 'SET_TTS_VOICE_URI', voiceURI };
 	},
 
@@ -168,7 +163,7 @@ export const actions = {
 	 * @return {Object} Redux action.
 	 */
 	setTtsRate( rate ) {
-		localStorage.setItem( 'gratisAiAgentTtsRate', String( rate ) );
+		localStorage.setItem( 'sdAiAgentTtsRate', String( rate ) );
 		return { type: 'SET_TTS_RATE', rate };
 	},
 
@@ -179,7 +174,7 @@ export const actions = {
 	 * @return {Object} Redux action.
 	 */
 	setTtsPitch( pitch ) {
-		localStorage.setItem( 'gratisAiAgentTtsPitch', String( pitch ) );
+		localStorage.setItem( 'sdAiAgentTtsPitch', String( pitch ) );
 		return { type: 'SET_TTS_PITCH', pitch };
 	},
 
@@ -193,7 +188,7 @@ export const actions = {
 	 */
 	setSoundSuccessEnabled( enabled ) {
 		localStorage.setItem(
-			'gratisAiAgentSoundSuccess',
+			'sdAiAgentSoundSuccess',
 			enabled ? 'true' : 'false'
 		);
 		return { type: 'SET_SOUND_SUCCESS_ENABLED', enabled };
@@ -207,7 +202,7 @@ export const actions = {
 	 */
 	setSoundErrorEnabled( enabled ) {
 		localStorage.setItem(
-			'gratisAiAgentSoundError',
+			'sdAiAgentSoundError',
 			enabled ? 'true' : 'false'
 		);
 		return { type: 'SET_SOUND_ERROR_ENABLED', enabled };
@@ -221,7 +216,7 @@ export const actions = {
 	 */
 	setSoundThinkingEnabled( enabled ) {
 		localStorage.setItem(
-			'gratisAiAgentSoundThinking',
+			'sdAiAgentSoundThinking',
 			enabled ? 'true' : 'false'
 		);
 		return { type: 'SET_SOUND_THINKING_ENABLED', enabled };
@@ -289,7 +284,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const data = await apiFetch( {
-					path: '/gratis-ai-agent/v1/alerts',
+					path: '/sd-ai-agent/v1/alerts',
 				} );
 				dispatch.setAlertCount( data.count || 0 );
 			} catch {

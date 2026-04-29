@@ -9,14 +9,14 @@ declare(strict_types=1);
  * at that point, just update the Plugin::configure() binding to point to
  * SessionRepository::class.
  *
- * @package GratisAiAgent\Infrastructure\Adapters
+ * @package SdAiAgent\Infrastructure\Adapters
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Infrastructure\Adapters;
+namespace SdAiAgent\Infrastructure\Adapters;
 
-use GratisAiAgent\Contracts\SessionRepositoryInterface;
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Contracts\SessionRepositoryInterface;
+use SdAiAgent\Core\Database;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

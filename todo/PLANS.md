@@ -1,4 +1,4 @@
-# Gratis AI Agent - Plans & Strategy
+# Superdav AI Agent - Plans & Strategy
 
 ## Positioning
 
@@ -212,7 +212,7 @@ Tasks:
 - [ ] `register-custom-post-type` ability -- register a CPT with labels, supports,
   menu icon, REST API visibility, and rewrite rules. Persist registration across
   page loads via an option (so CPTs survive without our plugin being the registrar
-  on every request -- store in a `gratis_ai_agent_custom_post_types` option that
+  on every request -- store in a `sd_ai_agent_custom_post_types` option that
   fires on `init`).
 - [ ] `register-custom-taxonomy` ability -- register a taxonomy, associate with
   post types, set hierarchical flag, labels. Same persistence pattern as CPTs.
@@ -316,7 +316,7 @@ Tasks:
 
 **Status:** In Progress (Phase 1 complete)
 **Estimate:** ~25h (ai:20h test:3h read:2h)
-**Repo (receiving plugin):** [Ultimate-Multisite/gratis-ai-feedback](https://github.com/Ultimate-Multisite/gratis-ai-feedback)
+**Repo (receiving plugin):** [Ultimate-Multisite/sd-ai-feedback](https://github.com/Ultimate-Multisite/sd-ai-feedback)
 
 #### Purpose
 
@@ -332,9 +332,9 @@ Every report requires explicit user consent — no silent telemetry.
 #### Architecture
 
 ```
-Customer Site (gratis-ai-agent)         Central Site (gratis-ai-feedback)
+Customer Site (sd-ai-agent)         Central Site (sd-ai-feedback)
 ┌─────────────────────────────┐        ┌──────────────────────────────┐
-│ Detection triggers:          │        │ POST /gratis-feedback/v1/    │
+│ Detection triggers:          │        │ POST /sd-feedback/v1/    │
 │  - exit_reason spin/timeout  │──POST──│      reports                 │
 │  - agent self-report ability │  +key  │  ↓                           │
 │  - /report-issue command     │        │ ReportSanitizer (defense     │
@@ -357,14 +357,14 @@ Customer Site (gratis-ai-agent)         Central Site (gratis-ai-feedback)
 #### Task Breakdown
 
 **Phase 1 — Receiving Plugin (COMPLETE)**
-Shipped to `Ultimate-Multisite/gratis-ai-feedback`:
-- Plugin bootstrap with PSR-4 autoloader (`GratisAiFeedback\` namespace)
+Shipped to `Ultimate-Multisite/sd-ai-feedback`:
+- Plugin bootstrap with PSR-4 autoloader (`SdAiFeedback\` namespace)
 - `_feedback_reports` table + `_feedback_api_keys` table (dbDelta migrations)
-- `POST /gratis-feedback/v1/reports` — API key auth via `X-Feedback-Api-Key`, rate-limited
+- `POST /sd-feedback/v1/reports` — API key auth via `X-Feedback-Api-Key`, rate-limited
 - `GET/PATCH /reports` — admin listing and triage status updates
 - `ReportSanitizer` — strips API keys, passwords, emails, IPs, server paths, DB creds, auth headers
 - `strip_tool_results()` — aggressive mode that removes all tool output
-- WP-CLI: `wp gratis-feedback api-key generate/list/revoke`
+- WP-CLI: `wp sd-feedback api-key generate/list/revoke`
 - `uninstall.php` for clean removal
 
 **Phase 2 — Sender: Settings + Consent + Auto-Prompt (t180-t183)**
@@ -414,7 +414,7 @@ Shipped to `Ultimate-Multisite/gratis-ai-feedback`:
   everything in the ecosystem, simpler deployment, can leverage WP-CLI for key management
 - 2026-04-14: Chose API key auth over site-level tokens — allows per-site rate limiting and
   revocation without affecting other sites
-- 2026-04-14: Chose separate `gratis-ai-feedback` repo over adding to `gratis-ai-agent` —
+- 2026-04-14: Chose separate `sd-ai-feedback` repo over adding to `sd-ai-agent` —
   the receiving plugin runs on a different site (the central server), not on customer sites
 
 #### Surprises & Discoveries
@@ -433,7 +433,7 @@ Shipped to `Ultimate-Multisite/gratis-ai-feedback`:
 
 The x-wp/di container migration (PRs 1–6, merged 2026-04-16) moved all hook wiring
 into `#[Handler]` classes and eliminated the 400-line bootstrap block from
-`gratis-ai-agent.php`. But the DI layer is currently a thin veneer over the original
+`sd-ai-agent.php`. But the DI layer is currently a thin veneer over the original
 static architecture — handlers call `XxxClass::register()` statics, the `Database`
 class is a 1,490-line God class, `AgentLoop` handles 8+ concerns, `Settings` is
 entirely static, and `phpstan.neon` has 300 lines of suppressions largely caused by
@@ -815,7 +815,7 @@ so skill content can improve between plugin releases.
 **Goal:** Track which skills get loaded, how they were triggered, and whether
 they helped — so the system can tune trigger patterns and surface quality signals.
 
-Schema: `gratis_ai_agent_skill_usage` table:
+Schema: `sd_ai_agent_skill_usage` table:
 - `id` bigint PK
 - `skill_id` bigint FK to skills table
 - `session_id` bigint FK to sessions table
@@ -909,7 +909,7 @@ the update channel.
   remote version is newer
 - EDIT: `src/settings-page/skill-manager.js` — show "Modified" badge on user-edited
   built-in skills with "Reset to upstream" button
-- NEW: REST endpoint `GET /gratis-ai-agent/v1/skills/usage-stats` — aggregated usage
+- NEW: REST endpoint `GET /sd-ai-agent/v1/skills/usage-stats` — aggregated usage
   data per skill
 - Verify: `npm run lint:js && npm run build`
 
@@ -920,10 +920,10 @@ individual skill content. Can start as static files, graduate to a WordPress
 custom post type.
 
 **Approach:** Host on the same site as the feedback receiver
-(gratis-ai-feedback repo). Minimal — a manifest.json + individual skill .md
+(sd-ai-feedback repo). Minimal — a manifest.json + individual skill .md
 files served via a REST endpoint.
 
-**Files (in gratis-ai-feedback repo):**
+**Files (in sd-ai-feedback repo):**
 - NEW: `includes/Skills/SkillDirectoryController.php` — `GET /skills/manifest`,
   `GET /skills/{slug}`
 - NEW: `skills/` directory — hosted .md files for each built-in skill
@@ -1038,7 +1038,7 @@ Bootstrap system prompt (stored in PHP, injected once):
 
 ```text
 You are starting your first conversation with a new user who just installed
-Gratis AI Agent. Before asking them anything, use your available abilities to
+Superdav AI Agent. Before asking them anything, use your available abilities to
 learn about their site:
 
 1. Read the site's recent posts, pages, and menus.
@@ -1071,7 +1071,7 @@ insights as memories for future sessions.
 - EDIT: `includes/Bootstrap/OnboardingHandler.php` — remove interview REST route registration
 - EDIT: `includes/Core/OnboardingManager.php` — remove interview REST handlers
 - DELETE: `src/components/__tests__/OnboardingWizard.test.js` — replace with gate tests
-- DELETE: `tests/GratisAiAgent/Core/OnboardingInterviewTest.php`
+- DELETE: `tests/SdAiAgent/Core/OnboardingInterviewTest.php`
 
 #### Context from Discussion
 
@@ -1193,14 +1193,14 @@ During a site builder session the agent reported that `update-post`, `manage-glo
 **Abilities verified present that agent could not find:**
 - `ai-agent/update-post` — `PostAbilities.php:171`, full schema with title/content/status/featured_image_id/meta
 - `ai-agent/update-global-styles` / `ai-agent/get-global-styles` — `GlobalStylesAbilities.php`
-- `gratis-ai-agent/complete-site-builder` — `SiteBuilderAbilities.php::CompleteSiteBuilderAbility`
+- `sd-ai-agent/complete-site-builder` — `SiteBuilderAbilities.php::CompleteSiteBuilderAbility`
 
 **Investigation axes:**
 1. `ToolCapabilities.php` — which abilities get included in the tool call payload? Any filter or count cap?
 2. `AgentLoop.php` — how are abilities injected into `wp_ai_client_prompt()`? Injection limit?
 3. Site-builder system prompt — does it enumerate available tools or leave discovery to the model?
 4. Ability descriptions — are `update-post` / `update-global-styles` descriptions clear enough for a restaurant-site context?
-5. Namespace inconsistency — `PostAbilities` uses `ai-agent/` prefix, `SiteBuilderAbilities` uses `gratis-ai-agent/`. Does the model treat these as different plugins?
+5. Namespace inconsistency — `PostAbilities` uses `ai-agent/` prefix, `SiteBuilderAbilities` uses `sd-ai-agent/`. Does the model treat these as different plugins?
 
 #### Decision Log
 

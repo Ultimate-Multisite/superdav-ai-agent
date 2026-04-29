@@ -6,11 +6,11 @@ declare(strict_types=1);
  *
  * Loads and provides access to test questions from suite files.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Benchmark;
+namespace SdAiAgent\Benchmark;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,20 +27,20 @@ class BenchmarkSuite {
 		return array(
 			array(
 				'slug'           => 'wp-core-v1',
-				'name'           => __( 'WordPress Core v1', 'gratis-ai-agent' ),
-				'description'    => __( 'Tests knowledge of WordPress core APIs, hooks, coding standards, and best practices.', 'gratis-ai-agent' ),
+				'name'           => __( 'WordPress Core v1', 'sd-ai-agent' ),
+				'description'    => __( 'Tests knowledge of WordPress core APIs, hooks, coding standards, and best practices.', 'sd-ai-agent' ),
 				'question_count' => count( self::get_wp_core_questions() ),
 			),
 			array(
 				'slug'           => 'wp-quick',
-				'name'           => __( 'WordPress Quick Test', 'gratis-ai-agent' ),
-				'description'    => __( 'A quick 5-question test for rapid model evaluation.', 'gratis-ai-agent' ),
+				'name'           => __( 'WordPress Quick Test', 'sd-ai-agent' ),
+				'description'    => __( 'A quick 5-question test for rapid model evaluation.', 'sd-ai-agent' ),
 				'question_count' => 5,
 			),
 			array(
 				'slug'           => 'agent-capabilities-v1',
-				'name'           => __( 'Agent Capabilities v1', 'gratis-ai-agent' ),
-				'description'    => __( 'Tests complex reasoning, code generation, debugging, multi-step problem solving, and architecture decisions. Designed to differentiate capable models like Opus from simpler ones.', 'gratis-ai-agent' ),
+				'name'           => __( 'Agent Capabilities v1', 'sd-ai-agent' ),
+				'description'    => __( 'Tests complex reasoning, code generation, debugging, multi-step problem solving, and architecture decisions. Designed to differentiate capable models like Opus from simpler ones.', 'sd-ai-agent' ),
 				'question_count' => count( self::get_agent_capabilities_questions() ),
 			),
 		);
@@ -57,8 +57,8 @@ class BenchmarkSuite {
 			case 'wp-core-v1':
 				return array(
 					'slug'        => 'wp-core-v1',
-					'name'        => __( 'WordPress Core v1', 'gratis-ai-agent' ),
-					'description' => __( 'Tests knowledge of WordPress core APIs, hooks, coding standards, and best practices.', 'gratis-ai-agent' ),
+					'name'        => __( 'WordPress Core v1', 'sd-ai-agent' ),
+					'description' => __( 'Tests knowledge of WordPress core APIs, hooks, coding standards, and best practices.', 'sd-ai-agent' ),
 					'questions'   => self::get_wp_core_questions(),
 				);
 
@@ -66,16 +66,16 @@ class BenchmarkSuite {
 				$all = self::get_wp_core_questions();
 				return array(
 					'slug'        => 'wp-quick',
-					'name'        => __( 'WordPress Quick Test', 'gratis-ai-agent' ),
-					'description' => __( 'A quick 5-question test for rapid model evaluation.', 'gratis-ai-agent' ),
+					'name'        => __( 'WordPress Quick Test', 'sd-ai-agent' ),
+					'description' => __( 'A quick 5-question test for rapid model evaluation.', 'sd-ai-agent' ),
 					'questions'   => array_slice( $all, 0, 5 ),
 				);
 
 			case 'agent-capabilities-v1':
 				return array(
 					'slug'        => 'agent-capabilities-v1',
-					'name'        => __( 'Agent Capabilities v1', 'gratis-ai-agent' ),
-					'description' => __( 'Tests complex reasoning, code generation, debugging, multi-step problem solving, and architecture decisions. Designed to differentiate capable models like Opus from simpler ones.', 'gratis-ai-agent' ),
+					'name'        => __( 'Agent Capabilities v1', 'sd-ai-agent' ),
+					'description' => __( 'Tests complex reasoning, code generation, debugging, multi-step problem solving, and architecture decisions. Designed to differentiate capable models like Opus from simpler ones.', 'sd-ai-agent' ),
 					'questions'   => self::get_agent_capabilities_questions(),
 				);
 

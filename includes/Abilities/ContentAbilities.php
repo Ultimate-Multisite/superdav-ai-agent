@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * Content analysis abilities for the AI agent.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,9 +27,9 @@ class ContentAbilities {
 		wp_register_ability(
 			'ai-agent/content-analyze',
 			[
-				'label'               => __( 'Analyze Content Strategy', 'gratis-ai-agent' ),
-				'description'         => __( 'Analyze content strategy: publishing frequency, word counts, category distribution, missing featured images, and content gaps.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Analyze Content Strategy', 'sd-ai-agent' ),
+				'description'         => __( 'Analyze content strategy: publishing frequency, word counts, category distribution, missing featured images, and content gaps.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -81,9 +81,9 @@ class ContentAbilities {
 		wp_register_ability(
 			'ai-agent/content-performance-report',
 			[
-				'label'               => __( 'Content Performance Report', 'gratis-ai-agent' ),
-				'description'         => __( 'Generate a content performance summary for a given time period: posts published, category breakdown, word counts, drafts pending.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Content Performance Report', 'sd-ai-agent' ),
+				'description'         => __( 'Generate a content performance summary for a given time period: posts published, category breakdown, word counts, drafts pending.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

@@ -4,16 +4,16 @@ declare(strict_types=1);
 /**
  * REST API controller for agents and conversation templates.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Models\Agent;
-use GratisAiAgent\Models\ConversationTemplate;
-use GratisAiAgent\Models\DTO\AgentRow;
-use GratisAiAgent\Models\DTO\ConversationTemplateRow;
+use SdAiAgent\Models\Agent;
+use SdAiAgent\Models\ConversationTemplate;
+use SdAiAgent\Models\DTO\AgentRow;
+use SdAiAgent\Models\DTO\ConversationTemplateRow;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * basenames (/agents, /conversation-templates).
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -385,8 +385,8 @@ final class AgentController {
 
 		if ( ! $agent ) {
 			return new WP_Error(
-				'gratis_ai_agent_agent_not_found',
-				__( 'Agent not found.', 'gratis-ai-agent' ),
+				'sd_ai_agent_agent_not_found',
+				__( 'Agent not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -411,8 +411,8 @@ final class AgentController {
 		$existing = Agent::get_by_slug( $slug );
 		if ( $existing ) {
 			return new WP_Error(
-				'gratis_ai_agent_agent_slug_exists',
-				__( 'An agent with this slug already exists.', 'gratis-ai-agent' ),
+				'sd_ai_agent_agent_slug_exists',
+				__( 'An agent with this slug already exists.', 'sd-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}
@@ -444,8 +444,8 @@ final class AgentController {
 
 		if ( false === $id ) {
 			return new WP_Error(
-				'gratis_ai_agent_agent_create_failed',
-				__( 'Failed to create agent.', 'gratis-ai-agent' ),
+				'sd_ai_agent_agent_create_failed',
+				__( 'Failed to create agent.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -453,7 +453,7 @@ final class AgentController {
 		$agent = Agent::get( $id );
 
 		if ( ! $agent ) {
-			return new WP_Error( 'gratis_ai_agent_agent_not_found', __( 'Agent not found after creation.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_agent_not_found', __( 'Agent not found after creation.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( Agent::to_array( $agent ), 201 );
@@ -495,8 +495,8 @@ final class AgentController {
 
 		if ( ! $updated ) {
 			return new WP_Error(
-				'gratis_ai_agent_agent_update_failed',
-				__( 'Failed to update agent.', 'gratis-ai-agent' ),
+				'sd_ai_agent_agent_update_failed',
+				__( 'Failed to update agent.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -504,7 +504,7 @@ final class AgentController {
 		$agent = Agent::get( $id );
 
 		if ( ! $agent ) {
-			return new WP_Error( 'gratis_ai_agent_agent_not_found', __( 'Agent not found after update.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'sd_ai_agent_agent_not_found', __( 'Agent not found after update.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response( Agent::to_array( $agent ), 200 );
@@ -528,8 +528,8 @@ final class AgentController {
 
 		if ( ! $result ) {
 			return new WP_Error(
-				'gratis_ai_agent_agent_delete_failed',
-				__( 'Failed to delete agent or agent not found.', 'gratis-ai-agent' ),
+				'sd_ai_agent_agent_delete_failed',
+				__( 'Failed to delete agent or agent not found.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -551,7 +551,7 @@ final class AgentController {
 		return new WP_REST_Response(
 			array(
 				'success' => true,
-				'message' => __( 'Built-in agents have been reset to factory defaults.', 'gratis-ai-agent' ),
+				'message' => __( 'Built-in agents have been reset to factory defaults.', 'sd-ai-agent' ),
 				'agents'  => $list,
 			),
 			200
@@ -635,7 +635,7 @@ final class AgentController {
 		$id   = ConversationTemplate::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create conversation template.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'create_failed', __( 'Failed to create conversation template.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( ConversationTemplate::get( $id ), 201 );
@@ -649,7 +649,7 @@ final class AgentController {
 		$data = $request->get_json_params();
 
 		if ( ! ConversationTemplate::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update conversation template.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'update_failed', __( 'Failed to update conversation template.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( ConversationTemplate::get( $id ), 200 );
@@ -662,7 +662,7 @@ final class AgentController {
 		$id = self::get_int_param( $request, 'id' );
 
 		if ( ! ConversationTemplate::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete conversation template. Built-in templates cannot be deleted.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete conversation template. Built-in templates cannot be deleted.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );

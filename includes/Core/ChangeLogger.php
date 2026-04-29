@@ -8,13 +8,13 @@ declare(strict_types=1);
  * distinguish AI-initiated changes from user-initiated ones. Only records
  * changes when the flag is active.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Models\ChangesLog;
+use SdAiAgent\Models\ChangesLog;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -421,7 +421,7 @@ class ChangeLogger {
 			'_site_transient_timeout_',
 			'cron',
 			'rewrite_rules',
-			'gratis_ai_agent_',
+			'sd_ai_agent_',
 		];
 
 		foreach ( $noisy_prefixes as $prefix ) {

@@ -9,10 +9,10 @@
  *   - Delete an agent
  *
  * Tests run against the settings page at:
- *   /wp-admin/admin.php?page=gratis-ai-agent#/settings
+ *   /wp-admin/admin.php?page=sd-ai-agent#/settings
  *
  * The agent builder lives on the "Agents" tab of the settings page.
- * REST API calls to /gratis-ai-agent/v1/agents are intercepted so tests
+ * REST API calls to /sd-ai-agent/v1/agents are intercepted so tests
  * are deterministic and do not require a live WordPress database.
  *
  * IMPORTANT: mockAgentsApi() must be called BEFORE loginToWordPress() in
@@ -76,7 +76,7 @@ async function cleanupRealAgents( browser ) {
 				( window.wpApiSettings && window.wpApiSettings.nonce ) || '';
 			try {
 				const resp = await fetch(
-					root + 'gratis-ai-agent/v1/agents',
+					root + 'sd-ai-agent/v1/agents',
 					{ headers: { 'X-WP-Nonce': nonce } }
 				);
 				const agents = await resp.json();
@@ -85,7 +85,7 @@ async function cleanupRealAgents( browser ) {
 						agents.map( ( a ) =>
 							fetch(
 								root +
-									'gratis-ai-agent/v1/agents/' +
+									'sd-ai-agent/v1/agents/' +
 									a.id,
 								{
 									method: 'DELETE',
@@ -139,10 +139,10 @@ const AGENT_FIXTURE_UPDATED = {
  *
  * wp-env uses the index.php?rest_route= format (pretty permalinks disabled),
  * so REST API paths appear URL-encoded in the URL string:
- *   http://localhost:8890/index.php?rest_route=%2Fgratis-ai-agent%2Fv1%2Fagents
+ *   http://localhost:8890/index.php?rest_route=%2Fsd-ai-agent%2Fv1%2Fagents
  *
  * Playwright's page.route() regex matches against the raw (encoded) URL, so
- * literal-slash regexes like /gratis-ai-agent\/v1\/agents/ never match. Using
+ * literal-slash regexes like /sd-ai-agent\/v1\/agents/ never match. Using
  * a function matcher with decodeURIComponent() normalises the URL first.
  *
  * @param {URL} url - Playwright URL object.
@@ -161,7 +161,7 @@ function decodeUrl( url ) {
 // ---------------------------------------------------------------------------
 
 /**
- * Intercept all /gratis-ai-agent/v1/agents REST calls and return controlled
+ * Intercept all /sd-ai-agent/v1/agents REST calls and return controlled
  * fixture data. This makes tests deterministic without a live WP database.
  *
  * MUST be called before any page.goto() / loginToWordPress() call so that
@@ -194,7 +194,7 @@ async function mockAgentsApi( page, opts = {} ) {
 	let agents = [ ...initialAgents ];
 
 	await page.route(
-		( url ) => decodeUrl( url ).includes( 'gratis-ai-agent/v1/agents' ),
+		( url ) => decodeUrl( url ).includes( 'sd-ai-agent/v1/agents' ),
 		async ( route ) => {
 			// WordPress's apiFetch sends PATCH/PUT/DELETE as POST with an
 			// X-HTTP-Method-Override header (http-v1 middleware). Read the
@@ -278,7 +278,7 @@ async function mockAgentsApi( page, opts = {} ) {
 	// visible when at least one provider is in the store.
 	await page.route(
 		( url ) =>
-			decodeUrl( url ).includes( 'gratis-ai-agent/v1/providers' ),
+			decodeUrl( url ).includes( 'sd-ai-agent/v1/providers' ),
 		async ( route ) => {
 			await route.fulfill( {
 				status: 200,
@@ -314,7 +314,7 @@ async function mockAgentsApi( page, opts = {} ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentBuilder( page ) {
-	return page.locator( '.gratis-ai-agent-builder' );
+	return page.locator( '.sd-ai-agent-builder' );
 }
 
 /**
@@ -334,7 +334,7 @@ function getAddAgentButton( page ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentForm( page ) {
-	return page.locator( '.gratis-ai-agent-form' );
+	return page.locator( '.sd-ai-agent-form' );
 }
 
 /**
@@ -374,7 +374,7 @@ function getCancelButton( page ) {
  * @return {import('@playwright/test').Locator}
  */
 function getAgentCards( page ) {
-	return page.locator( '.gratis-ai-agent-card' );
+	return page.locator( '.sd-ai-agent-card' );
 }
 
 /**
@@ -401,7 +401,7 @@ function getDeleteButton( card ) {
  * Get the agent selector dropdown in the admin page chat panel.
  *
  * Scoped to the non-compact (admin page) chat panel to avoid matching the
- * floating widget's hidden agent selector (.gratis-ai-agent-selector.is-compact).
+ * floating widget's hidden agent selector (.sd-ai-agent-selector.is-compact).
  * The floating widget renders AgentSelector with compact=true, adding is-compact.
  *
  * @param {import('@playwright/test').Page} page
@@ -410,7 +410,7 @@ function getDeleteButton( card ) {
 function getAgentSelector( page ) {
 	return page
 		.locator(
-			'.gratis-ai-agent-chat-panel:not(.is-compact) .gratis-ai-agent-selector'
+			'.sd-ai-agent-chat-panel:not(.is-compact) .sd-ai-agent-selector'
 		)
 		.first();
 }
@@ -419,7 +419,7 @@ function getAgentSelector( page ) {
  * Navigate to the Agents tab on the settings page and wait for the
  * AgentBuilder component to finish its initial fetchAgents() load.
  *
- * The AgentBuilder renders a spinner (.gratis-ai-agent-loading) while
+ * The AgentBuilder renders a spinner (.sd-ai-agent-loading) while
  * agentsLoaded is false. Waiting for the spinner to disappear ensures
  * fetchAgents() has completed and the agent list (or empty state) is
  * rendered before the test makes assertions.
@@ -428,29 +428,29 @@ function getAgentSelector( page ) {
  */
 async function goToAgentsTab( page ) {
 	// UnifiedAdminMenu uses hash-based routing. The settings route is at
-	// admin.php?page=gratis-ai-agent#/settings. The old URL
-	// (tools.php?page=gratis-ai-agent-settings) triggers a wp_safe_redirect()
+	// admin.php?page=sd-ai-agent#/settings. The old URL
+	// (tools.php?page=sd-ai-agent-settings) triggers a wp_safe_redirect()
 	// which causes Playwright to hang — use the canonical hash URL directly.
-	await page.goto( '/wp-admin/admin.php?page=gratis-ai-agent#/settings' );
+	await page.goto( '/wp-admin/admin.php?page=sd-ai-agent#/settings' );
 	await page.waitForLoadState( 'domcontentloaded' );
 	// Wait for the settings route container to render.
 	// Use 30 s to match the Playwright test timeout — the unified admin SPA
 	// can be slow to render on CI runners under load with 3 parallel workers.
 	await page
-		.locator( '.gratis-ai-agent-route-settings' )
+		.locator( '.sd-ai-agent-route-settings' )
 		.waitFor( { state: 'visible', timeout: 30_000 } );
 	// Click the Agents tab (present in the unified settings route).
 	const tab = page.getByRole( 'tab', { name: /agents/i } );
 	await tab.click();
 	// Wait for the AgentBuilder container to be visible.
 	await page
-		.locator( '.gratis-ai-agent-builder' )
+		.locator( '.sd-ai-agent-builder' )
 		.waitFor( { state: 'visible', timeout: 15000 } );
 	// Wait for the loading spinner to disappear — signals agentsLoaded=true.
 	// Use a short timeout: if the spinner never appeared (agentsLoaded was
 	// already true), this resolves immediately.
 	await page
-		.locator( '.gratis-ai-agent-loading' )
+		.locator( '.sd-ai-agent-loading' )
 		.waitFor( { state: 'hidden', timeout: 15000 } )
 		.catch( () => {
 			// Spinner may never appear if agentsLoaded was already true.
@@ -598,7 +598,7 @@ test.describe( 'Agent Builder - Agent List', () => {
 		// Use a generous timeout for the inner element — the card body renders
 		// asynchronously after the card itself becomes visible.
 		await expect(
-			card.locator( '.gratis-ai-agent-prompt-preview' )
+			card.locator( '.sd-ai-agent-prompt-preview' )
 		).toContainText( AGENT_FIXTURE.system_prompt.slice( 0, 40 ), {
 			timeout: 10000,
 		} );
@@ -770,7 +770,7 @@ test.describe( 'Agent Builder - Delete Agent', () => {
 } );
 
 // FIXME: The admin chat UI was redesigned. The old AgentSelector component
-// (.gratis-ai-agent-selector with a <select> element) was replaced by the new
+// (.sd-ai-agent-selector with a <select> element) was replaced by the new
 // AgentPicker chip/popover (.gaa-cr-agent-chip) which only renders when 2+
 // agents are enabled. These tests need to be rewritten to use the new chip
 // interaction model and to mock 2+ agents. Re-enable once updated.
@@ -854,7 +854,7 @@ test.describe.fixme( 'Agent Builder - Agent Selector in Chat', () => {
 } );
 
 // FIXME: Step 2 of the lifecycle (verify agent in chat selector) uses
-// getAgentSelector which relies on .gratis-ai-agent-selector (<select>). The
+// getAgentSelector which relies on .sd-ai-agent-selector (<select>). The
 // admin chat UI now uses AgentPicker (gaa-cr-agent-chip), a chip/popover that
 // only renders when 2+ agents exist. Re-enable once step 2 is rewritten for
 // the new AgentPicker interaction model.

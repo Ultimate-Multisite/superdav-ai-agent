@@ -19,12 +19,12 @@ Content passed to `ai-agent/create-post` or `ai-agent/update-post` must be EITHE
 
 ## Available Tools
 
-- `gratis-ai-agent/create-block-content` — Build block HTML from a structured block array (best for complex nested layouts)
-- `gratis-ai-agent/parse-block-content` — Parse existing block content into a structured tree
-- `gratis-ai-agent/validate-block-content` — Validate block content before insertion (catches mixed content, malformed markup)
-- `gratis-ai-agent/list-block-types` — Browse and search registered block types
-- `gratis-ai-agent/get-block-type` — Get full metadata for a specific block type
-- `gratis-ai-agent/list-block-patterns` — Browse and search registered block patterns
+- `sd-ai-agent/create-block-content` — Build block HTML from a structured block array (best for complex nested layouts)
+- `sd-ai-agent/parse-block-content` — Parse existing block content into a structured tree
+- `sd-ai-agent/validate-block-content` — Validate block content before insertion (catches mixed content, malformed markup)
+- `sd-ai-agent/list-block-types` — Browse and search registered block types
+- `sd-ai-agent/get-block-type` — Get full metadata for a specific block type
+- `sd-ai-agent/list-block-patterns` — Browse and search registered block patterns
 
 ## Block Markup Reference
 
@@ -408,11 +408,11 @@ Write content in markdown format and pass to `ai-agent/create-post`. The markdow
 
 1. Write the full page content as serialized block markup following the examples above
 2. Pass the block markup string to `ai-agent/create-post` with `post_type: page`
-3. Use `gratis-ai-agent/validate-block-content` to check for errors before creating
+3. Use `sd-ai-agent/validate-block-content` to check for errors before creating
 
 ### Analyze and improve existing content
 
-1. Use `gratis-ai-agent/parse-block-content` with a post_id to see the current structure
+1. Use `sd-ai-agent/parse-block-content` with a post_id to see the current structure
 2. Identify issues (missing layout blocks, unstyled sections)
 3. Build improved content using block markup
 4. Use `ai-agent/update-post` to replace the content

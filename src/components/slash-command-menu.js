@@ -16,14 +16,14 @@ import { __ } from '@wordpress/i18n';
 const COMMANDS = [
 	{
 		name: '/new',
-		description: __( 'Start a new chat', 'gratis-ai-agent' ),
+		description: __( 'Start a new chat', 'sd-ai-agent' ),
 		action: 'new',
 	},
 	{
 		name: '/model',
 		description: __(
 			'Switch model (type model name after)',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		action: 'model',
 	},
@@ -31,46 +31,43 @@ const COMMANDS = [
 		name: '/remember',
 		description: __(
 			'Save a fact to memory (type fact after)',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		action: 'remember',
 	},
 	{
 		name: '/forget',
-		description: __(
-			'Forget memories matching a topic',
-			'gratis-ai-agent'
-		),
+		description: __( 'Forget memories matching a topic', 'sd-ai-agent' ),
 		action: 'forget',
 	},
 	{
 		name: '/clear',
-		description: __( 'Clear conversation', 'gratis-ai-agent' ),
+		description: __( 'Clear conversation', 'sd-ai-agent' ),
 		action: 'clear',
 	},
 	{
 		name: '/export',
-		description: __( 'Export current conversation', 'gratis-ai-agent' ),
+		description: __( 'Export current conversation', 'sd-ai-agent' ),
 		action: 'export',
 	},
 	{
 		name: '/compact',
 		description: __(
 			'Compact conversation to save context',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		action: 'compact',
 	},
 	{
 		name: '/help',
-		description: __( 'Show keyboard shortcuts', 'gratis-ai-agent' ),
+		description: __( 'Show keyboard shortcuts', 'sd-ai-agent' ),
 		action: 'help',
 	},
 	{
 		name: '/report-issue',
 		description: __(
 			'Send a bug report or feedback (type description after)',
-			'gratis-ai-agent'
+			'sd-ai-agent'
 		),
 		action: 'report-issue',
 	},
@@ -140,15 +137,15 @@ export default function SlashCommandMenu( {
 	}
 
 	const activeId = filtered[ selectedIndex ]
-		? `gratis-ai-agent-slash-option-${ filtered[ selectedIndex ].action }`
+		? `sd-ai-agent-slash-option-${ filtered[ selectedIndex ].action }`
 		: undefined;
 
 	return (
 		<div
-			className="gratis-ai-agent-slash-menu"
+			className="sd-ai-agent-slash-menu"
 			ref={ menuRef }
 			role="listbox"
-			aria-label={ __( 'Slash commands', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Slash commands', 'sd-ai-agent' ) }
 			aria-activedescendant={ activeId }
 			tabIndex={ -1 }
 			style={ position ? { bottom: position.bottom } : {} }
@@ -156,11 +153,11 @@ export default function SlashCommandMenu( {
 			{ filtered.map( ( cmd, i ) => (
 				<div
 					key={ cmd.name }
-					id={ `gratis-ai-agent-slash-option-${ cmd.action }` }
+					id={ `sd-ai-agent-slash-option-${ cmd.action }` }
 					role="option"
 					aria-selected={ i === selectedIndex }
 					tabIndex={ 0 }
-					className={ `gratis-ai-agent-slash-item ${
+					className={ `sd-ai-agent-slash-item ${
 						i === selectedIndex ? 'is-selected' : ''
 					}` }
 					onClick={ () => onSelect( cmd ) }
@@ -172,10 +169,8 @@ export default function SlashCommandMenu( {
 					} }
 					onMouseEnter={ () => setSelectedIndex( i ) }
 				>
-					<span className="gratis-ai-agent-slash-name">
-						{ cmd.name }
-					</span>
-					<span className="gratis-ai-agent-slash-desc">
+					<span className="sd-ai-agent-slash-name">{ cmd.name }</span>
+					<span className="sd-ai-agent-slash-desc">
 						{ cmd.description }
 					</span>
 				</div>

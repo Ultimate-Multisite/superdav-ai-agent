@@ -128,11 +128,11 @@ export default function SettingsApp() {
 		fetchSettings();
 		fetchProviders();
 		// Fetch abilities list.
-		apiFetch( { path: '/gratis-ai-agent/v1/abilities' } )
+		apiFetch( { path: '/sd-ai-agent/v1/abilities' } )
 			.then( setAbilities )
 			.catch( () => {} );
 		// Fetch Google Analytics credential status.
-		apiFetch( { path: '/gratis-ai-agent/v1/settings/google-analytics' } )
+		apiFetch( { path: '/sd-ai-agent/v1/settings/google-analytics' } )
 			.then( ( data ) => {
 				setGaStatus( data );
 				if ( data?.property_id ) {
@@ -141,7 +141,7 @@ export default function SettingsApp() {
 			} )
 			.catch( () => {} );
 		// Fetch Brave Search key status from the general settings response.
-		apiFetch( { path: '/gratis-ai-agent/v1/settings' } )
+		apiFetch( { path: '/sd-ai-agent/v1/settings' } )
 			.then( ( data ) => {
 				setBraveConfigured( !! data?._brave_search_key_configured );
 			} )
@@ -153,7 +153,7 @@ export default function SettingsApp() {
 		setGaNotice( null );
 		try {
 			const result = await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/google-analytics',
+				path: '/sd-ai-agent/v1/settings/google-analytics',
 				method: 'POST',
 				data: {
 					property_id: gaPropertyId,
@@ -171,7 +171,7 @@ export default function SettingsApp() {
 				status: 'success',
 				message: __(
 					'Google Analytics credentials saved.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		} catch ( err ) {
@@ -181,7 +181,7 @@ export default function SettingsApp() {
 					err?.message ||
 					__(
 						'Failed to save Google Analytics credentials.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					),
 			} );
 		}
@@ -193,7 +193,7 @@ export default function SettingsApp() {
 		setGaNotice( null );
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/google-analytics',
+				path: '/sd-ai-agent/v1/settings/google-analytics',
 				method: 'DELETE',
 			} );
 			setGaStatus( {
@@ -208,7 +208,7 @@ export default function SettingsApp() {
 				status: 'success',
 				message: __(
 					'Google Analytics credentials cleared.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		} catch {
@@ -216,7 +216,7 @@ export default function SettingsApp() {
 				status: 'error',
 				message: __(
 					'Failed to clear Google Analytics credentials.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		}
@@ -228,7 +228,7 @@ export default function SettingsApp() {
 		setBraveNotice( null );
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/brave-search-key',
+				path: '/sd-ai-agent/v1/settings/brave-search-key',
 				method: 'POST',
 				data: { api_key: braveApiKey },
 			} );
@@ -236,17 +236,14 @@ export default function SettingsApp() {
 			setBraveApiKey( '' ); // Clear the field after saving.
 			setBraveNotice( {
 				status: 'success',
-				message: __( 'Brave Search API key saved.', 'gratis-ai-agent' ),
+				message: __( 'Brave Search API key saved.', 'sd-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setBraveNotice( {
 				status: 'error',
 				message:
 					err?.message ||
-					__(
-						'Failed to save Brave Search API key.',
-						'gratis-ai-agent'
-					),
+					__( 'Failed to save Brave Search API key.', 'sd-ai-agent' ),
 			} );
 		}
 		setBraveSaving( false );
@@ -257,23 +254,20 @@ export default function SettingsApp() {
 		setBraveNotice( null );
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/settings/brave-search-key',
+				path: '/sd-ai-agent/v1/settings/brave-search-key',
 				method: 'DELETE',
 			} );
 			setBraveConfigured( false );
 			setBraveNotice( {
 				status: 'success',
-				message: __(
-					'Brave Search API key removed.',
-					'gratis-ai-agent'
-				),
+				message: __( 'Brave Search API key removed.', 'sd-ai-agent' ),
 			} );
 		} catch {
 			setBraveNotice( {
 				status: 'error',
 				message: __(
 					'Failed to remove Brave Search API key.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 		}
@@ -346,23 +340,19 @@ export default function SettingsApp() {
 		setSaving( true );
 		try {
 			await saveSettings( local );
-			createNotice(
-				'success',
-				__( 'Settings saved.', 'gratis-ai-agent' ),
-				{
-					type: 'snackbar',
-					isDismissible: true,
-					id: 'gratis-ai-agent-settings-save',
-				}
-			);
+			createNotice( 'success', __( 'Settings saved.', 'sd-ai-agent' ), {
+				type: 'snackbar',
+				isDismissible: true,
+				id: 'sd-ai-agent-settings-save',
+			} );
 		} catch {
 			createNotice(
 				'error',
-				__( 'Failed to save settings.', 'gratis-ai-agent' ),
+				__( 'Failed to save settings.', 'sd-ai-agent' ),
 				{
 					type: 'snackbar',
 					isDismissible: true,
-					id: 'gratis-ai-agent-settings-save',
+					id: 'sd-ai-agent-settings-save',
 				}
 			);
 		}
@@ -371,7 +361,7 @@ export default function SettingsApp() {
 
 	if ( ! settingsLoaded || ! local ) {
 		return (
-			<div className="gratis-ai-agent-settings-loading">
+			<div className="sd-ai-agent-settings-loading">
 				<Spinner />
 			</div>
 		);
@@ -379,7 +369,7 @@ export default function SettingsApp() {
 
 	// Build provider/model options.
 	const providerOptions = [
-		{ label: __( '(default)', 'gratis-ai-agent' ), value: '' },
+		{ label: __( '(default)', 'sd-ai-agent' ), value: '' },
 		...providers.map( ( p ) => ( { label: p.name, value: p.id } ) ),
 	];
 
@@ -388,11 +378,11 @@ export default function SettingsApp() {
 	);
 
 	// Provider trace is a debug-only feature — only show the tab when
-	// WP_DEBUG is active (communicated from PHP via gratisAiAgentData.wpDebug).
-	const isWpDebug = !! window.gratisAiAgentData?.wpDebug;
+	// WP_DEBUG is active (communicated from PHP via sdAiAgentData.wpDebug).
+	const isWpDebug = !! window.sdAiAgentData?.wpDebug;
 	// Feature flags injected by PHP (UnifiedAdminMenu::enqueueAssets).
 	// Fall back to all-enabled when the global is absent (e.g. unit tests).
-	const features = window.gratisAiAgentData?.features ?? {
+	const features = window.sdAiAgentData?.features ?? {
 		branding: true,
 		access_control: true,
 	};
@@ -404,67 +394,67 @@ export default function SettingsApp() {
 	const allTabs = [
 		{
 			name: 'general',
-			title: __( 'General', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'General', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'memory-knowledge',
-			title: __( 'Memory & Knowledge', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Memory & Knowledge', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'skills',
-			title: __( 'Skills', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Skills', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'tools',
-			title: __( 'Tools', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Tools', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'automations',
-			title: __( 'Automations', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Automations', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'agents',
-			title: __( 'Agents', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Agents', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		{
 			name: 'access-branding',
-			title: __( 'Access & Branding', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Access & Branding', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 			// Hide when both constituent features are disabled.
 			hidden: ! features.access_control && ! features.branding,
 		},
 		{
 			name: 'usage',
-			title: __( 'Usage', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Usage', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 		// Only visible when WP_DEBUG is active.
 		...( isWpDebug
 			? [
 					{
 						name: 'provider-trace',
-						title: __( 'Provider Trace', 'gratis-ai-agent' ),
-						className: 'gratis-ai-agent-settings-tab',
+						title: __( 'Provider Trace', 'sd-ai-agent' ),
+						className: 'sd-ai-agent-settings-tab',
 					},
 			  ]
 			: [] ),
 		{
 			name: 'advanced',
-			title: __( 'Advanced', 'gratis-ai-agent' ),
-			className: 'gratis-ai-agent-settings-tab',
+			title: __( 'Advanced', 'sd-ai-agent' ),
+			className: 'sd-ai-agent-settings-tab',
 		},
 	];
 
 	const tabs = allTabs.filter( ( tab ) => ! tab.hidden );
 
 	const scrollWrapperClasses = [
-		'gratis-ai-agent-tabs-scroll-wrapper',
+		'sd-ai-agent-tabs-scroll-wrapper',
 		hasScrollLeft ? 'has-scroll-left' : '',
 		hasScrollRight ? 'has-scroll-right' : '',
 	]
@@ -472,23 +462,23 @@ export default function SettingsApp() {
 		.join( ' ' );
 
 	return (
-		<div className="gratis-ai-agent-settings">
+		<div className="sd-ai-agent-settings">
 			<Notice
 				status="info"
 				isDismissible={ false }
-				className="gratis-ai-agent-providers-link-notice"
+				className="sd-ai-agent-providers-link-notice"
 			>
 				{ __(
 					'Provider API keys are configured on the Connectors page.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				) }{ ' ' }
 				<a
 					href={
-						window.gratisAiAgentData?.connectorsUrl ||
+						window.sdAiAgentData?.connectorsUrl ||
 						'options-general.php?page=options-connectors-wp-admin'
 					}
 				>
-					{ __( 'Open Connectors →', 'gratis-ai-agent' ) }
+					{ __( 'Open Connectors →', 'sd-ai-agent' ) }
 				</a>
 			</Notice>
 			<div ref={ tabsWrapperRef } className={ scrollWrapperClasses }>
@@ -497,24 +487,24 @@ export default function SettingsApp() {
 						switch ( tab.name ) {
 							case 'general':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __( 'Model', 'gratis-ai-agent' ) }
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
+											{ __( 'Model', 'sd-ai-agent' ) }
 										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-default-provider">
+														<label htmlFor="sd-default-provider">
 															{ __(
 																'Default Provider',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<SelectControl
-															id="gratis-default-provider"
+															id="sd-default-provider"
 															value={
 																local.default_provider
 															}
@@ -533,16 +523,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-default-model">
+														<label htmlFor="sd-default-model">
 															{ __(
 																'Default Model',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<ModelPricingSelector
-															id="gratis-default-model"
+															id="sd-default-model"
 															value={
 																local.default_model
 															}
@@ -565,16 +555,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-max-iterations">
+														<label htmlFor="sd-max-iterations">
 															{ __(
 																'Max Iterations',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-max-iterations"
+															id="sd-max-iterations"
 															type="number"
 															min={ 1 }
 															max={ 50 }
@@ -592,7 +582,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Maximum tool-call iterations per request.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -601,26 +591,26 @@ export default function SettingsApp() {
 											</tbody>
 										</table>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Chat Behaviour',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-greeting-message">
+														<label htmlFor="sd-greeting-message">
 															{ __(
 																'Greeting Message',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextareaControl
-															id="gratis-greeting-message"
+															id="sd-greeting-message"
 															value={
 																local.greeting_message
 															}
@@ -638,7 +628,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Shown in the chat before the first message. Leave empty for the default.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															rows={ 2 }
 														/>
@@ -646,16 +636,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-keyboard-shortcut">
+														<label htmlFor="sd-keyboard-shortcut">
 															{ __(
 																'Keyboard Shortcut',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-keyboard-shortcut"
+															id="sd-keyboard-shortcut"
 															value={
 																local.keyboard_shortcut ??
 																'alt+a'
@@ -668,7 +658,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Shortcut to open/close the floating chat widget. Use modifier keys joined by "+", e.g. "alt+a" or "ctrl+shift+k". Leave empty to disable.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															placeholder="alt+a"
 															__nextHasNoMarginBottom
@@ -679,15 +669,15 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'YOLO Mode',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
-														<div className="gratis-ai-agent-settings-yolo-section">
+														<div className="sd-ai-agent-settings-yolo-section">
 															<ToggleControl
 																label={ __(
 																	'Skip all confirmation dialogs',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																checked={
 																	!! local.yolo_mode
@@ -702,15 +692,15 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'Destructive actions will run without prompting. Use with caution.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
 															{ local.yolo_mode && (
-																<div className="gratis-ai-agent-yolo-warning">
+																<div className="sd-ai-agent-yolo-warning">
 																	{ __(
 																		'Warning: YOLO mode is active. All tool confirmations are skipped automatically. Destructive operations will execute without asking.',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	) }
 																</div>
 															) }
@@ -721,14 +711,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Frontend Widget',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Show on public-facing pages',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															checked={
 																!! local.show_on_frontend
@@ -741,7 +731,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Display the floating chat widget on public-facing pages for logged-in administrators.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -751,14 +741,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Token Costs',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Show token count and estimated cost',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															checked={
 																local.show_token_costs !==
@@ -772,7 +762,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Display token count and estimated cost below the chat input and after each AI response.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -781,32 +771,32 @@ export default function SettingsApp() {
 											</tbody>
 										</table>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'AI Image Generation',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Settings for the Generate AI Image ability (DALL-E 3). Requires an OpenAI API key configured in the Providers tab.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-image-size">
+														<label htmlFor="sd-image-size">
 															{ __(
 																'Default Image Size',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<SelectControl
-															id="gratis-image-size"
+															id="sd-image-size"
 															value={
 																local.image_generation_size ||
 																'1024x1024'
@@ -815,21 +805,21 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Square (1024×1024)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: '1024x1024',
 																},
 																{
 																	label: __(
 																		'Landscape (1792×1024)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: '1792x1024',
 																},
 																{
 																	label: __(
 																		'Portrait (1024×1792)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: '1024x1792',
 																},
@@ -842,7 +832,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Default dimensions for generated images. Can be overridden per request.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -850,16 +840,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-image-quality">
+														<label htmlFor="sd-image-quality">
 															{ __(
 																'Default Image Quality',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<SelectControl
-															id="gratis-image-quality"
+															id="sd-image-quality"
 															value={
 																local.image_generation_quality ||
 																'standard'
@@ -868,14 +858,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Standard',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'standard',
 																},
 																{
 																	label: __(
 																		'HD (higher detail, higher cost)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'hd',
 																},
@@ -888,7 +878,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'HD produces finer details and greater consistency but costs more per image.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -896,16 +886,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-image-style">
+														<label htmlFor="sd-image-style">
 															{ __(
 																'Default Image Style',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<SelectControl
-															id="gratis-image-style"
+															id="sd-image-style"
 															value={
 																local.image_generation_style ||
 																'vivid'
@@ -914,14 +904,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Vivid (hyper-real, dramatic)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'vivid',
 																},
 																{
 																	label: __(
 																		'Natural (subdued, realistic)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'natural',
 																},
@@ -934,7 +924,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Vivid is hyper-real and dramatic; Natural is more subdued and realistic.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -943,32 +933,32 @@ export default function SettingsApp() {
 											</tbody>
 										</table>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Spending Limits',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Set daily and monthly budget caps to prevent runaway API costs. Spend is estimated from the usage log.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-budget-daily">
+														<label htmlFor="sd-budget-daily">
 															{ __(
 																'Daily Budget Cap (USD)',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-budget-daily"
+															id="sd-budget-daily"
 															type="number"
 															min={ 0 }
 															step={ 0.01 }
@@ -989,7 +979,7 @@ export default function SettingsApp() {
 															placeholder="0.00"
 															help={ __(
 																'Maximum estimated spend per day in USD. Set to 0 for unlimited.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -997,16 +987,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-budget-monthly">
+														<label htmlFor="sd-budget-monthly">
 															{ __(
 																'Monthly Budget Cap (USD)',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-budget-monthly"
+															id="sd-budget-monthly"
 															type="number"
 															min={ 0 }
 															step={ 0.01 }
@@ -1027,7 +1017,7 @@ export default function SettingsApp() {
 															placeholder="0.00"
 															help={ __(
 																'Maximum estimated spend per month in USD. Set to 0 for unlimited.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1035,19 +1025,19 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-budget-warning-threshold">
+														<label htmlFor="sd-budget-warning-threshold">
 															{ __(
 																'Warning Threshold (%)',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<RangeControl
-															id="gratis-budget-warning-threshold"
+															id="sd-budget-warning-threshold"
 															label={ __(
 																'Warning Threshold (%)',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															value={
 																local.budget_warning_threshold ??
@@ -1064,23 +1054,23 @@ export default function SettingsApp() {
 															step={ 1 }
 															help={ __(
 																'Show a warning banner when spend reaches this percentage of the cap.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														/>
 													</td>
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-budget-exceeded-action">
+														<label htmlFor="sd-budget-exceeded-action">
 															{ __(
 																'Action When Budget Exceeded',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<SelectControl
-															id="gratis-budget-exceeded-action"
+															id="sd-budget-exceeded-action"
 															value={
 																local.budget_exceeded_action ||
 																'pause'
@@ -1089,14 +1079,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Pause — block new requests',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'pause',
 																},
 																{
 																	label: __(
 																		'Warn — show warning but allow',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	),
 																	value: 'warn',
 																},
@@ -1109,7 +1099,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'"Pause" stops all new AI requests until the period resets. "Warn" shows a banner but still allows requests.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1118,35 +1108,35 @@ export default function SettingsApp() {
 											</tbody>
 										</table>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Text-to-Speech',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										{ ! isTTSSupported && (
 											<p className="description">
 												{ __(
 													'Text-to-speech is not supported in this browser.',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</p>
 										) }
 										{ isTTSSupported && (
-											<table className="form-table gratis-ai-agent-form-table">
+											<table className="form-table sd-ai-agent-form-table">
 												<tbody>
 													<tr>
 														<th scope="row">
 															{ __(
 																'Text-to-Speech',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Read AI responses aloud automatically',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																checked={
 																	ttsEnabled
@@ -1156,7 +1146,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'Use the speaker button in the chat header to toggle on the fly.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1165,16 +1155,16 @@ export default function SettingsApp() {
 													{ ttsVoices.length > 0 && (
 														<tr>
 															<th scope="row">
-																<label htmlFor="gratis-tts-voice">
+																<label htmlFor="sd-tts-voice">
 																	{ __(
 																		'Voice',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	) }
 																</label>
 															</th>
 															<td>
 																<SelectControl
-																	id="gratis-tts-voice"
+																	id="sd-tts-voice"
 																	value={
 																		ttsVoiceURI
 																	}
@@ -1182,7 +1172,7 @@ export default function SettingsApp() {
 																		{
 																			label: __(
 																				'(Browser default)',
-																				'gratis-ai-agent'
+																				'sd-ai-agent'
 																			),
 																			value: '',
 																		},
@@ -1200,7 +1190,7 @@ export default function SettingsApp() {
 																	}
 																	help={ __(
 																		'Select the voice used for speech synthesis.',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	) }
 																	__nextHasNoMarginBottom
 																/>
@@ -1209,16 +1199,16 @@ export default function SettingsApp() {
 													) }
 													<tr>
 														<th scope="row">
-															<label htmlFor="gratis-tts-rate">
+															<label htmlFor="sd-tts-rate">
 																{ __(
 																	'Speech Rate',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 															</label>
 														</th>
 														<td>
 															<RangeControl
-																id="gratis-tts-rate"
+																id="sd-tts-rate"
 																value={
 																	ttsRate
 																}
@@ -1230,23 +1220,23 @@ export default function SettingsApp() {
 																step={ 0.1 }
 																help={ __(
 																	'Speed of speech. 1 is normal speed.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 															/>
 														</td>
 													</tr>
 													<tr>
 														<th scope="row">
-															<label htmlFor="gratis-tts-pitch">
+															<label htmlFor="sd-tts-pitch">
 																{ __(
 																	'Pitch',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 															</label>
 														</th>
 														<td>
 															<RangeControl
-																id="gratis-tts-pitch"
+																id="sd-tts-pitch"
 																value={
 																	ttsPitch
 																}
@@ -1258,7 +1248,7 @@ export default function SettingsApp() {
 																step={ 0.1 }
 																help={ __(
 																	'Pitch of speech. 1 is normal pitch.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 															/>
 														</td>
@@ -1267,35 +1257,35 @@ export default function SettingsApp() {
 											</table>
 										) }
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Sound Notifications',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										{ ! isSoundSupported && (
 											<p className="description">
 												{ __(
 													'Sound notifications are not supported in this browser.',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</p>
 										) }
 										{ isSoundSupported && (
-											<table className="form-table gratis-ai-agent-form-table">
+											<table className="form-table sd-ai-agent-form-table">
 												<tbody>
 													<tr>
 														<th scope="row">
 															{ __(
 																'Success Sound',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a "ding" when the agent finishes successfully',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																checked={
 																	soundSuccessEnabled
@@ -1305,7 +1295,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A short ascending tone plays when the AI completes a request without error.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1315,14 +1305,14 @@ export default function SettingsApp() {
 														<th scope="row">
 															{ __(
 																'Error Sound',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a "dong" when the agent encounters an error',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																checked={
 																	soundErrorEnabled
@@ -1332,7 +1322,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A descending tone plays when the AI returns an error response.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1342,14 +1332,14 @@ export default function SettingsApp() {
 														<th scope="row">
 															{ __(
 																'Thinking Sound',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a tick when a tool action completes',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																checked={
 																	soundThinkingEnabled
@@ -1359,7 +1349,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A subtle tick plays each time the agent completes a tool action during processing.',
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1373,27 +1363,24 @@ export default function SettingsApp() {
 
 							case 'memory-knowledge':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Memory',
-												'gratis-ai-agent'
-											) }
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
+											{ __( 'Memory', 'sd-ai-agent' ) }
 										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
 														{ __(
 															'Auto-Memory',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Proactively save and recall memories',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															checked={
 																local.auto_memory
@@ -1406,7 +1393,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'When enabled, the AI can proactively save and recall memories.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1417,32 +1404,32 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Memory manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<MemoryManager />
 										</ErrorBoundary>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Knowledge Base',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
 														{ __(
 															'Knowledge Base',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Enable knowledge base search',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															checked={
 																local.knowledge_enabled
@@ -1455,7 +1442,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'When enabled, the AI can search indexed documents and posts for relevant context.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1465,14 +1452,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Auto-Index',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Index posts on publish or update',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															checked={
 																local.knowledge_auto_index
@@ -1485,7 +1472,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Automatically index posts when they are published or updated.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1496,7 +1483,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Knowledge manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<KnowledgeManager />
@@ -1506,32 +1493,26 @@ export default function SettingsApp() {
 
 							case 'skills':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Skills',
-												'gratis-ai-agent'
-											) }
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
+											{ __( 'Skills', 'sd-ai-agent' ) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Skill manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<SkillManager />
 										</ErrorBoundary>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Abilities',
-												'gratis-ai-agent'
-											) }
+										<h3 className="sd-ai-agent-settings-section-title">
+											{ __( 'Abilities', 'sd-ai-agent' ) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Control how each tool behaves. "Auto" runs without asking, "Confirm" pauses to ask before running, "Disabled" prevents the tool from being used.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 										<AbilitiesManager
@@ -1560,17 +1541,17 @@ export default function SettingsApp() {
 
 							case 'tools':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Custom Tools',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Custom tools manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<CustomToolsManager />
@@ -1580,32 +1561,29 @@ export default function SettingsApp() {
 
 							case 'automations':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Automations',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Automations manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<AutomationsManager />
 										</ErrorBoundary>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
-											{ __(
-												'Events',
-												'gratis-ai-agent'
-											) }
+										<h3 className="sd-ai-agent-settings-section-title">
+											{ __( 'Events', 'sd-ai-agent' ) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Events manager',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<EventsManager />
@@ -1615,11 +1593,11 @@ export default function SettingsApp() {
 
 							case 'agents':
 								return (
-									<div className="gratis-ai-agent-settings-section">
+									<div className="sd-ai-agent-settings-section">
 										<ErrorBoundary
 											label={ __(
 												'Agent builder',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<AgentBuilder />
@@ -1629,19 +1607,19 @@ export default function SettingsApp() {
 
 							case 'access-branding':
 								return (
-									<div className="gratis-ai-agent-settings-section">
+									<div className="sd-ai-agent-settings-section">
 										{ features.access_control && (
 											<>
-												<h3 className="gratis-ai-agent-settings-section-title">
+												<h3 className="sd-ai-agent-settings-section-title">
 													{ __(
 														'Role Permissions',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</h3>
 												<ErrorBoundary
 													label={ __(
 														'Role permissions manager',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												>
 													<RolePermissionsManager />
@@ -1651,10 +1629,10 @@ export default function SettingsApp() {
 
 										{ features.branding && (
 											<>
-												<h3 className="gratis-ai-agent-settings-section-title">
+												<h3 className="sd-ai-agent-settings-section-title">
 													{ __(
 														'Branding',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</h3>
 												<BrandingManager
@@ -1668,11 +1646,11 @@ export default function SettingsApp() {
 
 							case 'usage':
 								return (
-									<div className="gratis-ai-agent-settings-section">
+									<div className="sd-ai-agent-settings-section">
 										<ErrorBoundary
 											label={ __(
 												'Usage dashboard',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<UsageDashboard />
@@ -1682,11 +1660,11 @@ export default function SettingsApp() {
 
 							case 'provider-trace':
 								return (
-									<div className="gratis-ai-agent-settings-section">
+									<div className="sd-ai-agent-settings-section">
 										<ErrorBoundary
 											label={ __(
 												'Provider trace viewer',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										>
 											<ProviderTraceViewer />
@@ -1696,27 +1674,27 @@ export default function SettingsApp() {
 
 							case 'advanced':
 								return (
-									<div className="gratis-ai-agent-settings-section">
-										<h3 className="gratis-ai-agent-settings-section-title">
+									<div className="sd-ai-agent-settings-section">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Model Parameters',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-temperature">
+														<label htmlFor="sd-temperature">
 															{ __(
 																'Temperature',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<RangeControl
-															id="gratis-temperature"
+															id="sd-temperature"
 															value={
 																local.temperature
 															}
@@ -1731,23 +1709,23 @@ export default function SettingsApp() {
 															step={ 0.1 }
 															help={ __(
 																'Higher = more creative, lower = more deterministic.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														/>
 													</td>
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-max-output-tokens">
+														<label htmlFor="sd-max-output-tokens">
 															{ __(
 																'Max Output Tokens',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-max-output-tokens"
+															id="sd-max-output-tokens"
 															type="number"
 															min={ 256 }
 															max={ 32768 }
@@ -1769,16 +1747,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-context-window">
+														<label htmlFor="sd-context-window">
 															{ __(
 																'Default Context Window',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-context-window"
+															id="sd-context-window"
 															type="number"
 															min={ 4096 }
 															max={ 2000000 }
@@ -1796,7 +1774,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Used as fallback when model context size is unknown.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1805,22 +1783,22 @@ export default function SettingsApp() {
 											</tbody>
 										</table>
 
-										<h3 className="gratis-ai-agent-settings-section-title">
+										<h3 className="sd-ai-agent-settings-section-title">
 											{ __(
 												'Integrations',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h3>
-										<h4 className="gratis-ai-agent-settings-subsection-title">
+										<h4 className="sd-ai-agent-settings-subsection-title">
 											{ __(
 												'Google Analytics 4',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h4>
 										<p className="description">
 											{ __(
 												'Connect to Google Analytics 4 to enable traffic analysis in the AI chat. You need a GA4 property ID and a Google service account JSON key with the "Viewer" role on your GA4 property.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 										{ gaStatus?.has_credentials && (
@@ -1830,13 +1808,13 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Google Analytics is connected.',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }{ ' ' }
 												{ gaStatus.property_id && (
 													<strong>
 														{ __(
 															'Property ID:',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }{ ' ' }
 														{ gaStatus.property_id }
 													</strong>
@@ -1854,20 +1832,20 @@ export default function SettingsApp() {
 												{ gaNotice.message }
 											</Notice>
 										) }
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-ga-property-id">
+														<label htmlFor="sd-ga-property-id">
 															{ __(
 																'GA4 Property ID',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-ga-property-id"
+															id="sd-ga-property-id"
 															value={
 																gaPropertyId
 															}
@@ -1877,7 +1855,7 @@ export default function SettingsApp() {
 															placeholder="123456789"
 															help={ __(
 																'Your numeric GA4 property ID. Found in Google Analytics > Admin > Property Settings.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1885,16 +1863,16 @@ export default function SettingsApp() {
 												</tr>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-ga-service-json">
+														<label htmlFor="sd-ga-service-json">
 															{ __(
 																'Service Account JSON Key',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextareaControl
-															id="gratis-ga-service-json"
+															id="sd-ga-service-json"
 															value={
 																gaServiceJson
 															}
@@ -1903,11 +1881,11 @@ export default function SettingsApp() {
 															}
 															placeholder={ __(
 																'Paste the contents of your service account JSON key file here.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															help={ __(
 																'Download from Google Cloud Console > IAM & Admin > Service Accounts > Keys. Grant the service account "Viewer" access in GA4 Admin > Property Access Management.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															rows={ 6 }
 														/>
@@ -1915,7 +1893,7 @@ export default function SettingsApp() {
 												</tr>
 											</tbody>
 										</table>
-										<div className="gratis-ai-agent-settings-row-actions">
+										<div className="sd-ai-agent-settings-row-actions">
 											<Button
 												variant="primary"
 												onClick={ handleGaSave }
@@ -1928,7 +1906,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Save GA Credentials',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</Button>
 											{ gaStatus?.has_credentials && (
@@ -1940,22 +1918,22 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Disconnect',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</Button>
 											) }
 										</div>
 
-										<h4 className="gratis-ai-agent-settings-subsection-title">
+										<h4 className="sd-ai-agent-settings-subsection-title">
 											{ __(
 												'Internet Search (Brave Search API)',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</h4>
 										<p className="description">
 											{ __(
 												'Enable richer internet search results by connecting a Brave Search API key. Without a key, the agent uses DuckDuckGo instant answers (free, no setup required). Get a free Brave Search API key at',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }{ ' ' }
 											<a
 												href="https://brave.com/search/api/"
@@ -1972,7 +1950,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Brave Search API key is configured. The agent will use Brave Search for internet searches.',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</Notice>
 										) }
@@ -1983,7 +1961,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'No Brave Search API key configured. The agent will use DuckDuckGo instant answers (zero-config fallback).',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</Notice>
 										) }
@@ -1998,20 +1976,20 @@ export default function SettingsApp() {
 												{ braveNotice.message }
 											</Notice>
 										) }
-										<table className="form-table gratis-ai-agent-form-table">
+										<table className="form-table sd-ai-agent-form-table">
 											<tbody>
 												<tr>
 													<th scope="row">
-														<label htmlFor="gratis-brave-api-key">
+														<label htmlFor="sd-brave-api-key">
 															{ __(
 																'Brave Search API Key',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 														</label>
 													</th>
 													<td>
 														<TextControl
-															id="gratis-brave-api-key"
+															id="sd-brave-api-key"
 															type="password"
 															value={
 																braveApiKey
@@ -2023,13 +2001,13 @@ export default function SettingsApp() {
 																braveConfigured
 																	? __(
 																			'Key saved — enter a new key to replace it',
-																			'gratis-ai-agent'
+																			'sd-ai-agent'
 																	  )
 																	: 'BSA...'
 															}
 															help={ __(
 																'Get a free API key at brave.com/search/api/ — the free tier includes 2,000 queries/month.',
-																'gratis-ai-agent'
+																'sd-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2037,7 +2015,7 @@ export default function SettingsApp() {
 												</tr>
 											</tbody>
 										</table>
-										<div className="gratis-ai-agent-settings-row-actions">
+										<div className="sd-ai-agent-settings-row-actions">
 											<Button
 												variant="primary"
 												onClick={ handleBraveSave }
@@ -2048,7 +2026,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Save Brave API Key',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</Button>
 											{ braveConfigured && (
@@ -2060,7 +2038,7 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Remove Key',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 													) }
 												</Button>
 											) }
@@ -2075,20 +2053,20 @@ export default function SettingsApp() {
 				</TabPanel>
 			</div>
 			{ ! selfSavingTabs.includes( activeTab ) && (
-				<div className="gratis-ai-agent-settings-actions">
+				<div className="sd-ai-agent-settings-actions">
 					<Button
 						variant="primary"
 						onClick={ handleSave }
 						isBusy={ saving }
 						disabled={ saving }
 					>
-						{ __( 'Save Settings', 'gratis-ai-agent' ) }
+						{ __( 'Save Settings', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 			) }
 			<SnackbarList
 				notices={ snackbarNotices }
-				className="gratis-ai-agent-snackbar-list"
+				className="sd-ai-agent-snackbar-list"
 				onRemove={ removeNotice }
 			/>
 		</div>

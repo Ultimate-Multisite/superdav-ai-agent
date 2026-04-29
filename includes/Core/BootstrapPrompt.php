@@ -9,11 +9,11 @@ declare(strict_types=1);
  * infer the site's purpose/audience/style, store memories, queue RAG indexing, and
  * present findings with tailored starter prompts to the site owner.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,11 +47,11 @@ class BootstrapPrompt {
 			. 'Use `ai-agent/list-posts` to fetch recent posts and pages. '
 			. "Note topics covered, writing style, tone (formal/casual/technical), and content categories.\n\n"
 			. "### Step 2 — Check active plugins\n"
-			. 'Use `gratis-ai-agent/get-plugins` to list installed and active plugins. '
+			. 'Use `sd-ai-agent/get-plugins` to list installed and active plugins. '
 			. 'Identify key capabilities: WooCommerce (e-commerce), Yoast/Rank Math (SEO), '
 			. "contact form plugins, page builders, membership systems, LMS, booking systems, etc.\n\n"
 			. "### Step 3 — Check active theme\n"
-			. 'Use `gratis-ai-agent/run-php` to call `wp_get_theme()` and get the theme name, '
+			. 'Use `sd-ai-agent/run-php` to call `wp_get_theme()` and get the theme name, '
 			. "description, and parent theme. Note the visual style implied by the theme name.\n\n"
 			. "### Step 4 — Check WooCommerce products (if WooCommerce is active)\n"
 			. 'If WooCommerce is detected in Step 2, use `ai-agent/list-posts` with '
@@ -70,7 +70,7 @@ class BootstrapPrompt {
 			. "- List of key active plugins and their purpose\n"
 			. "- Theme name\n\n"
 			. "### Step 7 — Queue knowledge indexing (if available)\n"
-			. 'Search for a RAG/knowledge indexing ability using `gratis-ai-agent/ability-search` '
+			. 'Search for a RAG/knowledge indexing ability using `sd-ai-agent/ability-search` '
 			. "with query \"index knowledge\" or \"knowledge collection\". If found, trigger indexing.\n\n"
 			. "### Step 8 — Present findings and starter prompts\n"
 			. "Write a warm welcome message with your findings. Format it as:\n\n"

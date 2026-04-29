@@ -2,7 +2,7 @@
  * Redesigned sidebar — status tabs (Active / Archived / Trash) with a flat
  * session list under them. Each session row shows the leading emoji from
  * its generated title (falls back to a chat glyph) and a per-row "more"
- * menu. Pulls sessions/search from the existing gratis-ai-agent store.
+ * menu. Pulls sessions/search from the existing sd-ai-agent store.
  */
 
 import { useState, useCallback, useRef, useEffect } from '@wordpress/element';
@@ -61,7 +61,7 @@ function relativeTime( dateStr ) {
 	const now = new Date();
 	const diff = Math.floor( ( now - date ) / 1000 );
 	if ( diff < 60 ) {
-		return __( 'just now', 'gratis-ai-agent' );
+		return __( 'just now', 'sd-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -96,7 +96,7 @@ function SessionRow( { session, isActive, job, onPick } ) {
 		leadIcon = (
 			<span
 				className="gaa-cr-dot"
-				title={ __( 'Agent running', 'gratis-ai-agent' ) }
+				title={ __( 'Agent running', 'sd-ai-agent' ) }
 			/>
 		);
 	} else if ( emoji ) {
@@ -115,14 +115,14 @@ function SessionRow( { session, isActive, job, onPick } ) {
 	let metaIsRunning = false;
 	if ( isRunning ) {
 		metaLabel = changesCount
-			? `${ __(
-					'Running',
-					'gratis-ai-agent'
-			  ) } · ${ changesCount } ${ __( 'changes', 'gratis-ai-agent' ) }`
-			: __( 'Running…', 'gratis-ai-agent' );
+			? `${ __( 'Running', 'sd-ai-agent' ) } · ${ changesCount } ${ __(
+					'changes',
+					'sd-ai-agent'
+			  ) }`
+			: __( 'Running…', 'sd-ai-agent' );
 		metaIsRunning = true;
 	} else if ( isAwaiting ) {
-		metaLabel = __( 'Approval needed', 'gratis-ai-agent' );
+		metaLabel = __( 'Approval needed', 'sd-ai-agent' );
 		metaIsRunning = true;
 	} else {
 		metaLabel = relativeTime( session.updated_at );
@@ -145,7 +145,7 @@ function SessionRow( { session, isActive, job, onPick } ) {
 			<span className="gaa-cr-session-row-icon">{ leadIcon }</span>
 			<div className="gaa-cr-session-row-body">
 				<div className="gaa-cr-session-row-title">
-					{ title || __( 'Untitled', 'gratis-ai-agent' ) }
+					{ title || __( 'Untitled', 'sd-ai-agent' ) }
 				</div>
 				<div
 					className={ `gaa-cr-session-row-meta${
@@ -163,7 +163,7 @@ function SessionRow( { session, isActive, job, onPick } ) {
 						e.stopPropagation();
 						setShowMenu( ( v ) => ! v );
 					} }
-					aria-label={ __( 'Session options', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Session options', 'sd-ai-agent' ) }
 					aria-haspopup="menu"
 					aria-expanded={ showMenu }
 				>
@@ -184,9 +184,9 @@ function SessionRow( { session, isActive, job, onPick } ) {
 }
 
 const FILTERS = [
-	{ key: 'active', label: __( 'Active', 'gratis-ai-agent' ) },
-	{ key: 'archived', label: __( 'Archived', 'gratis-ai-agent' ) },
-	{ key: 'trash', label: __( 'Trash', 'gratis-ai-agent' ) },
+	{ key: 'active', label: __( 'Active', 'sd-ai-agent' ) },
+	{ key: 'archived', label: __( 'Archived', 'sd-ai-agent' ) },
+	{ key: 'trash', label: __( 'Trash', 'sd-ai-agent' ) },
 ];
 
 /**
@@ -273,17 +273,17 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 	return (
 		<aside
 			className="gaa-cr-sidebar"
-			aria-label={ __( 'Conversations', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Conversations', 'sd-ai-agent' ) }
 		>
 			<div className="gaa-cr-sidebar-brand">
 				<div className="gaa-cr-sidebar-brand-text">
 					<div className="gaa-cr-sidebar-brand-title">
-						{ __( 'AI Agent', 'gratis-ai-agent' ) }
+						{ __( 'AI Agent', 'sd-ai-agent' ) }
 					</div>
 					<div className="gaa-cr-sidebar-brand-subtitle">
 						{ __(
 							'Universal agent for every plugin on your site',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</div>
 				</div>
@@ -291,7 +291,7 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 					type="button"
 					className="gaa-cr-icon-btn gaa-cr-sidebar-brand-collapse"
 					onClick={ onToggleCollapse }
-					aria-label={ __( 'Hide sidebar', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Hide sidebar', 'sd-ai-agent' ) }
 				>
 					<Icon icon={ sidebarIcon } size={ 16 } />
 				</button>
@@ -305,14 +305,14 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 					} }
 				>
 					<Icon icon={ plus } size={ 16 } />
-					<span>{ __( 'New chat', 'gratis-ai-agent' ) }</span>
+					<span>{ __( 'New chat', 'sd-ai-agent' ) }</span>
 				</button>
 			</div>
 
 			<div
 				className="gaa-cr-sidebar-tabs"
 				role="tablist"
-				aria-label={ __( 'Session filter', 'gratis-ai-agent' ) }
+				aria-label={ __( 'Session filter', 'sd-ai-agent' ) }
 			>
 				{ FILTERS.map( ( f ) => {
 					const active = sessionFilter === f.key;
@@ -343,11 +343,11 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 						className="gaa-cr-search-input"
 						placeholder={ __(
 							'Search conversations',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						aria-label={ __(
 							'Search conversations',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						value={ localQuery }
 						onChange={ handleSearchChange }
@@ -359,14 +359,11 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 				{ total === 0 && (
 					<div className="gaa-cr-session-empty">
 						{ sessionFilter === 'trash' &&
-							__( 'Trash is empty', 'gratis-ai-agent' ) }
+							__( 'Trash is empty', 'sd-ai-agent' ) }
 						{ sessionFilter === 'archived' &&
-							__(
-								'No archived conversations',
-								'gratis-ai-agent'
-							) }
+							__( 'No archived conversations', 'sd-ai-agent' ) }
 						{ sessionFilter === 'active' &&
-							__( 'No conversations yet', 'gratis-ai-agent' ) }
+							__( 'No conversations yet', 'sd-ai-agent' ) }
 					</div>
 				) }
 				{ sessions.map( ( s ) => (
@@ -383,10 +380,10 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 			<div className="gaa-cr-sidebar-foot">
 				<span>
 					{ total === 1
-						? __( '1 conversation', 'gratis-ai-agent' )
+						? __( '1 conversation', 'sd-ai-agent' )
 						: `${ total } ${ __(
 								'conversations',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 						  ) }` }
 				</span>
 			</div>

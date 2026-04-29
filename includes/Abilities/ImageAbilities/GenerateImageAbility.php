@@ -8,11 +8,11 @@ declare(strict_types=1);
  * configured in WordPress core Settings > AI that supports image generation
  * (OpenAI DALL-E, Stability AI, Google Imagen, etc.) will be used automatically.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageAbilities;
+namespace SdAiAgent\Abilities\ImageAbilities;
 
 use WP_Error;
 
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.6.0
  */
-class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
+class GenerateImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 
 	/**
 	 * Register this ability.
@@ -36,10 +36,10 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/generate-image',
+			'sd-ai-agent/generate-image',
 			[
-				'label'         => __( 'Generate Image', 'gratis-ai-agent' ),
-				'description'   => __( 'Generate a unique AI image from a text prompt and import it into the media library. Uses whichever image-capable provider is configured in Settings > AI (e.g. DALL-E, Stable Diffusion, Google Imagen). Use this when stock photos are not suitable.', 'gratis-ai-agent' ),
+				'label'         => __( 'Generate Image', 'sd-ai-agent' ),
+				'description'   => __( 'Generate a unique AI image from a text prompt and import it into the media library. Uses whichever image-capable provider is configured in Settings > AI (e.g. DALL-E, Stable Diffusion, Google Imagen). Use this when stock photos are not suitable.', 'sd-ai-agent' ),
 				'ability_class' => self::class,
 			]
 		);
@@ -49,14 +49,14 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 	 * {@inheritdoc}
 	 */
 	protected function label(): string {
-		return __( 'Generate Image', 'gratis-ai-agent' );
+		return __( 'Generate Image', 'sd-ai-agent' );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	protected function description(): string {
-		return __( 'Generate a unique AI image from a text prompt and import it into the media library. Uses whichever image-capable provider is configured in Settings > AI (e.g. DALL-E, Stable Diffusion, Google Imagen). Use this when stock photos are not suitable.', 'gratis-ai-agent' );
+		return __( 'Generate a unique AI image from a text prompt and import it into the media library. Uses whichever image-capable provider is configured in Settings > AI (e.g. DALL-E, Stable Diffusion, Google Imagen). Use this when stock photos are not suitable.', 'sd-ai-agent' );
 	}
 
 	/**
@@ -287,7 +287,7 @@ class GenerateImageAbility extends \GratisAiAgent\Abilities\AbstractAbility {
 			'image/webp' => 'webp',
 		];
 		$ext      = $ext_map[ $mime ] ?? 'png';
-		$tmp_file = get_temp_dir() . 'gratis-ai-' . uniqid() . '.' . $ext;
+		$tmp_file = get_temp_dir() . 'sd-ai-' . uniqid() . '.' . $ext;
 
 		$written = file_put_contents( $tmp_file, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		if ( false === $written ) {

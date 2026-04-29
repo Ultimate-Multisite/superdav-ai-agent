@@ -8,14 +8,14 @@ declare(strict_types=1);
  * received them. Used to surface quality signals (helpful/neutral/negative)
  * and to tune the auto-injection trigger patterns over time.
  *
- * @package GratisAiAgent\Repositories
+ * @package SdAiAgent\Repositories
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Repositories;
+namespace SdAiAgent\Repositories;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Models\DTO\SkillUsageRow;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Models\DTO\SkillUsageRow;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

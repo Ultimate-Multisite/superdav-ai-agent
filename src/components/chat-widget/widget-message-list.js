@@ -170,8 +170,8 @@ export default function WidgetMessageList() {
 
 	const runningToolName = getRunningToolName( runningToolCalls );
 	const runningStep = runningToolName
-		? `${ __( 'Running', 'gratis-ai-agent' ) } ${ runningToolName }…`
-		: __( 'Composing reply…', 'gratis-ai-agent' );
+		? `${ __( 'Running', 'sd-ai-agent' ) } ${ runningToolName }…`
+		: __( 'Composing reply…', 'sd-ai-agent' );
 
 	// ── Render ────────────────────────────────────────────────────────────────
 
@@ -230,7 +230,7 @@ export default function WidgetMessageList() {
 						onClick={ scrollToBottom }
 						aria-label={ __(
 							'Scroll to latest messages',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					>
 						{ /* Down-arrow chevron */ }

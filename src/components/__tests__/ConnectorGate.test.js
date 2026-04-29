@@ -6,7 +6,7 @@
  * - Renders the title
  * - Renders the description
  * - Renders the CTA link pointing to official Connectors page
- * - Uses custom connectorsUrl from window.gratisAiAgentData when available
+ * - Uses custom connectorsUrl from window.sdAiAgentData when available
  * - Falls back to official Connectors page URL when connectorsUrl is not set
  * - Shows Gutenberg install prompt when connectorsAvailable is false
  */
@@ -49,13 +49,13 @@ jest.mock( '@wordpress/components', () => {
 
 describe( 'ConnectorGate', () => {
 	afterEach( () => {
-		// Restore window.gratisAiAgentData between tests.
-		delete window.gratisAiAgentData;
+		// Restore window.sdAiAgentData between tests.
+		delete window.sdAiAgentData;
 	} );
 
 	test( 'renders the gate wrapper', () => {
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
-		expect( html ).toContain( 'gratis-ai-agent-connector-gate' );
+		expect( html ).toContain( 'sd-ai-agent-connector-gate' );
 	} );
 
 	test( 'renders the title', () => {
@@ -69,21 +69,21 @@ describe( 'ConnectorGate', () => {
 	} );
 
 	test( 'renders CTA button when connectors available', () => {
-		window.gratisAiAgentData = { connectorsAvailable: '1' };
+		window.sdAiAgentData = { connectorsAvailable: '1' };
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'Configure a Connector' );
 	} );
 
 	test( 'CTA button links to official Connectors page when available', () => {
-		window.gratisAiAgentData = { connectorsAvailable: '1' };
+		window.sdAiAgentData = { connectorsAvailable: '1' };
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain(
 			'options-general.php?page=options-connectors-wp-admin'
 		);
 	} );
 
-	test( 'uses connectorsUrl from window.gratisAiAgentData when available', () => {
-		window.gratisAiAgentData = {
+	test( 'uses connectorsUrl from window.sdAiAgentData when available', () => {
+		window.sdAiAgentData = {
 			connectorsAvailable: '1',
 			connectorsUrl: 'admin.php?page=custom-connectors',
 		};
@@ -92,14 +92,14 @@ describe( 'ConnectorGate', () => {
 	} );
 
 	test( 'renders info notice when connectors available', () => {
-		window.gratisAiAgentData = { connectorsAvailable: '1' };
+		window.sdAiAgentData = { connectorsAvailable: '1' };
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		const notice = html.match( /data-status="info"/ );
 		expect( notice ).not.toBeNull();
 	} );
 
 	test( 'shows Gutenberg install button when connectorsAvailable is falsy', () => {
-		window.gratisAiAgentData = { connectorsAvailable: '' };
+		window.sdAiAgentData = { connectorsAvailable: '' };
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'Install &amp; Activate Gutenberg' );
 	} );
@@ -110,7 +110,7 @@ describe( 'ConnectorGate', () => {
 	} );
 
 	test( 'shows warning notice when connectorsAvailable is falsy', () => {
-		window.gratisAiAgentData = { connectorsAvailable: '' };
+		window.sdAiAgentData = { connectorsAvailable: '' };
 		const html = renderToStaticMarkup( createElement( ConnectorGate, {} ) );
 		expect( html ).toContain( 'data-status="warning"' );
 		expect( html ).toContain( 'Gutenberg plugin' );

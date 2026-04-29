@@ -187,7 +187,7 @@ async function interceptStream( page, options = {} ) {
 	// Use a predicate function instead of a regex because wp-env uses plain
 	// permalinks (?rest_route=%2F...) where slashes are URL-encoded.
 	await page.route(
-		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/run' ),
+		( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/run' ),
 		async ( route ) => {
 		try {
 			const postBody = route.request().postDataJSON();
@@ -212,7 +212,7 @@ async function interceptStream( page, options = {} ) {
 	// `processingPolls` polls, then 'complete' with session_id so the store
 	// reloads the session (intercepted below to include the AI reply).
 	await page.route(
-		( url ) => decodeURIComponent( url.toString() ).includes( 'gratis-ai-agent/v1/job/' ),
+		( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/job/' ),
 		async ( route ) => {
 		jobPollCount += 1;
 		if ( jobPollCount <= processingPolls ) {
@@ -244,7 +244,7 @@ async function interceptStream( page, options = {} ) {
 			const decoded = decodeURIComponent( url.toString() );
 			// Match /sessions/:id but not the list endpoint or sub-paths.
 			return (
-				decoded.includes( 'gratis-ai-agent/v1/sessions/' ) &&
+				decoded.includes( 'sd-ai-agent/v1/sessions/' ) &&
 				! decoded.includes( '/sessions/shared' ) &&
 				/\/sessions\/\d+/.test( decoded )
 			);
@@ -281,7 +281,7 @@ async function interceptStream( page, options = {} ) {
 		( url ) => {
 			const decoded = decodeURIComponent( url.toString() );
 			return (
-				decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
+				decoded.includes( 'sd-ai-agent/v1/sessions' ) &&
 				! decoded.includes( '/sessions/shared' ) &&
 				! /\/sessions\/\d+/.test( decoded )
 			);
@@ -326,12 +326,12 @@ test.describe( 'TTS Toggle Button', () => {
 		// The button is only rendered when isTTSSupported is true.
 		// Our mock defines window.speechSynthesis, so the button should appear.
 		// The admin page now uses ChatRedesign (.gaa-cr); the TTS button is in
-		// ConvoHeader with class gratis-ai-agent-tts-btn. Scoping to .gaa-cr
+		// ConvoHeader with class sd-ai-agent-tts-btn. Scoping to .gaa-cr
 		// avoids matching the floating widget's button.
 		// Use 15 s timeout — the chat panel can be slow to render on CI runners
 		// under load, especially on WP trunk where the SPA mount is heavier.
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 	} );
@@ -341,7 +341,7 @@ test.describe( 'TTS Toggle Button', () => {
 	} ) => {
 		// Scope to the ChatRedesign root (.gaa-cr) — admin page chat panel.
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 
@@ -364,7 +364,7 @@ test.describe( 'TTS Toggle Button', () => {
 	} ) => {
 		// Scope to the ChatRedesign root (.gaa-cr) — admin page chat panel.
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 
@@ -397,7 +397,7 @@ test.describe( 'TTS Settings Tab', () => {
 		await goToSettingsPage( page, 'general' );
 		// Wait for settings to finish loading so the TTS section is rendered.
 		await page
-			.locator( '.gratis-ai-agent-settings-loading' )
+			.locator( '.sd-ai-agent-settings-loading' )
 			.waitFor( { state: 'hidden', timeout: 15_000 } );
 	} );
 
@@ -467,7 +467,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 		// Enable TTS via the header toggle. The admin page uses ChatRedesign
 		// (.gaa-cr); scope to that root to avoid matching the floating widget.
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 
@@ -551,7 +551,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 	} ) => {
 		// Ensure TTS is disabled. Scope to the ChatRedesign root (.gaa-cr).
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 
@@ -604,7 +604,7 @@ test.describe( 'TTS Auto-Speak on AI Responses', () => {
 	} ) => {
 		// Enable TTS. Scope to the ChatRedesign root (.gaa-cr).
 		const ttsBtn = page
-			.locator( '.gaa-cr .gratis-ai-agent-tts-btn' )
+			.locator( '.gaa-cr .sd-ai-agent-tts-btn' )
 			.first();
 		await expect( ttsBtn ).toBeVisible( { timeout: 15_000 } );
 

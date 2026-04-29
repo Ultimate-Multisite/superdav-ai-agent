@@ -28,8 +28,8 @@ Reusable sections of templates:
 - `parts/sidebar.html` — Sidebar
 
 ## Available Tools
-- `gratis-ai-agent/list-block-templates` — List all templates with slugs and descriptions
-- `gratis-ai-agent/list-block-patterns` — Browse patterns for page creation and templates
+- `sd-ai-agent/list-block-templates` — List all templates with slugs and descriptions
+- `sd-ai-agent/list-block-patterns` — Browse patterns for page creation and templates
 
 ## WP-CLI Commands
 - `wp theme list --status=active` — Current active theme
@@ -63,16 +63,16 @@ Define custom page templates in theme.json:
 ## Block Patterns and FSE
 - Page creation patterns appear when creating new pages
 - Template patterns can be used in the Site Editor
-- Use `gratis-ai-agent/list-block-patterns` to discover available patterns
+- Use `sd-ai-agent/list-block-patterns` to discover available patterns
 - Synced patterns (reusable blocks) are stored as `wp_block` post type
 
 ## Workflows
 
 ### Inspect current theme templates
-1. Use `gratis-ai-agent/list-block-templates` to see all templates
-2. Use `gratis-ai-agent/parse-block-content` to analyze template structure
+1. Use `sd-ai-agent/list-block-templates` to see all templates
+2. Use `sd-ai-agent/parse-block-content` to analyze template structure
 
 ### Find patterns for page building
-1. Use `gratis-ai-agent/list-block-patterns` with relevant category
+1. Use `sd-ai-agent/list-block-patterns` with relevant category
 2. Review pattern content for suitable layouts
-3. Adapt patterns using `gratis-ai-agent/create-block-content`
+3. Adapt patterns using `sd-ai-agent/create-block-content`

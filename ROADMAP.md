@@ -1,10 +1,10 @@
-# Gratis AI Agent Roadmap
+# Superdav AI Agent Roadmap
 
 ## LLM Provider Research (March 2026)
 
 ### Goal
 
-Find an LLM model that is good at agentic tasks (tool calling, multi-step reasoning), very inexpensive, and can be resold with markup for the Gratis AI Agent product. Must be compatible with OpenAI chat completions API format.
+Find an LLM model that is good at agentic tasks (tool calling, multi-step reasoning), very inexpensive, and can be resold with markup for the Superdav AI Agent product. Must be compatible with OpenAI chat completions API format.
 
 ### Recommended Models
 

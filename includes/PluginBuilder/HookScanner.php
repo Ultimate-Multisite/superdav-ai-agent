@@ -5,11 +5,11 @@ declare(strict_types=1);
  * Hook Scanner — scans installed plugins and themes for WordPress hooks
  * (actions and filters) to enable extension-plugin generation.
  *
- * @package GratisAiAgent\PluginBuilder
+ * @package SdAiAgent\PluginBuilder
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\PluginBuilder;
+namespace SdAiAgent\PluginBuilder;
 
 use WP_Error;
 
@@ -36,8 +36,8 @@ class HookScanner {
 
 		if ( empty( $plugin_slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
-				__( 'Plugin slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_plugin_not_found',
+				__( 'Plugin slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
@@ -45,9 +45,9 @@ class HookScanner {
 
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				/* translators: %s: plugin slug */
-				sprintf( __( 'Plugin not found: %s', 'gratis-ai-agent' ), $plugin_slug )
+				sprintf( __( 'Plugin not found: %s', 'sd-ai-agent' ), $plugin_slug )
 			);
 		}
 
@@ -65,8 +65,8 @@ class HookScanner {
 
 		if ( empty( $theme_slug ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_theme_not_found',
-				__( 'Theme slug must not be empty.', 'gratis-ai-agent' )
+				'sd_ai_agent_theme_not_found',
+				__( 'Theme slug must not be empty.', 'sd-ai-agent' )
 			);
 		}
 
@@ -74,9 +74,9 @@ class HookScanner {
 
 		if ( ! is_dir( $theme_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_theme_not_found',
+				'sd_ai_agent_theme_not_found',
 				/* translators: %s: theme slug */
-				sprintf( __( 'Theme not found: %s', 'gratis-ai-agent' ), $theme_slug )
+				sprintf( __( 'Theme not found: %s', 'sd-ai-agent' ), $theme_slug )
 			);
 		}
 

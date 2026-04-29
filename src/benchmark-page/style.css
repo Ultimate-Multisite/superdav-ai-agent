@@ -1,54 +1,54 @@
-.gratis-ai-agent-benchmark-page {
+.sd-ai-agent-benchmark-page {
   max-width: 1200px;
   margin: 20px 0;
 }
 
-.gratis-ai-agent-benchmark-tabs .components-tab-panel__tabs {
+.sd-ai-agent-benchmark-tabs .components-tab-panel__tabs {
   margin-bottom: 20px;
   border-bottom: 1px solid #c3c4c7;
 }
 
-.gratis-ai-agent-benchmark-tabs .components-tab-panel__tab-content {
+.sd-ai-agent-benchmark-tabs .components-tab-panel__tab-content {
   padding: 20px 0;
 }
 
-.gratis-ai-agent-benchmark-new-run .components-card {
+.sd-ai-agent-benchmark-new-run .components-card {
   margin-bottom: 20px;
 }
 
-.gratis-ai-agent-benchmark-progress {
+.sd-ai-agent-benchmark-progress {
   margin-bottom: 24px;
   padding: 16px;
   background: #f0f6fc;
   border-radius: 4px;
 }
 
-.gratis-ai-agent-benchmark-progress .components-notice {
+.sd-ai-agent-benchmark-progress .components-notice {
   margin-bottom: 12px;
 }
 
-.gratis-ai-agent-benchmark-models {
+.sd-ai-agent-benchmark-models {
   margin: 24px 0;
   padding: 16px;
   background: #f6f7f7;
   border-radius: 4px;
 }
 
-.gratis-ai-agent-benchmark-models h3 {
+.sd-ai-agent-benchmark-models h3 {
   margin-top: 0;
   margin-bottom: 16px;
 }
 
-.gratis-ai-agent-model-selector {
+.sd-ai-agent-model-selector {
   max-height: 400px;
   overflow-y: auto;
 }
 
-.gratis-ai-agent-model-provider {
+.sd-ai-agent-model-provider {
   margin-bottom: 16px;
 }
 
-.gratis-ai-agent-model-provider h4 {
+.sd-ai-agent-model-provider h4 {
   margin: 0 0 8px;
   padding: 8px;
   background: #fff;
@@ -56,28 +56,28 @@
   border-radius: 4px;
 }
 
-.gratis-ai-agent-model-list {
+.sd-ai-agent-model-list {
   padding-left: 16px;
 }
 
-.gratis-ai-agent-model-item {
+.sd-ai-agent-model-item {
   margin-bottom: 8px;
 }
 
-.gratis-ai-agent-benchmark-run-list {
+.sd-ai-agent-benchmark-run-list {
   margin-top: 20px;
 }
 
-.gratis-ai-agent-benchmark-run-list table {
+.sd-ai-agent-benchmark-run-list table {
   width: 100%;
 }
 
-.gratis-ai-agent-benchmark-run-list th,
-.gratis-ai-agent-benchmark-run-list td {
+.sd-ai-agent-benchmark-run-list th,
+.sd-ai-agent-benchmark-run-list td {
   padding: 12px;
 }
 
-.gratis-ai-agent-benchmark-status {
+.sd-ai-agent-benchmark-status {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 4px;
@@ -85,38 +85,38 @@
   font-weight: 500;
 }
 
-.gratis-ai-agent-benchmark-status.pending {
+.sd-ai-agent-benchmark-status.pending {
   background: #f0f6fc;
   color: #0969da;
 }
 
-.gratis-ai-agent-benchmark-status.running {
+.sd-ai-agent-benchmark-status.running {
   background: #fff8c5;
   color: #7d4e00;
 }
 
-.gratis-ai-agent-benchmark-status.completed {
+.sd-ai-agent-benchmark-status.completed {
   background: #dafbe1;
   color: #1a7f37;
 }
 
-.gratis-ai-agent-benchmark-status.failed {
+.sd-ai-agent-benchmark-status.failed {
   background: #ffebe9;
   color: #cf222e;
 }
 
-.gratis-ai-agent-benchmark-run-details {
+.sd-ai-agent-benchmark-run-details {
   margin-top: 20px;
 }
 
-.gratis-ai-agent-benchmark-summary {
+.sd-ai-agent-benchmark-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.gratis-ai-agent-benchmark-stat-card {
+.sd-ai-agent-benchmark-stat-card {
   padding: 12px 16px;
   background: #fff;
   border: 1px solid #dcdcde;
@@ -124,7 +124,7 @@
   text-align: center;
 }
 
-.gratis-ai-agent-benchmark-stat-card h4 {
+.sd-ai-agent-benchmark-stat-card h4 {
   margin: 0 0 6px;
   font-size: 11px;
   text-transform: uppercase;
@@ -133,97 +133,97 @@
   font-weight: 400;
 }
 
-.gratis-ai-agent-benchmark-stat-card .stat-value {
+.sd-ai-agent-benchmark-stat-card .stat-value {
   font-size: 24px;
   font-weight: 600;
   color: #1d2327;
 }
 
-.gratis-ai-agent-benchmark-results-table {
+.sd-ai-agent-benchmark-results-table {
   margin-top: 24px;
   overflow-x: auto;
 }
 
-.gratis-ai-agent-benchmark-results-table table {
+.sd-ai-agent-benchmark-results-table table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.gratis-ai-agent-benchmark-results-table th,
-.gratis-ai-agent-benchmark-results-table td {
+.sd-ai-agent-benchmark-results-table th,
+.sd-ai-agent-benchmark-results-table td {
   padding: 12px;
   border-bottom: 1px solid #c3c4c7;
   text-align: left;
 }
 
-.gratis-ai-agent-benchmark-results-table th {
+.sd-ai-agent-benchmark-results-table th {
   background: #f6f7f7;
   font-weight: 600;
 }
 
-.gratis-ai-agent-benchmark-results-table .is-correct {
+.sd-ai-agent-benchmark-results-table .is-correct {
   color: #1a7f37;
 }
 
-.gratis-ai-agent-benchmark-results-table .is-incorrect {
+.sd-ai-agent-benchmark-results-table .is-incorrect {
   color: #cf222e;
 }
 
-.gratis-ai-agent-benchmark-compare {
+.sd-ai-agent-benchmark-compare {
   margin-top: 20px;
 }
 
-.gratis-ai-agent-benchmark-compare-selector {
+.sd-ai-agent-benchmark-compare-selector {
   margin-bottom: 24px;
   padding: 16px;
   background: #f6f7f7;
   border-radius: 4px;
 }
 
-.gratis-ai-agent-benchmark-compare-chart {
+.sd-ai-agent-benchmark-compare-chart {
   margin-top: 24px;
 }
 
-.gratis-ai-agent-benchmark-compare-table {
+.sd-ai-agent-benchmark-compare-table {
   margin-top: 24px;
   overflow-x: auto;
 }
 
-.gratis-ai-agent-benchmark-compare-table table {
+.sd-ai-agent-benchmark-compare-table table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.gratis-ai-agent-benchmark-compare-table th,
-.gratis-ai-agent-benchmark-compare-table td {
+.sd-ai-agent-benchmark-compare-table th,
+.sd-ai-agent-benchmark-compare-table td {
   padding: 12px;
   border-bottom: 1px solid #c3c4c7;
   text-align: left;
 }
 
-.gratis-ai-agent-benchmark-compare-table th {
+.sd-ai-agent-benchmark-compare-table th {
   background: #f6f7f7;
   font-weight: 600;
 }
 
-.gratis-ai-agent-benchmark-compare-table .winner {
+.sd-ai-agent-benchmark-compare-table .winner {
   background: #dafbe1;
   font-weight: 600;
 }
 
-.gratis-ai-agent-benchmark-actions {
+.sd-ai-agent-benchmark-actions {
   margin-top: 24px;
   display: flex;
   gap: 12px;
 }
 
-.gratis-ai-agent-benchmark-empty {
+.sd-ai-agent-benchmark-empty {
   text-align: center;
   padding: 48px;
   color: #646970;
 }
 
-.gratis-ai-agent-benchmark-loading {
+.sd-ai-agent-benchmark-loading {
   display: flex;
   justify-content: center;
   align-items: center;

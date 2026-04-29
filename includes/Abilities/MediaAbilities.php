@@ -7,14 +7,14 @@ declare(strict_types=1);
  * Provides media listing, sideloading from URL, and deletion.
  * Ported from the WordPress/ai experiments plugin pattern.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Core\ChangeLogger;
-use GratisAiAgent\Models\ChangesLog;
+use SdAiAgent\Core\ChangeLogger;
+use SdAiAgent\Models\ChangesLog;
 use WP_Error;
 use WP_Post;
 
@@ -35,9 +35,9 @@ class MediaAbilities {
 		wp_register_ability(
 			'ai-agent/list-media',
 			[
-				'label'               => __( 'List Media', 'gratis-ai-agent' ),
-				'description'         => __( 'List items in the WordPress media library. Filter by MIME type, search term, or date. Returns attachment ID, URL, title, alt text, MIME type, and file size.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'List Media', 'sd-ai-agent' ),
+				'description'         => __( 'List items in the WordPress media library. Filter by MIME type, search term, or date. Returns attachment ID, URL, title, alt text, MIME type, and file size.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -84,9 +84,9 @@ class MediaAbilities {
 		wp_register_ability(
 			'ai-agent/upload-media-from-url',
 			[
-				'label'               => __( 'Upload Media from URL', 'gratis-ai-agent' ),
-				'description'         => __( 'Download a file from a URL and add it to the WordPress media library. Returns the new attachment ID and URL. Supports images, PDFs, and other media types.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Upload Media from URL', 'sd-ai-agent' ),
+				'description'         => __( 'Download a file from a URL and add it to the WordPress media library. Returns the new attachment ID and URL. Supports images, PDFs, and other media types.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -148,9 +148,9 @@ class MediaAbilities {
 		wp_register_ability(
 			'ai-agent/delete-media',
 			[
-				'label'               => __( 'Delete Media', 'gratis-ai-agent' ),
-				'description'         => __( 'Permanently delete a media attachment from the WordPress media library, including all generated image sizes and metadata.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Delete Media', 'sd-ai-agent' ),
+				'description'         => __( 'Permanently delete a media attachment from the WordPress media library, including all generated image sizes and metadata.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -300,7 +300,7 @@ class MediaAbilities {
 		$site_url = $input['site_url'] ?? '';
 
 		if ( empty( $url ) ) {
-			return new WP_Error( 'ai_agent_empty_url', __( 'URL is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_url', __( 'URL is required.', 'sd-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -336,7 +336,7 @@ class MediaAbilities {
 			return new WP_Error(
 				'ai_agent_download_failed',
 				/* translators: %s: error message */
-				sprintf( __( 'Failed to download file: %s', 'gratis-ai-agent' ), $tmp_file->get_error_message() )
+				sprintf( __( 'Failed to download file: %s', 'sd-ai-agent' ), $tmp_file->get_error_message() )
 			);
 		}
 
@@ -366,7 +366,7 @@ class MediaAbilities {
 			return new WP_Error(
 				'ai_agent_sideload_failed',
 				/* translators: %s: error message */
-				sprintf( __( 'Failed to import media: %s', 'gratis-ai-agent' ), $attachment_id->get_error_message() )
+				sprintf( __( 'Failed to import media: %s', 'sd-ai-agent' ), $attachment_id->get_error_message() )
 			);
 		}
 
@@ -415,7 +415,7 @@ class MediaAbilities {
 		$site_url      = $input['site_url'] ?? '';
 
 		if ( ! $attachment_id ) {
-			return new WP_Error( 'ai_agent_empty_attachment_id', __( 'attachment_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'ai_agent_empty_attachment_id', __( 'attachment_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$switched = false;
@@ -443,7 +443,7 @@ class MediaAbilities {
 			return new WP_Error(
 				'ai_agent_attachment_not_found',
 				/* translators: %d: attachment ID */
-				sprintf( __( 'Attachment %d not found.', 'gratis-ai-agent' ), $attachment_id )
+				sprintf( __( 'Attachment %d not found.', 'sd-ai-agent' ), $attachment_id )
 			);
 		}
 

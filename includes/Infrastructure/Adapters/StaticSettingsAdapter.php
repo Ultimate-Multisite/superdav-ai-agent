@@ -10,14 +10,14 @@ declare(strict_types=1);
  * same singleton. Update Plugin::configure() to \DI\autowire(Settings::class)
  * and remove this adapter once all callers receive Settings via DI injection.
  *
- * @package GratisAiAgent\Infrastructure\Adapters
+ * @package SdAiAgent\Infrastructure\Adapters
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Infrastructure\Adapters;
+namespace SdAiAgent\Infrastructure\Adapters;
 
-use GratisAiAgent\Contracts\SettingsProviderInterface;
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Contracts\SettingsProviderInterface;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

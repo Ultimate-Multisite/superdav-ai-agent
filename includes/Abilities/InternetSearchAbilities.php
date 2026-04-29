@@ -19,13 +19,13 @@ declare(strict_types=1);
  *   - Brave API key: Settings page → "Brave Search API Key" field.
  *     Get a free key at https://brave.com/search/api/
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Core\Settings;
+use SdAiAgent\Core\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,7 +47,7 @@ class InternetSearchAbilities {
 	 * Option name for the Brave Search API key.
 	 * Stored separately from general settings to avoid credential leakage.
 	 */
-	const BRAVE_KEY_OPTION = 'gratis_ai_agent_brave_search_key';
+	const BRAVE_KEY_OPTION = 'sd_ai_agent_brave_search_key';
 
 	/**
 	 * Register the internet-search ability.
@@ -58,11 +58,11 @@ class InternetSearchAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/internet-search',
+			'sd-ai-agent/internet-search',
 			[
-				'label'               => __( 'Internet Search', 'gratis-ai-agent' ),
-				'description'         => __( 'Search the internet for current information. Returns a list of relevant results with titles, URLs, and snippets. Use this to research topics before writing blog posts or answering questions about recent events.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'Internet Search', 'sd-ai-agent' ),
+				'description'         => __( 'Search the internet for current information. Returns a list of relevant results with titles, URLs, and snippets. Use this to research topics before writing blog posts or answering questions about recent events.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -266,7 +266,7 @@ class InternetSearchAbilities {
 			$url,
 			[
 				'timeout'    => 15,
-				'user-agent' => 'GratisAiAgent/1.0 (WordPress plugin; +https://wordpress.org/plugins/gratis-ai-agent)',
+				'user-agent' => 'SdAiAgent/1.0 (WordPress plugin; +https://wordpress.org/plugins/sd-ai-agent)',
 			]
 		);
 
@@ -349,7 +349,7 @@ class InternetSearchAbilities {
 				'results'  => [],
 				'provider' => 'duckduckgo',
 				'query'    => $query,
-				'tip'      => 'DuckDuckGo returned no instant answers for this query. For comprehensive web search results, configure a Brave Search API key in Gratis AI Agent settings.',
+				'tip'      => 'DuckDuckGo returned no instant answers for this query. For comprehensive web search results, configure a Brave Search API key in Superdav AI Agent settings.',
 			];
 		}
 

@@ -4,8 +4,8 @@
 Use this skill for SEO audits, keyword optimization, meta tag management, and technical SEO checks.
 
 ## Available Tools
-- `gratis-ai-agent/seo-audit-url` — Fetch any URL and analyze its SEO elements (title, meta description, headings, images, OG tags, structured data)
-- `gratis-ai-agent/seo-analyze-content` — Analyze a specific post's SEO quality (keyword density, title length, heading structure, links, readability)
+- `sd-ai-agent/seo-audit-url` — Fetch any URL and analyze its SEO elements (title, meta description, headings, images, OG tags, structured data)
+- `sd-ai-agent/seo-analyze-content` — Analyze a specific post's SEO quality (keyword density, title length, heading structure, links, readability)
 
 ## Key WP-CLI Commands for SEO
 
@@ -45,20 +45,20 @@ Use this skill for SEO audits, keyword optimization, meta tag management, and te
 ## Common Workflows
 
 ### Audit a page
-1. Use `gratis-ai-agent/seo-audit-url` with the page URL
+1. Use `sd-ai-agent/seo-audit-url` with the page URL
 2. Review the issues list for quick wins
 3. Check title length, meta description, heading structure
 4. Verify Open Graph tags are set for social sharing
 
 ### Optimize existing content for a keyword
-1. Use `gratis-ai-agent/seo-analyze-content` with the post ID and focus keyword
+1. Use `sd-ai-agent/seo-analyze-content` with the post ID and focus keyword
 2. Check keyword density and placement
 3. Review heading structure for keyword inclusion
 4. Ensure meta description includes the keyword
 5. Add internal links to related content
 
 ### Check technical SEO across the site
-1. Audit the homepage with `gratis-ai-agent/seo-audit-url`
+1. Audit the homepage with `sd-ai-agent/seo-audit-url`
 2. Check top pages for missing meta descriptions
 3. Verify sitemap accessibility
 4. Confirm canonical URLs are correct

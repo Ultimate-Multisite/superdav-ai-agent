@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Generate Plugin ability — AI-powered plugin generation from a description.
  *
- * @package GratisAiAgent\Abilities
+ * @package SdAiAgent\Abilities
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\PluginBuilder\PluginGenerator;
-use GratisAiAgent\PluginBuilder\PluginInstaller;
+use SdAiAgent\PluginBuilder\PluginGenerator;
+use SdAiAgent\PluginBuilder\PluginInstaller;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,11 +29,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GeneratePluginAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Generate Plugin', 'gratis-ai-agent' );
+		return __( 'Generate Plugin', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Generate a WordPress plugin from a natural-language description. Returns the implementation plan and complete PHP source code.', 'gratis-ai-agent' );
+		return __( 'Generate a WordPress plugin from a natural-language description. Returns the implementation plan and complete PHP source code.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -78,8 +78,8 @@ class GeneratePluginAbility extends AbstractAbility {
 
 		if ( empty( $description ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_empty_description',
-				__( 'description is required.', 'gratis-ai-agent' )
+				'sd_ai_agent_empty_description',
+				__( 'description is required.', 'sd-ai-agent' )
 			);
 		}
 

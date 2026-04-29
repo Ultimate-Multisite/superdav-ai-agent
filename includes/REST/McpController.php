@@ -8,7 +8,7 @@ declare(strict_types=1);
  * AI clients (Claude Desktop, Cursor, etc.) can discover and invoke them
  * via the standard MCP protocol over HTTP.
  *
- * Endpoint: POST /wp-json/gratis-ai-agent/v1/mcp
+ * Endpoint: POST /wp-json/sd-ai-agent/v1/mcp
  *
  * Supported methods:
  *   - list_tools  — returns all registered abilities as MCP tool definitions
@@ -17,11 +17,11 @@ declare(strict_types=1);
  * Authentication: WordPress nonce (X-WP-Nonce header) or Application Password
  * (HTTP Basic Auth). Both are handled transparently by the WP REST API.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
 use WP_Error;
 use WP_REST_Request;
@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'mcp',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class McpController extends XWP_REST_Controller {
 
@@ -92,7 +92,7 @@ final class McpController extends XWP_REST_Controller {
 					'ai_agent_mcp_unknown_method',
 					sprintf(
 						/* translators: %s: MCP method name */
-						__( 'Unknown MCP method: %s. Supported methods: list_tools, call_tool.', 'gratis-ai-agent' ),
+						__( 'Unknown MCP method: %s. Supported methods: list_tools, call_tool.', 'sd-ai-agent' ),
 						// @phpstan-ignore-next-line
 						$method
 					),
@@ -155,7 +155,7 @@ final class McpController extends XWP_REST_Controller {
 		if ( '' === $tool_name ) {
 			return new WP_Error(
 				'ai_agent_mcp_missing_name',
-				__( 'call_tool requires a "name" parameter.', 'gratis-ai-agent' ),
+				__( 'call_tool requires a "name" parameter.', 'sd-ai-agent' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -163,7 +163,7 @@ final class McpController extends XWP_REST_Controller {
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			return new WP_Error(
 				'ai_agent_mcp_no_abilities_api',
-				__( 'WordPress Abilities API is not available. WordPress 7.0+ is required.', 'gratis-ai-agent' ),
+				__( 'WordPress Abilities API is not available. WordPress 7.0+ is required.', 'sd-ai-agent' ),
 				[ 'status' => 503 ]
 			);
 		}
@@ -176,7 +176,7 @@ final class McpController extends XWP_REST_Controller {
 				'ai_agent_mcp_tool_not_found',
 				sprintf(
 					/* translators: %s: tool name */
-					__( 'Tool not found: %s', 'gratis-ai-agent' ),
+					__( 'Tool not found: %s', 'sd-ai-agent' ),
 					$tool_name
 				),
 				[ 'status' => 404 ]

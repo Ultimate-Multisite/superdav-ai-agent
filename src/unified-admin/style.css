@@ -1,64 +1,64 @@
-.gratis-ai-agent-unified-admin {
+.sd-ai-agent-unified-admin {
 	display: flex;
 	flex-direction: column;
 }
 
-.gratis-ai-admin-notice {
+.sd-ai-admin-notice {
 	margin: 0 0 12px;
 }
 
-.gratis-ai-admin-layout {
+.sd-ai-admin-layout {
 	display: flex;
 	flex: 1;
 	min-height: 0;
 }
 
 /* Main Content Area — sits inside wp-admin .wrap, so no extra chrome. */
-.gratis-ai-admin-main {
+.sd-ai-admin-main {
 	flex: 1;
 	min-width: 0;
 }
 
 /* Route Containers */
-.gratis-ai-agent-route {
+.sd-ai-agent-route {
 	max-width: none;
 }
 
-.gratis-ai-agent-route h2 {
+.sd-ai-agent-route h2 {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 600;
 }
 
-.gratis-ai-agent-route-not-found {
+.sd-ai-agent-route-not-found {
 	text-align: center;
 	padding: 60px 20px;
 }
 
 /* Advanced Settings */
-.gratis-ai-advanced-settings .gratis-ai-agent-notice-advanced {
+.sd-ai-advanced-settings .sd-ai-agent-notice-advanced {
 	margin: 16px 0;
 }
 
-.gratis-ai-agent-benchmark-section {
+.sd-ai-agent-benchmark-section {
 	margin-top: 16px;
 }
 
-.gratis-ai-agent-benchmark-progress {
+.sd-ai-agent-benchmark-progress {
 	margin-bottom: 24px;
 	padding: 16px;
 	background: #f0f6fc;
 	border-radius: 4px;
 }
 
-.gratis-ai-agent-benchmark-models {
+.sd-ai-agent-benchmark-models {
 	margin: 16px 0;
 	padding: 16px;
 	background: #f6f7f7;
 	border-radius: 4px;
 }
 
-.gratis-ai-agent-benchmark-models h4 {
+.sd-ai-agent-benchmark-models h4 {
 	margin-top: 0;
 }
 
@@ -74,17 +74,17 @@
 	}
 }
 
-.gratis-ai-agent-route {
+.sd-ai-agent-route {
 	animation: slideIn 0.2s ease-out;
 }
 
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
-	.gratis-ai-agent-route {
+	.sd-ai-agent-route {
 		animation: none;
 	}
 
-	.gratis-ai-agent-nav-link {
+	.sd-ai-agent-nav-link {
 		transition: none;
 	}
 }

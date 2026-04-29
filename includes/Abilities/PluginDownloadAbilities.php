@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Provides the ability to list AI-modified plugins and generate
  * download links so admins can retrieve modified plugin zips.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Core\Database;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -32,10 +32,10 @@ class PluginDownloadAbilities {
 	 */
 	public static function handle_list_modified_plugins( array $input = [] ) {
 		$ability = new ListModifiedPluginsAbility(
-			'gratis-ai-agent/list-modified-plugins',
+			'sd-ai-agent/list-modified-plugins',
 			[
-				'label'       => __( 'List Modified Plugins', 'gratis-ai-agent' ),
-				'description' => __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'gratis-ai-agent' ),
+				'label'       => __( 'List Modified Plugins', 'sd-ai-agent' ),
+				'description' => __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -50,10 +50,10 @@ class PluginDownloadAbilities {
 	 */
 	public static function handle_get_plugin_download_url( array $input = [] ) {
 		$ability = new GetPluginDownloadUrlAbility(
-			'gratis-ai-agent/get-plugin-download-url',
+			'sd-ai-agent/get-plugin-download-url',
 			[
-				'label'       => __( 'Get Plugin Download URL', 'gratis-ai-agent' ),
-				'description' => __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'gratis-ai-agent' ),
+				'label'       => __( 'Get Plugin Download URL', 'sd-ai-agent' ),
+				'description' => __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -69,20 +69,20 @@ class PluginDownloadAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/list-modified-plugins',
+			'sd-ai-agent/list-modified-plugins',
 			[
-				'label'         => __( 'List Modified Plugins', 'gratis-ai-agent' ),
-				'description'   => __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'gratis-ai-agent' ),
+				'label'         => __( 'List Modified Plugins', 'sd-ai-agent' ),
+				'description'   => __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'sd-ai-agent' ),
 				'ability_class' => ListModifiedPluginsAbility::class,
 				'show_in_rest'  => true,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/get-plugin-download-url',
+			'sd-ai-agent/get-plugin-download-url',
 			[
-				'label'         => __( 'Get Plugin Download URL', 'gratis-ai-agent' ),
-				'description'   => __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'gratis-ai-agent' ),
+				'label'         => __( 'Get Plugin Download URL', 'sd-ai-agent' ),
+				'description'   => __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'sd-ai-agent' ),
 				'ability_class' => GetPluginDownloadUrlAbility::class,
 				'show_in_rest'  => true,
 			]
@@ -101,11 +101,11 @@ class PluginDownloadAbilities {
 class ListModifiedPluginsAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'List Modified Plugins', 'gratis-ai-agent' );
+		return __( 'List Modified Plugins', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'gratis-ai-agent' );
+		return __( 'List all plugins that have been modified by the AI agent, with modification counts and download links.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -143,8 +143,8 @@ class ListModifiedPluginsAbility extends AbstractAbility {
 
 		foreach ( $rows as $row ) {
 			$slug         = $row->plugin_slug ?? '';
-			$nonce        = wp_create_nonce( 'gratis_ai_agent_download_plugin_' . $slug );
-			$rest_url     = rest_url( 'gratis-ai-agent/v1/download-plugin/' . rawurlencode( $slug ) );
+			$nonce        = wp_create_nonce( 'sd_ai_agent_download_plugin_' . $slug );
+			$rest_url     = rest_url( 'sd-ai-agent/v1/download-plugin/' . rawurlencode( $slug ) );
 			$download_url = add_query_arg( '_wpnonce', $nonce, $rest_url );
 
 			$plugins[] = [
@@ -186,11 +186,11 @@ class ListModifiedPluginsAbility extends AbstractAbility {
 class GetPluginDownloadUrlAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Get Plugin Download URL', 'gratis-ai-agent' );
+		return __( 'Get Plugin Download URL', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'gratis-ai-agent' );
+		return __( 'Get a download URL for a plugin that has been modified by the AI agent.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -225,7 +225,7 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 		$slug = sanitize_key( $input['plugin_slug'] ?? '' );
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Plugin slug cannot be empty.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_slug', __( 'Plugin slug cannot be empty.', 'sd-ai-agent' ) );
 		}
 
 		// Verify the plugin directory exists.
@@ -234,10 +234,10 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 		$plugin_dir = WP_PLUGIN_DIR . '/' . $slug;
 		if ( ! is_dir( $plugin_dir ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_found',
+				'sd_ai_agent_plugin_not_found',
 				sprintf(
 					/* translators: %s: plugin slug */
-					__( 'Plugin directory not found: %s', 'gratis-ai-agent' ),
+					__( 'Plugin directory not found: %s', 'sd-ai-agent' ),
 					$slug
 				)
 			);
@@ -249,10 +249,10 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 
 		if ( 0 === $count ) {
 			return new WP_Error(
-				'gratis_ai_agent_plugin_not_modified',
+				'sd_ai_agent_plugin_not_modified',
 				sprintf(
 					/* translators: %s: plugin slug */
-					__( 'No AI modifications recorded for plugin: %s', 'gratis-ai-agent' ),
+					__( 'No AI modifications recorded for plugin: %s', 'sd-ai-agent' ),
 					$slug
 				)
 			);
@@ -260,8 +260,8 @@ class GetPluginDownloadUrlAbility extends AbstractAbility {
 
 		$last_modified = $rows[0]->modified_at ?? '';
 
-		$nonce        = wp_create_nonce( 'gratis_ai_agent_download_plugin_' . $slug );
-		$rest_url     = rest_url( 'gratis-ai-agent/v1/download-plugin/' . rawurlencode( $slug ) );
+		$nonce        = wp_create_nonce( 'sd_ai_agent_download_plugin_' . $slug );
+		$rest_url     = rest_url( 'sd-ai-agent/v1/download-plugin/' . rawurlencode( $slug ) );
 		$download_url = add_query_arg( '_wpnonce', $nonce, $rest_url );
 
 		return [

@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * Scheduled Automations model — CRUD for cron-based AI tasks.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Automations;
+namespace SdAiAgent\Automations;
 
 class Automations {
 
@@ -20,7 +20,7 @@ class Automations {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_automations';
+		return $wpdb->prefix . 'sd_ai_agent_automations';
 	}
 
 	/**
@@ -289,45 +289,45 @@ class Automations {
 	public static function get_templates(): array {
 		return [
 			[
-				'name'         => __( 'Daily Site Health Report', 'gratis-ai-agent' ),
-				'description'  => __( 'Run a comprehensive automated site health check covering plugins, errors, disk space, security, and performance.', 'gratis-ai-agent' ),
+				'name'         => __( 'Daily Site Health Report', 'sd-ai-agent' ),
+				'description'  => __( 'Run a comprehensive automated site health check covering plugins, errors, disk space, security, and performance.', 'sd-ai-agent' ),
 				'prompt'       => "Run a full site health check using the site-health-summary tool. It will check:\n1. Plugin updates available\n2. PHP error log (last 24 hours)\n3. Disk space usage\n4. Security issues (debug mode, file editor, WP version, admin username, SSL)\n5. Performance indicators (autoloaded options, transients, object cache)\n\nAfter getting the summary, provide a concise report with:\n- Overall status (healthy / needs_attention / critical)\n- Any critical issues that need immediate action\n- Warnings to address soon\n- A brief summary of what is working well\n\nKeep the report clear and actionable.",
 				'schedule'     => 'daily',
 				'tool_profile' => 'site-health',
 			],
 			[
-				'name'        => __( 'Weekly Plugin Update Check', 'gratis-ai-agent' ),
-				'description' => __( 'Check for plugin updates and report what needs updating.', 'gratis-ai-agent' ),
+				'name'        => __( 'Weekly Plugin Update Check', 'sd-ai-agent' ),
+				'description' => __( 'Check for plugin updates and report what needs updating.', 'sd-ai-agent' ),
 				'prompt'      => "List all plugins that have updates available. For each:\n- Plugin name and current version\n- Available version\n- Whether it's a major, minor, or patch update\n\nDo NOT update any plugins — just report.",
 				'schedule'    => 'weekly',
 			],
 			[
-				'name'        => __( 'Content Moderation', 'gratis-ai-agent' ),
-				'description' => __( 'Review recent comments for spam or inappropriate content.', 'gratis-ai-agent' ),
+				'name'        => __( 'Content Moderation', 'sd-ai-agent' ),
+				'description' => __( 'Review recent comments for spam or inappropriate content.', 'sd-ai-agent' ),
 				'prompt'      => 'Review pending comments from the last 24 hours. Flag any that appear to be spam, contain inappropriate language, or are off-topic. Provide a summary of reviewed vs flagged comments.',
 				'schedule'    => 'daily',
 			],
 			[
-				'name'        => __( 'Broken Link Check', 'gratis-ai-agent' ),
-				'description' => __( 'Scan recent posts for broken links.', 'gratis-ai-agent' ),
+				'name'        => __( 'Broken Link Check', 'sd-ai-agent' ),
+				'description' => __( 'Scan recent posts for broken links.', 'sd-ai-agent' ),
 				'prompt'      => 'Check the 10 most recent published posts for any broken external links. For each broken link found, report the post title, the broken URL, and the HTTP status code.',
 				'schedule'    => 'weekly',
 			],
 			[
-				'name'        => __( 'Database Optimization', 'gratis-ai-agent' ),
-				'description' => __( 'Clean up transients, revisions, and optimize tables.', 'gratis-ai-agent' ),
+				'name'        => __( 'Database Optimization', 'sd-ai-agent' ),
+				'description' => __( 'Clean up transients, revisions, and optimize tables.', 'sd-ai-agent' ),
 				'prompt'      => "Perform database maintenance:\n1. Delete expired transients\n2. Report how many post revisions exist\n3. Report autoloaded option size\n4. List any database tables that could benefit from optimization\n\nDo NOT delete revisions — just report.",
 				'schedule'    => 'weekly',
 			],
 			[
-				'name'        => __( 'Weekly SEO Health Report', 'gratis-ai-agent' ),
-				'description' => __( 'Audit your homepage and top pages for SEO issues.', 'gratis-ai-agent' ),
+				'name'        => __( 'Weekly SEO Health Report', 'sd-ai-agent' ),
+				'description' => __( 'Audit your homepage and top pages for SEO issues.', 'sd-ai-agent' ),
 				'prompt'      => "Run an SEO audit on the site's homepage using the seo-audit-url tool. Then check the 5 most recent published posts with seo-analyze-content. Report:\n1. Homepage SEO score and issues\n2. Posts missing meta descriptions\n3. Posts with titles that are too long or too short\n4. Images missing alt text\n5. Any technical SEO concerns\n\nProvide a prioritized action list.",
 				'schedule'    => 'weekly',
 			],
 			[
-				'name'        => __( 'Monthly Content Performance Report', 'gratis-ai-agent' ),
-				'description' => __( 'Summarize content publishing activity and performance.', 'gratis-ai-agent' ),
+				'name'        => __( 'Monthly Content Performance Report', 'sd-ai-agent' ),
+				'description' => __( 'Summarize content publishing activity and performance.', 'sd-ai-agent' ),
 				'prompt'      => "Generate a content performance report for the last 30 days using the content-performance-report tool. Also run content-analyze to check content health. Report:\n1. Posts published this month vs last month\n2. Content by category breakdown\n3. Average word count\n4. Posts missing featured images\n5. Draft posts pending review\n6. Content recommendations for next month",
 				'schedule'    => 'weekly',
 			],

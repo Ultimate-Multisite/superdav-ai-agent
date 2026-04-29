@@ -9,7 +9,7 @@ import { __ } from '@wordpress/i18n';
  * Internal dependencies
  */
 import STORE_NAME from '../store';
-// Register gratis-ai-agent-js/* client-side abilities into core/abilities
+// Register sd-ai-agent-js/* client-side abilities into core/abilities
 // before the chat mounts (t165 — closes the wiring gap in #815).
 import '../abilities';
 import ErrorBoundary from '../components/error-boundary';
@@ -190,12 +190,12 @@ function gatherPageContext() {
 
 // Mount the floating widget.
 const wrapper = document.createElement( 'div' );
-wrapper.id = 'gratis-ai-agent-floating-root';
+wrapper.id = 'sd-ai-agent-floating-root';
 document.body.appendChild( wrapper );
 
 const root = createRoot( wrapper );
 root.render(
-	<ErrorBoundary label={ __( 'AI Agent widget', 'gratis-ai-agent' ) }>
+	<ErrorBoundary label={ __( 'AI Agent widget', 'sd-ai-agent' ) }>
 		<FloatingWidget />
 	</ErrorBoundary>
 );

@@ -11,11 +11,11 @@ declare(strict_types=1);
  *
  * The agent chooses the best source based on availability and cost preferences.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageSources;
+namespace SdAiAgent\Abilities\ImageSources;
 
 use WP_Error;
 

@@ -6,16 +6,16 @@ declare(strict_types=1);
  *
  * Eliminates `object::$` property-access phpstan errors throughout callers
  * by providing explicit, typed property declarations for every column in the
- * gratis_ai_agent_active_jobs table.
+ * sd_ai_agent_active_jobs table.
  *
- * @package GratisAiAgent\Models\DTO
+ * @package SdAiAgent\Models\DTO
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models\DTO;
+namespace SdAiAgent\Models\DTO;
 
 /**
- * Immutable DTO for the gratis_ai_agent_active_jobs table row.
+ * Immutable DTO for the sd_ai_agent_active_jobs table row.
  */
 readonly class ActiveJobRow {
 

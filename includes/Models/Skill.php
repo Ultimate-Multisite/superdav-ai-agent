@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Skill model — on-demand instruction guides for the AI agent.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Models\DTO\SkillRow;
+use SdAiAgent\Core\Settings;
+use SdAiAgent\Models\DTO\SkillRow;
 
 class Skill {
 
@@ -21,7 +21,7 @@ class Skill {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_skills';
+		return $wpdb->prefix . 'sd_ai_agent_skills';
 	}
 
 	/**
@@ -531,7 +531,7 @@ class Skill {
 
 		return "## Available Skills\n"
 			. "You have access to specialized skill guides. When a user's request matches a skill topic,\n"
-			. "use the gratis-ai-agent/skill-load tool to load the full instructions before proceeding.\n\n"
+			. "use the sd-ai-agent/skill-load tool to load the full instructions before proceeding.\n\n"
 			. "Available skills:\n"
 			. implode( "\n", $lines );
 	}

@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Provides endpoints for listing, viewing, and clearing provider trace records,
  * as well as toggling the trace setting.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Models\ProviderTrace;
+use SdAiAgent\Models\ProviderTrace;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'trace',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class TraceController extends XWP_REST_Controller {
 
@@ -122,7 +122,7 @@ final class TraceController extends XWP_REST_Controller {
 		if ( ! $trace ) {
 			return new WP_Error(
 				'trace_not_found',
-				__( 'Trace record not found.', 'gratis-ai-agent' ),
+				__( 'Trace record not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -149,7 +149,7 @@ final class TraceController extends XWP_REST_Controller {
 		if ( ! $trace ) {
 			return new WP_Error(
 				'trace_not_found',
-				__( 'Trace record not found.', 'gratis-ai-agent' ),
+				__( 'Trace record not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -196,7 +196,7 @@ final class TraceController extends XWP_REST_Controller {
 				'max_rows' => ProviderTrace::get_max_rows(),
 				'count'    => ProviderTrace::count(),
 				'warning'  => ProviderTrace::is_enabled()
-					? __( 'Provider tracing is enabled. Logs may contain prompt content. Disable on shared environments.', 'gratis-ai-agent' )
+					? __( 'Provider tracing is enabled. Logs may contain prompt content. Disable on shared environments.', 'sd-ai-agent' )
 					: '',
 			)
 		);
@@ -232,7 +232,7 @@ final class TraceController extends XWP_REST_Controller {
 				'max_rows' => ProviderTrace::get_max_rows(),
 				'count'    => ProviderTrace::count(),
 				'warning'  => ProviderTrace::is_enabled()
-					? __( 'Provider tracing is enabled. Logs may contain prompt content. Disable on shared environments.', 'gratis-ai-agent' )
+					? __( 'Provider tracing is enabled. Logs may contain prompt content. Disable on shared environments.', 'sd-ai-agent' )
 					: '',
 			)
 		);

@@ -167,7 +167,7 @@ export default function ModelPicker() {
 					ref={ popoverRef }
 					className="gaa-cr-popover gaa-cr-popover-fixed"
 					role="menu"
-					aria-label={ __( 'Select model', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Select model', 'sd-ai-agent' ) }
 					style={ {
 						left: pos.left,
 						bottom: pos.bottom,
@@ -227,7 +227,7 @@ export default function ModelPicker() {
 				onClick={ () => setOpen( ( v ) => ! v ) }
 				aria-haspopup="menu"
 				aria-expanded={ open }
-				title={ __( 'Change model', 'gratis-ai-agent' ) }
+				title={ __( 'Change model', 'sd-ai-agent' ) }
 			>
 				<span className="gaa-cr-model-chip-provider">
 					{ activeProvider.name }
@@ -235,7 +235,7 @@ export default function ModelPicker() {
 				<span className="gaa-cr-model-chip-model">
 					{ activeModel?.name ||
 						activeModel?.id ||
-						__( '(default)', 'gratis-ai-agent' ) }
+						__( '(default)', 'sd-ai-agent' ) }
 				</span>
 				<Icon icon={ chevronDown } size={ 14 } />
 			</button>

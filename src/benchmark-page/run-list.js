@@ -23,7 +23,7 @@ import {
 export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 	const formatDate = ( dateString ) => {
 		if ( ! dateString ) {
-			return __( 'N/A', 'gratis-ai-agent' );
+			return __( 'N/A', 'sd-ai-agent' );
 		}
 		const date = new Date( dateString );
 		return date.toLocaleString();
@@ -31,7 +31,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 
 	const formatDuration = ( startedAt, completedAt ) => {
 		if ( ! startedAt || ! completedAt ) {
-			return __( 'N/A', 'gratis-ai-agent' );
+			return __( 'N/A', 'sd-ai-agent' );
 		}
 		const start = new Date( startedAt );
 		const end = new Date( completedAt );
@@ -64,7 +64,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 
 	if ( isLoading && runs.length === 0 ) {
 		return (
-			<div className="gratis-ai-agent-benchmark-loading">
+			<div className="sd-ai-agent-benchmark-loading">
 				<Spinner />
 			</div>
 		);
@@ -74,17 +74,12 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 		return (
 			<Card>
 				<CardBody>
-					<div className="gratis-ai-agent-benchmark-empty">
-						<p>
-							{ __(
-								'No benchmark runs yet.',
-								'gratis-ai-agent'
-							) }
-						</p>
+					<div className="sd-ai-agent-benchmark-empty">
+						<p>{ __( 'No benchmark runs yet.', 'sd-ai-agent' ) }</p>
 						<p>
 							{ __(
 								'Create a new benchmark to get started.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</p>
 					</div>
@@ -94,22 +89,22 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-benchmark-run-list">
+		<div className="sd-ai-agent-benchmark-run-list">
 			<Card>
 				<CardHeader>
-					<h2>{ __( 'Benchmark History', 'gratis-ai-agent' ) }</h2>
+					<h2>{ __( 'Benchmark History', 'sd-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
 					<table className="wp-list-table widefat fixed striped">
 						<thead>
 							<tr>
-								<th>{ __( 'Name', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Suite', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Status', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Progress', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Started', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Duration', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Actions', 'gratis-ai-agent' ) }</th>
+								<th>{ __( 'Name', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Suite', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Status', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Progress', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Started', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Duration', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Actions', 'sd-ai-agent' ) }</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -129,7 +124,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 									<td>{ run.test_suite }</td>
 									<td>
 										<span
-											className={ `gratis-ai-agent-benchmark-status ${ getStatusClass(
+											className={ `sd-ai-agent-benchmark-status ${ getStatusClass(
 												run.status
 											) }` }
 										>
@@ -139,7 +134,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 									<td>
 										{ run.questions_count > 0
 											? `${ run.completed_count } / ${ run.questions_count }`
-											: __( 'N/A', 'gratis-ai-agent' ) }
+											: __( 'N/A', 'sd-ai-agent' ) }
 									</td>
 									<td>{ formatDate( run.started_at ) }</td>
 									<td>
@@ -157,7 +152,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 											}
 											style={ { marginRight: '8px' } }
 										>
-											{ __( 'View', 'gratis-ai-agent' ) }
+											{ __( 'View', 'sd-ai-agent' ) }
 										</Button>
 										<Button
 											variant="tertiary"
@@ -167,10 +162,7 @@ export default function RunList( { runs, onViewRun, onDeleteRun, isLoading } ) {
 												onDeleteRun( run.id )
 											}
 										>
-											{ __(
-												'Delete',
-												'gratis-ai-agent'
-											) }
+											{ __( 'Delete', 'sd-ai-agent' ) }
 										</Button>
 									</td>
 								</tr>

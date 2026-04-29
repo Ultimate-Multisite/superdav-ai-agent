@@ -10,32 +10,32 @@ declare(strict_types=1);
  * - Thin static delegates to domain repositories for backward compatibility.
  *
  * Business logic has been extracted into:
- * - GratisAiAgent\Repositories\SessionRepository  — session + shared-session CRUD
- * - GratisAiAgent\Repositories\UsageRepository    — usage logging
- * - GratisAiAgent\Repositories\ModifiedFilesRepository — file-modification audit
- * - GratisAiAgent\Repositories\GeneratedPluginsRepository — AI plugin builder records
+ * - SdAiAgent\Repositories\SessionRepository  — session + shared-session CRUD
+ * - SdAiAgent\Repositories\UsageRepository    — usage logging
+ * - SdAiAgent\Repositories\ModifiedFilesRepository — file-modification audit
+ * - SdAiAgent\Repositories\GeneratedPluginsRepository — AI plugin builder records
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Knowledge\KnowledgeDatabase;
-use GratisAiAgent\Models\Agent;
-use GratisAiAgent\Models\ConversationTemplate;
-use GratisAiAgent\Models\ProviderTrace;
-use GratisAiAgent\Models\Skill;
-use GratisAiAgent\Repositories\GeneratedPluginsRepository;
-use GratisAiAgent\Repositories\ModifiedFilesRepository;
-use GratisAiAgent\Repositories\SessionRepository;
-use GratisAiAgent\Repositories\UsageRepository;
-use GratisAiAgent\REST\WebhookDatabase;
-use GratisAiAgent\Tools\CustomTools;
+use SdAiAgent\Knowledge\KnowledgeDatabase;
+use SdAiAgent\Models\Agent;
+use SdAiAgent\Models\ConversationTemplate;
+use SdAiAgent\Models\ProviderTrace;
+use SdAiAgent\Models\Skill;
+use SdAiAgent\Repositories\GeneratedPluginsRepository;
+use SdAiAgent\Repositories\ModifiedFilesRepository;
+use SdAiAgent\Repositories\SessionRepository;
+use SdAiAgent\Repositories\UsageRepository;
+use SdAiAgent\REST\WebhookDatabase;
+use SdAiAgent\Tools\CustomTools;
 
 class Database {
 
-	const DB_VERSION_OPTION = 'gratis_ai_agent_db_version';
+	const DB_VERSION_OPTION = 'sd_ai_agent_db_version';
 	const DB_VERSION        = '19.0.0';
 
 	// ─── Table Name Registry ──────────────────────────────────────────────────
@@ -46,7 +46,7 @@ class Database {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_sessions';
+		return $wpdb->prefix . 'sd_ai_agent_sessions';
 	}
 
 	/**
@@ -55,7 +55,7 @@ class Database {
 	public static function usage_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_usage';
+		return $wpdb->prefix . 'sd_ai_agent_usage';
 	}
 
 	/**
@@ -64,7 +64,7 @@ class Database {
 	public static function memories_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_memories';
+		return $wpdb->prefix . 'sd_ai_agent_memories';
 	}
 
 	/**
@@ -73,7 +73,7 @@ class Database {
 	public static function skills_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_skills';
+		return $wpdb->prefix . 'sd_ai_agent_skills';
 	}
 
 	/**
@@ -82,7 +82,7 @@ class Database {
 	public static function custom_tools_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_custom_tools';
+		return $wpdb->prefix . 'sd_ai_agent_custom_tools';
 	}
 
 	/**
@@ -91,7 +91,7 @@ class Database {
 	public static function automations_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_automations';
+		return $wpdb->prefix . 'sd_ai_agent_automations';
 	}
 
 	/**
@@ -100,7 +100,7 @@ class Database {
 	public static function automation_logs_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_automation_logs';
+		return $wpdb->prefix . 'sd_ai_agent_automation_logs';
 	}
 
 	/**
@@ -109,7 +109,7 @@ class Database {
 	public static function event_automations_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_event_automations';
+		return $wpdb->prefix . 'sd_ai_agent_event_automations';
 	}
 
 	/**
@@ -118,7 +118,7 @@ class Database {
 	public static function conversation_templates_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_conversation_templates';
+		return $wpdb->prefix . 'sd_ai_agent_conversation_templates';
 	}
 
 	/**
@@ -127,7 +127,7 @@ class Database {
 	public static function git_tracked_files_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_git_tracked_files';
+		return $wpdb->prefix . 'sd_ai_agent_git_tracked_files';
 	}
 
 	/**
@@ -136,7 +136,7 @@ class Database {
 	public static function changes_log_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_changes_log';
+		return $wpdb->prefix . 'sd_ai_agent_changes_log';
 	}
 
 	/**
@@ -148,7 +148,7 @@ class Database {
 	public static function modified_files_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_modified_files';
+		return $wpdb->prefix . 'sd_ai_agent_modified_files';
 	}
 
 	/**
@@ -157,7 +157,7 @@ class Database {
 	public static function agents_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_agents';
+		return $wpdb->prefix . 'sd_ai_agent_agents';
 	}
 
 	/**
@@ -166,7 +166,7 @@ class Database {
 	public static function shared_sessions_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_shared_sessions';
+		return $wpdb->prefix . 'sd_ai_agent_shared_sessions';
 	}
 
 	/**
@@ -175,7 +175,7 @@ class Database {
 	public static function benchmark_runs_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_benchmark_runs';
+		return $wpdb->prefix . 'sd_ai_agent_benchmark_runs';
 	}
 
 	/**
@@ -184,7 +184,7 @@ class Database {
 	public static function provider_trace_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_provider_trace';
+		return $wpdb->prefix . 'sd_ai_agent_provider_trace';
 	}
 
 	/**
@@ -193,7 +193,7 @@ class Database {
 	public static function benchmark_results_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_benchmark_results';
+		return $wpdb->prefix . 'sd_ai_agent_benchmark_results';
 	}
 
 	/**
@@ -202,7 +202,7 @@ class Database {
 	public static function generated_plugins_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_generated_plugins';
+		return $wpdb->prefix . 'sd_ai_agent_generated_plugins';
 	}
 
 	/**
@@ -211,7 +211,7 @@ class Database {
 	public static function active_jobs_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_active_jobs';
+		return $wpdb->prefix . 'sd_ai_agent_active_jobs';
 	}
 
 	/**
@@ -223,7 +223,7 @@ class Database {
 	public static function skill_usage_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_skill_usage';
+		return $wpdb->prefix . 'sd_ai_agent_skill_usage';
 	}
 
 	// ─── Schema Installation ──────────────────────────────────────────────────
@@ -982,7 +982,7 @@ class Database {
 	 */
 	private static function maybe_migrate_from_old_names(): void {
 		// Skip if migration already completed.
-		if ( get_option( 'gratis_ai_agent_migrated_from_ai_agent' ) ) {
+		if ( get_option( 'sd_ai_agent_migrated_from_ai_agent' ) ) {
 			return;
 		}
 
@@ -1012,7 +1012,7 @@ class Database {
 
 		foreach ( $old_tables as $old_suffix ) {
 			$old_name = $wpdb->prefix . $old_suffix;
-			$new_name = $wpdb->prefix . 'gratis_' . $old_suffix;
+			$new_name = $wpdb->prefix . 'sd_' . $old_suffix;
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-time migration rename.
 			$table_exists = $wpdb->get_var(
@@ -1028,10 +1028,10 @@ class Database {
 		// 2. Migrate options.
 		$option_map = [
 			'ai_agent_db_version'          => self::DB_VERSION_OPTION,
-			'ai_agent_settings'            => 'gratis_ai_agent_settings',
-			'ai_agent_claude_max_token'    => 'gratis_ai_agent_claude_max_token',
-			'ai_agent_tool_profiles'       => 'gratis_ai_agent_tool_profiles',
-			'ai_agent_custom_tools_seeded' => 'gratis_ai_agent_custom_tools_seeded',
+			'ai_agent_settings'            => 'sd_ai_agent_settings',
+			'ai_agent_claude_max_token'    => 'sd_ai_agent_claude_max_token',
+			'ai_agent_tool_profiles'       => 'sd_ai_agent_tool_profiles',
+			'ai_agent_custom_tools_seeded' => 'sd_ai_agent_custom_tools_seeded',
 		];
 
 		foreach ( $option_map as $old_key => $new_key ) {
@@ -1044,7 +1044,7 @@ class Database {
 
 		// 3. Migrate cron hooks.
 		$old_cron_hook = 'wp_ai_agent_reindex';
-		$new_cron_hook = 'wp_gratis_ai_agent_reindex';
+		$new_cron_hook = 'wp_sd_ai_agent_reindex';
 		$timestamp     = wp_next_scheduled( $old_cron_hook );
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, $old_cron_hook );
@@ -1054,6 +1054,6 @@ class Database {
 		}
 
 		// Mark migration as complete.
-		update_option( 'gratis_ai_agent_migrated_from_ai_agent', '1' );
+		update_option( 'sd_ai_agent_migrated_from_ai_agent', '1' );
 	}
 }

@@ -6,18 +6,18 @@
  * (which internally called `SiteScanner::register()` plus two `add_action()`
  * calls) by wiring each hook directly via `#[Action]` attributes.
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Core\OnboardingManager;
-use GratisAiAgent\Core\Settings;
-use GratisAiAgent\Core\SkillUpdateChecker;
-use GratisAiAgent\Core\SiteScanner;
+use SdAiAgent\Core\OnboardingManager;
+use SdAiAgent\Core\Settings;
+use SdAiAgent\Core\SkillUpdateChecker;
+use SdAiAgent\Core\SiteScanner;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - The site-scanner cron hook fires in CTX_CRON.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

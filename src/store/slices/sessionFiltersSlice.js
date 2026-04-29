@@ -62,7 +62,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const folders = await apiFetch( {
-					path: '/gratis-ai-agent/v1/sessions/folders',
+					path: '/sd-ai-agent/v1/sessions/folders',
 				} );
 				dispatch.setFolders( folders );
 			} catch {

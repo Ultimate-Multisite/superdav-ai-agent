@@ -10,24 +10,24 @@
  * the plugin bootstrap file registers directly.
  *
  * This class consolidates the handful of static calls that used to live in
- * `gratis-ai-agent.php` so the root file stays thin and responsibilities are
+ * `sd-ai-agent.php` so the root file stays thin and responsibilities are
  * grouped by lifecycle stage.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Abilities\ToolCapabilities;
-use GratisAiAgent\Automations\AutomationRunner;
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Core\OnboardingManager;
-use GratisAiAgent\Core\SkillUpdateChecker;
-use GratisAiAgent\Core\SiteScanner;
-use GratisAiAgent\Knowledge\KnowledgeHooks;
+use SdAiAgent\Abilities\ToolCapabilities;
+use SdAiAgent\Automations\AutomationRunner;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Core\OnboardingManager;
+use SdAiAgent\Core\SkillUpdateChecker;
+use SdAiAgent\Core\SiteScanner;
+use SdAiAgent\Knowledge\KnowledgeHooks;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

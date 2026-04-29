@@ -9,7 +9,7 @@
  *
  * Source: wp-includes/ai-client/adapters/class-wp-ai-client-discovery-strategy.php (WP 7.0)
  *
- * @package GratisAiAgent\Compat
+ * @package SdAiAgent\Compat
  * @license GPL-2.0-or-later
  * @since   1.8.0
  */

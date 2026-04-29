@@ -36,9 +36,9 @@ function executeNavigateTo( args ) {
 	// widget restores the job from sessionStorage, finds the same pending call,
 	// and navigates again — an infinite reload loop.
 	//
-	// jobSlice reads window._gratisAiAgentPendingNavigation after the POST
+	// jobSlice reads window._sdAiAgentPendingNavigation after the POST
 	// succeeds, clears sessionStorage, and then triggers the navigation.
-	window._gratisAiAgentPendingNavigation = adminUrl;
+	window._sdAiAgentPendingNavigation = adminUrl;
 
 	return { navigated: true, path };
 }
@@ -46,7 +46,7 @@ function executeNavigateTo( args ) {
 /**
  * Register the navigate-to ability with the client-side abilities registry.
  *
- * Called by src/abilities/index.js after the gratis-ai-agent-js category
+ * Called by src/abilities/index.js after the sd-ai-agent-js category
  * has been registered. Must NOT self-register at module-eval time — ES
  * module imports are hoisted and would race the category registration
  * (the bug t166 fixes).
@@ -55,7 +55,7 @@ function executeNavigateTo( args ) {
  */
 export async function registerNavigationAbility() {
 	await registerClientAbility( {
-		name: 'gratis-ai-agent-js/navigate-to',
+		name: 'sd-ai-agent-js/navigate-to',
 		label: 'Navigate to Admin Page',
 		description:
 			'Navigate to a WordPress admin page without a full page reload when inside the admin SPA.',

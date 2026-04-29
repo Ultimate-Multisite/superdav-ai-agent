@@ -1,4 +1,4 @@
-# Gratis AI Agent - Task Management
+# Superdav AI Agent - Task Management
 
 ## Ready
 
@@ -22,7 +22,7 @@
 
 - [x] t137 Bump version to 1.3.0 and update CHANGELOG.md @superdav42 #chore ~1h ref=GH#646 #auto-dispatch pr:#647 completed:2026-03-24
   - 53 commits merged since v1.2.0: new models (o3, o4-mini, claude-sonnet-4-6, Gemini 2.5 Flash), PHPStan level 10, E2E coverage, bug fixes
-  - Update CHANGELOG.md [Unreleased] → [1.3.0], bump Version in gratis-ai-agent.php, update readme.txt Stable tag
+  - Update CHANGELOG.md [Unreleased] → [1.3.0], bump Version in sd-ai-agent.php, update readme.txt Stable tag
 
 - [x] t136 Add JS bundle size budget and performance benchmarks @superdav42 #ci ~2h ref=GH#611 pr:#616 completed:2026-03-19
   - Plugin has grown with Chart.js, CodeMirror 6, highlight.js — no size budget means silent bloat
@@ -52,7 +52,7 @@
   - Continue quality ladder: t010 (5→6), t110 (6→7), t125 (7→8), now 8→9
   - Level 9 adds stricter mixed type narrowing, null handling, array shapes
 
-- [x] t127 Submit Gratis AI Agent to WordPress.org plugin directory via SVN @superdav42 #devops ~2h ref=GH#597 pr:#600 completed:2026-03-19
+- [x] t127 Submit Superdav AI Agent to WordPress.org plugin directory via SVN @superdav42 #devops ~2h ref=GH#597 pr:#600 completed:2026-03-19
   - SVN repo returns 404 (plugin not yet submitted for review). Documented full submission process in docs/wordpress-org-submission.md and added bin/deploy-wporg.sh. Manual step required: submit ZIP at wordpress.org/plugins/developers/add/
 
 - [x] t128 Add Gemini 2.5 Flash and Gemini 2.5 Flash Lite to model selector @superdav42 #feature ~2h ref=GH#598 pr:#599 completed:2026-03-19
@@ -75,7 +75,7 @@
 
 - [x] t121 Bump version to 1.2.0 and update CHANGELOG.md @superdav42 #chore ~2h ref=GH#583 pr:#586 completed:2026-03-19
   - Plugin at v1.1.0 but 100+ PRs merged since — streaming, image upload, spending limits, mobile UX, a11y, etc.
-  - Update CHANGELOG.md [Unreleased] → [1.2.0], bump Version in gratis-ai-agent.php, update readme.txt Stable tag
+  - Update CHANGELOG.md [Unreleased] → [1.2.0], bump Version in sd-ai-agent.php, update readme.txt Stable tag
 
 - [x] t122 Add E2E tests for image/file upload in chat (t109 feature) @superdav42 #testing ~3h ref=GH#584 pr:#587 completed:2026-03-19
   - PR #560 added upload but no E2E tests — paperclip button, drag-drop, thumbnail preview, remove button
@@ -119,7 +119,7 @@
   - Group models by provider and tier (Budget / Standard / Premium)
   - Estimated cost per session based on average token usage
 
-- [x] t090 Rename plugin to "Gratis AI Agent" with slug "gratis-ai-agent" for WP.org guidelines @superdav42 #chore ~4h logged:2026-03-15 pr:#194 completed:2026-03-15
+- [x] t090 Rename plugin to "Superdav AI Agent" with slug "sd-ai-agent" for WP.org guidelines @superdav42 #chore ~4h logged:2026-03-15 pr:#194 completed:2026-03-15
   - Rename main file, text domain, namespace, constants, REST namespace, DB tables, options, CSS classes, ability names, CLI command, build assets, config files, CI/docs
   - Add activation hook migration for existing installs (detect old option/table names and rename)
 
@@ -129,9 +129,9 @@
 
 #### Critical Bugs (P0)
 
-- [x] t092 Fix incomplete plugin rename: 34 JS API paths still use old `/ai-agent/v1/` namespace instead of `/gratis-ai-agent/v1/` @superdav42 #bug ~2h ref=GH#508 completed:2026-03-19
+- [x] t092 Fix incomplete plugin rename: 34 JS API paths still use old `/ai-agent/v1/` namespace instead of `/sd-ai-agent/v1/` @superdav42 #bug ~2h ref=GH#508 completed:2026-03-19
   - Affected files: usage-dashboard.js, knowledge-manager.js, automations-manager.js, events-manager.js, custom-tools-manager.js, tool-profiles-manager.js, message-input.js (memory slash commands)
-  - Also 384 instances of old text domain `'ai-agent'` instead of `'gratis-ai-agent'` across 20+ JS files
+  - Also 384 instances of old text domain `'ai-agent'` instead of `'sd-ai-agent'` across 20+ JS files
   - Root cause: t090 rename was incomplete — store/index.js and some settings files were updated but others were missed
   - Impact: Usage tab, Knowledge tab, Automations, Events, Custom Tools, Tool Profiles, and /remember /forget slash commands are ALL broken
 
@@ -229,7 +229,7 @@
   - Bundled into t164's PR #815 by a parallel pulse worker that implemented #806 whole, ignoring the split t163/t164 briefs committed to main. The split-PR attempt (#816) was closed as a dup with merge conflicts. Foundation files (JsAbilityCatalog.php, src/abilities/{registry,navigation,editor,index}.js, entry-point wiring, script-module enqueue) are all on main.
 
 - [x] t164 Seamless PHP+JS abilities — AgentLoop pause/resume + /chat/tool-result + sessionsSlice round-trip #feature ~5h For #806 blocked-by:t163 logged:2026-04-08 pr:#815 completed:2026-04-08
-  - PR 2 of 2 splitting #806. Teaches AgentLoop to pause on gratis-ai-agent-js/* tool calls, return pending_client_tool_calls, and resume via a new /chat/tool-result REST route. Adds sessionsSlice round-trip, tool-call-details "Ran in browser" badge, abilities-explorer client badge, and PHPUnit coverage.
+  - PR 2 of 2 splitting #806. Teaches AgentLoop to pause on sd-ai-agent-js/* tool calls, return pending_client_tool_calls, and resume via a new /chat/tool-result REST route. Adds sessionsSlice round-trip, tool-call-details "Ran in browser" badge, abilities-explorer client badge, and PHPUnit coverage.
   - Brief: todo/tasks/t164-brief.md. Depends on t163 being merged first.
 
 - [x] t141 Add E2E tests for UnifiedAdminMenu (PR #665) @superdav42 #testing #auto-dispatch ~2h ref=GH#680 pr:#683 completed:2026-03-29
@@ -267,8 +267,8 @@
 - [x] t147 Remove redundant webpack entry points (changes-page, settings-page, abilities-explorer standalone) #refactor ~1h logged:2026-04-03 ref:GH#731 #auto-dispatch blocked-by:t146 pr:#738 completed:2026-04-04
   - These produce build artifacts that are never loaded — their PHP registration pages are dead code
 
-- [x] t148 Standardize CSS class prefix to gratis-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch pr:#739 completed:2026-04-04
-  - Three conventions coexist: ai-agent-, gratis-ai-agent-, gratis-ai- — namespace collision risk
+- [x] t148 Standardize CSS class prefix to sd-ai-agent- across all components #refactor ~4h logged:2026-04-03 ref:GH#732 #auto-dispatch pr:#739 completed:2026-04-04
+  - Three conventions coexist: ai-agent-, sd-ai-agent-, sd-ai- — namespace collision risk
 
 - [x] t149 Split Redux store (3,095 lines) into domain slices #refactor ~4h logged:2026-04-03 ref:GH#733 #auto-dispatch pr:#742 completed:2026-04-04
   - Single store/index.js handles sessions, messages, streaming, settings, memory, skills, agents, templates, TTS, site builder
@@ -343,7 +343,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Check site-builder system prompt for tool enumeration gaps
   - Verify: document findings with specific file:line references
 - [ ] t235 Fix ability discoverability — descriptions, system prompt, namespace alignment (Phase 2) #enhancement #auto-dispatch ~2h For #t232 blocked-by:t234 logged:2026-04-26
-  - Apply fixes identified in t234: improve descriptions, align namespaces (ai-agent/ vs gratis-ai-agent/), update system prompt
+  - Apply fixes identified in t234: improve descriptions, align namespaces (ai-agent/ vs sd-ai-agent/), update system prompt
   - Verify: `composer phpstan && composer phpcs`
 
 - [ ] t233 Site builder ability improvements #parent #plan → [todo/PLANS.md#site-builder-ability-improvements] ~9h logged:2026-04-26
@@ -375,7 +375,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 - [x] t228 Create WP AI Client bridge polyfill for WP 6.9 (Phase 2) #feature ~8h For #t226 blocked-by:t227 logged:2026-04-21 pr:#1133 completed:2026-04-21
   - NEW: includes/Compat/WP7Polyfill.php — conditional loader (function_exists/class_exists guards)
   - Copy from WP 7.0-RC2: wp_ai_client_prompt(), wp_supports_ai(), WP_AI_Client_Prompt_Builder (472 lines), WP_AI_Client_Ability_Function_Resolver (232 lines), 4 adapter classes (HTTP client, discovery, cache, event dispatcher)
-  - EDIT: gratis-ai-agent.php — load polyfill before DI container bootstrap
+  - EDIT: sd-ai-agent.php — load polyfill before DI container bootstrap
   - All definitions guarded — WP 7.0 core takes precedence when present
 
 - [x] t229 Create Connectors API polyfill for WP 6.9 (Phase 3) #feature ~8h For #t226 blocked-by:t227 logged:2026-04-21 pr:#1137 completed:2026-04-21
@@ -393,7 +393,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - On WP 7.0: detect core Connectors page exists, show redirect link instead
 
 - [x] t231 Lower version requirement to 6.9 + add WP 7.0 detection guards + test both versions (Phase 5) #feature ~4h For #t226 blocked-by:t230 logged:2026-04-21 pr:#1137 completed:2026-04-21
-  - EDIT: gratis-ai-agent.php — Requires at least: 6.9
+  - EDIT: sd-ai-agent.php — Requires at least: 6.9
   - EDIT: readme.txt — Requires at least: 6.9
   - Add version detection: if WP >= 7.0, skip all polyfills, Connectors page shows link to core page
   - Test on WP 6.9: full flow (install provider plugin, enter API key, chat works)
@@ -420,7 +420,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - DELETE: includes/Core/OnboardingInterview.php — entire class replaced by AI conversation
   - EDIT: includes/Bootstrap/OnboardingHandler.php — remove interview REST route registration
   - DELETE: src/components/__tests__/OnboardingWizard.test.js — replace with onboarding-gate tests
-  - DELETE: tests/GratisAiAgent/Core/OnboardingInterviewTest.php
+  - DELETE: tests/SdAiAgent/Core/OnboardingInterviewTest.php
   - Verify: `composer phpstan && composer phpcs && npm run lint:js && npm run build`
 
 - [x] t215 Adaptive skill system #parent #feature → [todo/PLANS.md#adaptive-skill-system] ~30h logged:2026-04-18 pr:#1086 completed:2026-04-19
@@ -450,7 +450,7 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 - [ ] t219 WP-Cron skill update checker + conditional HTTP (Phase 3b) #feature #auto-dispatch ~4h For #t215 blocked-by:t218 logged:2026-04-18
   - NEW: includes/Core/SkillUpdateChecker.php — WP-Cron callback: fetch manifest JSON from skill_manifest_url, compare content_hash per slug, update is_builtin=1 AND user_modified=0 skills. Use wp_remote_get with If-None-Match/If-Modified-Since headers. Model on Knowledge.php hash-comparison pattern (line 44)
   - EDIT: includes/Models/Skill.php::reset_builtin() — pull from remote manifest URL with fallback to bundled .md file
-  - EDIT: gratis-ai-agent.php or LifecycleHandler — register wp_schedule_event for daily skill check
+  - EDIT: sd-ai-agent.php or LifecycleHandler — register wp_schedule_event for daily skill check
   - Verify: `composer phpstan && composer phpcs`
 
 - [x] t220 Skill manager UI: usage stats + update badges + auto-update toggle (Phase 4) #ui #auto-dispatch ~6h For #t215 blocked-by:t216,t219 logged:2026-04-18 pr:#1100 completed:2026-04-19
@@ -464,15 +464,15 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
 - [x] t200 Active jobs DB table + repository class (Phase 1a) #feature #auto-dispatch ~3h For #t199 ref:GH#1028 logged:2026-04-17 pr:#1106 completed:2026-04-20
   - NEW: includes/Models/DTO/ActiveJobRow.php — readonly DTO: id, session_id, job_id (UUID), user_id, status (processing|awaiting_confirmation|complete|error), pending_tools (JSON), tool_calls (JSON), created_at, updated_at. Model on includes/Models/DTO/SessionRow.php
   - NEW: includes/Models/ActiveJobRepository.php — create(), get_by_job_id(), get_by_session_id(), get_active_for_user(), update_status(), delete(). Model on includes/Models/Memory.php (static CRUD pattern)
-  - EDIT: includes/Core/Database.php:255 area — add CREATE TABLE for `{$wpdb->prefix}gratis_ai_agent_active_jobs` with indexes on session_id, job_id, user_id+status. Bump DB_VERSION constant.
-  - Verify: `composer phpstan && composer phpcs && wp plugin activate gratis-ai-agent`
+  - EDIT: includes/Core/Database.php:255 area — add CREATE TABLE for `{$wpdb->prefix}sd_ai_agent_active_jobs` with indexes on session_id, job_id, user_id+status. Bump DB_VERSION constant.
+  - Verify: `composer phpstan && composer phpcs && wp plugin activate sd-ai-agent`
 
 - [ ] t201 Persist job lifecycle to DB alongside transients (Phase 1b) #feature #auto-dispatch ~4h For #t199 blocked-by:t200 ref:GH#1029 logged:2026-04-17
   - EDIT: includes/REST/SessionController.php — `handle_run()` (~line 1175): after `set_transient()`, call `ActiveJobRepository::create()` with job_id, session_id, user_id, status=processing
   - EDIT: includes/REST/SessionController.php — `handle_process()` (~line 1244): on status changes (complete/error/awaiting_confirmation), call `ActiveJobRepository::update_status()` alongside `set_transient()`
   - EDIT: includes/REST/SessionController.php — `handle_job_status()` (~line 922): when `get_transient()` returns false, fall back to `ActiveJobRepository::get_by_job_id()`. On complete, delete DB row after delivering result (same as transient delete on line 986)
   - EDIT: includes/REST/SessionController.php — `resume_job()` (~line 1131): update DB row status to processing on confirm/reject resume
-  - Verify: `composer phpstan && composer phpcs`; manually test: send message, verify row appears in `wp_gratis_ai_agent_active_jobs`, verify it's cleaned up after poll reads completion
+  - Verify: `composer phpstan && composer phpcs`; manually test: send message, verify row appears in `wp_sd_ai_agent_active_jobs`, verify it's cleaned up after poll reads completion
 
 - [ ] t202 Active-job reconnection REST endpoint + frontend integration (Phase 1c) #feature #auto-dispatch ~3h For #t199 blocked-by:t201 ref:GH#1030 logged:2026-04-17
   - EDIT: includes/REST/SessionController.php — register `GET /sessions/(?P<id>\d+)/active-job` route. Handler: call `ActiveJobRepository::get_by_session_id()`, return job_id + status + pending_tools + tool_calls (same shape as `/job/{id}` response). Return 404 if no active job.
@@ -504,14 +504,14 @@ Goal: clean, minimal design that matches wp-admin conventions. Replace custom da
   - Verify: `npm run lint:js && npm run build`; manually test: trigger tool confirmation, switch to another browser tab, verify notification fires and title flashes
 
 - [ ] t206 Cross-page navigation survival via sessionStorage (Phase 4) #feature #auto-dispatch ~2h For #t199 blocked-by:t202,t204 ref:GH#1034 logged:2026-04-17
-  - EDIT: src/store/slices/jobSlice.js — in `pollJob()`, on start: write `sessionStorage.setItem('gratisAiAgent_activeJobs', JSON.stringify({[sessionId]: {jobId, startedAt}}))`. On job complete/error: remove entry. On poll resume: read and restore.
+  - EDIT: src/store/slices/jobSlice.js — in `pollJob()`, on start: write `sessionStorage.setItem('sdAiAgent_activeJobs', JSON.stringify({[sessionId]: {jobId, startedAt}}))`. On job complete/error: remove entry. On poll resume: read and restore.
   - EDIT: src/floating-widget/index.js — in mount useEffect: read `sessionStorage` active jobs, call `pollJob()` for each before `restoreActiveJobs()` fires (fast path — sessionStorage is synchronous, REST is async)
   - EDIT: src/admin-page/index.js — same sessionStorage restore on mount
   - Verify: `npm run lint:js && npm run build`; manually test: send message, navigate to Posts page in wp-admin, floating widget should show "Thinking..." with tool progress for the active session
 
 - [ ] t207 Tabbed multi-session chat UI (Phase 5) #feature #auto-dispatch ~6h For #t199 blocked-by:t204 ref:GH#1035 logged:2026-04-17
   - NEW: src/components/chat-tab-bar.js — tab bar component above ChatPanel. Shows `openTabs` array as clickable tabs with session title (truncated), close button, status indicator (spinner for processing, warning dot for awaiting_confirmation, idle for none). `+` button calls `clearCurrentSession()`. Click tab calls `openSession(id)`. Model on src/floating-widget/session-tabs.js (78 lines) but with close buttons and status indicators.
-  - EDIT: src/store/slices/sessionsSlice.js — add `openTabs: []` state, `ADD_OPEN_TAB`, `REMOVE_OPEN_TAB`, `SET_OPEN_TABS` reducers. Persist to `localStorage.getItem('gratisAiAgent_openTabs')`. In `openSession()`, auto-add to openTabs if not present.
+  - EDIT: src/store/slices/sessionsSlice.js — add `openTabs: []` state, `ADD_OPEN_TAB`, `REMOVE_OPEN_TAB`, `SET_OPEN_TABS` reducers. Persist to `localStorage.getItem('sdAiAgent_openTabs')`. In `openSession()`, auto-add to openTabs if not present.
   - EDIT: src/components/ChatPanel.js — render `<ChatTabBar />` above header when `openTabs.length > 0` (or always, if a session is active)
   - NEW: src/components/chat-tab-bar.css — styles: horizontal scroll, active tab highlight, status dot animations, close button on hover
   - Verify: `npm run lint:js && npm run build`; manually test: open 3 sessions, verify tab bar shows all 3, clicking switches, close button works, status indicators update during active jobs
@@ -614,7 +614,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
   - Update DI container bindings to use interface → implementation mapping
   - Verify: `composer phpstan && composer phpcs`
   - `src/components/provider-selector.js:43-48` renders a disabled `(no providers)` SelectControl when `providers` is empty — useless UX that gives no path forward
-  - EDIT: src/components/provider-selector.js — when `providers.length === 0`, return early with a `<p>` or `<div>` containing a link: `<a href="/wp-admin/options-connectors.php">{ __( 'Configure a provider', 'gratis-ai-agent' ) }</a>` instead of the two SelectControl dropdowns
+  - EDIT: src/components/provider-selector.js — when `providers.length === 0`, return early with a `<p>` or `<div>` containing a link: `<a href="/wp-admin/options-connectors.php">{ __( 'Configure a provider', 'sd-ai-agent' ) }</a>` instead of the two SelectControl dropdowns
   - Update snapshot: `npm run test:js -- --updateSnapshot` (ProviderSelector.test.js snapshot will need regenerating)
   - Verify: render ProviderSelector with empty providers array, assert link renders and points to `options-connectors.php`; render with providers, assert dropdowns render normally
 
@@ -622,7 +622,7 @@ Full plan: [todo/PLANS.md#post-di-code-quality](todo/PLANS.md#2026-04-16-post-di
 
 Full plan: [todo/PLANS.md#customer-feedback-issue-reporting-system](todo/PLANS.md#2026-04-14-customer-feedback--issue-reporting-system)
 
-Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-feedback.
+Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/sd-ai-feedback.
 
 - [x] t180 Feedback settings UI: endpoint URL + API key fields in Settings > Advanced #feature #auto-dispatch ~2h logged:2026-04-14 pr:#946 completed:2026-04-15
   - Add "Feedback" section to Settings > Advanced tab with endpoint URL, API key (password field), and enable/disable toggle
@@ -636,7 +636,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - NEW: src/components/FeedbackConsentModal.js — modal with: (1) summary stats (message count, tool call count, environment keys), (2) collapsible "View full payload" section showing the actual sanitized JSON that will be sent, (3) privacy notice: "No passwords, API keys, or credentials are included. Server paths are anonymized. Review the full payload below.", (4) optional user description textarea, (5) "Strip tool results" checkbox for aggressive privacy, (6) "Send Report" and "Dismiss" buttons
   - Wire to Redux store: dispatches sendFeedbackReport async thunk on confirm
   - EDIT: src/store/slices/sessionsSlice.js — add sendFeedbackReport thunk that calls ReportBuilder via new REST proxy endpoint
-  - NEW: REST endpoint `POST /gratis-ai-agent/v1/feedback/send` — server-side proxy that builds, sanitizes, and forwards the report (keeps API key server-side)
+  - NEW: REST endpoint `POST /sd-ai-agent/v1/feedback/send` — server-side proxy that builds, sanitizes, and forwards the report (keeps API key server-side)
   - Verify: modal renders, payload preview matches actual data, send succeeds against a mock endpoint, dismiss closes without side effects
 
 - [x] t183 Auto-prompt feedback banner on exit_reason (spin/timeout/max_iterations) #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t182 pr:#951 completed:2026-04-15
@@ -656,7 +656,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
 - [x] t185 report-inability ability: agent self-flags when it cannot complete a task #feature #auto-dispatch ~2h logged:2026-04-14 blocked-by:t181 pr:#948 completed:2026-04-15
   - NEW: includes/Abilities/FeedbackAbilities.php — single ability `report-inability` with schema: { reason: string, attempted_steps: string[] }
   - Ability handler: sets a session-level flag (transient or session meta) that the frontend reads on next poll
-  - EDIT: gratis-ai-agent.php — register the new abilities class
+  - EDIT: sd-ai-agent.php — register the new abilities class
   - EDIT: system prompt (Settings.php build_system_instruction or agent prompt) — add instruction: "If you cannot complete the user's request after trying, call the report-inability ability with a reason."
   - Frontend: when session response includes the inability flag, show the feedback consent banner with report_type='self_reported'
   - Verify: `composer phpcs && composer phpstan`
@@ -666,7 +666,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Runs as an aidevops routine (r010) using deterministic script + AI agent split (modeled on /log-issue-aidevops pattern)
   - Deterministic script: `~/.aidevops/agents/custom/scripts/feedback-triage.sh` (already created) — `fetch` pulls new reports, `get <id>` pulls full payload, `dedup <keywords>` checks existing GitHub issues, `update <id> <status>` marks reports after triage
   - AI agent receives each report and judges: (1) real bug vs user error vs model limitation vs missing ability vs provider error, (2) checks dedup results — is this already reported?, (3) validates claims per log-issue-aidevops Step 3.6 (verify evidence, check data scale, detect template-driven findings), (4) composes structured GitHub issue body (Description, Expected Behavior, Steps to Reproduce from conversation, Environment, Report ID for backlink)
-  - If real + not duplicate: `gh issue create -R Ultimate-Multisite/gratis-ai-agent` then `feedback-triage.sh update <id> issue_created <url>`
+  - If real + not duplicate: `gh issue create -R Ultimate-Multisite/sd-ai-agent` then `feedback-triage.sh update <id> issue_created <url>`
   - If duplicate: `feedback-triage.sh update <id> dismissed` with link to existing issue
   - If not a bug: `feedback-triage.sh update <id> dismissed` with reason
   - Check plugin_version vs latest: if the report is from an outdated version where the issue is already fixed, dismiss with "fixed in vX.Y.Z"
@@ -689,10 +689,10 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Verify: `composer phpcs && composer phpstan`
 - [x] t172 Register custom post type ability with persistence #feature #auto-dispatch ~4h logged:2026-04-09 ref:GH#850 pr:#858 completed:2026-04-09
   - register-custom-post-type: labels, supports, menu icon, REST API, rewrite rules
-  - Persist via gratis_ai_agent_custom_post_types option, register on init
+  - Persist via sd_ai_agent_custom_post_types option, register on init
   - NEW: includes/Abilities/CustomPostTypeAbilities.php — model on PostAbilities.php
-  - EDIT: gratis-ai-agent.php — register the new abilities class
-  - Verify: `composer phpcs && composer phpstan && wp plugin activate gratis-ai-agent`
+  - EDIT: sd-ai-agent.php — register the new abilities class
+  - Verify: `composer phpcs && composer phpstan && wp plugin activate sd-ai-agent`
 - [x] t173 Register custom taxonomy ability with persistence #feature #auto-dispatch ~3h logged:2026-04-09 ref:GH#851 pr:#863 completed:2026-04-10
   - register-custom-taxonomy: associate with post types, hierarchical, labels
   - Same persistence pattern as CPTs
@@ -702,7 +702,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Create menus, add/update/remove items, assign to theme locations
   - Biggest ecosystem gap — only bjornfix/mcp-expose-abilities has this
   - NEW: includes/Abilities/MenuAbilities.php — model on NavigationAbilities.php
-  - EDIT: gratis-ai-agent.php — register the new abilities class
+  - EDIT: sd-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
 - [x] t179 Options management ability with safety blocklist #feature #auto-dispatch ~2h logged:2026-04-09 ref:GH#845 pr:#859 completed:2026-04-10
   - Get/set WordPress options (site title, tagline, permalinks, timezone, date format)
@@ -713,7 +713,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
   - Read and update theme.json global styles (colors, typography, spacing, layout)
   - Uses wp_global_styles CPT internally
   - NEW: includes/Abilities/GlobalStylesAbilities.php — model on BlockAbilities.php
-  - EDIT: gratis-ai-agent.php — register the new abilities class
+  - EDIT: sd-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
 - [x] t175 Site builder orchestration v2: system prompt + multi-step builds #feature ~8h logged:2026-04-09 ref:GH#854 pr:#862 completed:2026-04-09
   - Rewrite site builder prompt to use new abilities + plugin discovery
@@ -722,7 +722,7 @@ Phase 1 (receiving plugin) complete — shipped to Ultimate-Multisite/gratis-ai-
 - [x] t176 Design system: custom CSS injection, block patterns, site logo, theme presets #feature #auto-dispatch ~6h logged:2026-04-09 ref:GH#853 pr:#857 completed:2026-04-10
   - inject-custom-css, curated block patterns, set-site-logo, theme.json presets
   - NEW: includes/Abilities/DesignAbilities.php — model on BlockAbilities.php
-  - EDIT: gratis-ai-agent.php — register the new abilities class
+  - EDIT: sd-ai-agent.php — register the new abilities class
   - Verify: `composer phpcs && composer phpstan`
 - [x] t170 Benchmark validation: ac-016 restaurant website end-to-end test #testing ~3h logged:2026-04-09 ref:GH#839 pr:#848 completed:2026-04-09
   - Run full prompt on fresh WordPress install, document gaps
@@ -825,7 +825,7 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
 
 ### Tool Permission System (P1)
 
-- [x] t037 Add per-tool WordPress capabilities (gratis_ai_agent_tool_{name}) @superdav42 #feature ~3h logged:2026-03-14 ref=GH#435 pr:#448 pr:#448 completed:2026-03-16
+- [x] t037 Add per-tool WordPress capabilities (sd_ai_agent_tool_{name}) @superdav42 #feature ~3h logged:2026-03-14 ref=GH#435 pr:#448 pr:#448 completed:2026-03-16
 - [x] t038 Add YOLO mode toggle (skip all confirmations) @superdav42 #feature ~1h logged:2026-03-14 pr:#444 completed:2026-03-16
 
 ### AI SDK Alignment (P1)
@@ -902,7 +902,7 @@ Full plan: [todo/PLANS.md#complete-site-building-abilities](PLANS.md#2026-04-09-
   - Verify: hover over assistant message, thumbs-down appears, clicking opens consent modal
 - [x] t181 Feedback report payload builder + sender-side sanitizer #feature #auto-dispatch ~3h logged:2026-04-14 blocked-by:t180 pr:#953 completed:2026-04-15
   - NEW: includes/Feedback/ReportBuilder.php — collects session messages, tool_calls, token_usage, model_id, provider_id, environment (WP version, PHP version, plugin version, theme, active plugins, locale, multisite). Also include plugin_version vs latest_available for "is this already fixed?" triage.
-  - NEW: includes/Feedback/ReportSanitizer.php — port from gratis-ai-feedback receiving plugin, runs before transmission
+  - NEW: includes/Feedback/ReportSanitizer.php — port from sd-ai-feedback receiving plugin, runs before transmission
   - NEW: includes/Feedback/ReportSender.php — wp_remote_post() to configured endpoint with X-Feedback-Api-Key header, handles errors gracefully (no user-facing crash on 4xx/5xx)
   - Verify: `composer phpstan && composer phpcs`
 - [x] t000 Install dependencies and verify code quality baseline verified:2026-03-14 completed:2026-03-14

@@ -55,10 +55,10 @@ function readFileAsDataUrl( file ) {
  */
 function validateFile( file ) {
 	if ( file.size > MAX_FILE_SIZE ) {
-		return __( 'File exceeds 10 MB limit.', 'gratis-ai-agent' );
+		return __( 'File exceeds 10 MB limit.', 'sd-ai-agent' );
 	}
 	if ( ! ACCEPTED_TYPES.includes( file.type ) ) {
-		return __( 'Unsupported file type.', 'gratis-ai-agent' );
+		return __( 'Unsupported file type.', 'sd-ai-agent' );
 	}
 	return null;
 }
@@ -102,33 +102,30 @@ function AttachmentPreviews( { attachments, onRemove } ) {
 	}
 
 	return (
-		<div className="gratis-ai-agent-attachment-previews">
+		<div className="sd-ai-agent-attachment-previews">
 			{ attachments.map( ( att, i ) => (
-				<div key={ i } className="gratis-ai-agent-attachment-thumb">
+				<div key={ i } className="sd-ai-agent-attachment-thumb">
 					{ att.isImage ? (
 						<img
 							src={ att.dataUrl }
 							alt={ att.name }
-							className="gratis-ai-agent-attachment-thumb__img"
+							className="sd-ai-agent-attachment-thumb__img"
 						/>
 					) : (
-						<div className="gratis-ai-agent-attachment-thumb__file">
-							<span className="gratis-ai-agent-attachment-thumb__ext">
+						<div className="sd-ai-agent-attachment-thumb__file">
+							<span className="sd-ai-agent-attachment-thumb__ext">
 								{ att.name.split( '.' ).pop().toUpperCase() }
 							</span>
 						</div>
 					) }
-					<span className="gratis-ai-agent-attachment-thumb__name">
+					<span className="sd-ai-agent-attachment-thumb__name">
 						{ att.name }
 					</span>
 					<button
 						type="button"
-						className="gratis-ai-agent-attachment-thumb__remove"
+						className="sd-ai-agent-attachment-thumb__remove"
 						onClick={ () => onRemove( i ) }
-						aria-label={ __(
-							'Remove attachment',
-							'gratis-ai-agent'
-						) }
+						aria-label={ __( 'Remove attachment', 'sd-ai-agent' ) }
 					>
 						&times;
 					</button>
@@ -253,7 +250,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					if ( onSlashCommand ) {
 						onSlashCommand(
 							'notice',
-							__( 'Failed to read file.', 'gratis-ai-agent' )
+							__( 'Failed to read file.', 'sd-ai-agent' )
 						);
 					}
 				}
@@ -345,7 +342,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			const fact = trimmed.slice( 10 ).trim();
 			if ( fact ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory',
+					path: '/sd-ai-agent/v1/memory',
 					method: 'POST',
 					data: { category: 'general', content: fact },
 				} )
@@ -353,7 +350,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 						if ( onSlashCommand ) {
 							onSlashCommand(
 								'notice',
-								__( 'Memory saved.', 'gratis-ai-agent' )
+								__( 'Memory saved.', 'sd-ai-agent' )
 							);
 						}
 					} )
@@ -361,10 +358,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 						if ( onSlashCommand ) {
 							onSlashCommand(
 								'notice',
-								__(
-									'Failed to save memory.',
-									'gratis-ai-agent'
-								)
+								__( 'Failed to save memory.', 'sd-ai-agent' )
 							);
 						}
 					} );
@@ -378,7 +372,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 			const topic = trimmed.slice( 8 ).trim();
 			if ( topic ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory/forget',
+					path: '/sd-ai-agent/v1/memory/forget',
 					method: 'POST',
 					data: { topic },
 				} )
@@ -390,21 +384,15 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 								count > 0
 									? `${ count } ${
 											count === 1
-												? __(
-														'memory',
-														'gratis-ai-agent'
-												  )
+												? __( 'memory', 'sd-ai-agent' )
 												: __(
 														'memories',
-														'gratis-ai-agent'
+														'sd-ai-agent'
 												  )
-									  } ${ __(
-											'deleted.',
-											'gratis-ai-agent'
-									  ) }`
+									  } ${ __( 'deleted.', 'sd-ai-agent' ) }`
 									: __(
 											'No matching memories found.',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 							);
 						}
@@ -415,7 +403,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 								'notice',
 								__(
 									'Failed to forget memories.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								)
 							);
 						}
@@ -555,7 +543,7 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-input-area ${
+			className={ `sd-ai-agent-input-area ${
 				compact ? 'is-compact' : ''
 			} ${ isDragOver ? 'is-drag-over' : '' }` }
 			onDragOver={ handleDragOver }
@@ -587,28 +575,28 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				onRemove={ handleRemoveAttachment }
 			/>
 			{ isDragOver && (
-				<div className="gratis-ai-agent-drop-overlay">
-					{ __( 'Drop files here', 'gratis-ai-agent' ) }
+				<div className="sd-ai-agent-drop-overlay">
+					{ __( 'Drop files here', 'sd-ai-agent' ) }
 				</div>
 			) }
 			{ queueCount > 0 && (
-				<div className="gratis-ai-agent-queue-indicator">
+				<div className="sd-ai-agent-queue-indicator">
 					{ queueCount === 1
-						? __( '1 message queued', 'gratis-ai-agent' )
+						? __( '1 message queued', 'sd-ai-agent' )
 						: `${ queueCount } ${ __(
 								'messages queued',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 						  ) }` }
 				</div>
 			) }
-			<div className="gratis-ai-agent-input-row">
+			<div className="sd-ai-agent-input-row">
 				{ /* Hidden file input */ }
 				<input
 					ref={ fileInputRef }
 					type="file"
 					accept={ ACCEPTED_TYPES.join( ',' ) }
 					multiple
-					className="gratis-ai-agent-file-input"
+					className="sd-ai-agent-file-input"
 					onChange={ handleFileInputChange }
 					aria-hidden="true"
 					tabIndex={ -1 }
@@ -617,23 +605,20 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				{ /* Upload button (paperclip) */ }
 				<Button
 					onClick={ () => fileInputRef.current?.click() }
-					className="gratis-ai-agent-upload-btn"
-					label={ __( 'Attach file', 'gratis-ai-agent' ) }
+					className="sd-ai-agent-upload-btn"
+					label={ __( 'Attach file', 'sd-ai-agent' ) }
 					icon={ <PaperclipIcon /> }
 				/>
 				<textarea
 					ref={ textareaRef }
-					className="gratis-ai-agent-input"
+					className="sd-ai-agent-input"
 					rows={ 1 }
 					placeholder={
 						sending
-							? __(
-									'Type to queue a message…',
-									'gratis-ai-agent'
-							  )
+							? __( 'Type to queue a message…', 'sd-ai-agent' )
 							: __(
 									'Type a message or / for commands…',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 							  )
 					}
 					value={ text }
@@ -644,18 +629,18 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				{ isSpeechSupported && (
 					<Button
 						onClick={ toggleListening }
-						className={ `gratis-ai-agent-mic-btn${
+						className={ `sd-ai-agent-mic-btn${
 							isListening ? ' is-listening' : ''
 						}` }
 						label={
 							isListening
-								? __( 'Stop recording', 'gratis-ai-agent' )
-								: __( 'Start voice input', 'gratis-ai-agent' )
+								? __( 'Stop recording', 'sd-ai-agent' )
+								: __( 'Start voice input', 'sd-ai-agent' )
 						}
 						aria-label={
 							isListening
-								? __( 'Stop recording', 'gratis-ai-agent' )
-								: __( 'Voice input', 'gratis-ai-agent' )
+								? __( 'Stop recording', 'sd-ai-agent' )
+								: __( 'Voice input', 'sd-ai-agent' )
 						}
 						aria-pressed={ isListening }
 						icon={
@@ -676,8 +661,8 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 				{ sending && (
 					<Button
 						onClick={ stopGeneration }
-						className="gratis-ai-agent-stop-btn"
-						label={ __( 'Stop generation', 'gratis-ai-agent' ) }
+						className="sd-ai-agent-stop-btn"
+						label={ __( 'Stop generation', 'sd-ai-agent' ) }
 						showTooltip
 						icon={ <Icon icon={ closeSmall } size={ 18 } /> }
 					/>
@@ -686,16 +671,16 @@ export default function MessageInput( { compact = false, onSlashCommand } ) {
 					variant="primary"
 					onClick={ handleSend }
 					disabled={ ! canSend }
-					className="gratis-ai-agent-send-btn"
+					className="sd-ai-agent-send-btn"
 					label={
 						sending
-							? __( 'Queue message', 'gratis-ai-agent' )
-							: __( 'Send message', 'gratis-ai-agent' )
+							? __( 'Queue message', 'sd-ai-agent' )
+							: __( 'Send message', 'sd-ai-agent' )
 					}
 					aria-label={
 						sending
-							? __( 'Queue message', 'gratis-ai-agent' )
-							: __( 'Send message', 'gratis-ai-agent' )
+							? __( 'Queue message', 'sd-ai-agent' )
+							: __( 'Send message', 'sd-ai-agent' )
 					}
 					icon={ <Icon icon={ arrowUp } /> }
 				/>

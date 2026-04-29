@@ -9,11 +9,11 @@ declare(strict_types=1);
  * real implementation can be swapped when t189 splits Database.php into
  * domain repositories.
  *
- * @package GratisAiAgent\Contracts
+ * @package SdAiAgent\Contracts
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Contracts;
+namespace SdAiAgent\Contracts;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

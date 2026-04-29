@@ -1,12 +1,12 @@
 /**
- * E2E tests for the Gratis AI Agent unified admin page.
+ * E2E tests for the Superdav AI Agent unified admin page.
  *
  * The UnifiedAdminMenu consolidates all admin pages into a single React SPA
- * at admin.php?page=gratis-ai-agent with hash-based routing:
- *   - Chat:      admin.php?page=gratis-ai-agent (or #/chat)
- *   - Abilities: admin.php?page=gratis-ai-agent#/abilities
- *   - Changes:   admin.php?page=gratis-ai-agent#/changes
- *   - Settings:  admin.php?page=gratis-ai-agent#/settings
+ * at admin.php?page=sd-ai-agent with hash-based routing:
+ *   - Chat:      admin.php?page=sd-ai-agent (or #/chat)
+ *   - Abilities: admin.php?page=sd-ai-agent#/abilities
+ *   - Changes:   admin.php?page=sd-ai-agent#/changes
+ *   - Settings:  admin.php?page=sd-ai-agent#/settings
  *
  * Run: npm run test:e2e:playwright
  */
@@ -31,13 +31,13 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'admin page loads with correct layout', async ( { page } ) => {
-		// The unified admin SPA renders .gratis-ai-agent-unified-admin as the outer
+		// The unified admin SPA renders .sd-ai-agent-unified-admin as the outer
 		// wrapper. The AdminPageApp mounts ChatRedesign inside
-		// #gratis-ai-agent-chat-container. ChatRedesign uses gaa-cr-* classes:
-		//   .gaa-cr-shell   — two-column shell  (was .gratis-ai-agent-layout)
-		//   .gaa-cr-sidebar — sidebar panel     (was .gratis-ai-agent-sidebar)
-		//   .gaa-cr-convo   — conversation area (was .gratis-ai-agent-main)
-		const chatContainer = page.locator( '#gratis-ai-agent-chat-container' );
+		// #sd-ai-agent-chat-container. ChatRedesign uses gaa-cr-* classes:
+		//   .gaa-cr-shell   — two-column shell  (was .sd-ai-agent-layout)
+		//   .gaa-cr-sidebar — sidebar panel     (was .sd-ai-agent-sidebar)
+		//   .gaa-cr-convo   — conversation area (was .sd-ai-agent-main)
+		const chatContainer = page.locator( '#sd-ai-agent-chat-container' );
 		await expect( chatContainer.locator( '.gaa-cr-shell' ) ).toBeVisible();
 		await expect( chatContainer.locator( '.gaa-cr-sidebar' ) ).toBeVisible();
 		await expect( chatContainer.locator( '.gaa-cr-convo' ) ).toBeVisible();
@@ -103,13 +103,13 @@ test.describe( 'Admin Page - Chat UI', () => {
 	} );
 
 	test( 'sidebar has new chat button', async ( { page } ) => {
-		// The ChatRedesign Sidebar uses .gaa-cr-new-chat (was .gratis-ai-agent-new-chat-btn).
+		// The ChatRedesign Sidebar uses .gaa-cr-new-chat (was .sd-ai-agent-new-chat-btn).
 		const newChatButton = page.locator( '.gaa-cr-new-chat' );
 		await expect( newChatButton ).toBeVisible();
 	} );
 
 	test( 'sidebar has session search input', async ( { page } ) => {
-		// The ChatRedesign Sidebar uses .gaa-cr-sidebar-search (was .gratis-ai-agent-sidebar-search).
+		// The ChatRedesign Sidebar uses .gaa-cr-sidebar-search (was .sd-ai-agent-sidebar-search).
 		const searchInput = page.locator( '.gaa-cr-sidebar-search' );
 		await expect( searchInput ).toBeVisible();
 	} );
@@ -159,7 +159,7 @@ test.describe( 'Admin Page - Session Management', () => {
 		await waitForMessageSubmitted( page );
 
 		// At least one session row should appear in the sidebar.
-		// The ChatRedesign Sidebar uses .gaa-cr-session-row (was .gratis-ai-agent-session-item).
+		// The ChatRedesign Sidebar uses .gaa-cr-session-row (was .sd-ai-agent-session-item).
 		// Use toBeVisible() on the first item rather than toHaveCount(1) because
 		// prior tests in the same run may have created sessions that persist in
 		// the wp-env database across tests.
@@ -208,7 +208,7 @@ test.describe( 'Admin Page - Keyboard Shortcuts', () => {
 /**
  * Abilities search and filter (t098)
  *
- * The UnifiedAdminMenu routes abilities to admin.php?page=gratis-ai-agent#/abilities
+ * The UnifiedAdminMenu routes abilities to admin.php?page=sd-ai-agent#/abilities
  * which renders AbilitiesExplorerApp directly (not as a tab inside settings).
  * AbilitiesExplorerApp provides:
  *   - A SearchControl that filters abilities by name/description.
@@ -236,7 +236,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 * @return {Promise<number>} The total ability count shown in the UI.
 	 */
 	async function getTotalAbilityCount( page ) {
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toBeVisible();
 		const text = await countEl.textContent();
 		// "Showing X of N abilities" → capture N
@@ -259,7 +259,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 * @return {Promise<number>} The filtered (shown) ability count.
 	 */
 	async function getFilteredAbilityCount( page ) {
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		const text = await countEl.textContent();
 		const match = text.match( /Showing\s+(\d+)\s+of/ );
 		if ( match ) {
@@ -277,7 +277,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	 */
 	async function getFirstCategoryOption( page ) {
 		const categorySelect = page
-			.locator( '.gratis-ai-agent-abilities-filters' )
+			.locator( '.sd-ai-agent-abilities-filters' )
 			.locator( 'select' );
 		const options = await categorySelect.locator( 'option' ).all();
 		for ( const option of options ) {
@@ -294,18 +294,18 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// The AbilitiesManager toolbar contains a SearchControl and a
 		// SelectControl for category filtering.
-		const manager = page.locator( '.gratis-ai-agent-abilities-manager' );
+		const manager = page.locator( '.sd-ai-agent-abilities-manager' );
 		await expect( manager ).toBeVisible();
 
-		// SearchControl renders an <input> inside .gratis-ai-agent-abilities-search.
+		// SearchControl renders an <input> inside .sd-ai-agent-abilities-search.
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 		await expect( searchInput ).toBeVisible();
 
-		// Category SelectControl renders a <select> inside .gratis-ai-agent-abilities-filters.
+		// Category SelectControl renders a <select> inside .sd-ai-agent-abilities-filters.
 		const categorySelect = page
-			.locator( '.gratis-ai-agent-abilities-filters' )
+			.locator( '.sd-ai-agent-abilities-filters' )
 			.locator( 'select' );
 		await expect( categorySelect ).toBeVisible();
 	} );
@@ -315,7 +315,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// The count paragraph shows "N abilities" when all are visible.
 		// Assert the count is a positive number without hardcoding the value.
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toBeVisible();
 		const total = await getTotalAbilityCount( page );
 		expect( total ).toBeGreaterThan( 0 );
@@ -323,7 +323,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 
 	test( 'search input filters abilities by name', async ( { page } ) => {
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
@@ -333,14 +333,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await searchInput.fill( 'post' );
 
 		// Count paragraph should update to "Showing X of N abilities" where X < N.
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
 		expect( filtered ).toBeLessThan( total );
 
 		// At least one category section should be visible (has matching abilities).
-		const visibleSections = page.locator( '.gratis-ai-agent-abilities-category' );
+		const visibleSections = page.locator( '.sd-ai-agent-abilities-category' );
 		await expect( visibleSections.first() ).toBeVisible();
 	} );
 
@@ -348,7 +348,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
@@ -358,27 +358,27 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await searchInput.fill( 'post' );
 
 		// Count paragraph should update to "Showing X of N abilities" where X < N.
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
 		expect( filtered ).toBeLessThan( total );
 
 		// At least one category section should be visible.
-		const visibleSections = page.locator( '.gratis-ai-agent-abilities-category' );
+		const visibleSections = page.locator( '.sd-ai-agent-abilities-category' );
 		await expect( visibleSections.first() ).toBeVisible();
 	} );
 
 	test( 'clearing search restores full list', async ( { page } ) => {
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		// Read the total before filtering.
 		const total = await getTotalAbilityCount( page );
 
 		await searchInput.fill( 'post' );
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 
 		// Clear the search — count should return to the original total.
@@ -391,7 +391,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 
 		await searchInput.fill( 'xyzzy_nonexistent_ability' );
@@ -408,7 +408,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const categorySelect = page
-			.locator( '.gratis-ai-agent-abilities-filters' )
+			.locator( '.sd-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -422,7 +422,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await categorySelect.selectOption( firstCategory );
 
 		// Count should show "Showing X of N" where X < N.
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 		const filtered = await getFilteredAbilityCount( page );
 		expect( filtered ).toBeGreaterThan( 0 );
@@ -430,14 +430,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 
 		// The selected category section should be visible.
 		const selectedSection = page
-			.locator( '.gratis-ai-agent-abilities-category' )
+			.locator( '.sd-ai-agent-abilities-category' )
 			.filter( { hasText: firstCategory } );
 		await expect( selectedSection ).toBeVisible();
 	} );
 
 	test( 'selecting All Categories restores full list', async ( { page } ) => {
 		const categorySelect = page
-			.locator( '.gratis-ai-agent-abilities-filters' )
+			.locator( '.sd-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -448,7 +448,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		expect( firstCategory ).not.toBeNull();
 		await categorySelect.selectOption( firstCategory );
 
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		await expect( countEl ).toContainText( 'Showing' );
 
 		// Reset to "All Categories" (value is empty string).
@@ -461,10 +461,10 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		page,
 	} ) => {
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 		const categorySelect = page
-			.locator( '.gratis-ai-agent-abilities-filters' )
+			.locator( '.sd-ai-agent-abilities-filters' )
 			.locator( 'select' );
 
 		// Read the total before filtering.
@@ -479,7 +479,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		await categorySelect.selectOption( firstCategory );
 		await searchInput.fill( 'post' );
 
-		const countEl = page.locator( '.gratis-ai-agent-abilities-count' );
+		const countEl = page.locator( '.sd-ai-agent-abilities-count' );
 		// Either "Showing X of N" (some match) or the no-results message.
 		// In both cases the filtered count must be less than the total.
 		const text = await countEl.textContent();
@@ -498,17 +498,17 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	test( 'category sections are collapsible', async ( { page } ) => {
 		// Use the first visible category header (environment-agnostic).
 		const firstHeader = page
-			.locator( '.gratis-ai-agent-abilities-category-header' )
+			.locator( '.sd-ai-agent-abilities-category-header' )
 			.first();
 		await expect( firstHeader ).toBeVisible();
 
 		// Initially expanded (defaultOpen=true when allOpen=true).
 		// The category body contains the ability rows.
 		const firstCategory = page
-			.locator( '.gratis-ai-agent-abilities-category' )
+			.locator( '.sd-ai-agent-abilities-category' )
 			.first();
 		const firstBody = firstCategory.locator(
-			'.gratis-ai-agent-abilities-category-body'
+			'.sd-ai-agent-abilities-category-body'
 		);
 		await expect( firstBody ).toBeVisible();
 
@@ -532,7 +532,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Wait for at least one category body to be present before collapsing.
 		// Without this, the abilities may not have loaded yet and count() returns 0.
 		const categoryBodies = page.locator(
-			'.gratis-ai-agent-abilities-category-body'
+			'.sd-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -551,7 +551,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Wait for at least one category body to be present before collapsing.
 		// Without this, the abilities may not have loaded yet and count() returns 0.
 		const categoryBodies = page.locator(
-			'.gratis-ai-agent-abilities-category-body'
+			'.sd-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -593,7 +593,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// Wait for abilities to load before collapsing.
 		const categoryBodies = page.locator(
-			'.gratis-ai-agent-abilities-category-body'
+			'.sd-ai-agent-abilities-category-body'
 		);
 		await expect( categoryBodies.first() ).toBeVisible( {
 			timeout: 10_000,
@@ -614,7 +614,7 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 		// Activate search — AbilitiesManager passes defaultOpen=true when
 		// isFiltering is truthy, which forces sections open.
 		const searchInput = page
-			.locator( '.gratis-ai-agent-abilities-search' )
+			.locator( '.sd-ai-agent-abilities-search' )
 			.locator( 'input' );
 		await searchInput.fill( 'post' );
 
@@ -627,14 +627,14 @@ test.describe( 'Abilities - Search and Filter (t098)', () => {
 	} ) => {
 		// Use the first visible category header (environment-agnostic).
 		const firstHeader = page
-			.locator( '.gratis-ai-agent-abilities-category-header' )
+			.locator( '.sd-ai-agent-abilities-category-header' )
 			.first();
 		await expect( firstHeader ).toBeVisible();
 
 		// Each category header shows a count badge — assert it exists and is
 		// a positive number without hardcoding the value.
 		const countBadge = firstHeader.locator(
-			'.gratis-ai-agent-abilities-category-count'
+			'.sd-ai-agent-abilities-category-count'
 		);
 		await expect( countBadge ).toBeVisible();
 		const badgeText = await countBadge.textContent();

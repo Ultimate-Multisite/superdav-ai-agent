@@ -2,18 +2,18 @@
 /**
  * Handler: register WP-CLI subcommands for the plugin.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\CLI\BenchmarkCommand;
-use GratisAiAgent\CLI\CliCommand;
-use GratisAiAgent\CLI\TraceCommand;
-use GratisAiAgent\Models\ProviderTrace;
+use SdAiAgent\CLI\BenchmarkCommand;
+use SdAiAgent\CLI\CliCommand;
+use SdAiAgent\CLI\TraceCommand;
+use SdAiAgent\Models\ProviderTrace;
 use WP_CLI;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Registers the plugin's WP-CLI subcommands under both the canonical
- * `ai-agent` namespace and the legacy `gratis-ai-agent` alias.
+ * `ai-agent` namespace and the legacy `sd-ai-agent` alias.
  *
  * Uses the `#[Handler(context: CTX_CLI)]` guard so the container skips
  * loading this class outside of WP-CLI requests. Each subcommand class
@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * wiring out of the plugin root file.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_CLI,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -68,7 +68,7 @@ final class CliHandler {
 	 *
 	 * @var list<string>
 	 */
-	private const NAMESPACES = array( 'ai-agent', 'gratis-ai-agent' );
+	private const NAMESPACES = array( 'ai-agent', 'sd-ai-agent' );
 
 	/**
 	 * Register every subcommand with WP-CLI.

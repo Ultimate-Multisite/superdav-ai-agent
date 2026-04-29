@@ -53,12 +53,12 @@ export default function AgentSelector( { compact = false } ) {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-selector ${
+			className={ `sd-ai-agent-selector ${
 				compact ? 'is-compact' : ''
 			}` }
 		>
 			<SelectControl
-				label={ __( 'Agent', 'gratis-ai-agent' ) }
+				label={ __( 'Agent', 'sd-ai-agent' ) }
 				hideLabelFromVision={ compact }
 				value={ selectedAgentId ? String( selectedAgentId ) : '' }
 				options={ options }

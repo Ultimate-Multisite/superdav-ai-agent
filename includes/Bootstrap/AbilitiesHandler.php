@@ -3,7 +3,7 @@
  * DI handler that registers all WordPress Abilities.
  *
  * Replaces the 35 inline `XxxAbilities::register()` calls in
- * `gratis-ai-agent.php` with a single DI-managed handler. Each ability
+ * `sd-ai-agent.php` with a single DI-managed handler. Each ability
  * class's `register_abilities()` method is called on the
  * `wp_abilities_api_init` hook — bypassing the now-removed `register()`
  * stub layer since the DI system handles hook attachment directly.
@@ -14,49 +14,49 @@
  *  - CustomTaxonomyAbilities::restore_persisted_taxonomies() at priority 5
  *  - PluginSandbox::auto_deactivate_fatal_plugins() at priority 10
  *
- * @package GratisAiAgent\Bootstrap
+ * @package SdAiAgent\Bootstrap
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Bootstrap;
+namespace SdAiAgent\Bootstrap;
 
-use GratisAiAgent\Abilities\AiImageAbilities;
-use GratisAiAgent\Abilities\BlockAbilities;
-use GratisAiAgent\Abilities\ContentAbilities;
-use GratisAiAgent\Abilities\CustomPostTypeAbilities;
-use GratisAiAgent\Abilities\CustomTaxonomyAbilities;
-use GratisAiAgent\Abilities\DatabaseAbilities;
-use GratisAiAgent\Abilities\DesignSystemAbilities;
-use GratisAiAgent\Abilities\EditorialAbilities;
-use GratisAiAgent\Abilities\FeedbackAbilities;
-use GratisAiAgent\Abilities\FileAbilities;
-use GratisAiAgent\Abilities\GitAbilities;
-use GratisAiAgent\Abilities\GlobalStylesAbilities;
-use GratisAiAgent\Abilities\GoogleAnalyticsAbilities;
-use GratisAiAgent\Abilities\GscAbilities;
-use GratisAiAgent\Abilities\ImageAbilities;
-use GratisAiAgent\Abilities\InternetSearchAbilities;
-use GratisAiAgent\Abilities\KnowledgeAbilities;
-use GratisAiAgent\Abilities\MarketingAbilities;
-use GratisAiAgent\Abilities\MediaAbilities;
-use GratisAiAgent\Abilities\MemoryAbilities;
-use GratisAiAgent\Abilities\MenuAbilities;
-use GratisAiAgent\Abilities\NavigationAbilities;
-use GratisAiAgent\Abilities\OptionsAbilities;
-use GratisAiAgent\Abilities\PluginBuilderAbilities;
-use GratisAiAgent\Abilities\PluginDownloadAbilities;
-use GratisAiAgent\PluginBuilder\PluginSandbox;
-use GratisAiAgent\Abilities\PostAbilities;
-use GratisAiAgent\Abilities\SeoAbilities;
-use GratisAiAgent\Abilities\SiteBuilderAbilities;
-use GratisAiAgent\Abilities\SiteHealthAbilities;
-use GratisAiAgent\Abilities\SkillAbilities;
-use GratisAiAgent\Abilities\UserAbilities;
-use GratisAiAgent\Abilities\WooCommerceAbilities;
-use GratisAiAgent\Abilities\WordPressAbilities;
-use GratisAiAgent\Abilities\WpCliAbilities;
+use SdAiAgent\Abilities\AiImageAbilities;
+use SdAiAgent\Abilities\BlockAbilities;
+use SdAiAgent\Abilities\ContentAbilities;
+use SdAiAgent\Abilities\CustomPostTypeAbilities;
+use SdAiAgent\Abilities\CustomTaxonomyAbilities;
+use SdAiAgent\Abilities\DatabaseAbilities;
+use SdAiAgent\Abilities\DesignSystemAbilities;
+use SdAiAgent\Abilities\EditorialAbilities;
+use SdAiAgent\Abilities\FeedbackAbilities;
+use SdAiAgent\Abilities\FileAbilities;
+use SdAiAgent\Abilities\GitAbilities;
+use SdAiAgent\Abilities\GlobalStylesAbilities;
+use SdAiAgent\Abilities\GoogleAnalyticsAbilities;
+use SdAiAgent\Abilities\GscAbilities;
+use SdAiAgent\Abilities\ImageAbilities;
+use SdAiAgent\Abilities\InternetSearchAbilities;
+use SdAiAgent\Abilities\KnowledgeAbilities;
+use SdAiAgent\Abilities\MarketingAbilities;
+use SdAiAgent\Abilities\MediaAbilities;
+use SdAiAgent\Abilities\MemoryAbilities;
+use SdAiAgent\Abilities\MenuAbilities;
+use SdAiAgent\Abilities\NavigationAbilities;
+use SdAiAgent\Abilities\OptionsAbilities;
+use SdAiAgent\Abilities\PluginBuilderAbilities;
+use SdAiAgent\Abilities\PluginDownloadAbilities;
+use SdAiAgent\PluginBuilder\PluginSandbox;
+use SdAiAgent\Abilities\PostAbilities;
+use SdAiAgent\Abilities\SeoAbilities;
+use SdAiAgent\Abilities\SiteBuilderAbilities;
+use SdAiAgent\Abilities\SiteHealthAbilities;
+use SdAiAgent\Abilities\SkillAbilities;
+use SdAiAgent\Abilities\UserAbilities;
+use SdAiAgent\Abilities\WooCommerceAbilities;
+use SdAiAgent\Abilities\WordPressAbilities;
+use SdAiAgent\Abilities\WpCliAbilities;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -73,7 +73,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `plugins_loaded` — well before `init` or `wp_abilities_api_init` fires.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	strategy: Handler::INIT_JUST_IN_TIME,
 )]
 final class AbilitiesHandler {

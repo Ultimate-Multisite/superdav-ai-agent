@@ -1,5 +1,5 @@
 /**
- * Shared JSDoc type definitions for the Gratis AI Agent plugin.
+ * Shared JSDoc type definitions for the Superdav AI Agent plugin.
  *
  * This file is not imported at runtime — it exists solely to provide
  * type information to editors and documentation tools via JSDoc.

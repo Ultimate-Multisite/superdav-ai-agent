@@ -10,11 +10,11 @@ declare(strict_types=1);
  *
  * Preference order when ranking: has_abilities > has_blocks > active_installs.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

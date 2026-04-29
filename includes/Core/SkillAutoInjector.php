@@ -11,17 +11,17 @@ declare(strict_types=1);
  * auto-injected content (capped at 1 skill) to compensate for unreliable
  * tool-call behaviour.
  *
- * Phase 1 (t215): Injection events are recorded to gratis_ai_agent_skill_usage
+ * Phase 1 (t215): Injection events are recorded to sd_ai_agent_skill_usage
  * when model_id/session_id context is supplied.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Models\Skill;
-use GratisAiAgent\Repositories\SkillUsageRepository;
+use SdAiAgent\Models\Skill;
+use SdAiAgent\Repositories\SkillUsageRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

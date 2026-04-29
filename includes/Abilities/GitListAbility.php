@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Git List ability — list all tracked files across all packages.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Models\GitTrackerManager;
+use SdAiAgent\Models\GitTrackerManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,11 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GitListAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'List Tracked Files', 'gratis-ai-agent' );
+		return __( 'List Tracked Files', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'List all files that have been snapshotted, with their modification status.', 'gratis-ai-agent' );
+		return __( 'List all files that have been snapshotted, with their modification status.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {

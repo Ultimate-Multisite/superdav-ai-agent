@@ -11,7 +11,7 @@
  * WP 7.0's Connectors API exactly. Credentials entered via our Connectors
  * admin page on WP 6.9 will therefore work without migration on WP 7.0.
  *
- * @package GratisAiAgent\Compat
+ * @package SdAiAgent\Compat
  * @license GPL-2.0-or-later
  * @since   1.8.0
  */
@@ -55,7 +55,7 @@ if ( ! function_exists( '_wp_connectors_get_provider_settings' ) ) {
 		 *
 		 * @param array<string, string> $providers Map of provider_id => sanitized_id.
 		 */
-		$providers = (array) apply_filters( 'gratis_ai_agent_connector_providers', $providers );
+		$providers = (array) apply_filters( 'sd_ai_agent_connector_providers', $providers );
 
 		$settings = [];
 		foreach ( $providers as $provider_id => $sanitized_id ) {

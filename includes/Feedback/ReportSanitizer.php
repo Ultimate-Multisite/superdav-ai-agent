@@ -8,11 +8,11 @@ declare(strict_types=1);
  * report payload before it leaves the site. This mirrors the defense-in-depth
  * sanitization that runs on the receiving side of the feedback system.
  *
- * @package GratisAiAgent\Feedback
+ * @package SdAiAgent\Feedback
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Feedback;
+namespace SdAiAgent\Feedback;
 
 class ReportSanitizer {
 

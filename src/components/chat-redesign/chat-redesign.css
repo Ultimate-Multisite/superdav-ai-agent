@@ -1,7 +1,7 @@
 /* ============================================================
-   Gratis AI Agent — Chat Redesign
+   Superdav AI Agent — Chat Redesign
    All rules are scoped under .gaa-cr* to avoid colliding with the
-   existing .gratis-ai-agent-* layout.
+   existing .sd-ai-agent-* layout.
 
    Design tokens are declared on :root so the .gaa-cr-* primitives
    (tool card, changes drawer, icon buttons) work anywhere they are
@@ -57,7 +57,7 @@
 
 	/* Fill whatever height the parent flex chain provides.  The ancestor
 	   chain (html → body → #wpcontent → #wpbody → #wpbody-content →
-	   .wrap → #gratis-ai-agent-root → ... → .gratis-ai-agent-chat-container)
+	   .wrap → #sd-ai-agent-root → ... → .sd-ai-agent-chat-container)
 	   is made into flex columns in admin-page/style.css, so any content
 	   injected before our .wrap (Hello Dolly, notices, etc.) takes its
 	   natural height and this component fills the remainder.  The old
@@ -1588,11 +1588,11 @@ textarea.gaa-cr-input-textarea {
 	right: 0;
 }
 
-/* The legacy context-menu component uses .gratis-ai-agent-context-menu
+/* The legacy context-menu component uses .sd-ai-agent-context-menu
    for its inner buttons. Scope our sizing + colour tokens to the nested
    button/menu so both the sidebar popover and the convo-head popover
    look consistent with the rest of chat-redesign. */
-.gaa-cr-context-menu .gratis-ai-agent-context-menu {
+.gaa-cr-context-menu .sd-ai-agent-context-menu {
 
 	/* Reset legacy absolute positioning so the inner menu fills our
 	   .gaa-cr-context-menu wrapper instead of being detached from it. */
@@ -1609,7 +1609,7 @@ textarea.gaa-cr-input-textarea {
 	min-width: 180px;
 }
 
-.gaa-cr-context-menu .gratis-ai-agent-context-menu > button {
+.gaa-cr-context-menu .sd-ai-agent-context-menu > button {
 	display: block;
 	width: 100%;
 	padding: 7px 10px;
@@ -1623,19 +1623,19 @@ textarea.gaa-cr-input-textarea {
 	cursor: pointer;
 }
 
-.gaa-cr-context-menu .gratis-ai-agent-context-menu > button:hover {
+.gaa-cr-context-menu .sd-ai-agent-context-menu > button:hover {
 	background: var(--gaa-surface-hover);
 }
 
 .gaa-cr-context-menu
-	.gratis-ai-agent-context-menu
-	.gratis-ai-agent-context-menu-danger {
+	.sd-ai-agent-context-menu
+	.sd-ai-agent-context-menu-danger {
 	color: var(--gaa-error);
 }
 
 .gaa-cr-context-menu
-	.gratis-ai-agent-context-menu
-	.gratis-ai-agent-context-menu-danger:hover {
+	.sd-ai-agent-context-menu
+	.sd-ai-agent-context-menu-danger:hover {
 	background: var(--gaa-error-surface);
 }
 

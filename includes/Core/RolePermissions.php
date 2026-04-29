@@ -8,11 +8,11 @@ declare(strict_types=1);
  * provides server-side enforcement helpers used by the REST controller and
  * AgentLoop. Admins always retain full access regardless of configuration.
  *
- * Option schema (gratis_ai_agent_role_permissions):
+ * Option schema (sd_ai_agent_role_permissions):
  * {
  *   "editor": {
  *     "chat_access": true,
- *     "allowed_abilities": ["gratis-ai-agent/content-analyze", ...]
+ *     "allowed_abilities": ["sd-ai-agent/content-analyze", ...]
  *                          // empty array = all abilities allowed for this role
  *   },
  *   "author": {
@@ -21,11 +21,11 @@ declare(strict_types=1);
  *   }
  * }
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,7 +36,7 @@ class RolePermissions {
 	/**
 	 * Option name in the wp_options table.
 	 */
-	const OPTION_NAME = 'gratis_ai_agent_role_permissions';
+	const OPTION_NAME = 'sd_ai_agent_role_permissions';
 
 	/**
 	 * WordPress roles that always have full access (cannot be restricted).
@@ -227,7 +227,7 @@ class RolePermissions {
 	/**
 	 * Check whether the current user can invoke a specific ability.
 	 *
-	 * @param string $ability_name The ability name (e.g. 'gratis-ai-agent/memory-save').
+	 * @param string $ability_name The ability name (e.g. 'sd-ai-agent/memory-save').
 	 * @return bool
 	 */
 	public static function current_user_can_use_ability( string $ability_name ): bool {

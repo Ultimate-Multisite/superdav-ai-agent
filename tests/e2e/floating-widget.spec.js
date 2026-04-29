@@ -1,15 +1,15 @@
 /**
- * E2E tests for the Gratis AI Agent floating widget.
+ * E2E tests for the Superdav AI Agent floating widget.
  *
  * Tests the launcher button and floating panel that appear on all admin pages.
  * Requires a running wp-env environment with the plugin active.
  *
  * The chat widget was redesigned in #1157. Class names changed:
- *   .gratis-ai-agent-fab         → .gaa-w-launcher  (WidgetLauncher)
- *   .gratis-ai-agent-floating-panel → .gaa-w-panel  (WidgetPanel)
- *   .gratis-ai-agent-chat-panel  → .gaa-w-body-wrap (panel body area)
- *   .gratis-ai-agent-input       → .gaa-w-input-textarea
- *   .gratis-ai-agent-send-btn    → .gaa-cr-send-btn
+ *   .sd-ai-agent-fab         → .gaa-w-launcher  (WidgetLauncher)
+ *   .sd-ai-agent-floating-panel → .gaa-w-panel  (WidgetPanel)
+ *   .sd-ai-agent-chat-panel  → .gaa-w-body-wrap (panel body area)
+ *   .sd-ai-agent-input       → .gaa-w-input-textarea
+ *   .sd-ai-agent-send-btn    → .gaa-cr-send-btn
  *
  * Run: npm run test:e2e:playwright
  */

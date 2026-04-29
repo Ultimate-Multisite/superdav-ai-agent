@@ -9,14 +9,14 @@ declare(strict_types=1);
  * service — at that point, update Plugin::configure() to bind
  * BudgetCheckerInterface directly to BudgetManager::class.
  *
- * @package GratisAiAgent\Infrastructure\Adapters
+ * @package SdAiAgent\Infrastructure\Adapters
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Infrastructure\Adapters;
+namespace SdAiAgent\Infrastructure\Adapters;
 
-use GratisAiAgent\Contracts\BudgetCheckerInterface;
-use GratisAiAgent\Core\BudgetManager;
+use SdAiAgent\Contracts\BudgetCheckerInterface;
+use SdAiAgent\Core\BudgetManager;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Pixabay provides 2.7M+ free images and videos under CC0 license.
  * Requires free API key - free for commercial use, no attribution required.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageSources;
+namespace SdAiAgent\Abilities\ImageSources;
 
 use WP_Error;
 
@@ -31,7 +31,7 @@ class PixabayImageSource implements ImageSourceInterface {
 	 *
 	 * @var string
 	 */
-	private const API_KEY_OPTION = 'gratis_ai_agent_pixabay_api_key';
+	private const API_KEY_OPTION = 'sd_ai_agent_pixabay_api_key';
 
 	/**
 	 * API base URL.

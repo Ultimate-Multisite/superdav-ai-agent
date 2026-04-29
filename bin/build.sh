@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Build a production distribution zip for the Gratis AI Agent plugin.
+# Build a production distribution zip for the Superdav AI Agent plugin.
 #
 # Usage:
 #   bin/build.sh
 #
 # The script:
 #   1. Builds production JS/CSS assets via wp-scripts.
-#   2. Reads the version from the plugin header in gratis-ai-agent.php.
-#   3. Creates gratis-ai-agent-{version}.zip with standard WP plugin directory structure.
+#   2. Reads the version from the plugin header in sd-ai-agent.php.
+#   3. Creates sd-ai-agent-{version}.zip with standard WP plugin directory structure.
 #   4. Excludes everything listed in .distignore plus bin/, .claude/, *.map, and tests.
 
 set -euo pipefail
@@ -18,13 +18,13 @@ PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PLUGIN_DIR"
 
 # ── Read version from plugin header ──
-VERSION="$(grep -m1 '^ \* Version:' gratis-ai-agent.php | sed 's/^.*Version:[[:space:]]*//' | tr -d '[:space:]')"
+VERSION="$(grep -m1 '^ \* Version:' sd-ai-agent.php | sed 's/^.*Version:[[:space:]]*//' | tr -d '[:space:]')"
 if [ -z "$VERSION" ]; then
-	echo "ERROR: Could not read Version from gratis-ai-agent.php plugin header." >&2
+	echo "ERROR: Could not read Version from sd-ai-agent.php plugin header." >&2
 	exit 1
 fi
 
-echo "==> Building Gratis AI Agent v${VERSION}"
+echo "==> Building Superdav AI Agent v${VERSION}"
 
 # ── 1. Build production assets ──
 echo "==> Building production JS/CSS assets..."
@@ -33,7 +33,7 @@ echo "    Done."
 
 # ── 2. Prepare temp directory ──
 BUILD_DIR="$(mktemp -d)"
-DEST="${BUILD_DIR}/gratis-ai-agent"
+DEST="${BUILD_DIR}/sd-ai-agent"
 mkdir -p "$DEST"
 
 # Temp file for combined exclusion patterns (used by rsync --exclude-from)
@@ -73,11 +73,11 @@ rsync -a --delete \
 echo "    Done."
 
 # ── 5. Create zip ──
-ZIP_NAME="gratis-ai-agent-${VERSION}.zip"
+ZIP_NAME="sd-ai-agent-${VERSION}.zip"
 ZIP_PATH="${PLUGIN_DIR}/${ZIP_NAME}"
 
 echo "==> Creating ${ZIP_NAME}..."
-(cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" gratis-ai-agent/)
+(cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" sd-ai-agent/)
 echo "    Done."
 
 # ── 6. Report ──

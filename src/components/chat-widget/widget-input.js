@@ -136,7 +136,7 @@ export default function WidgetInput() {
 			const fact = trimmed.slice( 10 ).trim();
 			if ( fact ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory',
+					path: '/sd-ai-agent/v1/memory',
 					method: 'POST',
 					data: { category: 'general', content: fact },
 				} ).catch( ( err ) => {
@@ -153,7 +153,7 @@ export default function WidgetInput() {
 			const topic = trimmed.slice( 8 ).trim();
 			if ( topic ) {
 				apiFetch( {
-					path: '/gratis-ai-agent/v1/memory/forget',
+					path: '/sd-ai-agent/v1/memory/forget',
 					method: 'POST',
 					data: { topic },
 				} ).catch( ( err ) => {
@@ -327,10 +327,10 @@ export default function WidgetInput() {
 			{ queueCount > 0 && (
 				<div className="gaa-w-queue-indicator">
 					{ queueCount === 1
-						? __( '1 message queued', 'gratis-ai-agent' )
+						? __( '1 message queued', 'sd-ai-agent' )
 						: sprintf(
 								/* translators: %d: queued message count */
-								__( '%d messages queued', 'gratis-ai-agent' ),
+								__( '%d messages queued', 'sd-ai-agent' ),
 								queueCount
 						  ) }
 				</div>
@@ -364,7 +364,7 @@ export default function WidgetInput() {
 									}
 									aria-label={ __(
 										'Remove attachment',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								>
 									&times;
@@ -378,13 +378,10 @@ export default function WidgetInput() {
 					className="gaa-w-input-textarea"
 					placeholder={
 						sending
-							? __(
-									'Type to queue a message…',
-									'gratis-ai-agent'
-							  )
+							? __( 'Type to queue a message…', 'sd-ai-agent' )
 							: __(
 									'Ask the agent or type / for commands…',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 							  )
 					}
 					value={ text }
@@ -412,11 +409,8 @@ export default function WidgetInput() {
 							type="button"
 							className="gaa-cr-icon-btn"
 							onClick={ () => fileRef.current?.click() }
-							aria-label={ __(
-								'Attach file',
-								'gratis-ai-agent'
-							) }
-							title={ __( 'Attach file', 'gratis-ai-agent' ) }
+							aria-label={ __( 'Attach file', 'sd-ai-agent' ) }
+							title={ __( 'Attach file', 'sd-ai-agent' ) }
 						>
 							<Paperclip />
 						</button>
@@ -433,20 +427,14 @@ export default function WidgetInput() {
 								onClick={ toggleListening }
 								aria-label={
 									isListening
-										? __(
-												'Stop recording',
-												'gratis-ai-agent'
-										  )
-										: __( 'Voice input', 'gratis-ai-agent' )
+										? __( 'Stop recording', 'sd-ai-agent' )
+										: __( 'Voice input', 'sd-ai-agent' )
 								}
 								aria-pressed={ isListening }
 								title={
 									isListening
-										? __(
-												'Stop recording',
-												'gratis-ai-agent'
-										  )
-										: __( 'Voice input', 'gratis-ai-agent' )
+										? __( 'Stop recording', 'sd-ai-agent' )
+										: __( 'Voice input', 'sd-ai-agent' )
 								}
 							>
 								<Microphone />
@@ -459,12 +447,9 @@ export default function WidgetInput() {
 								onClick={ stopGeneration }
 								aria-label={ __(
 									'Stop generation',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
-								title={ __(
-									'Stop generation',
-									'gratis-ai-agent'
-								) }
+								title={ __( 'Stop generation', 'sd-ai-agent' ) }
 							>
 								<Stop />
 							</button>
@@ -476,12 +461,9 @@ export default function WidgetInput() {
 								disabled={ ! canSend }
 								aria-label={ __(
 									'Send message',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
-								title={ __(
-									'Send message',
-									'gratis-ai-agent'
-								) }
+								title={ __( 'Send message', 'sd-ai-agent' ) }
 							>
 								<Icon icon={ arrowUp } size={ 16 } />
 							</button>

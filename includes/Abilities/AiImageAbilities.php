@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Registration facade for AI image generation abilities.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Abilities\ImageAbilities\GenerateImageAbility;
+use SdAiAgent\Abilities\ImageAbilities\GenerateImageAbility;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,7 +30,7 @@ class AiImageAbilities {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public static function handle_generate( array $input = [] ) {
-		$ability = new GenerateImageAbility( 'gratis-ai-agent/generate-image' );
+		$ability = new GenerateImageAbility( 'sd-ai-agent/generate-image' );
 		// @phpstan-ignore-next-line
 		return $ability->run( $input );
 	}

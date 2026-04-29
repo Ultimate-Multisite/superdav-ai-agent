@@ -20,8 +20,8 @@ import '../../changes-page/style.css';
  */
 export default function ChangesRoute() {
 	return (
-		<div className="gratis-ai-agent-route gratis-ai-agent-route-changes">
-			<h2>{ __( 'Changes', 'gratis-ai-agent' ) }</h2>
+		<div className="sd-ai-agent-route sd-ai-agent-route-changes">
+			<h2>{ __( 'Changes', 'sd-ai-agent' ) }</h2>
 			<ChangesApp />
 		</div>
 	);

@@ -56,17 +56,17 @@ export default function ExportDialog( { sessionId, onClose } ) {
 	}, [ sessionId, format, exportSession, onClose ] );
 
 	return (
-		<div className="gratis-ai-agent-shortcuts-overlay">
-			<div className="gratis-ai-agent-export-dialog" ref={ dialogRef }>
-				<div className="gratis-ai-agent-export-header">
-					<h3>{ __( 'Export Conversation', 'gratis-ai-agent' ) }</h3>
+		<div className="sd-ai-agent-shortcuts-overlay">
+			<div className="sd-ai-agent-export-dialog" ref={ dialogRef }>
+				<div className="sd-ai-agent-export-header">
+					<h3>{ __( 'Export Conversation', 'sd-ai-agent' ) }</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
 				</div>
-				<div className="gratis-ai-agent-export-body">
+				<div className="sd-ai-agent-export-body">
 					<label
-						className="gratis-ai-agent-export-option"
+						className="sd-ai-agent-export-option"
 						htmlFor="export-format-json"
 					>
 						<input
@@ -78,17 +78,17 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							onChange={ () => setFormat( 'json' ) }
 						/>
 						<span>
-							{ __( 'JSON', 'gratis-ai-agent' ) }
-							<span className="gratis-ai-agent-export-option-desc">
+							{ __( 'JSON', 'sd-ai-agent' ) }
+							<span className="sd-ai-agent-export-option-desc">
 								{ __(
 									'Full conversation data. Can be imported back.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</span>
 						</span>
 					</label>
 					<label
-						className="gratis-ai-agent-export-option"
+						className="sd-ai-agent-export-option"
 						htmlFor="export-format-markdown"
 					>
 						<input
@@ -100,30 +100,30 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							onChange={ () => setFormat( 'markdown' ) }
 						/>
 						<span>
-							{ __( 'Markdown', 'gratis-ai-agent' ) }
-							<span className="gratis-ai-agent-export-option-desc">
+							{ __( 'Markdown', 'sd-ai-agent' ) }
+							<span className="sd-ai-agent-export-option-desc">
 								{ __(
 									'Human-readable format. Good for sharing.',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</span>
 						</span>
 					</label>
 				</div>
-				<div className="gratis-ai-agent-export-footer">
+				<div className="sd-ai-agent-export-footer">
 					<button
 						type="button"
 						className="button"
 						onClick={ onClose }
 					>
-						{ __( 'Cancel', 'gratis-ai-agent' ) }
+						{ __( 'Cancel', 'sd-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ handleExport }
 					>
-						{ __( 'Download', 'gratis-ai-agent' ) }
+						{ __( 'Download', 'sd-ai-agent' ) }
 					</button>
 				</div>
 			</div>

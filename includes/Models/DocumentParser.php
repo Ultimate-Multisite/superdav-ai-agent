@@ -6,11 +6,11 @@ declare(strict_types=1);
  *
  * Supports PDF (via smalot/pdfparser), DOCX, TXT, Markdown, and HTML.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
 use WP_Error;
 
@@ -26,7 +26,7 @@ class DocumentParser {
 		$file = get_attached_file( $attachment_id );
 
 		if ( ! $file || ! file_exists( $file ) ) {
-			return new WP_Error( 'file_not_found', __( 'Attachment file not found.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'file_not_found', __( 'Attachment file not found.', 'sd-ai-agent' ) );
 		}
 
 		$mime = (string) get_post_mime_type( $attachment_id );
@@ -42,7 +42,7 @@ class DocumentParser {
 	 */
 	public static function extract_from_file( string $path, string $mime = '' ) {
 		if ( ! file_exists( $path ) ) {
-			return new WP_Error( 'file_not_found', __( 'File not found.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'file_not_found', __( 'File not found.', 'sd-ai-agent' ) );
 		}
 
 		if ( empty( $mime ) ) {
@@ -74,7 +74,7 @@ class DocumentParser {
 					'unsupported_format',
 					sprintf(
 						/* translators: %s: MIME type */
-						__( 'Unsupported file format: %s', 'gratis-ai-agent' ),
+						__( 'Unsupported file format: %s', 'sd-ai-agent' ),
 						$mime
 					)
 				);
@@ -91,7 +91,7 @@ class DocumentParser {
 		if ( ! class_exists( '\\Smalot\\PdfParser\\Parser' ) ) {
 			return new WP_Error(
 				'missing_dependency',
-				__( 'PDF parsing requires the smalot/pdfparser library. Run composer install.', 'gratis-ai-agent' )
+				__( 'PDF parsing requires the smalot/pdfparser library. Run composer install.', 'sd-ai-agent' )
 			);
 		}
 
@@ -101,7 +101,7 @@ class DocumentParser {
 			$text   = $pdf->getText();
 
 			if ( empty( trim( $text ) ) ) {
-				return new WP_Error( 'empty_content', __( 'No text content found in PDF.', 'gratis-ai-agent' ) );
+				return new WP_Error( 'empty_content', __( 'No text content found in PDF.', 'sd-ai-agent' ) );
 			}
 
 			return self::clean_text( $text );
@@ -118,27 +118,27 @@ class DocumentParser {
 	 */
 	private static function parse_docx( string $path ) {
 		if ( ! class_exists( '\\ZipArchive' ) ) {
-			return new WP_Error( 'missing_extension', __( 'PHP ZipArchive extension is required for DOCX parsing.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'missing_extension', __( 'PHP ZipArchive extension is required for DOCX parsing.', 'sd-ai-agent' ) );
 		}
 
 		$zip = new \ZipArchive();
 
 		if ( true !== $zip->open( $path ) ) {
-			return new WP_Error( 'zip_error', __( 'Could not open DOCX file.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'zip_error', __( 'Could not open DOCX file.', 'sd-ai-agent' ) );
 		}
 
 		$content = $zip->getFromName( 'word/document.xml' );
 		$zip->close();
 
 		if ( false === $content ) {
-			return new WP_Error( 'invalid_docx', __( 'Could not find document content in DOCX.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'invalid_docx', __( 'Could not find document content in DOCX.', 'sd-ai-agent' ) );
 		}
 
 		// Parse XML and extract text nodes.
 		$xml = simplexml_load_string( $content, 'SimpleXMLElement', LIBXML_NOERROR );
 
 		if ( false === $xml ) {
-			return new WP_Error( 'xml_error', __( 'Could not parse DOCX XML content.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'xml_error', __( 'Could not parse DOCX XML content.', 'sd-ai-agent' ) );
 		}
 
 		$xml->registerXPathNamespace( 'w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main' );
@@ -165,7 +165,7 @@ class DocumentParser {
 		$text = implode( "\n\n", $paragraphs );
 
 		if ( empty( trim( $text ) ) ) {
-			return new WP_Error( 'empty_content', __( 'No text content found in DOCX.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'empty_content', __( 'No text content found in DOCX.', 'sd-ai-agent' ) );
 		}
 
 		return self::clean_text( $text );
@@ -182,7 +182,7 @@ class DocumentParser {
 		$text = file_get_contents( $path );
 
 		if ( false === $text ) {
-			return new WP_Error( 'read_error', __( 'Could not read file.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'read_error', __( 'Could not read file.', 'sd-ai-agent' ) );
 		}
 
 		return self::clean_text( $text );
@@ -199,7 +199,7 @@ class DocumentParser {
 		$html = file_get_contents( $path );
 
 		if ( false === $html ) {
-			return new WP_Error( 'read_error', __( 'Could not read file.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'read_error', __( 'Could not read file.', 'sd-ai-agent' ) );
 		}
 
 		$text = wp_strip_all_tags( $html );

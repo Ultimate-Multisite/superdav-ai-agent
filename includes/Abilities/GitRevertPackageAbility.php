@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Git Revert Package ability — revert all modified files in a package.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\Models\GitTrackerManager;
+use SdAiAgent\Models\GitTrackerManager;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,11 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GitRevertPackageAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Revert Package', 'gratis-ai-agent' );
+		return __( 'Revert Package', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Revert all modified files in a plugin or theme back to their original snapshotted content.', 'gratis-ai-agent' );
+		return __( 'Revert all modified files in a plugin or theme back to their original snapshotted content.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -68,7 +68,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 		$package_type = $input['package_type'] ?? null;
 
 		if ( ! is_string( $package_slug ) || '' === $package_slug ) {
-			return new WP_Error( 'gratis_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'sd_ai_agent_invalid_slug', __( 'Package slug must be a non-empty string.', 'sd-ai-agent' ) );
 		}
 
 		if ( ! is_string( $package_type ) || '' === $package_type ) {
@@ -83,7 +83,7 @@ class GitRevertPackageAbility extends AbstractAbility {
 			'failed'       => $result['failed'],
 			'message'      => sprintf(
 				/* translators: 1: reverted count, 2: failed count, 3: package slug */
-				__( 'Reverted %1$d file(s), %2$d failed for package %3$s.', 'gratis-ai-agent' ),
+				__( 'Reverted %1$d file(s), %2$d failed for package %3$s.', 'sd-ai-agent' ),
 				$result['reverted'],
 				$result['failed'],
 				$package_slug

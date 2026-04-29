@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Changes log model — records AI-made content changes for audit, diff, and revert.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Models\DTO\ChangesLogRow;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Models\DTO\ChangesLogRow;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -260,7 +260,7 @@ class ChangesLog {
 	 */
 	public static function generate_patch( array $ids ): string {
 		$lines   = [];
-		$lines[] = '# Gratis AI Agent — Changes Patch';
+		$lines[] = '# Superdav AI Agent — Changes Patch';
 		$lines[] = '# Generated: ' . gmdate( 'Y-m-d H:i:s' ) . ' UTC';
 		$lines[] = '';
 

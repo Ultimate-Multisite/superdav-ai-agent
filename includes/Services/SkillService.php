@@ -8,13 +8,13 @@ declare(strict_types=1);
  * Centralises skill-to-array formatting and business rules so controllers
  * stay focused on request/response mechanics.
  *
- * @package GratisAiAgent\Services
+ * @package SdAiAgent\Services
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Services;
+namespace SdAiAgent\Services;
 
-use GratisAiAgent\Models\Skill;
+use SdAiAgent\Models\Skill;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -69,8 +69,8 @@ final class SkillService {
 		$existing = Skill::get_by_slug( $slug );
 		if ( $existing ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_slug_exists',
-				__( 'A skill with this slug already exists.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_slug_exists',
+				__( 'A skill with this slug already exists.', 'sd-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}
@@ -88,8 +88,8 @@ final class SkillService {
 
 		if ( false === $id ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_create_failed',
-				__( 'Failed to create skill.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_create_failed',
+				__( 'Failed to create skill.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -108,16 +108,16 @@ final class SkillService {
 
 		if ( $result === 'builtin' ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_builtin_delete',
-				__( 'Built-in skills cannot be deleted. You can disable them instead.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_builtin_delete',
+				__( 'Built-in skills cannot be deleted. You can disable them instead.', 'sd-ai-agent' ),
 				array( 'status' => 403 )
 			);
 		}
 
 		if ( ! $result ) {
 			return new WP_Error(
-				'gratis_ai_agent_skill_delete_failed',
-				__( 'Failed to delete skill or skill not found.', 'gratis-ai-agent' ),
+				'sd_ai_agent_skill_delete_failed',
+				__( 'Failed to delete skill or skill not found.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}

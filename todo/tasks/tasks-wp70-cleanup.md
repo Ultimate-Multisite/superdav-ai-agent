@@ -42,7 +42,7 @@ Update after completing each sub-task, not just parent tasks.
   - [x] 0.1 Already on `refactor/drop-wp69-compat` worktree branch
 
 - [ ] 1.0 Fix settings tab bar overflow bug ~15m (ai:15m)
-  - [ ] 1.1 Fix CSS selector mismatch in `src/settings-page/style.css`: change `.ai-agent-settings` to `.gratis-ai-agent-settings` so `overflow-x: auto` applies to the 18-tab bar
+  - [ ] 1.1 Fix CSS selector mismatch in `src/settings-page/style.css`: change `.ai-agent-settings` to `.sd-ai-agent-settings` so `overflow-x: auto` applies to the 18-tab bar
   - [ ] 1.2 Verify the scroll wrapper fade indicators (`.has-scroll-left`/`.has-scroll-right` pseudo-elements) work with the corrected selector
   - [ ] 1.3 Build (`npm run build`) and verify in browser that all 18 tabs are scrollable
 
@@ -65,7 +65,7 @@ Update after completing each sub-task, not just parent tasks.
   - [ ] 3.9 Update `handle_providers()` REST endpoint to read exclusively from `ProviderRegistry::getRegisteredProviderIds()` — remove the `DIRECT_PROVIDERS` loop
   - [ ] 3.10 Remove or simplify `CredentialResolver` — remove `openai_compat_*` options and `AI_EXPERIMENTS_CREDENTIALS_OPTION`; keep only `getClaudeMaxToken()`/`setClaudeMaxToken()` if Claude Max OAuth is still needed
   - [ ] 3.11 Update `AgentLoop::ensure_provider_credentials_static()` — remove Source 2 (AI Experiments) and Source 3 (OpenAI compat); keep Source 1 (WP 7.0 Connectors API)
-  - [ ] 3.12 Remove provider key tests from `tests/GratisAiAgent/Core/CredentialResolverTest.php` (openai_compat tests)
+  - [ ] 3.12 Remove provider key tests from `tests/SdAiAgent/Core/CredentialResolverTest.php` (openai_compat tests)
   - [ ] 3.13 Update `src/store/index.js` — simplify `fetchProviders` to only read from the `/providers` REST endpoint (no more `_provider_keys` state)
   - [ ] 3.14 Build and verify: no provider key UI in settings, onboarding points to Connectors, chat still shows available providers from registry
 

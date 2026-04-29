@@ -2,13 +2,13 @@
 /**
  * Handler: seed default ability usage instructions for auto-discovery.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Infrastructure\WordPress\Abilities;
+namespace SdAiAgent\Infrastructure\WordPress\Abilities;
 
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * categories the consumer hasn't already populated.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -39,7 +39,7 @@ final class UsageInstructionsFilter {
 	 * @var array<string,string>
 	 */
 	private const DEFAULTS = array(
-		'gratis-ai-agent'    => 'Built-in agent abilities — memory, knowledge, file ops, image/SEO/analytics helpers, WP/site management, and the discovery meta-tools (`ability-search`, `ability-call`).',
+		'sd-ai-agent'        => 'Built-in agent abilities — memory, knowledge, file ops, image/SEO/analytics helpers, WP/site management, and the discovery meta-tools (`ability-search`, `ability-call`).',
 		'multisite-ultimate' => 'CRUD for the Multisite Ultimate WaaS platform: subsites, customers, memberships, products, payments, domains, broadcasts, and webhooks. **Prefer these abilities over `db-query`/`run-php` when creating or managing subsites and related entities.**',
 		'site'               => 'Built-in WordPress core abilities for posts, pages, media, options, taxonomies, and site information.',
 		'user'               => 'Built-in WordPress core abilities for user lookup and management.',
@@ -59,7 +59,7 @@ final class UsageInstructionsFilter {
 	 * @param mixed $blocks Existing category => instruction blocks (may not be array).
 	 * @return array<string,string> Blocks with defaults backfilled.
 	 */
-	#[Filter( tag: 'gratis_ai_agent_ability_usage_instructions', priority: 10 )]
+	#[Filter( tag: 'sd_ai_agent_ability_usage_instructions', priority: 10 )]
 	public function provide_defaults( mixed $blocks ): array {
 		$merged = array();
 

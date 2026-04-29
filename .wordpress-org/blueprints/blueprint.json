@@ -6,7 +6,7 @@
     "author": "Ultimate-Multisite",
     "categories": ["AI", "Automation", "Chat"]
   },
-  "landingPage": "/wp-admin/admin.php?page=gratis-ai-agent",
+  "landingPage": "/wp-admin/admin.php?page=sd-ai-agent",
   "login": {
     "username": "admin",
     "password": "password"
@@ -23,7 +23,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github.com/Ultimate-Multisite/gratis-ai-agent/releases/latest/download/gratis-ai-agent.zip",
+        "url": "https://github.com/Ultimate-Multisite/sd-ai-agent/releases/latest/download/sd-ai-agent.zip",
         "caption": "Downloading AI Agent..."
       },
       "options": {
@@ -95,7 +95,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require '/wordpress/wp-load.php'; update_option('gratis_ai_agent_settings', array_merge((array) get_option('gratis_ai_agent_settings', []), ['_demo_note' => 'Add your API key under Tools > AI Agent Settings > General to start chatting.'])); echo 'Demo settings applied.'; ?>"
+      "code": "<?php require '/wordpress/wp-load.php'; update_option('sd_ai_agent_settings', array_merge((array) get_option('sd_ai_agent_settings', []), ['_demo_note' => 'Add your API key under Tools > AI Agent Settings > General to start chatting.'])); echo 'Demo settings applied.'; ?>"
     }
   ]
 }

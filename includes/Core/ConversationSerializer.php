@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Extracted from AgentLoop so the history-transport concern lives in one
  * focused class. Also handles tool-response appending and result truncation.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;

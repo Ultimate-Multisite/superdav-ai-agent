@@ -1,9 +1,9 @@
 /**
- * E2E tests for the Gratis AI Agent Changes admin page.
+ * E2E tests for the Superdav AI Agent Changes admin page.
  *
  * The UnifiedAdminMenu consolidates all admin pages into a single React SPA
- * at admin.php?page=gratis-ai-agent with hash-based routing. The changes
- * route is at admin.php?page=gratis-ai-agent#/changes and renders the
+ * at admin.php?page=sd-ai-agent with hash-based routing. The changes
+ * route is at admin.php?page=sd-ai-agent#/changes and renders the
  * ChangesRoute component inside the unified admin layout.
  *
  * Run: npm run test:e2e:playwright
@@ -24,28 +24,28 @@ test.describe( 'Changes Page - Page Load', () => {
 	} );
 
 	test( 'changes page loads the unified admin app', async ( { page } ) => {
-		// The UnifiedAdminMenu SPA mounts into #gratis-ai-agent-root and
-		// renders .gratis-ai-agent-unified-admin as the top-level wrapper.
+		// The UnifiedAdminMenu SPA mounts into #sd-ai-agent-root and
+		// renders .sd-ai-agent-unified-admin as the top-level wrapper.
 		await expect(
-			page.locator( '#gratis-ai-agent-root' )
+			page.locator( '#sd-ai-agent-root' )
 		).toBeVisible();
 		await expect(
-			page.locator( '.gratis-ai-agent-unified-admin' )
+			page.locator( '.sd-ai-agent-unified-admin' )
 		).toBeVisible();
 	} );
 
 	test( 'changes route container is rendered', async ( { page } ) => {
-		// The Router renders ChangesRoute inside .gratis-ai-agent-route-changes
+		// The Router renders ChangesRoute inside .sd-ai-agent-route-changes
 		// when the hash is #/changes.
 		await expect(
-			page.locator( '.gratis-ai-agent-route-changes' )
+			page.locator( '.sd-ai-agent-route-changes' )
 		).toBeVisible();
 	} );
 
 	test( 'changes page shows the Changes heading', async ( { page } ) => {
 		// ChangesRoute renders an h2 with "Changes".
 		await expect(
-			page.locator( '.gratis-ai-agent-route-changes' ).getByRole( 'heading', {
+			page.locator( '.sd-ai-agent-route-changes' ).getByRole( 'heading', {
 				name: /changes/i,
 				level: 2,
 			} )
@@ -55,14 +55,14 @@ test.describe( 'Changes Page - Page Load', () => {
 	test( 'changes page shows descriptive content', async ( { page } ) => {
 		// ChangesRoute renders a description paragraph.
 		await expect(
-			page.locator( '.gratis-ai-agent-route-changes' )
+			page.locator( '.sd-ai-agent-route-changes' )
 		).toContainText( 'changes' );
 	} );
 
 	test( 'navigation highlights the Changes menu item', async ( { page } ) => {
 		// The Navigation component renders links for each route. The changes
 		// link should be present in the unified admin navigation.
-		const nav = page.locator( '.gratis-ai-admin-layout' );
+		const nav = page.locator( '.sd-ai-admin-layout' );
 		await expect( nav ).toBeVisible();
 	} );
 } );
@@ -82,7 +82,7 @@ test.describe( 'Changes Page - REST Endpoint', () => {
 		await goToChangesPage( page );
 
 		const apiResponse = await page.evaluate( async () => {
-			const nonce = window.gratisAiAgentData?.nonce || '';
+			const nonce = window.sdAiAgentData?.nonce || '';
 			if ( ! nonce ) {
 				return { status: 0, body: null };
 			}
@@ -93,7 +93,7 @@ test.describe( 'Changes Page - REST Endpoint', () => {
 			const apiRoot =
 				window.wpApiSettings?.root ||
 				window.location.origin + '/?rest_route=/';
-			const endpoint = `${ apiRoot }gratis-ai-agent/v1/modified-plugins`;
+			const endpoint = `${ apiRoot }sd-ai-agent/v1/modified-plugins`;
 			const res = await fetch( endpoint, {
 				headers: {
 					'X-WP-Nonce': nonce,
@@ -122,14 +122,14 @@ test.describe( 'Changes Page - REST Endpoint', () => {
 		await goToChangesPage( page );
 
 		const apiResponse = await page.evaluate( async () => {
-			const nonce = window.gratisAiAgentData?.nonce || '';
+			const nonce = window.sdAiAgentData?.nonce || '';
 			if ( ! nonce ) {
 				return { status: 0, body: null };
 			}
 			const apiRoot =
 				window.wpApiSettings?.root ||
 				window.location.origin + '/?rest_route=/';
-			const endpoint = `${ apiRoot }gratis-ai-agent/v1/modified-plugins`;
+			const endpoint = `${ apiRoot }sd-ai-agent/v1/modified-plugins`;
 			const res = await fetch( endpoint, {
 				headers: {
 					'X-WP-Nonce': nonce,

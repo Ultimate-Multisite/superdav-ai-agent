@@ -29,7 +29,7 @@ export default function OnboardingInterview( { onComplete } ) {
 
 	// Fetch questions on mount.
 	useEffect( () => {
-		apiFetch( { path: '/gratis-ai-agent/v1/onboarding/interview' } )
+		apiFetch( { path: '/sd-ai-agent/v1/onboarding/interview' } )
 			.then( ( data ) => {
 				if ( data.done || ! data.ready ) {
 					// Interview already done or scan not ready — skip straight through.
@@ -85,7 +85,7 @@ export default function OnboardingInterview( { onComplete } ) {
 
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/onboarding/interview',
+				path: '/sd-ai-agent/v1/onboarding/interview',
 				method: 'POST',
 				data: { answers },
 			} );
@@ -96,7 +96,7 @@ export default function OnboardingInterview( { onComplete } ) {
 				err?.message ||
 					__(
 						'Failed to save answers. Please try again.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					)
 			);
 		}
@@ -109,7 +109,7 @@ export default function OnboardingInterview( { onComplete } ) {
 		setSaving( true );
 		try {
 			await apiFetch( {
-				path: '/gratis-ai-agent/v1/onboarding/interview',
+				path: '/sd-ai-agent/v1/onboarding/interview',
 				method: 'POST',
 				data: { skipped: true },
 			} );
@@ -145,22 +145,22 @@ export default function OnboardingInterview( { onComplete } ) {
 	 */
 	function getNextButtonLabel( isSaving, isLastQ ) {
 		if ( isSaving && isLastQ ) {
-			return __( 'Saving…', 'gratis-ai-agent' );
+			return __( 'Saving…', 'sd-ai-agent' );
 		}
 		if ( isLastQ ) {
-			return __( 'Finish', 'gratis-ai-agent' );
+			return __( 'Finish', 'sd-ai-agent' );
 		}
-		return __( 'Next', 'gratis-ai-agent' );
+		return __( 'Next', 'sd-ai-agent' );
 	}
 
 	if ( loading ) {
 		return (
-			<div className="gratis-ai-agent-interview gratis-ai-agent-interview--loading">
+			<div className="sd-ai-agent-interview sd-ai-agent-interview--loading">
 				<Spinner />
 				<p>
 					{ __(
 						'Preparing your personalised setup…',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			</div>
@@ -177,21 +177,21 @@ export default function OnboardingInterview( { onComplete } ) {
 		.filter( ( q ) => answers[ q.id ]?.trim() );
 
 	return (
-		<div className="gratis-ai-agent-interview">
-			<div className="gratis-ai-agent-interview__header">
-				<h2>{ __( 'Tell us about your site', 'gratis-ai-agent' ) }</h2>
-				<p className="gratis-ai-agent-interview__subtitle">
+		<div className="sd-ai-agent-interview">
+			<div className="sd-ai-agent-interview__header">
+				<h2>{ __( 'Tell us about your site', 'sd-ai-agent' ) }</h2>
+				<p className="sd-ai-agent-interview__subtitle">
 					{ __(
 						'Your answers help the AI give you relevant suggestions and automations.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
-				<div className="gratis-ai-agent-interview__progress">
+				<div className="sd-ai-agent-interview__progress">
 					{ questions.map( ( _, i ) => (
 						<span
 							key={ i }
 							className={ [
-								'gratis-ai-agent-interview__dot',
+								'sd-ai-agent-interview__dot',
 								i === currentIndex ? 'is-active' : '',
 								i < currentIndex ? 'is-complete' : '',
 							]
@@ -204,16 +204,16 @@ export default function OnboardingInterview( { onComplete } ) {
 
 			{ /* Previous answers summary */ }
 			{ answeredSummary.length > 0 && (
-				<div className="gratis-ai-agent-interview__summary">
+				<div className="sd-ai-agent-interview__summary">
 					{ answeredSummary.map( ( q ) => (
 						<div
 							key={ q.id }
-							className="gratis-ai-agent-interview__summary-item"
+							className="sd-ai-agent-interview__summary-item"
 						>
-							<span className="gratis-ai-agent-interview__summary-q">
+							<span className="sd-ai-agent-interview__summary-q">
 								{ q.question }
 							</span>
-							<span className="gratis-ai-agent-interview__summary-a">
+							<span className="sd-ai-agent-interview__summary-a">
 								{ answers[ q.id ] }
 							</span>
 						</div>
@@ -222,23 +222,23 @@ export default function OnboardingInterview( { onComplete } ) {
 			) }
 
 			{ /* Current question */ }
-			<div className="gratis-ai-agent-interview__question-card">
+			<div className="sd-ai-agent-interview__question-card">
 				<label
-					className="gratis-ai-agent-interview__question-label"
-					htmlFor={ `gratis-interview-${ currentQuestion.id }` }
+					className="sd-ai-agent-interview__question-label"
+					htmlFor={ `sd-interview-${ currentQuestion.id }` }
 				>
 					{ currentQuestion.question }
 					{ isRequired && (
 						<span
-							className="gratis-ai-agent-interview__required"
-							aria-label={ __( 'required', 'gratis-ai-agent' ) }
+							className="sd-ai-agent-interview__required"
+							aria-label={ __( 'required', 'sd-ai-agent' ) }
 						>
 							{ ' *' }
 						</span>
 					) }
 				</label>
 				<TextareaControl
-					id={ `gratis-interview-${ currentQuestion.id }` }
+					id={ `sd-interview-${ currentQuestion.id }` }
 					value={ currentAnswer }
 					placeholder={ currentQuestion.placeholder }
 					onChange={ ( value ) =>
@@ -253,27 +253,27 @@ export default function OnboardingInterview( { onComplete } ) {
 					__nextHasNoMarginBottom
 				/>
 				{ ! isRequired && (
-					<p className="gratis-ai-agent-interview__optional-hint">
+					<p className="sd-ai-agent-interview__optional-hint">
 						{ __(
 							'Optional — press Enter or click Next to skip.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				) }
 			</div>
 
 			{ error && (
-				<p className="gratis-ai-agent-interview__error">{ error }</p>
+				<p className="sd-ai-agent-interview__error">{ error }</p>
 			) }
 
-			<div className="gratis-ai-agent-interview__footer">
+			<div className="sd-ai-agent-interview__footer">
 				{ currentIndex > 0 && (
 					<Button
 						variant="tertiary"
 						onClick={ handleBack }
 						disabled={ saving }
 					>
-						{ __( 'Back', 'gratis-ai-agent' ) }
+						{ __( 'Back', 'sd-ai-agent' ) }
 					</Button>
 				) }
 
@@ -281,9 +281,9 @@ export default function OnboardingInterview( { onComplete } ) {
 					variant="link"
 					onClick={ handleSkip }
 					disabled={ saving }
-					className="gratis-ai-agent-interview__skip"
+					className="sd-ai-agent-interview__skip"
 				>
-					{ __( 'Skip all', 'gratis-ai-agent' ) }
+					{ __( 'Skip all', 'sd-ai-agent' ) }
 				</Button>
 
 				<Button

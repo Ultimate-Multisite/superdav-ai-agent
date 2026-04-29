@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * Event-Driven Automations model — CRUD for hook-based AI triggers.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Automations;
+namespace SdAiAgent\Automations;
 
 class EventAutomations {
 
@@ -18,7 +18,7 @@ class EventAutomations {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_event_automations';
+		return $wpdb->prefix . 'sd_ai_agent_event_automations';
 	}
 
 	/**

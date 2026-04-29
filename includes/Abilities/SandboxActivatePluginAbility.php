@@ -4,13 +4,13 @@ declare(strict_types=1);
 /**
  * Sandbox Activate Plugin ability — layer 3 transactional plugin activation.
  *
- * @package GratisAiAgent\Abilities
+ * @package SdAiAgent\Abilities
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
-use GratisAiAgent\PluginBuilder\PluginSandbox;
+use SdAiAgent\PluginBuilder\PluginSandbox;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -27,11 +27,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SandboxActivatePluginAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Sandbox Activate Plugin', 'gratis-ai-agent' );
+		return __( 'Sandbox Activate Plugin', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Activate a plugin using layer 3 transactional safety: error handler + shutdown guard. Auto-deactivates on fatal error.', 'gratis-ai-agent' );
+		return __( 'Activate a plugin using layer 3 transactional safety: error handler + shutdown guard. Auto-deactivates on fatal error.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -63,8 +63,8 @@ class SandboxActivatePluginAbility extends AbstractAbility {
 
 		if ( empty( $plugin_file ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_invalid_plugin_file',
-				__( 'plugin_file is required.', 'gratis-ai-agent' )
+				'sd_ai_agent_invalid_plugin_file',
+				__( 'plugin_file is required.', 'sd-ai-agent' )
 			);
 		}
 

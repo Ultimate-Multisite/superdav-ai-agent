@@ -10,11 +10,11 @@ declare(strict_types=1);
  * All write operations require `manage_woocommerce` capability.
  * Read operations require `view_woocommerce_reports` or `manage_woocommerce`.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 use WP_Error;
 
@@ -39,10 +39,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_get_products( array $input = [] ) {
 		$ability = new WooGetProductsAbility(
-			'gratis-ai-agent/woo-get-products',
+			'sd-ai-agent/woo-get-products',
 			[
-				'label'       => __( 'Get WooCommerce Products', 'gratis-ai-agent' ),
-				'description' => __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'gratis-ai-agent' ),
+				'label'       => __( 'Get WooCommerce Products', 'sd-ai-agent' ),
+				'description' => __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -57,10 +57,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_create_product( array $input = [] ) {
 		$ability = new WooCreateProductAbility(
-			'gratis-ai-agent/woo-create-product',
+			'sd-ai-agent/woo-create-product',
 			[
-				'label'       => __( 'Create WooCommerce Product', 'gratis-ai-agent' ),
-				'description' => __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'gratis-ai-agent' ),
+				'label'       => __( 'Create WooCommerce Product', 'sd-ai-agent' ),
+				'description' => __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -75,10 +75,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_update_product( array $input = [] ) {
 		$ability = new WooUpdateProductAbility(
-			'gratis-ai-agent/woo-update-product',
+			'sd-ai-agent/woo-update-product',
 			[
-				'label'       => __( 'Update WooCommerce Product', 'gratis-ai-agent' ),
-				'description' => __( 'Update an existing WooCommerce product by ID. Supports partial updates.', 'gratis-ai-agent' ),
+				'label'       => __( 'Update WooCommerce Product', 'sd-ai-agent' ),
+				'description' => __( 'Update an existing WooCommerce product by ID. Supports partial updates.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -93,10 +93,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_delete_product( array $input = [] ) {
 		$ability = new WooDeleteProductAbility(
-			'gratis-ai-agent/woo-delete-product',
+			'sd-ai-agent/woo-delete-product',
 			[
-				'label'       => __( 'Delete WooCommerce Product', 'gratis-ai-agent' ),
-				'description' => __( 'Delete a WooCommerce product by ID. Optionally force-delete (bypass trash).', 'gratis-ai-agent' ),
+				'label'       => __( 'Delete WooCommerce Product', 'sd-ai-agent' ),
+				'description' => __( 'Delete a WooCommerce product by ID. Optionally force-delete (bypass trash).', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -111,10 +111,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_get_orders( array $input = [] ) {
 		$ability = new WooGetOrdersAbility(
-			'gratis-ai-agent/woo-get-orders',
+			'sd-ai-agent/woo-get-orders',
 			[
-				'label'       => __( 'Get WooCommerce Orders', 'gratis-ai-agent' ),
-				'description' => __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'gratis-ai-agent' ),
+				'label'       => __( 'Get WooCommerce Orders', 'sd-ai-agent' ),
+				'description' => __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -129,10 +129,10 @@ class WooCommerceAbilities {
 	 */
 	public static function handle_get_store_stats( array $input = [] ) {
 		$ability = new WooGetStoreStatsAbility(
-			'gratis-ai-agent/woo-get-store-stats',
+			'sd-ai-agent/woo-get-store-stats',
 			[
-				'label'       => __( 'Get WooCommerce Store Stats', 'gratis-ai-agent' ),
-				'description' => __( 'Retrieve WooCommerce store statistics: total revenue, order counts, top products, and customer counts for a date range.', 'gratis-ai-agent' ),
+				'label'       => __( 'Get WooCommerce Store Stats', 'sd-ai-agent' ),
+				'description' => __( 'Retrieve WooCommerce store statistics: total revenue, order counts, top products, and customer counts for a date range.', 'sd-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -152,55 +152,55 @@ class WooCommerceAbilities {
 		}
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-get-products',
+			'sd-ai-agent/woo-get-products',
 			[
-				'label'         => __( 'Get WooCommerce Products', 'gratis-ai-agent' ),
-				'description'   => __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'gratis-ai-agent' ),
+				'label'         => __( 'Get WooCommerce Products', 'sd-ai-agent' ),
+				'description'   => __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'sd-ai-agent' ),
 				'ability_class' => WooGetProductsAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-create-product',
+			'sd-ai-agent/woo-create-product',
 			[
-				'label'         => __( 'Create WooCommerce Product', 'gratis-ai-agent' ),
-				'description'   => __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'gratis-ai-agent' ),
+				'label'         => __( 'Create WooCommerce Product', 'sd-ai-agent' ),
+				'description'   => __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'sd-ai-agent' ),
 				'ability_class' => WooCreateProductAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-update-product',
+			'sd-ai-agent/woo-update-product',
 			[
-				'label'         => __( 'Update WooCommerce Product', 'gratis-ai-agent' ),
-				'description'   => __( 'Update an existing WooCommerce product by ID. Supports partial updates.', 'gratis-ai-agent' ),
+				'label'         => __( 'Update WooCommerce Product', 'sd-ai-agent' ),
+				'description'   => __( 'Update an existing WooCommerce product by ID. Supports partial updates.', 'sd-ai-agent' ),
 				'ability_class' => WooUpdateProductAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-delete-product',
+			'sd-ai-agent/woo-delete-product',
 			[
-				'label'         => __( 'Delete WooCommerce Product', 'gratis-ai-agent' ),
-				'description'   => __( 'Delete a WooCommerce product by ID. Optionally force-delete (bypass trash).', 'gratis-ai-agent' ),
+				'label'         => __( 'Delete WooCommerce Product', 'sd-ai-agent' ),
+				'description'   => __( 'Delete a WooCommerce product by ID. Optionally force-delete (bypass trash).', 'sd-ai-agent' ),
 				'ability_class' => WooDeleteProductAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-get-orders',
+			'sd-ai-agent/woo-get-orders',
 			[
-				'label'         => __( 'Get WooCommerce Orders', 'gratis-ai-agent' ),
-				'description'   => __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'gratis-ai-agent' ),
+				'label'         => __( 'Get WooCommerce Orders', 'sd-ai-agent' ),
+				'description'   => __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'sd-ai-agent' ),
 				'ability_class' => WooGetOrdersAbility::class,
 			]
 		);
 
 		wp_register_ability(
-			'gratis-ai-agent/woo-get-store-stats',
+			'sd-ai-agent/woo-get-store-stats',
 			[
-				'label'         => __( 'Get WooCommerce Store Stats', 'gratis-ai-agent' ),
-				'description'   => __( 'Retrieve WooCommerce store statistics: total revenue, order counts, top products, and customer counts for a date range.', 'gratis-ai-agent' ),
+				'label'         => __( 'Get WooCommerce Store Stats', 'sd-ai-agent' ),
+				'description'   => __( 'Retrieve WooCommerce store statistics: total revenue, order counts, top products, and customer counts for a date range.', 'sd-ai-agent' ),
 				'ability_class' => WooGetStoreStatsAbility::class,
 			]
 		);
@@ -324,11 +324,11 @@ class WooCommerceAbilities {
 class WooGetProductsAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Get WooCommerce Products', 'gratis-ai-agent' );
+		return __( 'Get WooCommerce Products', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'gratis-ai-agent' );
+		return __( 'List or search WooCommerce products. Filter by status, category, stock status, or search term.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -388,7 +388,7 @@ class WooGetProductsAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		// Single product lookup.
@@ -401,7 +401,7 @@ class WooGetProductsAbility extends AbstractAbility {
 					'product_not_found',
 					sprintf(
 						/* translators: %d: product ID */
-						__( 'Product %d not found.', 'gratis-ai-agent' ),
+						__( 'Product %d not found.', 'sd-ai-agent' ),
 						$product_id
 					)
 				);
@@ -497,11 +497,11 @@ class WooGetProductsAbility extends AbstractAbility {
 class WooCreateProductAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Create WooCommerce Product', 'gratis-ai-agent' );
+		return __( 'Create WooCommerce Product', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'gratis-ai-agent' );
+		return __( 'Create a new WooCommerce product (simple, variable, grouped, or external).', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -591,13 +591,13 @@ class WooCreateProductAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		// @phpstan-ignore-next-line
 		$name = sanitize_text_field( $input['name'] ?? '' );
 		if ( empty( $name ) ) {
-			return new WP_Error( 'missing_name', __( 'Product name is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'missing_name', __( 'Product name is required.', 'sd-ai-agent' ) );
 		}
 
 		$type    = $input['type'] ?? 'simple';
@@ -682,19 +682,19 @@ class WooCreateProductAbility extends AbstractAbility {
 		$product_id = $product->save();
 
 		if ( ! $product_id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create product.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'create_failed', __( 'Failed to create product.', 'sd-ai-agent' ) );
 		}
 
 		$saved = wc_get_product( $product_id );
 		if ( ! $saved ) {
-			return new WP_Error( 'create_failed', __( 'Product created but could not be retrieved.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'create_failed', __( 'Product created but could not be retrieved.', 'sd-ai-agent' ) );
 		}
 
 		return [
 			'product' => WooCommerceAbilities::serialize_product( $saved ),
 			'message' => sprintf(
 				/* translators: 1: product name, 2: product ID */
-				__( 'Product "%1$s" created successfully (ID: %2$d).', 'gratis-ai-agent' ),
+				__( 'Product "%1$s" created successfully (ID: %2$d).', 'sd-ai-agent' ),
 				$name,
 				$product_id
 			),
@@ -725,11 +725,11 @@ class WooCreateProductAbility extends AbstractAbility {
 class WooUpdateProductAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Update WooCommerce Product', 'gratis-ai-agent' );
+		return __( 'Update WooCommerce Product', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Update an existing WooCommerce product by ID. Supports partial updates — only provided fields are changed.', 'gratis-ai-agent' );
+		return __( 'Update an existing WooCommerce product by ID. Supports partial updates — only provided fields are changed.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -810,13 +810,13 @@ class WooUpdateProductAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		// @phpstan-ignore-next-line
 		$product_id = (int) ( $input['product_id'] ?? 0 );
 		if ( $product_id <= 0 ) {
-			return new WP_Error( 'missing_product_id', __( 'product_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'missing_product_id', __( 'product_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$product = wc_get_product( $product_id );
@@ -825,7 +825,7 @@ class WooUpdateProductAbility extends AbstractAbility {
 				'product_not_found',
 				sprintf(
 					/* translators: %d: product ID */
-					__( 'Product %d not found.', 'gratis-ai-agent' ),
+					__( 'Product %d not found.', 'sd-ai-agent' ),
 					$product_id
 				)
 			);
@@ -894,14 +894,14 @@ class WooUpdateProductAbility extends AbstractAbility {
 
 		$updated = wc_get_product( $product_id );
 		if ( ! $updated ) {
-			return new WP_Error( 'update_failed', __( 'Product updated but could not be retrieved.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'update_failed', __( 'Product updated but could not be retrieved.', 'sd-ai-agent' ) );
 		}
 
 		return [
 			'product' => WooCommerceAbilities::serialize_product( $updated ),
 			'message' => sprintf(
 				/* translators: %d: product ID */
-				__( 'Product %d updated successfully.', 'gratis-ai-agent' ),
+				__( 'Product %d updated successfully.', 'sd-ai-agent' ),
 				$product_id
 			),
 		];
@@ -931,11 +931,11 @@ class WooUpdateProductAbility extends AbstractAbility {
 class WooDeleteProductAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Delete WooCommerce Product', 'gratis-ai-agent' );
+		return __( 'Delete WooCommerce Product', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Delete a WooCommerce product by ID. By default moves to trash; set force_delete to permanently remove.', 'gratis-ai-agent' );
+		return __( 'Delete a WooCommerce product by ID. By default moves to trash; set force_delete to permanently remove.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -969,7 +969,7 @@ class WooDeleteProductAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		// @phpstan-ignore-next-line
@@ -977,7 +977,7 @@ class WooDeleteProductAbility extends AbstractAbility {
 		$force_delete = (bool) ( $input['force_delete'] ?? false );
 
 		if ( $product_id <= 0 ) {
-			return new WP_Error( 'missing_product_id', __( 'product_id is required.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'missing_product_id', __( 'product_id is required.', 'sd-ai-agent' ) );
 		}
 
 		$product = wc_get_product( $product_id );
@@ -986,7 +986,7 @@ class WooDeleteProductAbility extends AbstractAbility {
 				'product_not_found',
 				sprintf(
 					/* translators: %d: product ID */
-					__( 'Product %d not found.', 'gratis-ai-agent' ),
+					__( 'Product %d not found.', 'sd-ai-agent' ),
 					$product_id
 				)
 			);
@@ -1000,22 +1000,22 @@ class WooDeleteProductAbility extends AbstractAbility {
 				'delete_failed',
 				sprintf(
 					/* translators: %d: product ID */
-					__( 'Failed to delete product %d.', 'gratis-ai-agent' ),
+					__( 'Failed to delete product %d.', 'sd-ai-agent' ),
 					$product_id
 				)
 			);
 		}
 
 		$action = $force_delete
-			? __( 'permanently deleted', 'gratis-ai-agent' )
-			: __( 'moved to trash', 'gratis-ai-agent' );
+			? __( 'permanently deleted', 'sd-ai-agent' )
+			: __( 'moved to trash', 'sd-ai-agent' );
 
 		return [
 			'deleted'    => true,
 			'product_id' => $product_id,
 			'message'    => sprintf(
 				/* translators: 1: product name, 2: product ID, 3: action (deleted/trashed) */
-				__( 'Product "%1$s" (ID: %2$d) %3$s.', 'gratis-ai-agent' ),
+				__( 'Product "%1$s" (ID: %2$d) %3$s.', 'sd-ai-agent' ),
 				$product_name,
 				$product_id,
 				$action
@@ -1047,11 +1047,11 @@ class WooDeleteProductAbility extends AbstractAbility {
 class WooGetOrdersAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Get WooCommerce Orders', 'gratis-ai-agent' );
+		return __( 'Get WooCommerce Orders', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'gratis-ai-agent' );
+		return __( 'Query WooCommerce orders. Filter by status, customer, date range, or product.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -1117,7 +1117,7 @@ class WooGetOrdersAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		// Single order lookup.
@@ -1130,7 +1130,7 @@ class WooGetOrdersAbility extends AbstractAbility {
 					'order_not_found',
 					sprintf(
 						/* translators: %d: order ID */
-						__( 'Order %d not found.', 'gratis-ai-agent' ),
+						__( 'Order %d not found.', 'sd-ai-agent' ),
 						$order_id
 					)
 				);
@@ -1247,11 +1247,11 @@ class WooGetOrdersAbility extends AbstractAbility {
 class WooGetStoreStatsAbility extends AbstractAbility {
 
 	protected function label(): string {
-		return __( 'Get WooCommerce Store Stats', 'gratis-ai-agent' );
+		return __( 'Get WooCommerce Store Stats', 'sd-ai-agent' );
 	}
 
 	protected function description(): string {
-		return __( 'Retrieve WooCommerce store statistics: total revenue, order counts by status, top-selling products, and customer counts for a date range.', 'gratis-ai-agent' );
+		return __( 'Retrieve WooCommerce store statistics: total revenue, order counts by status, top-selling products, and customer counts for a date range.', 'sd-ai-agent' );
 	}
 
 	protected function input_schema(): array {
@@ -1293,7 +1293,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 	protected function execute_callback( $input ) {
 		/** @var array<string, mixed> $input */
 		if ( ! WooCommerceAbilities::is_woocommerce_active() ) {
-			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'gratis-ai-agent' ) );
+			return new WP_Error( 'woocommerce_inactive', __( 'WooCommerce is not active.', 'sd-ai-agent' ) );
 		}
 
 		$date_after  = $input['date_after'] ?? gmdate( 'Y-m-d', strtotime( '-30 days' ) );
@@ -1308,7 +1308,7 @@ class WooGetStoreStatsAbility extends AbstractAbility {
 		$before_ts = strtotime( $date_before );
 
 		if ( false === $after_ts || false === $before_ts ) {
-			return new WP_Error( 'invalid_date', __( 'Invalid date format. Use ISO 8601 (YYYY-MM-DD).', 'gratis-ai-agent' ) );
+			return new WP_Error( 'invalid_date', __( 'Invalid date format. Use ISO 8601 (YYYY-MM-DD).', 'sd-ai-agent' ) );
 		}
 
 		// Query completed/processing orders in the date range.

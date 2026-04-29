@@ -18,7 +18,7 @@ import {
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
-const API_BASE = '/gratis-ai-agent/v1/knowledge';
+const API_BASE = '/sd-ai-agent/v1/knowledge';
 
 /**
  *
@@ -55,10 +55,7 @@ export default function KnowledgeManager() {
 			.catch( () =>
 				setNotice( {
 					status: 'error',
-					message: __(
-						'Failed to load collections.',
-						'gratis-ai-agent'
-					),
+					message: __( 'Failed to load collections.', 'sd-ai-agent' ),
 				} )
 			)
 			.finally( () => setLoading( false ) );
@@ -91,7 +88,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection updated.', 'gratis-ai-agent' ),
+					message: __( 'Collection updated.', 'sd-ai-agent' ),
 				} );
 			} else {
 				await apiFetch( {
@@ -101,7 +98,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection created.', 'gratis-ai-agent' ),
+					message: __( 'Collection created.', 'sd-ai-agent' ),
 				} );
 			}
 			setShowCreate( false );
@@ -118,7 +115,7 @@ export default function KnowledgeManager() {
 			setNotice( {
 				status: 'error',
 				message:
-					err.message || __( 'Operation failed.', 'gratis-ai-agent' ),
+					err.message || __( 'Operation failed.', 'sd-ai-agent' ),
 			} );
 		}
 	}, [ form, editingId, fetchCollections ] );
@@ -130,7 +127,7 @@ export default function KnowledgeManager() {
 				! window.confirm(
 					__(
 						'Delete this collection and all its indexed data?',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					)
 				)
 			) {
@@ -143,7 +140,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection deleted.', 'gratis-ai-agent' ),
+					message: __( 'Collection deleted.', 'sd-ai-agent' ),
 				} );
 				fetchCollections();
 			} catch {
@@ -151,7 +148,7 @@ export default function KnowledgeManager() {
 					status: 'error',
 					message: __(
 						'Failed to delete collection.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					),
 				} );
 			}
@@ -169,13 +166,11 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: `${ __( 'Indexed:', 'gratis-ai-agent' ) } ${
+					message: `${ __( 'Indexed:', 'sd-ai-agent' ) } ${
 						result.indexed
-					} | ${ __( 'Skipped:', 'gratis-ai-agent' ) } ${
+					} | ${ __( 'Skipped:', 'sd-ai-agent' ) } ${
 						result.skipped
-					} | ${ __( 'Errors:', 'gratis-ai-agent' ) } ${
-						result.errors
-					}`,
+					} | ${ __( 'Errors:', 'sd-ai-agent' ) } ${ result.errors }`,
 				} );
 				fetchCollections();
 				if ( expandedId === id ) {
@@ -184,7 +179,7 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __( 'Indexing failed.', 'gratis-ai-agent' ),
+					message: __( 'Indexing failed.', 'sd-ai-agent' ),
 				} );
 			}
 			setIndexing( ( prev ) => ( { ...prev, [ id ]: false } ) );
@@ -217,7 +212,7 @@ export default function KnowledgeManager() {
 					status: 'success',
 					message: __(
 						'Document uploaded and indexed.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					),
 				} );
 				fetchCollections();
@@ -227,7 +222,7 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __( 'Upload failed.', 'gratis-ai-agent' ),
+					message: __( 'Upload failed.', 'sd-ai-agent' ),
 				} );
 			}
 			setUploading( ( prev ) => ( { ...prev, [ id ]: false } ) );
@@ -247,10 +242,7 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __(
-						'Failed to delete source.',
-						'gratis-ai-agent'
-					),
+					message: __( 'Failed to delete source.', 'sd-ai-agent' ),
 				} );
 			}
 		},
@@ -308,7 +300,7 @@ export default function KnowledgeManager() {
 	}
 
 	return (
-		<div className="gratis-ai-agent-knowledge-manager">
+		<div className="sd-ai-agent-knowledge-manager">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -328,7 +320,7 @@ export default function KnowledgeManager() {
 				} }
 			>
 				<h3 style={ { margin: 0 } }>
-					{ __( 'Collections', 'gratis-ai-agent' ) }
+					{ __( 'Collections', 'sd-ai-agent' ) }
 				</h3>
 				<Button
 					variant="primary"
@@ -344,7 +336,7 @@ export default function KnowledgeManager() {
 						setShowCreate( true );
 					} }
 				>
-					{ __( 'Create Collection', 'gratis-ai-agent' ) }
+					{ __( 'Create Collection', 'sd-ai-agent' ) }
 				</Button>
 			</div>
 
@@ -352,7 +344,7 @@ export default function KnowledgeManager() {
 				<p className="description">
 					{ __(
 						'No collections yet. Create one to start indexing content.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }
@@ -371,7 +363,7 @@ export default function KnowledgeManager() {
 							<div>
 								<strong>{ col.name }</strong>
 								<span
-									className="gratis-ai-agent-text-muted"
+									className="sd-ai-agent-text-muted"
 									style={ { marginLeft: '8px' } }
 								>
 									{ col.slug }
@@ -384,13 +376,13 @@ export default function KnowledgeManager() {
 									alignItems: 'center',
 								} }
 							>
-								<span className="gratis-ai-agent-text-muted">
+								<span className="sd-ai-agent-text-muted">
 									{ col.chunk_count }{ ' ' }
-									{ __( 'chunks', 'gratis-ai-agent' ) }
+									{ __( 'chunks', 'sd-ai-agent' ) }
 								</span>
 								{ col.auto_index && (
-									<span className="gratis-ai-agent-badge">
-										{ __( 'Auto', 'gratis-ai-agent' ) }
+									<span className="sd-ai-agent-badge">
+										{ __( 'Auto', 'sd-ai-agent' ) }
 									</span>
 								) }
 							</div>
@@ -402,7 +394,7 @@ export default function KnowledgeManager() {
 						) }
 						{ col.last_indexed_at && (
 							<p className="description">
-								{ __( 'Last indexed:', 'gratis-ai-agent' ) }{ ' ' }
+								{ __( 'Last indexed:', 'sd-ai-agent' ) }{ ' ' }
 								{ col.last_indexed_at }
 							</p>
 						) }
@@ -421,8 +413,8 @@ export default function KnowledgeManager() {
 								disabled={ indexing[ col.id ] }
 							>
 								{ indexing[ col.id ]
-									? __( 'Indexing…', 'gratis-ai-agent' )
-									: __( 'Index Now', 'gratis-ai-agent' ) }
+									? __( 'Indexing…', 'sd-ai-agent' )
+									: __( 'Index Now', 'sd-ai-agent' ) }
 							</Button>
 							<FormFileUpload
 								accept=".pdf,.docx,.txt,.md,.html"
@@ -436,7 +428,7 @@ export default function KnowledgeManager() {
 									>
 										{ __(
 											'Upload Document',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</Button>
 								) }
@@ -446,21 +438,21 @@ export default function KnowledgeManager() {
 								onClick={ () => toggleExpanded( col.id ) }
 							>
 								{ expandedId === col.id
-									? __( 'Hide Sources', 'gratis-ai-agent' )
-									: __( 'Show Sources', 'gratis-ai-agent' ) }
+									? __( 'Hide Sources', 'sd-ai-agent' )
+									: __( 'Show Sources', 'sd-ai-agent' ) }
 							</Button>
 							<Button
 								variant="tertiary"
 								onClick={ () => openEdit( col ) }
 							>
-								{ __( 'Edit', 'gratis-ai-agent' ) }
+								{ __( 'Edit', 'sd-ai-agent' ) }
 							</Button>
 							<Button
 								variant="tertiary"
 								isDestructive
 								onClick={ () => handleDelete( col.id ) }
 							>
-								{ __( 'Delete', 'gratis-ai-agent' ) }
+								{ __( 'Delete', 'sd-ai-agent' ) }
 							</Button>
 						</div>
 
@@ -473,7 +465,7 @@ export default function KnowledgeManager() {
 								} }
 							>
 								<h4 style={ { margin: '0 0 8px 0' } }>
-									{ __( 'Sources', 'gratis-ai-agent' ) }
+									{ __( 'Sources', 'sd-ai-agent' ) }
 								</h4>
 								{
 									/* eslint-disable-next-line no-nested-ternary */
@@ -483,7 +475,7 @@ export default function KnowledgeManager() {
 										<p className="description">
 											{ __(
 												'No sources indexed yet.',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 										</p>
 									) : (
@@ -496,25 +488,25 @@ export default function KnowledgeManager() {
 													<th>
 														{ __(
 															'Title',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Type',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Status',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Chunks',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														) }
 													</th>
 													<th></th>
@@ -528,7 +520,7 @@ export default function KnowledgeManager() {
 																{ src.title ||
 																	__(
 																		'(untitled)',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	) }
 															</td>
 															<td>
@@ -538,7 +530,7 @@ export default function KnowledgeManager() {
 															</td>
 															<td>
 																<span
-																	className={ `gratis-ai-agent-status-badge is-${ src.status }` }
+																	className={ `sd-ai-agent-status-badge is-${ src.status }` }
 																>
 																	{
 																		src.status
@@ -578,7 +570,7 @@ export default function KnowledgeManager() {
 																>
 																	{ __(
 																		'Remove',
-																		'gratis-ai-agent'
+																		'sd-ai-agent'
 																	) }
 																</Button>
 															</td>
@@ -597,7 +589,7 @@ export default function KnowledgeManager() {
 
 			{ /* Search Preview */ }
 			<div style={ { marginTop: '24px' } }>
-				<h3>{ __( 'Search Preview', 'gratis-ai-agent' ) }</h3>
+				<h3>{ __( 'Search Preview', 'sd-ai-agent' ) }</h3>
 				<div
 					style={ {
 						display: 'flex',
@@ -610,7 +602,7 @@ export default function KnowledgeManager() {
 						onChange={ setSearchQuery }
 						placeholder={ __(
 							'Search the knowledge base…',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						style={ { flex: 1 } }
 						onKeyDown={ ( e ) => {
@@ -626,11 +618,11 @@ export default function KnowledgeManager() {
 						isBusy={ searching }
 						disabled={ searching || ! searchQuery.trim() }
 					>
-						{ __( 'Search', 'gratis-ai-agent' ) }
+						{ __( 'Search', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 				{ searchResults.length > 0 && (
-					<div className="gratis-ai-agent-search-results">
+					<div className="sd-ai-agent-search-results">
 						{ searchResults.map( ( result, i ) => (
 							<Card key={ i } style={ { marginBottom: '8px' } }>
 								<CardBody>
@@ -641,7 +633,7 @@ export default function KnowledgeManager() {
 											marginBottom: '4px',
 										} }
 									>
-										<span className="gratis-ai-agent-text-muted">
+										<span className="sd-ai-agent-text-muted">
 											<strong>
 												{ result.source_title }
 											</strong>
@@ -649,10 +641,10 @@ export default function KnowledgeManager() {
 												` — ${ result.collection_name }` }
 										</span>
 										{ result.score && (
-											<span className="gratis-ai-agent-text-muted">
+											<span className="sd-ai-agent-text-muted">
 												{ __(
 													'Score:',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }{ ' ' }
 												{ result.score.toFixed( 2 ) }
 											</span>
@@ -684,8 +676,8 @@ export default function KnowledgeManager() {
 				<Modal
 					title={
 						editingId
-							? __( 'Edit Collection', 'gratis-ai-agent' )
-							: __( 'Create Collection', 'gratis-ai-agent' )
+							? __( 'Edit Collection', 'sd-ai-agent' )
+							: __( 'Create Collection', 'sd-ai-agent' )
 					}
 					onRequestClose={ () => {
 						setShowCreate( false );
@@ -693,7 +685,7 @@ export default function KnowledgeManager() {
 					} }
 				>
 					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
+						label={ __( 'Name', 'sd-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => {
 							setForm( ( prev ) => ( {
@@ -713,20 +705,20 @@ export default function KnowledgeManager() {
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Slug', 'gratis-ai-agent' ) }
+						label={ __( 'Slug', 'sd-ai-agent' ) }
 						value={ form.slug }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( { ...prev, slug: v } ) )
 						}
 						help={ __(
 							'Unique identifier for this collection.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						disabled={ !! editingId }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'sd-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( {
@@ -739,7 +731,7 @@ export default function KnowledgeManager() {
 					<TextControl
 						label={ __(
 							'Post Types (comma-separated)',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						value={ ( form.source_config?.post_types || [] ).join(
 							', '
@@ -758,12 +750,12 @@ export default function KnowledgeManager() {
 						}
 						help={ __(
 							'Post types to include when indexing (e.g., post, page, product).',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<ToggleControl
-						label={ __( 'Auto-index', 'gratis-ai-agent' ) }
+						label={ __( 'Auto-index', 'sd-ai-agent' ) }
 						checked={ form.auto_index }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( {
@@ -773,7 +765,7 @@ export default function KnowledgeManager() {
 						}
 						help={ __(
 							'Automatically index new and updated posts matching this collection.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
@@ -792,7 +784,7 @@ export default function KnowledgeManager() {
 								setEditingId( null );
 							} }
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="primary"
@@ -800,8 +792,8 @@ export default function KnowledgeManager() {
 							disabled={ ! form.name || ! form.slug }
 						>
 							{ editingId
-								? __( 'Save', 'gratis-ai-agent' )
-								: __( 'Create', 'gratis-ai-agent' ) }
+								? __( 'Save', 'sd-ai-agent' )
+								: __( 'Create', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</Modal>

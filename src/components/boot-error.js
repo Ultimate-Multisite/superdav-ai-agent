@@ -35,39 +35,39 @@ export default function BootError() {
 	const is403 = bootError.status === 403;
 
 	return (
-		<div className="gratis-ai-agent-boot-error">
-			<div className="gratis-ai-agent-boot-error__card">
+		<div className="sd-ai-agent-boot-error">
+			<div className="sd-ai-agent-boot-error__card">
 				<h2>
 					{ is403
-						? __( 'Access Denied', 'gratis-ai-agent' )
-						: __( 'Connection Error', 'gratis-ai-agent' ) }
+						? __( 'Access Denied', 'sd-ai-agent' )
+						: __( 'Connection Error', 'sd-ai-agent' ) }
 				</h2>
 				<p>
 					{ is403
 						? __(
 								'The AI Agent could not authenticate with the REST API. This usually happens when your session has expired.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 						  )
 						: __(
 								'The AI Agent could not connect to the REST API. Please check that the plugin is active and try again.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 						  ) }
 				</p>
-				<div className="gratis-ai-agent-boot-error__actions">
+				<div className="sd-ai-agent-boot-error__actions">
 					<Button
 						variant="primary"
 						onClick={ () => window.location.reload() }
 					>
-						{ __( 'Reload Page', 'gratis-ai-agent' ) }
+						{ __( 'Reload Page', 'sd-ai-agent' ) }
 					</Button>
 					<Button variant="secondary" onClick={ retryBoot }>
-						{ __( 'Try Again', 'gratis-ai-agent' ) }
+						{ __( 'Try Again', 'sd-ai-agent' ) }
 					</Button>
 				</div>
-				<p className="gratis-ai-agent-boot-error__hint">
+				<p className="sd-ai-agent-boot-error__hint">
 					{ __(
 						'Reloading the page refreshes your session. If the error persists, try logging out and back in.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			</div>

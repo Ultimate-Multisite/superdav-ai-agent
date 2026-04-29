@@ -31,7 +31,7 @@ function StatusDot( { status } ) {
 	if ( status === 'processing' ) {
 		return (
 			<span
-				className="gratis-ai-agent-tab-status-dot is-processing"
+				className="sd-ai-agent-tab-status-dot is-processing"
 				aria-hidden="true"
 			/>
 		);
@@ -39,7 +39,7 @@ function StatusDot( { status } ) {
 	if ( status === 'awaiting_confirmation' ) {
 		return (
 			<span
-				className="gratis-ai-agent-tab-status-dot is-awaiting"
+				className="sd-ai-agent-tab-status-dot is-awaiting"
 				aria-hidden="true"
 			/>
 		);
@@ -56,7 +56,7 @@ function StatusDot( { status } ) {
  */
 function truncateTitle( title, maxLen = 20 ) {
 	if ( ! title ) {
-		return __( 'Untitled', 'gratis-ai-agent' );
+		return __( 'Untitled', 'sd-ai-agent' );
 	}
 	return title.length > maxLen ? title.substring( 0, maxLen ) + '…' : title;
 }
@@ -94,9 +94,9 @@ export default function ChatTabBar() {
 
 	return (
 		<div
-			className="gratis-ai-agent-chat-tab-bar"
+			className="sd-ai-agent-chat-tab-bar"
 			role="tablist"
-			aria-label={ __( 'Open chat sessions', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Open chat sessions', 'sd-ai-agent' ) }
 		>
 			{ openTabs.map( ( tabId ) => {
 				const session = sessionMap[ tabId ];
@@ -104,12 +104,12 @@ export default function ChatTabBar() {
 				const jobInfo = sessionJobs ? sessionJobs[ tabId ] : null;
 				const status = jobInfo?.status || 'idle';
 				const rawTitle =
-					session?.title || __( 'Untitled', 'gratis-ai-agent' );
+					session?.title || __( 'Untitled', 'sd-ai-agent' );
 
 				return (
 					<div
 						key={ tabId }
-						className={ `gratis-ai-agent-chat-tab${
+						className={ `sd-ai-agent-chat-tab${
 							isActive ? ' is-active' : ''
 						}` }
 						role="tab"
@@ -117,7 +117,7 @@ export default function ChatTabBar() {
 					>
 						<button
 							type="button"
-							className="gratis-ai-agent-chat-tab__label"
+							className="sd-ai-agent-chat-tab__label"
 							onClick={ () => openSession( tabId ) }
 							title={ rawTitle }
 						>
@@ -126,7 +126,7 @@ export default function ChatTabBar() {
 						</button>
 						<button
 							type="button"
-							className="gratis-ai-agent-chat-tab__close"
+							className="sd-ai-agent-chat-tab__close"
 							onClick={ ( e ) => {
 								e.stopPropagation();
 								removeOpenTab( tabId );
@@ -136,10 +136,7 @@ export default function ChatTabBar() {
 							} }
 							aria-label={ sprintf(
 								/* translators: %s: session title */
-								__(
-									'Close session tab: %s',
-									'gratis-ai-agent'
-								),
+								__( 'Close session tab: %s', 'sd-ai-agent' ),
 								rawTitle
 							) }
 						>
@@ -152,9 +149,9 @@ export default function ChatTabBar() {
 			<Button
 				icon={ plus }
 				size="small"
-				label={ __( 'New Chat', 'gratis-ai-agent' ) }
+				label={ __( 'New Chat', 'sd-ai-agent' ) }
 				onClick={ clearCurrentSession }
-				className="gratis-ai-agent-chat-tab-bar__new"
+				className="sd-ai-agent-chat-tab-bar__new"
 			/>
 		</div>
 	);

@@ -16,11 +16,11 @@ import STORE_NAME from '../store';
  * Category labels for display.
  */
 const CATEGORY_LABELS = {
-	general: __( 'General', 'gratis-ai-agent' ),
-	content: __( 'Content', 'gratis-ai-agent' ),
-	writing: __( 'Writing', 'gratis-ai-agent' ),
-	development: __( 'Development', 'gratis-ai-agent' ),
-	seo: __( 'SEO', 'gratis-ai-agent' ),
+	general: __( 'General', 'sd-ai-agent' ),
+	content: __( 'Content', 'sd-ai-agent' ),
+	writing: __( 'Writing', 'sd-ai-agent' ),
+	development: __( 'Development', 'sd-ai-agent' ),
+	seo: __( 'SEO', 'sd-ai-agent' ),
 };
 
 /**
@@ -32,23 +32,20 @@ const CATEGORY_LABELS = {
  */
 function TemplateCard( { template, onSelect } ) {
 	const descId = template.id
-		? `gratis-ai-agent-template-desc-${ template.id }`
+		? `sd-ai-agent-template-desc-${ template.id }`
 		: undefined;
 	return (
 		<button
 			type="button"
-			className="gratis-ai-agent-template-card"
+			className="sd-ai-agent-template-card"
 			onClick={ () => onSelect( template ) }
 			aria-describedby={ template.description ? descId : undefined }
 		>
-			<span className="gratis-ai-agent-template-card__name">
+			<span className="sd-ai-agent-template-card__name">
 				{ template.name }
 			</span>
 			{ template.description && (
-				<span
-					id={ descId }
-					className="gratis-ai-agent-template-card__desc"
-				>
+				<span id={ descId } className="sd-ai-agent-template-card__desc">
 					{ template.description }
 				</span>
 			) }
@@ -88,7 +85,7 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 
 	// Derive unique categories from loaded templates.
 	const categories = [
-		{ value: '', label: __( 'All', 'gratis-ai-agent' ) },
+		{ value: '', label: __( 'All', 'sd-ai-agent' ) },
 		...[ ...new Set( templates.map( ( t ) => t.category ) ) ]
 			.sort()
 			.map( ( cat ) => ( {
@@ -111,26 +108,26 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 
 	return (
 		<div
-			className="gratis-ai-agent-template-menu"
+			className="sd-ai-agent-template-menu"
 			role="dialog"
-			aria-label={ __( 'Conversation templates', 'gratis-ai-agent' ) }
+			aria-label={ __( 'Conversation templates', 'sd-ai-agent' ) }
 		>
-			<div className="gratis-ai-agent-template-menu__header">
-				<span className="gratis-ai-agent-template-menu__title">
-					{ __( 'Templates', 'gratis-ai-agent' ) }
+			<div className="sd-ai-agent-template-menu__header">
+				<span className="sd-ai-agent-template-menu__title">
+					{ __( 'Templates', 'sd-ai-agent' ) }
 				</span>
 				<Button
 					icon={ <Icon icon={ close } /> }
-					label={ __( 'Close templates', 'gratis-ai-agent' ) }
+					label={ __( 'Close templates', 'sd-ai-agent' ) }
 					onClick={ onClose }
-					className="gratis-ai-agent-template-menu__close"
+					className="sd-ai-agent-template-menu__close"
 					isSmall
 				/>
 			</div>
 
 			{ categories.length > 2 && (
 				<div
-					className="gratis-ai-agent-template-menu__categories"
+					className="sd-ai-agent-template-menu__categories"
 					role="tablist"
 				>
 					{ categories.map( ( cat ) => (
@@ -139,7 +136,7 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 							type="button"
 							role="tab"
 							aria-selected={ activeCategory === cat.value }
-							className={ `gratis-ai-agent-template-menu__cat-tab ${
+							className={ `sd-ai-agent-template-menu__cat-tab ${
 								activeCategory === cat.value ? 'is-active' : ''
 							}` }
 							onClick={ () => setActiveCategory( cat.value ) }
@@ -150,15 +147,15 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 				</div>
 			) }
 
-			<div className="gratis-ai-agent-template-menu__grid">
+			<div className="sd-ai-agent-template-menu__grid">
 				{ ! loaded && (
-					<div className="gratis-ai-agent-template-menu__loading">
+					<div className="sd-ai-agent-template-menu__loading">
 						<Spinner />
 					</div>
 				) }
 				{ loaded && filtered.length === 0 && (
-					<p className="gratis-ai-agent-template-menu__empty">
-						{ __( 'No templates found.', 'gratis-ai-agent' ) }
+					<p className="sd-ai-agent-template-menu__empty">
+						{ __( 'No templates found.', 'sd-ai-agent' ) }
 					</p>
 				) }
 				{ loaded &&

@@ -14,11 +14,11 @@ declare(strict_types=1);
  * Lifetime: per HTTP request / per CLI invocation. {@see reset()} is called
  * from {@see AgentLoop::run()} at the top of every run.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -84,7 +84,7 @@ class IdenticalFailureTracker {
 	 * @return string
 	 */
 	public static function nudge_message( string $ability_name, $input_schema ): string {
-		$example      = \GratisAiAgent\Tools\SchemaExampleBuilder::build_example( $input_schema );
+		$example      = \SdAiAgent\Tools\SchemaExampleBuilder::build_example( $input_schema );
 		$example_json = empty( $example ) ? '{}' : (string) wp_json_encode( $example );
 
 		return sprintf(

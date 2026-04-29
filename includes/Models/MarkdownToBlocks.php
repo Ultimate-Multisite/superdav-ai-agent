@@ -8,11 +8,11 @@ declare(strict_types=1);
  * into serialized Gutenberg block HTML compatible with WordPress core's
  * serialize_block() format.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models;
+namespace SdAiAgent\Models;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

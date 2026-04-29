@@ -47,15 +47,13 @@ const ChartBlock = lazy( () =>
  */
 function CodeFallback( { lang, children } ) {
 	return (
-		<div className="gratis-ai-agent-code-block">
+		<div className="sd-ai-agent-code-block">
 			{ lang && (
-				<div className="gratis-ai-agent-code-header">
-					<span className="gratis-ai-agent-code-language">
-						{ lang }
-					</span>
+				<div className="sd-ai-agent-code-header">
+					<span className="sd-ai-agent-code-language">{ lang }</span>
 				</div>
 			) }
-			<pre className="gratis-ai-agent-code-cm gratis-ai-agent-code-plain">
+			<pre className="sd-ai-agent-code-cm sd-ai-agent-code-plain">
 				<code>{ children }</code>
 			</pre>
 		</div>

@@ -1,0 +1,2663 @@
+# Copyright (C) 2026 Dave
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Superdav AI Agent 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sd-ai-agent\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-03-04T20:31:33+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: sd-ai-agent\n"
+
+#. Plugin Name of the plugin
+#: sd-ai-agent.php
+#: sd-ai-agent.php:74
+#: includes/class-admin-page.php:25
+#: includes/class-admin-page.php:26
+#: includes/class-admin-page.php:77
+#: includes/class-admin-page.php:86
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-panel.js:56
+msgid "Superdav AI Agent"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: sd-ai-agent.php
+msgid "https://developer.wordpress.org/"
+msgstr ""
+
+#. Description of the plugin
+#: sd-ai-agent.php
+msgid "Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously."
+msgstr ""
+
+#. Author of the plugin
+#: sd-ai-agent.php
+msgid "Dave"
+msgstr ""
+
+#: sd-ai-agent.php:75
+msgid "Superdav AI Agent memory and skill abilities."
+msgstr ""
+
+#: includes/class-admin-page.php:79
+msgid "The WordPress AI Client SDK is not available. Please check the compatibility layer."
+msgstr ""
+
+#: includes/class-admin-page.php:87
+msgid "Chat with an AI assistant that can interact with your WordPress site using registered abilities."
+msgstr ""
+
+#: includes/class-agent-loop.php:194
+msgid "The AI Client SDK is not available. Please check the compatibility layer."
+msgstr ""
+
+#: includes/class-agent-loop.php:218
+msgid "wp_ai_client_prompt() is not available."
+msgstr ""
+
+#. translators: %d: max iterations
+#: includes/class-agent-loop.php:322
+#, php-format
+msgid "Agent reached the maximum of %d iterations without completing."
+msgstr ""
+
+#. translators: %s: provider ID
+#: includes/class-agent-loop.php:360
+#, php-format
+msgid "Provider \"%s\" is not available. Please select a different provider in the chat header."
+msgstr ""
+
+#: includes/class-agent-loop.php:407
+msgid "OpenAI-compatible endpoint URL is not configured."
+msgstr ""
+
+#: includes/class-automation-runner.php:38
+msgid "Once Weekly"
+msgstr ""
+
+#: includes/class-automations.php:224
+msgid "Daily Site Health Report"
+msgstr ""
+
+#: includes/class-automations.php:225
+msgid "Run a comprehensive site health check and report findings."
+msgstr ""
+
+#: includes/class-automations.php:230
+msgid "Weekly Plugin Update Check"
+msgstr ""
+
+#: includes/class-automations.php:231
+msgid "Check for plugin updates and report what needs updating."
+msgstr ""
+
+#: includes/class-automations.php:236
+msgid "Content Moderation"
+msgstr ""
+
+#: includes/class-automations.php:237
+msgid "Review recent comments for spam or inappropriate content."
+msgstr ""
+
+#: includes/class-automations.php:242
+msgid "Broken Link Check"
+msgstr ""
+
+#: includes/class-automations.php:243
+msgid "Scan recent posts for broken links."
+msgstr ""
+
+#: includes/class-automations.php:248
+msgid "Database Optimization"
+msgstr ""
+
+#: includes/class-automations.php:249
+msgid "Clean up transients, revisions, and optimize tables."
+msgstr ""
+
+#. translators: %s: tool type
+#: includes/class-custom-tool-executor.php:44
+#, php-format
+msgid "Custom %s tool"
+msgstr ""
+
+#: includes/class-custom-tools.php:220
+msgid "Tool name is required."
+msgstr ""
+
+#: includes/class-custom-tools.php:224
+msgid "Tool type must be http, action, or cli."
+msgstr ""
+
+#: includes/class-custom-tools.php:242
+msgid "HTTP tools require a URL."
+msgstr ""
+
+#: includes/class-custom-tools.php:245
+msgid "Invalid HTTP method."
+msgstr ""
+
+#: includes/class-custom-tools.php:252
+msgid "Action tools require a hook_name."
+msgstr ""
+
+#: includes/class-custom-tools.php:258
+msgid "CLI tools require a command template."
+msgstr ""
+
+#: includes/class-document-parser.php:26
+msgid "Attachment file not found."
+msgstr ""
+
+#: includes/class-document-parser.php:42
+msgid "File not found."
+msgstr ""
+
+#. translators: %s: MIME type
+#: includes/class-document-parser.php:74
+#, php-format
+msgid "Unsupported file format: %s"
+msgstr ""
+
+#: includes/class-document-parser.php:91
+msgid "PDF parsing requires the smalot/pdfparser library. Run composer install."
+msgstr ""
+
+#: includes/class-document-parser.php:101
+msgid "No text content found in PDF."
+msgstr ""
+
+#: includes/class-document-parser.php:118
+msgid "PHP ZipArchive extension is required for DOCX parsing."
+msgstr ""
+
+#: includes/class-document-parser.php:124
+msgid "Could not open DOCX file."
+msgstr ""
+
+#: includes/class-document-parser.php:131
+msgid "Could not find document content in DOCX."
+msgstr ""
+
+#: includes/class-document-parser.php:138
+msgid "Could not parse DOCX XML content."
+msgstr ""
+
+#: includes/class-document-parser.php:165
+msgid "No text content found in DOCX."
+msgstr ""
+
+#: includes/class-document-parser.php:182
+#: includes/class-document-parser.php:199
+msgid "Could not read file."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:79
+msgid "Post Status Changed"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:80
+msgid "Fires when a post status transitions (e.g. draft to publish)."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:84
+msgid "New post status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:85
+msgid "Previous post status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:86
+#: includes/class-event-trigger-registry.php:139
+#: includes/class-event-trigger-registry.php:153
+msgid "Post ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:87
+#: includes/class-event-trigger-registry.php:154
+msgid "Post title"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:88
+#: includes/class-event-trigger-registry.php:155
+msgid "Post type"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:89
+msgid "Post author ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:90
+msgid "Post content (excerpt)"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:93
+#: includes/class-event-trigger-registry.php:158
+msgid "Post type equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:94
+#: includes/class-event-trigger-registry.php:296
+msgid "New status equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:95
+#: includes/class-event-trigger-registry.php:297
+msgid "Old status equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:100
+msgid "New User Registered"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:101
+msgid "Fires when a new user account is created."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:105
+#: includes/class-event-trigger-registry.php:201
+msgid "User ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:106
+#: includes/class-event-trigger-registry.php:122
+msgid "Username"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:107
+#: includes/class-event-trigger-registry.php:123
+#: includes/class-event-trigger-registry.php:202
+msgid "User email"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:108
+#: includes/class-event-trigger-registry.php:124
+#: includes/class-event-trigger-registry.php:203
+msgid "Display name"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:109
+msgid "User role"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:112
+msgid "User role equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:117
+msgid "User Login"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:118
+msgid "Fires when a user successfully logs in."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:130
+msgid "New Comment"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:131
+msgid "Fires when a new comment is posted."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:135
+msgid "Comment ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:136
+msgid "Comment author name"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:137
+msgid "Comment author email"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:138
+msgid "Comment text"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:140
+msgid "Approval status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:143
+msgid "Approval status equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:148
+msgid "Post Deleted"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:149
+msgid "Fires when a post is permanently deleted."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:163
+msgid "Plugin Activated"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:164
+msgid "Fires when a plugin is activated."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:168
+#: includes/class-event-trigger-registry.php:179
+msgid "Plugin file path"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:174
+msgid "Plugin Deactivated"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:175
+msgid "Fires when a plugin is deactivated."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:185
+msgid "Theme Switched"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:186
+msgid "Fires when the active theme is changed."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:190
+msgid "New theme name"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:196
+msgid "User Profile Updated"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:197
+msgid "Fires when a user profile is updated."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:209
+msgid "Failed Login Attempt"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:210
+msgid "Fires when a login attempt fails."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:214
+msgid "Attempted username"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:220
+msgid "Option Added"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:221
+msgid "Fires when a new option is added to the database."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:225
+#: includes/class-event-trigger-registry.php:238
+msgid "Option name"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:228
+#: includes/class-event-trigger-registry.php:241
+msgid "Option name equals"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:233
+msgid "Option Updated"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:234
+msgid "Fires when an existing option is updated."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:246
+msgid "Media Uploaded"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:247
+msgid "Fires when a new media file is uploaded."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:251
+msgid "Attachment ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:252
+msgid "Attachment title"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:272
+msgid "New Order Created"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:273
+msgid "Fires when a new WooCommerce order is created."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:277
+#: includes/class-event-trigger-registry.php:291
+#: includes/class-event-trigger-registry.php:320
+msgid "Order ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:278
+#: includes/class-event-trigger-registry.php:321
+msgid "Order total"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:279
+msgid "Order status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:280
+msgid "Customer email"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:286
+msgid "Order Status Changed"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:287
+msgid "Fires when an order status changes."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:292
+msgid "Previous status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:293
+msgid "New status"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:302
+msgid "Product Low Stock"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:303
+msgid "Fires when a product reaches low stock threshold."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:307
+msgid "Product ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:308
+#: includes/class-event-trigger-registry.php:332
+msgid "Product name"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:309
+msgid "Stock quantity"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:315
+msgid "Payment Complete"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:316
+msgid "Fires when a payment is completed."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:327
+msgid "Product On Backorder"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:328
+msgid "Fires when a product goes on backorder."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:338
+msgid "Refund Created"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:339
+msgid "Fires when a refund is created."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:343
+msgid "Refund ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:362
+msgid "CF7 Form Submitted"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:363
+msgid "Fires when a Contact Form 7 submission email is sent."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:367
+#: includes/class-event-trigger-registry.php:383
+#: includes/class-event-trigger-registry.php:400
+msgid "Form title"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:368
+#: includes/class-event-trigger-registry.php:384
+msgid "Form ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:378
+msgid "Gravity Form Submitted"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:379
+msgid "Fires after a Gravity Forms entry is created."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:385
+#: includes/class-event-trigger-registry.php:401
+msgid "Entry ID"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:395
+msgid "WPForms Form Submitted"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:396
+msgid "Fires when a WPForms entry is processed."
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:418
+msgid "WordPress"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:419
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:420
+msgid "Forms"
+msgstr ""
+
+#: includes/class-event-trigger-registry.php:421
+msgid "Other"
+msgstr ""
+
+#: includes/class-export.php:136
+msgid "Invalid import format. Expected sd-ai-agent-v1."
+msgstr ""
+
+#: includes/class-export.php:144
+msgid "Import data contains no messages."
+msgstr ""
+
+#: includes/class-export.php:161
+msgid "Failed to create session for import."
+msgstr ""
+
+#: includes/class-knowledge-abilities.php:32
+msgid "Search Knowledge Base"
+msgstr ""
+
+#: includes/class-knowledge-abilities.php:33
+msgid "Search the knowledge base for relevant information. Use this to find indexed documents, posts, and uploaded files."
+msgstr ""
+
+#: includes/class-knowledge.php:27
+msgid "Post not found or not published."
+msgstr ""
+
+#: includes/class-knowledge.php:35
+msgid "Post has no text content to index."
+msgstr ""
+
+#: includes/class-knowledge.php:68
+#: includes/class-knowledge.php:164
+msgid "Failed to create source record."
+msgstr ""
+
+#: includes/class-knowledge.php:194
+#: includes/class-rest-controller.php:2617
+msgid "Collection not found."
+msgstr ""
+
+#: includes/class-memory-abilities.php:32
+msgid "Save Memory"
+msgstr ""
+
+#: includes/class-memory-abilities.php:33
+msgid "Save a piece of information to persistent memory. Use this to remember facts, preferences, or context for future conversations."
+msgstr ""
+
+#: includes/class-memory-abilities.php:55
+msgid "List Memories"
+msgstr ""
+
+#: includes/class-memory-abilities.php:56
+msgid "List all stored memories, grouped by category."
+msgstr ""
+
+#: includes/class-memory-abilities.php:67
+msgid "Delete Memory"
+msgstr ""
+
+#: includes/class-memory-abilities.php:68
+msgid "Delete a specific memory by its ID."
+msgstr ""
+
+#: includes/class-rest-controller.php:1333
+msgid "Job not found or expired."
+msgstr ""
+
+#: includes/class-rest-controller.php:1390
+#: includes/class-rest-controller.php:1425
+msgid "Job not found or not awaiting confirmation."
+msgstr ""
+
+#: includes/class-rest-controller.php:1396
+#: includes/class-rest-controller.php:1431
+msgid "Not authorized."
+msgstr ""
+
+#: includes/class-rest-controller.php:1528
+msgid "Invalid conversation history format."
+msgstr ""
+
+#: includes/class-rest-controller.php:1566
+msgid "Failed to resume conversation."
+msgstr ""
+
+#: includes/class-rest-controller.php:1849
+msgid "Invalid bulk action."
+msgstr ""
+
+#: includes/class-rest-controller.php:1881
+#: includes/class-rest-controller.php:2746
+msgid "Session not found."
+msgstr ""
+
+#: includes/class-rest-controller.php:1922
+msgid "Failed to create session."
+msgstr ""
+
+#: includes/class-rest-controller.php:1971
+msgid "No fields to update."
+msgstr ""
+
+#: includes/class-rest-controller.php:1979
+msgid "Failed to update session."
+msgstr ""
+
+#: includes/class-rest-controller.php:2016
+msgid "Failed to delete session."
+msgstr ""
+
+#: includes/class-rest-controller.php:2066
+msgid "A skill with this slug already exists."
+msgstr ""
+
+#: includes/class-rest-controller.php:2083
+msgid "Failed to create skill."
+msgstr ""
+
+#: includes/class-rest-controller.php:2132
+msgid "Failed to update skill."
+msgstr ""
+
+#: includes/class-rest-controller.php:2166
+msgid "Built-in skills cannot be deleted. You can disable them instead."
+msgstr ""
+
+#: includes/class-rest-controller.php:2174
+msgid "Failed to delete skill or skill not found."
+msgstr ""
+
+#: includes/class-rest-controller.php:2195
+msgid "Failed to reset skill. Only built-in skills can be reset."
+msgstr ""
+
+#: includes/class-rest-controller.php:2227
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-list.js:144
+msgid "Send a message to start a conversation."
+msgstr ""
+
+#: includes/class-rest-controller.php:2319
+msgid "Failed to create memory."
+msgstr ""
+
+#: includes/class-rest-controller.php:2348
+msgid "Failed to update memory."
+msgstr ""
+
+#: includes/class-rest-controller.php:2364
+msgid "Failed to delete memory."
+msgstr ""
+
+#: includes/class-rest-controller.php:2441
+msgid "A collection with this slug already exists."
+msgstr ""
+
+#: includes/class-rest-controller.php:2457
+msgid "Failed to create collection."
+msgstr ""
+
+#: includes/class-rest-controller.php:2507
+msgid "Failed to update collection."
+msgstr ""
+
+#: includes/class-rest-controller.php:2542
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:104
+msgid "Failed to delete collection."
+msgstr ""
+
+#: includes/class-rest-controller.php:2606
+msgid "No file uploaded."
+msgstr ""
+
+#: includes/class-rest-controller.php:2612
+msgid "Collection ID is required."
+msgstr ""
+
+#: includes/class-rest-controller.php:2661
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:166
+msgid "Failed to delete source."
+msgstr ""
+
+#: includes/class-rest-controller.php:2764
+msgid "No import data provided."
+msgstr ""
+
+#: includes/class-rest-controller.php:2805
+msgid "Failed to create custom tool."
+msgstr ""
+
+#: includes/class-rest-controller.php:2819
+msgid "Failed to update custom tool."
+msgstr ""
+
+#: includes/class-rest-controller.php:2832
+msgid "Failed to delete custom tool."
+msgstr ""
+
+#: includes/class-rest-controller.php:2847
+msgid "Tool not found."
+msgstr ""
+
+#: includes/class-rest-controller.php:2871
+msgid "Failed to save tool profile."
+msgstr ""
+
+#: includes/class-rest-controller.php:2904
+msgid "Failed to create automation."
+msgstr ""
+
+#: includes/class-rest-controller.php:2918
+msgid "Failed to update automation."
+msgstr ""
+
+#: includes/class-rest-controller.php:2931
+msgid "Failed to delete automation."
+msgstr ""
+
+#: includes/class-rest-controller.php:2945
+msgid "Automation not found."
+msgstr ""
+
+#: includes/class-rest-controller.php:2985
+msgid "Failed to create event automation."
+msgstr ""
+
+#: includes/class-rest-controller.php:2999
+msgid "Failed to update event automation."
+msgstr ""
+
+#: includes/class-rest-controller.php:3012
+msgid "Failed to delete event automation."
+msgstr ""
+
+#: includes/class-settings.php:135
+#: includes/class-settings.php:136
+#: includes/class-settings.php:187
+msgid "Superdav AI Agent Settings"
+msgstr ""
+
+#: includes/class-skill-abilities.php:32
+msgid "Load Skill"
+msgstr ""
+
+#: includes/class-skill-abilities.php:33
+msgid "Load the full instructions for a specific skill guide by its slug."
+msgstr ""
+
+#: includes/class-skill-abilities.php:50
+msgid "List Skills"
+msgstr ""
+
+#: includes/class-skill-abilities.php:51
+msgid "List all available skill guides with their slugs, names, and descriptions."
+msgstr ""
+
+#: includes/class-tool-discovery.php:43
+msgid "List Tools"
+msgstr ""
+
+#: includes/class-tool-discovery.php:44
+msgid "Search and browse all available tools by name, description, or category. Call with no arguments to get a category overview with counts. Use query for fuzzy search, category to filter."
+msgstr ""
+
+#: includes/class-tool-discovery.php:76
+msgid "Execute Tool"
+msgstr ""
+
+#: includes/class-tool-discovery.php:77
+msgid "Execute any registered tool by name. Pass the tool_name and its parameters. For tools requiring confirmation, set confirmed: true after user approval."
+msgstr ""
+
+#: includes/class-tool-profiles.php:176
+msgid "WP Read Only"
+msgstr ""
+
+#: includes/class-tool-profiles.php:177
+msgid "Read-only WordPress tools. No modifications."
+msgstr ""
+
+#: includes/class-tool-profiles.php:188
+msgid "WP Full Management"
+msgstr ""
+
+#: includes/class-tool-profiles.php:189
+msgid "All WordPress management tools."
+msgstr ""
+
+#: includes/class-tool-profiles.php:197
+msgid "Content Management"
+msgstr ""
+
+#: includes/class-tool-profiles.php:198
+msgid "Post, page, and media management tools."
+msgstr ""
+
+#: includes/class-tool-profiles.php:210
+msgid "User Management"
+msgstr ""
+
+#: includes/class-tool-profiles.php:211
+msgid "User and role management tools."
+msgstr ""
+
+#: includes/class-tool-profiles.php:220
+msgid "Maintenance"
+msgstr ""
+
+#: includes/class-tool-profiles.php:221
+msgid "Cache, updates, and site health tools."
+msgstr ""
+
+#: includes/class-tool-profiles.php:234
+msgid "Developer"
+msgstr ""
+
+#: includes/class-tool-profiles.php:235
+msgid "Full access including WP-CLI and custom tools."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/folder-picker.js:34
+#: src/components/session-context-menu.js:125
+msgid "Move to Folder"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/folder-picker.js:42
+msgid "Remove from folder"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/folder-picker.js:60
+msgid "New folder..."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/settings-page.js:1
+#: src/components/folder-picker.js:77
+#: src/settings-page/automations-manager.js:311
+#: src/settings-page/custom-tools-manager.js:329
+#: src/settings-page/events-manager.js:301
+#: src/settings-page/knowledge-manager.js:480
+#: src/settings-page/skill-manager.js:215
+#: src/settings-page/tool-profiles-manager.js:212
+msgid "Create"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/settings-page.js:1
+#: src/components/session-context-menu.js:78
+#: src/settings-page/knowledge-manager.js:480
+#: src/settings-page/memory-manager.js:138
+msgid "Save"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:108
+msgid "Rename"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:118
+msgid "Unpin"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:119
+msgid "Pin"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:134
+msgid "Export"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:147
+msgid "Archive"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:158
+msgid "Restore"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-context-menu.js:170
+msgid "Move to Trash"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:25
+msgid "just now"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:63
+msgid "Pinned"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/import-dialog.js:111
+#: src/components/session-sidebar.js:68
+#: src/floating-widget/session-tabs.js:33
+#: src/floating-widget/session-tabs.js:52
+msgid "Untitled"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:84
+msgid "More"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/import-dialog.js:50
+#: src/components/session-sidebar.js:168
+msgid "Invalid JSON file."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/settings-page.js:1
+#: src/components/session-sidebar.js:179
+#: src/settings-page/tool-profiles-manager.js:242
+msgid "Active"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:180
+msgid "Archived"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:181
+msgid "Trash"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:97
+#: src/components/session-sidebar.js:194
+#: src/floating-widget/floating-panel.js:63
+#: src/floating-widget/session-tabs.js:62
+msgid "New Chat"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/import-dialog.js:147
+#: src/components/session-sidebar.js:201
+msgid "Import"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:214
+msgid "Search conversations..."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:244
+msgid "All"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:264
+msgid "Trash is empty"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:266
+msgid "No archived conversations"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/session-sidebar.js:267
+msgid "No conversations yet"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/provider-selector.js:35
+msgid "(no providers)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: build/settings-page.js:1
+#: src/components/provider-selector.js:45
+#: src/settings-page/settings-app.js:94
+#: src/settings-page/settings-app.js:102
+msgid "(default)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/provider-selector.js:64
+msgid "Provider"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: build/settings-page.js:1
+#: src/components/debug-panel.js:75
+#: src/components/provider-selector.js:72
+#: src/settings-page/usage-dashboard.js:142
+msgid "Model"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-call-details.js:17
+msgid "tool call executed"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-call-details.js:18
+msgid "tool calls executed"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-call-details.js:29
+msgid "Call:"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-call-details.js:43
+msgid "Result:"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/code-block.js:38
+msgid "Copied!"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/code-block.js:39
+#: src/components/message-actions.js:95
+#: src/components/message-actions.js:97
+msgid "Copy"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-actions.js:73
+#: src/components/message-input.js:262
+msgid "Send"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: build/settings-page.js:1
+#: src/components/export-dialog.js:99
+#: src/components/import-dialog.js:139
+#: src/components/message-actions.js:79
+#: src/settings-page/automations-manager.js:314
+#: src/settings-page/custom-tools-manager.js:342
+#: src/settings-page/events-manager.js:304
+#: src/settings-page/knowledge-manager.js:477
+#: src/settings-page/memory-manager.js:145
+#: src/settings-page/skill-manager.js:222
+#: src/settings-page/tool-profiles-manager.js:215
+msgid "Cancel"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-actions.js:97
+msgid "Copied"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: build/settings-page.js:1
+#: src/components/message-actions.js:105
+#: src/components/message-actions.js:107
+#: src/settings-page/automations-manager.js:373
+#: src/settings-page/custom-tools-manager.js:396
+#: src/settings-page/events-manager.js:361
+#: src/settings-page/knowledge-manager.js:301
+#: src/settings-page/memory-manager.js:189
+#: src/settings-page/skill-manager.js:286
+#: src/settings-page/tool-profiles-manager.js:261
+msgid "Edit"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-actions.js:116
+#: src/components/message-actions.js:118
+msgid "Regenerate"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:54
+msgid "No metrics"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:84
+msgid "Response time"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:92
+msgid "Tokens"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:104
+msgid "Speed"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: build/settings-page.js:1
+#: src/components/debug-panel.js:114
+#: src/settings-page/usage-dashboard.js:150
+msgid "Cost"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:123
+msgid "Iterations"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/debug-panel.js:132
+msgid "Tool calls"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-list.js:188
+msgid "Thinking..."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:10
+msgid "Start a new chat"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:15
+msgid "Switch model (type model name after)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:20
+msgid "Save a fact to memory (type fact after)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:25
+msgid "Forget memories matching a topic"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/shortcuts-help.js:85
+#: src/components/slash-command-menu.js:30
+msgid "Clear conversation"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:35
+msgid "Export current conversation"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:40
+msgid "Compact conversation to save context"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:45
+msgid "Show keyboard shortcuts"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/slash-command-menu.js:50
+msgid "Toggle debug mode (per-response metrics)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:81
+msgid "Memory saved."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:85
+msgid "Failed to save memory."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:106
+msgid "memory"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:106
+msgid "memories"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:106
+msgid "deleted."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:107
+msgid "No matching memories found."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:112
+msgid "Failed to forget memories."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:238
+msgid "Type a message or / for commands..."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/message-input.js:252
+#: src/components/message-input.js:254
+msgid "Stop"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:55
+msgid "tokens"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:58
+msgid "in"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:60
+msgid "out"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:79
+msgid "Context window is getting full."
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/context-indicator.js:90
+msgid "Compact"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-confirmation-dialog.js:34
+msgid "Tool Confirmation Required"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-confirmation-dialog.js:42
+msgid "The AI wants to use the following tools:"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-confirmation-dialog.js:70
+msgid "Always allow these tools (change permission to Auto)"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-confirmation-dialog.js:82
+msgid "Deny"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/tool-confirmation-dialog.js:89
+msgid "Allow"
+msgstr ""
+
+#: build/admin-page.js:1
+#: build/floating-widget.js:1
+#: src/components/chat-panel.js:35
+msgid "DEBUG"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:59
+msgid "Welcome to Superdav AI Agent"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:63
+msgid "Superdav AI Agent is an intelligent assistant that can interact with your WordPress site using registered abilities (tools)."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:69
+msgid "It can manage content, query data, run commands, and more — all through a natural chat interface. Let's get set up!"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:79
+msgid "Choose AI Provider"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:85
+msgid "No AI providers are configured yet."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:91
+msgid "Go to Settings > AI to configure a provider, then come back here."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:100
+msgid "Select which AI provider and model to use by default."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:113
+msgid "Configure Abilities"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:117
+msgid "Choose which abilities the AI agent can use. You can change these later in settings."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:124
+msgid "No abilities registered yet. They will appear once plugins register them."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:163
+msgid "All Set!"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:167
+msgid "You're all set! The Superdav AI Agent is ready to help you manage your WordPress site."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:173
+msgid "You can access it from the floating chat bubble on any admin page, or from the full-page chat under Tools > Superdav AI Agent."
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:208
+msgid "Back"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:216
+msgid "Skip"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:220
+msgid "Start Chatting"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/onboarding-wizard.js:227
+msgid "Next"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:48
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:71
+msgid "Slash Commands"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:74
+msgid "New chat"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:79
+msgid "Switch model"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:91
+msgid "Export conversation"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:97
+msgid "Compact conversation"
+msgstr ""
+
+#: build/admin-page.js:1
+#: src/components/shortcuts-help.js:103
+msgid "Show shortcuts"
+msgstr ""
+
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-button.js:21
+msgid "Open Superdav AI Agent"
+msgstr ""
+
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-panel.js:71
+msgid "Reset Position"
+msgstr ""
+
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-panel.js:80
+msgid "Expand"
+msgstr ""
+
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-panel.js:81
+msgid "Minimize"
+msgstr ""
+
+#: build/floating-widget.js:1
+#: src/floating-widget/floating-panel.js:90
+msgid "Close"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:21
+#: src/settings-page/settings-app.js:112
+msgid "General"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:22
+msgid "Site Info"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:24
+msgid "User Preferences"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:28
+msgid "Technical Notes"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:31
+msgid "Workflows"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:84
+msgid "Delete this memory?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:101
+msgid "Stored Memories"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:109
+msgid "Add Memory"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:117
+#: src/settings-page/memory-manager.js:170
+msgid "Category"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:124
+#: src/settings-page/memory-manager.js:171
+msgid "Content"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:311
+#: src/settings-page/custom-tools-manager.js:329
+#: src/settings-page/events-manager.js:301
+#: src/settings-page/memory-manager.js:137
+#: src/settings-page/skill-manager.js:214
+#: src/settings-page/tool-profiles-manager.js:212
+msgid "Update"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:321
+#: src/settings-page/custom-tools-manager.js:356
+#: src/settings-page/events-manager.js:311
+#: src/settings-page/memory-manager.js:153
+#: src/settings-page/skill-manager.js:230
+#: src/settings-page/tool-profiles-manager.js:222
+msgid "Loading..."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:159
+msgid "No memories stored yet. The AI will save memories as you interact, or you can add them manually."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/memory-manager.js:172
+msgid "Actions"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:379
+#: src/settings-page/custom-tools-manager.js:402
+#: src/settings-page/events-manager.js:367
+#: src/settings-page/knowledge-manager.js:308
+#: src/settings-page/memory-manager.js:200
+#: src/settings-page/skill-manager.js:310
+#: src/settings-page/tool-profiles-manager.js:267
+msgid "Delete"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:105
+msgid "Delete this skill?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:119
+msgid "Reset this skill to its default content?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:142
+msgid "Agent Skills"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:144
+msgid "Skills are instruction guides loaded on-demand when the AI encounters a relevant task."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:157
+msgid "Add Skill"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:274
+#: src/settings-page/knowledge-manager.js:442
+#: src/settings-page/skill-manager.js:166
+msgid "Slug"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:169
+msgid "Unique identifier (lowercase, hyphens). Cannot be changed after creation."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:262
+#: src/settings-page/custom-tools-manager.js:282
+#: src/settings-page/events-manager.js:221
+#: src/settings-page/knowledge-manager.js:429
+#: src/settings-page/skill-manager.js:177
+#: src/settings-page/tool-profiles-manager.js:183
+msgid "Name"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:268
+#: src/settings-page/custom-tools-manager.js:288
+#: src/settings-page/events-manager.js:228
+#: src/settings-page/knowledge-manager.js:450
+#: src/settings-page/skill-manager.js:183
+#: src/settings-page/tool-profiles-manager.js:189
+msgid "Description"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:186
+msgid "One-line summary shown in the skill index."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:193
+msgid "Instructions"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:197
+msgid "Full markdown instructions loaded when the AI requests this skill."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:236
+msgid "No skills found. Deactivate and reactivate the plugin to seed built-in skills."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:266
+#: src/settings-page/tool-profiles-manager.js:237
+msgid "Built-in"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:280
+msgid "words"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/skill-manager.js:298
+msgid "Reset to Default"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:53
+msgid "Failed to load collections."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:77
+msgid "Collection updated."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:84
+msgid "Collection created."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:91
+msgid "Operation failed."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:96
+msgid "Delete this collection and all its indexed data?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:101
+msgid "Collection deleted."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:117
+msgid "Indexed:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:117
+msgid "Skipped:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:117
+msgid "Errors:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:124
+msgid "Indexing failed."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:149
+msgid "Document uploaded and indexed."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:155
+msgid "Upload failed."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:224
+msgid "Collections"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:233
+#: src/settings-page/knowledge-manager.js:422
+msgid "Create Collection"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:238
+msgid "No collections yet. Create one to start indexing content."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:253
+msgid "chunks"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:256
+msgid "Auto"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:265
+msgid "Last indexed:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:275
+msgid "Indexing..."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:275
+msgid "Index Now"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:287
+msgid "Upload Document"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:295
+msgid "Hide Sources"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:295
+msgid "Show Sources"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:314
+msgid "Sources"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:318
+msgid "No sources indexed yet."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:323
+msgid "Title"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:295
+#: src/settings-page/knowledge-manager.js:324
+msgid "Type"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:325
+msgid "Status"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:326
+msgid "Chunks"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:333
+msgid "(untitled)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:351
+msgid "Remove"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:367
+msgid "Search Preview"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:372
+msgid "Search the knowledge base..."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:387
+msgid "Search"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:402
+msgid "Score:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:422
+msgid "Edit Collection"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:445
+msgid "Unique identifier for this collection."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:456
+msgid "Post Types (comma-separated)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:465
+msgid "Post types to include when indexing (e.g., post, page, product)."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:469
+msgid "Auto-index"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/knowledge-manager.js:472
+msgid "Automatically index new and updated posts matching this collection."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:60
+msgid "Failed to load usage data."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:75
+msgid "Usage Summary"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:80
+msgid "Last 7 days"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:84
+msgid "Last 30 days"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:88
+msgid "Last 90 days"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:92
+msgid "All time"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:104
+msgid "Total Cost"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:112
+#: src/settings-page/usage-dashboard.js:143
+msgid "Requests"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:120
+#: src/settings-page/usage-dashboard.js:145
+msgid "Input Tokens"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:128
+#: src/settings-page/usage-dashboard.js:148
+msgid "Output Tokens"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/usage-dashboard.js:138
+msgid "By Model"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:18
+msgid "HTTP Request"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:19
+msgid "WordPress Action"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:20
+#: src/settings-page/custom-tools-manager.js:224
+msgid "WP-CLI Command"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:110
+msgid "Tool saved."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:112
+msgid "Failed to save tool."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:133
+msgid "Delete this custom tool?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:243
+#: src/settings-page/settings-app.js:137
+msgid "Custom Tools"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:245
+msgid "Create custom tools that the AI can use — HTTP APIs, WordPress actions, or WP-CLI commands."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:255
+msgid "Add Tool"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:277
+msgid "Unique identifier (lowercase, hyphens)."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:291
+msgid "Explains to the AI when this tool should be used."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:176
+msgid "HTTP Method"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:183
+msgid "URL"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:187
+msgid "Use {{param}} placeholders for dynamic values."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:191
+msgid "Headers (JSON)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:197
+msgid "Body Template"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:201
+msgid "Use {{param}} placeholders. Leave empty for GET requests."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:210
+msgid "Hook Name"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:214
+msgid "The WordPress action hook to call via do_action()."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:228
+msgid "Command to run (without the \"wp\" prefix). Use {{param}} placeholders."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:315
+msgid "Input Schema (JSON)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:319
+msgid "JSON Schema describing the parameters the AI should provide."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:338
+msgid "Test"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:348
+msgid "Success"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:348
+msgid "Error"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/custom-tools-manager.js:361
+msgid "No custom tools yet. Create one or deactivate/reactivate the plugin to seed examples."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:96
+msgid "Profile saved."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:103
+#: src/settings-page/events-manager.js:100
+#: src/settings-page/tool-profiles-manager.js:98
+msgid "Failed to save."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:112
+msgid "Delete this profile?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:127
+msgid "Profile activated."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:128
+msgid "Profile deactivated. All tools are now available."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:192
+#: src/settings-page/events-manager.js:183
+#: src/settings-page/tool-profiles-manager.js:136
+msgid "None (all tools)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:142
+#: src/settings-page/tool-profiles-manager.js:144
+msgid "Tool Profiles"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:146
+msgid "Profiles restrict which tools the AI can access. Useful for security (read-only mode) or token savings."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:156
+msgid "Add Profile"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:172
+msgid "Active Profile"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:176
+msgid "Select a profile to restrict the AI to a specific set of tools."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:195
+msgid "Tool Name Prefixes (one per line)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/tool-profiles-manager.js:253
+msgid "tool prefixes"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:19
+msgid "Hourly"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:20
+msgid "Twice Daily"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:21
+msgid "Daily"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:22
+msgid "Weekly"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:101
+msgid "Automation saved."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:123
+msgid "Delete this automation?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:152
+msgid "Automation ran successfully."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:153
+msgid "Automation completed with errors."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:200
+msgid "Scheduled Automations"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:202
+msgid "Cron-based AI tasks that run on a schedule."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:212
+msgid "Add Automation"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:229
+msgid "Quick Start Templates"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:250
+msgid "Use Template"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:274
+msgid "Prompt"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:278
+msgid "The instruction sent to the AI when this automation runs."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:281
+msgid "Schedule"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:288
+#: src/settings-page/events-manager.js:279
+msgid "Tool Profile"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:292
+msgid "Restrict which tools this automation can use."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:296
+#: src/settings-page/events-manager.js:286
+#: src/settings-page/settings-app.js:217
+msgid "Max Iterations"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:349
+#: src/settings-page/events-manager.js:345
+msgid "runs"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:351
+#: src/settings-page/events-manager.js:347
+msgid "Last:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:361
+msgid "Run Now"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:368
+#: src/settings-page/events-manager.js:356
+msgid "Hide Logs"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:368
+#: src/settings-page/events-manager.js:356
+msgid "Logs"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:389
+#: src/settings-page/events-manager.js:377
+msgid "No logs yet."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/automations-manager.js:408
+#: src/settings-page/events-manager.js:394
+msgid "Response"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:98
+msgid "Event automation saved."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:121
+msgid "Delete this event automation?"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:166
+msgid "Select a trigger..."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:191
+msgid "Event-Driven Automations"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:193
+msgid "Trigger AI actions when WordPress hooks fire — post published, user registered, order placed, etc."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:203
+msgid "Add Event"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:224
+msgid "e.g., \"Auto-tag new posts\""
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:234
+msgid "Trigger Hook"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:251
+msgid "Available placeholders:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:257
+msgid "Available conditions:"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:265
+msgid "Prompt Template"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:269
+msgid "Use {{placeholders}} for dynamic data from the triggering event."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:272
+msgid "Conditions (JSON)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:276
+msgid "Optional. e.g., {\"post_type\":\"post\",\"new_status\":\"publish\"}"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/events-manager.js:316
+msgid "No event automations configured yet."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:77
+msgid "Settings saved."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:79
+msgid "Failed to save settings."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:117
+msgid "System Prompt"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:122
+msgid "Memory"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:127
+msgid "Skills"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:132
+msgid "Knowledge"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:147
+msgid "Automations"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:152
+msgid "Events"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:157
+msgid "Abilities"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:162
+msgid "Usage"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:167
+msgid "Advanced"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:190
+msgid "Default Provider"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:205
+msgid "Default Model"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:231
+msgid "Maximum tool-call iterations per request."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:238
+msgid "Greeting Message"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:253
+msgid "Shown in the chat before the first message. Leave empty for the default above."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:266
+msgid "Custom System Prompt"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:279
+msgid "Leave empty to use the built-in default shown above. Memories are appended automatically."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:291
+msgid "Auto-Memory"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:299
+msgid "When enabled, the AI can proactively save and recall memories."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:320
+msgid "Enable Knowledge Base"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:331
+msgid "When enabled, the AI can search indexed documents and posts for relevant context."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:338
+msgid "Auto-Index on Post Save"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:351
+msgid "Automatically index posts when they are published or updated."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:393
+msgid "Control how each tool behaves. \"Auto\" runs without asking, \"Confirm\" pauses to ask before running, \"Disabled\" prevents the tool from being used."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:400
+msgid "No abilities registered."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:424
+msgid "Auto (always allow)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:431
+msgid "Confirm (ask before use)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:438
+msgid "Disabled"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:482
+msgid "Temperature"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:493
+msgid "Higher = more creative, lower = more deterministic."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:499
+msgid "Max Output Tokens"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:516
+msgid "Default Context Window"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:532
+msgid "Used as fallback when model context size is unknown."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:539
+msgid "Tool Discovery Mode"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:549
+msgid "Auto (enable when tools exceed threshold)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:556
+msgid "Always (always use discovery)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:563
+msgid "Never (load all tools directly)"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:576
+msgid "When active, only priority tools are loaded directly. Other tools are discoverable via meta-tools, saving tokens."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:585
+msgid "Discovery Threshold"
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:602
+msgid "Enable discovery mode when total registered tools exceed this number."
+msgstr ""
+
+#: build/settings-page.js:1
+#: src/settings-page/settings-app.js:624
+msgid "Save Settings"
+msgstr ""
+
+#: src/components/export-dialog.js:50
+msgid "Export Conversation"
+msgstr ""
+
+#: src/components/export-dialog.js:67
+msgid "Full conversation data. Can be imported back."
+msgstr ""
+
+#: src/components/export-dialog.js:85
+msgid "Human-readable format. Good for sharing."
+msgstr ""
+
+#: src/components/export-dialog.js:106
+msgid "Download"
+msgstr ""
+
+#: src/components/import-dialog.js:41
+msgid "Invalid format. Expected sd-ai-agent-v1."
+msgstr ""
+
+#: src/components/import-dialog.js:79
+msgid "Import Conversation"
+msgstr ""
+
+#: src/components/import-dialog.js:113
+msgid "messages"
+msgstr ""
+
+#: src/components/import-dialog.js:122
+msgid "Drop a .json file here or click to browse"
+msgstr ""

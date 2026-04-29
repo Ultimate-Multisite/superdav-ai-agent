@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Shared permission-check methods for REST controllers.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Core\RolePermissions;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Core\RolePermissions;
 use WP_Error;
 use WP_REST_Request;
 
@@ -43,7 +43,7 @@ trait PermissionTrait {
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_not_logged_in',
-				__( 'You must be logged in to use the AI chat.', 'gratis-ai-agent' ),
+				__( 'You must be logged in to use the AI chat.', 'sd-ai-agent' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -51,7 +51,7 @@ trait PermissionTrait {
 		if ( ! RolePermissions::current_user_has_chat_access() ) {
 			return new WP_Error(
 				'rest_forbidden',
-				__( 'Your user role does not have permission to access the AI chat.', 'gratis-ai-agent' ),
+				__( 'Your user role does not have permission to access the AI chat.', 'sd-ai-agent' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -163,7 +163,7 @@ trait PermissionTrait {
 		$nonce = $request->get_param( '_wpnonce' );
 
 		// @phpstan-ignore-next-line
-		if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'gratis_ai_agent_download_plugin_' . $slug ) ) {
+		if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'sd_ai_agent_download_plugin_' . $slug ) ) {
 			return false;
 		}
 

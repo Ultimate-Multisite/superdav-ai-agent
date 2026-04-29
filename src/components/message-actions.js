@@ -72,10 +72,10 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 
 	if ( editing ) {
 		return (
-			<div className="gratis-ai-agent-message-edit">
+			<div className="sd-ai-agent-message-edit">
 				<textarea
 					ref={ editInputRef }
-					className="gratis-ai-agent-message-edit-input"
+					className="sd-ai-agent-message-edit-input"
 					value={ editText }
 					onChange={ ( e ) => setEditText( e.target.value ) }
 					rows={ 3 }
@@ -89,21 +89,21 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 						}
 					} }
 				/>
-				<div className="gratis-ai-agent-message-edit-actions">
+				<div className="sd-ai-agent-message-edit-actions">
 					<Button
 						variant="primary"
 						onClick={ handleEditSubmit }
 						disabled={ sending }
 						size="small"
 					>
-						{ __( 'Send', 'gratis-ai-agent' ) }
+						{ __( 'Send', 'sd-ai-agent' ) }
 					</Button>
 					<Button
 						variant="tertiary"
 						onClick={ () => setEditing( false ) }
 						size="small"
 					>
-						{ __( 'Cancel', 'gratis-ai-agent' ) }
+						{ __( 'Cancel', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 			</div>
@@ -114,14 +114,14 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 	const isModel = message.role === 'model';
 
 	return (
-		<div className="gratis-ai-agent-message-actions">
+		<div className="sd-ai-agent-message-actions">
 			<Button
-				className="gratis-ai-agent-action-btn"
+				className="sd-ai-agent-action-btn"
 				onClick={ handleCopy }
 				label={
 					copied
-						? __( 'Copied!', 'gratis-ai-agent' )
-						: __( 'Copy', 'gratis-ai-agent' )
+						? __( 'Copied!', 'sd-ai-agent' )
+						: __( 'Copy', 'sd-ai-agent' )
 				}
 				showTooltip
 				icon={ <Icon icon={ copied ? check : copy } size={ 14 } /> }
@@ -129,10 +129,10 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 			/>
 			{ isUser && (
 				<Button
-					className="gratis-ai-agent-action-btn"
+					className="sd-ai-agent-action-btn"
 					onClick={ handleEdit }
 					disabled={ sending }
-					label={ __( 'Edit message', 'gratis-ai-agent' ) }
+					label={ __( 'Edit message', 'sd-ai-agent' ) }
 					showTooltip
 					icon={ <Icon icon={ pencil } size={ 14 } /> }
 					size="small"
@@ -140,10 +140,10 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 			) }
 			{ isModel && (
 				<Button
-					className="gratis-ai-agent-action-btn"
+					className="sd-ai-agent-action-btn"
 					onClick={ () => regenerateMessage( index ) }
 					disabled={ sending }
-					label={ __( 'Regenerate', 'gratis-ai-agent' ) }
+					label={ __( 'Regenerate', 'sd-ai-agent' ) }
 					showTooltip
 					icon={ <Icon icon={ redo } size={ 14 } /> }
 					size="small"
@@ -151,12 +151,12 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 			) }
 			{ isModel && onThumbsDown && (
 				<Button
-					className="gratis-ai-agent-action-btn gratis-ai-agent-thumbs-down-btn"
+					className="sd-ai-agent-action-btn sd-ai-agent-thumbs-down-btn"
 					onClick={ onThumbsDown }
 					disabled={ sending }
 					label={ __(
 						'Report an issue with this response',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 					showTooltip
 					icon={ <Icon icon={ thumbsDown } size={ 14 } /> }

@@ -103,10 +103,10 @@ function playTone( {
  * Play the success "ding" sound.
  *
  * Two ascending sine tones played in quick succession — pleasant and
- * non-intrusive.  Skipped when `gratisAiAgentSoundSuccess` is not 'true'.
+ * non-intrusive.  Skipped when `sdAiAgentSoundSuccess` is not 'true'.
  */
 export function playDing() {
-	if ( localStorage.getItem( 'gratisAiAgentSoundSuccess' ) !== 'true' ) {
+	if ( localStorage.getItem( 'sdAiAgentSoundSuccess' ) !== 'true' ) {
 		return;
 	}
 	playTone( { frequency: 880, duration: 0.15, gain: 0.28, type: 'sine' } );
@@ -124,10 +124,10 @@ export function playDing() {
  * Play the error "dong" sound.
  *
  * Two descending sine tones — clearly distinct from the ding, without being
- * alarming.  Skipped when `gratisAiAgentSoundError` is not 'true'.
+ * alarming.  Skipped when `sdAiAgentSoundError` is not 'true'.
  */
 export function playDong() {
-	if ( localStorage.getItem( 'gratisAiAgentSoundError' ) !== 'true' ) {
+	if ( localStorage.getItem( 'sdAiAgentSoundError' ) !== 'true' ) {
 		return;
 	}
 	playTone( { frequency: 440, duration: 0.25, gain: 0.3, type: 'sine' } );
@@ -145,11 +145,11 @@ export function playDong() {
  * Play the thinking / tool-action tick sound.
  *
  * A single soft triangle-wave tick — subtle enough to acknowledge activity
- * without distracting from work.  Skipped when `gratisAiAgentSoundThinking`
+ * without distracting from work.  Skipped when `sdAiAgentSoundThinking`
  * is not 'true'.
  */
 export function playThinking() {
-	if ( localStorage.getItem( 'gratisAiAgentSoundThinking' ) !== 'true' ) {
+	if ( localStorage.getItem( 'sdAiAgentSoundThinking' ) !== 'true' ) {
 		return;
 	}
 	playTone( {

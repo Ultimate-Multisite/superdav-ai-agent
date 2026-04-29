@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * SEO analysis abilities for the AI agent.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities;
+namespace SdAiAgent\Abilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,9 +27,9 @@ class SeoAbilities {
 		wp_register_ability(
 			'ai-agent/seo-audit-url',
 			[
-				'label'               => __( 'SEO Audit URL', 'gratis-ai-agent' ),
-				'description'         => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'SEO Audit URL', 'sd-ai-agent' ),
+				'description'         => __( 'Fetch a URL and analyze its SEO elements: title, meta description, headings, images, Open Graph, structured data, and common issues.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -84,9 +84,9 @@ class SeoAbilities {
 		wp_register_ability(
 			'ai-agent/seo-analyze-content',
 			[
-				'label'               => __( 'SEO Analyze Content', 'gratis-ai-agent' ),
-				'description'         => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'gratis-ai-agent' ),
-				'category'            => 'gratis-ai-agent',
+				'label'               => __( 'SEO Analyze Content', 'sd-ai-agent' ),
+				'description'         => __( 'Analyze a post\'s content for SEO quality: keyword density, title length, heading structure, links, readability, and meta description.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

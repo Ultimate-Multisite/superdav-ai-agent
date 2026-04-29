@@ -7,13 +7,13 @@ declare(strict_types=1);
  * Creates a top-level menu with submenu items, all using a single React app
  * with client-side routing.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Admin;
+namespace SdAiAgent\Admin;
 
-use GratisAiAgent\Core\Features;
+use SdAiAgent\Core\Features;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class UnifiedAdminMenu {
 
-	const SLUG       = 'gratis-ai-agent';
+	const SLUG       = 'sd-ai-agent';
 	const CAPABILITY = 'manage_options';
 
 	/**
@@ -87,21 +87,21 @@ class UnifiedAdminMenu {
 		$items = array(
 			array(
 				'slug'       => 'chat',
-				'label'      => __( 'Chat', 'gratis-ai-agent' ),
+				'label'      => __( 'Chat', 'sd-ai-agent' ),
 				'icon'       => 'dashicons-format-chat',
 				'position'   => 0,
 				'capability' => self::CAPABILITY,
 			),
 			array(
 				'slug'       => 'abilities',
-				'label'      => __( 'Abilities', 'gratis-ai-agent' ),
+				'label'      => __( 'Abilities', 'sd-ai-agent' ),
 				'icon'       => 'dashicons-admin-tools',
 				'position'   => 10,
 				'capability' => self::CAPABILITY,
 			),
 			array(
 				'slug'       => 'changes',
-				'label'      => __( 'Changes', 'gratis-ai-agent' ),
+				'label'      => __( 'Changes', 'sd-ai-agent' ),
 				'icon'       => 'dashicons-backup',
 				'position'   => 20,
 				'capability' => self::CAPABILITY,
@@ -114,7 +114,7 @@ class UnifiedAdminMenu {
 
 		$items[] = array(
 			'slug'       => 'settings',
-			'label'      => __( 'Settings', 'gratis-ai-agent' ),
+			'label'      => __( 'Settings', 'sd-ai-agent' ),
 			'icon'       => 'dashicons-admin-settings',
 			'position'   => 30,
 			'capability' => self::CAPABILITY,
@@ -136,8 +136,8 @@ class UnifiedAdminMenu {
 		$icon_uri = 'data:image/svg+xml;base64,' . base64_encode( $icon_svg ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
 		add_menu_page(
-			__( 'Gratis AI Agent', 'gratis-ai-agent' ),
-			__( 'AI Agent', 'gratis-ai-agent' ),
+			__( 'Superdav AI Agent', 'sd-ai-agent' ),
+			__( 'AI Agent', 'sd-ai-agent' ),
 			self::CAPABILITY,
 			self::SLUG,
 			array( __CLASS__, 'render' ),
@@ -171,7 +171,7 @@ class UnifiedAdminMenu {
 	 * requests), so deep-link detection must happen client-side. The JS entry
 	 * point (index.js) reads window.location.hash directly and uses it as the
 	 * authoritative initial route, falling back to this PHP-provided value only
-	 * when no hash is present (e.g. a plain admin.php?page=gratis-ai-agent load).
+	 * when no hash is present (e.g. a plain admin.php?page=sd-ai-agent load).
 	 *
 	 * @return string Always 'chat' — the default route when no hash is present.
 	 */
@@ -182,10 +182,10 @@ class UnifiedAdminMenu {
 	/**
 	 * Enqueue the unified React app.
 	 *
-	 * Also enqueues the admin-page bundle which exposes window.gratisAiAgentChat.
+	 * Also enqueues the admin-page bundle which exposes window.sdAiAgentChat.
 	 * ChatRoute (src/unified-admin/routes/chat.js) calls
-	 * window.gratisAiAgentChat.mount(container) to embed the full chat UI
-	 * (AdminPageApp) inside the #gratis-ai-chat-container div. Without this
+	 * window.sdAiAgentChat.mount(container) to embed the full chat UI
+	 * (AdminPageApp) inside the #sd-ai-chat-container div. Without this
 	 * bundle the mount API is undefined and the chat panel never renders.
 	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
@@ -197,7 +197,7 @@ class UnifiedAdminMenu {
 			return;
 		}
 
-		$build_dir  = (string) apply_filters( 'gratis_ai_agent_build_dir', GRATIS_AI_AGENT_DIR . '/build' );
+		$build_dir  = (string) apply_filters( 'sd_ai_agent_build_dir', SD_AI_AGENT_DIR . '/build' );
 		$asset_file = $build_dir . '/unified-admin.asset.php';
 
 		if ( ! file_exists( $asset_file ) ) {
@@ -206,7 +206,7 @@ class UnifiedAdminMenu {
 				'admin_notices',
 				function () {
 					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'Gratis AI Agent build files are missing. Please run npm run build.', 'gratis-ai-agent' );
+					echo esc_html__( 'Superdav AI Agent build files are missing. Please run npm run build.', 'sd-ai-agent' );
 					echo '</p></div>';
 				}
 			);
@@ -217,29 +217,29 @@ class UnifiedAdminMenu {
 		$asset = require $asset_file;
 
 		wp_enqueue_style(
-			'gratis-ai-agent-unified-admin',
-			GRATIS_AI_AGENT_URL . 'build/style-unified-admin.css',
+			'sd-ai-agent-unified-admin',
+			SD_AI_AGENT_URL . 'build/style-unified-admin.css',
 			array( 'wp-components' ),
 			$asset['version']
 		);
 
-		wp_style_add_data( 'gratis-ai-agent-unified-admin', 'rtl', 'replace' );
+		wp_style_add_data( 'sd-ai-agent-unified-admin', 'rtl', 'replace' );
 
 		wp_enqueue_script(
-			'gratis-ai-agent-unified-admin',
-			GRATIS_AI_AGENT_URL . 'build/unified-admin.js',
+			'sd-ai-agent-unified-admin',
+			SD_AI_AGENT_URL . 'build/unified-admin.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
 		);
 
-		wp_set_script_translations( 'gratis-ai-agent-unified-admin', 'gratis-ai-agent' );
+		wp_set_script_translations( 'sd-ai-agent-unified-admin', 'sd-ai-agent' );
 
 		// WP 7.0+: enqueue the `@wordpress/abilities` script module so our
 		// client-side ability registry (src/abilities/*) can resolve the
 		// bare specifier via the document import map at runtime. Without
 		// this, the dynamic import() in registry.js throws a module
-		// resolution error and the gratis-ai-agent-js/* abilities are never
+		// resolution error and the sd-ai-agent-js/* abilities are never
 		// registered. (t165 — fixes the missing enqueue in #815.)
 		//
 		// Also enqueue `@wordpress/core-abilities` explicitly. Despite the
@@ -255,9 +255,9 @@ class UnifiedAdminMenu {
 			wp_enqueue_script_module( '@wordpress/core-abilities' );
 		}
 
-		// Enqueue the admin-page bundle which sets window.gratisAiAgentChat.
-		// ChatRoute calls window.gratisAiAgentChat.mount(container) to render
-		// AdminPageApp inside #gratis-ai-chat-container. This bundle must load
+		// Enqueue the admin-page bundle which sets window.sdAiAgentChat.
+		// ChatRoute calls window.sdAiAgentChat.mount(container) to render
+		// AdminPageApp inside #sd-ai-chat-container. This bundle must load
 		// after unified-admin.js so the container element exists in the DOM.
 		$admin_page_asset_file = $build_dir . '/admin-page.asset.php';
 		if ( file_exists( $admin_page_asset_file ) ) {
@@ -265,13 +265,13 @@ class UnifiedAdminMenu {
 			$admin_page_asset = require $admin_page_asset_file;
 
 			wp_enqueue_style(
-				'gratis-ai-agent-admin-page',
-				GRATIS_AI_AGENT_URL . 'build/style-admin-page.css',
+				'sd-ai-agent-admin-page',
+				SD_AI_AGENT_URL . 'build/style-admin-page.css',
 				array( 'wp-components' ),
 				$admin_page_asset['version']
 			);
 
-			wp_style_add_data( 'gratis-ai-agent-admin-page', 'rtl', 'replace' );
+			wp_style_add_data( 'sd-ai-agent-admin-page', 'rtl', 'replace' );
 
 			// Enqueue the JS-extracted CSS (shared.css and other CSS imported
 			// from JS files). wp-scripts splits CSS into style-{entry}.css
@@ -279,41 +279,41 @@ class UnifiedAdminMenu {
 			// Without this, the tool confirmation dialog overlay and other
 			// shared component styles are missing.
 			wp_enqueue_style(
-				'gratis-ai-agent-admin-page-components',
-				GRATIS_AI_AGENT_URL . 'build/admin-page.css',
-				array( 'gratis-ai-agent-admin-page' ),
+				'sd-ai-agent-admin-page-components',
+				SD_AI_AGENT_URL . 'build/admin-page.css',
+				array( 'sd-ai-agent-admin-page' ),
 				$admin_page_asset['version']
 			);
 
-			wp_style_add_data( 'gratis-ai-agent-admin-page-components', 'rtl', 'replace' );
+			wp_style_add_data( 'sd-ai-agent-admin-page-components', 'rtl', 'replace' );
 
 			wp_enqueue_script(
-				'gratis-ai-agent-admin-page',
-				GRATIS_AI_AGENT_URL . 'build/admin-page.js',
-				array_merge( $admin_page_asset['dependencies'], array( 'gratis-ai-agent-unified-admin' ) ),
+				'sd-ai-agent-admin-page',
+				SD_AI_AGENT_URL . 'build/admin-page.js',
+				array_merge( $admin_page_asset['dependencies'], array( 'sd-ai-agent-unified-admin' ) ),
 				$admin_page_asset['version'],
 				true
 			);
 
-			wp_set_script_translations( 'gratis-ai-agent-admin-page', 'gratis-ai-agent' );
+			wp_set_script_translations( 'sd-ai-agent-admin-page', 'sd-ai-agent' );
 		}
 
 		$current_user = wp_get_current_user();
 
 		wp_localize_script(
-			'gratis-ai-agent-unified-admin',
-			'gratisAiAgentData',
+			'sd-ai-agent-unified-admin',
+			'sdAiAgentData',
 			array(
 				'currentUserId'       => get_current_user_id(),
 				'currentUserName'     => $current_user->display_name,
-				'restNamespace'       => 'gratis-ai-agent/v1',
+				'restNamespace'       => 'sd-ai-agent/v1',
 				'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
 				'nonce'               => wp_create_nonce( 'wp_rest' ),
 				'initialRoute'        => self::getCurrentRoute(),
 				'menuItems'           => self::getMenuItems(),
 				'connectorsUrl'       => self::getConnectorsUrl(),
 				'connectorsAvailable' => self::hasNativeConnectorsPage() || self::hasGutenbergConnectorsPage() ? '1' : '',
-				'onboarding_complete' => \GratisAiAgent\Core\OnboardingManager::is_complete(),
+				'onboarding_complete' => \SdAiAgent\Core\OnboardingManager::is_complete(),
 				// Provider trace is a debug-only feature. The JS settings page reads
 				// this flag to show or hide the Provider Trace tab.
 				'wpDebug'             => defined( 'WP_DEBUG' ) && WP_DEBUG ? '1' : '',
@@ -329,8 +329,8 @@ class UnifiedAdminMenu {
 	 */
 	public static function render(): void {
 		?>
-		<div class="wrap gratis-ai-agent-wrap">
-			<div id="gratis-ai-agent-root" class="gratis-ai-agent-app"></div>
+		<div class="wrap sd-ai-agent-wrap">
+			<div id="sd-ai-agent-root" class="sd-ai-agent-app"></div>
 		</div>
 		<?php
 	}
@@ -344,9 +344,9 @@ class UnifiedAdminMenu {
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 
 		$redirect_map = array(
-			'gratis-ai-agent-changes'   => admin_url( 'admin.php?page=gratis-ai-agent#/changes' ),
-			'gratis-ai-agent-abilities' => admin_url( 'admin.php?page=gratis-ai-agent#/abilities' ),
-			'gratis-ai-agent-settings'  => admin_url( 'admin.php?page=gratis-ai-agent#/settings' ),
+			'sd-ai-agent-changes'   => admin_url( 'admin.php?page=sd-ai-agent#/changes' ),
+			'sd-ai-agent-abilities' => admin_url( 'admin.php?page=sd-ai-agent#/abilities' ),
+			'sd-ai-agent-settings'  => admin_url( 'admin.php?page=sd-ai-agent#/settings' ),
 		);
 
 		if ( isset( $redirect_map[ $page ] ) ) {

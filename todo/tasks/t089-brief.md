@@ -14,8 +14,8 @@ PHPUnit integration tests for `McpController`.
 
 ## What
 
-Add `tests/GratisAiAgent/REST/McpControllerTest.php` — a PHPUnit integration
-test suite for the MCP REST endpoint (`POST /wp-json/gratis-ai-agent/v1/mcp`).
+Add `tests/SdAiAgent/REST/McpControllerTest.php` — a PHPUnit integration
+test suite for the MCP REST endpoint (`POST /wp-json/sd-ai-agent/v1/mcp`).
 
 The implementation (`includes/REST/McpController.php`) was merged in PR #263.
 Tests were not included in that PR.
@@ -31,7 +31,7 @@ Tests were not included in that PR.
 
 ## How
 
-1. Create `tests/GratisAiAgent/REST/McpControllerTest.php` using the
+1. Create `tests/SdAiAgent/REST/McpControllerTest.php` using the
    `WP_UnitTestCase` + `WP_REST_Server` pattern established in
    `RestControllerTest.php`.
 2. Register a mock ability via `wp_abilities_api_init` hook in `set_up()` so
@@ -39,12 +39,12 @@ Tests were not included in that PR.
 3. Cover: unauthenticated access, `list_tools`, `call_tool` success,
    `call_tool` with unknown tool, `call_tool` with missing name, unknown method,
    name mapping helpers.
-4. Run `vendor/bin/phpunit tests/GratisAiAgent/REST/McpControllerTest.php` to
+4. Run `vendor/bin/phpunit tests/SdAiAgent/REST/McpControllerTest.php` to
    verify all tests pass.
 
 ## Acceptance Criteria
 
-- [x] `McpControllerTest.php` exists at `tests/GratisAiAgent/REST/`
+- [x] `McpControllerTest.php` exists at `tests/SdAiAgent/REST/`
 - [x] All 20 tests pass under `wp-env` PHPUnit (verified 2026-03-15)
 - [x] Covers: unauthenticated → 401, subscriber → 403, `list_tools` returns
       tools array with protocol_version, `call_tool` executes ability and
@@ -58,6 +58,6 @@ Tests were not included in that PR.
 - Implementation: `includes/REST/McpController.php`
 - Route registration: `includes/REST/RestController.php` line ~52
 - Compat layer (mock abilities): `compat/load.php`
-- Test pattern reference: `tests/GratisAiAgent/REST/RestControllerTest.php`
+- Test pattern reference: `tests/SdAiAgent/REST/RestControllerTest.php`
 - MCP protocol version: `2024-11-05`
 - Auth: `manage_options` capability required

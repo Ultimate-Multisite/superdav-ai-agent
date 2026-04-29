@@ -13,8 +13,8 @@ export const initialState = {
 	providers: [],
 	providersLoaded: false,
 	providersLoading: false,
-	selectedProviderId: localStorage.getItem( 'gratisAiAgentProvider' ) || '',
-	selectedModelId: localStorage.getItem( 'gratisAiAgentModel' ) || '',
+	selectedProviderId: localStorage.getItem( 'sdAiAgentProvider' ) || '',
+	selectedModelId: localStorage.getItem( 'sdAiAgentModel' ) || '',
 };
 
 export const actions = {
@@ -35,7 +35,7 @@ export const actions = {
 	 * @return {Object} Redux action.
 	 */
 	setSelectedProvider( providerId ) {
-		localStorage.setItem( 'gratisAiAgentProvider', providerId );
+		localStorage.setItem( 'sdAiAgentProvider', providerId );
 		return { type: 'SET_SELECTED_PROVIDER', providerId };
 	},
 
@@ -46,7 +46,7 @@ export const actions = {
 	 * @return {Object} Redux action.
 	 */
 	setSelectedModel( modelId ) {
-		localStorage.setItem( 'gratisAiAgentModel', modelId );
+		localStorage.setItem( 'sdAiAgentModel', modelId );
 		return { type: 'SET_SELECTED_MODEL', modelId };
 	},
 
@@ -75,12 +75,12 @@ export const actions = {
 			dispatch( { type: 'SET_PROVIDERS_LOADING', loading: true } );
 			try {
 				const providers = await apiFetch( {
-					path: '/gratis-ai-agent/v1/providers',
+					path: '/sd-ai-agent/v1/providers',
 				} );
 				dispatch.setProviders( providers );
 
 				// Auto-select first provider if none saved or saved one is unavailable.
-				const saved = localStorage.getItem( 'gratisAiAgentProvider' );
+				const saved = localStorage.getItem( 'sdAiAgentProvider' );
 				if (
 					( ! saved ||
 						! providers.find( ( p ) => p.id === saved ) ) &&
@@ -104,7 +104,7 @@ export const actions = {
 							err?.message ||
 							__(
 								'Unable to connect to the AI Agent API.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 						status,
 					} );

@@ -4,15 +4,15 @@ declare(strict_types=1);
 /**
  * REST API controller for Model Benchmarking.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Benchmark\BenchmarkRunner;
-use GratisAiAgent\Benchmark\BenchmarkSuite;
-use GratisAiAgent\Core\Database;
+use SdAiAgent\Benchmark\BenchmarkRunner;
+use SdAiAgent\Benchmark\BenchmarkSuite;
+use SdAiAgent\Core\Database;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 #[REST_Handler(
 	namespace: RestController::NAMESPACE,
 	basename: 'benchmark',
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 )]
 final class BenchmarkController extends XWP_REST_Controller {
 
@@ -88,7 +88,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $suite ) {
 			return new WP_Error(
 				'benchmark_suite_not_found',
-				__( 'Benchmark suite not found.', 'gratis-ai-agent' ),
+				__( 'Benchmark suite not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -136,7 +136,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $run ) {
 			return new WP_Error(
 				'benchmark_run_not_found',
-				__( 'Benchmark run not found.', 'gratis-ai-agent' ),
+				__( 'Benchmark run not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -168,7 +168,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( empty( $models ) || ! is_array( $models ) ) {
 			return new WP_Error(
 				'benchmark_no_models',
-				__( 'At least one model must be selected.', 'gratis-ai-agent' ),
+				__( 'At least one model must be selected.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -186,7 +186,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $run_id ) {
 			return new WP_Error(
 				'benchmark_create_failed',
-				__( 'Failed to create benchmark run.', 'gratis-ai-agent' ),
+				__( 'Failed to create benchmark run.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -214,7 +214,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $run ) {
 			return new WP_Error(
 				'benchmark_run_not_found',
-				__( 'Benchmark run not found.', 'gratis-ai-agent' ),
+				__( 'Benchmark run not found.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -242,7 +242,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $run ) {
 			return new WP_Error(
 				'benchmark_run_not_found',
-				__( 'Benchmark run not found after execution.', 'gratis-ai-agent' ),
+				__( 'Benchmark run not found after execution.', 'sd-ai-agent' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -279,7 +279,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( ! $deleted ) {
 			return new WP_Error(
 				'benchmark_delete_failed',
-				__( 'Failed to delete benchmark run.', 'gratis-ai-agent' ),
+				__( 'Failed to delete benchmark run.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -305,7 +305,7 @@ final class BenchmarkController extends XWP_REST_Controller {
 		if ( empty( $run_ids ) || ! is_array( $run_ids ) || count( $run_ids ) < 2 ) {
 			return new WP_Error(
 				'benchmark_compare_invalid',
-				__( 'At least two benchmark runs must be selected for comparison.', 'gratis-ai-agent' ),
+				__( 'At least two benchmark runs must be selected for comparison.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}

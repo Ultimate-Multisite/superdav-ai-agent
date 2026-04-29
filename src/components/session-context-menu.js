@@ -82,8 +82,8 @@ export default function SessionContextMenu( {
 
 	if ( isRenaming ) {
 		return (
-			<div className="gratis-ai-agent-context-menu" ref={ menuRef }>
-				<div className="gratis-ai-agent-context-menu-rename">
+			<div className="sd-ai-agent-context-menu" ref={ menuRef }>
+				<div className="sd-ai-agent-context-menu-rename">
 					<input
 						ref={ renameInputRef }
 						type="text"
@@ -99,7 +99,7 @@ export default function SessionContextMenu( {
 						} }
 					/>
 					<button type="button" onClick={ handleRename }>
-						{ __( 'Save', 'gratis-ai-agent' ) }
+						{ __( 'Save', 'sd-ai-agent' ) }
 					</button>
 				</div>
 			</div>
@@ -107,18 +107,14 @@ export default function SessionContextMenu( {
 	}
 
 	return (
-		<div
-			className="gratis-ai-agent-context-menu"
-			ref={ menuRef }
-			role="menu"
-		>
+		<div className="sd-ai-agent-context-menu" ref={ menuRef } role="menu">
 			{ ! isTrashed && isOwner && (
 				<button
 					type="button"
 					role="menuitem"
 					onClick={ () => setIsRenaming( true ) }
 				>
-					{ __( 'Rename', 'gratis-ai-agent' ) }
+					{ __( 'Rename', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ ! isTrashed && (
@@ -131,8 +127,8 @@ export default function SessionContextMenu( {
 					} }
 				>
 					{ isPinned
-						? __( 'Unpin', 'gratis-ai-agent' )
-						: __( 'Pin', 'gratis-ai-agent' ) }
+						? __( 'Unpin', 'sd-ai-agent' )
+						: __( 'Pin', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ ! isTrashed && (
@@ -144,7 +140,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Export', 'gratis-ai-agent' ) }
+					{ __( 'Export', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && ! isShared && (
@@ -156,7 +152,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Share with Admins', 'gratis-ai-agent' ) }
+					{ __( 'Share with Admins', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && isShared && (
@@ -168,7 +164,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Unshare', 'gratis-ai-agent' ) }
+					{ __( 'Unshare', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isArchived && ! isTrashed && (
@@ -180,7 +176,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Archive', 'gratis-ai-agent' ) }
+					{ __( 'Archive', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ( isArchived || isTrashed ) && (
@@ -192,33 +188,33 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Restore', 'gratis-ai-agent' ) }
+					{ __( 'Restore', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && (
 				<button
 					type="button"
 					role="menuitem"
-					className="gratis-ai-agent-context-menu-danger"
+					className="sd-ai-agent-context-menu-danger"
 					onClick={ () => {
 						trashSession( sessionId );
 						onClose();
 					} }
 				>
-					{ __( 'Move to Trash', 'gratis-ai-agent' ) }
+					{ __( 'Move to Trash', 'sd-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && isTrashed && (
 				<button
 					type="button"
 					role="menuitem"
-					className="gratis-ai-agent-context-menu-danger"
+					className="sd-ai-agent-context-menu-danger"
 					onClick={ () => {
 						// eslint-disable-next-line no-alert
 						const confirmed = window.confirm(
 							__(
 								'Permanently delete this conversation? This cannot be undone.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							)
 						);
 						if ( confirmed ) {
@@ -227,7 +223,7 @@ export default function SessionContextMenu( {
 						}
 					} }
 				>
-					{ __( 'Delete Permanently', 'gratis-ai-agent' ) }
+					{ __( 'Delete Permanently', 'sd-ai-agent' ) }
 				</button>
 			) }
 		</div>

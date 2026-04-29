@@ -40,7 +40,7 @@ jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 
 // ─── Mock store ───────────────────────────────────────────────────────────────
 
-jest.mock( '../../store', () => 'gratis-ai-agent' );
+jest.mock( '../../store', () => 'sd-ai-agent' );
 
 // ─── Mock ChatPanel ───────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ describe( 'OnboardingBootstrap', () => {
 		} );
 		await renderBootstrap();
 		expect(
-			container.querySelector( '.gratis-ai-agent-onboarding-bootstrap' )
+			container.querySelector( '.sd-ai-agent-onboarding-bootstrap' )
 		).not.toBeNull();
 	} );
 
@@ -120,7 +120,7 @@ describe( 'OnboardingBootstrap', () => {
 		} );
 		await renderBootstrap();
 		expect( apiFetch ).toHaveBeenCalledWith( {
-			path: '/gratis-ai-agent/v1/onboarding/bootstrap-start',
+			path: '/sd-ai-agent/v1/onboarding/bootstrap-start',
 			method: 'POST',
 		} );
 	} );

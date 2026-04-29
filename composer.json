@@ -37,12 +37,12 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"GratisAiAgent\\": "includes/"
+			"SdAiAgent\\": "includes/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"GratisAiAgent\\Tests\\": "tests/GratisAiAgent/"
+			"SdAiAgent\\Tests\\": "tests/SdAiAgent/"
 		}
 	},
 	"archive": {
@@ -116,9 +116,9 @@
 		"test": "vendor/bin/phpunit",
 		"lint": ["@phpcs", "@phpstan"]
 	},
-	"homepage": "https://github.com/Ultimate-Multisite/gratis-ai-agent",
+	"homepage": "https://github.com/Ultimate-Multisite/sd-ai-agent",
 	"support": {
-		"issues": "https://github.com/Ultimate-Multisite/gratis-ai-agent/issues",
-		"source": "https://github.com/Ultimate-Multisite/gratis-ai-agent"
+		"issues": "https://github.com/Ultimate-Multisite/sd-ai-agent/issues",
+		"source": "https://github.com/Ultimate-Multisite/sd-ai-agent"
 	}
 }

@@ -29,13 +29,13 @@ a flaky green is worse than a stable red.
 
 - **`vendor/bin/phpunit`** — 1738 tests / 31 errors / 20 failures
   (baseline taken from PR #821 CI run 24160589153):
-  - `GratisAiAgent\Tests\Core\AgentLoopTest::*` — at least
+  - `SdAiAgent\Tests\Core\AgentLoopTest::*` — at least
     `test_run_increments_iterations_used`,
     `test_run_accumulates_token_usage`,
     `test_run_appends_user_message_to_history`,
     `test_deserialize_history_round_trip`,
     `test_classify_ability_readonly_*` (3 variants).
-  - `GratisAiAgent\Tests\Core\CredentialResolverTest::*` — ~20+ methods
+  - `SdAiAgent\Tests\Core\CredentialResolverTest::*` — ~20+ methods
     all related to `openai_compat` credentials and `ai_experiments`
     credentials, still asserting against the methods that #805 is
     supposed to remove.
@@ -111,8 +111,8 @@ or split into sub-PRs if the JS and PHP halves diverge in complexity.
 
 - **EDIT**: `src/components/__tests__/*.test.js` (5 files listed above)
 - **EDIT**: `src/components/__tests__/__snapshots__/*.snap`
-- **EDIT**: `tests/GratisAiAgent/Core/AgentLoopTest.php`
-- **EDIT**: `tests/GratisAiAgent/Core/CredentialResolverTest.php`
+- **EDIT**: `tests/SdAiAgent/Core/AgentLoopTest.php`
+- **EDIT**: `tests/SdAiAgent/Core/CredentialResolverTest.php`
 - **POSSIBLY EDIT**: `includes/Core/CredentialResolver.php` (if #805
   is absorbed into this task)
 - **POSSIBLY EDIT**: `includes/stubs/*.php` (if the PHPUnit failures
@@ -125,7 +125,7 @@ or split into sub-PRs if the JS and PHP halves diverge in complexity.
   ordering, or class-name churn from `@wordpress/components` upgrades,
   regeneration is safe. If content or structure changed, investigate
   first.
-- For PHPUnit fixtures: `tests/GratisAiAgent/Core/AgentLoopClientToolsTest.php`
+- For PHPUnit fixtures: `tests/SdAiAgent/Core/AgentLoopClientToolsTest.php`
   is a green fixture written against the current API shape; use it
   as the template for updating AgentLoopTest.
 

@@ -63,25 +63,25 @@ export default function ContextIndicator() {
 	const totalTokens = tokenUsage.prompt + tokenUsage.completion;
 
 	return (
-		<div className="gratis-ai-agent-context-indicator">
-			<div className="gratis-ai-agent-context-stats">
-				<span className="gratis-ai-agent-context-tokens">
+		<div className="sd-ai-agent-context-indicator">
+			<div className="sd-ai-agent-context-stats">
+				<span className="sd-ai-agent-context-tokens">
 					{ formatTokens( totalTokens ) }{ ' ' }
-					{ __( 'tokens', 'gratis-ai-agent' ) }
-					<span className="gratis-ai-agent-context-detail">
+					{ __( 'tokens', 'sd-ai-agent' ) }
+					<span className="sd-ai-agent-context-detail">
 						({ formatTokens( tokenUsage.prompt ) }{ ' ' }
-						{ __( 'in', 'gratis-ai-agent' ) } /{ ' ' }
+						{ __( 'in', 'sd-ai-agent' ) } /{ ' ' }
 						{ formatTokens( tokenUsage.completion ) }{ ' ' }
-						{ __( 'out', 'gratis-ai-agent' ) })
+						{ __( 'out', 'sd-ai-agent' ) })
 					</span>
 				</span>
-				<span className="gratis-ai-agent-context-pct">
+				<span className="sd-ai-agent-context-pct">
 					{ Math.round( clampedPct ) }%
 				</span>
 			</div>
-			<div className="gratis-ai-agent-context-bar-track">
+			<div className="sd-ai-agent-context-bar-track">
 				<div
-					className="gratis-ai-agent-context-bar-fill"
+					className="sd-ai-agent-context-bar-fill"
 					style={ {
 						width: clampedPct + '%',
 						backgroundColor: barColor,
@@ -89,27 +89,27 @@ export default function ContextIndicator() {
 				/>
 			</div>
 			{ isWarning && (
-				<div className="gratis-ai-agent-context-warning">
+				<div className="sd-ai-agent-context-warning">
 					<span>
 						{ __(
 							'Context window is getting full.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</span>
-					<div className="gratis-ai-agent-context-warning-actions">
+					<div className="sd-ai-agent-context-warning-actions">
 						<Button
 							variant="secondary"
 							size="small"
 							onClick={ compactConversation }
 						>
-							{ __( 'Compact', 'gratis-ai-agent' ) }
+							{ __( 'Compact', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="secondary"
 							size="small"
 							onClick={ clearCurrentSession }
 						>
-							{ __( 'New Chat', 'gratis-ai-agent' ) }
+							{ __( 'New Chat', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>

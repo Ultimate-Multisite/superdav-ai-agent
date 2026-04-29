@@ -13,7 +13,7 @@ import apiFetch from '@wordpress/api-fetch';
  */
 function getConnectorsUrl() {
 	return (
-		window.gratisAiAgentData?.connectorsUrl ||
+		window.sdAiAgentData?.connectorsUrl ||
 		'options-general.php?page=options-connectors-wp-admin'
 	);
 }
@@ -27,7 +27,7 @@ function getConnectorsUrl() {
  * @return {boolean} True when the Connectors page exists.
  */
 function isConnectorsAvailable() {
-	return !! window.gratisAiAgentData?.connectorsAvailable;
+	return !! window.sdAiAgentData?.connectorsAvailable;
 }
 
 /**
@@ -67,7 +67,7 @@ export default function ConnectorGate() {
 				err?.message ||
 					__(
 						'Failed to install Gutenberg. Please install it manually from the Plugins page.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					)
 			);
 			setInstalling( false );
@@ -75,16 +75,16 @@ export default function ConnectorGate() {
 	}, [] );
 
 	return (
-		<div className="gratis-ai-agent-connector-gate">
-			<div className="gratis-ai-agent-connector-gate__inner">
-				<h2 className="gratis-ai-agent-connector-gate__title">
-					{ __( 'Set Up an AI Provider', 'gratis-ai-agent' ) }
+		<div className="sd-ai-agent-connector-gate">
+			<div className="sd-ai-agent-connector-gate__inner">
+				<h2 className="sd-ai-agent-connector-gate__title">
+					{ __( 'Set Up an AI Provider', 'sd-ai-agent' ) }
 				</h2>
 
-				<p className="gratis-ai-agent-connector-gate__description">
+				<p className="sd-ai-agent-connector-gate__description">
 					{ __(
-						'Gratis AI Agent needs an AI provider to work. Configure an API key for OpenAI, Anthropic, or Google AI on the Connectors page to get started.',
-						'gratis-ai-agent'
+						'Superdav AI Agent needs an AI provider to work. Configure an API key for OpenAI, Anthropic, or Google AI on the Connectors page to get started.',
+						'sd-ai-agent'
 					) }
 				</p>
 
@@ -93,19 +93,19 @@ export default function ConnectorGate() {
 						<Notice status="info" isDismissible={ false }>
 							{ __(
 								'You will be brought back here automatically once a connector is set up.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</Notice>
 
-						<div className="gratis-ai-agent-connector-gate__actions">
+						<div className="sd-ai-agent-connector-gate__actions">
 							<Button
 								variant="primary"
 								href={ getConnectorsUrl() }
-								className="gratis-ai-agent-connector-gate__cta"
+								className="sd-ai-agent-connector-gate__cta"
 							>
 								{ __(
 									'Configure a Connector →',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								) }
 							</Button>
 						</div>
@@ -115,7 +115,7 @@ export default function ConnectorGate() {
 						<Notice status="warning" isDismissible={ false }>
 							{ __(
 								'Your WordPress version does not include the Connectors page. Install the Gutenberg plugin (version 22.8.0 or newer) to configure AI providers.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						</Notice>
 
@@ -125,26 +125,26 @@ export default function ConnectorGate() {
 							</Notice>
 						) }
 
-						<div className="gratis-ai-agent-connector-gate__actions">
+						<div className="sd-ai-agent-connector-gate__actions">
 							<Button
 								variant="primary"
 								onClick={ handleInstallGutenberg }
 								isBusy={ installing }
 								disabled={ installing }
-								className="gratis-ai-agent-connector-gate__cta"
+								className="sd-ai-agent-connector-gate__cta"
 							>
 								{ installing ? (
 									<>
 										<Spinner />
 										{ __(
 											'Installing Gutenberg…',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</>
 								) : (
 									__(
 										'Install & Activate Gutenberg',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									)
 								) }
 							</Button>

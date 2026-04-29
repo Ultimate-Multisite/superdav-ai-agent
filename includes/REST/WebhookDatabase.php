@@ -5,14 +5,14 @@ declare(strict_types=1);
  * Database layer for the Webhook API.
  *
  * Manages two tables:
- *   - {prefix}gratis_ai_agent_webhooks      — webhook configuration records
- *   - {prefix}gratis_ai_agent_webhook_logs  — per-execution audit log
+ *   - {prefix}sd_ai_agent_webhooks      — webhook configuration records
+ *   - {prefix}sd_ai_agent_webhook_logs  — per-execution audit log
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
 class WebhookDatabase {
 
@@ -22,7 +22,7 @@ class WebhookDatabase {
 	public static function table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_webhooks';
+		return $wpdb->prefix . 'sd_ai_agent_webhooks';
 	}
 
 	/**
@@ -31,7 +31,7 @@ class WebhookDatabase {
 	public static function logs_table_name(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_webhook_logs';
+		return $wpdb->prefix . 'sd_ai_agent_webhook_logs';
 	}
 
 	/**

@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Uses wp_ai_client_prompt()->generate_image() so any provider configured
  * in WordPress core Settings > AI that supports image generation will be used.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Abilities\ImageSources;
+namespace SdAiAgent\Abilities\ImageSources;
 
 use WP_Error;
 
@@ -154,7 +154,7 @@ class AiGenerateSource implements ImageSourceInterface {
 			'image/webp' => 'webp',
 		];
 		$ext      = $ext_map[ $mime ] ?? 'png';
-		$tmp_file = get_temp_dir() . 'gratis-ai-' . uniqid() . '.' . $ext;
+		$tmp_file = get_temp_dir() . 'sd-ai-' . uniqid() . '.' . $ext;
 
 		$written = file_put_contents( $tmp_file, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		if ( false === $written ) {

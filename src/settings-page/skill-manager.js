@@ -38,30 +38,30 @@ function formatRelativeTime( mysqlDatetime ) {
 	}
 	const diffSeconds = Math.floor( ( Date.now() - ts ) / 1000 );
 	if ( diffSeconds < 60 ) {
-		return __( 'just now', 'gratis-ai-agent' );
+		return __( 'just now', 'sd-ai-agent' );
 	}
 	if ( diffSeconds < 3600 ) {
 		const mins = Math.floor( diffSeconds / 60 );
 		if ( mins === 1 ) {
-			return __( '1 minute ago', 'gratis-ai-agent' );
+			return __( '1 minute ago', 'sd-ai-agent' );
 		}
 		/* translators: %d: number of minutes */
-		return sprintf( __( '%d minutes ago', 'gratis-ai-agent' ), mins );
+		return sprintf( __( '%d minutes ago', 'sd-ai-agent' ), mins );
 	}
 	if ( diffSeconds < 86400 ) {
 		const hours = Math.floor( diffSeconds / 3600 );
 		if ( hours === 1 ) {
-			return __( '1 hour ago', 'gratis-ai-agent' );
+			return __( '1 hour ago', 'sd-ai-agent' );
 		}
 		/* translators: %d: number of hours */
-		return sprintf( __( '%d hours ago', 'gratis-ai-agent' ), hours );
+		return sprintf( __( '%d hours ago', 'sd-ai-agent' ), hours );
 	}
 	const days = Math.floor( diffSeconds / 86400 );
 	if ( days === 1 ) {
-		return __( '1 day ago', 'gratis-ai-agent' );
+		return __( '1 day ago', 'sd-ai-agent' );
 	}
 	/* translators: %d: number of days */
-	return sprintf( __( '%d days ago', 'gratis-ai-agent' ), days );
+	return sprintf( __( '%d days ago', 'sd-ai-agent' ), days );
 }
 
 /**
@@ -188,7 +188,7 @@ export default function SkillManager() {
 		async ( id ) => {
 			if (
 				// eslint-disable-next-line no-alert
-				window.confirm( __( 'Delete this skill?', 'gratis-ai-agent' ) )
+				window.confirm( __( 'Delete this skill?', 'sd-ai-agent' ) )
 			) {
 				await deleteSkill( id );
 			}
@@ -203,7 +203,7 @@ export default function SkillManager() {
 				window.confirm(
 					__(
 						'Reset this skill to its default content?',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					)
 				)
 			) {
@@ -235,7 +235,7 @@ export default function SkillManager() {
 				status: 'error',
 				message: __(
 					'Could not check for updates. Ensure a manifest URL is configured in settings.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 			return;
@@ -252,7 +252,7 @@ export default function SkillManager() {
 					'%d skill updated automatically.',
 					'%d skills updated automatically.',
 					appliedCount,
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 				appliedCount
 			);
@@ -264,7 +264,7 @@ export default function SkillManager() {
 					'%d update available. Auto-update is disabled or skills have been customised.',
 					'%d updates available. Auto-update is disabled or skills have been customised.',
 					updateCount,
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 				updateCount
 			);
@@ -272,7 +272,7 @@ export default function SkillManager() {
 		} else {
 			setUpdateNotice( {
 				status: 'success',
-				message: __( 'All skills are up to date.', 'gratis-ai-agent' ),
+				message: __( 'All skills are up to date.', 'sd-ai-agent' ),
 			} );
 		}
 	}, [ checkSkillUpdates ] );
@@ -281,14 +281,14 @@ export default function SkillManager() {
 	const manifestUrlSet = !! settings?.skill_manifest_url;
 
 	return (
-		<div className="gratis-ai-agent-skill-manager">
-			<div className="gratis-ai-agent-skill-header">
+		<div className="sd-ai-agent-skill-manager">
+			<div className="sd-ai-agent-skill-header">
 				<div>
-					<h3>{ __( 'Agent Skills', 'gratis-ai-agent' ) }</h3>
+					<h3>{ __( 'Agent Skills', 'sd-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Skills are instruction guides loaded on-demand when the AI encounters a relevant task.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 				</div>
@@ -299,22 +299,19 @@ export default function SkillManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Skill', 'gratis-ai-agent' ) }
+						{ __( 'Add Skill', 'sd-ai-agent' ) }
 					</Button>
 				) }
 			</div>
 
 			{ /* Auto-update controls */ }
 			{ settingsLoaded && (
-				<div className="gratis-ai-agent-skill-update-controls">
+				<div className="sd-ai-agent-skill-update-controls">
 					<ToggleControl
-						label={ __(
-							'Automatic skill updates',
-							'gratis-ai-agent'
-						) }
+						label={ __( 'Automatic skill updates', 'sd-ai-agent' ) }
 						help={ __(
 							'When enabled, built-in skills are updated automatically from the remote manifest whenever a newer version is available (unless you have customised them).',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						checked={ autoUpdateEnabled }
 						onChange={ handleAutoUpdateToggle }
@@ -328,11 +325,11 @@ export default function SkillManager() {
 							isBusy={ skillUpdatesChecking }
 							disabled={ skillUpdatesChecking }
 							size="compact"
-							className="gratis-ai-agent-check-updates-btn"
+							className="sd-ai-agent-check-updates-btn"
 						>
 							{ skillUpdatesChecking
-								? __( 'Checking…', 'gratis-ai-agent' )
-								: __( 'Check for Updates', 'gratis-ai-agent' ) }
+								? __( 'Checking…', 'sd-ai-agent' )
+								: __( 'Check for Updates', 'sd-ai-agent' ) }
 						</Button>
 					) }
 				</div>
@@ -349,46 +346,46 @@ export default function SkillManager() {
 			) }
 
 			{ showForm && (
-				<div className="gratis-ai-agent-skill-form">
+				<div className="sd-ai-agent-skill-form">
 					{ ! editId && (
 						<TextControl
-							label={ __( 'Slug', 'gratis-ai-agent' ) }
+							label={ __( 'Slug', 'sd-ai-agent' ) }
 							value={ formSlug }
 							onChange={ setFormSlug }
 							help={ __(
 								'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 					) }
 					<TextControl
-						label={ __( 'Name', 'gratis-ai-agent' ) }
+						label={ __( 'Name', 'sd-ai-agent' ) }
 						value={ formName }
 						onChange={ setFormName }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'gratis-ai-agent' ) }
+						label={ __( 'Description', 'sd-ai-agent' ) }
 						value={ formDescription }
 						onChange={ setFormDescription }
 						help={ __(
 							'One-line summary shown in the skill index.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Instructions', 'gratis-ai-agent' ) }
+						label={ __( 'Instructions', 'sd-ai-agent' ) }
 						value={ formContent }
 						onChange={ setFormContent }
 						rows={ 12 }
 						help={ __(
 							'Full markdown instructions loaded when the AI requests this skill.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					/>
-					<div className="gratis-ai-agent-skill-form-actions">
+					<div className="sd-ai-agent-skill-form-actions">
 						<Button
 							variant="primary"
 							onClick={ handleSubmit }
@@ -400,15 +397,15 @@ export default function SkillManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'gratis-ai-agent' )
-								: __( 'Create', 'gratis-ai-agent' ) }
+								? __( 'Update', 'sd-ai-agent' )
+								: __( 'Create', 'sd-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'gratis-ai-agent' ) }
+							{ __( 'Cancel', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -416,7 +413,7 @@ export default function SkillManager() {
 
 			{ ! skillsLoaded && (
 				<p className="description">
-					{ __( 'Loading…', 'gratis-ai-agent' ) }
+					{ __( 'Loading…', 'sd-ai-agent' ) }
 				</p>
 			) }
 
@@ -424,13 +421,13 @@ export default function SkillManager() {
 				<p className="description">
 					{ __(
 						'No skills found. Deactivate and reactivate the plugin to seed built-in skills.',
-						'gratis-ai-agent'
+						'sd-ai-agent'
 					) }
 				</p>
 			) }
 
 			{ skills.length > 0 && (
-				<div className="gratis-ai-agent-skill-cards">
+				<div className="sd-ai-agent-skill-cards">
 					{ skills.map( ( skill ) => {
 						const stats = skillStats[ skill.id ] ?? null;
 						const updateInfo = skillUpdates[ skill.id ] ?? null;
@@ -440,63 +437,63 @@ export default function SkillManager() {
 						return (
 							<div
 								key={ skill.id }
-								className={ `gratis-ai-agent-skill-card ${
+								className={ `sd-ai-agent-skill-card ${
 									! skill.enabled
-										? 'gratis-ai-agent-skill-card--disabled'
+										? 'sd-ai-agent-skill-card--disabled'
 										: ''
 								}` }
 							>
-								<div className="gratis-ai-agent-skill-card-header">
+								<div className="sd-ai-agent-skill-card-header">
 									<ToggleControl
 										checked={ skill.enabled }
 										onChange={ () => handleToggle( skill ) }
 										__nextHasNoMarginBottom
 									/>
-									<div className="gratis-ai-agent-skill-card-title">
+									<div className="sd-ai-agent-skill-card-title">
 										<strong>{ skill.name }</strong>
 										{ skill.is_builtin && (
-											<span className="gratis-ai-agent-skill-badge">
+											<span className="sd-ai-agent-skill-badge">
 												{ __(
 													'Built-in',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</span>
 										) }
 										{ skill.user_modified && (
-											<span className="gratis-ai-agent-skill-badge gratis-ai-agent-skill-badge--modified">
+											<span className="sd-ai-agent-skill-badge sd-ai-agent-skill-badge--modified">
 												{ __(
 													'Modified',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</span>
 										) }
 										{ hasUpdate && (
-											<span className="gratis-ai-agent-skill-badge gratis-ai-agent-skill-badge--update">
+											<span className="sd-ai-agent-skill-badge sd-ai-agent-skill-badge--update">
 												{ __(
 													'Update Available',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</span>
 										) }
 										{ skill.version && (
-											<span className="gratis-ai-agent-skill-version">
+											<span className="sd-ai-agent-skill-version">
 												v{ skill.version }
 											</span>
 										) }
 									</div>
 								</div>
-								<p className="gratis-ai-agent-skill-card-description">
+								<p className="sd-ai-agent-skill-card-description">
 									{ skill.description }
 								</p>
-								<div className="gratis-ai-agent-skill-card-footer">
-									<div className="gratis-ai-agent-skill-meta">
-										<span className="gratis-ai-agent-skill-word-count">
+								<div className="sd-ai-agent-skill-card-footer">
+									<div className="sd-ai-agent-skill-meta">
+										<span className="sd-ai-agent-skill-word-count">
 											{ skill.word_count }{ ' ' }
-											{ __( 'words', 'gratis-ai-agent' ) }
+											{ __( 'words', 'sd-ai-agent' ) }
 										</span>
 										{ stats && (
-											<span className="gratis-ai-agent-skill-usage-stats">
-												<span className="gratis-ai-agent-skill-usage-count">
+											<span className="sd-ai-agent-skill-usage-stats">
+												<span className="sd-ai-agent-skill-usage-count">
 													{ stats.total_loads > 0 ? (
 														<>
 															{ sprintf(
@@ -505,7 +502,7 @@ export default function SkillManager() {
 																	'Used %d time',
 																	'Used %d times',
 																	stats.total_loads,
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																),
 																stats.total_loads
 															) }
@@ -521,20 +518,20 @@ export default function SkillManager() {
 													) : (
 														__(
 															'Never used',
-															'gratis-ai-agent'
+															'sd-ai-agent'
 														)
 													) }
 												</span>
 												{ stats.total_loads > 0 &&
 													stats.helpful_count > 0 && (
-														<span className="gratis-ai-agent-skill-helpful">
+														<span className="sd-ai-agent-skill-helpful">
 															{ sprintf(
 																/* translators: %d: number of helpful feedback responses */
 																_n(
 																	'%d helpful',
 																	'%d helpful',
 																	stats.helpful_count,
-																	'gratis-ai-agent'
+																	'sd-ai-agent'
 																),
 																stats.helpful_count
 															) }
@@ -543,13 +540,13 @@ export default function SkillManager() {
 											</span>
 										) }
 									</div>
-									<div className="gratis-ai-agent-skill-card-actions">
+									<div className="sd-ai-agent-skill-card-actions">
 										<Button
 											icon={ pencil }
 											size="small"
 											label={ __(
 												'Edit',
-												'gratis-ai-agent'
+												'sd-ai-agent'
 											) }
 											onClick={ () =>
 												handleEdit( skill )
@@ -561,7 +558,7 @@ export default function SkillManager() {
 												size="small"
 												label={ __(
 													'Reset to Default',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 												onClick={ () =>
 													handleReset( skill.id )
@@ -573,7 +570,7 @@ export default function SkillManager() {
 												size="small"
 												label={ __(
 													'Delete',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 												isDestructive
 												onClick={ () =>

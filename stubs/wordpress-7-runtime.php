@@ -16,7 +16,7 @@
  * This file exists solely for LSP (intelephense) type resolution and is
  * never loaded at runtime.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  */
 
 // phpcs:disable
@@ -388,7 +388,7 @@ namespace {
 	 */
 	class WP_Ability {
 		/**
-		 * The namespaced ability name (e.g. 'gratis-ai-agent/memory-save').
+		 * The namespaced ability name (e.g. 'sd-ai-agent/memory-save').
 		 *
 		 * @var string
 		 */

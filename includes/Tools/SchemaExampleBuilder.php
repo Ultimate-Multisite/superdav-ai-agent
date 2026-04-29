@@ -21,11 +21,11 @@ declare(strict_types=1);
  * Used by AbilityFunctionResolver and ToolDiscovery::handle_ability_call to
  * enrich `ability_invalid_input` responses.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Tools;
+namespace SdAiAgent\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -55,7 +55,7 @@ function relativeTime( dateStr ) {
 	const now = new Date();
 	const diff = Math.floor( ( now - date ) / 1000 );
 	if ( diff < 60 ) {
-		return __( 'just now', 'gratis-ai-agent' );
+		return __( 'just now', 'sd-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -131,7 +131,7 @@ export default function WidgetHeader( {
 
 	const session = sessions.find( ( s ) => s.id === currentSessionId ) || null;
 	const branding = getBranding();
-	const agentName = branding.agentName || __( 'AI Agent', 'gratis-ai-agent' );
+	const agentName = branding.agentName || __( 'AI Agent', 'sd-ai-agent' );
 	const title = session?.title || agentName;
 	const runningJob = currentSessionId
 		? sessionJobs[ currentSessionId ]
@@ -144,13 +144,13 @@ export default function WidgetHeader( {
 				( j ) => j && j.status === 'processing'
 			).length;
 			if ( runningCount > 1 ) {
-				return __( 'Working…', 'gratis-ai-agent' );
+				return __( 'Working…', 'sd-ai-agent' );
 			}
-			return __( 'Working…', 'gratis-ai-agent' );
+			return __( 'Working…', 'sd-ai-agent' );
 		}
 		return activeModelName
-			? `${ __( 'Ready', 'gratis-ai-agent' ) } · ${ activeModelName }`
-			: __( 'Ready', 'gratis-ai-agent' );
+			? `${ __( 'Ready', 'sd-ai-agent' ) } · ${ activeModelName }`
+			: __( 'Ready', 'sd-ai-agent' );
 	} )();
 
 	const handlePickSession = useCallback(
@@ -181,7 +181,7 @@ export default function WidgetHeader( {
 						drawerOpen ? ' is-open' : ''
 					}` }
 					onClick={ () => setDrawerOpen( ( v ) => ! v ) }
-					title={ __( 'Switch session', 'gratis-ai-agent' ) }
+					title={ __( 'Switch session', 'sd-ai-agent' ) }
 					aria-haspopup="menu"
 					aria-expanded={ drawerOpen }
 				>
@@ -222,13 +222,13 @@ export default function WidgetHeader( {
 					<div className="gaa-w-session-drawer" role="menu">
 						<div className="gaa-w-session-drawer-head">
 							<span>
-								{ __( 'Conversations', 'gratis-ai-agent' ) }
+								{ __( 'Conversations', 'sd-ai-agent' ) }
 							</span>
 							<button
 								type="button"
 								className="gaa-w-icon-btn is-small"
 								onClick={ () => setDrawerOpen( false ) }
-								aria-label={ __( 'Close', 'gratis-ai-agent' ) }
+								aria-label={ __( 'Close', 'sd-ai-agent' ) }
 							>
 								<Icon icon={ close } size={ 14 } />
 							</button>
@@ -238,7 +238,7 @@ export default function WidgetHeader( {
 								<div className="gaa-w-session-drawer-empty">
 									{ __(
 										'No conversations yet',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								</div>
 							) }
@@ -272,7 +272,7 @@ export default function WidgetHeader( {
 											{ s.title ||
 												__(
 													'Untitled',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 										</span>
 										<span className="gaa-w-session-drawer-item-time">
@@ -290,8 +290,8 @@ export default function WidgetHeader( {
 				type="button"
 				className="gaa-w-new-btn"
 				onClick={ handleNewChat }
-				aria-label={ __( 'Start new chat', 'gratis-ai-agent' ) }
-				title={ __( 'Start new chat', 'gratis-ai-agent' ) }
+				aria-label={ __( 'Start new chat', 'sd-ai-agent' ) }
+				title={ __( 'Start new chat', 'sd-ai-agent' ) }
 			>
 				<Icon icon={ plus } size={ 18 } />
 			</button>
@@ -303,13 +303,13 @@ export default function WidgetHeader( {
 					onClick={ onToggleMinimize }
 					aria-label={
 						isMinimized
-							? __( 'Expand', 'gratis-ai-agent' )
-							: __( 'Minimize', 'gratis-ai-agent' )
+							? __( 'Expand', 'sd-ai-agent' )
+							: __( 'Minimize', 'sd-ai-agent' )
 					}
 					title={
 						isMinimized
-							? __( 'Expand', 'gratis-ai-agent' )
-							: __( 'Minimize', 'gratis-ai-agent' )
+							? __( 'Expand', 'sd-ai-agent' )
+							: __( 'Minimize', 'sd-ai-agent' )
 					}
 				>
 					<MinimizeIcon />
@@ -322,8 +322,8 @@ export default function WidgetHeader( {
 						e.stopPropagation();
 						setFloatingOpen( false );
 					} }
-					aria-label={ __( 'Close', 'gratis-ai-agent' ) }
-					title={ __( 'Close', 'gratis-ai-agent' ) }
+					aria-label={ __( 'Close', 'sd-ai-agent' ) }
+					title={ __( 'Close', 'sd-ai-agent' ) }
 				>
 					<Icon icon={ close } size={ 16 } />
 				</button>

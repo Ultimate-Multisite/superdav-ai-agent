@@ -6,15 +6,15 @@
  * to capture the corresponding response. Only logs requests to known AI provider
  * endpoints when tracing is enabled.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
-use GratisAiAgent\Models\ProviderTrace;
+use SdAiAgent\Models\ProviderTrace;
 
 /**
  * Prevents direct access to the file.
@@ -202,7 +202,7 @@ class ProviderTraceLogger {
 		 * @param string $url         The request URL.
 		 * @param string $host        The parsed hostname.
 		 */
-		return (string) apply_filters( 'gratis_ai_agent_trace_match_provider', '', $url, $host );
+		return (string) apply_filters( 'sd_ai_agent_trace_match_provider', '', $url, $host );
 	}
 
 	/**

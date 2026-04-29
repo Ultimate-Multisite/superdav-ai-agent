@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Typed DTO for a changes-log row returned by wpdb::get_row().
  *
- * @package GratisAiAgent\Models\DTO
+ * @package SdAiAgent\Models\DTO
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Models\DTO;
+namespace SdAiAgent\Models\DTO;
 
 /**
- * Immutable DTO for the gratis_ai_agent_changes_log table row.
+ * Immutable DTO for the sd_ai_agent_changes_log table row.
  */
 readonly class ChangesLogRow {
 

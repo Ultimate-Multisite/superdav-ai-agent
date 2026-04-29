@@ -10,19 +10,19 @@ declare(strict_types=1);
  * `false` disables the corresponding UI and REST surface.
  *
  * Defined constants (all default true):
- *  - GRATIS_AI_AGENT_FEATURE_BRANDING      — White-label / branding settings:
+ *  - SD_AI_AGENT_FEATURE_BRANDING      — White-label / branding settings:
  *    agent name, brand colours, logo URL, greeting message.
- *  - GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL — Role-based access control:
+ *  - SD_AI_AGENT_FEATURE_ACCESS_CONTROL — Role-based access control:
  *    the Role Permissions manager and its /role-permissions REST routes.
  *
  * Usage example (wp-config.php):
- *   define( 'GRATIS_AI_AGENT_FEATURE_BRANDING', false );
+ *   define( 'SD_AI_AGENT_FEATURE_BRANDING', false );
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,13 +32,13 @@ final class Features {
 
 	/**
 	 * Feature: white-label branding (agent name, colours, logo).
-	 * Constant: GRATIS_AI_AGENT_FEATURE_BRANDING
+	 * Constant: SD_AI_AGENT_FEATURE_BRANDING
 	 */
 	const BRANDING = 'branding';
 
 	/**
 	 * Feature: role-based access control (Role Permissions manager).
-	 * Constant: GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL
+	 * Constant: SD_AI_AGENT_FEATURE_ACCESS_CONTROL
 	 */
 	const ACCESS_CONTROL = 'access_control';
 
@@ -48,8 +48,8 @@ final class Features {
 	 * @var array<string, string>
 	 */
 	private const CONSTANT_MAP = array(
-		self::BRANDING       => 'GRATIS_AI_AGENT_FEATURE_BRANDING',
-		self::ACCESS_CONTROL => 'GRATIS_AI_AGENT_FEATURE_ACCESS_CONTROL',
+		self::BRANDING       => 'SD_AI_AGENT_FEATURE_BRANDING',
+		self::ACCESS_CONTROL => 'SD_AI_AGENT_FEATURE_ACCESS_CONTROL',
 	);
 
 	/**

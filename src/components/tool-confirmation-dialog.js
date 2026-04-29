@@ -45,51 +45,45 @@ export default function ToolConfirmationDialog( {
 	}
 
 	return (
-		<div className="gratis-ai-agent-shortcuts-overlay">
-			<div
-				className="gratis-ai-agent-tool-confirm-dialog"
-				ref={ dialogRef }
-			>
-				<div className="gratis-ai-agent-tool-confirm-header">
+		<div className="sd-ai-agent-shortcuts-overlay">
+			<div className="sd-ai-agent-tool-confirm-dialog" ref={ dialogRef }>
+				<div className="sd-ai-agent-tool-confirm-header">
 					<h3>
-						{ __(
-							'Tool Confirmation Required',
-							'gratis-ai-agent'
-						) }
+						{ __( 'Tool Confirmation Required', 'sd-ai-agent' ) }
 					</h3>
 				</div>
-				<div className="gratis-ai-agent-tool-confirm-body">
-					<p className="gratis-ai-agent-tool-confirm-desc">
+				<div className="sd-ai-agent-tool-confirm-body">
+					<p className="sd-ai-agent-tool-confirm-desc">
 						{ __(
 							'The AI wants to use the following tools:',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</p>
 					{ confirmation.tools.map( ( tool ) => (
 						<div
 							key={ tool.id }
-							className="gratis-ai-agent-tool-confirm-item"
+							className="sd-ai-agent-tool-confirm-item"
 						>
-							<div className="gratis-ai-agent-tool-confirm-name">
+							<div className="sd-ai-agent-tool-confirm-name">
 								{ tool.label || tool.name }
 							</div>
 							{ tool.description && (
-								<p className="gratis-ai-agent-tool-confirm-description">
+								<p className="sd-ai-agent-tool-confirm-description">
 									{ tool.description }
 								</p>
 							) }
 							{ tool.args && (
-								<details className="gratis-ai-agent-tool-confirm-details">
+								<details className="sd-ai-agent-tool-confirm-details">
 									<summary>
 										{ __(
 											'Technical details',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 										) }
 									</summary>
-									<div className="gratis-ai-agent-tool-confirm-tool-name">
+									<div className="sd-ai-agent-tool-confirm-tool-name">
 										{ tool.name }
 									</div>
-									<pre className="gratis-ai-agent-tool-confirm-args">
+									<pre className="sd-ai-agent-tool-confirm-args">
 										{ JSON.stringify( tool.args, null, 2 ) }
 									</pre>
 								</details>
@@ -97,7 +91,7 @@ export default function ToolConfirmationDialog( {
 						</div>
 					) ) }
 					<label
-						className="gratis-ai-agent-tool-confirm-always"
+						className="sd-ai-agent-tool-confirm-always"
 						htmlFor="tool-confirm-always-allow"
 					>
 						<input
@@ -110,24 +104,24 @@ export default function ToolConfirmationDialog( {
 						/>
 						{ __(
 							'Always allow these tools without asking',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</label>
 				</div>
-				<div className="gratis-ai-agent-tool-confirm-footer">
+				<div className="sd-ai-agent-tool-confirm-footer">
 					<button
 						type="button"
 						className="button"
 						onClick={ onReject }
 					>
-						{ __( 'Deny', 'gratis-ai-agent' ) }
+						{ __( 'Deny', 'sd-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ () => onConfirm( alwaysAllow ) }
 					>
-						{ __( 'Allow', 'gratis-ai-agent' ) }
+						{ __( 'Allow', 'sd-ai-agent' ) }
 					</button>
 				</div>
 			</div>

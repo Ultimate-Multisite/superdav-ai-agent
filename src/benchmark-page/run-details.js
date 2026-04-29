@@ -21,7 +21,7 @@ import { check, closeSmall, arrowLeft } from '@wordpress/icons';
  */
 function StatCard( { label, value } ) {
 	return (
-		<Card className="gratis-ai-agent-benchmark-stat-card">
+		<Card className="sd-ai-agent-benchmark-stat-card">
 			<CardBody>
 				<h4>{ label }</h4>
 				<div className="stat-value">{ value }</div>
@@ -43,7 +43,7 @@ export default function RunDetails( { run, onBack } ) {
 
 	const formatDate = ( dateString ) => {
 		if ( ! dateString ) {
-			return __( 'N/A', 'gratis-ai-agent' );
+			return __( 'N/A', 'sd-ai-agent' );
 		}
 		const date = new Date( dateString );
 		return date.toLocaleString();
@@ -107,14 +107,14 @@ export default function RunDetails( { run, onBack } ) {
 	} );
 
 	return (
-		<div className="gratis-ai-agent-benchmark-run-details">
+		<div className="sd-ai-agent-benchmark-run-details">
 			<Button
 				variant="tertiary"
 				onClick={ onBack }
 				icon={ arrowLeft }
 				style={ { marginBottom: '16px' } }
 			>
-				{ __( 'Back to History', 'gratis-ai-agent' ) }
+				{ __( 'Back to History', 'sd-ai-agent' ) }
 			</Button>
 
 			<Card>
@@ -124,19 +124,17 @@ export default function RunDetails( { run, onBack } ) {
 				<CardBody>
 					{ run.description && <p>{ run.description }</p> }
 					<p>
-						<strong>
-							{ __( 'Test Suite:', 'gratis-ai-agent' ) }
-						</strong>{ ' ' }
+						<strong>{ __( 'Test Suite:', 'sd-ai-agent' ) }</strong>{ ' ' }
 						{ run.test_suite }
 					</p>
 					<p>
-						<strong>{ __( 'Started:', 'gratis-ai-agent' ) }</strong>{ ' ' }
+						<strong>{ __( 'Started:', 'sd-ai-agent' ) }</strong>{ ' ' }
 						{ formatDate( run.started_at ) }
 					</p>
 					{ run.completed_at && (
 						<p>
 							<strong>
-								{ __( 'Completed:', 'gratis-ai-agent' ) }
+								{ __( 'Completed:', 'sd-ai-agent' ) }
 							</strong>{ ' ' }
 							{ formatDate( run.completed_at ) }
 						</p>
@@ -144,25 +142,25 @@ export default function RunDetails( { run, onBack } ) {
 				</CardBody>
 			</Card>
 
-			<div className="gratis-ai-agent-benchmark-summary">
+			<div className="sd-ai-agent-benchmark-summary">
 				<StatCard
-					label={ __( 'Total Questions', 'gratis-ai-agent' ) }
+					label={ __( 'Total Questions', 'sd-ai-agent' ) }
 					value={ results.length }
 				/>
 				<StatCard
-					label={ __( 'Accuracy', 'gratis-ai-agent' ) }
+					label={ __( 'Accuracy', 'sd-ai-agent' ) }
 					value={ `${ accuracy }%` }
 				/>
 				<StatCard
-					label={ __( 'Correct', 'gratis-ai-agent' ) }
+					label={ __( 'Correct', 'sd-ai-agent' ) }
 					value={ correctCount }
 				/>
 				<StatCard
-					label={ __( 'Avg Latency', 'gratis-ai-agent' ) }
+					label={ __( 'Avg Latency', 'sd-ai-agent' ) }
 					value={ `${ avgLatency }ms` }
 				/>
 				<StatCard
-					label={ __( 'Total Tokens', 'gratis-ai-agent' ) }
+					label={ __( 'Total Tokens', 'sd-ai-agent' ) }
 					value={ totalTokens.toLocaleString() }
 				/>
 			</div>
@@ -170,27 +168,17 @@ export default function RunDetails( { run, onBack } ) {
 			{ Object.keys( byModel ).length > 0 && (
 				<Card style={ { marginTop: '20px' } }>
 					<CardHeader>
-						<h3>{ __( 'Results by Model', 'gratis-ai-agent' ) }</h3>
+						<h3>{ __( 'Results by Model', 'sd-ai-agent' ) }</h3>
 					</CardHeader>
 					<CardBody>
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>
-									<th>
-										{ __( 'Model', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Provider', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Total', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Correct', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Accuracy', 'gratis-ai-agent' ) }
-									</th>
+									<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Provider', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Total', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Correct', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Accuracy', 'sd-ai-agent' ) }</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -199,10 +187,7 @@ export default function RunDetails( { run, onBack } ) {
 										<td>{ model.model_id }</td>
 										<td>
 											{ model.provider_id ||
-												__(
-													'Default',
-													'gratis-ai-agent'
-												) }
+												__( 'Default', 'sd-ai-agent' ) }
 										</td>
 										<td>{ model.total }</td>
 										<td>{ model.correct }</td>
@@ -225,26 +210,16 @@ export default function RunDetails( { run, onBack } ) {
 			{ Object.keys( byCategory ).length > 0 && (
 				<Card style={ { marginTop: '20px' } }>
 					<CardHeader>
-						<h3>
-							{ __( 'Results by Category', 'gratis-ai-agent' ) }
-						</h3>
+						<h3>{ __( 'Results by Category', 'sd-ai-agent' ) }</h3>
 					</CardHeader>
 					<CardBody>
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>
-									<th>
-										{ __( 'Category', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Total', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Correct', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Accuracy', 'gratis-ai-agent' ) }
-									</th>
+									<th>{ __( 'Category', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Total', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Correct', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Accuracy', 'sd-ai-agent' ) }</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -270,35 +245,22 @@ export default function RunDetails( { run, onBack } ) {
 
 			<Card style={ { marginTop: '20px' } }>
 				<CardHeader>
-					<h3>{ __( 'Detailed Results', 'gratis-ai-agent' ) }</h3>
+					<h3>{ __( 'Detailed Results', 'sd-ai-agent' ) }</h3>
 				</CardHeader>
 				<CardBody>
-					<div className="gratis-ai-agent-benchmark-results-table">
+					<div className="sd-ai-agent-benchmark-results-table">
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>
 									<th style={ { width: '30px' } }></th>
 									<th>
-										{ __(
-											'Question ID',
-											'gratis-ai-agent'
-										) }
+										{ __( 'Question ID', 'sd-ai-agent' ) }
 									</th>
-									<th>
-										{ __( 'Category', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Model', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Correct', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Answer', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Latency', 'gratis-ai-agent' ) }
-									</th>
+									<th>{ __( 'Category', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Correct', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Answer', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Latency', 'sd-ai-agent' ) }</th>
 								</tr>
 							</thead>
 							<tbody>

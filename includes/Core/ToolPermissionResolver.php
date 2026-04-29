@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Extracted from AgentLoop so the permission-checking and ability-classification
  * concern lives in one focused class.
  *
- * @package GratisAiAgent\Core
+ * @package SdAiAgent\Core
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
 
@@ -147,7 +147,7 @@ class ToolPermissionResolver {
 	/**
 	 * Persist an "always allow" permission for a specific ability.
 	 *
-	 * @param string $ability_name The ability name (e.g. 'gratis-ai-agent/memory-save').
+	 * @param string $ability_name The ability name (e.g. 'sd-ai-agent/memory-save').
 	 */
 	public static function set_always_allow( string $ability_name ): void {
 		$all   = Settings::instance()->get();

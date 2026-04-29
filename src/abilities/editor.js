@@ -65,7 +65,7 @@ function executeInsertBlock( args ) {
 /**
  * Register the insert-block ability with the client-side abilities registry.
  *
- * Called by src/abilities/index.js after the gratis-ai-agent-js category
+ * Called by src/abilities/index.js after the sd-ai-agent-js category
  * has been registered. Must NOT self-register at module-eval time — ES
  * module imports are hoisted and would race the category registration
  * (the bug t166 fixes).
@@ -79,7 +79,7 @@ function executeInsertBlock( args ) {
  */
 export async function registerEditorAbility() {
 	await registerClientAbility( {
-		name: 'gratis-ai-agent-js/insert-block',
+		name: 'sd-ai-agent-js/insert-block',
 		label: 'Insert Block',
 		description:
 			'Insert a Gutenberg block into the active block editor. Only available on editor screens.',

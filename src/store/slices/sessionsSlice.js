@@ -198,7 +198,7 @@ export const initialState = {
 	// Persisted to localStorage so tabs survive page reload.
 	openTabs: ( () => {
 		try {
-			const saved = localStorage.getItem( 'gratisAiAgent_openTabs' );
+			const saved = localStorage.getItem( 'sdAiAgent_openTabs' );
 			return saved ? JSON.parse( saved ) : [];
 		} catch {
 			return [];
@@ -529,7 +529,7 @@ export const actions = {
 
 				const qs = params.toString();
 				const path =
-					'/gratis-ai-agent/v1/sessions' + ( qs ? '?' + qs : '' );
+					'/sd-ai-agent/v1/sessions' + ( qs ? '?' + qs : '' );
 
 				const sessions = await apiFetch( { path } );
 				dispatch.setSessions( sessions );
@@ -542,7 +542,7 @@ export const actions = {
 							err?.message ||
 							__(
 								'Unable to connect to the AI Agent API.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 						status,
 					} );
@@ -562,7 +562,7 @@ export const actions = {
 		return async ( { dispatch, select } ) => {
 			try {
 				const session = await apiFetch( {
-					path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+					path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				} );
 				dispatch.setCurrentSession(
 					session.id,
@@ -598,7 +598,7 @@ export const actions = {
 				// Resume polling for any active background job on this session (t202).
 				try {
 					const activeJob = await apiFetch( {
-						path: `/gratis-ai-agent/v1/sessions/${ sessionId }/active-job`,
+						path: `/sd-ai-agent/v1/sessions/${ sessionId }/active-job`,
 					} );
 					if ( activeJob && activeJob.job_id ) {
 						dispatch.pollJob( activeJob.job_id, sessionId );
@@ -627,7 +627,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const activeJobs = await apiFetch( {
-					path: '/gratis-ai-agent/v1/sessions/active-jobs',
+					path: '/sd-ai-agent/v1/sessions/active-jobs',
 				} );
 				if ( ! Array.isArray( activeJobs ) ) {
 					return;
@@ -653,7 +653,7 @@ export const actions = {
 		return async ( { dispatch, select } ) => {
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+					path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 					method: 'DELETE',
 				} );
 				if ( select.getCurrentSessionId() === sessionId ) {
@@ -676,7 +676,7 @@ export const actions = {
 	pinSession( sessionId, pinned ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { pinned },
 			} );
@@ -693,7 +693,7 @@ export const actions = {
 	archiveSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'archived' },
 			} );
@@ -713,7 +713,7 @@ export const actions = {
 	trashSession( sessionId ) {
 		return async ( { dispatch, select } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'trash' },
 			} );
@@ -733,7 +733,7 @@ export const actions = {
 	restoreSession( sessionId ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { status: 'active' },
 			} );
@@ -751,7 +751,7 @@ export const actions = {
 	moveSessionToFolder( sessionId, folder ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { folder },
 			} );
@@ -770,7 +770,7 @@ export const actions = {
 	renameSession( sessionId, title ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				method: 'PATCH',
 				data: { title },
 			} );
@@ -788,7 +788,7 @@ export const actions = {
 	exportSession( sessionId, format = 'json' ) {
 		return async () => {
 			const result = await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/export?format=${ format }`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }/export?format=${ format }`,
 			} );
 			const content =
 				format === 'json'
@@ -809,13 +809,13 @@ export const actions = {
 	/**
 	 * Import a session from exported JSON data.
 	 *
-	 * @param {Object} data - Parsed export JSON (gratis-ai-agent-v1 format).
+	 * @param {Object} data - Parsed export JSON (sd-ai-agent-v1 format).
 	 * @return {Function} Redux thunk.
 	 */
 	importSession( data ) {
 		return async ( { dispatch } ) => {
 			const session = await apiFetch( {
-				path: '/gratis-ai-agent/v1/sessions/import',
+				path: '/sd-ai-agent/v1/sessions/import',
 				method: 'POST',
 				data,
 			} );
@@ -909,7 +909,7 @@ export const actions = {
 	 * Send a message and stream the response token-by-token via SSE.
 	 *
 	 * Uses the Fetch API with a ReadableStream reader to consume the
-	 * text/event-stream response from POST /gratis-ai-agent/v1/stream.
+	 * text/event-stream response from POST /sd-ai-agent/v1/stream.
 	 *
 	 * @param {string}  message           The user message to send.
 	 * @param {Array}   attachments       Optional array of attachment objects with
@@ -962,7 +962,7 @@ export const actions = {
 						sessionData.agent_id = agentIdForSession;
 					}
 					const session = await apiFetch( {
-						path: '/gratis-ai-agent/v1/sessions',
+						path: '/sd-ai-agent/v1/sessions',
 						method: 'POST',
 						data: sessionData,
 					} );
@@ -1059,7 +1059,7 @@ export const actions = {
 			let runResult;
 			try {
 				runResult = await apiFetch( {
-					path: '/gratis-ai-agent/v1/run',
+					path: '/sd-ai-agent/v1/run',
 					method: 'POST',
 					data: body,
 				} );
@@ -1068,9 +1068,9 @@ export const actions = {
 					role: 'system',
 					parts: [
 						{
-							text: `${ __( 'Error:', 'gratis-ai-agent' ) } ${
+							text: `${ __( 'Error:', 'sd-ai-agent' ) } ${
 								err.message ||
-								__( 'Failed to start agent', 'gratis-ai-agent' )
+								__( 'Failed to start agent', 'sd-ai-agent' )
 							}`,
 						},
 					],
@@ -1101,7 +1101,7 @@ export const actions = {
 						{
 							text: __(
 								'Error: No job ID returned.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							),
 						},
 					],
@@ -1127,7 +1127,7 @@ export const actions = {
 			clearNotification( jobId );
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/job/${ jobId }/confirm`,
+					path: `/sd-ai-agent/v1/job/${ jobId }/confirm`,
 					method: 'POST',
 					data: { always_allow: alwaysAllow },
 				} );
@@ -1164,7 +1164,7 @@ export const actions = {
 			clearNotification( jobId );
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/job/${ jobId }/reject`,
+					path: `/sd-ai-agent/v1/job/${ jobId }/reject`,
 					method: 'POST',
 				} );
 				dispatch.pollJob( jobId, sessionId );
@@ -1286,7 +1286,7 @@ export const actions = {
 
 			try {
 				await apiFetch( {
-					path: `/gratis-ai-agent/v1/job/${ jobId }/interrupt`,
+					path: `/sd-ai-agent/v1/job/${ jobId }/interrupt`,
 					method: 'POST',
 					data: { message },
 				} );
@@ -1326,7 +1326,7 @@ export const actions = {
 			// Create a new session.
 			try {
 				const session = await apiFetch( {
-					path: '/gratis-ai-agent/v1/sessions',
+					path: '/sd-ai-agent/v1/sessions',
 					method: 'POST',
 					data: {
 						title: 'Compacted conversation',
@@ -1359,7 +1359,7 @@ export const actions = {
 		return async ( { dispatch } ) => {
 			try {
 				const sessions = await apiFetch( {
-					path: '/gratis-ai-agent/v1/sessions/shared',
+					path: '/sd-ai-agent/v1/sessions/shared',
 				} );
 				dispatch.setSharedSessions( sessions );
 			} catch {
@@ -1377,7 +1377,7 @@ export const actions = {
 	shareSession( sessionId ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }/share`,
 				method: 'POST',
 			} );
 			dispatch.fetchSessions();
@@ -1394,7 +1394,7 @@ export const actions = {
 	unshareSession( sessionId ) {
 		return async ( { dispatch } ) => {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/sessions/${ sessionId }/share`,
+				path: `/sd-ai-agent/v1/sessions/${ sessionId }/share`,
 				method: 'DELETE',
 			} );
 			dispatch.fetchSessions();
@@ -1773,7 +1773,7 @@ export function reducer( state, action ) {
 			const nextTabs = [ ...( state.openTabs || [] ), tabId ];
 			try {
 				localStorage.setItem(
-					'gratisAiAgent_openTabs',
+					'sdAiAgent_openTabs',
 					JSON.stringify( nextTabs )
 				);
 			} catch {
@@ -1788,7 +1788,7 @@ export function reducer( state, action ) {
 			);
 			try {
 				localStorage.setItem(
-					'gratisAiAgent_openTabs',
+					'sdAiAgent_openTabs',
 					JSON.stringify( filteredTabs )
 				);
 			} catch {
@@ -1799,7 +1799,7 @@ export function reducer( state, action ) {
 		case 'SET_OPEN_TABS': {
 			try {
 				localStorage.setItem(
-					'gratisAiAgent_openTabs',
+					'sdAiAgent_openTabs',
 					JSON.stringify( action.tabs )
 				);
 			} catch {

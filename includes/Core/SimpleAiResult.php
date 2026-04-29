@@ -9,11 +9,11 @@ declare(strict_types=1);
  * instead of through the WordPress AI SDK (to avoid a fatal autoloader conflict),
  * we wrap the raw response in this class so the loop can handle it uniformly.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;

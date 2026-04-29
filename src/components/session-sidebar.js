@@ -40,7 +40,7 @@ function relativeTime( dateStr ) {
 	const diff = Math.floor( ( now - date ) / 1000 );
 
 	if ( diff < 60 ) {
-		return __( 'just now', 'gratis-ai-agent' );
+		return __( 'just now', 'sd-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -84,7 +84,7 @@ function SessionItem( {
 
 	return (
 		<div
-			className={ `gratis-ai-agent-session-item ${
+			className={ `sd-ai-agent-session-item ${
 				isActive ? 'is-active' : ''
 			} ${ isPinned ? 'is-pinned' : '' } ${
 				isShared ? 'is-shared' : ''
@@ -99,67 +99,61 @@ function SessionItem( {
 			tabIndex={ 0 }
 			aria-current={ isActive ? 'true' : undefined }
 		>
-			<div className="gratis-ai-agent-session-title">
+			<div className="sd-ai-agent-session-title">
 				{ isPinned && (
 					<span
-						className="gratis-ai-agent-pin-icon"
-						title={ __( 'Pinned', 'gratis-ai-agent' ) }
-						aria-label={ __( 'Pinned', 'gratis-ai-agent' ) }
+						className="sd-ai-agent-pin-icon"
+						title={ __( 'Pinned', 'sd-ai-agent' ) }
+						aria-label={ __( 'Pinned', 'sd-ai-agent' ) }
 					>
 						<Icon icon={ pin } size={ 12 } />
 					</span>
 				) }
 				{ isShared && (
 					<span
-						className="gratis-ai-agent-shared-icon"
-						title={ __( 'Shared with admins', 'gratis-ai-agent' ) }
-						aria-label={ __( 'Shared', 'gratis-ai-agent' ) }
+						className="sd-ai-agent-shared-icon"
+						title={ __( 'Shared with admins', 'sd-ai-agent' ) }
+						aria-label={ __( 'Shared', 'sd-ai-agent' ) }
 					>
 						<Icon icon={ people } size={ 12 } />
 					</span>
 				) }
-				{ session.title || __( 'Untitled', 'gratis-ai-agent' ) }
+				{ session.title || __( 'Untitled', 'sd-ai-agent' ) }
 				{ hasPendingConfirmation && ! isActive && (
 					<span
-						className="gratis-ai-agent-session-confirm-badge"
-						title={ __( 'Approval needed', 'gratis-ai-agent' ) }
-						aria-label={ __(
-							'Approval needed',
-							'gratis-ai-agent'
-						) }
+						className="sd-ai-agent-session-confirm-badge"
+						title={ __( 'Approval needed', 'sd-ai-agent' ) }
+						aria-label={ __( 'Approval needed', 'sd-ai-agent' ) }
 					>
 						{ '\u26A0' }
 					</span>
 				) }
 				{ hasActiveJob && ! hasPendingConfirmation && ! isActive && (
 					<span
-						className="gratis-ai-agent-session-job-badge"
-						title={ __( 'Agent is working', 'gratis-ai-agent' ) }
-						aria-label={ __(
-							'Agent is working',
-							'gratis-ai-agent'
-						) }
+						className="sd-ai-agent-session-job-badge"
+						title={ __( 'Agent is working', 'sd-ai-agent' ) }
+						aria-label={ __( 'Agent is working', 'sd-ai-agent' ) }
 					>
 						{ '\u2022' }
 					</span>
 				) }
 			</div>
-			<div className="gratis-ai-agent-session-meta">
+			<div className="sd-ai-agent-session-meta">
 				{ session.folder && (
-					<span className="gratis-ai-agent-session-folder-badge">
+					<span className="sd-ai-agent-session-folder-badge">
 						{ session.folder }
 					</span>
 				) }
 				{ relativeTime( session.updated_at ) }
 			</div>
 			<button
-				className="gratis-ai-agent-session-more"
+				className="sd-ai-agent-session-more"
 				onClick={ ( e ) => {
 					e.stopPropagation();
 					setShowMenu( ! showMenu );
 				} }
-				title={ __( 'More', 'gratis-ai-agent' ) }
-				aria-label={ __( 'Session options', 'gratis-ai-agent' ) }
+				title={ __( 'More', 'sd-ai-agent' ) }
+				aria-label={ __( 'Session options', 'sd-ai-agent' ) }
 				aria-haspopup="menu"
 				aria-expanded={ showMenu }
 				type="button"
@@ -182,15 +176,15 @@ function SessionItem( {
  */
 function getEmptyMessage( filter ) {
 	if ( filter === 'trash' ) {
-		return __( 'Trash is empty', 'gratis-ai-agent' );
+		return __( 'Trash is empty', 'sd-ai-agent' );
 	}
 	if ( filter === 'archived' ) {
-		return __( 'No archived conversations', 'gratis-ai-agent' );
+		return __( 'No archived conversations', 'sd-ai-agent' );
 	}
 	if ( filter === 'shared' ) {
-		return __( 'No shared conversations', 'gratis-ai-agent' );
+		return __( 'No shared conversations', 'sd-ai-agent' );
 	}
-	return __( 'No conversations yet', 'gratis-ai-agent' );
+	return __( 'No conversations yet', 'sd-ai-agent' );
 }
 
 /**
@@ -226,7 +220,7 @@ export default function SessionSidebar( { onClose } ) {
 			sessionSearch: store.getSessionSearch(),
 			folders: store.getFolders(),
 			// WordPress exposes the current user ID via wpApiSettings or similar.
-			currentUserId: window.gratisAiAgentData?.currentUserId || 0,
+			currentUserId: window.sdAiAgentData?.currentUserId || 0,
 			sessionJobs: store.getSessionJobs(),
 		};
 	}, [] );
@@ -283,9 +277,7 @@ export default function SessionSidebar( { onClose } ) {
 					importSession( data );
 				} catch {
 					// eslint-disable-next-line no-alert
-					window.alert(
-						__( 'Invalid JSON file.', 'gratis-ai-agent' )
-					);
+					window.alert( __( 'Invalid JSON file.', 'sd-ai-agent' ) );
 				}
 			};
 			reader.readAsText( file );
@@ -295,10 +287,10 @@ export default function SessionSidebar( { onClose } ) {
 	);
 
 	const filterTabs = [
-		{ key: 'active', label: __( 'Active', 'gratis-ai-agent' ) },
-		{ key: 'shared', label: __( 'Shared', 'gratis-ai-agent' ) },
-		{ key: 'archived', label: __( 'Archived', 'gratis-ai-agent' ) },
-		{ key: 'trash', label: __( 'Trash', 'gratis-ai-agent' ) },
+		{ key: 'active', label: __( 'Active', 'sd-ai-agent' ) },
+		{ key: 'shared', label: __( 'Shared', 'sd-ai-agent' ) },
+		{ key: 'archived', label: __( 'Archived', 'sd-ai-agent' ) },
+		{ key: 'trash', label: __( 'Trash', 'sd-ai-agent' ) },
 	];
 
 	// Determine which session list to render.
@@ -306,23 +298,23 @@ export default function SessionSidebar( { onClose } ) {
 	const displaySessions = isSharedTab ? sharedSessions : sessions;
 
 	return (
-		<div className="gratis-ai-agent-sidebar">
-			<div className="gratis-ai-agent-sidebar-header">
-				<div className="gratis-ai-agent-sidebar-actions">
+		<div className="sd-ai-agent-sidebar">
+			<div className="sd-ai-agent-sidebar-header">
+				<div className="sd-ai-agent-sidebar-actions">
 					<Button
 						variant="primary"
 						icon={ plus }
 						onClick={ clearCurrentSession }
-						className="gratis-ai-agent-new-chat-btn"
+						className="sd-ai-agent-new-chat-btn"
 					>
-						{ __( 'New Chat', 'gratis-ai-agent' ) }
+						{ __( 'New Chat', 'sd-ai-agent' ) }
 					</Button>
 					<Button
 						variant="tertiary"
 						icon={ upload }
 						onClick={ () => fileInputRef.current?.click() }
-						className="gratis-ai-agent-import-btn"
-						label={ __( 'Import', 'gratis-ai-agent' ) }
+						className="sd-ai-agent-import-btn"
+						label={ __( 'Import', 'sd-ai-agent' ) }
 					/>
 					<input
 						ref={ fileInputRef }
@@ -333,9 +325,9 @@ export default function SessionSidebar( { onClose } ) {
 					/>
 					{ onClose && (
 						<Button
-							className="gratis-ai-agent-sidebar-close-btn"
+							className="sd-ai-agent-sidebar-close-btn"
 							onClick={ onClose }
-							label={ __( 'Close sidebar', 'gratis-ai-agent' ) }
+							label={ __( 'Close sidebar', 'sd-ai-agent' ) }
 							showTooltip
 							icon={ <Icon icon={ closeSmall } size={ 20 } /> }
 						/>
@@ -344,23 +336,23 @@ export default function SessionSidebar( { onClose } ) {
 				{ ! isSharedTab && (
 					<input
 						type="text"
-						className="gratis-ai-agent-sidebar-search"
+						className="sd-ai-agent-sidebar-search"
 						placeholder={ __(
 							'Search conversations…',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						aria-label={ __(
 							'Search conversations',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 						onChange={ handleSearchChange }
 					/>
 				) }
 			</div>
 			<div
-				className="gratis-ai-agent-sidebar-filters"
+				className="sd-ai-agent-sidebar-filters"
 				role="tablist"
-				aria-label={ __( 'Conversation filters', 'gratis-ai-agent' ) }
+				aria-label={ __( 'Conversation filters', 'sd-ai-agent' ) }
 			>
 				{ filterTabs.map( ( tab ) => (
 					<button
@@ -368,7 +360,7 @@ export default function SessionSidebar( { onClose } ) {
 						type="button"
 						role="tab"
 						aria-selected={ sessionFilter === tab.key }
-						className={ `gratis-ai-agent-filter-tab ${
+						className={ `sd-ai-agent-filter-tab ${
 							sessionFilter === tab.key ? 'is-active' : ''
 						}` }
 						onClick={ () => {
@@ -385,23 +377,20 @@ export default function SessionSidebar( { onClose } ) {
 			</div>
 			{ folders.length > 0 && sessionFilter === 'active' && (
 				<div
-					className="gratis-ai-agent-sidebar-folders"
+					className="sd-ai-agent-sidebar-folders"
 					role="tablist"
-					aria-label={ __(
-						'Conversation folders',
-						'gratis-ai-agent'
-					) }
+					aria-label={ __( 'Conversation folders', 'sd-ai-agent' ) }
 				>
 					<button
 						type="button"
 						role="tab"
 						aria-selected={ ! sessionFolder }
-						className={ `gratis-ai-agent-folder-tab ${
+						className={ `sd-ai-agent-folder-tab ${
 							! sessionFolder ? 'is-active' : ''
 						}` }
 						onClick={ () => setSessionFolder( '' ) }
 					>
-						{ __( 'All', 'gratis-ai-agent' ) }
+						{ __( 'All', 'sd-ai-agent' ) }
 					</button>
 					{ folders.map( ( folder ) => (
 						<button
@@ -409,7 +398,7 @@ export default function SessionSidebar( { onClose } ) {
 							type="button"
 							role="tab"
 							aria-selected={ sessionFolder === folder }
-							className={ `gratis-ai-agent-folder-tab ${
+							className={ `sd-ai-agent-folder-tab ${
 								sessionFolder === folder ? 'is-active' : ''
 							}` }
 							onClick={ () => setSessionFolder( folder ) }
@@ -419,9 +408,9 @@ export default function SessionSidebar( { onClose } ) {
 					) ) }
 				</div>
 			) }
-			<div className="gratis-ai-agent-session-list">
+			<div className="sd-ai-agent-session-list">
 				{ displaySessions.length === 0 && (
-					<div className="gratis-ai-agent-session-empty">
+					<div className="sd-ai-agent-session-empty">
 						{ getEmptyMessage( sessionFilter ) }
 					</div>
 				) }

@@ -38,8 +38,8 @@ parameters:
 		- '#Call to an undefined static method WordPress\\AiClient\\AiClient::setCache\(\)#'
 		- '#Call to an undefined static method WordPress\\AiClient\\AiClient::setEventDispatcher\(\)#'
 		# Constants defined at runtime (plugin_dir_url/plugin_dir_path return string at runtime)
-		- '#Constant GRATIS_AI_AGENT_.* not found#'
-		# GRATIS_AI_AGENT_URL/DIR are string constants defined at runtime; PHPStan sees them as mixed
+		- '#Constant SD_AI_AGENT_.* not found#'
+		# SD_AI_AGENT_URL/DIR are string constants defined at runtime; PHPStan sees them as mixed
 		- '#Binary operation "\." between mixed and .* results in an error#'
 		- '#Binary operation "\." between .* and mixed results in an error#'
 		# WordPress functions that may not be stubbed
@@ -200,9 +200,9 @@ parameters:
 		# wpdb::insert() format array — safe when value is from trusted source
 		- message: '#\$format of method wpdb::insert\(\) expects array<string>\|string\|null#'
 		  identifier: argument.type
-		# GratisAiAgent\Admin\AdminPage — referenced in ScreenMetaPanel for SLUG constant;
+		# SdAiAgent\Admin\AdminPage — referenced in ScreenMetaPanel for SLUG constant;
 		# class was removed/renamed but the reference remains. Suppress until class is restored.
-		- '#Access to constant SLUG on an unknown class GratisAiAgent\\Admin\\AdminPage#'
+		- '#Access to constant SLUG on an unknown class SdAiAgent\\Admin\\AdminPage#'
 		# WP_CLI constant is defined as false in stubs for analysis; at runtime it is true when
 		# running under WP-CLI. The `defined('WP_CLI') && WP_CLI` guard is correct runtime code.
 		- message: '#Right side of && is always false#'
@@ -229,18 +229,18 @@ parameters:
 		  identifier: instanceof.alwaysTrue
 		# AgentLoop: $settings comes from Settings::get() which returns mixed; build_system_instruction
 		# expects array<string, mixed>. The value is always an array at runtime.
-		- message: '#\$settings of method GratisAiAgent\\Core\\AgentLoop::build_system_instruction\(\) expects array<string, mixed>, mixed given#'
+		- message: '#\$settings of method SdAiAgent\\Core\\AgentLoop::build_system_instruction\(\) expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
 		# AgentLoop (t193 extraction): focused service objects receive properties assigned from
 		# Settings::get() (returns mixed) and $options[] accesses (mixed). All values are correctly
 		# typed arrays at runtime — Settings::get() returns array<string,mixed> when called with no key.
-		- message: '#\$page_context of class GratisAiAgent\\Core\\SystemInstructionBuilder constructor expects array<string, mixed>, mixed given#'
+		- message: '#\$page_context of class SdAiAgent\\Core\\SystemInstructionBuilder constructor expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
-		- message: '#\$tool_permissions of class GratisAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
+		- message: '#\$tool_permissions of class SdAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
 		  identifier: argument.type
-		- message: '#\$raw_descriptors of static method GratisAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
+		- message: '#\$raw_descriptors of static method SdAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
 		  identifier: argument.type
-		- message: '#\$settings of method GratisAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
+		- message: '#\$settings of method SdAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
 		# McpController: $arguments is array<mixed> from request params; execute() expects
 		# array<string, mixed>|null. Keys are always strings at runtime (JSON object keys).
@@ -248,9 +248,9 @@ parameters:
 		  identifier: argument.type
 		# ModelHealthTracker: $map after isset() guard is non-empty-array<string, non-empty-array<string, int>>;
 		# prune_internal() expects the typed shape. The shape is always correct at runtime.
-		- message: '#\$map of static method GratisAiAgent\\Tools\\ModelHealthTracker::prune_internal\(\) expects array<string, array{success: int, validation_error: int, nudge: int, last_used: int}>, non-empty-array<string, non-empty-array<string, int>> given#'
+		- message: '#\$map of static method SdAiAgent\\Tools\\ModelHealthTracker::prune_internal\(\) expects array<string, array{success: int, validation_error: int, nudge: int, last_used: int}>, non-empty-array<string, non-empty-array<string, int>> given#'
 		  identifier: argument.type
-		# gratis-ai-agent.php: array_unique on array<mixed> from schema['required'] — values are
+		# sd-ai-agent.php: array_unique on array<mixed> from schema['required'] — values are
 		# always strings at runtime (JSON Schema required arrays contain string field names).
 		- message: '#\$array of function array_unique expects an array of values castable to string, array<mixed> given#'
 		  identifier: argument.type
@@ -259,34 +259,34 @@ parameters:
 		  identifier: argument.type
 		# PluginInstaller: wpdb::get_row() with ARRAY_A returns array<mixed>|null at the PHPStan level;
 		# keys are always strings at runtime (MySQL ARRAY_A rows always have string keys).
-		- message: '#Method GratisAiAgent\\PluginBuilder\\PluginInstaller::get\(\) should return array<string, mixed>\|null but returns array<mixed>\|null#'
+		- message: '#Method SdAiAgent\\PluginBuilder\\PluginInstaller::get\(\) should return array<string, mixed>\|null but returns array<mixed>\|null#'
 		  identifier: return.type
 		# PluginInstaller: wpdb::get_results() with ARRAY_A returns list<array<mixed>> at the PHPStan level;
 		# keys are always strings and rows are always arrays at runtime.
-		- message: '#Method GratisAiAgent\\PluginBuilder\\PluginInstaller::list\(\) should return array<int, array<string, mixed>> but returns list<array<mixed>>#'
+		- message: '#Method SdAiAgent\\PluginBuilder\\PluginInstaller::list\(\) should return array<int, array<string, mixed>> but returns list<array<mixed>>#'
 		  identifier: return.type
 		# PluginBuilderAbilities: $files is cast from request input (array<mixed, mixed>) but
 		# PluginUpdater::update() expects array<string, string>. Keys and values are always strings
 		# at runtime (JSON object with relative-path → PHP-source entries).
 		# Note: cannot use #2 in pattern (# is the PCRE delimiter); match on the variable name.
-		- message: '#\$new_files of static method GratisAiAgent\\PluginBuilder\\PluginUpdater::update\(\) expects array<string, string>, array<mixed, mixed> given#'
+		- message: '#\$new_files of static method SdAiAgent\\PluginBuilder\\PluginUpdater::update\(\) expects array<string, string>, array<mixed, mixed> given#'
 		  identifier: argument.type
 		# AgentLoop: focused service objects — constructor params come from options array (mixed)
 		# at runtime the values are always the correct types. Introduced by t193 refactor.
-		- message: '#\$page_context of class GratisAiAgent\\Core\\SystemInstructionBuilder constructor expects array<string, mixed>, mixed given#'
+		- message: '#\$page_context of class SdAiAgent\\Core\\SystemInstructionBuilder constructor expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
-		- message: '#\$tool_permissions of class GratisAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
+		- message: '#\$tool_permissions of class SdAiAgent\\Core\\ToolPermissionResolver constructor expects array<string, string>, mixed given#'
 		  identifier: argument.type
-		- message: '#\$raw_descriptors of static method GratisAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
+		- message: '#\$raw_descriptors of static method SdAiAgent\\Core\\ClientAbilityRouter::from_raw\(\) expects list<array<string, mixed>>, array<mixed, mixed> given#'
 		  identifier: argument.type
-		- message: '#\$settings of method GratisAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
+		- message: '#\$settings of method SdAiAgent\\Core\\SystemInstructionBuilder::build\(\) expects array<string, mixed>, mixed given#'
 		  identifier: argument.type
 		# ClientAbilityRouter: uses new static() for polymorphic construction — safe pattern.
 		- message: '#Unsafe usage of new static\(\)#'
 		  identifier: new.static
 		# ConversationSerializer: array_map on typed array returns array<int|string, T> in PHPStan;
 		# at runtime the result is always array<int, array<string, mixed>>.
-		- message: '#Method GratisAiAgent\\Core\\ConversationSerializer::serialize\(\) should return array<int, array<string, mixed>> but returns array<array<string, mixed>>#'
+		- message: '#Method SdAiAgent\\Core\\ConversationSerializer::serialize\(\) should return array<int, array<string, mixed>> but returns array<array<string, mixed>>#'
 		  identifier: return.type
 		# AiGenerateSource: wp_ai_client_prompt() stub returns WP_AI_Client_Prompt_Builder but
 		# the real function can return WP_Error. Defensive is_wp_error/is_array/is_string checks
@@ -308,11 +308,11 @@ parameters:
 		# array_map expects (callable(mixed): mixed). Safe at runtime.
 		- '#\$callback of function array_map expects \(callable\(mixed\): mixed\)\|null, Closure\(array\): array\{#'
 		# ImageSources: return type mismatch — array shapes are compatible at runtime.
-		- '#Method GratisAiAgent\\Abilities\\ImageSources\\.*::search\(\) should return#'
-		- '#Method GratisAiAgent\\Abilities\\ImageSources\\.*::get_image\(\) should return#'
-		- '#Method GratisAiAgent\\Abilities\\ImageSources\\ImageSourceFactory::import_image\(\) should return#'
+		- '#Method SdAiAgent\\Abilities\\ImageSources\\.*::search\(\) should return#'
+		- '#Method SdAiAgent\\Abilities\\ImageSources\\.*::get_image\(\) should return#'
+		- '#Method SdAiAgent\\Abilities\\ImageSources\\ImageSourceFactory::import_image\(\) should return#'
 		# ImageSourceFactory: $hit parameter type — mixed from foreach over unknown array at runtime.
-		- message: '#\$hit of static method GratisAiAgent\\Abilities\\ImageSources\\ImageSourceFactory::handle_sideload\(\) expects array, mixed given#'
+		- message: '#\$hit of static method SdAiAgent\\Abilities\\ImageSources\\ImageSourceFactory::handle_sideload\(\) expects array, mixed given#'
 		  identifier: argument.type
 		# ImageSourceFactory: $post_id from media_handle_sideload is int at runtime.
 		- message: '#\$post_id of function media_handle_sideload expects int, mixed given#'

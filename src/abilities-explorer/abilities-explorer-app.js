@@ -20,7 +20,7 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
-/* global gratisAiAgentAbilities */
+/* global sdAiAgentAbilities */
 
 /**
  * Intent-to-style map for the custom Badge component.
@@ -117,72 +117,72 @@ function AbilityRow( { ability } ) {
 		show_in_rest: showInRest,
 	} = ability;
 
-	const isClientAbility = category === 'gratis-ai-agent-js';
+	const isClientAbility = category === 'sd-ai-agent-js';
 
 	return (
-		<div className="gratis-ai-agent-ability-row">
-			<div className="gratis-ai-agent-ability-row-header">
-				<div className="gratis-ai-agent-ability-title">
+		<div className="sd-ai-agent-ability-row">
+			<div className="sd-ai-agent-ability-row-header">
+				<div className="sd-ai-agent-ability-title">
 					{ label || name }
 				</div>
-				<div className="gratis-ai-agent-ability-name">{ name }</div>
-				<div className="gratis-ai-agent-ability-badges">
+				<div className="sd-ai-agent-ability-name">{ name }</div>
+				<div className="sd-ai-agent-ability-badges">
 					{ isClientAbility && (
 						<Badge intent="info">
-							{ __( 'client', 'gratis-ai-agent' ) }
+							{ __( 'client', 'sd-ai-agent' ) }
 						</Badge>
 					) }
 					{ ! isClientAbility && isConfigured && (
 						<Badge intent="success">
-							{ __( 'Configured', 'gratis-ai-agent' ) }
+							{ __( 'Configured', 'sd-ai-agent' ) }
 						</Badge>
 					) }
 					{ ! isClientAbility && ! isConfigured && (
 						<Badge intent="warning">
-							{ __( 'Needs Setup', 'gratis-ai-agent' ) }
+							{ __( 'Needs Setup', 'sd-ai-agent' ) }
 						</Badge>
 					) }
 					<AnnotationBadge
-						label={ __( 'destructive', 'gratis-ai-agent' ) }
+						label={ __( 'destructive', 'sd-ai-agent' ) }
 						active={ annotations.destructive }
 						intent="error"
 					/>
 					<AnnotationBadge
-						label={ __( 'readonly', 'gratis-ai-agent' ) }
+						label={ __( 'readonly', 'sd-ai-agent' ) }
 						active={ annotations.readonly }
 						intent="info"
 					/>
 					<AnnotationBadge
-						label={ __( 'idempotent', 'gratis-ai-agent' ) }
+						label={ __( 'idempotent', 'sd-ai-agent' ) }
 						active={ annotations.idempotent }
 						intent="success"
 					/>
 					{ showInRest && (
 						<Badge intent="default">
-							{ __( 'REST', 'gratis-ai-agent' ) }
+							{ __( 'REST', 'sd-ai-agent' ) }
 						</Badge>
 					) }
 				</div>
 			</div>
-			<div className="gratis-ai-agent-ability-row-body">
-				<p className="gratis-ai-agent-ability-category">{ category }</p>
-				<p className="gratis-ai-agent-ability-description">
+			<div className="sd-ai-agent-ability-row-body">
+				<p className="sd-ai-agent-ability-category">{ category }</p>
+				<p className="sd-ai-agent-ability-description">
 					{ description ||
-						__( 'No description available.', 'gratis-ai-agent' ) }
+						__( 'No description available.', 'sd-ai-agent' ) }
 				</p>
-				<div className="gratis-ai-agent-ability-meta">
-					<span className="gratis-ai-agent-ability-params">
+				<div className="sd-ai-agent-ability-meta">
+					<span className="sd-ai-agent-ability-params">
 						{ paramCount === 1
-							? __( '1 parameter', 'gratis-ai-agent' )
+							? __( '1 parameter', 'sd-ai-agent' )
 							: sprintf(
 									/* translators: %d: number of parameters */
-									__( '%d parameters', 'gratis-ai-agent' ),
+									__( '%d parameters', 'sd-ai-agent' ),
 									paramCount
 							  ) }
 					</span>
 					{ requiredParams && requiredParams.length > 0 && (
-						<span className="gratis-ai-agent-ability-required">
-							{ __( 'Required:', 'gratis-ai-agent' ) }{ ' ' }
+						<span className="sd-ai-agent-ability-required">
+							{ __( 'Required:', 'sd-ai-agent' ) }{ ' ' }
 							<code>{ requiredParams.join( ', ' ) }</code>
 						</span>
 					) }
@@ -193,36 +193,33 @@ function AbilityRow( { ability } ) {
 						<Notice
 							status="warning"
 							isDismissible={ false }
-							className="gratis-ai-agent-ability-notice"
+							className="sd-ai-agent-ability-notice"
 						>
-							{ __( 'Requires:', 'gratis-ai-agent' ) }{ ' ' }
+							{ __( 'Requires:', 'sd-ai-agent' ) }{ ' ' }
 							{ requiredApiKeys.join( ', ' ) }{ ' ' }
-							{ gratisAiAgentAbilities?.settingsUrl && (
-								<a href={ gratisAiAgentAbilities.settingsUrl }>
+							{ sdAiAgentAbilities?.settingsUrl && (
+								<a href={ sdAiAgentAbilities.settingsUrl }>
 									{ __(
 										'Configure in Settings',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								</a>
 							) }
 						</Notice>
 					) }
 				{ outputSchema && Object.keys( outputSchema ).length > 0 && (
-					<div className="gratis-ai-agent-ability-schema-toggle">
+					<div className="sd-ai-agent-ability-schema-toggle">
 						<Button
 							variant="link"
 							onClick={ () => setExpanded( ( v ) => ! v ) }
 							aria-expanded={ expanded }
 						>
 							{ expanded
-								? __( 'Hide output schema', 'gratis-ai-agent' )
-								: __(
-										'Show output schema',
-										'gratis-ai-agent'
-								  ) }
+								? __( 'Hide output schema', 'sd-ai-agent' )
+								: __( 'Show output schema', 'sd-ai-agent' ) }
 						</Button>
 						{ expanded && (
-							<pre className="gratis-ai-agent-ability-schema">
+							<pre className="sd-ai-agent-ability-schema">
 								{ JSON.stringify( outputSchema, null, 2 ) }
 							</pre>
 						) }
@@ -247,22 +244,22 @@ function AbilityRow( { ability } ) {
  */
 function CategorySection( { category, abilities, open, onToggle } ) {
 	return (
-		<div className="gratis-ai-agent-abilities-category">
+		<div className="sd-ai-agent-abilities-category">
 			<button
 				type="button"
-				className="gratis-ai-agent-abilities-category-header"
+				className="sd-ai-agent-abilities-category-header"
 				onClick={ onToggle }
 				aria-expanded={ open }
 			>
-				<span className="gratis-ai-agent-abilities-category-name">
+				<span className="sd-ai-agent-abilities-category-name">
 					{ category }
 				</span>
-				<span className="gratis-ai-agent-abilities-category-count">
+				<span className="sd-ai-agent-abilities-category-count">
 					{ abilities.length }
 				</span>
 			</button>
 			{ open && (
-				<div className="gratis-ai-agent-abilities-category-body">
+				<div className="sd-ai-agent-abilities-category-body">
 					{ abilities.map( ( ability ) => (
 						<AbilityRow key={ ability.name } ability={ ability } />
 					) ) }
@@ -282,14 +279,14 @@ function CategorySection( { category, abilities, open, onToggle } ) {
  *   - A result count paragraph that updates as filters change.
  *
  * CSS classes used by E2E tests:
- *   .gratis-ai-agent-abilities-manager       — outer wrapper
- *   .gratis-ai-agent-abilities-search        — SearchControl wrapper
- *   .gratis-ai-agent-abilities-filters       — category SelectControl wrapper
- *   .gratis-ai-agent-abilities-count         — count paragraph
- *   .gratis-ai-agent-abilities-category      — per-category section
- *   .gratis-ai-agent-abilities-category-header — clickable header button
- *   .gratis-ai-agent-abilities-category-body   — collapsible body
- *   .gratis-ai-agent-abilities-category-count  — count badge in header
+ *   .sd-ai-agent-abilities-manager       — outer wrapper
+ *   .sd-ai-agent-abilities-search        — SearchControl wrapper
+ *   .sd-ai-agent-abilities-filters       — category SelectControl wrapper
+ *   .sd-ai-agent-abilities-count         — count paragraph
+ *   .sd-ai-agent-abilities-category      — per-category section
+ *   .sd-ai-agent-abilities-category-header — clickable header button
+ *   .sd-ai-agent-abilities-category-body   — collapsible body
+ *   .sd-ai-agent-abilities-category-count  — count badge in header
  */
 export default function AbilitiesExplorerApp() {
 	const [ abilities, setAbilities ] = useState( [] );
@@ -301,7 +298,7 @@ export default function AbilitiesExplorerApp() {
 	const [ openCategories, setOpenCategories ] = useState( {} );
 
 	useEffect( () => {
-		apiFetch( { path: '/gratis-ai-agent/v1/abilities/explorer' } )
+		apiFetch( { path: '/sd-ai-agent/v1/abilities/explorer' } )
 			.then( ( data ) => {
 				setAbilities( data );
 				setLoading( false );
@@ -309,7 +306,7 @@ export default function AbilitiesExplorerApp() {
 			.catch( ( err ) => {
 				setError(
 					err?.message ||
-						__( 'Failed to load abilities.', 'gratis-ai-agent' )
+						__( 'Failed to load abilities.', 'sd-ai-agent' )
 				);
 				setLoading( false );
 			} );
@@ -318,7 +315,7 @@ export default function AbilitiesExplorerApp() {
 	// Derive unique categories for the filter dropdown.
 	const categoryOptions = useMemo(
 		() => [
-			{ label: __( 'All Categories', 'gratis-ai-agent' ), value: '' },
+			{ label: __( 'All Categories', 'sd-ai-agent' ), value: '' },
 			...[ ...new Set( abilities.map( ( a ) => a.category ) ) ]
 				.sort()
 				.map( ( cat ) => ( { label: cat, value: cat } ) ),
@@ -428,16 +425,14 @@ export default function AbilitiesExplorerApp() {
 
 	// Render the outer wrapper immediately so E2E tests can detect the
 	// abilities route has mounted. Loading and error states appear inside
-	// the wrapper so the .gratis-ai-agent-abilities-manager selector is
+	// the wrapper so the .sd-ai-agent-abilities-manager selector is
 	// always present once the route renders, regardless of fetch status.
 	if ( loading ) {
 		return (
-			<div className="gratis-ai-agent-abilities-manager">
-				<div className="gratis-ai-agent-abilities-loading">
+			<div className="sd-ai-agent-abilities-manager">
+				<div className="sd-ai-agent-abilities-loading">
 					<Spinner />
-					<span>
-						{ __( 'Loading abilities…', 'gratis-ai-agent' ) }
-					</span>
+					<span>{ __( 'Loading abilities…', 'sd-ai-agent' ) }</span>
 				</div>
 			</div>
 		);
@@ -445,7 +440,7 @@ export default function AbilitiesExplorerApp() {
 
 	if ( error ) {
 		return (
-			<div className="gratis-ai-agent-abilities-manager">
+			<div className="sd-ai-agent-abilities-manager">
 				<Notice status="error" isDismissible={ false }>
 					{ error }
 				</Notice>
@@ -454,59 +449,53 @@ export default function AbilitiesExplorerApp() {
 	}
 
 	return (
-		<div className="gratis-ai-agent-abilities-manager">
+		<div className="sd-ai-agent-abilities-manager">
 			{ /* Toolbar: search, category filter, expand/collapse controls */ }
-			<div className="gratis-ai-agent-abilities-toolbar">
-				<div className="gratis-ai-agent-abilities-controls">
-					<div className="gratis-ai-agent-abilities-search">
+			<div className="sd-ai-agent-abilities-toolbar">
+				<div className="sd-ai-agent-abilities-controls">
+					<div className="sd-ai-agent-abilities-search">
 						<SearchControl
-							label={ __(
-								'Search abilities',
-								'gratis-ai-agent'
-							) }
+							label={ __( 'Search abilities', 'sd-ai-agent' ) }
 							value={ search }
 							onChange={ handleSearchChange }
 							placeholder={ __(
 								'Search by name or description…',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 							) }
 						/>
 					</div>
-					<div className="gratis-ai-agent-abilities-filters">
+					<div className="sd-ai-agent-abilities-filters">
 						<SelectControl
-							label={ __( 'Category', 'gratis-ai-agent' ) }
+							label={ __( 'Category', 'sd-ai-agent' ) }
 							value={ categoryFilter }
 							options={ categoryOptions }
 							onChange={ setCategoryFilter }
 						/>
 					</div>
-					<div className="gratis-ai-agent-abilities-bulk-actions">
+					<div className="sd-ai-agent-abilities-bulk-actions">
 						<Button
 							variant="tertiary"
 							onClick={ handleCollapseAll }
 						>
-							{ __( 'Collapse all', 'gratis-ai-agent' ) }
+							{ __( 'Collapse all', 'sd-ai-agent' ) }
 						</Button>
 						<Button variant="tertiary" onClick={ handleExpandAll }>
-							{ __( 'Expand all', 'gratis-ai-agent' ) }
+							{ __( 'Expand all', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
-				<p className="gratis-ai-agent-abilities-count">
+				<p className="sd-ai-agent-abilities-count">
 					{ filtered.length === abilities.length
 						? sprintf(
 								/* translators: %d: total number of abilities */
-								__(
-									'%d abilities registered',
-									'gratis-ai-agent'
-								),
+								__( '%d abilities registered', 'sd-ai-agent' ),
 								abilities.length
 						  )
 						: sprintf(
 								/* translators: 1: filtered count, 2: total count */
 								__(
 									'Showing %1$d of %2$d abilities',
-									'gratis-ai-agent'
+									'sd-ai-agent'
 								),
 								filtered.length,
 								abilities.length
@@ -516,19 +505,16 @@ export default function AbilitiesExplorerApp() {
 
 			{ /* Category sections */ }
 			{ filtered.length === 0 ? (
-				<p className="gratis-ai-agent-abilities-no-results">
+				<p className="sd-ai-agent-abilities-no-results">
 					{ abilities.length === 0
-						? __(
-								'No abilities are registered.',
-								'gratis-ai-agent'
-						  )
+						? __( 'No abilities are registered.', 'sd-ai-agent' )
 						: __(
 								'No abilities match your current filters.',
-								'gratis-ai-agent'
+								'sd-ai-agent'
 						  ) }
 				</p>
 			) : (
-				<div className="gratis-ai-agent-abilities-list">
+				<div className="sd-ai-agent-abilities-list">
 					{ sortedCategories.map( ( category ) => (
 						<CategorySection
 							key={ category }

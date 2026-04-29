@@ -7,11 +7,11 @@ declare(strict_types=1);
  * Manages three tables: collections, sources, chunks.
  * Provides static CRUD methods and FULLTEXT search.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Knowledge;
+namespace SdAiAgent\Knowledge;
 
 class KnowledgeDatabase {
 
@@ -21,7 +21,7 @@ class KnowledgeDatabase {
 	public static function collections_table(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_knowledge_collections';
+		return $wpdb->prefix . 'sd_ai_agent_knowledge_collections';
 	}
 
 	/**
@@ -30,7 +30,7 @@ class KnowledgeDatabase {
 	public static function sources_table(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_knowledge_sources';
+		return $wpdb->prefix . 'sd_ai_agent_knowledge_sources';
 	}
 
 	/**
@@ -39,7 +39,7 @@ class KnowledgeDatabase {
 	public static function chunks_table(): string {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
-		return $wpdb->prefix . 'gratis_ai_agent_knowledge_chunks';
+		return $wpdb->prefix . 'sd_ai_agent_knowledge_chunks';
 	}
 
 	/**

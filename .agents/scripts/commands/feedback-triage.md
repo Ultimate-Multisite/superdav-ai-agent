@@ -1,5 +1,5 @@
 ---
-description: Triage incoming feedback reports from the gratis-ai-feedback plugin (r010 routine)
+description: Triage incoming feedback reports from the sd-ai-feedback plugin (r010 routine)
 agent: Build+
 mode: subagent
 tools:
@@ -18,16 +18,16 @@ tools:
 
 # Feedback Triage — r010 Routine SOP
 
-Triage new feedback reports submitted via the gratis-ai-agent feedback system. Fetch pending
+Triage new feedback reports submitted via the sd-ai-agent feedback system. Fetch pending
 reports, judge each one, and either create a GitHub issue or dismiss with a reason.
 
 **Invocation**: Automated via aidevops routine r010 (`repeat:daily(@09:00)`). Can also be
 triggered manually with `/feedback-triage`.
 
 **Required env vars** (sourced from `~/.config/aidevops/credentials.sh` or gopass):
-- `FEEDBACK_ENDPOINT` — Base URL of the gratis-ai-feedback WordPress site
+- `FEEDBACK_ENDPOINT` — Base URL of the sd-ai-feedback WordPress site
 - `FEEDBACK_API_KEY` — Base64-encoded `user:application_password` for the REST API
-- `FEEDBACK_REPO` — Target GitHub repo (default: `Ultimate-Multisite/gratis-ai-agent`)
+- `FEEDBACK_REPO` — Target GitHub repo (default: `Ultimate-Multisite/sd-ai-agent`)
 
 ## Workflow
 
@@ -64,7 +64,7 @@ If the array is empty, output: `r010: No new reports to triage.` and stop (succe
 ### Step 3: Check latest plugin version
 
 ```bash
-gh release list -R Ultimate-Multisite/gratis-ai-agent --limit 1 --json tagName --jq '.[0].tagName'
+gh release list -R Ultimate-Multisite/sd-ai-agent --limit 1 --json tagName --jq '.[0].tagName'
 ```
 
 Store as `LATEST_VERSION`. Used to detect reports from outdated installs.
@@ -164,7 +164,7 @@ Report ID: {report_id} (submitted {created_at})
 Then create the issue:
 
 ```bash
-gh issue create -R Ultimate-Multisite/gratis-ai-agent \
+gh issue create -R Ultimate-Multisite/sd-ai-agent \
   --title "<concise bug title>" \
   --body "$(cat <<'EOF'
 <body>

@@ -17,10 +17,7 @@ export default function CompareView( { comparison } ) {
 			<Card>
 				<CardBody>
 					<p>
-						{ __(
-							'No comparison data available.',
-							'gratis-ai-agent'
-						) }
+						{ __( 'No comparison data available.', 'sd-ai-agent' ) }
 					</p>
 				</CardBody>
 			</Card>
@@ -30,38 +27,26 @@ export default function CompareView( { comparison } ) {
 	const { summary, by_model: byModel, by_category: byCategory } = comparison;
 
 	return (
-		<div className="gratis-ai-agent-benchmark-compare">
+		<div className="sd-ai-agent-benchmark-compare">
 			<Card>
 				<CardHeader>
-					<h2>{ __( 'Benchmark Comparison', 'gratis-ai-agent' ) }</h2>
+					<h2>{ __( 'Benchmark Comparison', 'sd-ai-agent' ) }</h2>
 				</CardHeader>
 				<CardBody>
-					<h3>{ __( 'Summary', 'gratis-ai-agent' ) }</h3>
-					<div className="gratis-ai-agent-benchmark-compare-table">
+					<h3>{ __( 'Summary', 'sd-ai-agent' ) }</h3>
+					<div className="sd-ai-agent-benchmark-compare-table">
 						<table className="wp-list-table widefat fixed striped">
 							<thead>
 								<tr>
-									<th>{ __( 'Run', 'gratis-ai-agent' ) }</th>
+									<th>{ __( 'Run', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Total', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Correct', 'sd-ai-agent' ) }</th>
+									<th>{ __( 'Accuracy', 'sd-ai-agent' ) }</th>
 									<th>
-										{ __( 'Total', 'gratis-ai-agent' ) }
+										{ __( 'Avg Latency', 'sd-ai-agent' ) }
 									</th>
 									<th>
-										{ __( 'Correct', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __( 'Accuracy', 'gratis-ai-agent' ) }
-									</th>
-									<th>
-										{ __(
-											'Avg Latency',
-											'gratis-ai-agent'
-										) }
-									</th>
-									<th>
-										{ __(
-											'Total Tokens',
-											'gratis-ai-agent'
-										) }
+										{ __( 'Total Tokens', 'sd-ai-agent' ) }
 									</th>
 								</tr>
 							</thead>
@@ -85,34 +70,28 @@ export default function CompareView( { comparison } ) {
 					{ byModel && byModel.length > 0 && (
 						<>
 							<h3 style={ { marginTop: '24px' } }>
-								{ __( 'By Model', 'gratis-ai-agent' ) }
+								{ __( 'By Model', 'sd-ai-agent' ) }
 							</h3>
-							<div className="gratis-ai-agent-benchmark-compare-table">
+							<div className="sd-ai-agent-benchmark-compare-table">
 								<table className="wp-list-table widefat fixed striped">
 									<thead>
 										<tr>
 											<th>
-												{ __(
-													'Model',
-													'gratis-ai-agent'
-												) }
+												{ __( 'Model', 'sd-ai-agent' ) }
 											</th>
 											<th>
-												{ __(
-													'Total',
-													'gratis-ai-agent'
-												) }
+												{ __( 'Total', 'sd-ai-agent' ) }
 											</th>
 											<th>
 												{ __(
 													'Correct',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</th>
 											<th>
 												{ __(
 													'Accuracy',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</th>
 										</tr>
@@ -135,34 +114,31 @@ export default function CompareView( { comparison } ) {
 					{ byCategory && byCategory.length > 0 && (
 						<>
 							<h3 style={ { marginTop: '24px' } }>
-								{ __( 'By Category', 'gratis-ai-agent' ) }
+								{ __( 'By Category', 'sd-ai-agent' ) }
 							</h3>
-							<div className="gratis-ai-agent-benchmark-compare-table">
+							<div className="sd-ai-agent-benchmark-compare-table">
 								<table className="wp-list-table widefat fixed striped">
 									<thead>
 										<tr>
 											<th>
 												{ __(
 													'Category',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</th>
 											<th>
-												{ __(
-													'Total',
-													'gratis-ai-agent'
-												) }
+												{ __( 'Total', 'sd-ai-agent' ) }
 											</th>
 											<th>
 												{ __(
 													'Correct',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</th>
 											<th>
 												{ __(
 													'Accuracy',
-													'gratis-ai-agent'
+													'sd-ai-agent'
 												) }
 											</th>
 										</tr>

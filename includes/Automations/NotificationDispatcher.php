@@ -15,11 +15,11 @@ declare(strict_types=1);
  * The dispatcher is called by AutomationRunner after every run (success or error).
  * Channels with `enabled: false` are silently skipped.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Automations;
+namespace SdAiAgent\Automations;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -84,13 +84,13 @@ class NotificationDispatcher {
 	 */
 	public static function test( string $type, string $webhook_url ): array {
 		$automation = [
-			'name'     => __( 'Test Notification', 'gratis-ai-agent' ),
+			'name'     => __( 'Test Notification', 'sd-ai-agent' ),
 			'schedule' => 'manual',
 		];
 
 		$log_data = [
 			'status'            => 'success',
-			'reply'             => __( 'This is a test notification from Gratis AI Agent. Your webhook is configured correctly.', 'gratis-ai-agent' ),
+			'reply'             => __( 'This is a test notification from Superdav AI Agent. Your webhook is configured correctly.', 'sd-ai-agent' ),
 			'duration_ms'       => 0,
 			'prompt_tokens'     => 0,
 			'completion_tokens' => 0,
@@ -105,7 +105,7 @@ class NotificationDispatcher {
 			return [
 				'success'   => false,
 				'http_code' => 0,
-				'message'   => __( 'Unknown channel type. Use "slack" or "discord".', 'gratis-ai-agent' ),
+				'message'   => __( 'Unknown channel type. Use "slack" or "discord".', 'sd-ai-agent' ),
 			];
 		}
 
@@ -114,7 +114,7 @@ class NotificationDispatcher {
 			return [
 				'success'   => false,
 				'http_code' => 0,
-				'message'   => __( 'Failed to encode payload.', 'gratis-ai-agent' ),
+				'message'   => __( 'Failed to encode payload.', 'sd-ai-agent' ),
 			];
 		}
 
@@ -146,10 +146,10 @@ class NotificationDispatcher {
 			'success'   => $success,
 			'http_code' => (int) $http_code,
 			'message'   => $success
-				? __( 'Test notification sent successfully.', 'gratis-ai-agent' )
+				? __( 'Test notification sent successfully.', 'sd-ai-agent' )
 				: sprintf(
 					/* translators: HTTP status code */
-					__( 'Webhook returned HTTP %d.', 'gratis-ai-agent' ),
+					__( 'Webhook returned HTTP %d.', 'sd-ai-agent' ),
 					$http_code
 				),
 		];
@@ -177,24 +177,24 @@ class NotificationDispatcher {
 
 		$fields = [
 			[
-				'title' => __( 'Status', 'gratis-ai-agent' ),
+				'title' => __( 'Status', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value' => ucfirst( $status ),
 				'short' => true,
 			],
 			[
-				'title' => __( 'Schedule', 'gratis-ai-agent' ),
+				'title' => __( 'Schedule', 'sd-ai-agent' ),
 				'value' => $automation['schedule'] ?? '',
 				'short' => true,
 			],
 			[
-				'title' => __( 'Duration', 'gratis-ai-agent' ),
+				'title' => __( 'Duration', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value' => ( $log_data['duration_ms'] ?? 0 ) . 'ms',
 				'short' => true,
 			],
 			[
-				'title' => __( 'Tokens', 'gratis-ai-agent' ),
+				'title' => __( 'Tokens', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value' => (string) ( ( $log_data['prompt_tokens'] ?? 0 ) + ( $log_data['completion_tokens'] ?? 0 ) ),
 				'short' => true,
@@ -203,7 +203,7 @@ class NotificationDispatcher {
 
 		if ( ! $is_success && ! empty( $log_data['error_message'] ) ) {
 			$fields[] = [
-				'title' => __( 'Error', 'gratis-ai-agent' ),
+				'title' => __( 'Error', 'sd-ai-agent' ),
 				'value' => $log_data['error_message'],
 				'short' => false,
 			];
@@ -214,7 +214,7 @@ class NotificationDispatcher {
 				[
 					'fallback'  => sprintf(
 						/* translators: 1: automation name, 2: status */
-						__( 'Automation "%1$s" completed with status: %2$s', 'gratis-ai-agent' ),
+						__( 'Automation "%1$s" completed with status: %2$s', 'sd-ai-agent' ),
 						// @phpstan-ignore-next-line
 						$automation['name'] ?? '',
 						// @phpstan-ignore-next-line
@@ -223,14 +223,14 @@ class NotificationDispatcher {
 					'color'     => $color,
 					'pretext'   => sprintf(
 						/* translators: 1: icon emoji, 2: automation name */
-						__( '%1$s Automation: *%2$s*', 'gratis-ai-agent' ),
+						__( '%1$s Automation: *%2$s*', 'sd-ai-agent' ),
 						$icon,
 						// @phpstan-ignore-next-line
 						$automation['name'] ?? ''
 					),
 					'text'      => $reply,
 					'fields'    => $fields,
-					'footer'    => __( 'Gratis AI Agent', 'gratis-ai-agent' ),
+					'footer'    => __( 'Superdav AI Agent', 'sd-ai-agent' ),
 					'ts'        => time(),
 					'mrkdwn_in' => [ 'pretext', 'text' ],
 				],
@@ -259,24 +259,24 @@ class NotificationDispatcher {
 
 		$fields = [
 			[
-				'name'   => __( 'Status', 'gratis-ai-agent' ),
+				'name'   => __( 'Status', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value'  => ucfirst( $status ),
 				'inline' => true,
 			],
 			[
-				'name'   => __( 'Schedule', 'gratis-ai-agent' ),
+				'name'   => __( 'Schedule', 'sd-ai-agent' ),
 				'value'  => $automation['schedule'] ?? 'N/A',
 				'inline' => true,
 			],
 			[
-				'name'   => __( 'Duration', 'gratis-ai-agent' ),
+				'name'   => __( 'Duration', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value'  => ( $log_data['duration_ms'] ?? 0 ) . 'ms',
 				'inline' => true,
 			],
 			[
-				'name'   => __( 'Tokens', 'gratis-ai-agent' ),
+				'name'   => __( 'Tokens', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value'  => (string) ( ( $log_data['prompt_tokens'] ?? 0 ) + ( $log_data['completion_tokens'] ?? 0 ) ),
 				'inline' => true,
@@ -285,7 +285,7 @@ class NotificationDispatcher {
 
 		if ( ! $is_success && ! empty( $log_data['error_message'] ) ) {
 			$fields[] = [
-				'name'   => __( 'Error', 'gratis-ai-agent' ),
+				'name'   => __( 'Error', 'sd-ai-agent' ),
 				// @phpstan-ignore-next-line
 				'value'  => substr( $log_data['error_message'], 0, 1024 ),
 				'inline' => false,
@@ -294,7 +294,7 @@ class NotificationDispatcher {
 
 		if ( ! empty( $reply ) ) {
 			$fields[] = [
-				'name'   => __( 'Response', 'gratis-ai-agent' ),
+				'name'   => __( 'Response', 'sd-ai-agent' ),
 				'value'  => $reply,
 				'inline' => false,
 			];
@@ -305,14 +305,14 @@ class NotificationDispatcher {
 				[
 					'title'     => sprintf(
 						/* translators: automation name */
-						__( 'Automation: %s', 'gratis-ai-agent' ),
+						__( 'Automation: %s', 'sd-ai-agent' ),
 						// @phpstan-ignore-next-line
 						$automation['name'] ?? ''
 					),
 					'color'     => $color,
 					'fields'    => $fields,
 					'footer'    => [
-						'text' => __( 'Gratis AI Agent', 'gratis-ai-agent' ),
+						'text' => __( 'Superdav AI Agent', 'sd-ai-agent' ),
 					],
 					'timestamp' => gmdate( 'c' ),
 				],
@@ -335,7 +335,7 @@ class NotificationDispatcher {
 		if ( false === $body ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
-				error_log( 'GratisAiAgent NotificationDispatcher: failed to JSON-encode payload for ' . $url );
+				error_log( 'SdAiAgent NotificationDispatcher: failed to JSON-encode payload for ' . $url );
 			}
 			return;
 		}
@@ -356,7 +356,7 @@ class NotificationDispatcher {
 		if ( is_wp_error( $response ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Notification failure logging.
-				error_log( 'GratisAiAgent NotificationDispatcher: webhook error for ' . $url . ': ' . $response->get_error_message() );
+				error_log( 'SdAiAgent NotificationDispatcher: webhook error for ' . $url . ': ' . $response->get_error_message() );
 			}
 		}
 	}

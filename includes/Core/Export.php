@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * Export/Import functionality for AI Agent sessions.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Core;
+namespace SdAiAgent\Core;
 
 use WP_Error;
 
@@ -40,7 +40,7 @@ class Export {
 		$tool_calls = json_decode( $session->tool_calls, true ) ?: [];
 
 		$data = [
-			'format'      => 'gratis-ai-agent-v1',
+			'format'      => 'sd-ai-agent-v1',
 			'title'       => $session->title,
 			'provider_id' => $session->provider_id,
 			'model_id'    => $session->model_id,
@@ -134,24 +134,24 @@ class Export {
 	/**
 	 * Import a session from JSON data.
 	 *
-	 * @param array<string, mixed> $data    Import data (gratis-ai-agent-v1 format).
+	 * @param array<string, mixed> $data    Import data (sd-ai-agent-v1 format).
 	 * @param int                  $user_id WordPress user ID.
 	 * @return int|WP_Error Session ID on success, WP_Error on failure.
 	 */
 	public static function import_json( array $data, int $user_id ) {
-		$valid_formats = [ 'gratis-ai-agent-v1', 'ai-agent-v1' ];
+		$valid_formats = [ 'sd-ai-agent-v1', 'ai-agent-v1' ];
 		if ( empty( $data['format'] ) || ! in_array( $data['format'], $valid_formats, true ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_import_invalid',
-				__( 'Invalid import format. Expected gratis-ai-agent-v1.', 'gratis-ai-agent' ),
+				'sd_ai_agent_import_invalid',
+				__( 'Invalid import format. Expected sd-ai-agent-v1.', 'sd-ai-agent' ),
 				[ 'status' => 400 ]
 			);
 		}
 
 		if ( empty( $data['messages'] ) || ! is_array( $data['messages'] ) ) {
 			return new WP_Error(
-				'gratis_ai_agent_import_no_messages',
-				__( 'Import data contains no messages.', 'gratis-ai-agent' ),
+				'sd_ai_agent_import_no_messages',
+				__( 'Import data contains no messages.', 'sd-ai-agent' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -172,8 +172,8 @@ class Export {
 
 		if ( ! $session_id ) {
 			return new WP_Error(
-				'gratis_ai_agent_import_failed',
-				__( 'Failed to create session for import.', 'gratis-ai-agent' ),
+				'sd_ai_agent_import_failed',
+				__( 'Failed to create session for import.', 'sd-ai-agent' ),
 				[ 'status' => 500 ]
 			);
 		}

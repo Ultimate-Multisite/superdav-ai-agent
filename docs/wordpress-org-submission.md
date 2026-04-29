@@ -1,10 +1,10 @@
 # WordPress.org Plugin Directory Submission
 
-This document covers the complete process for submitting Gratis AI Agent to the
+This document covers the complete process for submitting Superdav AI Agent to the
 WordPress.org plugin directory and managing subsequent releases via SVN.
 
 **Current status:** Pre-submission. The SVN repository at
-`https://plugins.svn.wordpress.org/gratis-ai-agent/` does not yet exist — it is
+`https://plugins.svn.wordpress.org/sd-ai-agent/` does not yet exist — it is
 created by WordPress.org only after the plugin passes manual review.
 
 ---
@@ -33,7 +33,7 @@ Before submitting, confirm all of the following:
 | `readme.txt` with all required sections | Done (t124) |
 | Screenshots listed in `readme.txt` match `assets/` | Done (t124) |
 | Sanitization/escaping audit passed | Done (t124) |
-| Plugin slug `gratis-ai-agent` is available on WP.org | Verify at `wordpress.org/plugins/gratis-ai-agent/` |
+| Plugin slug `sd-ai-agent` is available on WP.org | Verify at `wordpress.org/plugins/sd-ai-agent/` |
 | WordPress.org account exists for the submitter | Required |
 | `wp plugin check` passes (requires Plugin Check plugin) | Run before submitting |
 
@@ -43,7 +43,7 @@ Install the [Plugin Check plugin](https://wordpress.org/plugins/plugin-check/) o
 WordPress 6.9 instance, then:
 
 ```bash
-wp plugin check gratis-ai-agent --format=table
+wp plugin check sd-ai-agent --format=table
 ```
 
 All errors must be resolved. Warnings should be reviewed — some are acceptable with
@@ -56,7 +56,7 @@ justification in the submission notes.
 1. Log in to your WordPress.org account at `https://login.wordpress.org/`
 2. Navigate to: **`https://wordpress.org/plugins/developers/add/`**
 3. Fill in the form:
-   - **Plugin name**: Gratis AI Agent
+   - **Plugin name**: Superdav AI Agent
    - **Plugin description**: (paste the short description from `readme.txt`)
    - **Plugin ZIP**: Upload the ZIP built by `bin/build.sh` (see below)
 4. Submit the form
@@ -66,18 +66,18 @@ justification in the submission notes.
 ```bash
 # From the repo root — builds production assets and creates the ZIP
 bin/build.sh
-# Output: gratis-ai-agent-1.2.0.zip
+# Output: sd-ai-agent-1.2.0.zip
 ```
 
-The ZIP must contain a single top-level directory named `gratis-ai-agent/` with
-`gratis-ai-agent.php` at its root. `bin/build.sh` handles this automatically.
+The ZIP must contain a single top-level directory named `sd-ai-agent/` with
+`sd-ai-agent.php` at its root. `bin/build.sh` handles this automatically.
 
 ### What to include in the submission notes
 
 The review team reads these. Be specific:
 
 ```
-Gratis AI Agent is an agentic AI assistant for WordPress built on the official
+Superdav AI Agent is an agentic AI assistant for WordPress built on the official
 WordPress 6.9 AI Client SDK and Abilities API. It requires a connector plugin
 (e.g., the OpenAI connector) to function — it does not bundle any AI provider
 credentials or make API calls without explicit user configuration.
@@ -134,8 +134,8 @@ svn --version
 
 ```bash
 # Replace YOUR_WP_USERNAME with your WordPress.org username
-svn checkout https://plugins.svn.wordpress.org/gratis-ai-agent/ \
-    ~/svn/gratis-ai-agent \
+svn checkout https://plugins.svn.wordpress.org/sd-ai-agent/ \
+    ~/svn/sd-ai-agent \
     --username YOUR_WP_USERNAME
 ```
 
@@ -148,17 +148,17 @@ The checkout creates three directories:
 
 ```bash
 # Build the production ZIP first
-cd /path/to/gratis-ai-agent-repo
+cd /path/to/sd-ai-agent-repo
 bin/build.sh
 
 # Extract into the SVN trunk
-cd ~/svn/gratis-ai-agent
+cd ~/svn/sd-ai-agent
 # Clear trunk (keep .svn metadata)
 find trunk/ -mindepth 1 -delete
 
 # Extract the built ZIP into trunk
-unzip /path/to/gratis-ai-agent-1.2.0.zip -d /tmp/wporg-extract/
-cp -r /tmp/wporg-extract/gratis-ai-agent/. trunk/
+unzip /path/to/sd-ai-agent-1.2.0.zip -d /tmp/wporg-extract/
+cp -r /tmp/wporg-extract/sd-ai-agent/. trunk/
 rm -rf /tmp/wporg-extract/
 ```
 
@@ -167,7 +167,7 @@ Alternatively, use `bin/deploy-wporg.sh` (see [Automated SVN Deployment](#automa
 ### Add new files and commit
 
 ```bash
-cd ~/svn/gratis-ai-agent
+cd ~/svn/sd-ai-agent
 
 # Stage all new files (SVN does not auto-track new files)
 svn status | grep '^?' | awk '{print $2}' | xargs svn add
@@ -179,7 +179,7 @@ svn status | grep '^!' | awk '{print $2}' | xargs svn delete
 svn status
 
 # Commit trunk
-svn commit -m "Add Gratis AI Agent v1.2.0 to trunk" \
+svn commit -m "Add Superdav AI Agent v1.2.0 to trunk" \
     --username YOUR_WP_USERNAME
 ```
 
@@ -194,17 +194,17 @@ Tags are how WordPress.org knows which version to serve for a specific version n
 The `Stable tag` in `readme.txt` must match a tag in `tags/`.
 
 ```bash
-cd ~/svn/gratis-ai-agent
+cd ~/svn/sd-ai-agent
 
 # Copy trunk to a tag (SVN copy is instant — no file transfer)
-svn copy trunk/ tags/1.2.0 -m "Tag Gratis AI Agent v1.2.0"
+svn copy trunk/ tags/1.2.0 -m "Tag Superdav AI Agent v1.2.0"
 
 # Verify
 svn list tags/
 ```
 
 After tagging, the plugin is live on WordPress.org at:
-`https://wordpress.org/plugins/gratis-ai-agent/`
+`https://wordpress.org/plugins/sd-ai-agent/`
 
 ---
 
@@ -212,7 +212,7 @@ After tagging, the plugin is live on WordPress.org at:
 
 For each new version:
 
-1. Update `Version:` in `gratis-ai-agent.php`
+1. Update `Version:` in `sd-ai-agent.php`
 2. Update `Stable tag:` in `readme.txt`
 3. Add a changelog entry under `== Changelog ==` in `readme.txt`
 4. Run `bin/build.sh` to build the ZIP
@@ -241,15 +241,15 @@ plugin ZIP. They are served directly from SVN by the WP.org CDN.
 Our assets are already prepared in `assets/` in the Git repo. Copy them to SVN:
 
 ```bash
-cd ~/svn/gratis-ai-agent
+cd ~/svn/sd-ai-agent
 
 # Copy assets from Git repo
-cp /path/to/gratis-ai-agent-repo/assets/banner-772x250.png  assets/
-cp /path/to/gratis-ai-agent-repo/assets/icon-128x128.png    assets/
-cp /path/to/gratis-ai-agent-repo/assets/icon-256x256.png    assets/
+cp /path/to/sd-ai-agent-repo/assets/banner-772x250.png  assets/
+cp /path/to/sd-ai-agent-repo/assets/icon-128x128.png    assets/
+cp /path/to/sd-ai-agent-repo/assets/icon-256x256.png    assets/
 
 # Copy screenshots (rename to screenshot-N.png matching readme.txt order)
-cp /path/to/gratis-ai-agent-repo/assets/screenshots/screenshot-1.png assets/screenshot-1.png
+cp /path/to/sd-ai-agent-repo/assets/screenshots/screenshot-1.png assets/screenshot-1.png
 # … repeat for each screenshot
 
 svn add assets/*
@@ -267,7 +267,7 @@ not the descriptive names used in the Git repo.
 `bin/deploy-wporg.sh` automates the trunk update and tagging steps.
 
 ```bash
-# First deployment (after SVN checkout already exists at ~/svn/gratis-ai-agent)
+# First deployment (after SVN checkout already exists at ~/svn/sd-ai-agent)
 bin/deploy-wporg.sh --version 1.2.0 --username YOUR_WP_USERNAME
 
 # Subsequent releases
@@ -291,7 +291,7 @@ See `bin/deploy-wporg.sh --help` for all options.
 
 SVN is not installed or the URL is wrong. Verify:
 ```bash
-svn info https://plugins.svn.wordpress.org/gratis-ai-agent/
+svn info https://plugins.svn.wordpress.org/sd-ai-agent/
 ```
 If this returns a 404, the plugin has not been approved yet.
 
@@ -311,7 +311,7 @@ svn status | grep '^?' | awk '{print $2}' | xargs svn add
 
 - Check that `Stable tag:` in `readme.txt` matches an existing tag in `tags/`
 - WP.org CDN can take up to 15 minutes to reflect changes
-- Check the plugin page directly: `https://wordpress.org/plugins/gratis-ai-agent/`
+- Check the plugin page directly: `https://wordpress.org/plugins/sd-ai-agent/`
 
 ### Review rejected — what next?
 

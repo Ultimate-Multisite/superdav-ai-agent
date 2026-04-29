@@ -5,18 +5,18 @@ declare(strict_types=1);
  * REST API controller for automations, event-automations, automation-logs,
  * event-triggers, and test-notification.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Automations\AutomationLogs;
-use GratisAiAgent\Automations\AutomationRunner;
-use GratisAiAgent\Automations\Automations;
-use GratisAiAgent\Automations\EventAutomations;
-use GratisAiAgent\Automations\EventTriggerRegistry;
-use GratisAiAgent\Automations\NotificationDispatcher;
+use SdAiAgent\Automations\AutomationLogs;
+use SdAiAgent\Automations\AutomationRunner;
+use SdAiAgent\Automations\Automations;
+use SdAiAgent\Automations\EventAutomations;
+use SdAiAgent\Automations\EventTriggerRegistry;
+use SdAiAgent\Automations\NotificationDispatcher;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * basenames (/automations, /event-automations, /automation-logs, etc.).
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -282,7 +282,7 @@ final class AutomationController {
 		$id   = Automations::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'create_failed', __( 'Failed to create automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( Automations::get( $id ), 201 );
@@ -296,7 +296,7 @@ final class AutomationController {
 		$data = $request->get_json_params();
 
 		if ( ! Automations::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'update_failed', __( 'Failed to update automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( Automations::get( $id ), 200 );
@@ -309,7 +309,7 @@ final class AutomationController {
 		$id = self::get_int_param( $request, 'id' );
 
 		if ( ! Automations::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );
@@ -323,7 +323,7 @@ final class AutomationController {
 		$result = AutomationRunner::run( $id );
 
 		if ( null === $result ) {
-			return new WP_Error( 'not_found', __( 'Automation not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Automation not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		return new WP_REST_Response( $result, 200 );
@@ -361,7 +361,7 @@ final class AutomationController {
 		$id   = EventAutomations::create( $data );
 
 		if ( false === $id ) {
-			return new WP_Error( 'create_failed', __( 'Failed to create event automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'create_failed', __( 'Failed to create event automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( EventAutomations::get( $id ), 201 );
@@ -375,7 +375,7 @@ final class AutomationController {
 		$data = $request->get_json_params();
 
 		if ( ! EventAutomations::update( $id, $data ) ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update event automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'update_failed', __( 'Failed to update event automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( EventAutomations::get( $id ), 200 );
@@ -388,7 +388,7 @@ final class AutomationController {
 		$id = self::get_int_param( $request, 'id' );
 
 		if ( ! EventAutomations::delete( $id ) ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete event automation.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete event automation.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ), 200 );

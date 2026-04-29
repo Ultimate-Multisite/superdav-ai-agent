@@ -50,7 +50,7 @@ jest.mock( '@wordpress/components', () => {
 } );
 
 // Mock store.
-jest.mock( '../../store', () => 'gratis-ai-agent' );
+jest.mock( '../../store', () => 'sd-ai-agent' );
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -261,20 +261,20 @@ describe( 'ContextIndicator rendering', () => {
 		expect( html ).toContain( 'width:100%' );
 	} );
 
-	test( 'renders gratis-ai-agent-context-indicator wrapper', () => {
+	test( 'renders sd-ai-agent-context-indicator wrapper', () => {
 		setupMocks();
 		const html = renderToStaticMarkup(
 			createElement( ContextIndicator, {} )
 		);
-		expect( html ).toContain( 'gratis-ai-agent-context-indicator' );
+		expect( html ).toContain( 'sd-ai-agent-context-indicator' );
 	} );
 
-	test( 'renders gratis-ai-agent-context-bar-track element', () => {
+	test( 'renders sd-ai-agent-context-bar-track element', () => {
 		setupMocks();
 		const html = renderToStaticMarkup(
 			createElement( ContextIndicator, {} )
 		);
-		expect( html ).toContain( 'gratis-ai-agent-context-bar-track' );
+		expect( html ).toContain( 'sd-ai-agent-context-bar-track' );
 	} );
 } );
 

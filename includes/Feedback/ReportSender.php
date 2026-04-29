@@ -12,11 +12,11 @@ declare(strict_types=1);
  * The endpoint is fixed — no API key is required. User consent is collected
  * per submission via the feedback-consent modal before this method is called.
  *
- * @package GratisAiAgent\Feedback
+ * @package SdAiAgent\Feedback
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Feedback;
+namespace SdAiAgent\Feedback;
 
 use WP_Error;
 
@@ -27,7 +27,7 @@ class ReportSender {
 	 *
 	 * Reports are always sent here. No configuration or API key is required.
 	 */
-	const ENDPOINT_URL = 'https://ultimateagentwp.ai/wp-json/gratis-ai-server/v1/reports';
+	const ENDPOINT_URL = 'https://ultimateagentwp.ai/wp-json/sd-ai-server/v1/reports';
 
 	/**
 	 * Send a sanitized report payload to the feedback endpoint.

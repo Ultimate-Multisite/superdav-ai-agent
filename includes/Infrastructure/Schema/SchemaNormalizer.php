@@ -2,13 +2,13 @@
 /**
  * JSON Schema normaliser for WordPress Abilities API input schemas.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Infrastructure\Schema;
+namespace SdAiAgent\Infrastructure\Schema;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

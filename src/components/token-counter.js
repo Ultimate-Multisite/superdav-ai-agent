@@ -30,7 +30,7 @@ function formatCost( cost ) {
 		return '';
 	}
 	if ( cost < 0.01 ) {
-		return __( '<$0.01', 'gratis-ai-agent' );
+		return __( '<$0.01', 'sd-ai-agent' );
 	}
 	return '~$' + cost.toFixed( 2 );
 }
@@ -65,25 +65,25 @@ export default function TokenCounter() {
 
 	return (
 		<div
-			className="gratis-ai-agent-token-counter"
+			className="sd-ai-agent-token-counter"
 			title={ __(
 				'Session token usage and estimated cost',
-				'gratis-ai-agent'
+				'sd-ai-agent'
 			) }
 		>
-			<span className="gratis-ai-agent-token-counter__tokens">
+			<span className="sd-ai-agent-token-counter__tokens">
 				{ formatTokens( sessionTokens ) }{ ' ' }
-				{ __( 'tokens', 'gratis-ai-agent' ) }
+				{ __( 'tokens', 'sd-ai-agent' ) }
 			</span>
 			{ costStr && (
 				<>
 					<span
-						className="gratis-ai-agent-token-counter__sep"
+						className="sd-ai-agent-token-counter__sep"
 						aria-hidden="true"
 					>
 						{ ' · ' }
 					</span>
-					<span className="gratis-ai-agent-token-counter__cost">
+					<span className="sd-ai-agent-token-counter__cost">
 						{ costStr }
 					</span>
 				</>
@@ -116,8 +116,8 @@ export function MessageTokenAnnotation( { tokenData } ) {
 	const costStr = formatCost( tokenData.cost || 0 );
 
 	return (
-		<div className="gratis-ai-agent-message-token-annotation">
-			{ formatTokens( total ) } { __( 'tokens', 'gratis-ai-agent' ) }
+		<div className="sd-ai-agent-message-token-annotation">
+			{ formatTokens( total ) } { __( 'tokens', 'sd-ai-agent' ) }
 			{ costStr && (
 				<>
 					{ ' · ' }

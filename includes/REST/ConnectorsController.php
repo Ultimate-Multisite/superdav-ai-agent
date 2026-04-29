@@ -6,7 +6,7 @@ declare(strict_types=1);
  *
  * On WordPress 7.0+, the native Connectors page at options-connectors.php
  * handles provider API key management. On WordPress 6.9, this controller
- * provides the same functionality so the Gratis AI Agent Connectors page can
+ * provides the same functionality so the Superdav AI Agent Connectors page can
  * read/write provider credentials and check plugin install/activation status.
  *
  * Credential option names mirror WP 7.0's Connectors API:
@@ -15,11 +15,11 @@ declare(strict_types=1);
  * This ensures zero-migration when users upgrade from 6.9 to 7.0 — the same
  * option values are read by the native Connectors API.
  *
- * @package GratisAiAgent\REST
+ * @package SdAiAgent\REST
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
 use WP_Error;
 use WP_REST_Request;
@@ -27,7 +27,7 @@ use WP_REST_Response;
 use WP_REST_Server;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
-use GratisAiAgent\Admin\UnifiedAdminMenu;
+use SdAiAgent\Admin\UnifiedAdminMenu;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,15 +37,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides REST endpoints for the polyfill Connectors admin page.
  *
  * Endpoints:
- *   GET  /gratis-ai-agent/v1/connectors           — list all providers with status
- *   POST /gratis-ai-agent/v1/connectors/{id}/key  — set an API key
- *   DELETE /gratis-ai-agent/v1/connectors/{id}/key — clear an API key
+ *   GET  /sd-ai-agent/v1/connectors           — list all providers with status
+ *   POST /sd-ai-agent/v1/connectors/{id}/key  — set an API key
+ *   DELETE /sd-ai-agent/v1/connectors/{id}/key — clear an API key
  *
  * Plugin install and activation are handled client-side via the native
  * /wp/v2/plugins REST endpoint.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -140,7 +140,7 @@ final class ConnectorsController {
 	}
 
 	/**
-	 * GET /gratis-ai-agent/v1/connectors
+	 * GET /sd-ai-agent/v1/connectors
 	 *
 	 * Returns all known AI providers with their plugin install/activation status
 	 * and whether an API key is configured.
@@ -165,7 +165,7 @@ final class ConnectorsController {
 	}
 
 	/**
-	 * POST /gratis-ai-agent/v1/connectors/{provider}/key
+	 * POST /sd-ai-agent/v1/connectors/{provider}/key
 	 *
 	 * Stores the API key in the connectors_ai_{provider}_api_key option.
 	 * Empty string clears the key.
@@ -180,7 +180,7 @@ final class ConnectorsController {
 		if ( ! array_key_exists( $provider_id, self::PROVIDERS ) ) {
 			return new WP_Error(
 				'invalid_provider',
-				__( 'Unknown provider ID.', 'gratis-ai-agent' ),
+				__( 'Unknown provider ID.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -188,7 +188,7 @@ final class ConnectorsController {
 		if ( '' === $api_key ) {
 			return new WP_Error(
 				'empty_api_key',
-				__( 'API key cannot be empty. Use DELETE to clear.', 'gratis-ai-agent' ),
+				__( 'API key cannot be empty. Use DELETE to clear.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -211,7 +211,7 @@ final class ConnectorsController {
 	}
 
 	/**
-	 * DELETE /gratis-ai-agent/v1/connectors/{provider}/key
+	 * DELETE /sd-ai-agent/v1/connectors/{provider}/key
 	 *
 	 * Clears the stored API key for the given provider.
 	 *
@@ -224,7 +224,7 @@ final class ConnectorsController {
 		if ( ! array_key_exists( $provider_id, self::PROVIDERS ) ) {
 			return new WP_Error(
 				'invalid_provider',
-				__( 'Unknown provider ID.', 'gratis-ai-agent' ),
+				__( 'Unknown provider ID.', 'sd-ai-agent' ),
 				array( 'status' => 400 )
 			);
 		}

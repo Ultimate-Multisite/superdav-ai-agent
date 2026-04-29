@@ -7,7 +7,7 @@
 ## Architecture
 
 ```
-gratis-ai-agent.php
+sd-ai-agent.php
   └─ xwp_load_app()              # schedules container on plugins_loaded:PHP_INT_MIN
        └─ xwp_create_app()       # builds PHP-DI container, processes Module
             └─ Plugin.php        # #[Module] — lists all handlers
@@ -33,14 +33,14 @@ gratis-ai-agent.php
 ### Container Bootstrap
 
 ```php
-// gratis-ai-agent.php — the ONLY thing needed in the plugin file
+// sd-ai-agent.php — the ONLY thing needed in the plugin file
 xwp_load_app([
-    'id'            => 'gratis-ai-agent',
+    'id'            => 'sd-ai-agent',
     'module'        => Plugin::class,
     'autowiring'    => true,
     'compile'       => 'production' === wp_get_environment_type(),
-    'compile_class' => 'CompiledContainerGratisAiAgent', // REQUIRED — hyphens in ID break class names
-    'compile_dir'   => GRATIS_AI_AGENT_DIR . '/build/di-cache/' . GRATIS_AI_AGENT_VERSION,
+    'compile_class' => 'CompiledContainerSdAiAgent', // REQUIRED — hyphens in ID break class names
+    'compile_dir'   => SD_AI_AGENT_DIR . '/build/di-cache/' . SD_AI_AGENT_VERSION,
 ]);
 ```
 
@@ -48,7 +48,7 @@ xwp_load_app([
 
 ```php
 #[Module(
-    container: 'gratis-ai-agent',
+    container: 'sd-ai-agent',
     hook: 'plugins_loaded',
     priority: 1,              // Must be > PHP_INT_MIN (xwp_load_app's default)
     imports: [],
@@ -60,7 +60,7 @@ xwp_load_app([
 final class Plugin {
     public static function configure(): array {
         return [
-            'plugin.version' => \DI\value( GRATIS_AI_AGENT_VERSION ),
+            'plugin.version' => \DI\value( SD_AI_AGENT_VERSION ),
         ];
     }
 }
@@ -101,9 +101,9 @@ use XWP\DI\Decorators\REST_Handler;
 use XWP\DI\Decorators\REST_Route;
 
 #[REST_Handler(
-    namespace: 'gratis-ai-agent/v1',
+    namespace: 'sd-ai-agent/v1',
     basename: 'memory',
-    container: 'gratis-ai-agent',
+    container: 'sd-ai-agent',
 )]
 final class MemoryController extends XWP_REST_Controller {
 
@@ -150,7 +150,7 @@ use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
 #[Handler(
-    container: 'gratis-ai-agent',
+    container: 'sd-ai-agent',
     context: Handler::CTX_REST,
     strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -180,7 +180,7 @@ final class ToolController {
 ### Action/Filter hooks
 
 ```php
-#[Handler(container: 'gratis-ai-agent', strategy: Handler::INIT_IMMEDIATELY)]
+#[Handler(container: 'sd-ai-agent', strategy: Handler::INIT_IMMEDIATELY)]
 final class AbilitySchemaFilter {
 
     #[Filter( tag: 'wp_register_ability_args', priority: 10 )]
@@ -196,7 +196,7 @@ final class AbilitySchemaFilter {
 `on_initialize()` is called automatically by the DI system during handler loading and can be used to call static `register()` methods that internally add many hooks:
 
 ```php
-#[Handler(container: 'gratis-ai-agent', strategy: Handler::INIT_IMMEDIATELY)]
+#[Handler(container: 'sd-ai-agent', strategy: Handler::INIT_IMMEDIATELY)]
 final class SomeHandler {
 
     public function on_initialize(): void {
@@ -209,7 +209,7 @@ This pattern is valid but opaque — the DI container doesn't know which hooks e
 
 ```php
 // Preferred — hooks are explicit and auditable.
-#[Handler(container: 'gratis-ai-agent', context: Handler::CTX_GLOBAL, strategy: Handler::INIT_IMMEDIATELY)]
+#[Handler(container: 'sd-ai-agent', context: Handler::CTX_GLOBAL, strategy: Handler::INIT_IMMEDIATELY)]
 final class ChangeLoggingHandler {
 
     #[Action( tag: 'post_updated', priority: 10 )]
@@ -225,7 +225,7 @@ final class ChangeLoggingHandler {
 ```php
 // Only loads on admin pages — zero overhead on frontend/REST/CLI
 #[Handler(
-    container: 'gratis-ai-agent',
+    container: 'sd-ai-agent',
     context: Handler::CTX_ADMIN,
     strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -242,7 +242,7 @@ final class AdminHandler {
 
 ### 1. `compile_class` is REQUIRED when container ID has hyphens
 
-The default `compile_class` is `CompiledContainer` + uppercased ID. For `gratis-ai-agent`, this produces `CompiledContainerGratis-ai-agent` — an invalid PHP class name. Always set `compile_class` explicitly.
+The default `compile_class` is `CompiledContainer` + uppercased ID. For `sd-ai-agent`, this produces `CompiledContainerSd-ai-agent` — an invalid PHP class name. Always set `compile_class` explicitly.
 
 ### 2. Module priority must differ from `xwp_load_app()` priority
 
@@ -272,7 +272,7 @@ $refl->setValue( null, XWP_Context::REST );
 
 `XWP_Context::rest()` only detects REST context when `$_SERVER['REQUEST_URI']` contains the `wp-json/` prefix. When WordPress uses plain permalinks (the default in fresh wp-env installs), REST requests use `?rest_route=/...` in the query string. `REQUEST_URI` is then `/?rest_route=...` which does **not** contain `wp-json/`, so `XWP_Context::rest()` returns false, context is misdetected as `CTX_FRONTEND`, and all `CTX_REST` handlers fail to load — every REST endpoint returns 404.
 
-**Fix (applied in `gratis-ai-agent.php`):** Before calling `xwp_load_app()`, the plugin normalises `REQUEST_URI` for plain-permalink REST requests:
+**Fix (applied in `sd-ai-agent.php`):** Before calling `xwp_load_app()`, the plugin normalises `REQUEST_URI` for plain-permalink REST requests:
 
 ```php
 if ( ! empty( $_GET['rest_route'] ) ) {
@@ -307,7 +307,7 @@ The compiled container caches handler metadata. Stale cache = handlers not found
 
 ```bash
 # 401 = route exists + auth required, 404 = route missing
-curl -s -o /dev/null -w "%{http_code}" "http://wordpress.local:8080/wp-json/gratis-ai-agent/v1/memory"
+curl -s -o /dev/null -w "%{http_code}" "http://wordpress.local:8080/wp-json/sd-ai-agent/v1/memory"
 ```
 
 ### 10. Shipping compiled containers in distributions
@@ -322,15 +322,15 @@ When distributing the plugin (e.g., towordpress.org), the compiled PHP-DI contai
 'plugin.url' => \DI\value( GRAT_IS_AI_AGENT_URL ),
 
 // Plugin.php - GOOD: resolves at runtime
-'plugin.dir' => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_DIR' ) ? constant( 'GRATIS_AI_AGENT_DIR' ) : '' ),
-'plugin.url' => \DI\factory( static fn(): string => defined( 'GRATIS_AI_AGENT_URL' ) ? constant( 'GRATIS_AI_AGENT_URL' ) : '' ),
+'plugin.dir' => \DI\factory( static fn(): string => defined( 'SD_AI_AGENT_DIR' ) ? constant( 'SD_AI_AGENT_DIR' ) : '' ),
+'plugin.url' => \DI\factory( static fn(): string => defined( 'SD_AI_AGENT_URL' ) ? constant( 'SD_AI_AGENT_URL' ) : '' ),
 ```
 
 This generates a factory closure in the compiled container instead of hardcoded strings:
 
 ```php
 // Before (baked):
-protected function get4() { return '/home/dave/Git/gratis-ai-agent'; }
+protected function get4() { return '/home/dave/Git/sd-ai-agent'; }
 
 // After (runtime-resolved):
 protected function get4() {
@@ -385,7 +385,7 @@ includes/
 
 1. Create class in appropriate directory (`Bootstrap/`, `Infrastructure/`, etc.)
 2. Add `declare(strict_types=1)`, namespace, ABSPATH guard
-3. Decorate with `#[Handler(container: 'gratis-ai-agent', ...)]`
+3. Decorate with `#[Handler(container: 'sd-ai-agent', ...)]`
 4. Add `#[Action]` / `#[Filter]` on methods, or use `on_initialize()`
 5. Add the class to `Plugin.php`'s `handlers` array
 6. Run `composer dump-autoload`

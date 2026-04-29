@@ -4,15 +4,15 @@ declare(strict_types=1);
 /**
  * REST API controller for changes, modified-plugins, and download.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\REST;
+namespace SdAiAgent\REST;
 
-use GratisAiAgent\Core\Database;
-use GratisAiAgent\Models\ChangesLog;
-use GratisAiAgent\Services\ChangeRevertService;
+use SdAiAgent\Core\Database;
+use SdAiAgent\Models\ChangesLog;
+use SdAiAgent\Services\ChangeRevertService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * basenames (/changes, /modified-plugins, /download-plugin, /plugins).
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_REST,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]
@@ -260,7 +260,7 @@ final class ChangesController {
 		$change = ChangesLog::get( $id );
 
 		if ( ! $change ) {
-			return new WP_Error( 'not_found', __( 'Change record not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Change record not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		return new WP_REST_Response( $change, 200 );
@@ -278,7 +278,7 @@ final class ChangesController {
 		$change = ChangesLog::get( $id );
 
 		if ( ! $change ) {
-			return new WP_Error( 'not_found', __( 'Change record not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Change record not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		$diff = ChangesLog::generate_diff( $change->before_value, $change->after_value );
@@ -306,11 +306,11 @@ final class ChangesController {
 		$change = ChangesLog::get( $id );
 
 		if ( ! $change ) {
-			return new WP_Error( 'not_found', __( 'Change record not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Change record not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		if ( $change->reverted ) {
-			return new WP_Error( 'already_reverted', __( 'This change has already been reverted.', 'gratis-ai-agent' ), array( 'status' => 409 ) );
+			return new WP_Error( 'already_reverted', __( 'This change has already been reverted.', 'sd-ai-agent' ), array( 'status' => 409 ) );
 		}
 
 		$result = ChangeRevertService::apply_revert( $change );
@@ -324,7 +324,7 @@ final class ChangesController {
 		return new WP_REST_Response(
 			array(
 				'success' => true,
-				'message' => __( 'Change reverted successfully.', 'gratis-ai-agent' ),
+				'message' => __( 'Change reverted successfully.', 'sd-ai-agent' ),
 				'id'      => $id,
 			),
 			200
@@ -342,7 +342,7 @@ final class ChangesController {
 		$ids = array_map( 'absint', (array) $request->get_param( 'ids' ) );
 
 		if ( empty( $ids ) ) {
-			return new WP_Error( 'no_ids', __( 'No change IDs provided.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'no_ids', __( 'No change IDs provided.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		$patch = ChangesLog::generate_patch( $ids );
@@ -368,13 +368,13 @@ final class ChangesController {
 		$change = ChangesLog::get( $id );
 
 		if ( ! $change ) {
-			return new WP_Error( 'not_found', __( 'Change record not found.', 'gratis-ai-agent' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Change record not found.', 'sd-ai-agent' ), array( 'status' => 404 ) );
 		}
 
 		$deleted = ChangesLog::delete( $id );
 
 		if ( ! $deleted ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete change record.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete change record.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		return new WP_REST_Response(
@@ -395,7 +395,7 @@ final class ChangesController {
 
 		foreach ( $rows as $row ) {
 			$slug         = $row->plugin_slug ?? '';
-			$nonce        = wp_create_nonce( 'gratis_ai_agent_download_plugin_' . $slug );
+			$nonce        = wp_create_nonce( 'sd_ai_agent_download_plugin_' . $slug );
 			$rest_url     = rest_url( RestController::NAMESPACE . '/download-plugin/' . rawurlencode( $slug ) );
 			$download_url = add_query_arg( '_wpnonce', $nonce, $rest_url );
 
@@ -427,7 +427,7 @@ final class ChangesController {
 		$slug = sanitize_key( $request->get_param( 'slug' ) );
 
 		if ( empty( $slug ) ) {
-			return new WP_Error( 'invalid_slug', __( 'Plugin slug is required.', 'gratis-ai-agent' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_slug', __( 'Plugin slug is required.', 'sd-ai-agent' ), array( 'status' => 400 ) );
 		}
 
 		// Verify the plugin has been AI-modified.
@@ -437,7 +437,7 @@ final class ChangesController {
 				'plugin_not_modified',
 				sprintf(
 					/* translators: %s: plugin slug */
-					__( 'No AI modifications recorded for plugin: %s', 'gratis-ai-agent' ),
+					__( 'No AI modifications recorded for plugin: %s', 'sd-ai-agent' ),
 					$slug
 				),
 				array( 'status' => 404 )
@@ -453,7 +453,7 @@ final class ChangesController {
 				'plugin_not_found',
 				sprintf(
 					/* translators: %s: plugin slug */
-					__( 'Plugin directory not found: %s', 'gratis-ai-agent' ),
+					__( 'Plugin directory not found: %s', 'sd-ai-agent' ),
 					$slug
 				),
 				array( 'status' => 404 )
@@ -464,7 +464,7 @@ final class ChangesController {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			return new WP_Error(
 				'zip_unavailable',
-				__( 'ZipArchive PHP extension is not available on this server.', 'gratis-ai-agent' ),
+				__( 'ZipArchive PHP extension is not available on this server.', 'sd-ai-agent' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -472,13 +472,13 @@ final class ChangesController {
 		// Create a temporary zip file.
 		$tmp_file = wp_tempnam( $slug . '.zip' );
 		if ( ! $tmp_file ) {
-			return new WP_Error( 'tmp_failed', __( 'Failed to create temporary file.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'tmp_failed', __( 'Failed to create temporary file.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		$zip = new \ZipArchive();
 		if ( true !== $zip->open( $tmp_file, \ZipArchive::OVERWRITE ) ) {
 			wp_delete_file( $tmp_file );
-			return new WP_Error( 'zip_open_failed', __( 'Failed to open zip archive for writing.', 'gratis-ai-agent' ), array( 'status' => 500 ) );
+			return new WP_Error( 'zip_open_failed', __( 'Failed to open zip archive for writing.', 'sd-ai-agent' ), array( 'status' => 500 ) );
 		}
 
 		$this->add_directory_to_zip( $zip, $plugin_dir, $slug );

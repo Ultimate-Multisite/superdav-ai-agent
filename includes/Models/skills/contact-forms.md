@@ -23,7 +23,7 @@ Use this skill when the user asks to:
 
 ### Step 1 — Detect an active form plugin
 
-Use `gratis-ai-agent/get-plugins` to list installed plugins, then look for:
+Use `sd-ai-agent/get-plugins` to list installed plugins, then look for:
 
 | Plugin slug | Abilities API | Notes |
 |---|---|---|
@@ -33,7 +33,7 @@ Use `gratis-ai-agent/get-plugins` to list installed plugins, then look for:
 
 ### Step 2 — Install WPForms if no supported plugin is active
 
-Use `gratis-ai-agent/install-plugin`:
+Use `sd-ai-agent/install-plugin`:
 ```json
 { "slug": "wpforms-lite", "activate": true }
 ```
@@ -42,7 +42,7 @@ This installs from wordpress.org and immediately activates the plugin.
 
 ### Step 3 — Discover WPForms abilities
 
-After WPForms Lite is active, use `gratis-ai-agent/ability-search` to discover its registered abilities:
+After WPForms Lite is active, use `sd-ai-agent/ability-search` to discover its registered abilities:
 ```json
 { "query": "wpforms" }
 ```
@@ -82,7 +82,7 @@ wp post get <PAGE_ID> --field=post_content | grep wpforms
 
 ## Contact Form 7 Fallback
 
-If CF7 (`contact-form-7`) is already installed and the user does not want to switch plugins, CF7 can create forms programmatically — but **it does not register WordPress Abilities**, so the agent must use direct PHP via `gratis-ai-agent/run-php` or WP-CLI.
+If CF7 (`contact-form-7`) is already installed and the user does not want to switch plugins, CF7 can create forms programmatically — but **it does not register WordPress Abilities**, so the agent must use direct PHP via `sd-ai-agent/run-php` or WP-CLI.
 
 CF7 shortcode format: `[contact-form-7 id="FORM_ID" title="FORM_TITLE"]`
 
@@ -91,7 +91,7 @@ Note: Avoid installing CF7 on new sites. Prefer WPForms Lite for all new setups.
 ## Verification Steps
 
 After creating and embedding a form:
-1. Confirm WPForms is active: `gratis-ai-agent/get-plugins`
+1. Confirm WPForms is active: `sd-ai-agent/get-plugins`
 2. Confirm the form ID exists via WPForms abilities (list forms)
 3. Confirm the page is published: `wp post get <PAGE_ID> --field=post_status`
 4. Confirm the shortcode is in the page content: `wp post get <PAGE_ID> --field=post_content`

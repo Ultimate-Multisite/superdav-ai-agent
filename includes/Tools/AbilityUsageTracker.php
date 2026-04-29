@@ -7,15 +7,15 @@ declare(strict_types=1);
  * Records every successful ability invocation so the auto-discovery layer
  * can promote the most-used abilities into the always-loaded Tier 1 set.
  *
- * Storage: a single wp_option (`gratis_ai_agent_ability_usage`) holding a
+ * Storage: a single wp_option (`sd_ai_agent_ability_usage`) holding a
  * map of ability name => { count, last_used }. The map is LRU-pruned at a
  * hard cap so it never grows unbounded.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
-namespace GratisAiAgent\Tools;
+namespace SdAiAgent\Tools;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,7 +26,7 @@ class AbilityUsageTracker {
 	/**
 	 * Option name for the persisted usage map.
 	 */
-	public const OPTION_NAME = 'gratis_ai_agent_ability_usage';
+	public const OPTION_NAME = 'sd_ai_agent_ability_usage';
 
 	/**
 	 * Maximum number of distinct abilities tracked. Old entries (lowest
@@ -40,7 +40,7 @@ class AbilityUsageTracker {
 	 * Increments the counter and updates the timestamp. Prunes the map to
 	 * MAX_ENTRIES if it overflows.
 	 *
-	 * @param string $ability_name Fully qualified ability name (e.g. "gratis-ai-agent/get-plugins").
+	 * @param string $ability_name Fully qualified ability name (e.g. "sd-ai-agent/get-plugins").
 	 * @return void
 	 */
 	public static function record( string $ability_name ): void {

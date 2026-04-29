@@ -13,7 +13,7 @@
  * - Detects WP 7.0+ and shows a redirect link to the native page
  *
  * Plugin install/activate calls the native /wp/v2/plugins REST API.
- * API key management calls /gratis-ai-agent/v1/connectors/{id}/key.
+ * API key management calls /sd-ai-agent/v1/connectors/{id}/key.
  */
 
 /**
@@ -130,7 +130,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'success',
 				message: __(
 					'Plugin installed. Click Activate to enable it.',
-					'gratis-ai-agent'
+					'sd-ai-agent'
 				),
 			} );
 			onRefresh();
@@ -138,8 +138,7 @@ function ProviderCard( { provider, onRefresh } ) {
 			setCardNotice( {
 				status: 'error',
 				message:
-					err?.message ||
-					__( 'Installation failed.', 'gratis-ai-agent' ),
+					err?.message || __( 'Installation failed.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setInstalling( false );
@@ -157,15 +156,14 @@ function ProviderCard( { provider, onRefresh } ) {
 			} );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'Plugin activated.', 'gratis-ai-agent' ),
+				message: __( 'Plugin activated.', 'sd-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
 			setCardNotice( {
 				status: 'error',
 				message:
-					err?.message ||
-					__( 'Activation failed.', 'gratis-ai-agent' ),
+					err?.message || __( 'Activation failed.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setActivating( false );
@@ -180,14 +178,14 @@ function ProviderCard( { provider, onRefresh } ) {
 		setCardNotice( null );
 		try {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/connectors/${ provider.id }/key`,
+				path: `/sd-ai-agent/v1/connectors/${ provider.id }/key`,
 				method: 'POST',
 				data: { api_key: apiKey.trim() },
 			} );
 			setApiKey( '' );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'API key saved.', 'gratis-ai-agent' ),
+				message: __( 'API key saved.', 'sd-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
@@ -195,7 +193,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save API key.', 'gratis-ai-agent' ),
+					__( 'Failed to save API key.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setSaving( false );
@@ -205,10 +203,7 @@ function ProviderCard( { provider, onRefresh } ) {
 	const handleClearKey = useCallback( async () => {
 		/* eslint-disable no-alert */
 		const confirmed = window.confirm(
-			__(
-				'Clear the saved API key for this provider?',
-				'gratis-ai-agent'
-			)
+			__( 'Clear the saved API key for this provider?', 'sd-ai-agent' )
 		);
 		/* eslint-enable no-alert */
 		if ( ! confirmed ) {
@@ -218,12 +213,12 @@ function ProviderCard( { provider, onRefresh } ) {
 		setCardNotice( null );
 		try {
 			await apiFetch( {
-				path: `/gratis-ai-agent/v1/connectors/${ provider.id }/key`,
+				path: `/sd-ai-agent/v1/connectors/${ provider.id }/key`,
 				method: 'DELETE',
 			} );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'API key cleared.', 'gratis-ai-agent' ),
+				message: __( 'API key cleared.', 'sd-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
@@ -231,7 +226,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to clear API key.', 'gratis-ai-agent' ),
+					__( 'Failed to clear API key.', 'sd-ai-agent' ),
 			} );
 		} finally {
 			setClearing( false );
@@ -241,34 +236,34 @@ function ProviderCard( { provider, onRefresh } ) {
 	const statusBadge = () => {
 		if ( provider.active ) {
 			return (
-				<span className="gratis-ai-connectors__status gratis-ai-connectors__status--active">
-					{ __( 'Active', 'gratis-ai-agent' ) }
+				<span className="sd-ai-connectors__status sd-ai-connectors__status--active">
+					{ __( 'Active', 'sd-ai-agent' ) }
 				</span>
 			);
 		}
 		if ( provider.installed ) {
 			return (
-				<span className="gratis-ai-connectors__status gratis-ai-connectors__status--inactive">
-					{ __( 'Inactive', 'gratis-ai-agent' ) }
+				<span className="sd-ai-connectors__status sd-ai-connectors__status--inactive">
+					{ __( 'Inactive', 'sd-ai-agent' ) }
 				</span>
 			);
 		}
 		return (
-			<span className="gratis-ai-connectors__status gratis-ai-connectors__status--not-installed">
-				{ __( 'Not Installed', 'gratis-ai-agent' ) }
+			<span className="sd-ai-connectors__status sd-ai-connectors__status--not-installed">
+				{ __( 'Not Installed', 'sd-ai-agent' ) }
 			</span>
 		);
 	};
 
 	return (
-		<Card className="gratis-ai-connectors__provider-card">
+		<Card className="sd-ai-connectors__provider-card">
 			<CardHeader>
-				<div className="gratis-ai-connectors__provider-header">
-					<div className="gratis-ai-connectors__provider-title">
+				<div className="sd-ai-connectors__provider-header">
+					<div className="sd-ai-connectors__provider-title">
 						<h3>{ provider.name }</h3>
 						{ statusBadge() }
 					</div>
-					<div className="gratis-ai-connectors__provider-actions">
+					<div className="sd-ai-connectors__provider-actions">
 						{ ! provider.installed && (
 							<Button
 								variant="secondary"
@@ -277,8 +272,8 @@ function ProviderCard( { provider, onRefresh } ) {
 								disabled={ installing }
 							>
 								{ installing
-									? __( 'Installing…', 'gratis-ai-agent' )
-									: __( 'Install', 'gratis-ai-agent' ) }
+									? __( 'Installing…', 'sd-ai-agent' )
+									: __( 'Install', 'sd-ai-agent' ) }
 							</Button>
 						) }
 						{ provider.installed && ! provider.active && (
@@ -289,8 +284,8 @@ function ProviderCard( { provider, onRefresh } ) {
 								disabled={ activating }
 							>
 								{ activating
-									? __( 'Activating…', 'gratis-ai-agent' )
-									: __( 'Activate', 'gratis-ai-agent' ) }
+									? __( 'Activating…', 'sd-ai-agent' )
+									: __( 'Activate', 'sd-ai-agent' ) }
 							</Button>
 						) }
 					</div>
@@ -302,27 +297,27 @@ function ProviderCard( { provider, onRefresh } ) {
 						status={ cardNotice.status }
 						isDismissible
 						onRemove={ clearCardNotice }
-						className="gratis-ai-connectors__card-notice"
+						className="sd-ai-connectors__card-notice"
 					>
 						{ cardNotice.message }
 					</Notice>
 				) }
 
-				<p className="gratis-ai-connectors__description">
+				<p className="sd-ai-connectors__description">
 					{ provider.description }
 				</p>
 
-				<div className="gratis-ai-connectors__api-key-section">
-					<div className="gratis-ai-connectors__api-key-label">
-						<strong>{ __( 'API Key', 'gratis-ai-agent' ) }</strong>
+				<div className="sd-ai-connectors__api-key-section">
+					<div className="sd-ai-connectors__api-key-label">
+						<strong>{ __( 'API Key', 'sd-ai-agent' ) }</strong>
 						{ provider.configured && provider.masked_key && (
-							<span className="gratis-ai-connectors__api-key-configured">
-								{ __( 'Configured:', 'gratis-ai-agent' ) }{ ' ' }
+							<span className="sd-ai-connectors__api-key-configured">
+								{ __( 'Configured:', 'sd-ai-agent' ) }{ ' ' }
 								<code>{ provider.masked_key }</code>
 								<Tooltip
 									text={ __(
 										'Clear this API key',
-										'gratis-ai-agent'
+										'sd-ai-agent'
 									) }
 								>
 									<Button
@@ -331,17 +326,17 @@ function ProviderCard( { provider, onRefresh } ) {
 										onClick={ handleClearKey }
 										isBusy={ clearing }
 										disabled={ clearing }
-										className="gratis-ai-connectors__clear-key-btn"
+										className="sd-ai-connectors__clear-key-btn"
 									>
-										{ __( 'Clear', 'gratis-ai-agent' ) }
+										{ __( 'Clear', 'sd-ai-agent' ) }
 									</Button>
 								</Tooltip>
 							</span>
 						) }
 					</div>
-					<div className="gratis-ai-connectors__api-key-input">
+					<div className="sd-ai-connectors__api-key-input">
 						<TextControl
-							label={ __( 'Enter API Key', 'gratis-ai-agent' ) }
+							label={ __( 'Enter API Key', 'sd-ai-agent' ) }
 							hideLabelFromVision
 							value={ apiKey }
 							onChange={ setApiKey }
@@ -350,11 +345,11 @@ function ProviderCard( { provider, onRefresh } ) {
 								provider.configured
 									? __(
 											'Enter new key to replace the existing one',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 									: __(
 											'Paste your API key here',
-											'gratis-ai-agent'
+											'sd-ai-agent'
 									  )
 							}
 							disabled={ saving }
@@ -366,8 +361,8 @@ function ProviderCard( { provider, onRefresh } ) {
 							disabled={ saving || ! apiKey.trim() }
 						>
 							{ saving
-								? __( 'Saving…', 'gratis-ai-agent' )
-								: __( 'Save Key', 'gratis-ai-agent' ) }
+								? __( 'Saving…', 'sd-ai-agent' )
+								: __( 'Save Key', 'sd-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -394,7 +389,7 @@ export default function ConnectorsRoute() {
 	const fetchProviders = useCallback( async () => {
 		try {
 			const data = await apiFetch( {
-				path: '/gratis-ai-agent/v1/connectors',
+				path: '/sd-ai-agent/v1/connectors',
 			} );
 			dispatch( {
 				type: 'FETCH_SUCCESS',
@@ -406,7 +401,7 @@ export default function ConnectorsRoute() {
 				type: 'FETCH_ERROR',
 				error:
 					err?.message ||
-					__( 'Failed to load connectors.', 'gratis-ai-agent' ),
+					__( 'Failed to load connectors.', 'sd-ai-agent' ),
 			} );
 		}
 	}, [] );
@@ -416,17 +411,15 @@ export default function ConnectorsRoute() {
 	}, [ fetchProviders ] );
 
 	const connectorsUrl =
-		window.gratisAiAgentData?.connectorsUrl ||
+		window.sdAiAgentData?.connectorsUrl ||
 		'options-general.php?page=options-connectors-wp-admin';
 
 	if ( state.loading ) {
 		return (
-			<div className="gratis-ai-agent-route gratis-ai-agent-route-connectors">
-				<div className="gratis-ai-connectors__loading">
+			<div className="sd-ai-agent-route sd-ai-agent-route-connectors">
+				<div className="sd-ai-connectors__loading">
 					<Spinner />
-					<span>
-						{ __( 'Loading connectors…', 'gratis-ai-agent' ) }
-					</span>
+					<span>{ __( 'Loading connectors…', 'sd-ai-agent' ) }</span>
 				</div>
 			</div>
 		);
@@ -434,7 +427,7 @@ export default function ConnectorsRoute() {
 
 	if ( state.error ) {
 		return (
-			<div className="gratis-ai-agent-route gratis-ai-agent-route-connectors">
+			<div className="sd-ai-agent-route sd-ai-agent-route-connectors">
 				<Notice status="error" isDismissible={ false }>
 					{ state.error }
 				</Notice>
@@ -446,17 +439,17 @@ export default function ConnectorsRoute() {
 	// The native Connectors page handles everything.
 	if ( state.hasNative ) {
 		return (
-			<div className="gratis-ai-agent-route gratis-ai-agent-route-connectors">
-				<div className="gratis-ai-connectors__native-redirect">
-					<h2>{ __( 'Connectors', 'gratis-ai-agent' ) }</h2>
+			<div className="sd-ai-agent-route sd-ai-agent-route-connectors">
+				<div className="sd-ai-connectors__native-redirect">
+					<h2>{ __( 'Connectors', 'sd-ai-agent' ) }</h2>
 					<Notice status="info" isDismissible={ false }>
 						{ __(
 							'WordPress 7.0+ includes a built-in Connectors page for managing AI provider API keys.',
-							'gratis-ai-agent'
+							'sd-ai-agent'
 						) }
 					</Notice>
 					<Button variant="primary" href={ connectorsUrl }>
-						{ __( 'Open Connectors Page →', 'gratis-ai-agent' ) }
+						{ __( 'Open Connectors Page →', 'sd-ai-agent' ) }
 					</Button>
 				</div>
 			</div>
@@ -464,18 +457,18 @@ export default function ConnectorsRoute() {
 	}
 
 	return (
-		<div className="gratis-ai-agent-route gratis-ai-agent-route-connectors">
-			<div className="gratis-ai-connectors__header">
-				<h2>{ __( 'Connectors', 'gratis-ai-agent' ) }</h2>
-				<p className="gratis-ai-connectors__intro">
+		<div className="sd-ai-agent-route sd-ai-agent-route-connectors">
+			<div className="sd-ai-connectors__header">
+				<h2>{ __( 'Connectors', 'sd-ai-agent' ) }</h2>
+				<p className="sd-ai-connectors__intro">
 					{ __(
-						'Install and configure AI provider plugins. Each provider needs an API key to connect Gratis AI Agent to its models.',
-						'gratis-ai-agent'
+						'Install and configure AI provider plugins. Each provider needs an API key to connect Superdav AI Agent to its models.',
+						'sd-ai-agent'
 					) }
 				</p>
 			</div>
 
-			<div className="gratis-ai-connectors__grid">
+			<div className="sd-ai-connectors__grid">
 				{ state.providers.map( ( provider ) => (
 					<ProviderCard
 						key={ provider.id }

@@ -2,15 +2,15 @@
 /**
  * Handler: raise the WordPress AI Client SDK default request timeout.
  *
- * @package GratisAiAgent
+ * @package SdAiAgent
  * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
 
-namespace GratisAiAgent\Infrastructure\AiClient;
+namespace SdAiAgent\Infrastructure\AiClient;
 
-use GratisAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\AgentLoop;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
 
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * later on the request lifecycle.
  */
 #[Handler(
-	container: 'gratis-ai-agent',
+	container: 'sd-ai-agent',
 	context: Handler::CTX_GLOBAL,
 	strategy: Handler::INIT_IMMEDIATELY,
 )]

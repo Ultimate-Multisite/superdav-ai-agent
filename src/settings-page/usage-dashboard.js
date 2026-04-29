@@ -45,7 +45,7 @@ export default function UsageDashboard() {
 		setLoading( true );
 		try {
 			const result = await apiFetch( {
-				path: `/gratis-ai-agent/v1/usage?period=${ period }`,
+				path: `/sd-ai-agent/v1/usage?period=${ period }`,
 			} );
 			setData( result );
 		} catch {
@@ -60,14 +60,14 @@ export default function UsageDashboard() {
 
 	if ( loading ) {
 		return (
-			<div className="gratis-ai-agent-usage-loading">
+			<div className="sd-ai-agent-usage-loading">
 				<Spinner />
 			</div>
 		);
 	}
 
 	if ( ! data ) {
-		return <p>{ __( 'Failed to load usage data.', 'gratis-ai-agent' ) }</p>;
+		return <p>{ __( 'Failed to load usage data.', 'sd-ai-agent' ) }</p>;
 	}
 
 	const totals = data.totals || {};
@@ -79,26 +79,26 @@ export default function UsageDashboard() {
 	);
 
 	return (
-		<div className="gratis-ai-agent-usage-dashboard">
-			<div className="gratis-ai-agent-usage-header">
-				<h3>{ __( 'Usage Summary', 'gratis-ai-agent' ) }</h3>
+		<div className="sd-ai-agent-usage-dashboard">
+			<div className="sd-ai-agent-usage-header">
+				<h3>{ __( 'Usage Summary', 'sd-ai-agent' ) }</h3>
 				<SelectControl
 					value={ period }
 					options={ [
 						{
-							label: __( 'Last 7 days', 'gratis-ai-agent' ),
+							label: __( 'Last 7 days', 'sd-ai-agent' ),
 							value: '7d',
 						},
 						{
-							label: __( 'Last 30 days', 'gratis-ai-agent' ),
+							label: __( 'Last 30 days', 'sd-ai-agent' ),
 							value: '30d',
 						},
 						{
-							label: __( 'Last 90 days', 'gratis-ai-agent' ),
+							label: __( 'Last 90 days', 'sd-ai-agent' ),
 							value: '90d',
 						},
 						{
-							label: __( 'All time', 'gratis-ai-agent' ),
+							label: __( 'All time', 'sd-ai-agent' ),
 							value: 'all',
 						},
 					] }
@@ -107,56 +107,54 @@ export default function UsageDashboard() {
 				/>
 			</div>
 
-			<div className="gratis-ai-agent-usage-cards">
-				<div className="gratis-ai-agent-usage-card">
-					<div className="gratis-ai-agent-usage-card-label">
-						{ __( 'Total Cost', 'gratis-ai-agent' ) }
+			<div className="sd-ai-agent-usage-cards">
+				<div className="sd-ai-agent-usage-card">
+					<div className="sd-ai-agent-usage-card-label">
+						{ __( 'Total Cost', 'sd-ai-agent' ) }
 					</div>
-					<div className="gratis-ai-agent-usage-card-value">
+					<div className="sd-ai-agent-usage-card-value">
 						{ formatCost( totals.cost_usd ) }
 					</div>
 				</div>
-				<div className="gratis-ai-agent-usage-card">
-					<div className="gratis-ai-agent-usage-card-label">
-						{ __( 'Requests', 'gratis-ai-agent' ) }
+				<div className="sd-ai-agent-usage-card">
+					<div className="sd-ai-agent-usage-card-label">
+						{ __( 'Requests', 'sd-ai-agent' ) }
 					</div>
-					<div className="gratis-ai-agent-usage-card-value">
+					<div className="sd-ai-agent-usage-card-value">
 						{ totals.request_count || 0 }
 					</div>
 				</div>
-				<div className="gratis-ai-agent-usage-card">
-					<div className="gratis-ai-agent-usage-card-label">
-						{ __( 'Input Tokens', 'gratis-ai-agent' ) }
+				<div className="sd-ai-agent-usage-card">
+					<div className="sd-ai-agent-usage-card-label">
+						{ __( 'Input Tokens', 'sd-ai-agent' ) }
 					</div>
-					<div className="gratis-ai-agent-usage-card-value">
+					<div className="sd-ai-agent-usage-card-value">
 						{ formatTokens( totals.prompt_tokens ) }
 					</div>
 				</div>
-				<div className="gratis-ai-agent-usage-card">
-					<div className="gratis-ai-agent-usage-card-label">
-						{ __( 'Output Tokens', 'gratis-ai-agent' ) }
+				<div className="sd-ai-agent-usage-card">
+					<div className="sd-ai-agent-usage-card-label">
+						{ __( 'Output Tokens', 'sd-ai-agent' ) }
 					</div>
-					<div className="gratis-ai-agent-usage-card-value">
+					<div className="sd-ai-agent-usage-card-value">
 						{ formatTokens( totals.completion_tokens ) }
 					</div>
 				</div>
 			</div>
 
 			{ byModel.length > 0 && (
-				<div className="gratis-ai-agent-usage-breakdown">
-					<h4>{ __( 'By Model', 'gratis-ai-agent' ) }</h4>
-					<table className="gratis-ai-agent-usage-table">
+				<div className="sd-ai-agent-usage-breakdown">
+					<h4>{ __( 'By Model', 'sd-ai-agent' ) }</h4>
+					<table className="sd-ai-agent-usage-table">
 						<thead>
 							<tr>
-								<th>{ __( 'Model', 'gratis-ai-agent' ) }</th>
-								<th>{ __( 'Requests', 'gratis-ai-agent' ) }</th>
+								<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Requests', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Input Tokens', 'sd-ai-agent' ) }</th>
 								<th>
-									{ __( 'Input Tokens', 'gratis-ai-agent' ) }
+									{ __( 'Output Tokens', 'sd-ai-agent' ) }
 								</th>
-								<th>
-									{ __( 'Output Tokens', 'gratis-ai-agent' ) }
-								</th>
-								<th>{ __( 'Cost', 'gratis-ai-agent' ) }</th>
+								<th>{ __( 'Cost', 'sd-ai-agent' ) }</th>
 								<th></th>
 							</tr>
 						</thead>
@@ -183,9 +181,9 @@ export default function UsageDashboard() {
 										</td>
 										<td>{ formatCost( m.cost_usd ) }</td>
 										<td>
-											<div className="gratis-ai-agent-usage-bar">
+											<div className="sd-ai-agent-usage-bar">
 												<div
-													className="gratis-ai-agent-usage-bar-fill"
+													className="sd-ai-agent-usage-bar-fill"
 													style={ {
 														width: pct + '%',
 													} }

@@ -34,7 +34,7 @@
  * own endpoint, avoiding this overhead entirely.
  *
  * wp-env percent-encodes REST paths in the plain-permalink format
- * (`?rest_route=%2Fgratis-ai-agent%2Fv1%2Fsessions%2Fshared`). Regex
+ * (`?rest_route=%2Fsd-ai-agent%2Fv1%2Fsessions%2Fshared`). Regex
  * matchers fail against encoded URLs. Predicate functions decode the URL
  * first (`decodeURIComponent(req.url())`) so matching is reliable regardless
  * of the permalink format in use.
@@ -119,7 +119,7 @@ async function setupMocks( page, options = {} ) {
 		await page.route(
 			( url ) =>
 				decodeURIComponent( url.href ).includes(
-					'gratis-ai-agent/v1/sessions/shared'
+					'sd-ai-agent/v1/sessions/shared'
 				),
 			async ( route ) => {
 				if ( sharedSessionsFn !== null ) {
@@ -148,7 +148,7 @@ async function setupMocks( page, options = {} ) {
 	if ( shareSuccess !== null ) {
 		await page.route(
 			( url ) =>
-				/gratis-ai-agent\/v1\/sessions\/\d+\/share/.test(
+				/sd-ai-agent\/v1\/sessions\/\d+\/share/.test(
 					decodeURIComponent( url.href )
 				),
 			async ( route ) => {
@@ -181,8 +181,8 @@ async function setupMocks( page, options = {} ) {
 			( url ) => {
 				const decoded = decodeURIComponent( url.href );
 				return (
-					decoded.includes( 'gratis-ai-agent/v1/sessions' ) &&
-					! decoded.includes( 'gratis-ai-agent/v1/sessions/' )
+					decoded.includes( 'sd-ai-agent/v1/sessions' ) &&
+					! decoded.includes( 'sd-ai-agent/v1/sessions/' )
 				);
 			},
 			async ( route ) => {
@@ -200,7 +200,7 @@ async function setupMocks( page, options = {} ) {
 		await page.route(
 			( url ) =>
 				decodeURIComponent( url.href ).includes(
-					'gratis-ai-agent/v1/stream'
+					'sd-ai-agent/v1/stream'
 				),
 			async ( route ) => {
 				let sid = streamSessionId;
@@ -253,8 +253,8 @@ async function setupMocks( page, options = {} ) {
  * the DOM update that produces .gaa-cr-session-row nodes.
  *
  * The ChatRedesign Sidebar uses:
- *   .gaa-cr-session-row  (was .gratis-ai-agent-session-item)
- *   button[aria-label="Session options"]  (was .gratis-ai-agent-session-more)
+ *   .gaa-cr-session-row  (was .sd-ai-agent-session-item)
+ *   button[aria-label="Session options"]  (was .sd-ai-agent-session-more)
  *
  * @param {import('@playwright/test').Page} page
  */
@@ -372,7 +372,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			async ( { page } ) => {
 				// FIXME: The ChatRedesign Sidebar (gaa-cr-*) does not yet render
 				// a shared-icon badge on session rows. The old SessionSidebar
-				// rendered .gratis-ai-agent-shared-icon when session.is_shared=true.
+				// rendered .sd-ai-agent-shared-icon when session.is_shared=true.
 				// This test should be re-enabled once the shared badge is added to
 				// the new Sidebar component.
 				await page.unrouteAll( { behavior: 'ignoreErrors' } );
@@ -423,7 +423,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			// the waiter fires regardless of which transport wp-env uses.
 			const deleteRequestPromise = page.waitForRequest(
 				( req ) =>
-					/gratis-ai-agent\/v1\/sessions\/\d+\/share/.test(
+					/sd-ai-agent\/v1\/sessions\/\d+\/share/.test(
 						decodeURIComponent( req.url() )
 					),
 				{ timeout: 10_000 }
@@ -459,7 +459,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 			await page.route(
 				( url ) =>
 					decodeURIComponent( url.href ).includes(
-						'gratis-ai-agent/v1/sessions/shared'
+						'sd-ai-agent/v1/sessions/shared'
 					),
 				async ( route ) => {
 					const result = isRevoked ? [] : [ MOCK_SESSION ];
@@ -629,7 +629,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				await sharedResponsePromise;
 
 				const sessionTitle = secondPage
-					.locator( '.gratis-ai-agent-session-item' )
+					.locator( '.sd-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } );
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the response and React committing the DOM update.
@@ -687,7 +687,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// opening the context menu. The store update and React re-render
 				// happen asynchronously after the HTTP response is received.
 				await expect(
-					secondPage.locator( '.gratis-ai-agent-session-item' ).first()
+					secondPage.locator( '.sd-ai-agent-session-item' ).first()
 				).toBeVisible( { timeout: 10_000 } );
 
 				// Open context menu for the shared session.
@@ -746,9 +746,9 @@ test.describe( 'Shared Conversations (t091)', () => {
 						const decoded = decodeURIComponent( url.href );
 						return (
 							decoded.includes(
-								'gratis-ai-agent/v1/sessions/42'
+								'sd-ai-agent/v1/sessions/42'
 							) &&
-							! /gratis-ai-agent\/v1\/sessions\/42[/\d]/.test(
+							! /sd-ai-agent\/v1\/sessions\/42[/\d]/.test(
 								decoded
 							)
 						);
@@ -784,24 +784,24 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the shared sessions response and React committing the DOM update.
 				const sessionItem = secondPage
-					.locator( '.gratis-ai-agent-session-item' )
+					.locator( '.sd-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } )
 					.first();
 				await expect( sessionItem ).toBeVisible( { timeout: 10_000 } );
 				await sessionItem.click();
 
 				// Type a message and send it.
-				const input = secondPage.locator( '.gratis-ai-agent-input' );
+				const input = secondPage.locator( '.sd-ai-agent-input' );
 				await expect( input ).toBeVisible();
 				await input.fill( 'Hello from second admin!' );
 
-				const sendButton = secondPage.locator( '.gratis-ai-agent-send-btn' );
+				const sendButton = secondPage.locator( '.sd-ai-agent-send-btn' );
 				await expect( sendButton ).toBeEnabled();
 				await sendButton.click();
 
 				// The user message row should appear (synchronous optimistic update).
 				const messageRow = secondPage
-					.locator( '.gratis-ai-agent-message-row' )
+					.locator( '.sd-ai-agent-message-row' )
 					.first();
 				await expect( messageRow ).toBeVisible( { timeout: 5_000 } );
 			} finally {
@@ -851,7 +851,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// opening the context menu. The store update and React re-render
 				// happen asynchronously after the HTTP response is received.
 				await expect(
-					secondPage.locator( '.gratis-ai-agent-session-item' ).first()
+					secondPage.locator( '.sd-ai-agent-session-item' ).first()
 				).toBeVisible( { timeout: 10_000 } );
 
 				await openFirstSessionContextMenu( secondPage );
@@ -911,7 +911,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 				// Use a 10 s timeout to accommodate the async gap between the store
 				// receiving the response and React committing the DOM update.
 				const sessionTitle = secondPage
-					.locator( '.gratis-ai-agent-session-item' )
+					.locator( '.sd-ai-agent-session-item' )
 					.filter( { hasText: MOCK_SESSION.title } );
 				await expect( sessionTitle.first() ).toBeVisible( {
 					timeout: 10_000,
@@ -936,7 +936,7 @@ test.describe( 'Shared Conversations (t091)', () => {
 
 				// Empty state should be shown.
 				const emptyState = secondPage.locator(
-					'.gratis-ai-agent-session-empty'
+					'.sd-ai-agent-session-empty'
 				);
 				await expect( emptyState ).toBeVisible();
 			} finally {

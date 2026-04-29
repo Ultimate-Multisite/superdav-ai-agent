@@ -175,7 +175,7 @@ class PostAbilities {
 			'ai-agent/update-post',
 			[
 				'label'               => __( 'Update Post', 'gratis-ai-agent' ),
-				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. Use this to set a featured image by passing post_id + featured_image_id.', 'gratis-ai-agent' ),
+				'description'         => __( 'Update an existing WordPress post or page. Only provided fields are changed; omitted fields are left as-is. Can update title, content, excerpt, status, categories, tags, featured image (featured_image_id), and custom meta. IMPORTANT: You must supply post_id — if you do not know it, call list-posts first (search by title) to find it. Do NOT call create-post when the intent is to update an existing post.', 'gratis-ai-agent' ),
 				'category'            => 'gratis-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
@@ -241,6 +241,7 @@ class PostAbilities {
 						'post_id'   => [ 'type' => 'integer' ],
 						'permalink' => [ 'type' => 'string' ],
 						'status'    => [ 'type' => 'string' ],
+						'post_type' => [ 'type' => 'string' ],
 					],
 				],
 				'meta'                => [
@@ -1031,6 +1032,7 @@ class PostAbilities {
 			'post_id'   => $post_id,
 			'permalink' => $permalink ?: '',
 			'status'    => $updated_post instanceof WP_Post ? $updated_post->post_status : '',
+			'post_type' => $updated_post instanceof WP_Post ? $updated_post->post_type : '',
 		];
 	}
 

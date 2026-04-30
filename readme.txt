@@ -1,7 +1,7 @@
 === Superdav AI Agent ===
 Contributors: superdav42
 Tags: ai, chatbot, assistant, automation, tools
-Requires at least: 7.0
+Requires at least: 6.9
 Tested up to: 7.0
 Requires PHP: 8.2
 Stable tag: 1.9.1

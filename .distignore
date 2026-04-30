@@ -72,6 +72,8 @@ stubs
 
 # AI agent / automation tooling
 .agents
+.aidevops.json
+.beads
 .claude
 .husky
 AGENTS.md
@@ -82,6 +84,7 @@ README.md
 ROADMAP.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
+DESIGN.md
 SECURITY.md
 CHANGELOG.md
 PLANS-AI-AGENT-MASTERPLAN.md
@@ -91,6 +94,7 @@ MODELS.md
 TODO.md
 todo
 .task-counter
+test-results
 skills-lock.json
 
 # Dev screenshots (root-level; assets/screenshots/ is kept)

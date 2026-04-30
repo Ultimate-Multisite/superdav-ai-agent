@@ -124,6 +124,12 @@ export default function SettingsApp() {
 	const [ braveSaving, setBraveSaving ] = useState( false );
 	const [ braveNotice, setBraveNotice ] = useState( null );
 
+	// Tavily API key state.
+	const [ tavilyApiKey, setTavilyApiKey ] = useState( '' );
+	const [ tavilyConfigured, setTavilyConfigured ] = useState( false );
+	const [ tavilySaving, setTavilySaving ] = useState( false );
+	const [ tavilyNotice, setTavilyNotice ] = useState( null );
+
 	useEffect( () => {
 		fetchSettings();
 		fetchProviders();
@@ -140,10 +146,11 @@ export default function SettingsApp() {
 				}
 			} )
 			.catch( () => {} );
-		// Fetch Brave Search key status from the general settings response.
+		// Fetch search provider key status from the general settings response.
 		apiFetch( { path: '/sd-ai-agent/v1/settings' } )
 			.then( ( data ) => {
 				setBraveConfigured( !! data?._brave_search_key_configured );
+				setTavilyConfigured( !! data?._tavily_api_key_configured );
 			} )
 			.catch( () => {} );
 	}, [ fetchSettings, fetchProviders ] );
@@ -272,6 +279,57 @@ export default function SettingsApp() {
 			} );
 		}
 		setBraveSaving( false );
+	}, [] );
+
+	const handleTavilySave = useCallback( async () => {
+		setTavilySaving( true );
+		setTavilyNotice( null );
+		try {
+			await apiFetch( {
+				path: '/sd-ai-agent/v1/settings/tavily-api-key',
+				method: 'POST',
+				data: { api_key: tavilyApiKey },
+			} );
+			setTavilyConfigured( true );
+			setTavilyApiKey( '' ); // Clear the field after saving.
+			setTavilyNotice( {
+				status: 'success',
+				message: __( 'Tavily API key saved.', 'sd-ai-agent' ),
+			} );
+		} catch ( err ) {
+			setTavilyNotice( {
+				status: 'error',
+				message:
+					err?.message ||
+					__( 'Failed to save Tavily API key.', 'sd-ai-agent' ),
+			} );
+		}
+		setTavilySaving( false );
+	}, [ tavilyApiKey ] );
+
+	const handleTavilyClear = useCallback( async () => {
+		setTavilySaving( true );
+		setTavilyNotice( null );
+		try {
+			await apiFetch( {
+				path: '/sd-ai-agent/v1/settings/tavily-api-key',
+				method: 'DELETE',
+			} );
+			setTavilyConfigured( false );
+			setTavilyNotice( {
+				status: 'success',
+				message: __( 'Tavily API key removed.', 'sd-ai-agent' ),
+			} );
+		} catch {
+			setTavilyNotice( {
+				status: 'error',
+				message: __(
+					'Failed to remove Tavily API key.',
+					'sd-ai-agent'
+				),
+			} );
+		}
+		setTavilySaving( false );
 	}, [] );
 
 	useEffect( () => {
@@ -1926,13 +1984,152 @@ export default function SettingsApp() {
 
 										<h4 className="sd-ai-agent-settings-subsection-title">
 											{ __(
-												'Internet Search (Brave Search API)',
+												'Internet Search',
 												'sd-ai-agent'
 											) }
 										</h4>
 										<p className="description">
 											{ __(
-												'Enable richer internet search results by connecting a Brave Search API key. Without a key, the agent uses DuckDuckGo instant answers (free, no setup required). Get a free Brave Search API key at',
+												'The agent searches the internet to research topics and answer questions about current events. Configure one or more search providers below. Provider priority: Tavily > Brave > DuckDuckGo (free fallback). You can also paste an API key into the chat and ask the agent to save it.',
+												'sd-ai-agent'
+											) }
+										</p>
+										{ /* Active provider indicator */ }
+										<Notice
+											status="info"
+											isDismissible={ false }
+										>
+											{ ( () => {
+												if ( tavilyConfigured ) {
+													return __(
+														'Active provider: Tavily (best for AI agents).',
+														'sd-ai-agent'
+													);
+												}
+												if ( braveConfigured ) {
+													return __(
+														'Active provider: Brave Search.',
+														'sd-ai-agent'
+													);
+												}
+												return __(
+													'Active provider: DuckDuckGo (free fallback — limited to instant answers). Configure Tavily or Brave for full web search.',
+													'sd-ai-agent'
+												);
+											} )() }
+										</Notice>
+
+										{ /* ── Tavily ── */ }
+										<h5 className="sd-ai-agent-settings-subsection-title">
+											{ __( 'Tavily', 'sd-ai-agent' ) }
+											{ tavilyConfigured && ' \u2713' }
+										</h5>
+										<p className="description">
+											{ __(
+												'Purpose-built search API for AI agents. Free tier includes 1,000 searches/month. Get an API key at',
+												'sd-ai-agent'
+											) }{ ' ' }
+											<a
+												href="https://app.tavily.com/"
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												app.tavily.com
+											</a>
+										</p>
+										{ tavilyNotice && (
+											<Notice
+												status={ tavilyNotice.status }
+												isDismissible
+												onDismiss={ () =>
+													setTavilyNotice( null )
+												}
+											>
+												{ tavilyNotice.message }
+											</Notice>
+										) }
+										<table className="form-table sd-ai-agent-form-table">
+											<tbody>
+												<tr>
+													<th scope="row">
+														<label htmlFor="sd-tavily-api-key">
+															{ __(
+																'Tavily API Key',
+																'sd-ai-agent'
+															) }
+														</label>
+													</th>
+													<td>
+														<TextControl
+															id="sd-tavily-api-key"
+															type="password"
+															value={
+																tavilyApiKey
+															}
+															onChange={
+																setTavilyApiKey
+															}
+															placeholder={
+																tavilyConfigured
+																	? __(
+																			'Key saved — enter a new key to replace it',
+																			'sd-ai-agent'
+																	  )
+																	: 'tvly-...'
+															}
+															help={ __(
+																'Get a free API key at app.tavily.com — the free tier includes 1,000 searches/month.',
+																'sd-ai-agent'
+															) }
+															__nextHasNoMarginBottom
+														/>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+										<div className="sd-ai-agent-settings-row-actions">
+											<Button
+												variant="primary"
+												onClick={ handleTavilySave }
+												isBusy={ tavilySaving }
+												disabled={
+													tavilySaving ||
+													! tavilyApiKey
+												}
+											>
+												{ __(
+													'Save Tavily API Key',
+													'sd-ai-agent'
+												) }
+											</Button>
+											{ tavilyConfigured && (
+												<Button
+													variant="secondary"
+													onClick={
+														handleTavilyClear
+													}
+													isBusy={ tavilySaving }
+													disabled={ tavilySaving }
+												>
+													{ __(
+														'Remove Key',
+														'sd-ai-agent'
+													) }
+												</Button>
+											) }
+										</div>
+
+										{ /* ── Brave Search ── */ }
+										<h5 className="sd-ai-agent-settings-subsection-title">
+											{ __(
+												'Brave Search',
+												'sd-ai-agent'
+											) }
+											{ braveConfigured && ' \u2713' }
+										</h5>
+										<p className="description">
+											{ __(
+												'Rich web search results with snippets, news, and videos. Free tier includes 2,000 queries/month. Get an API key at',
 												'sd-ai-agent'
 											) }{ ' ' }
 											<a
@@ -1943,28 +2140,6 @@ export default function SettingsApp() {
 												brave.com/search/api/
 											</a>
 										</p>
-										{ braveConfigured && (
-											<Notice
-												status="success"
-												isDismissible={ false }
-											>
-												{ __(
-													'Brave Search API key is configured. The agent will use Brave Search for internet searches.',
-													'sd-ai-agent'
-												) }
-											</Notice>
-										) }
-										{ ! braveConfigured && (
-											<Notice
-												status="info"
-												isDismissible={ false }
-											>
-												{ __(
-													'No Brave Search API key configured. The agent will use DuckDuckGo instant answers (zero-config fallback).',
-													'sd-ai-agent'
-												) }
-											</Notice>
-										) }
 										{ braveNotice && (
 											<Notice
 												status={ braveNotice.status }

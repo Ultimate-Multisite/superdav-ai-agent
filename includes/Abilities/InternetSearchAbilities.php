@@ -7,15 +7,15 @@ declare(strict_types=1);
  * Provides web search capabilities so the agent can research topics and
  * produce well-sourced content (e.g. blog posts, product descriptions).
  *
- * Search provider strategy (zero-config first):
- *   1. Brave Search API — if a Brave API key is configured in settings.
- *   2. DuckDuckGo Instant Answer API — free, no API key required, always available.
- *
- * The Brave Search API returns richer results (full snippets, news, videos)
- * and is recommended for production use. DuckDuckGo is the reliable fallback
- * that works out of the box with zero configuration.
+ * Search provider priority (first configured provider wins):
+ *   1. Tavily Search API  — best results for AI agents, purpose-built for LLMs.
+ *   2. Brave Search API   — rich results (full snippets, news, videos).
+ *   3. DuckDuckGo Instant Answer API — free, no API key required, always available.
  *
  * Configuration:
+ *   - Tavily API key: Settings page → "Tavily API Key" field, or paste
+ *     it into the chat and ask the agent to save it.
+ *     Get a free key at https://app.tavily.com/
  *   - Brave API key: Settings page → "Brave Search API Key" field.
  *     Get a free key at https://brave.com/search/api/
  *
@@ -34,6 +34,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InternetSearchAbilities {
 
 	/**
+	 * Tavily Search API endpoint.
+	 */
+	const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
+
+	/**
 	 * Brave Search API endpoint.
 	 */
 	const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
@@ -50,7 +55,38 @@ class InternetSearchAbilities {
 	const BRAVE_KEY_OPTION = 'sd_ai_agent_brave_search_key';
 
 	/**
-	 * Register the internet-search ability.
+	 * Option name for the Tavily API key.
+	 * Stored separately from general settings to avoid credential leakage.
+	 */
+	const TAVILY_KEY_OPTION = 'sd_ai_agent_tavily_api_key';
+
+	/**
+	 * Supported search providers with metadata.
+	 * Used by the configure-search-provider ability and settings UI.
+	 */
+	const SEARCH_PROVIDERS = [
+		'tavily'     => [
+			'name'   => 'Tavily',
+			'url'    => 'https://app.tavily.com/',
+			'help'   => 'Purpose-built search API for AI agents. Free tier includes 1,000 searches/month.',
+			'prefix' => 'tvly-',
+		],
+		'brave'      => [
+			'name'   => 'Brave Search',
+			'url'    => 'https://brave.com/search/api/',
+			'help'   => 'Rich web search results with snippets, news, and videos. Free tier includes 2,000 queries/month.',
+			'prefix' => 'BSA',
+		],
+		'duckduckgo' => [
+			'name'   => 'DuckDuckGo',
+			'url'    => '',
+			'help'   => 'Free instant answers — no API key required. Limited to instant answers, not full web search.',
+			'prefix' => '',
+		],
+	];
+
+	/**
+	 * Register the internet-search ability and the configure-search-provider ability.
 	 */
 	public static function register_abilities(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
@@ -61,7 +97,7 @@ class InternetSearchAbilities {
 			'sd-ai-agent/internet-search',
 			[
 				'label'               => __( 'Internet Search', 'sd-ai-agent' ),
-				'description'         => __( 'Search the internet for current information. Returns a list of relevant results with titles, URLs, and snippets. Use this to research topics before writing blog posts or answering questions about recent events.', 'sd-ai-agent' ),
+				'description'         => __( 'Search the internet for current information. Returns a list of relevant results with titles, URLs, and snippets. Use this to research topics before writing blog posts or answering questions about recent events. Provider priority: Tavily (if configured) > Brave (if configured) > DuckDuckGo (free fallback).', 'sd-ai-agent' ),
 				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
@@ -112,6 +148,64 @@ class InternetSearchAbilities {
 				'permission_callback' => [ __CLASS__, 'check_permission' ],
 			]
 		);
+
+		wp_register_ability(
+			'sd-ai-agent/configure-search-provider',
+			[
+				'label'               => __( 'Configure Search Provider', 'sd-ai-agent' ),
+				'description'         => __( 'Save or remove an API key for an internet search provider (Tavily or Brave). Use this when the user provides an API key in the chat so they do not need to visit the settings page. Also use this to check which providers are currently configured.', 'sd-ai-agent' ),
+				'category'            => 'sd-ai-agent',
+				'input_schema'        => [
+					'type'       => 'object',
+					'properties' => [
+						'action'   => [
+							'type'        => 'string',
+							'description' => 'The action to perform: "save" to store a key, "remove" to clear a key, "status" to check configured providers.',
+							'enum'        => [ 'save', 'remove', 'status' ],
+						],
+						'provider' => [
+							'type'        => 'string',
+							'description' => 'The search provider: "tavily" or "brave". Not required for "status" action.',
+							'enum'        => [ 'tavily', 'brave' ],
+						],
+						'api_key'  => [
+							'type'        => 'string',
+							'description' => 'The API key to save. Required for "save" action.',
+						],
+					],
+					'required'   => [ 'action' ],
+				],
+				'output_schema'       => [
+					'type'       => 'object',
+					'properties' => [
+						'status'    => [ 'type' => 'string' ],
+						'message'   => [ 'type' => 'string' ],
+						'providers' => [
+							'type'  => 'array',
+							'items' => [
+								'type'       => 'object',
+								'properties' => [
+									'id'         => [ 'type' => 'string' ],
+									'name'       => [ 'type' => 'string' ],
+									'configured' => [ 'type' => 'boolean' ],
+									'active'     => [ 'type' => 'boolean' ],
+									'signup_url' => [ 'type' => 'string' ],
+								],
+							],
+						],
+					],
+				],
+				'meta'                => [
+					'annotations' => [
+						'readonly'    => false,
+						'destructive' => false,
+						'idempotent'  => true,
+					],
+				],
+				'execute_callback'    => [ __CLASS__, 'handle_configure_provider' ],
+				'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -125,10 +219,19 @@ class InternetSearchAbilities {
 	}
 
 	/**
+	 * Permission callback: only administrators may configure search providers.
+	 *
+	 * @param mixed $input Unused.
+	 * @return bool
+	 */
+	public static function check_admin_permission( $input ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
 	 * Handle the internet-search ability call.
 	 *
-	 * Routes to Brave Search if an API key is configured, otherwise falls back
-	 * to DuckDuckGo Instant Answer API (zero-config).
+	 * Routes to the first configured provider: Tavily → Brave → DuckDuckGo.
 	 *
 	 * @param array<string,mixed> $input Input with query, optional count and freshness.
 	 * @return array<string,mixed> Result with results array, provider, and query.
@@ -152,13 +255,245 @@ class InternetSearchAbilities {
 
 		$count = max( 1, min( 20, $count ) );
 
-		$brave_key = self::get_brave_api_key();
+		// Provider priority: Tavily → Brave → DuckDuckGo.
+		$tavily_key = self::get_tavily_api_key();
+		if ( '' !== $tavily_key ) {
+			return self::search_tavily( $query, $count, $freshness, $tavily_key );
+		}
 
+		$brave_key = self::get_brave_api_key();
 		if ( '' !== $brave_key ) {
 			return self::search_brave( $query, $count, $freshness, $brave_key );
 		}
 
 		return self::search_duckduckgo( $query, $count );
+	}
+
+	/**
+	 * Handle the configure-search-provider ability call.
+	 *
+	 * @param array<string,mixed> $input Input with action, provider, and optional api_key.
+	 * @return array<string,mixed> Status response.
+	 */
+	public static function handle_configure_provider( array $input ): array {
+		$action   = sanitize_key( (string) ( $input['action'] ?? '' ) );
+		$provider = sanitize_key( (string) ( $input['provider'] ?? '' ) );
+		$api_key  = (string) ( $input['api_key'] ?? '' );
+
+		if ( 'status' === $action ) {
+			return self::get_provider_status();
+		}
+
+		if ( '' === $provider || ! in_array( $provider, [ 'tavily', 'brave' ], true ) ) {
+			return [
+				'status'  => 'error',
+				'message' => 'provider must be "tavily" or "brave".',
+			];
+		}
+
+		if ( 'save' === $action ) {
+			$api_key = trim( $api_key );
+			if ( '' === $api_key ) {
+				$meta = self::SEARCH_PROVIDERS[ $provider ];
+				return [
+					'status'  => 'error',
+					'message' => sprintf(
+						'Please provide your %s API key. You can get one at %s',
+						$meta['name'],
+						$meta['url']
+					),
+				];
+			}
+
+			$success = 'tavily' === $provider
+				? self::set_tavily_api_key( $api_key )
+				: self::set_brave_api_key( $api_key );
+
+			if ( ! $success ) {
+				return [
+					'status'  => 'error',
+					'message' => 'Failed to save the API key.',
+				];
+			}
+
+			$status = self::get_provider_status();
+			return array_merge(
+				$status,
+				[
+					'status'  => 'saved',
+					'message' => sprintf(
+						'%s API key saved successfully. It is now the active search provider.',
+						self::SEARCH_PROVIDERS[ $provider ]['name']
+					),
+				]
+				);
+		}
+
+		if ( 'remove' === $action ) {
+			$success = 'tavily' === $provider
+				? self::set_tavily_api_key( '' )
+				: self::set_brave_api_key( '' );
+
+			$status = self::get_provider_status();
+			return array_merge(
+				$status,
+				[
+					'status'  => 'removed',
+					'message' => sprintf(
+						'%s API key removed.',
+						self::SEARCH_PROVIDERS[ $provider ]['name']
+					),
+				]
+				);
+		}
+
+		return [
+			'status'  => 'error',
+			'message' => 'action must be "save", "remove", or "status".',
+		];
+	}
+
+	/**
+	 * Get the status of all search providers.
+	 *
+	 * @return array<string,mixed> Provider status including which is active.
+	 */
+	private static function get_provider_status(): array {
+		$tavily_configured = '' !== self::get_tavily_api_key();
+		$brave_configured  = '' !== self::get_brave_api_key();
+
+		// Determine which provider is active (first configured wins).
+		$active_provider = 'duckduckgo';
+		if ( $tavily_configured ) {
+			$active_provider = 'tavily';
+		} elseif ( $brave_configured ) {
+			$active_provider = 'brave';
+		}
+
+		$providers = [];
+		foreach ( self::SEARCH_PROVIDERS as $id => $meta ) {
+			$configured = false;
+			if ( 'tavily' === $id ) {
+				$configured = $tavily_configured;
+			} elseif ( 'brave' === $id ) {
+				$configured = $brave_configured;
+			} else {
+				$configured = true; // DuckDuckGo is always available.
+			}
+
+			$providers[] = [
+				'id'         => $id,
+				'name'       => $meta['name'],
+				'configured' => $configured,
+				'active'     => $id === $active_provider,
+				'signup_url' => $meta['url'],
+			];
+		}
+
+		return [
+			'status'    => 'ok',
+			'providers' => $providers,
+		];
+	}
+
+	/**
+	 * Search using the Tavily Search API.
+	 *
+	 * @param string $query     Search query.
+	 * @param int    $count     Number of results.
+	 * @param string $freshness Optional freshness filter (pd/pw/pm/py).
+	 * @param string $api_key   Tavily API key.
+	 * @return array<string,mixed> Results array.
+	 */
+	private static function search_tavily( string $query, int $count, string $freshness, string $api_key ): array {
+		$body = [
+			'query'       => $query,
+			'max_results' => $count,
+		];
+
+		// Map freshness codes to Tavily time_range values.
+		$freshness_map = [
+			'pd' => 'day',
+			'pw' => 'week',
+			'pm' => 'month',
+			'py' => 'year',
+		];
+		if ( '' !== $freshness && isset( $freshness_map[ $freshness ] ) ) {
+			$body['time_range'] = $freshness_map[ $freshness ];
+		}
+
+		$response = wp_remote_post(
+			self::TAVILY_SEARCH_URL,
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $api_key,
+				],
+				'body'    => (string) wp_json_encode( $body ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			// Fall through to next provider on network error.
+			$brave_key = self::get_brave_api_key();
+			if ( '' !== $brave_key ) {
+				return self::search_brave( $query, $count, $freshness, $brave_key );
+			}
+			return self::search_duckduckgo( $query, $count );
+		}
+
+		$status = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== (int) $status ) {
+			// Fall through to next provider on API error (e.g. invalid key, quota exceeded).
+			$brave_key = self::get_brave_api_key();
+			if ( '' !== $brave_key ) {
+				return self::search_brave( $query, $count, $freshness, $brave_key );
+			}
+			return self::search_duckduckgo( $query, $count );
+		}
+
+		$response_body = wp_remote_retrieve_body( $response );
+		$data          = json_decode( $response_body, true );
+
+		if ( ! is_array( $data ) ) {
+			$brave_key = self::get_brave_api_key();
+			if ( '' !== $brave_key ) {
+				return self::search_brave( $query, $count, $freshness, $brave_key );
+			}
+			return self::search_duckduckgo( $query, $count );
+		}
+
+		$results = [];
+
+		// Extract search results from Tavily response.
+		$tavily_results = $data['results'] ?? [];
+		if ( is_array( $tavily_results ) ) {
+			foreach ( $tavily_results as $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				$results[] = [
+					'title'   => (string) ( $item['title'] ?? '' ),
+					'url'     => (string) ( $item['url'] ?? '' ),
+					'snippet' => (string) ( $item['content'] ?? '' ),
+				];
+			}
+		}
+
+		$output = [
+			'results'  => $results,
+			'provider' => 'tavily',
+			'query'    => $query,
+		];
+
+		// Include the AI-generated answer if present.
+		$answer = (string) ( $data['answer'] ?? '' );
+		if ( '' !== $answer ) {
+			$output['answer'] = $answer;
+		}
+
+		return $output;
 	}
 
 	/**
@@ -244,7 +579,7 @@ class InternetSearchAbilities {
 	 * and the AbstractText to build a useful result set.
 	 *
 	 * Note: DuckDuckGo's API is designed for instant answers, not full web
-	 * search. For comprehensive research, configure a Brave Search API key.
+	 * search. For comprehensive research, configure a Tavily or Brave Search API key.
 	 *
 	 * @param string $query  Search query.
 	 * @param int    $count  Maximum number of results to return.
@@ -349,7 +684,7 @@ class InternetSearchAbilities {
 				'results'  => [],
 				'provider' => 'duckduckgo',
 				'query'    => $query,
-				'tip'      => 'DuckDuckGo returned no instant answers for this query. For comprehensive web search results, configure a Brave Search API key in Superdav AI Agent settings.',
+				'tip'      => 'DuckDuckGo returned no instant answers for this query. For comprehensive web search results, configure a Tavily or Brave Search API key in settings (or paste your API key here and ask me to save it).',
 			];
 		}
 
@@ -388,6 +723,31 @@ class InternetSearchAbilities {
 			'url'     => $first_url,
 			'snippet' => $text,
 		];
+	}
+
+	/**
+	 * Get the configured Tavily API key.
+	 *
+	 * @return string Empty string when not configured.
+	 */
+	public static function get_tavily_api_key(): string {
+		$key = get_option( self::TAVILY_KEY_OPTION, '' );
+		return is_string( $key ) ? trim( $key ) : '';
+	}
+
+	/**
+	 * Persist the Tavily API key.
+	 *
+	 * Pass an empty string to clear the key.
+	 *
+	 * @param string $api_key The Tavily API key.
+	 * @return bool True on success.
+	 */
+	public static function set_tavily_api_key( string $api_key ): bool {
+		if ( '' === $api_key ) {
+			return delete_option( self::TAVILY_KEY_OPTION );
+		}
+		return update_option( self::TAVILY_KEY_OPTION, $api_key );
 	}
 
 	/**

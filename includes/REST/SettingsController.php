@@ -287,6 +287,31 @@ final class SettingsController {
 			)
 		);
 
+		// Tavily API key endpoint.
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/settings/tavily-api-key',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'handle_set_tavily_api_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+					'args'                => array(
+						'api_key' => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'handle_delete_tavily_api_key' ),
+					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+				),
+			)
+		);
+
 		// Google Analytics credentials endpoint.
 		register_rest_route(
 			RestController::NAMESPACE,
@@ -334,31 +359,6 @@ final class SettingsController {
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( __CLASS__, 'handle_delete_gsc_credentials' ),
-					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
-				),
-			)
-		);
-
-		// Brave Search API key endpoint.
-		register_rest_route(
-			RestController::NAMESPACE,
-			'/settings/brave-search-key',
-			array(
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( __CLASS__, 'handle_set_brave_search_key' ),
-					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
-					'args'                => array(
-						'api_key' => array(
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-					),
-				),
-				array(
-					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( __CLASS__, 'handle_delete_brave_search_key' ),
 					'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 				),
 			)
@@ -438,9 +438,11 @@ final class SettingsController {
 			'default_site_url' => $gsc_creds['default_site_url'] ?? null,
 		);
 
-		// Indicate whether a Brave Search API key is configured (boolean only, no key value).
+		// Indicate whether search provider API keys are configured (boolean only, no key values).
 		// @phpstan-ignore-next-line
 		$settings['_brave_search_key_configured'] = '' !== InternetSearchAbilities::get_brave_api_key();
+		// @phpstan-ignore-next-line
+		$settings['_tavily_api_key_configured'] = '' !== InternetSearchAbilities::get_tavily_api_key();
 
 		// Indicate whether a feedback-report receiver API key is configured (boolean only, no key value — t180).
 		// @phpstan-ignore-next-line
@@ -961,6 +963,51 @@ final class SettingsController {
 	 */
 	public function handle_delete_brave_search_key( WP_REST_Request $request ): WP_REST_Response {
 		InternetSearchAbilities::set_brave_api_key( '' );
+
+		return new WP_REST_Response(
+			array(
+				'deleted'    => true,
+				'configured' => false,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Handle POST /settings/tavily-api-key — save the Tavily API key.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public function handle_set_tavily_api_key( WP_REST_Request $request ): WP_REST_Response {
+		// @phpstan-ignore-next-line
+		$api_key = sanitize_text_field( (string) $request->get_param( 'api_key' ) );
+
+		if ( '' === $api_key ) {
+			return new WP_REST_Response( array( 'error' => 'api_key is required.' ), 400 );
+		}
+
+		$success = InternetSearchAbilities::set_tavily_api_key( $api_key );
+
+		if ( ! $success ) {
+			return new WP_REST_Response( array( 'error' => 'Failed to save Tavily API key.' ), 500 );
+		}
+
+		return new WP_REST_Response(
+			array(
+				'saved'      => true,
+				'configured' => true,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Handle DELETE /settings/tavily-api-key — remove the Tavily API key.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public function handle_delete_tavily_api_key( WP_REST_Request $request ): WP_REST_Response {
+		InternetSearchAbilities::set_tavily_api_key( '' );
 
 		return new WP_REST_Response(
 			array(

@@ -110,7 +110,7 @@ The Superdav AI Agent discovers abilities at runtime from any plugin that regist
 
 = Requirements =
 
-* WordPress 7.0 or higher
+* WordPress 6.9 or higher
 * PHP 8.2 or higher
 * An AI provider connector plugin registered through the WordPress Connectors API
 * An AI key from your chosen AI provider (OpenAI, Anthropic, etc.)

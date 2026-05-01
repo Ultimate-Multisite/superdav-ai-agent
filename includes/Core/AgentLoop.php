@@ -27,6 +27,7 @@ use SdAiAgent\Core\BudgetManager;
 use SdAiAgent\Core\ChangeLogger;
 use SdAiAgent\Repositories\SkillUsageRepository;
 use SdAiAgent\Tools\ModelHealthTracker;
+use SdAiAgent\Admin\UnifiedAdminMenu;
 use SdAiAgent\Tools\ToolDiscovery;
 use SdAiAgent\Core\RolePermissions;
 use WP_AI_Client_Ability_Function_Resolver;
@@ -771,7 +772,18 @@ class AgentLoop {
 	 * @return \WordPress\AiClient\Results\DTO\GenerativeAiResult|WP_Error
 	 */
 	private function send_prompt() {
-		$provider_id = $this->provider_id ?: 'ai-provider-for-any-openai-compatible';
+		$provider_id = $this->resolve_provider_id();
+
+		if ( '' === $provider_id ) {
+			return new WP_Error(
+				'sd_ai_agent_no_provider',
+				sprintf(
+					/* translators: %s: URL to the Connectors admin page */
+					__( 'No AI provider is configured. Please add an API key on the <a href="%s">Connectors</a> settings page to get started.', 'sd-ai-agent' ),
+					esc_url( UnifiedAdminMenu::getConnectorsUrl() )
+				)
+			);
+		}
 
 		try {
 			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
@@ -779,9 +791,10 @@ class AgentLoop {
 				return new WP_Error(
 					'sd_ai_agent_provider_unavailable',
 					sprintf(
-						/* translators: %s: provider ID */
-						__( 'Provider "%s" is not available. Please select a different provider in the chat header.', 'sd-ai-agent' ),
-						$provider_id
+						/* translators: 1: provider ID, 2: URL to the Connectors admin page */
+						__( 'Provider "%1$s" is no longer available. Please configure a provider on the <a href="%2$s">Connectors</a> settings page.', 'sd-ai-agent' ),
+						$provider_id,
+						esc_url( UnifiedAdminMenu::getConnectorsUrl() )
 					)
 				);
 			}
@@ -843,15 +856,20 @@ class AgentLoop {
 	 * through ProviderRegistry::getProviderModel(). This avoids creating
 	 * model instances outside the registry which can miss auth binding.
 	 *
+	 * The provider ID is resolved by {@see resolve_provider_id()} before
+	 * this method is called — send_prompt() validates that a provider
+	 * exists and returns a WP_Error early if none is configured.
+	 *
 	 * @param \WP_AI_Client_Prompt_Builder $builder The prompt builder.
 	 */
 	private function configure_model( $builder ): void {
-		$provider_id = $this->provider_id;
+		$provider_id = $this->resolve_provider_id();
 		$model_id    = $this->model_id;
 
-		// Resolve provider — fall back to the OpenAI-compatible connector.
 		if ( empty( $provider_id ) ) {
-			$provider_id = 'ai-provider-for-any-openai-compatible';
+			// No provider available — send_prompt() will have already
+			// returned a WP_Error, so this is a defensive no-op.
+			return;
 		}
 
 		// Resolve model — fall back to the connector's configured default.
@@ -883,6 +901,44 @@ class AgentLoop {
 				// Both approaches failed — builder will use default.
 			}
 		}
+	}
+
+	/**
+	 * Resolve the provider ID to use for this request.
+	 *
+	 * Returns, in order of priority:
+	 *  1. The explicitly configured provider ID (from options or settings).
+	 *  2. The first authenticated provider found in the SDK registry.
+	 *  3. An empty string when no provider is available at all.
+	 *
+	 * @return string Provider ID, or '' if none is configured.
+	 */
+	private function resolve_provider_id(): string {
+		// Explicitly configured — use as-is.
+		if ( ! empty( $this->provider_id ) ) {
+			return $this->provider_id;
+		}
+
+		// Fall back to the first authenticated provider in the registry.
+		if ( ! class_exists( '\\WordPress\\AiClient\\AiClient' ) ) {
+			return '';
+		}
+
+		try {
+			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+			ProviderCredentialLoader::load();
+
+			foreach ( $registry->getRegisteredProviderIds() as $id ) {
+				$auth = $registry->getProviderRequestAuthentication( $id );
+				if ( null !== $auth ) {
+					return $id;
+				}
+			}
+		} catch ( \Throwable $e ) {
+			// Registry unavailable.
+		}
+
+		return '';
 	}
 
 	// ── Private delegation helpers ────────────────────────────────────────

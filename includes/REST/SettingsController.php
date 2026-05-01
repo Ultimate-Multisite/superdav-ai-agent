@@ -13,6 +13,7 @@ namespace SdAiAgent\REST;
 
 use SdAiAgent\Abilities\GoogleAnalyticsAbilities;
 use SdAiAgent\Abilities\InternetSearchAbilities;
+use SdAiAgent\Admin\UnifiedAdminMenu;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\BudgetManager;
 use SdAiAgent\Core\Database;
@@ -1277,8 +1278,9 @@ final class SettingsController {
 
 		if ( ! $has_provider ) {
 			$alerts[] = array(
-				'type'    => 'no_provider',
-				'message' => __( 'No AI provider configured. Add an API key in Settings.', 'sd-ai-agent' ),
+				'type'           => 'no_provider',
+				'message'        => __( 'No AI provider configured. Add an API key on the Connectors page to get started.', 'sd-ai-agent' ),
+				'connectors_url' => UnifiedAdminMenu::getConnectorsUrl(),
 			);
 		}
 

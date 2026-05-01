@@ -10,17 +10,14 @@ declare(strict_types=1);
  *
  * Strategy
  * --------
- * AgentLoop has two code paths for sending prompts:
+ * AgentLoop routes all prompts through the WordPress AI Client SDK
+ * (`wp_ai_client_prompt()`). The provider is resolved dynamically from
+ * the SDK registry — whichever authenticated provider is configured via
+ * the Connectors page.
  *
- * 1. WordPress AI SDK path  (`wp_ai_client_prompt()`)  — used when a
- *    registered provider is selected.
- * 2. Direct OpenAI-compat path (`wp_remote_post()`) — used when the
- *    provider is 'ai-provider-for-any-openai-compatible' or when the
- *    SDK registry doesn't have the requested provider.
- *
- * The direct path is the easiest to intercept in tests: we set the
- * `openai_compat_endpoint_url` option and use the `pre_http_request`
- * filter to return a fake HTTP response, bypassing the network entirely.
+ * In tests we set the `openai_compat_endpoint_url` option and use the
+ * `pre_http_request` filter to return a fake HTTP response, bypassing
+ * the network entirely.
  *
  * For the SDK-unavailable path we simply don't define `wp_ai_client_prompt`
  * (it may be absent in the test environment), which lets us test the
@@ -89,9 +86,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * registered in the SDK registry.
 	 *
 	 * run() now routes exclusively through the WordPress AI Client SDK. Tests
-	 * that call run() must skip when the SDK is absent or when no provider is
-	 * registered (the typical CI environment for WP trunk without a real
-	 * provider configured).
+	 * that call run() must skip when the SDK is absent or when no authenticated
+	 * provider is registered (the typical CI environment for WP trunk without
+	 * a real provider configured).
 	 */
 	private function skip_if_sdk_unavailable(): void {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
@@ -103,10 +100,20 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 
 		try {
-			$registry    = \WordPress\AiClient\AiClient::defaultRegistry();
-			$provider_id = 'ai-provider-for-any-openai-compatible';
-			if ( ! $registry->hasProvider( $provider_id ) ) {
-				$this->markTestSkipped( 'No AI provider registered in SDK registry — skipping run() test.' );
+			$registry     = \WordPress\AiClient\AiClient::defaultRegistry();
+			$provider_ids = $registry->getRegisteredProviderIds();
+			$has_provider = false;
+			ProviderCredentialLoader::load();
+
+			foreach ( $provider_ids as $id ) {
+				if ( null !== $registry->getProviderRequestAuthentication( $id ) ) {
+					$has_provider = true;
+					break;
+				}
+			}
+
+			if ( ! $has_provider ) {
+				$this->markTestSkipped( 'No authenticated AI provider registered in SDK registry — skipping run() test.' );
 			}
 		} catch ( \Throwable $e ) {
 			$this->markTestSkipped( 'SDK registry unavailable: ' . $e->getMessage() );
@@ -237,7 +244,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 			[],
 			[],
 			[
-				'provider_id'        => 'ai-provider-for-any-openai-compatible',
+				'provider_id'        => 'test-provider',
 				'model_id'           => 'claude-sonnet-4',
 				'max_iterations'     => 5,
 				'temperature'        => 0.5,
@@ -464,6 +471,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	 * Test run() returns WP_Error with 401 Unauthorized response.
 	 */
 	public function test_run_returns_wp_error_on_unauthorized(): void {
+		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_error_response( 401, 'Invalid API key' );
 
 		$loop   = new AgentLoop( 'Hello' );
@@ -962,8 +970,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 			[],
 			[],
 			[
-				'provider_id' => 'ai-provider-for-any-openai-compatible',
-				'model_id'    => 'gpt-4o',
+				'model_id' => 'gpt-4o',
 			]
 		);
 		$result = $loop->run();

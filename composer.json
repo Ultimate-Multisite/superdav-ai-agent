@@ -43,10 +43,7 @@
   "autoload-dev": {
     "psr-4": {
       "SdAiAgent\\Tests\\": "tests/SdAiAgent/"
-    },
-    "files": [
-      "vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"
-    ]
+    }
   },
   "archive": {
     "exclude": [

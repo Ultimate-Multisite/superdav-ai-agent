@@ -10,6 +10,7 @@ use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
 use WordPress\AiClient\Providers\ApiBasedImplementation\AbstractApiBasedModel;
+use WordPress\AiClient\Providers\Http\DTO\ApiKeyRequestAuthentication;
 use WordPress\AiClient\Providers\Http\DTO\Request;
 use WordPress\AiClient\Providers\Http\DTO\Response;
 use WordPress\AiClient\Providers\Http\Enums\HttpMethodEnum;
@@ -42,6 +43,14 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	/** Keep namespaces small as recommended by the OpenAI tool-search guide. */
 	private const NAMESPACE_TOOL_LIMIT = 10;
 
+	/** @var int Session owning the server-managed Responses cursor (zero disables persistence). */
+	private int $continuation_session_id = 0;
+
+	/** Bind continuation to the agent's server-owned session, not a user-supplied response ID. */
+	public function set_continuation_session_id( int $session_id ): void {
+		$this->continuation_session_id = max( 0, $session_id );
+	}
+
 	/**
 	 * Generate text through `/responses`, falling back to Chat Completions if the
 	 * experimental endpoint/tool is unavailable.
@@ -51,8 +60,33 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @return GenerativeAiResult
 	 */
 	public function generateTextResult( array $prompt ): GenerativeAiResult {
+		$cursor = new ResponsesContinuation( $this->continuation_session_id, get_current_user_id() );
 		try {
-			$params  = $this->prepare_responses_params( $prompt );
+			$params = $this->prepare_responses_params( $prompt );
+			/** @var list<array<string, mixed>> $full_input */
+			$full_input = $params['input'];
+			$scope      = $this->continuation_scope();
+			if ( ( $params['store'] ?? true ) === false ) {
+				$cursor->clear();
+				return $this->generate_chat_completions_fallback( $prompt );
+			}
+			$managed = ! array_key_exists( 'previous_response_id', $params );
+			if ( $managed ) {
+				if ( null === $scope ) {
+					$cursor->clear();
+				}
+				$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
+				if ( null !== $continuation ) {
+					$params['previous_response_id'] = $continuation['previous_response_id'];
+					$params['input']                = $continuation['input'];
+				} elseif ( $this->has_tool_history( $full_input ) ) {
+					// An expired/edited cursor cannot faithfully replay native namespaces or reasoning.
+					$cursor->clear();
+					return $this->generate_chat_completions_fallback( $prompt );
+				}
+			} else {
+				$cursor->clear();
+			}
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
 				'responses',
@@ -64,14 +98,62 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$response = $this->getHttpTransporter()->send( $request );
 			ResponseUtil::throwIfNotSuccessful( $response );
 
-			return $this->parse_response_to_generative_ai_result( $response );
+			$result = $this->parse_response_to_generative_ai_result( $response );
+			$data   = $response->getData();
+			if ( $managed && null !== $scope && is_array( $data ) && ( $data['status'] ?? 'completed' ) === 'completed' ) {
+				// The agent may split this message for transport; input normalization is identical.
+				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
+				$cursor->acknowledge( $result->getId(), $acknowledged, $scope );
+			}
+			return $result;
 		} catch ( ClientException $e ) {
 			if ( $this->should_fallback_to_chat_completions( $e ) ) {
+				$cursor->clear();
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
 
 			throw $e;
 		}
+	}
+
+	/** Scope by model, endpoint, credential and tools, independent of usage-driven deferral. */
+	private function continuation_scope(): ?string {
+		$authentication = $this->getRequestAuthentication();
+		if ( ! $authentication instanceof ApiKeyRequestAuthentication ) {
+			// Unknown authentication cannot establish a stable cross-request account identity.
+			return null;
+		}
+		$functions = array();
+		foreach ( $this->getConfig()->getFunctionDeclarations() ?? array() as $declaration ) {
+			$functions[ $declaration->getName() ] = array(
+				'description' => $declaration->getDescription(),
+				'parameters'  => $declaration->getParameters(),
+			);
+		}
+		ksort( $functions );
+		return ResponsesContinuation::fingerprint(
+			array(
+				$this->providerMetadata()->getId(),
+				$this->metadata()->getId(),
+				SuperdavAiProvider::configured_base_url(),
+				hash_hmac( 'sha256', $authentication->getApiKey(), wp_salt( 'auth' ) ),
+				$functions,
+			)
+		);
+	}
+
+	/**
+	 * Determine whether local input requires native context that ordinary SDK messages cannot retain.
+	 *
+	 * @param list<array<string, mixed>> $input Locally reconstructed input.
+	 */
+	private function has_tool_history( array $input ): bool {
+		foreach ( $input as $item ) {
+			if ( in_array( $item['type'] ?? '', array( 'function_call', 'function_call_output', 'reasoning' ), true ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -495,7 +577,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			return false;
 		}
 
-		return (bool) preg_match( '/\b(tool_search|defer_loading|responses|unsupported|unknown parameter)\b/i', $e->getMessage() );
+		return (bool) preg_match( '/\b(tool_search|defer_loading|previous_response_id|responses|unsupported|unknown parameter)\b/i', $e->getMessage() );
 	}
 
 	/**
@@ -506,7 +588,11 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 */
 	private function generate_chat_completions_fallback( array $prompt ): GenerativeAiResult {
 		$fallback = new SuperdavAiTextGenerationModel( $this->metadata(), $this->providerMetadata() );
-		$fallback->setConfig( $this->getConfig() );
+		$config   = clone $this->getConfig();
+		$options  = $config->getCustomOptions();
+		unset( $options['previous_response_id'] );
+		$config->setCustomOptions( $options );
+		$fallback->setConfig( $config );
 		$fallback->setHttpTransporter( $this->getHttpTransporter() );
 		$fallback->setRequestAuthentication( $this->getRequestAuthentication() );
 

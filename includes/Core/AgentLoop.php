@@ -3654,6 +3654,9 @@ PROMPT;
 				// This bypasses the SDK's model-listing HTTP call which
 				// can fail for OpenAI-compatible endpoints.
 				$model = $registry->getProviderModel( $provider_id, $model_id );
+				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
+					$model->set_continuation_session_id( $this->session_id );
+				}
 				$builder->using_model( $model );
 			} else {
 				$builder->using_provider( $provider_id );

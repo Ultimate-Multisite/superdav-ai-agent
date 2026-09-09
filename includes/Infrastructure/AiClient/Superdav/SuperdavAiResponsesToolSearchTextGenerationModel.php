@@ -325,6 +325,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 		$immediate_function_names = $this->immediate_tool_function_names();
 		$groups                   = array();
+		$has_deferred_tools       = false;
 		foreach ( $declarations as $declaration ) {
 			if ( ! $declaration instanceof FunctionDeclaration ) {
 				continue;
@@ -332,7 +333,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 			$function_name    = $declaration->getName();
 			$key              = $this->namespace_key_for_function( $function_name );
-			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, ! isset( $immediate_function_names[ $function_name ] ) );
+			$deferred         = ! isset( $immediate_function_names[ $function_name ] );
+			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, $deferred );
+
+			$has_deferred_tools = $has_deferred_tools || $deferred;
 		}
 
 		$tools = array();
@@ -349,7 +353,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			}
 		}
 
-		if ( ! empty( $tools ) ) {
+		if ( $has_deferred_tools ) {
 			$tools[] = array( 'type' => 'tool_search' );
 		}
 

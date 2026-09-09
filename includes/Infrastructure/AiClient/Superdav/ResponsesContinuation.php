@@ -94,6 +94,7 @@ final class ResponsesContinuation {
 
 	/** Reject malformed or unbounded opaque response IDs. */
 	private static function valid_response_id( string $response_id ): bool {
-		return 1 === preg_match( '/^resp_[a-zA-Z0-9_-]{1,200}$/D', $response_id );
+		// The SD edge may wrap an upstream ID in an authenticated site-bound cursor.
+		return strlen( $response_id ) <= 2048 && 1 === preg_match( '/^resp_[a-zA-Z0-9_-]+$/D', $response_id );
 	}
 }

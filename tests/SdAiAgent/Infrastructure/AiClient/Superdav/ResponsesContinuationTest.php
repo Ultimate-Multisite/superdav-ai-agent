@@ -85,6 +85,12 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$cursor = new ResponsesContinuation( 123, $this->owner );
 		$cursor->acknowledge( 'invalid/id', $before, 'scope' );
 		$this->assertNull( $cursor->resume( $after, 'scope' ) );
+		$opaque = 'resp_' . str_repeat( 'a', 2043 );
+		$cursor->acknowledge( $opaque, $before, 'scope' );
+		$this->assertSame( $opaque, $cursor->resume( $after, 'scope' )['previous_response_id'] );
+		$cursor->clear();
+		$cursor->acknowledge( $opaque . 'a', $before, 'scope' );
+		$this->assertNull( $cursor->resume( $after, 'scope' ) );
 	}
 
 	/** Model reconstruction and serialized browser/confirmation history preserve server continuity. */
@@ -219,6 +225,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			);
 			$first = ( new AgentLoop( 'Find posts.', array( 'sd-ai-agent/list-posts' ), array(), $options ) )->run();
 			$this->assertIsArray( $first );
+			$this->assertNotContains( 'tool_search', array_column( $requests[0]['tools'], 'type' ) );
 			$this->assertSame( 'resp_first', $requests[1]['previous_response_id'] );
 			$this->assertSame( array( 'function_call_output' ), array_column( $requests[1]['input'], 'type' ) );
 			$history = ConversationSerializer::deserialize( $first['history'] );

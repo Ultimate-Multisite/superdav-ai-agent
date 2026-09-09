@@ -108,9 +108,9 @@ Token measurements come from HTTP response usage, not the agent's aggregate
 usage result (which was zero in this environment). SDK trace rows were excluded
 to avoid double-counting the same inference.
 
-**This is fallback evidence, not a native performance benchmark.** The available
-service returned HTTP 404 for `/v1/responses`. No live hosted discovery or stored
-response continuation occurred. The native flag also changes prompt construction,
+**This initial run is fallback evidence, not a native performance benchmark.**
+The service returned HTTP 404 for `/v1/responses`. No live hosted discovery or
+stored response continuation occurred in that run. The native flag also changes prompt construction,
 so even the differing token counts cannot be attributed to native tool search.
 One sample per mode and non-deterministic inference do not establish a latency
 improvement. The two-tool workload is only a functional smoke test, not a
@@ -119,6 +119,47 @@ representative large-catalog benchmark.
 An initial raw `gpt-5.5` probe failed model selection after a tool call because
 the service advertises managed aliases rather than that raw model ID. Switching
 to the advertised alias resolved that test setup issue.
+
+## Follow-up: native discovery verified through an isolated dev wrapper
+
+A later investigation located the deployment wrapper and confirmed that its
+public edge had no Responses route, although the Sub2API backend supports
+Responses. An isolated dev implementation was tested without replacing the
+running service. Its route preserves edge authentication/accounting and returns
+encrypted, site-bound response cursors rather than exposing a cross-installation
+continuation primitive through a shared upstream pool.
+
+The plugin now accepts bounded opaque response IDs up to 2,048 bytes for that
+wrapper. The live test also exposed and fixed an existing adapter defect:
+`tool_search` must be omitted when every configured function is eager. Upstream
+explicitly rejects tool search without at least one deferred tool.
+
+The expanded fixture supplied `list-posts`, `get-post`, and deferred `list-terms`.
+It asked first for the description of a synthetic category, then for the fixture
+post's calibration values, then for twice its measurement window. Traces showed:
+
+1. HTTP **200** from `/v1/responses`, with actual **`tool_search_call`**,
+   **`tool_search_output`** and **`function_call`** output items.
+2. The next request contained the matching `previous_response_id` and exactly
+   one new **`function_call_output`**, with no acknowledged history replay.
+3. Sub2API rejected that continuation: **“previous_response_id requires an
+   OpenAI API-key account for HTTP requests.”** The dev backend's aggregate
+   account-type check found one active OpenAI OAuth account and no API-key account.
+4. A sanitized HTTP 400 from the wrapper activated the plugin's Chat Completions
+   fallback. All three answers were correct: **CERULEAN-842**, **7341 / 19 minutes**,
+   and **38 minutes**. The live fixture passed 12 assertions.
+
+The first native response reported 10,736 input tokens and 252 output tokens.
+These observations prove **hosted native discovery and correct continuation
+request construction**, but not successful server-stored continuation or a
+performance gain. The existing OAuth account can perform tool search; the
+restriction concerns HTTP stored-response continuation in this Sub2API routing
+configuration, not tool search itself.
+
+Completing native continuity therefore requires either an explicitly approved
+API-key-backed upstream or a separate implementation preserving/replaying the
+complete native state for OAuth. Do not silently switch billing routes, drop
+native discovery/reasoning state, or present fallback timings as native results.
 
 ## Before enabling or declaring live verification complete
 

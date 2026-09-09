@@ -13,6 +13,8 @@
 
 SD AI Agent is your AI teammate for the WordPress site you already run. Ask one assistant to improve content, prepare products, review SEO and site information, and automate repeatable work — while keeping your existing theme, plugins, and AI provider. The technical foundation below lets compatible plugins add tools the assistant can use as your site grows.
 
+Try it at [sdaiagent.com](https://sdaiagent.com), an AI site builder demo site.
+
 ## How it works
 
 WordPress 7.0 introduced two core APIs that make this possible:

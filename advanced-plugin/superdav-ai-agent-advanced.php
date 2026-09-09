@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: SD AI Agent Advanced
- * Plugin URI:  https://github.com/Ultimate-Multisite/superdav-ai-agent
+ * Plugin URI:  https://sdaiagent.com
  * Description: Advanced companion plugin for SD AI Agent with self-hosted code, filesystem, database, WP-CLI, REST dispatcher, and plugin-builder tools.
  * Version:     1.23.0
  * Author:      superdav42

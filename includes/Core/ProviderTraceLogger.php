@@ -95,6 +95,7 @@ class ProviderTraceLogger {
 	private static array $provider_patterns = [
 		'api.anthropic.com'                 => 'anthropic',
 		'api.openai.com'                    => 'openai',
+		'api.sdaiagent.com'                 => 'sd-ai-agent-cloud',
 		'generativelanguage.googleapis.com' => 'google',
 		'localhost:11434'                   => 'ollama',
 		'127.0.0.1:11434'                   => 'ollama',
@@ -477,7 +478,8 @@ class ProviderTraceLogger {
 			? ProviderErrorClassifier::FAILURE_CLASS_GATEWAY_REJECTION
 			: '';
 
-		if ( $has_context && $status_code >= 400 ) {
+		$matches_runtime_provider = $has_context && $canonical_provider_id === self::$runtimeContext['provider_id'];
+		if ( $matches_runtime_provider && $status_code >= 400 ) {
 			self::$runtimeContext['failure_status_code'] = $status_code;
 			self::$runtimeContext['failure_class']       = $failure_class;
 			self::$runtimeContext['failure_source']      = 'http';
@@ -487,7 +489,7 @@ class ProviderTraceLogger {
 		// responses from canonical AI providers regardless of debug mode.
 		// Uses the strict allowlist so unrelated 4xx responses (update
 		// checks, WP.org, etc.) never produce noise here.
-		$request_provider_id = $has_context ? self::$runtimeContext['provider_id'] : $canonical_provider_id;
+		$request_provider_id = $has_context && ! $matches_runtime_provider ? '' : $canonical_provider_id;
 		if ( '' !== $request_provider_id && $status_code >= 400 ) {
 			$model_id_for_log = self::$runtimeContext['model_id'];
 			if ( '' === $model_id_for_log ) {

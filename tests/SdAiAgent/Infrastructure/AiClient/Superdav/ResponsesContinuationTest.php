@@ -43,17 +43,40 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	/** A fresh PHP object loads the cursor without retaining any old prompt content. */
-	public function test_cursor_survives_reconstruction_and_returns_only_new_input(): void {
+	/** A fresh PHP object loads encrypted native history without storing plaintext. */
+	public function test_cursor_survives_reconstruction_and_replays_native_input(): void {
 		$before = array( array( 'role' => 'user', 'content' => 'private fixture' ) );
 		( new ResponsesContinuation( 123, $this->owner ) )->acknowledge( 'resp_first', $before, 'scope' );
 		$after = array_merge( $before, array( array( 'type' => 'function_call_output', 'call_id' => 'call_1', 'output' => 'ok' ) ) );
 		$next  = ( new ResponsesContinuation( 123, $this->owner ) )->resume( $after, 'scope' );
-		$this->assertSame( 'resp_first', $next['previous_response_id'] );
-		$this->assertSame( array( $after[1] ), $next['input'] );
+		$this->assertArrayNotHasKey( 'previous_response_id', $next );
+		$this->assertSame( $after, $next['input'] );
 		$stored = get_transient( 'sd_ai_agent_responses_' . get_current_blog_id() . '_123_' . $this->owner );
-		$this->assertSame( array( 'response_id', 'count', 'hash', 'scope' ), array_keys( $stored ) );
+		$this->assertSame( array( 'response_id', 'count', 'hash', 'scope', 'native' ), array_keys( $stored ) );
 		$this->assertStringNotContainsString( 'private fixture', wp_json_encode( $stored ) );
+	}
+
+	/** Ciphertext and public metadata cannot be tampered with or moved to another session. */
+	public function test_encrypted_snapshot_integrity_and_retention_bound(): void {
+		$before = array( array( 'role' => 'user', 'content' => 'private fixture' ) );
+		$after = array_merge( $before, array( array( 'role' => 'user', 'content' => 'continue' ) ) );
+		$key = 'sd_ai_agent_responses_' . get_current_blog_id() . '_123_' . $this->owner;
+		$cursor = new ResponsesContinuation( 123, $this->owner );
+		$cursor->acknowledge( 'resp_first', $before, 'scope' );
+		$state = get_transient( $key );
+		$corrupt = $state;
+		$corrupt['native'][0] = '0' === $corrupt['native'][0] ? '1' : '0';
+		set_transient( $key, $corrupt, DAY_IN_SECONDS );
+		$this->assertNull( $cursor->resume( $after, 'scope' ) );
+		$forged = $state;
+		$forged['scope'] = 'changed-scope';
+		set_transient( $key, $forged, DAY_IN_SECONDS );
+		$this->assertNull( $cursor->resume( $after, 'changed-scope' ) );
+		$other_key = 'sd_ai_agent_responses_' . get_current_blog_id() . '_124_' . $this->owner;
+		set_transient( $other_key, $state, DAY_IN_SECONDS );
+		$this->assertNull( ( new ResponsesContinuation( 124, $this->owner ) )->resume( $after, 'scope' ) );
+		$cursor->acknowledge( 'resp_large', $before, 'scope', array( array( 'content' => str_repeat( 'x', 1048577 ) ) ) );
+		$this->assertFalse( get_transient( $key ) );
 	}
 
 	/** Changed history, tools, identity, or expired state must not reuse a response ID. */
@@ -87,14 +110,14 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertNull( $cursor->resume( $after, 'scope' ) );
 		$opaque = 'resp_' . str_repeat( 'a', 2043 );
 		$cursor->acknowledge( $opaque, $before, 'scope' );
-		$this->assertSame( $opaque, $cursor->resume( $after, 'scope' )['previous_response_id'] );
+		$this->assertSame( $after, $cursor->resume( $after, 'scope' )['input'] );
 		$cursor->clear();
 		$cursor->acknowledge( $opaque . 'a', $before, 'scope' );
 		$this->assertNull( $cursor->resume( $after, 'scope' ) );
 	}
 
 	/** Model reconstruction and serialized browser/confirmation history preserve server continuity. */
-	public function test_three_turns_send_only_tool_results_then_new_user_input(): void {
+	public function test_three_turns_replay_complete_native_state_without_duplicate_history(): void {
 		$requests = array();
 		$history  = array( new UserMessage( array( new MessagePart( 'Find the fixture.' ) ) ) );
 		$first    = $this->model( array( $this->tool_response() ), $requests )->generateTextResult( $history );
@@ -107,17 +130,22 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		);
 		$second = $this->model( array( $this->text_response( 'resp_second' ) ), $requests )->generateTextResult( $history );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[0]->getData() );
-		$this->assertSame( 'resp_first', $requests[1]->getData()['previous_response_id'] );
+		$this->assertArrayNotHasKey( 'previous_response_id', $requests[1]->getData() );
+		$this->assertFalse( $requests[1]->getData()['store'] );
+		$this->assertSame( array( 'reasoning.encrypted_content' ), $requests[1]->getData()['include'] );
 		$this->assertSame( 'Inspect only.', $requests[1]->getData()['instructions'] );
-		$this->assertCount( 1, $requests[1]->getData()['input'] );
-		$this->assertSame( 'function_call_output', $requests[1]->getData()['input'][0]['type'] );
-		$this->assertSame( 'call_1', $requests[1]->getData()['input'][0]['call_id'] );
+		$this->assertCount( 6, $requests[1]->getData()['input'] );
+		$this->assertSame( $this->tool_response()->getData()['output'], array_slice( $requests[1]->getData()['input'], 1, 4 ) );
+		$this->assertSame( 'function_call_output', $requests[1]->getData()['input'][5]['type'] );
+		$this->assertSame( 'call_1', $requests[1]->getData()['input'][5]['call_id'] );
 		ConversationSerializer::append_assistant_message( $history, $second->toMessage() );
 		$history   = ConversationSerializer::deserialize( ConversationSerializer::serialize( $history ) );
 		$history[] = new UserMessage( array( new MessagePart( 'Explain the finding.' ) ) );
 		$this->model( array( $this->text_response( 'resp_third' ) ), $requests )->generateTextResult( $history );
-		$this->assertSame( 'resp_second', $requests[2]->getData()['previous_response_id'] );
-		$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), $requests[2]->getData()['input'] );
+		$this->assertArrayNotHasKey( 'previous_response_id', $requests[2]->getData() );
+		$this->assertCount( 8, $requests[2]->getData()['input'] );
+		$this->assertSame( $requests[1]->getData()['input'], array_slice( $requests[2]->getData()['input'], 0, 6 ) );
+		$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]->getData()['input'], -1 ) );
 	}
 
 	/** An unavailable server cursor falls back once with full history, without native parameters. */
@@ -137,12 +165,12 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 	}
 
 	/** Storage opt-out cannot accidentally resume an older stored conversation. */
-	public function test_storage_opt_out_uses_eager_fallback(): void {
+	public function test_storage_opt_out_uses_stateless_native_replay(): void {
 		$requests = array();
-		$model    = $this->model( array( $this->chat_response() ), $requests );
+		$model    = $this->model( array( $this->text_response( 'resp_stateless' ) ), $requests );
 		$model->getConfig()->setCustomOption( 'store', false );
 		$model->generateTextResult( array( new UserMessage( array( new MessagePart( 'Inspect only.' ) ) ) ) );
-		$this->assertStringEndsWith( '/chat/completions', $requests[0]->getUri() );
+		$this->assertStringEndsWith( '/responses', $requests[0]->getUri() );
 		$this->assertFalse( $requests[0]->getData()['store'] );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[0]->getData() );
 	}
@@ -192,7 +220,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$this->assertCount( 2, $requests );
 		}
 		$this->model( array( $this->text_response( 'resp_retry' ) ), $requests )->generateTextResult( $history );
-		$this->assertSame( 'resp_first', $requests[2]->getData()['previous_response_id'] );
+		$this->assertArrayNotHasKey( 'previous_response_id', $requests[2]->getData() );
 		$this->assertSame( $requests[1]->getData()['input'], $requests[2]->getData()['input'] );
 	}
 
@@ -200,7 +228,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 	public function test_agent_loop_binds_continuation_across_tool_and_user_turns(): void {
 		$requests = array();
 		$tool     = $this->tool_response()->getData();
-		$tool['output'][2]['name'] = \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( 'sd-ai-agent/list-posts' );
+		$tool['output'][3]['name'] = \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( 'sd-ai-agent/list-posts' );
 		$replies = array( $tool, $this->text_response( 'resp_second' )->getData(), $this->text_response( 'resp_third' )->getData() );
 		$transport = static function ( $preempt, $args, $url ) use ( &$requests, &$replies ) {
 			if ( str_ends_with( $url, '/models' ) ) {
@@ -226,13 +254,15 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$first = ( new AgentLoop( 'Find posts.', array( 'sd-ai-agent/list-posts' ), array(), $options ) )->run();
 			$this->assertIsArray( $first );
 			$this->assertNotContains( 'tool_search', array_column( $requests[0]['tools'], 'type' ) );
-			$this->assertSame( 'resp_first', $requests[1]['previous_response_id'] );
-			$this->assertSame( array( 'function_call_output' ), array_column( $requests[1]['input'], 'type' ) );
+			$this->assertArrayNotHasKey( 'previous_response_id', $requests[1] );
+			$this->assertSame( $tool['output'], array_slice( $requests[1]['input'], 1, 4 ) );
+			$this->assertSame( array( 'function_call_output' ), array_column( array_slice( $requests[1]['input'], -1 ), 'type' ) );
 			$history = ConversationSerializer::deserialize( $first['history'] );
 			$second = ( new AgentLoop( 'Explain the finding.', array( 'sd-ai-agent/list-posts' ), $history, $options ) )->run();
 			$this->assertIsArray( $second );
-			$this->assertSame( 'resp_second', $requests[2]['previous_response_id'] );
-			$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), $requests[2]['input'] );
+			$this->assertArrayNotHasKey( 'previous_response_id', $requests[2] );
+			$this->assertSame( $requests[1]['input'], array_slice( $requests[2]['input'], 0, count( $requests[1]['input'] ) ) );
+			$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]['input'], -1 ) );
 			$this->assertCount( 3, $requests );
 		} finally {
 			remove_filter( 'pre_http_request', $transport, 1 );
@@ -283,6 +313,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			'id' => 'resp_first', 'status' => 'completed', 'output' => array(
 				array( 'type' => 'tool_search_call', 'execution' => 'server', 'call_id' => null, 'arguments' => array( 'paths' => array( 'general' ) ) ),
 				array( 'type' => 'tool_search_output', 'execution' => 'server', 'tools' => array() ),
+				array( 'type' => 'reasoning', 'id' => 'rs_fixture', 'summary' => array(), 'encrypted_content' => 'opaque-reasoning-fixture' ),
 				array( 'type' => 'function_call', 'call_id' => 'call_1', 'name' => 'lookup', 'namespace' => 'general', 'arguments' => '{}' ),
 			),
 		) ) );

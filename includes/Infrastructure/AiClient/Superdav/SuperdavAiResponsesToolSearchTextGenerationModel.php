@@ -43,7 +43,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	/** Keep namespaces small as recommended by the OpenAI tool-search guide. */
 	private const NAMESPACE_TOOL_LIMIT = 10;
 
-	/** @var int Session owning the server-managed Responses cursor (zero disables persistence). */
+	/** @var int Session owning the encrypted native replay snapshot (zero disables persistence). */
 	private int $continuation_session_id = 0;
 
 	/** Bind continuation to the agent's server-owned session, not a user-supplied response ID. */
@@ -62,30 +62,25 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	public function generateTextResult( array $prompt ): GenerativeAiResult {
 		$cursor = new ResponsesContinuation( $this->continuation_session_id, get_current_user_id() );
 		try {
-			$params = $this->prepare_responses_params( $prompt );
-			/** @var list<array<string, mixed>> $full_input */
+			$params     = $this->prepare_responses_params( $prompt );
 			$full_input = $params['input'];
 			$scope      = $this->continuation_scope();
-			if ( ( $params['store'] ?? true ) === false ) {
+			if ( array_key_exists( 'previous_response_id', $params ) ) {
 				$cursor->clear();
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
-			$managed = ! array_key_exists( 'previous_response_id', $params );
-			if ( $managed ) {
-				if ( null === $scope ) {
-					$cursor->clear();
-				}
-				$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
-				if ( null !== $continuation ) {
-					$params['previous_response_id'] = $continuation['previous_response_id'];
-					$params['input']                = $continuation['input'];
-				} elseif ( $this->has_tool_history( $full_input ) ) {
-					// An expired/edited cursor cannot faithfully replay native namespaces or reasoning.
-					$cursor->clear();
-					return $this->generate_chat_completions_fallback( $prompt );
-				}
-			} else {
+			$params['store']   = false;
+			$params['include'] = array( 'reasoning.encrypted_content' );
+			if ( null === $scope ) {
 				$cursor->clear();
+			}
+			$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
+			if ( null !== $continuation ) {
+				$params['input'] = $continuation['input'];
+			} elseif ( $this->has_tool_history( $full_input ) ) {
+				// An expired/edited snapshot cannot faithfully replay native namespaces or reasoning.
+				$cursor->clear();
+				return $this->generate_chat_completions_fallback( $prompt );
 			}
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
@@ -100,10 +95,18 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 			$result = $this->parse_response_to_generative_ai_result( $response );
 			$data   = $response->getData();
-			if ( $managed && null !== $scope && is_array( $data ) && ( $data['status'] ?? 'completed' ) === 'completed' ) {
+			if ( null !== $scope && is_array( $data ) && ( $data['status'] ?? 'completed' ) === 'completed' ) {
 				// The agent may split this message for transport; input normalization is identical.
 				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
-				$cursor->acknowledge( $result->getId(), $acknowledged, $scope );
+				$output       = $this->native_output_items( $data['output'] ?? null );
+				if ( null !== $output ) {
+					$native_input = array_merge( $continuation['input'] ?? $full_input, $output );
+					$cursor->acknowledge( $result->getId(), $acknowledged, $scope, $native_input );
+				} else {
+					$cursor->clear();
+				}
+			} else {
+				$cursor->clear();
 			}
 			return $result;
 		} catch ( ClientException $e ) {
@@ -114,6 +117,32 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 			throw $e;
 		}
+	}
+
+	/**
+	 * Validate native rows without discarding provider-specific fields.
+	 *
+	 * @return list<array<string, mixed>>|null
+	 */
+	private function native_output_items( mixed $output ): ?array {
+		if ( ! is_array( $output ) || ! array_is_list( $output ) ) {
+			return null;
+		}
+		$rows = array();
+		foreach ( $output as $item ) {
+			if ( ! is_array( $item ) ) {
+				return null;
+			}
+			$row = array();
+			foreach ( $item as $key => $value ) {
+				if ( ! is_string( $key ) ) {
+					return null;
+				}
+				$row[ $key ] = $value;
+			}
+			$rows[] = $row;
+		}
+		return $rows;
 	}
 
 	/** Scope by model, endpoint, credential and tools, independent of usage-driven deferral. */
@@ -179,6 +208,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @param Message[] $prompt Prompt messages.
 	 * @phpstan-param list<Message> $prompt
 	 * @return array<string, mixed>
+	 * @phpstan-return array{model: string, input: list<array<string, mixed>>, ...}
 	 */
 	protected function prepare_responses_params( array $prompt ): array {
 		$config = $this->getConfig();
@@ -218,14 +248,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$params['parallel_tool_calls'] = false;
 		}
 
-		foreach ( $config->getCustomOptions() as $key => $value ) {
+		foreach ( array_keys( $config->getCustomOptions() ) as $key ) {
 			if ( isset( $params[ $key ] ) ) {
 				throw new InvalidArgumentException( sprintf( 'The custom option "%s" conflicts with an existing Responses parameter.', esc_html( (string) $key ) ) );
 			}
-			$params[ $key ] = $value;
 		}
 
-		return $params;
+		return array_merge( $config->getCustomOptions(), $params );
 	}
 
 	/**

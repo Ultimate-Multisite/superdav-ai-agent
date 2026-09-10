@@ -1,179 +1,127 @@
-# Native tool-search continuity
+# Native tool-search continuity with OAuth
 
-## Scope
+## Contract
 
-The SD AI provider's experimental Responses model can continue an authenticated,
-persisted agent session using server-managed `previous_response_id`. This is a
-plugin-only implementation: it requires no PHP AI Client, WordPress core, or
-OpenAI connector changes. Other providers are unchanged.
+The SD provider keeps its existing OAuth-backed upstream. Native requests use
+`/v1/responses`, `store: false`, and `include: ["reasoning.encrypted_content"]`.
+They do **not** use `previous_response_id` or require an OpenAI API key.
 
-The service must support **both `/responses` with hosted `tool_search` and stored
-response continuation**. A managed model alias is not evidence of support. Keep
-the existing `sd_ai_agent_openai_tool_search_enabled` opt-in disabled for managed
-aliases until their service deployment supports this contract.
+No PHP AI Client, WordPress core, or OpenAI connector changes are needed. The SD
+service wrapper must expose the stateless Responses forwarding route; the
+previously deployed wrapper lacked it. Managed aliases retain their existing
+`sd_ai_agent_openai_tool_search_enabled` opt-in until the matching service is
+deployed and reviewed. Other providers are unchanged.
 
-## State and request behavior
+## Complete native replay
 
-`AgentLoop::configure_model()` binds the server-owned session ID to the native
-model. `ResponsesContinuation` stores a one-day WordPress transient scoped to the
-site, session and current user. Its contents are only the response ID,
-acknowledged input count, history fingerprint and configuration fingerprint.
-It does not store prompts, function results, credentials or raw native output.
+`AgentLoop::configure_model()` binds the authenticated session to the SD model.
+After each completed response, `ResponsesContinuation` records:
 
-The configuration fingerprint includes provider, model, endpoint, function
-descriptions/schemas and a site-salted HMAC of the bound API credential. Unknown
-authentication implementations do not get automatic persisted continuation.
+- the normalized SDK history's acknowledged prefix count and fingerprint;
+- a provider/model/endpoint/function-schema/credential scope fingerprint;
+- an **encrypted snapshot of the complete native input plus raw output items**.
 
-After a successful completed response, the cursor acknowledges the normalized
-local input plus the returned model message. On the next call, an identical
-prefix allows the model to send:
+On the next call, the SDK prefix must match. The model then replays the saved
+native sequence and appends only the new local user input or function results.
+It never duplicates the reconstructed SDK assistant messages on top of native
+output. Reasoning items (including `encrypted_content`), discovery calls/results,
+function calls, namespaces, IDs, and provider-specific fields remain intact.
+Current instructions and tool declarations are sent on every request.
 
-- `previous_response_id` referencing that response;
-- only new function results or the new user turn in `input`;
-- current instructions and tool definitions, as required by Responses.
+The ordinary SDK history remains authoritative for UI, persistence, compaction,
+and confirmation/browser-tool boundaries. A snapshot is not a concurrency lock;
+existing job/session serialization remains responsible for parallel requests.
 
-The ordinary SDK history remains authoritative and continues to be serialized by
-the existing session/confirmation/browser-tool paths. No response ID is accepted
-from browser history. Fresh model objects can load the transient after a request
-boundary. Existing session concurrency controls remain responsible for serializing
-agent jobs; the transient is not a new lock or atomic job checkpoint.
+## Retention and fallback
 
-## Invalidation and fallback
+- Snapshots use one-day WordPress transients scoped to site/session/user.
+- Raw native history is encrypted with AES-256-GCM using a domain-separated key
+  derived from WordPress's auth salt. Authenticated metadata binds ciphertext to
+  the session key, scope, prefix hash and count. Public metadata contains no
+  plaintext prompt/tool result or credential value.
+- The snapshot's JSON is capped at 1 MiB. Missing OpenSSL, oversized snapshots,
+  corrupted ciphertext, salt/credential changes, expired state, or changed local
+  history/catalog cannot produce a partial native replay.
+- If tool history exists but no valid native snapshot remains, use full ordinary
+  SDK history through Chat Completions. Recognized native request rejection also
+  clears the snapshot and falls back. Server failures do not advance it.
+- `store: false` controls upstream retention, **not zero local retention**: this
+  feature deliberately retains an encrypted local copy for up to one day, in
+  addition to the agent's ordinary session history. Deleting/compacting a session
+  makes old state unusable; transient expiry handles the auxiliary retention.
+- Explicit custom `previous_response_id` is incompatible with this OAuth path and
+  uses the compatible fallback. The implementation does not silently switch to
+  API-key billing or fabricate missing native state.
+- `tool_search` is emitted only when at least one function is deferred. Upstream
+  rejects eager-only catalogs containing a tool-search declaration.
 
-- Changed/compacted history, changed tools/model/endpoint/credential, missing or
-  expired cursors, and user/session mismatches cannot reuse the old cursor.
-- If tool history requires native state but no matching cursor is available,
-  send ordinary full history through the existing Chat Completions adapter.
-  Do not invent missing native discovery, namespace or reasoning items.
-- `store: false` clears the cursor and uses Chat Completions. This implementation
-  does not provide stateless native replay for zero-retention deployments.
-- Recognized Responses/tool-search/response-ID rejection clears the cursor and
-  falls back. Server failures propagate without advancing the acknowledgment.
-- An explicit SDK custom `previous_response_id` remains caller-managed; it does
-  not update the automatic session cursor.
+## Live verification: 2026-09-09
 
-Falling back cannot reproduce hidden native state, but retains the ordinary
-messages and tool results. Native continuity remains an optimization, not a
-replacement for permission checks or durable local conversation storage.
+A temporary dev service used the existing SD OAuth backend and the advertised
+`superdav-chat-pro` alias. Actual `AgentLoop` calls used a disposable WordPress
+fixture and only `list-terms`, `list-posts`, and `get-post`. No production
+deployment, account change, or shared-site activation/schema change was made.
 
-## Deterministic verification
+The tasks retrieved a category description (**CERULEAN-842**), then a published
+post's calibration values (**7341**, **19 minutes**), then calculated **38 minutes**.
+
+Verified from HTTP traces and assertions:
+
+1. Actual `tool_search_call`, `tool_search_output`, and function-call output.
+2. All six calls returned HTTP 200 through `/v1/responses`; **no fallback**.
+3. Every follow-up replayed the exact preceding native input plus output as its
+   prefix, including encrypted reasoning. Every call used `store: false` and no
+   `previous_response_id`.
+4. The second and third user turns ran in **fresh PHP processes**, reading the
+   encrypted snapshot from the database rather than relying on object memory.
+5. A separate run explicitly paused `list-terms` for confirmation and approved
+   that read-only fixture in a fresh PHP process. Native replay continued across
+   the pause and subsequent turns; all six requests stayed native and successful.
+
+The fresh-process run passed 49 assertions; the confirmation run passed 54.
+The latter is confirmation-path evidence, not a claim that browser UI E2E ran.
+
+## Small-workload comparison
+
+One matched three-tool run per mode, with the same prompts/model and fresh PHP
+processes on turns two and three:
+
+| Measurement | OAuth native replay | Eager Chat Completions |
+| --- | ---: | ---: |
+| Correct tasks | 3/3 | 3/3 |
+| Provider calls | 6 | 6 |
+| Total wall time | 20.735 s | 18.087 s |
+| Provider input tokens | 63,838 | 66,667 |
+| Provider output tokens | 332 | 428 |
+| Cached input tokens | 19,968 | 31,232 |
+| Total HTTP request-body bytes | 321,946 | 320,396 |
+
+**No speedup is established.** Native replay was slower in this small sample,
+with fewer input tokens and slightly more upload bytes. Cache state, stochastic
+output, and mode-specific prompt construction differ. This is a functional
+three-tool smoke comparison, not a statistically meaningful large-catalog
+benchmark. Use repeated representative workloads before making performance claims.
+
+Usage comes from HTTP responses; SDK trace rows are excluded to avoid double
+counting. The agent's aggregate token result was zero in this environment.
+Trace collection uses a per-run high-water mark to exclude older fixture rows.
+
+## Regression checks
 
 ```sh
-php bin/run-wp-phpunit.php --filter=ResponsesContinuationTest --no-coverage
+php bin/run-wp-phpunit.php --filter='ResponsesContinuationTest|SuperdavAiProviderTest' --no-coverage
 php bin/run-wp-phpunit.php --filter='ResponsesContinuationTest|SuperdavAiProviderTest|AgentLoopTest|AgentLoopClientToolsTest' --no-coverage
-vendor/bin/phpcs includes/Core/AgentLoop.php includes/Infrastructure/AiClient/Superdav/ResponsesContinuation.php includes/Infrastructure/AiClient/Superdav/SuperdavAiResponsesToolSearchTextGenerationModel.php
+vendor/bin/phpcs includes/Infrastructure/AiClient/Superdav/ResponsesContinuation.php includes/Infrastructure/AiClient/Superdav/SuperdavAiResponsesToolSearchTextGenerationModel.php
+vendor/bin/phpstan analyse --no-progress --memory-limit=1G includes/Infrastructure/AiClient/Superdav/ResponsesContinuation.php includes/Infrastructure/AiClient/Superdav/SuperdavAiResponsesToolSearchTextGenerationModel.php
 ```
 
-The regression suite exercises cursor reconstruction, private-content exclusion,
-identity/history/configuration invalidation, serialized tool-result boundaries,
-new user turns, missing/rejected cursors, storage opt-out, credential rotation,
-and retry behavior. A real `AgentLoop` with a recording mocked HTTP boundary
-proves session binding, tool execution, suffix-only requests and response-ID
-rotation across a second loop instance. Inference is mocked in these tests.
+Tests cover complete native replay, exact prefix matching, real agent-loop binding
+with mocked HTTP, encryption/tampering/session isolation, bounded retention,
+credential/catalog changes, eviction, storage opt-out, retries and eager-only tools.
 
-## Live experiment: 2026-09-09
+## Delivery boundary
 
-Real inference was sent through `AgentLoop` to the configured SD development
-service, using its advertised `superdav-chat-pro` alias. The experiment used the
-existing disposable WordPress test database and a fixture post, not production
-content. Only the actual `list-posts` and `get-post` abilities were allowed.
-Credentials stayed in process memory; shared site activation/settings/schema
-were not changed. Provider traces were inspected in the disposable environment;
-only aggregate measurements and synthetic answers are reported here.
-
-Prompts:
-
-1. Find the published post titled “Continuity Observatory,” read its content,
-   and report its calibration code and measurement window without guessing.
-2. Using that window, calculate the duration of two windows without another
-   tool call.
-
-Both runs correctly returned **7341**, **19 minutes**, then **38 minutes**, using
-three agent iterations on the first turn and one on the second.
-
-| Measurement | Native flag off | Native flag on, actual fallback |
-| --- | ---: | ---: |
-| Successful Chat Completions requests | 4 | 4 |
-| Responses requests | 0 | 1, HTTP 404 |
-| First-turn wall time | 7.694 s | 8.200 s |
-| Second-turn wall time | 3.190 s | 1.607 s |
-| Successful inference request-body bytes | 205,083 | 190,106 |
-| Extra failed Responses request-body bytes | 0 | 46,432 |
-| Provider-reported input tokens | 42,886 | 40,054 |
-| Provider-reported output tokens | 182 | 196 |
-| Provider-reported cached input tokens | 19,456 | 18,432 |
-| Requests containing `previous_response_id` | 0 | 0 |
-
-Token measurements come from HTTP response usage, not the agent's aggregate
-usage result (which was zero in this environment). SDK trace rows were excluded
-to avoid double-counting the same inference.
-
-**This initial run is fallback evidence, not a native performance benchmark.**
-The service returned HTTP 404 for `/v1/responses`. No live hosted discovery or
-stored response continuation occurred in that run. The native flag also changes prompt construction,
-so even the differing token counts cannot be attributed to native tool search.
-One sample per mode and non-deterministic inference do not establish a latency
-improvement. The two-tool workload is only a functional smoke test, not a
-representative large-catalog benchmark.
-
-An initial raw `gpt-5.5` probe failed model selection after a tool call because
-the service advertises managed aliases rather than that raw model ID. Switching
-to the advertised alias resolved that test setup issue.
-
-## Follow-up: native discovery verified through an isolated dev wrapper
-
-A later investigation located the deployment wrapper and confirmed that its
-public edge had no Responses route, although the Sub2API backend supports
-Responses. An isolated dev implementation was tested without replacing the
-running service. Its route preserves edge authentication/accounting and returns
-encrypted, site-bound response cursors rather than exposing a cross-installation
-continuation primitive through a shared upstream pool.
-
-The plugin now accepts bounded opaque response IDs up to 2,048 bytes for that
-wrapper. The live test also exposed and fixed an existing adapter defect:
-`tool_search` must be omitted when every configured function is eager. Upstream
-explicitly rejects tool search without at least one deferred tool.
-
-The expanded fixture supplied `list-posts`, `get-post`, and deferred `list-terms`.
-It asked first for the description of a synthetic category, then for the fixture
-post's calibration values, then for twice its measurement window. Traces showed:
-
-1. HTTP **200** from `/v1/responses`, with actual **`tool_search_call`**,
-   **`tool_search_output`** and **`function_call`** output items.
-2. The next request contained the matching `previous_response_id` and exactly
-   one new **`function_call_output`**, with no acknowledged history replay.
-3. Sub2API rejected that continuation: **“previous_response_id requires an
-   OpenAI API-key account for HTTP requests.”** The dev backend's aggregate
-   account-type check found one active OpenAI OAuth account and no API-key account.
-4. A sanitized HTTP 400 from the wrapper activated the plugin's Chat Completions
-   fallback. All three answers were correct: **CERULEAN-842**, **7341 / 19 minutes**,
-   and **38 minutes**. The live fixture passed 12 assertions.
-
-The first native response reported 10,736 input tokens and 252 output tokens.
-These observations prove **hosted native discovery and correct continuation
-request construction**, but not successful server-stored continuation or a
-performance gain. The existing OAuth account can perform tool search; the
-restriction concerns HTTP stored-response continuation in this Sub2API routing
-configuration, not tool search itself.
-
-Completing native continuity therefore requires either an explicitly approved
-API-key-backed upstream or a separate implementation preserving/replaying the
-complete native state for OAuth. Do not silently switch billing routes, drop
-native discovery/reasoning state, or present fallback timings as native results.
-
-## Before enabling or declaring live verification complete
-
-1. Use an SD service deployment and credential that support hosted tool search,
-   stored response IDs and the chosen advertised model.
-2. Repeat the two-turn fixture through a real agent session with tracing enabled
-   in a development environment. Verify each ID matches the immediately preceding
-   response, tool follow-ups contain only new `function_call_output`, and later
-   user turns contain only new user input. Check the native discovery output too.
-3. Repeat across an actual confirmation/browser pause and a new PHP request,
-   including cursor eviction and expired server state.
-4. Run repeated matched tasks over a representative permission-filtered catalog
-   with native search on/off. Compare correctness, tool selection, iterations,
-   HTTP bytes, usage/cache tokens and wall time. Do not assume less upload data
-   means fewer billed cumulative input tokens.
-
-Until those gates pass, keep the change experimental and the PR in draft.
+Keep the PR experimental until the matching service route is deployed and its
+accounting/security review is complete. Browser-tool UI E2E and representative
+large-catalog performance evaluation remain follow-ups. The OAuth continuation
+blocker itself is resolved by replay; no new billing route is needed.

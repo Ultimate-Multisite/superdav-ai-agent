@@ -203,6 +203,10 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 			'anthropic',
 			ProviderTraceLogger::match_provider( 'https://api.anthropic.com/v1/messages' )
 		);
+		$this->assertSame(
+			'sd-ai-agent-cloud',
+			ProviderTraceLogger::match_provider( 'https://api.sdaiagent.com/v1/chat/completions' )
+		);
 	}
 
 	/**
@@ -384,10 +388,46 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 			ProviderTraceLogger::on_http_response(
 				$response,
 				array( 'body' => $request_body ),
-				'https://private-provider.example/v1/infer'
+				'https://api.anthropic.com/v1/messages'
 			)
 		);
 		$this->assertNull( $body_seen, 'Disabled tracing must not pass 413 prompt bodies to trace resolution filters.' );
+	}
+
+	/** An unrelated HTTP failure cannot inherit the active provider attribution. */
+	public function test_runtime_context_ignores_failure_from_unrelated_url(): void {
+		add_filter( 'sd_ai_agent_provider_trace_enabled', '__return_false' );
+		$captured_events = array();
+		add_action(
+			'sd_ai_agent_event_logged',
+			static function ( string $event ) use ( &$captured_events ): void {
+				$captured_events[] = $event;
+			}
+		);
+
+		ProviderTraceLogger::set_runtime_context( 'openai', 'gpt-test' );
+		$response = array(
+			'headers'  => array(),
+			'body'     => 'Service unavailable',
+			'response' => array( 'code' => 503, 'message' => 'Service Unavailable' ),
+			'cookies'  => array(),
+			'filename' => '',
+		);
+
+		ProviderTraceLogger::on_http_response(
+			$response,
+			array( 'body' => '' ),
+			'https://api.wordpress.org/plugins/info/1.2/'
+		);
+		ProviderTraceLogger::on_http_response(
+			$response,
+			array( 'body' => '' ),
+			'https://api.anthropic.com/v1/messages'
+		);
+
+		$this->assertSame( array(), ProviderTraceLogger::get_runtime_failure_metadata() );
+		$this->assertNotContains( 'provider_http_error', $captured_events );
+		$this->assertNotContains( 'provider_payload_limit', $captured_events );
 	}
 
 	public function test_gateway_response_writes_only_bounded_terminal_trace_metadata(): void {

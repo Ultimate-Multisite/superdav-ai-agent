@@ -214,6 +214,29 @@ class AbilityFunctionResolverTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Do not retry with empty arguments', $payload['hint'] );
 	}
 
+	/**
+	 * Direct aliases discovered after a Tier-2 ability-call use the dispatcher
+	 * policy instead of the resolver's earlier Tier-1 allow-list snapshot.
+	 */
+	public function test_unlisted_direct_plugin_ability_uses_discovery_dispatcher(): void {
+		$this->skip_if_resolver_unavailable();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$resolver = new AbilityFunctionResolver( 'sd-ai-agent/ability-call' );
+		$response = $resolver->execute_ability(
+			new FunctionCall(
+				'call_discovered_get_plugins',
+				\WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( 'sd-ai-agent/get-plugins' ),
+				array()
+			)
+		);
+
+		$payload = $this->normalise_response_payload( $response->getResponse() );
+
+		$this->assertTrue( $payload['success'] );
+		$this->assertSame( 'sd-ai-agent/get-plugins', $payload['ability'] );
+	}
+
 	public function test_provider_model_context_is_forwarded_and_cleared_for_each_dispatch(): void {
 		$this->skip_if_resolver_unavailable();
 

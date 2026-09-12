@@ -21,6 +21,7 @@ use SdAiAgent\Abilities\KnowledgeAbilities;
 use SdAiAgent\Tools\AbilityUsageTracker;
 use SdAiAgent\Tools\ModelHealthTracker;
 use SdAiAgent\Tools\SchemaExampleBuilder;
+use SdAiAgent\Tools\ToolDiscovery;
 use WordPress\AiClient\Tools\DTO\FunctionCall;
 use WordPress\AiClient\Tools\DTO\FunctionResponse;
 
@@ -103,37 +104,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		}
 
 		$ability_name = self::function_name_to_ability_name( $function_name );
-
-		if ( ! isset( $this->allowed[ $ability_name ] ) ) {
-			return new FunctionResponse(
-				$function_id,
-				$function_name,
-				array(
-					'error' => sprintf(
-						/* translators: %s: ability name */
-						__( 'Ability "%s" was not specified in the allowed abilities list.', 'superdav-ai-agent' ),
-						$ability_name
-					),
-					'code'  => 'ability_not_allowed',
-				)
-			);
-		}
-
-		$ability = AbilityRegistry::get( $ability_name );
-		if ( ! $ability instanceof \WP_Ability ) {
-			return new FunctionResponse(
-				$function_id,
-				$function_name,
-				array(
-					'error' => sprintf(
-						/* translators: %s: ability name */
-						__( 'Ability "%s" not found', 'superdav-ai-agent' ),
-						$ability_name
-					),
-					'code'  => 'ability_not_found',
-				)
-			);
-		}
+		$ability      = AbilityRegistry::get( $ability_name );
 
 		$args = $call->getArgs();
 
@@ -150,6 +121,46 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		// Recursively convert any remaining nested stdClass objects to
 		// associative arrays. Abilities expect plain PHP arrays throughout.
 		$args = self::normalize_args( $args );
+
+		if ( ! isset( $this->allowed[ $ability_name ] ) ) {
+			// A Tier-2 ability can be called successfully through ability-call,
+			// then appear as a direct wpab__ alias on a later model turn. The
+			// resolver was built from the earlier Tier-1 set, so execute it through
+			// the same discovery dispatcher rather than returning a stale allow-list
+			// error. The dispatcher retains role, capability, disabled-tool, and
+			// confirmation checks for the target ability.
+			if ( $ability instanceof \WP_Ability && 'sd-ai-agent/ability-call' !== $ability_name ) {
+				return self::execute_discovered_ability_call( $function_id, $function_name, $ability_name, $args );
+			}
+
+			return new FunctionResponse(
+				$function_id,
+				$function_name,
+				array(
+					'error' => sprintf(
+						/* translators: %s: ability name */
+						__( 'Ability "%s" was not specified in the allowed abilities list.', 'superdav-ai-agent' ),
+						$ability_name
+					),
+					'code'  => 'ability_not_allowed',
+				)
+			);
+		}
+
+		if ( ! $ability instanceof \WP_Ability ) {
+			return new FunctionResponse(
+				$function_id,
+				$function_name,
+				array(
+					'error' => sprintf(
+						/* translators: %s: ability name */
+						__( 'Ability "%s" not found', 'superdav-ai-agent' ),
+						$ability_name
+					),
+					'code'  => 'ability_not_found',
+				)
+			);
+		}
 
 		if ( 'sd-ai-agent/knowledge-search' === $ability_name ) {
 			$args = KnowledgeAbilities::hydrate_public_search_args( $args );
@@ -338,6 +349,36 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		// improve the current model's health score.
 		AbilityUsageTracker::record( $ability_name );
 		ModelHealthTracker::record_success();
+
+		return new FunctionResponse( $function_id, $function_name, $result );
+	}
+
+	/**
+	 * Execute an unlisted direct alias through the Tier-2 dispatcher.
+	 *
+	 * @param string               $function_id Provider function-call ID.
+	 * @param string               $function_name Provider function name.
+	 * @param string               $ability_name Registered ability ID.
+	 * @param array<string, mixed> $args Normalized direct-call arguments.
+	 */
+	private static function execute_discovered_ability_call( string $function_id, string $function_name, string $ability_name, array $args ): FunctionResponse {
+		$result = ToolDiscovery::handle_ability_call(
+			array(
+				'ability'   => $ability_name,
+				'arguments' => $args,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return new FunctionResponse(
+				$function_id,
+				$function_name,
+				array(
+					'error' => $result->get_error_message(),
+					'code'  => $result->get_error_code(),
+				)
+			);
+		}
 
 		return new FunctionResponse( $function_id, $function_name, $result );
 	}

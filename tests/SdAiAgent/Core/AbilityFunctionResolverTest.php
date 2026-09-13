@@ -237,6 +237,23 @@ class AbilityFunctionResolverTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd-ai-agent/get-plugins', $payload['ability'] );
 	}
 
+	public function test_unlisted_direct_plugin_ability_requires_ability_call_allowlist_entry(): void {
+		$this->skip_if_resolver_unavailable();
+
+		$resolver = new AbilityFunctionResolver();
+		$response = $resolver->execute_ability(
+			new FunctionCall(
+				'call_unlisted_get_plugins',
+				\WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( 'sd-ai-agent/get-plugins' ),
+				array()
+			)
+		);
+
+		$payload = $this->normalise_response_payload( $response->getResponse() );
+
+		$this->assertSame( 'ability_not_allowed', $payload['code'] );
+	}
+
 	/** A `parameters` envelope from a provider is normalized before schema validation. */
 	public function test_ability_call_normalizes_parameters_alias_before_validation(): void {
 		$this->skip_if_resolver_unavailable();
@@ -259,7 +276,6 @@ class AbilityFunctionResolverTest extends WP_UnitTestCase {
 		$this->assertTrue( $payload['success'] );
 		$this->assertSame( 'sd-ai-agent/get-plugins', $payload['ability'] );
 	}
-
 	public function test_provider_model_context_is_forwarded_and_cleared_for_each_dispatch(): void {
 		$this->skip_if_resolver_unavailable();
 

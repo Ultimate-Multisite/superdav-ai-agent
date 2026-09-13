@@ -938,6 +938,14 @@ class ToolDiscovery {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	public static function handle_ability_call( array $input ) {
+		// Provider adapters normally canonicalise this alias before WordPress
+		// validates the meta-tool schema. Keep the dispatcher defensive for
+		// direct callers that reach it without AbilityFunctionResolver.
+		if ( ! isset( $input['arguments'] ) && isset( $input['parameters'] ) ) {
+			$input['arguments'] = $input['parameters'];
+			unset( $input['parameters'] );
+		}
+
 		$ability_id = isset( $input['ability'] ) ? (string) $input['ability'] : '';
 		$args       = $input['arguments'] ?? array();
 

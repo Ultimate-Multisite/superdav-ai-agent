@@ -771,6 +771,9 @@ namespace WordPress\AiClient\Providers\Http\DTO {
 	class ApiKeyRequestAuthentication implements \WordPress\AiClient\Providers\Http\Contracts\RequestAuthenticationInterface {
 		/** @param string $api_key API key. */
 		public function __construct( string $api_key ) {}
+
+		/** Return the bound API credential. */
+		public function getApiKey(): string { return ''; }
 	}
 }
 

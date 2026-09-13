@@ -486,6 +486,19 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'result', $result );
 	}
 
+	public function test_ability_call_normalizes_parameters_alias_for_direct_callers(): void {
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'    => 'sd-ai-agent/get-plugins',
+				'parameters' => [],
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 'sd-ai-agent/get-plugins', $result['ability'] );
+	}
+
 	public function test_ability_call_records_usage(): void {
 		ToolDiscovery::handle_ability_call(
 			[

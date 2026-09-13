@@ -183,6 +183,21 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		}
 
 		// Meta-tool argument coercion for `sd-ai-agent/ability-call`:
+		// Some providers emit the nested input as `parameters` rather than the
+		// documented `arguments` property. Accept that alias only when the
+		// canonical property is absent so a model-supplied `arguments` value
+		// always wins. This happens before schema validation, which otherwise
+		// rejects the whole meta-tool call and leaves the model without a
+		// recoverable tool result.
+		if (
+			'sd-ai-agent/ability-call' === $ability_name
+			&& ! isset( $args['arguments'] )
+			&& isset( $args['parameters'] )
+		) {
+			$args['arguments'] = $args['parameters'];
+			unset( $args['parameters'] );
+		}
+
 		// Claude (and other LLMs) sometimes emits the nested `arguments`
 		// field as a JSON-encoded STRING instead of an object — e.g.
 		// {"ability": "...", "arguments": "{\"post_id\": 19, ...}"}

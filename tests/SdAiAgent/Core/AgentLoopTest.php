@@ -1046,9 +1046,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test run() with empty reply text returns empty string (not null/false).
+	 * Empty model replies return an actionable fallback with a diagnostic reason.
 	 */
-	public function test_run_with_empty_reply_returns_empty_string(): void {
+	public function test_run_with_empty_reply_returns_actionable_fallback(): void {
 		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( '' );
 
@@ -1058,6 +1058,8 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'reply', $result );
 		$this->assertIsString( $result['reply'] );
+		$this->assertNotSame( '', trim( $result['reply'] ) );
+		$this->assertSame( 'empty_final_response', $result['exit_reason'] );
 	}
 
 	// -------------------------------------------------------------------------

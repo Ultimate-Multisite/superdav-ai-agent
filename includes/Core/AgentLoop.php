@@ -2082,6 +2082,18 @@ PROMPT;
 					}
 				}
 
+				// A provider can return an empty response both before and after the
+				// one bounded summarization retry. Never surface that as a silent
+				// successful turn: return a clear customer-facing fallback and retain
+				// a diagnostic reason for feedback and job consumers.
+				$empty_final_response = '' === trim( $reply );
+				if ( $empty_final_response ) {
+					$reply = __(
+						'I could not generate a final response after completing the available steps. Please continue the conversation or try the request again.',
+						'superdav-ai-agent'
+					);
+				}
+
 				// Post-process the reply to inject real permalinks from create-post responses.
 				$reply = $this->inject_real_permalinks( $reply );
 				$reply = $this->append_generated_theme_completion_notice( $reply );
@@ -2097,6 +2109,7 @@ PROMPT;
 							'token_usage'     => $this->token_usage,
 							'iterations_used' => $this->iterations_used,
 							'model_id'        => $this->model_id,
+							'exit_reason'     => $empty_final_response ? 'empty_final_response' : '',
 						)
 					)
 				);

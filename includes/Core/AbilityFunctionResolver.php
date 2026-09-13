@@ -129,7 +129,7 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 			// the same discovery dispatcher rather than returning a stale allow-list
 			// error. The dispatcher retains role, capability, disabled-tool, and
 			// confirmation checks for the target ability.
-			if ( $ability instanceof \WP_Ability && 'sd-ai-agent/ability-call' !== $ability_name ) {
+			if ( isset( $this->allowed['sd-ai-agent/ability-call'] ) && $ability instanceof \WP_Ability && 'sd-ai-agent/ability-call' !== $ability_name ) {
 				return self::execute_discovered_ability_call( $function_id, $function_name, $ability_name, $args );
 			}
 

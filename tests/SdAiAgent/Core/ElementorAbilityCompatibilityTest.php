@@ -20,6 +20,9 @@ class ElementorAbilityCompatibilityTest extends WP_UnitTestCase {
 	 */
 	private array $registered_abilities = array();
 
+	/** Whether this test registered the Elementor ability category. */
+	private bool $registered_elementor_category = false;
+
 	public function set_up(): void {
 		parent::set_up();
 		update_option( Settings::OPTION_NAME, array( 'third_party_mode' => 'auto' ) );
@@ -32,6 +35,10 @@ class ElementorAbilityCompatibilityTest extends WP_UnitTestCase {
 			}
 		}
 		$this->registered_abilities = array();
+		if ( $this->registered_elementor_category && function_exists( 'wp_unregister_ability_category' ) ) {
+			wp_unregister_ability_category( 'elementor' );
+		}
+		$this->registered_elementor_category = false;
 		delete_option( Settings::OPTION_NAME );
 		parent::tear_down();
 	}
@@ -115,12 +122,14 @@ class ElementorAbilityCompatibilityTest extends WP_UnitTestCase {
 			$this->fail( 'wp_register_ability() is not available.' );
 		}
 
+		$this->ensure_elementor_category();
+
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress hook stack global.
 		global $wp_current_filter;
 		$wp_current_filter[] = 'wp_abilities_api_init';
 
 		try {
-			wp_register_ability(
+			$ability = wp_register_ability(
 				$ability_id,
 				array(
 					'label'               => 'Elementor test ability',
@@ -131,10 +140,40 @@ class ElementorAbilityCompatibilityTest extends WP_UnitTestCase {
 					'meta'                => $meta,
 				)
 			);
+			$this->assertInstanceOf( \WP_Ability::class, $ability );
 		} finally {
 			array_pop( $wp_current_filter );
 		}
 
 		$this->registered_abilities[] = $ability_id;
+	}
+
+	/** Register the category required by WordPress before registering test abilities. */
+	private function ensure_elementor_category(): void {
+		if ( ! function_exists( 'wp_register_ability_category' ) || ! function_exists( 'wp_has_ability_category' ) ) {
+			return;
+		}
+
+		if ( wp_has_ability_category( 'elementor' ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress hook stack global.
+		global $wp_current_filter;
+		$wp_current_filter[] = 'wp_abilities_api_categories_init';
+
+		try {
+			wp_register_ability_category(
+				'elementor',
+				array(
+					'label'       => 'Elementor',
+					'description' => 'Elementor test abilities.',
+				)
+			);
+		} finally {
+			array_pop( $wp_current_filter );
+		}
+
+		$this->registered_elementor_category = true;
 	}
 }

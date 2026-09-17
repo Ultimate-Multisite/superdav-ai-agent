@@ -1286,7 +1286,9 @@ PROMPT;
 		$marked   = array();
 
 		foreach ( $client_calls as $call ) {
-			$name = (string) ( $call['name'] ?? '' );
+			// Nested browser calls preserve the outer ability-call identity in
+			// `name`; confirmation applies to the validated inner browser ability.
+			$name = (string) ( $call['client_name'] ?? ( $call['name'] ?? '' ) );
 			if ( '' !== $name && isset( $approved[ $name ] ) ) {
 				$call['user_confirmed'] = true;
 			}

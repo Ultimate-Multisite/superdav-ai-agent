@@ -3456,6 +3456,47 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
 	}
 
+	/** Confirmed nested browser calls must carry approval across ability-call routing. */
+	public function test_confirmation_resume_marks_nested_client_call_as_confirmed(): void {
+		$ability_name = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
+		$catalog      = JsAbilityCatalog::get_descriptors_by_name();
+		$loop         = new ScriptedAgentLoop(
+			'',
+			array(),
+			array(
+				new UserMessage( array( new MessagePart( 'Update Elementor after approval.' ) ) ),
+				new ModelMessage(
+					array(
+						new MessagePart(
+							new FunctionCall(
+								'call_confirmed_elementor',
+								'sd-ai-agent/ability-call',
+								array(
+									'ability'   => $ability_name,
+									'arguments' => array(
+										'toolName' => 'build-compositions',
+									),
+								)
+							)
+						)
+					)
+				),
+			),
+			array(
+				'approved_once_abilities' => array( $ability_name ),
+				'client_abilities'        => array( $catalog[ $ability_name ] ),
+			),
+			array()
+		);
+
+		$result = $loop->resume_after_confirmation( true, 1 );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['pending_client_tool_calls'][0]['name'] );
+		$this->assertSame( $ability_name, $result['pending_client_tool_calls'][0]['client_name'] );
+		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
+	}
+
 	/**
 	 * A confirmed mixed response executes only the PHP partition, persists the
 	 * browser call, and continues after its result without a live provider.

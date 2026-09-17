@@ -14,6 +14,7 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 
 	private const SCRIPT_HANDLE = 'elementor-v2-sd-ai-agent-elementor-mcp';
 	private const ELEMENTOR_MCP_HANDLE = 'elementor-v2-editor-mcp';
+	private const FLOATING_WIDGET_HANDLE = 'sd-ai-agent-floating-widget';
 
 	private int $admin_id;
 	private int $subscriber_id;
@@ -32,12 +33,18 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 		remove_filter( 'sd_ai_agent_build_dir', array( $this, 'filter_build_dir' ) );
 		wp_dequeue_script( self::SCRIPT_HANDLE );
 		wp_deregister_script( self::SCRIPT_HANDLE );
+		wp_dequeue_script( self::FLOATING_WIDGET_HANDLE );
+		wp_deregister_script( self::FLOATING_WIDGET_HANDLE );
+		wp_dequeue_style( self::FLOATING_WIDGET_HANDLE );
+		wp_deregister_style( self::FLOATING_WIDGET_HANDLE );
 		wp_deregister_script( self::ELEMENTOR_MCP_HANDLE );
 		wp_set_current_user( 0 );
 
-		$asset_path = $this->build_dir . '/elementor-editor-mcp.asset.php';
-		if ( file_exists( $asset_path ) ) {
-			unlink( $asset_path );
+		foreach ( array( 'elementor-editor-mcp.asset.php', 'floating-widget.asset.php' ) as $asset_file ) {
+			$asset_path = $this->build_dir . '/' . $asset_file;
+			if ( file_exists( $asset_path ) ) {
+				unlink( $asset_path );
+			}
 		}
 		if ( is_dir( $this->build_dir ) ) {
 			rmdir( $this->build_dir );
@@ -59,6 +66,7 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 		wp_set_current_user( $this->admin_id );
 		wp_register_script( self::ELEMENTOR_MCP_HANDLE, 'https://example.test/editor-mcp.js' );
 		$this->write_asset_fixture();
+		$this->write_floating_widget_asset_fixture();
 
 		$handler = new ElementorEditorHandler();
 		$handler->register_editor_package();
@@ -71,6 +79,8 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 
 		$handler->enqueue_editor_package();
 		$this->assertTrue( wp_script_is( self::SCRIPT_HANDLE, 'enqueued' ) );
+		$this->assertTrue( wp_script_is( self::FLOATING_WIDGET_HANDLE, 'enqueued' ) );
+		$this->assertTrue( wp_style_is( self::FLOATING_WIDGET_HANDLE, 'enqueued' ) );
 	}
 
 	public function test_skips_registration_without_elementor_or_administrator_access(): void {
@@ -98,6 +108,20 @@ PHP;
 
 		$this->assertNotFalse(
 			file_put_contents( $this->build_dir . '/elementor-editor-mcp.asset.php', $contents )
+		);
+	}
+
+	private function write_floating_widget_asset_fixture(): void {
+		$contents = <<<'PHP'
+<?php
+return array(
+	'dependencies' => array( 'wp-element' ),
+	'version'      => 'floating-fixture-version',
+);
+PHP;
+
+		$this->assertNotFalse(
+			file_put_contents( $this->build_dir . '/floating-widget.asset.php', $contents )
 		);
 	}
 }

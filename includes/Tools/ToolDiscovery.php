@@ -37,6 +37,7 @@ use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use SdAiAgent\Abilities\ToolCapabilities;
 use SdAiAgent\Core\AbilityRegistry;
 use SdAiAgent\Core\AbilityVisibility;
+use SdAiAgent\Core\ElementorAbilityCompatibility;
 use SdAiAgent\Core\RolePermissions;
 use SdAiAgent\Core\Settings;
 use SdAiAgent\Core\ToolPermissionResolver;
@@ -864,6 +865,14 @@ class ToolDiscovery {
 			'sd-ai-agent/get-theme-json'         => 'theme json theme settings theme style configuration global styles configuration',
 			'sd-ai-agent/compile-design-tokens'  => 'compile design tokens design token contract generate theme json deterministic theme styles semantic aliases style variation',
 			self::VALIDATE_THEME_PROJECT_ABILITY => 'validate generated block theme project theme json templates parts patterns variations local assets activation diagnostics',
+			'elementor/list-posts'               => 'elementor page builder list documents list pages find elementor page',
+			'elementor/create-page'              => 'elementor page builder create document create page new page',
+			'elementor/get-page-structure'       => 'elementor page builder inspect structure read page layout section container widget',
+			'elementor/update-page-settings'     => 'elementor page builder update document settings page settings',
+			'elementor/manage-elements'          => 'elementor page builder edit section edit container change widget modify element',
+			'elementor/build-composition'        => 'elementor page builder build page create layout composition section container widget',
+			'elementor/create-preview-link'      => 'elementor page builder preview draft preview page',
+			'elementor/publish-document'         => 'elementor page builder publish document publish page',
 		);
 
 		return $aliases[ $ability_id ] ?? '';
@@ -926,7 +935,43 @@ class ToolDiscovery {
 			$response['discovery_hint'] = $discovery_hint;
 		}
 
+		if ( self::is_elementor_discovery( $query, $abilities ) ) {
+			$response['elementor_compatibility'] = ElementorAbilityCompatibility::get_report(
+				array_values(
+					array_map(
+						static function ( \WP_Ability $ability ): string {
+							return $ability->get_name();
+						},
+						self::visible_abilities()
+					)
+				)
+			);
+		}
+
 		return $response;
+	}
+
+	/**
+	 * Determine whether an ability-search response should include the Elementor
+	 * runtime report. Include it for an explicit Elementor query even when the
+	 * site has no registered Elementor abilities, so absence is actionable.
+	 *
+	 * @param string        $query Search query.
+	 * @param \WP_Ability[] $abilities Search results.
+	 * @return bool
+	 */
+	private static function is_elementor_discovery( string $query, array $abilities ): bool {
+		if ( str_contains( strtolower( $query ), 'elementor' ) ) {
+			return true;
+		}
+
+		foreach ( $abilities as $ability ) {
+			if ( str_starts_with( $ability->get_name(), 'elementor/' ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// ─── ability-call handler ────────────────────────────────────────────

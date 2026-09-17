@@ -22,6 +22,7 @@ use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\CostCalculator;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\DurablePlanRunner;
+use SdAiAgent\Core\ElementorCompletionGate;
 use SdAiAgent\Core\Export;
 use SdAiAgent\Core\PublicChatSecurity;
 use SdAiAgent\Core\Settings;
@@ -1596,10 +1597,17 @@ final class SessionController {
 		}
 
 		if ( 'awaiting_client_tools' === $job['status'] && isset( $job['pending_client_tool_calls'] ) ) {
-			// Surface the client-side pending calls so the browser can execute
-			// JS abilities and POST results back via /chat/tool-result.
-			$response['pending_client_tool_calls'] = $job['pending_client_tool_calls'];
-			return new WP_REST_Response( $response, 200 );
+			$pending_client_tool_calls = is_array( $job['pending_client_tool_calls'] )
+				? ElementorCompletionGate::normalize_pending_client_tool_calls( $job['pending_client_tool_calls'] )
+				: array();
+			$requires_owner_delivery   = ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( $pending_client_tool_calls );
+			if ( ! $requires_owner_delivery || self::can_current_user_view_private_job( $db_row, $job ) ) {
+				// Ordinary client tools retain shared-session behaviour. Elementor preview
+				// capabilities are decrypted only for the owning user's browser; the job
+				// transient and database retain the sealed form.
+				$response['pending_client_tool_calls'] = ElementorCompletionGate::restore_pending_client_tool_calls( $pending_client_tool_calls );
+				return new WP_REST_Response( $response, 200 );
+			}
 		}
 
 		if ( 'complete' === $job['status'] && isset( $job['result'] ) ) {
@@ -1749,8 +1757,12 @@ final class SessionController {
 		if ( 'awaiting_client_tools' === $status ) {
 			// pending_tools column reused — contains pending_client_tool_calls JSON.
 			$pending = json_decode( $row->pending_tools, true );
-			if ( is_array( $pending ) ) {
-				$response['pending_client_tool_calls'] = $pending;
+			$pending = is_array( $pending ) ? ElementorCompletionGate::normalize_pending_client_tool_calls( $pending ) : array();
+			if (
+				! empty( $pending )
+				&& ( ! ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( $pending ) || self::can_current_user_view_private_job( $row ) )
+			) {
+				$response['pending_client_tool_calls'] = ElementorCompletionGate::restore_pending_client_tool_calls( $pending );
 			}
 		}
 
@@ -1788,7 +1800,20 @@ final class SessionController {
 	 * persisted plan can contain owner-scoped operation details and approvals.
 	 */
 	private static function can_current_user_view_durable_job( ?ActiveJobRow $row ): bool {
-		return null !== $row && (int) $row->user_id === get_current_user_id();
+		return self::can_current_user_view_private_job( $row );
+	}
+
+	/**
+	 * Pending browser calls can carry a sealed private capability. Only the user
+	 * who owns the active job may receive an executable browser call, even when
+	 * another administrator may inspect ordinary shared-session activity.
+	 *
+	 * @param ActiveJobRow|null    $row Active-job row, when persistence is available.
+	 * @param array<string, mixed> $job Transient job payload when no row is available.
+	 */
+	private static function can_current_user_view_private_job( ?ActiveJobRow $row, array $job = array() ): bool {
+		$owner_id = null !== $row ? (int) $row->user_id : (int) ( $job['user_id'] ?? 0 );
+		return $owner_id > 0 && $owner_id === get_current_user_id();
 	}
 
 	/**

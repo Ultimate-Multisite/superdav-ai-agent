@@ -61,13 +61,6 @@ class ToolPermissionResolver {
 	 * @return list<array<string, mixed>> Array of tool details needing confirmation (empty if none).
 	 */
 	public function get_tools_needing_confirmation( Message $message ): array {
-		// YOLO mode: skip all confirmations and execute immediately. A prompt
-		// with no stated objective is the exception: it must not manufacture a
-		// mutation merely because a site-wide convenience setting is enabled.
-		if ( $this->yolo_mode && ! $this->requiresMutationClarification ) {
-			return array();
-		}
-
 		$confirm       = array();
 		$all_abilities = function_exists( 'wp_get_abilities' ) ? wp_get_abilities() : array();
 
@@ -90,7 +83,10 @@ class ToolPermissionResolver {
 			// Convert function name to ability name for lookups.
 			$ability_name = $fn_name;
 			if ( str_starts_with( $fn_name, 'wpab__' ) && class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
-				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
+				$resolved_ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
+				if ( is_string( $resolved_ability_name ) && '' !== $resolved_ability_name ) {
+					$ability_name = $resolved_ability_name;
+				}
 			}
 
 			$args                    = self::normalize_function_call_args( $call->getArgs() );
@@ -104,6 +100,17 @@ class ToolPermissionResolver {
 				&& $ability instanceof \WP_Ability
 				&& 'read' !== self::classify_ability( $ability )
 				&& ! $is_explicit_draft;
+
+			// YOLO mode remains an explicit opt-in for ordinary mutations, but it
+			// cannot substitute for a per-publication confirmation. Elementor
+			// documents can reach this branch directly or through ability-call.
+			if (
+				$this->yolo_mode
+				&& ! $requires_clarification
+				&& ! self::requires_explicit_publication_confirmation( $confirmation_ability_id )
+			) {
+				continue;
+			}
 
 			if ( $requires_clarification || self::ability_needs_confirmation( $confirmation_ability_id, $ability, $this->tool_permissions ) ) {
 				$confirm[] = array(
@@ -180,7 +187,10 @@ class ToolPermissionResolver {
 
 			$ability_name = $function_name;
 			if ( class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
-				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $function_name );
+				$resolved_ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $function_name );
+				if ( is_string( $resolved_ability_name ) && '' !== $resolved_ability_name ) {
+					$ability_name = $resolved_ability_name;
+				}
 			}
 
 			$args        = self::normalize_function_call_args( $call->getArgs() );
@@ -202,6 +212,13 @@ class ToolPermissionResolver {
 	 * @param array<int|string, mixed> $tool_permissions Per-tool permission map.
 	 */
 	public static function ability_needs_confirmation( string $ability_name, ?\WP_Ability $ability, array $tool_permissions ): bool {
+		// Publishing is a distinct user decision. Do not let an optimistic
+		// third-party annotation, a persisted always-allow preference, or the
+		// dispatcher wrapper turn it into an implicit publication authorization.
+		if ( self::requires_explicit_publication_confirmation( $ability_name ) ) {
+			return true;
+		}
+
 		$permission = $tool_permissions[ $ability_name ] ?? null;
 
 		if ( 'confirm' === $permission ) {
@@ -297,6 +314,7 @@ class ToolPermissionResolver {
 	 * @param array<int|string, \WP_Ability> $all_abilities Registered abilities.
 	 */
 	private static function get_confirmation_ability_id( string $ability_name, array $args, array $all_abilities ): string {
+		$ability_name = self::normalize_elementor_ability_id( $ability_name );
 		if ( 'sd-ai-agent/ability-call' !== $ability_name ) {
 			return $ability_name;
 		}
@@ -309,8 +327,37 @@ class ToolPermissionResolver {
 		if ( class_exists( \SdAiAgent\Tools\ToolDiscovery::class ) ) {
 			$target = \SdAiAgent\Tools\ToolDiscovery::canonicalise_ability_id( $target );
 		}
+		$target = self::normalize_elementor_ability_id( $target );
+
+		// Do not fall back to the benign dispatcher annotation for unknown
+		// Elementor targets. An unavailable target will still fail at dispatch,
+		// but it must never inherit ability-call's own classification first.
+		if ( str_starts_with( $target, 'elementor/' ) ) {
+			return $target;
+		}
 
 		return isset( $all_abilities[ $target ] ) ? $target : $ability_name;
+	}
+
+	/**
+	 * Elementor publication always needs a request-scoped user confirmation.
+	 */
+	private static function requires_explicit_publication_confirmation( string $ability_name ): bool {
+		return 'elementor/publish-document' === self::normalize_elementor_ability_id( $ability_name );
+	}
+
+	/**
+	 * Normalize the SDK function spelling when its resolver is unavailable.
+	 */
+	private static function normalize_elementor_ability_id( string $ability_name ): string {
+		if ( str_starts_with( $ability_name, 'wpab__sd-ai-agent__' ) ) {
+			return 'sd-ai-agent/' . str_replace( '_', '-', substr( $ability_name, strlen( 'wpab__sd-ai-agent__' ) ) );
+		}
+		if ( str_starts_with( $ability_name, 'wpab__elementor__' ) ) {
+			return 'elementor/' . str_replace( '_', '-', substr( $ability_name, strlen( 'wpab__elementor__' ) ) );
+		}
+
+		return $ability_name;
 	}
 
 	/**

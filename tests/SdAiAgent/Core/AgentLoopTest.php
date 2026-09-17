@@ -5202,6 +5202,58 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Elementor publication always needs per-request confirmation, including in YOLO mode. */
+	public function test_elementor_publish_requires_confirmation_for_direct_and_wrapped_calls_despite_always_allow(): void {
+		$resolver = new ToolPermissionResolver(
+			true,
+			array( 'elementor/publish-document' => 'always_allow' )
+		);
+		$direct = new ModelMessage(
+			array(
+				new MessagePart(
+					new FunctionCall(
+						'call_elementor_publish_direct',
+						'wpab__elementor__publish-document',
+						array( 'post_id' => 41 )
+					)
+				),
+			)
+		);
+		$wrapped = new ModelMessage(
+			array(
+				new MessagePart(
+					new FunctionCall(
+						'call_elementor_publish_wrapped',
+						'wpab__sd-ai-agent__ability-call',
+						array(
+							'ability'   => 'elementor/publish-document',
+							'arguments' => array( 'document_id' => 41 ),
+						)
+					)
+				),
+			)
+		);
+
+		$this->assertTrue(
+			ToolPermissionResolver::ability_needs_confirmation(
+				'wpab__elementor__publish-document',
+				null,
+				array( 'elementor/publish-document' => 'always_allow' )
+			)
+		);
+		$this->assertTrue( ToolPermissionResolver::message_has_mutating_tools( $direct ) );
+		$this->assertTrue( ToolPermissionResolver::message_has_mutating_tools( $wrapped ) );
+
+		$direct_pending  = $resolver->get_tools_needing_confirmation( $direct );
+		$wrapped_pending = $resolver->get_tools_needing_confirmation( $wrapped );
+		$this->assertCount( 1, $direct_pending );
+		$this->assertCount( 1, $wrapped_pending );
+		$this->assertSame( 'elementor/publish-document', $direct_pending[0]['ability'] );
+		$this->assertSame( 'elementor/publish-document', $wrapped_pending[0]['ability'] );
+		$this->assertSame( 'wpab__elementor__publish-document', $direct_pending[0]['name'] );
+		$this->assertSame( 'wpab__sd-ai-agent__ability-call', $wrapped_pending[0]['name'] );
+	}
+
 	/**
 	 * Test that a read tool (readonly=true) auto-executes without confirmation
 	 * when no explicit tool_permissions are set.

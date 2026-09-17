@@ -1598,7 +1598,7 @@ final class SessionController {
 
 		if ( 'awaiting_client_tools' === $job['status'] && isset( $job['pending_client_tool_calls'] ) ) {
 			$pending_client_tool_calls = is_array( $job['pending_client_tool_calls'] )
-				? array_values( $job['pending_client_tool_calls'] )
+				? ElementorCompletionGate::normalize_pending_client_tool_calls( $job['pending_client_tool_calls'] )
 				: array();
 			$requires_owner_delivery   = ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( $pending_client_tool_calls );
 			if ( ! $requires_owner_delivery || self::can_current_user_view_private_job( $db_row, $job ) ) {
@@ -1757,11 +1757,12 @@ final class SessionController {
 		if ( 'awaiting_client_tools' === $status ) {
 			// pending_tools column reused — contains pending_client_tool_calls JSON.
 			$pending = json_decode( $row->pending_tools, true );
+			$pending = is_array( $pending ) ? ElementorCompletionGate::normalize_pending_client_tool_calls( $pending ) : array();
 			if (
-				is_array( $pending )
-				&& ( ! ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( array_values( $pending ) ) || self::can_current_user_view_private_job( $row ) )
+				! empty( $pending )
+				&& ( ! ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( $pending ) || self::can_current_user_view_private_job( $row ) )
 			) {
-				$response['pending_client_tool_calls'] = ElementorCompletionGate::restore_pending_client_tool_calls( array_values( $pending ) );
+				$response['pending_client_tool_calls'] = ElementorCompletionGate::restore_pending_client_tool_calls( $pending );
 			}
 		}
 

@@ -545,8 +545,7 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $other_fallback->get_data() ) );
 		wp_set_current_user( $this->admin_id );
 		$owner_fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
-		$this->assert_status( 200, $owner_fallback );
-		$this->assertSame( $preview_url, $owner_fallback->get_data()['pending_client_tool_calls'][0]['args']['url'] );
+		$this->assert_status( 404, $owner_fallback );
 
 		ActiveJobRepository::delete( $job_id );
 	}
@@ -590,7 +589,8 @@ class SessionControllerTest extends WP_UnitTestCase {
 		delete_transient( RestController::JOB_PREFIX . $job_id );
 		$fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
 		$this->assert_status( 200, $fallback );
-		$this->assertSame( $pending, $fallback->get_data()['pending_client_tool_calls'] );
+		$this->assertArrayNotHasKey( 'pending_client_tool_calls', $fallback->get_data() );
+		$this->assertSame( 'error', $fallback->get_data()['status'] );
 		wp_set_current_user( $this->admin_id );
 
 		ActiveJobRepository::delete( $job_id );

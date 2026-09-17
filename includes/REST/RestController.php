@@ -540,7 +540,7 @@ Assistant: %s',
 				array( 'status' => 400 )
 			);
 		}
-		$pending_client_tool_calls = array_values( $pending_client_tool_calls );
+		$pending_client_tool_calls = ElementorCompletionGate::normalize_pending_client_tool_calls( $pending_client_tool_calls );
 		$tool_results              = array_values( $tool_results );
 		if ( ElementorCompletionGate::pending_client_tool_calls_require_owner_delivery( $pending_client_tool_calls ) && '' === $job_id ) {
 			// Legacy clients can omit job_id. Bind a private browser capability to
@@ -761,7 +761,7 @@ Assistant: %s',
 
 		// Handle another client-side pause (chained JS tool calls).
 		if ( ! empty( $result['pending_client_tool_calls'] ) ) {
-			$next_pending_client_tool_calls = array_values( (array) $result['pending_client_tool_calls'] );
+			$next_pending_client_tool_calls = ElementorCompletionGate::normalize_pending_client_tool_calls( (array) $result['pending_client_tool_calls'] );
 			// Sync the job transient so the browser's next poll sees
 			// 'awaiting_client_tools' with the NEW pending calls instead of
 			// the stale set from the original background-job pause.

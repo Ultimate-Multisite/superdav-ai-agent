@@ -464,11 +464,28 @@ final class ElementorCompletionGate {
 	 * Redact known private preview values from serialized history before persistence.
 	 *
 	 * @param array<int,mixed> $history Serialized conversation history.
-	 * @return array<int,mixed>
+	 * @return list<array<string,mixed>>
 	 */
 	public function redact_serialized_history( array $history ): array {
 		$redacted = $this->redact_preview_urls_from_value( $history, '' );
-		return is_array( $redacted ) ? array_values( $redacted ) : array();
+		if ( ! is_array( $redacted ) ) {
+			return array();
+		}
+
+		$messages = array();
+		foreach ( $redacted as $message ) {
+			if ( is_array( $message ) ) {
+				$normalized_message = array();
+				foreach ( $message as $key => $value ) {
+					if ( is_string( $key ) ) {
+						$normalized_message[ $key ] = $value;
+					}
+				}
+				$messages[] = $normalized_message;
+			}
+		}
+
+		return $messages;
 	}
 
 	/** Redact any current private preview URL from model-facing or user-facing text. */
@@ -521,6 +538,29 @@ final class ElementorCompletionGate {
 		}
 
 		return $sealed_calls;
+	}
+
+	/**
+	 * Normalize untrusted pending-call collections before applying gate policy.
+	 *
+	 * @param array<mixed> $calls Raw pending browser calls.
+	 * @return list<array<string,mixed>> Valid call records.
+	 */
+	public static function normalize_pending_client_tool_calls( array $calls ): array {
+		$normalized = array();
+		foreach ( $calls as $call ) {
+			if ( is_array( $call ) ) {
+				$normalized_call = array();
+				foreach ( $call as $key => $value ) {
+					if ( is_string( $key ) ) {
+						$normalized_call[ $key ] = $value;
+					}
+				}
+				$normalized[] = $normalized_call;
+			}
+		}
+
+		return $normalized;
 	}
 
 	/**

@@ -202,6 +202,20 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'gutenberg-blocks', $result );
 	}
 
+	/** Elementor intent must win over the generic Gutenberg page/layout fallback. */
+	public function test_get_index_description_routes_elementor_intent_to_elementor_builder(): void {
+		$result = SkillAutoInjector::get_index_description( 'Update the hero widget in my Elementor landing page.' );
+
+		$this->assertStringContainsString( 'elementor-builder', $result );
+		$this->assertStringNotContainsString( 'gutenberg-blocks', $result );
+	}
+
+	/** Runtime-registered Elementor abilities attach the corresponding skill. */
+	public function test_elementor_abilities_map_to_elementor_builder_skill(): void {
+		$this->assertSame( 'elementor-builder', SkillAutoInjector::skill_for_ability( 'elementor/get-page-structure' ) );
+		$this->assertSame( 'elementor-builder', SkillAutoInjector::skill_for_ability( 'elementor/manage-elements' ) );
+	}
+
 	/**
 	 * "kadence header builder" routes to kadence-theme.
 	 */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Bootstrap;
 
 use SdAiAgent\Bootstrap\ElementorEditorHandler;
+use SdAiAgent\Core\RolePermissions;
 use WP_UnitTestCase;
 
 /**
@@ -17,12 +18,14 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 	private const FLOATING_WIDGET_HANDLE = 'sd-ai-agent-floating-widget';
 
 	private int $admin_id;
+	private int $editor_id;
 	private int $subscriber_id;
 	private string $build_dir;
 
 	public function set_up(): void {
 		parent::set_up();
 		$this->admin_id      = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->editor_id     = self::factory()->user->create( array( 'role' => 'editor' ) );
 		$this->subscriber_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->build_dir     = trailingslashit( sys_get_temp_dir() ) . 'sd-ai-agent-elementor-handler-' . uniqid();
 		wp_mkdir_p( $this->build_dir );
@@ -39,6 +42,7 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 		wp_deregister_style( self::FLOATING_WIDGET_HANDLE );
 		wp_deregister_script( self::ELEMENTOR_MCP_HANDLE );
 		wp_set_current_user( 0 );
+		delete_option( RolePermissions::OPTION_NAME );
 
 		foreach ( array( 'elementor-editor-mcp.asset.php', 'floating-widget.asset.php' ) as $asset_file ) {
 			$asset_path = $this->build_dir . '/' . $asset_file;
@@ -83,7 +87,7 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 		$this->assertTrue( wp_style_is( self::FLOATING_WIDGET_HANDLE, 'enqueued' ) );
 	}
 
-	public function test_skips_registration_without_elementor_or_administrator_access(): void {
+	public function test_skips_registration_without_elementor_or_chat_access(): void {
 		$this->write_asset_fixture();
 		$handler = new ElementorEditorHandler();
 
@@ -95,6 +99,29 @@ class ElementorEditorHandlerTest extends WP_UnitTestCase {
 		wp_set_current_user( $this->subscriber_id );
 		$handler->register_editor_package();
 		$this->assertFalse( wp_script_is( self::SCRIPT_HANDLE, 'registered' ) );
+	}
+
+	public function test_registers_bridge_and_widget_for_editor_with_chat_access(): void {
+		wp_set_current_user( $this->editor_id );
+		RolePermissions::update(
+			array(
+				'editor' => array(
+					'chat_access'       => true,
+					'allowed_abilities' => array(),
+				),
+			)
+		);
+		wp_register_script( self::ELEMENTOR_MCP_HANDLE, 'https://example.test/editor-mcp.js' );
+		$this->write_asset_fixture();
+		$this->write_floating_widget_asset_fixture();
+
+		$handler = new ElementorEditorHandler();
+		$handler->register_editor_package();
+		$handler->enqueue_editor_package();
+
+		$this->assertTrue( wp_script_is( self::SCRIPT_HANDLE, 'enqueued' ) );
+		$this->assertTrue( wp_script_is( self::FLOATING_WIDGET_HANDLE, 'enqueued' ) );
+		$this->assertTrue( wp_style_is( self::FLOATING_WIDGET_HANDLE, 'enqueued' ) );
 	}
 
 	private function write_asset_fixture(): void {

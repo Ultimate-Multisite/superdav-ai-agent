@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Bootstrap;
 
 use SdAiAgent\Admin\FloatingWidget;
+use SdAiAgent\Core\RolePermissions;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -95,12 +96,12 @@ final class ElementorEditorHandler {
 	}
 
 	/**
-	 * Mirror the existing floating-chat admin gate; registration grants no API
-	 * authority because normal Superdav and Elementor capability checks remain.
+	 * Mirror the floating-chat access gate; registration grants no API authority
+	 * because normal Superdav and Elementor capability checks remain.
 	 *
 	 * @return bool Whether the current user can receive the browser bridge.
 	 */
 	private function current_user_can_use_bridge(): bool {
-		return current_user_can( 'manage_options' );
+		return RolePermissions::current_user_has_chat_access();
 	}
 }

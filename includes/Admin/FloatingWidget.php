@@ -52,8 +52,8 @@ class FloatingWidget {
 			return;
 		}
 
-		// Only for users who can access the agent.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// Mirror the REST chat gate so admin visibility matches actual access.
+		if ( ! RolePermissions::current_user_has_chat_access() ) {
 			return;
 		}
 

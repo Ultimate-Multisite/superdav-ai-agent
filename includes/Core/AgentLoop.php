@@ -1299,6 +1299,40 @@ PROMPT;
 	}
 
 	/**
+	 * Authorize mutating browser calls that passed server-side permission checks.
+	 *
+	 * The ordinary loop reaches client routing only after
+	 * ToolPermissionResolver found no call that needs confirmation. The browser
+	 * still requires a server-issued marker for every mutation, so mark allowed
+	 * non-readonly calls here. A disabled client ability remains unmarked and
+	 * therefore cannot execute even though disabled tools do not pause for a
+	 * confirmation dialog.
+	 *
+	 * @param list<array<string, mixed>> $client_calls Pending client calls.
+	 * @return list<array<string, mixed>>
+	 */
+	private function mark_server_authorized_client_tool_calls( array $client_calls ): array {
+		$marked = array();
+
+		foreach ( $client_calls as $call ) {
+			$name        = (string) ( $call['client_name'] ?? ( $call['name'] ?? '' ) );
+			$annotations = is_array( $call['annotations'] ?? null ) ? $call['annotations'] : array();
+
+			if (
+				'' !== $name
+				&& true !== ( $annotations['readonly'] ?? false )
+				&& 'disabled' !== ( $this->tool_permissions[ $name ] ?? 'auto' )
+			) {
+				$call['server_authorized'] = true;
+			}
+
+			$marked[] = $call;
+		}
+
+		return $marked;
+	}
+
+	/**
 	 * Persist and return one browser-tool batch for execution by the client.
 	 *
 	 * @param array{php: list<MessagePart>, client: list<array<string, mixed>>} $partition            Partitioned tool calls.
@@ -2208,6 +2242,7 @@ PROMPT;
 				$partition = $this->partition_tool_calls( $assistant_message, $client_names );
 
 				if ( ! empty( $partition['client'] ) ) {
+					$partition['client'] = $this->mark_server_authorized_client_tool_calls( $partition['client'] );
 					// Execute any PHP-side calls inline first.
 					if ( ! empty( $partition['php'] ) ) {
 						$php_message           = ClientAbilityRouter::build_message_from_parts( $assistant_message, $partition['php'] );

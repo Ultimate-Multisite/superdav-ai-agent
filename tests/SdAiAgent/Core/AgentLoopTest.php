@@ -3497,6 +3497,44 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
 	}
 
+	/** Server-approved browser writes carry authorization without weakening disabled tools. */
+	public function test_server_authorizes_allowed_client_mutations_only(): void {
+		$allowed_name  = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
+		$disabled_name = 'sd-ai-agent-js/insert-block';
+		$loop          = new AgentLoop(
+			'',
+			array(),
+			array(),
+			array(
+				'tool_permissions' => array( $disabled_name => 'disabled' ),
+			)
+		);
+		$method        = new \ReflectionMethod( AgentLoop::class, 'mark_server_authorized_client_tool_calls' );
+		$method->setAccessible( true );
+		$result = $method->invoke(
+			$loop,
+			array(
+				array(
+					'name'        => 'sd-ai-agent/ability-call',
+					'client_name' => $allowed_name,
+					'annotations' => array( 'readonly' => false, 'destructive' => false ),
+				),
+				array(
+					'name'        => $disabled_name,
+					'annotations' => array( 'readonly' => false, 'destructive' => false ),
+				),
+				array(
+					'name'        => 'sd-ai-agent-js/get-elementor-editor-mcp-context',
+					'annotations' => array( 'readonly' => true, 'destructive' => false ),
+				),
+			)
+		);
+
+		$this->assertTrue( $result[0]['server_authorized'] ?? false );
+		$this->assertArrayNotHasKey( 'server_authorized', $result[1] );
+		$this->assertArrayNotHasKey( 'server_authorized', $result[2] );
+	}
+
 	/**
 	 * A confirmed mixed response executes only the PHP partition, persists the
 	 * browser call, and continues after its result without a live provider.

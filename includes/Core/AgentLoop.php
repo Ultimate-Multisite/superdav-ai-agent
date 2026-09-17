@@ -447,11 +447,9 @@ PROMPT;
 		$this->temperature = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		// max_output_tokens semantics:
 		// - 0 (Settings::MAX_OUTPUT_TOKENS_AUTO) means "resolve per model at
-		// request time" — see send_prompt(). This is the default for new
-		// installs; existing installs may have a saved 4096 from the
-		// pre-7rl default, which we honour as an explicit override.
-		// - a positive value is treated as an explicit user override and
-		// passed to the provider (clamped to MAX_OUTPUT_TOKENS_CEILING).
+		// request time" — see send_prompt(). This is the default for new installs.
+		// - a positive value is an explicit user cap. It remains an upper bound
+		// for every provider request, including browser-tool continuations.
 		// @phpstan-ignore-next-line
 		$this->max_output_tokens = (int) ( $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? Settings::MAX_OUTPUT_TOKENS_AUTO ) );
 
@@ -1323,6 +1321,9 @@ PROMPT;
 				'iterations_remaining'      => $iterations_remaining,
 				'model_id'                  => $this->model_id,
 				'provider_id'               => $this->provider_id,
+				// Preserve the exact cap sent before this browser hand-off. A resumed
+				// loop must not re-read a broader setting and increase its budget.
+				'max_output_tokens'         => $this->get_effective_max_output_tokens(),
 				'client_abilities'          => $this->client_abilities,
 				'agent_slug'                => $this->agent_slug,
 				'page_context'              => $this->checkpoint_page_context(),
@@ -5731,34 +5732,21 @@ PROMPT;
 	/**
 	 * Resolve the effective max output token cap used for provider requests.
 	 *
-	 * Legacy 4096 handling: the pre-7rl plugin shipped with a default of 4096
-	 * which is too low for modern Claude/GPT models to complete a single
-	 * page-building tool call. Existing installs carry that saved value as an
-	 * "explicit" override even though the user never chose it. We treat the
-	 * exact legacy default as AUTO so existing installs get the per-model
-	 * catalog value transparently — without forcing a settings migration.
-	 *
-	 * Users who genuinely want a 4096 cap (rare) can set 4097 or any other
-	 * value via the Settings UI; the legacy-default trigger is exact match
-	 * only.
+	 * A positive configured value is always an upper bound, including 4096.
+	 * Provider capability metadata is a hard ceiling: users may lower a cap,
+	 * but cannot make the request exceed the selected model's advertised limit.
 	 */
 	private function get_effective_max_output_tokens(): int {
 		// AUTO (0): consult the per-model catalog so each provider/model gets a
-		// sensible value. EXPLICIT (>0): honour the saved override but clamp at
-		// MAX_OUTPUT_TOKENS_CEILING to defend against runaway generations.
-		$max_tokens = $this->max_output_tokens;
-		if (
-			$max_tokens <= Settings::MAX_OUTPUT_TOKENS_AUTO
-			|| Settings::MAX_OUTPUT_TOKENS_LEGACY_DEFAULT === $max_tokens
-		) {
-			return Settings::get_max_output_tokens_for_model( $this->model_id );
+		// sensible value. EXPLICIT (>0): retain the user's lower limit while
+		// clamping it to both the model's live/catalog capability and our ceiling.
+		$max_tokens  = $this->max_output_tokens;
+		$model_limit = Settings::get_max_output_tokens_for_model( $this->model_id );
+		if ( $max_tokens <= Settings::MAX_OUTPUT_TOKENS_AUTO ) {
+			return $model_limit;
 		}
 
-		if ( $max_tokens > Settings::MAX_OUTPUT_TOKENS_CEILING ) {
-			return Settings::MAX_OUTPUT_TOKENS_CEILING;
-		}
-
-		return $max_tokens;
+		return min( $max_tokens, $model_limit, Settings::MAX_OUTPUT_TOKENS_CEILING );
 	}
 
 	/**

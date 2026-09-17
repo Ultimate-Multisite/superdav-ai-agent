@@ -133,18 +133,6 @@ class Settings {
 	const MAX_OUTPUT_TOKENS_AUTO = 0;
 
 	/**
-	 * Legacy default `max_output_tokens` value that shipped with pre-7rl
-	 * releases. Existing installs upgrading from those versions carry this
-	 * value as a saved option even though the user never explicitly chose it.
-	 *
-	 * {@see AgentLoop::get_effective_max_output_tokens()} treats an exact match
-	 * to this value as AUTO so existing installs benefit from the per-model
-	 * catalog without requiring a settings migration. Users who genuinely want
-	 * to cap at 4096 can set 4095 or 4097 instead.
-	 */
-	const MAX_OUTPUT_TOKENS_LEGACY_DEFAULT = 4096;
-
-	/**
 	 * Hard ceiling for `max_output_tokens`. Above this we refuse to send
 	 * the value to the provider — primarily a guard against pathologically
 	 * large outputs causing latency spikes or billing surprises. Modern

@@ -39,6 +39,7 @@ use SdAiAgent\Core\ClientAbilityRouter;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\ProviderCredentialLoader;
 use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Core\Settings;
@@ -80,6 +81,10 @@ class ScriptedAgentLoop extends AgentLoop {
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
 	public array $requestAttemptLimits = array();
 
+	/** @var list<int> Output-token caps selected at the scripted provider boundary. */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
+	public array $requestedOutputTokenCaps = array();
+
 	/** @var list<array{ability_mode:bool,collection_mode:bool,knowledge_allowed:bool}> */
 	public array $policySnapshots = array();
 
@@ -105,6 +110,9 @@ class ScriptedAgentLoop extends AgentLoop {
 		$attempts_property = new \ReflectionProperty( AgentLoop::class, 'provider_retry_max_attempts' );
 		$attempts_property->setAccessible( true );
 		$this->requestAttemptLimits[] = (int) $attempts_property->getValue( $this );
+		$output_cap_method = new \ReflectionMethod( AgentLoop::class, 'get_effective_max_output_tokens' );
+		$output_cap_method->setAccessible( true );
+		$this->requestedOutputTokenCaps[] = (int) $output_cap_method->invoke( $this );
 
 		$this->policySnapshots[] = array(
 			'ability_mode'     => ToolDiscovery::is_anonymous_ability_mode(),
@@ -1866,6 +1874,78 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 'Theme review continued from accepted screenshots.', $resumed['reply'] );
 		$this->assertArrayNotHasKey( 'pending_client_tool_calls', $resumed );
 		$this->assertCount( 1, $resumed_loop->requestSizes );
+	}
+
+	/**
+	 * Browser-tool resumes retain the prior request cap while still respecting
+	 * refreshed provider capability metadata on every provider call.
+	 */
+	public function test_client_tool_resumes_preserve_clamped_output_token_cap(): void {
+		$session_id   = Database::create_session( array( 'user_id' => 1, 'title' => 'Output cap continuation' ) );
+		$model_id     = SuperdavAiProvider::DEFAULT_MODEL_ID;
+		$ability_name = 'sd-ai-agent-js/screenshot-url';
+		$catalog      = JsAbilityCatalog::get_descriptors_by_name();
+		$this->assertArrayHasKey( $ability_name, $catalog );
+
+		ModelCapabilityRegistry::set( $model_id, 8192, 200000 );
+
+		try {
+			$options = array(
+				'session_id'        => $session_id,
+				'provider_id'       => SuperdavAiProvider::PROVIDER_ID,
+				'model_id'          => $model_id,
+				'max_output_tokens' => 16384,
+				'client_abilities'  => array( $catalog[ $ability_name ] ),
+			);
+			$initial = new ScriptedAgentLoop(
+				'Inspect the page.',
+				array(),
+				array(),
+				$options,
+				array( $this->create_scripted_result( '', new FunctionCall( 'browser-one', $ability_name, array( 'url' => '/' ) ) ) )
+			);
+			$initial->run();
+			$this->assertSame( array( 8192 ), $initial->requestedOutputTokenCaps );
+
+			$first_pause = Database::load_and_clear_paused_state( $session_id );
+			$this->assertIsArray( $first_pause );
+			$this->assertSame( 8192, $first_pause['max_output_tokens'] );
+
+			$second = new ScriptedAgentLoop(
+				'',
+				array(),
+				ConversationSerializer::deserialize( $first_pause['history'] ),
+				array_merge( $options, array( 'max_output_tokens' => $first_pause['max_output_tokens'] ) ),
+				array( $this->create_scripted_result( '', new FunctionCall( 'browser-two', $ability_name, array( 'url' => '/next' ) ) ) )
+			);
+			$second->resume_after_client_tools(
+				array( array( 'id' => 'browser-one', 'name' => $ability_name, 'result' => array( 'ok' => true ) ) ),
+				3
+			);
+			$this->assertSame( array( 8192 ), $second->requestedOutputTokenCaps );
+
+			$second_pause = Database::load_and_clear_paused_state( $session_id );
+			$this->assertIsArray( $second_pause );
+			$this->assertSame( 8192, $second_pause['max_output_tokens'] );
+
+			$third = new ScriptedAgentLoop(
+				'',
+				array(),
+				ConversationSerializer::deserialize( $second_pause['history'] ),
+				array_merge( $options, array( 'max_output_tokens' => $second_pause['max_output_tokens'] ) ),
+				array( $this->create_scripted_result( 'Browser workflow completed.' ) )
+			);
+			$result = $third->resume_after_client_tools(
+				array( array( 'id' => 'browser-two', 'name' => $ability_name, 'result' => array( 'ok' => true ) ) ),
+				2
+			);
+
+			$this->assertIsArray( $result );
+			$this->assertSame( 'Browser workflow completed.', $result['reply'] );
+			$this->assertSame( array( 8192 ), $third->requestedOutputTokenCaps );
+		} finally {
+			ModelCapabilityRegistry::forget( $model_id );
+		}
 	}
 
 	/** Browser-submitted tool results are bounded before entering persisted model history. */
@@ -3949,16 +4029,10 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regression test: the legacy 4096 default must NOT reach the provider.
-	 *
-	 * Existing installs that upgraded from pre-7rl carry a saved
-	 * `max_output_tokens=4096` they never explicitly chose. AgentLoop's
-	 * resolver maps that exact value to AUTO so the per-model catalog
-	 * picks a sensible cap (64K for Sonnet 4). This test proves the
-	 * resolver's output actually reaches the outgoing request body — i.e.
-	 * that the builder's `using_max_tokens()` call is wired up.
+	 * A configured 4096-token cap is a valid user limit and must reach the
+	 * provider unchanged rather than being expanded to the model catalog cap.
 	 */
-	public function test_builder_emits_catalog_value_when_legacy_4096_saved(): void {
+	public function test_builder_preserves_configured_4096_token_cap(): void {
 		$this->skip_if_sdk_unavailable();
 
 		Settings::instance()->update( [ 'max_output_tokens' => 4096 ] );
@@ -3974,11 +4048,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsArray( $decoded );
 
 		$this->assertArrayHasKey( 'max_tokens', $decoded );
-		$this->assertGreaterThan(
-			4096,
-			(int) $decoded['max_tokens'],
-			'Saved 4096 must be remapped via the catalog (Sonnet 4 documents 64K), not honoured verbatim.'
-		);
+		$this->assertSame( 4096, (int) $decoded['max_tokens'] );
 	}
 
 	/**
@@ -4168,20 +4238,12 @@ class AgentLoopTest extends WP_UnitTestCase {
 		);
 	}
 
-	/**
-	 * Test the legacy 4096 default is treated as AUTO so existing installs
-	 * benefit from the per-model catalog without a settings migration.
-	 *
-	 * Regression test for the truncated-tool-call class of bug where existing
-	 * installs upgraded from pre-7rl carry max_output_tokens=4096 that they
-	 * never explicitly chose, and modern models cannot complete a single
-	 * landing-page tool call within that budget.
-	 */
-	public function test_effective_max_tokens_legacy_4096_treated_as_auto(): void {
+	/** A configured 4096-token cap must remain a lower user limit. */
+	public function test_effective_max_tokens_4096_is_a_user_limit(): void {
 		$this->assertSame(
-			64000,
+			4096,
 			$this->resolve_effective_tokens( 4096, 'claude-sonnet-4-6' ),
-			'Saved 4096 (the legacy default) should resolve via catalog, not be honoured as an explicit cap.'
+			'Configured 4096 must not be expanded to the model catalog cap.'
 		);
 	}
 
@@ -4200,23 +4262,37 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame(
 			4095,
 			$this->resolve_effective_tokens( 4095, 'claude-sonnet-4-6' ),
-			'4095 is not the legacy default and must be honoured as an explicit cap.'
+			'4095 must be honoured as an explicit cap.'
 		);
 		$this->assertSame(
 			4097,
 			$this->resolve_effective_tokens( 4097, 'claude-sonnet-4-6' ),
-			'4097 is not the legacy default and must be honoured as an explicit cap.'
+			'4097 must be honoured as an explicit cap.'
 		);
 	}
 
+	/** Provider-advertised caps override a larger configured output budget. */
+	public function test_effective_max_tokens_is_clamped_to_live_provider_cap(): void {
+		$model_id = SuperdavAiProvider::DEFAULT_MODEL_ID;
+		ModelCapabilityRegistry::set( $model_id, 8192, 200000 );
+
+		try {
+			$this->assertSame( 8192, $this->resolve_effective_tokens( 16384, $model_id ) );
+			$this->assertSame( 4096, $this->resolve_effective_tokens( 4096, $model_id ) );
+		} finally {
+			ModelCapabilityRegistry::forget( $model_id );
+		}
+	}
+
 	/**
-	 * Test ceiling clamp applies to absurdly large saved values.
+	 * An oversized configured value remains bounded by the selected model's
+	 * advertised cap, even when the global ceiling is higher.
 	 */
 	public function test_effective_max_tokens_clamped_at_ceiling(): void {
 		$this->assertSame(
-			Settings::MAX_OUTPUT_TOKENS_CEILING,
+			64000,
 			$this->resolve_effective_tokens( 9_999_999, 'claude-sonnet-4-6' ),
-			'Values above MAX_OUTPUT_TOKENS_CEILING must be clamped.'
+			'A configured value must not exceed the selected model capability.'
 		);
 	}
 

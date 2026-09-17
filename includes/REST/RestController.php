@@ -701,6 +701,13 @@ Assistant: %s',
 		if ( '' !== $paused_model_id ) {
 			$options['model_id'] = $paused_model_id;
 		}
+		$paused_max_output_tokens = (int) ( $paused_state['max_output_tokens'] ?? 0 );
+		if ( $paused_max_output_tokens > 0 ) {
+			// This is the cap used immediately before the browser hand-off. Keep
+			// it as an upper bound on every continuation; AgentLoop re-clamps it
+			// against current model capability metadata before sending.
+			$options['max_output_tokens'] = $paused_max_output_tokens;
+		}
 
 		// A browser-tool pause must not silently turn Setup Assistant or a
 		// specialized agent into General on resume. Rehydrate the original

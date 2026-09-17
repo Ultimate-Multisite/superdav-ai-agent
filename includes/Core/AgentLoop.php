@@ -374,6 +374,9 @@ PROMPT;
 	/** @var RenderedOutputEvidenceGate Tracks post-file-mutation browser evidence for rendered claims. */
 	private RenderedOutputEvidenceGate $rendered_output_evidence_gate;
 
+	/** @var ElementorCompletionGate Tracks current Elementor preview/render evidence before publication. */
+	private ElementorCompletionGate $elementor_completion_gate;
+
 	/**
 	 * @param string               $user_message     The user's prompt.
 	 * @param string[]             $abilities         Ability names to enable (empty = all).
@@ -614,6 +617,10 @@ PROMPT;
 			$this->client_router->get_names()
 		);
 		$this->rendered_output_evidence_gate->replay_tool_call_log( $this->tool_call_log );
+		$this->elementor_completion_gate = new ElementorCompletionGate(
+			$this->client_router->get_names()
+		);
+		$this->elementor_completion_gate->replay_tool_call_log( $this->tool_call_log );
 
 		// Build or lock the initial system instruction.
 		if ( $this->durable_plan_mode ) {
@@ -851,8 +858,8 @@ PROMPT;
 							$this->last_loop_phase = 'confirmed_ability_response_received';
 							// Truncate then split for OpenAI-compatible providers.
 							$truncated_message = self::truncate_tool_results( $response_message );
-							$this->append_tool_response_to_history( $truncated_message );
 							$this->log_tool_responses( $truncated_message );
+							$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 						}
 
 						$this->last_loop_phase = 'confirmed_client_tools_pending';
@@ -873,8 +880,8 @@ PROMPT;
 				$this->last_loop_phase = 'confirmed_ability_response_received';
 				// Truncate then split for OpenAI-compatible providers.
 				$truncated_message = self::truncate_tool_results( $response_message );
-				$this->append_tool_response_to_history( $truncated_message );
 				$this->log_tool_responses( $truncated_message );
+				$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 			} else {
 				// Remove the entire model tool-call batch and tell the model the call
 				// was rejected. Parallel function calls may have been split into
@@ -995,6 +1002,10 @@ PROMPT;
 			$review_parts   = array();
 			$result_payload = $result['result'] ?? array();
 			if ( self::is_screenshot_tool_name( $name ) && is_array( $result_payload ) ) {
+				// Browser result payloads are untrusted. This marker becomes true only
+				// after this server has converted a valid data URI into an SDK image part;
+				// accepting a browser-supplied value would let it forge render evidence.
+				$result_payload = self::strip_untrusted_screenshot_attachment_claim( $result_payload );
 				if ( is_string( $result_payload['image'] ?? null ) && str_starts_with( $result_payload['image'], 'data:image/' ) ) {
 					try {
 						$mime_type = self::screenshot_data_uri_mime_type( $result_payload['image'] );
@@ -1049,7 +1060,8 @@ PROMPT;
 
 		if ( ! empty( $parts ) ) {
 			$response_message = new UserMessage( $parts );
-			$this->append_tool_response_to_history( $response_message );
+			$this->log_client_tool_responses( $results );
+			$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $response_message ) );
 
 			AgentEventLog::log(
 				'client_tools_result_received',
@@ -1061,29 +1073,6 @@ PROMPT;
 					)
 				)
 			);
-
-			// Log the client tool responses for transparency.
-			foreach ( $results as $result ) {
-				$id   = (string) ( $result['id'] ?? '' );
-				$name = (string) ( $result['name'] ?? '' );
-				if ( '' === $id || '' === $name ) {
-					continue;
-				}
-
-				$this->tool_call_log[] = array(
-					'type'     => 'response',
-					'id'       => $id,
-					'name'     => $name,
-					'response' => $result['result'] ?? $result['error'] ?? null,
-					'source'   => 'client',
-					'sequence' => $this->next_activity_sequence(),
-				);
-
-				$client_result = $result['result'] ?? array( 'error' => $result['error'] ?? '' );
-				$this->generated_theme_completion_gate->record_tool_response( $name, $client_result );
-				$this->page_completion_gate->record_tool_response( $name, $client_result );
-				$this->rendered_output_evidence_gate->record_tool_response( $name, $client_result );
-			}
 
 			// Fire progress so the UI reflects the client tool responses
 			// immediately, matching the behaviour of server-side tool calls.
@@ -1123,6 +1112,9 @@ PROMPT;
 		}
 		if ( $this->rendered_output_evidence_gate->get_status()['required'] ) {
 			$payload['rendered_output_evidence'] = $this->rendered_output_evidence_gate->get_status();
+		}
+		if ( $this->elementor_completion_gate->is_required() ) {
+			$payload['elementor_completion'] = $this->elementor_completion_gate->get_status();
 		}
 		return $payload;
 	}
@@ -1173,6 +1165,9 @@ PROMPT;
 
 		if ( $this->rendered_output_evidence_gate->get_status()['required'] ) {
 			$payload['rendered_output_evidence'] = $this->rendered_output_evidence_gate->get_status();
+		}
+		if ( $this->elementor_completion_gate->is_required() ) {
+			$payload['elementor_completion'] = $this->elementor_completion_gate->get_status();
 		}
 		return $payload;
 	}
@@ -1306,6 +1301,12 @@ PROMPT;
 	 * @return array<string, mixed>
 	 */
 	private function pause_for_client_tools( array $partition, int $iterations_remaining ): array {
+		// Elementor preview links are one-time private capabilities. Preserve only
+		// an encrypted, call-bound transport value in paused state and job data;
+		// REST restores the raw URL solely while responding to the authenticated
+		// browser that must execute the screenshot.
+		$partition['client'] = $this->elementor_completion_gate->seal_pending_client_tool_calls( $partition['client'] );
+
 		// Persist loop state so the resume endpoint can reconstruct it.
 		if ( $this->session_id > 0 ) {
 			$paused_state = array(
@@ -1821,6 +1822,10 @@ PROMPT;
 			// aware of the new context on this iteration.
 			$this->check_and_inject_interrupts();
 
+			if ( $this->elementor_completion_gate->should_dispatch_render_validation() ) {
+				return $this->pause_for_elementor_render_validation( $iterations );
+			}
+
 			// Preserve the full pre-trim history for recovery payloads. The provider
 			// call may need a trimmed prompt, but error recovery must append against
 			// the untrimmed session prefix so the failed user turn is not skipped.
@@ -1974,7 +1979,7 @@ PROMPT;
 			// "function_call + other part" shapes (see
 			// ConversationSerializer::append_assistant_message for the full
 			// rationale and provider-side validator reference).
-			$this->append_assistant_message_to_history( $history_message );
+			$this->append_assistant_message_to_history( $this->redact_elementor_preview_call_message( $history_message ) );
 			$this->save_active_job_checkpoint( self::CHECKPOINT_PROVIDER_RESPONSE_RECORDED, $iterations );
 
 			// Check if the model wants to call tools.
@@ -2044,6 +2049,11 @@ PROMPT;
 					continue;
 				}
 
+				if ( $this->elementor_completion_gate->requires_repair() && $iterations > 0 ) {
+					$this->inject_elementor_completion_guidance();
+					continue;
+				}
+
 				// If the response is empty or whitespace-only after tool results,
 				// inject a follow-up user message asking the AI to summarize.
 				// This handles models that silently return an empty text turn
@@ -2099,6 +2109,7 @@ PROMPT;
 				$reply = $this->append_generated_theme_completion_notice( $reply );
 				$reply = $this->append_page_completion_notice( $reply );
 				$reply = $this->append_rendered_output_evidence_notice( $reply );
+				$reply = $this->append_elementor_completion_notice( $reply );
 
 				return $this->inject_inability_data(
 					$this->with_result_logs(
@@ -2120,8 +2131,8 @@ PROMPT;
 			// Log tool calls and check for confirmation requirement.
 			$this->log_tool_calls( $history_message );
 			if ( null !== $reuse_plan['reused'] ) {
-				$this->append_tool_response_to_history( $reuse_plan['reused'] );
 				$this->log_tool_responses( $reuse_plan['reused'] );
+				$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $reuse_plan['reused'] ) );
 				$this->message_log[] = array(
 					'type'     => 'event',
 					'reason'   => 'repeated_readonly_tool_calls_reused',
@@ -2137,10 +2148,19 @@ PROMPT;
 
 			$empty_global_styles_guard = $this->build_empty_global_styles_guard_response( $assistant_message );
 			if ( null !== $empty_global_styles_guard ) {
-				$this->append_tool_response_to_history( $empty_global_styles_guard );
 				$this->log_tool_responses( $empty_global_styles_guard );
+				$this->append_tool_response_to_history( $empty_global_styles_guard );
 				$this->inject_empty_global_styles_update_guidance();
 				$this->last_loop_phase = 'empty_global_styles_update_guarded';
+				continue;
+			}
+
+			$elementor_publish_guard = $this->build_elementor_publish_guard_response( $assistant_message );
+			if ( null !== $elementor_publish_guard ) {
+				$this->log_tool_responses( $elementor_publish_guard );
+				$this->append_tool_response_to_history( $elementor_publish_guard );
+				$this->inject_elementor_completion_guidance();
+				$this->last_loop_phase = 'elementor_publish_guarded';
 				continue;
 			}
 
@@ -2160,7 +2180,7 @@ PROMPT;
 						'pending_tools'               => $confirm_needed,
 						'approved_once_abilities'     => $this->approved_once_abilities,
 						'confirmation_message'        => $assistant_message->toArray(),
-						'confirmation_history_before' => ConversationSerializer::serialize( $history_before_assistant ),
+						'confirmation_history_before' => $this->elementor_completion_gate->redact_serialized_history( ConversationSerializer::serialize( $history_before_assistant ) ),
 						'history'                     => $this->serialize_history(),
 						'tool_call_log'               => $this->tool_call_log,
 						'token_usage'                 => $this->token_usage,
@@ -2193,8 +2213,8 @@ PROMPT;
 						}
 						$this->last_loop_phase = 'client_partition_ability_response_received';
 						$truncated_php         = self::truncate_tool_results( $php_response );
-						$this->append_tool_response_to_history( $truncated_php );
 						$this->log_tool_responses( $truncated_php );
+						$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_php ) );
 					}
 
 					$this->last_loop_phase = 'client_tools_pending';
@@ -2254,8 +2274,8 @@ PROMPT;
 			// append (splitting multi-part responses for OpenAI-compatible
 			// providers that only accept one tool result per message).
 			$truncated_message = self::truncate_tool_results( $response_message );
-			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $truncated_message );
+			$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 			$this->readonly_tool_cache->record( $history_message, $truncated_message );
 
 			$tool_progress      = $this->record_tool_progress( $assistant_message, $readonly_rounds );
@@ -2377,6 +2397,7 @@ PROMPT;
 			$reply = $this->append_generated_theme_completion_notice( $reply );
 			$reply = $this->append_page_completion_notice( $reply );
 			$reply = $this->append_rendered_output_evidence_notice( $reply );
+			$reply = $this->append_elementor_completion_notice( $reply );
 
 			return $this->inject_inability_data(
 				$this->with_result_logs(
@@ -3569,6 +3590,7 @@ PROMPT;
 		$serialized_history = is_array( $this->providerPersistenceHistory )
 			? ConversationSerializer::serialize( $this->providerPersistenceHistory )
 			: $this->serialize_history();
+		$serialized_history = $this->elementor_completion_gate->redact_serialized_history( $serialized_history );
 		$message            = sprintf(
 			/* translators: 1: attempts, 2: elapsed seconds */
 			__( 'The AI service is temporarily unavailable after %1$d attempts over %2$ds. Please try again shortly.', 'superdav-ai-agent' ),
@@ -3753,7 +3775,9 @@ PROMPT;
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function serialize_history(): array {
-		return ConversationSerializer::serialize( $this->history );
+		return $this->elementor_completion_gate->redact_serialized_history(
+			ConversationSerializer::serialize( $this->history )
+		);
 	}
 
 	/**
@@ -3828,7 +3852,9 @@ PROMPT;
 			'iterations_used'         => $this->iterations_used,
 			'model_id'                => $this->model_id,
 			'provider_id'             => $this->provider_id,
-			'history'                 => ConversationSerializer::serialize( $history ),
+			'history'                 => $this->elementor_completion_gate->redact_serialized_history(
+				ConversationSerializer::serialize( $history )
+			),
 			'client_abilities'        => $this->client_abilities,
 			'recoverable'             => true,
 			'mutation_policy_context' => $this->mutation_policy_context,
@@ -4963,6 +4989,76 @@ PROMPT;
 	}
 
 	/**
+	 * Block an Elementor publication until the matching gate has current evidence.
+	 *
+	 * A provider may combine calls in one tool-use turn. When one publication is
+	 * unsafe, return matched failures for the entire batch rather than execute a
+	 * subset and leave unmatched calls in provider history.
+	 *
+	 * @param Message $message Assistant message to inspect.
+	 * @return Message|null Guard response, or null when no publication is blocked.
+	 */
+	private function build_elementor_publish_guard_response( Message $message ): ?Message {
+		$calls       = array();
+		$blockers    = array();
+		$first_error = array();
+
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				continue;
+			}
+
+			$name    = (string) $call->getName();
+			$args    = self::normalize_function_call_args( $call->getArgs() );
+			$calls[] = array(
+				'id'   => (string) $call->getId(),
+				'name' => $name,
+			);
+			$blocker = $this->elementor_completion_gate->get_publish_blocker( $name, $args );
+			if ( null === $blocker ) {
+				continue;
+			}
+
+			$blockers[ (string) $call->getId() ] = $blocker;
+			if ( empty( $first_error ) ) {
+				$first_error = $blocker;
+			}
+		}
+
+		if ( empty( $blockers ) ) {
+			return null;
+		}
+
+		$parts = array();
+		foreach ( $calls as $call ) {
+			$payload = $blockers[ $call['id'] ] ?? array(
+				'success' => false,
+				'code'    => 'sd_ai_agent_elementor_publish_batch_guarded',
+				'error'   => 'This tool batch was not dispatched because it included an Elementor publication blocked by the current completion gate. Retry non-publication work separately after resolving the stated Elementor requirement.',
+				'hint'    => (string) ( $first_error['hint'] ?? '' ),
+			);
+			$encoded = wp_json_encode( $payload );
+			$parts[] = new MessagePart(
+				new FunctionResponse(
+					$call['id'],
+					$call['name'],
+					is_string( $encoded ) ? $encoded : '{}'
+				)
+			);
+		}
+
+		$this->message_log[] = array(
+			'type'     => 'guardrail',
+			'reason'   => 'elementor_publish_guarded',
+			'count'    => count( $blockers ),
+			'sequence' => $this->next_activity_sequence(),
+		);
+
+		return new UserMessage( $parts );
+	}
+
+	/**
 	 * Normalize function-call args to an array.
 	 *
 	 * @param mixed $args Raw function-call arguments.
@@ -5313,16 +5409,18 @@ PROMPT;
 				if ( '' === $name ) {
 					continue;
 				}
+				$raw_args        = $call->getArgs();
+				$normalized_args = self::normalize_function_call_args( $raw_args );
+				$this->elementor_completion_gate->record_tool_call( $name, $normalized_args );
 
 				$this->tool_call_log[] = array(
 					'type'     => 'call',
 					'id'       => $call->getId(),
 					'name'     => $name,
-					'args'     => $call->getArgs(),
+					'args'     => $this->elementor_completion_gate->redact_tool_call_args( $name, $raw_args ),
 					'sequence' => $this->next_activity_sequence(),
 				);
 
-				$normalized_args = self::normalize_function_call_args( $call->getArgs() );
 				$this->generated_theme_completion_gate->record_tool_call( $name, $normalized_args );
 				$this->page_completion_gate->record_tool_call( $name, $normalized_args );
 				$this->rendered_output_evidence_gate->record_tool_call( $name, $normalized_args );
@@ -5330,6 +5428,58 @@ PROMPT;
 		}
 
 		$this->fire_progress();
+	}
+
+	/**
+	 * Replace private Elementor preview URLs before tool calls enter model history.
+	 *
+	 * @param Message $message Assistant tool-call message.
+	 */
+	private function redact_elementor_preview_call_message( Message $message ): Message {
+		$parts = array();
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				$parts[] = $part;
+				continue;
+			}
+
+			$parts[] = new MessagePart(
+				new FunctionCall(
+					(string) $call->getId(),
+					(string) $call->getName(),
+					$this->elementor_completion_gate->redact_tool_call_args( (string) $call->getName(), $call->getArgs() )
+				)
+			);
+		}
+
+		return new ModelMessage( $parts );
+	}
+
+	/**
+	 * Replace private Elementor preview URLs before tool results enter model history.
+	 *
+	 * @param Message $message Tool response message.
+	 */
+	private function redact_elementor_preview_response_message( Message $message ): Message {
+		$parts = array();
+		foreach ( $message->getParts() as $part ) {
+			$response = $part->getFunctionResponse();
+			if ( ! $response ) {
+				$parts[] = $part;
+				continue;
+			}
+
+			$parts[] = new MessagePart(
+				new FunctionResponse(
+					(string) $response->getId(),
+					(string) $response->getName(),
+					$this->elementor_completion_gate->redact_tool_response( (string) $response->getName(), $response->getResponse() )
+				)
+			);
+		}
+
+		return new UserMessage( $parts );
 	}
 
 	/**
@@ -5620,23 +5770,55 @@ PROMPT;
 				if ( '' === $name ) {
 					continue;
 				}
+				$raw_response = $response->getResponse();
 
-				$this->track_block_validation_response( $name, $response->getResponse() );
-				$this->generated_theme_completion_gate->record_tool_response( $name, $response->getResponse() );
-				$this->page_completion_gate->record_tool_response( $name, $response->getResponse() );
-				$this->rendered_output_evidence_gate->record_tool_response( $name, $response->getResponse() );
+				$this->track_block_validation_response( $name, $raw_response );
+				$this->generated_theme_completion_gate->record_tool_response( $name, $raw_response );
+				$this->page_completion_gate->record_tool_response( $name, $raw_response );
+				$this->rendered_output_evidence_gate->record_tool_response( $name, $raw_response );
+				$this->elementor_completion_gate->record_tool_response( $name, $raw_response );
 
 				$this->tool_call_log[] = array(
 					'type'     => 'response',
 					'id'       => $response->getId(),
 					'name'     => $name,
-					'response' => $response->getResponse(),
+					'response' => $this->elementor_completion_gate->redact_tool_response( $name, $raw_response ),
 					'sequence' => $this->next_activity_sequence(),
 				);
 			}
 		}
 
 		$this->fire_progress();
+	}
+
+	/**
+	 * Record browser results before constructing redacted model history.
+	 *
+	 * @param list<array{id:string,name:string,result?:mixed,error?:string}> $results Browser result batch.
+	 */
+	private function log_client_tool_responses( array $results ): void {
+		foreach ( $results as $result ) {
+			$id   = (string) ( $result['id'] ?? '' );
+			$name = (string) ( $result['name'] ?? '' );
+			if ( '' === $id || '' === $name ) {
+				continue;
+			}
+
+			$client_result = $result['result'] ?? array( 'error' => $result['error'] ?? '' );
+			$this->generated_theme_completion_gate->record_tool_response( $name, $client_result );
+			$this->page_completion_gate->record_tool_response( $name, $client_result );
+			$this->rendered_output_evidence_gate->record_tool_response( $name, $client_result );
+			$this->elementor_completion_gate->record_tool_response( $name, $client_result );
+
+			$this->tool_call_log[] = array(
+				'type'     => 'response',
+				'id'       => $id,
+				'name'     => $name,
+				'response' => $this->elementor_completion_gate->redact_tool_response( $name, $client_result ),
+				'source'   => 'client',
+				'sequence' => $this->next_activity_sequence(),
+			);
+		}
 	}
 
 	/**
@@ -5773,6 +5955,57 @@ PROMPT;
 		}
 
 		return $notice;
+	}
+
+	/**
+	 * Pause for the exact Elementor preview captures owned by the completion gate.
+	 *
+	 * The raw preview URL is sent only to the current browser call. The synthetic
+	 * assistant message and activity log receive the gate-redacted counterpart,
+	 * so neither the model nor serializable conversation state learns the URL.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function pause_for_elementor_render_validation( int $iterations ): array {
+		$calls   = $this->elementor_completion_gate->get_render_validation_calls();
+		$parts   = array();
+		$pending = array();
+
+		foreach ( $calls as $args ) {
+			$call_id   = 'elementor_preview_' . str_replace( '-', '', wp_generate_uuid4() );
+			$parts[]   = new MessagePart(
+				new FunctionCall(
+					$call_id,
+					'wpab__sd-ai-agent-js__screenshot-url',
+					$args
+				)
+			);
+			$pending[] = array(
+				'id'          => $call_id,
+				'name'        => ElementorCompletionGate::SCREENSHOT_ABILITY,
+				'args'        => $args,
+				'annotations' => array( 'readonly' => true ),
+			);
+		}
+
+		$message = new ModelMessage( $parts );
+		$this->append_assistant_message_to_history( $this->redact_elementor_preview_call_message( $message ) );
+		$this->log_tool_calls( $message );
+		$this->message_log[]   = array(
+			'type'       => 'guardrail',
+			'reason'     => 'elementor_render_validation_dispatched',
+			'completion' => $this->elementor_completion_gate->get_status(),
+			'sequence'   => $this->next_activity_sequence(),
+		);
+		$this->last_loop_phase = 'elementor_render_validation_pending';
+
+		return $this->pause_for_client_tools(
+			array(
+				'php'    => array(),
+				'client' => $pending,
+			),
+			$iterations
+		);
 	}
 
 	/**
@@ -5954,6 +6187,32 @@ PROMPT;
 		return '' === $notice ? $reply : $notice;
 	}
 
+	/** Inject the exact missing Elementor completion step as a repair turn. */
+	private function inject_elementor_completion_guidance(): void {
+		$guidance = $this->elementor_completion_gate->get_repair_guidance();
+		if ( '' === $guidance ) {
+			return;
+		}
+
+		$this->history[]       = new UserMessage( array( new MessagePart( $guidance ) ) );
+		$this->message_log[]   = array(
+			'type'       => 'guardrail',
+			'reason'     => 'elementor_completion_required',
+			'completion' => $this->elementor_completion_gate->get_status(),
+			'sequence'   => $this->next_activity_sequence(),
+		);
+		$this->last_loop_phase = 'elementor_completion_repair_required';
+		$this->fire_progress();
+	}
+
+	/** Prevent unsupported Elementor completion or publication claims. */
+	private function append_elementor_completion_notice( string $reply ): string {
+		$notice = $this->elementor_completion_gate->get_terminal_notice();
+		return '' === $notice
+			? $this->elementor_completion_gate->redact_text( $reply )
+			: $notice;
+	}
+
 	/** Prevent unsupported rendered-success claims after a successful file mutation. */
 	private function append_rendered_output_evidence_notice( string $reply ): string {
 		if ( ! $this->rendered_output_evidence_gate->blocks_rendered_claim( $reply ) ) {
@@ -5987,6 +6246,17 @@ PROMPT;
 		return strtolower( (string) $matches[1] );
 	}
 
+	/**
+	 * Remove a browser-provided visual-attachment marker.
+	 *
+	 * @param array<string,mixed> $payload Browser-supplied screenshot payload.
+	 * @return array<string,mixed> Payload without an untrusted attachment claim.
+	 */
+	private static function strip_untrusted_screenshot_attachment_claim( array $payload ): array {
+		unset( $payload['attached_to_model'] );
+		return $payload;
+	}
+
 	/** Return whether an SDK function name produces visual screenshot evidence. */
 	private static function is_screenshot_tool_name( string $tool_name ): bool {
 		return in_array(
@@ -6012,6 +6282,12 @@ PROMPT;
 	private static function normalize_logged_tool_name( string $tool_name ): string {
 		if ( str_starts_with( $tool_name, 'wpab__sd-ai-agent__' ) ) {
 			return 'sd-ai-agent/' . substr( $tool_name, strlen( 'wpab__sd-ai-agent__' ) );
+		}
+		if ( str_starts_with( $tool_name, 'wpab__sd-ai-agent-js__' ) ) {
+			return 'sd-ai-agent-js/' . substr( $tool_name, strlen( 'wpab__sd-ai-agent-js__' ) );
+		}
+		if ( str_starts_with( $tool_name, 'wpab__elementor__' ) ) {
+			return 'elementor/' . str_replace( '_', '-', substr( $tool_name, strlen( 'wpab__elementor__' ) ) );
 		}
 
 		return $tool_name;

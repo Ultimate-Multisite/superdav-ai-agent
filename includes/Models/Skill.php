@@ -120,6 +120,7 @@ class Skill {
 	private const PLUGIN_SKILL_MAP = [
 		'woocommerce'          => 'woocommerce/woocommerce.php',
 		'kadence-blocks'       => 'kadence-blocks/kadence-blocks.php',
+		'elementor-builder'    => 'elementor/elementor.php',
 		'multisite-management' => '', // No plugin dependency — enabled via is_multisite().
 	];
 
@@ -765,6 +766,12 @@ class Skill {
 			'name'        => 'WP Block Themes',
 			'description' => 'Block theme templates, template parts, theme.json, Site Editor and site-wide layout',
 			// Auto-enabled for block-theme generation even when the active theme is classic.
+			'enabled'     => false,
+		],
+		'elementor-builder'        => [
+			'name'        => 'Elementor Builder',
+			'description' => 'Official Elementor ability workflow for document discovery, safe composition, preview, and publication',
+			// Auto-enabled when Elementor is active.
 			'enabled'     => false,
 		],
 		'wp-plugin-development'    => [

@@ -54,9 +54,14 @@ final class ElementorEditorHandler {
 			return;
 		}
 
-		$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
-			? $asset['dependencies']
-			: array();
+		$dependencies = array();
+		if ( isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+			foreach ( $asset['dependencies'] as $dependency ) {
+				if ( is_string( $dependency ) ) {
+					$dependencies[] = $dependency;
+				}
+			}
+		}
 		if ( ! in_array( self::ELEMENTOR_MCP_HANDLE, $dependencies, true ) ) {
 			$dependencies[] = self::ELEMENTOR_MCP_HANDLE;
 		}

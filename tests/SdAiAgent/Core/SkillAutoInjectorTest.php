@@ -210,6 +210,22 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'gutenberg-blocks', $result );
 	}
 
+	/** Explicit Gutenberg migration targets must win over the Elementor catch-all. */
+	public function test_get_index_description_routes_elementor_migrations_to_gutenberg_blocks(): void {
+		$result = SkillAutoInjector::get_index_description( 'Convert this Elementor page to Gutenberg blocks.' );
+
+		$this->assertStringContainsString( 'gutenberg-blocks', $result );
+		$this->assertStringNotContainsString( 'elementor-builder', $result );
+	}
+
+	/** Explicit block-theme migration targets must win over the Elementor catch-all. */
+	public function test_get_index_description_routes_elementor_migrations_to_block_themes(): void {
+		$result = SkillAutoInjector::get_index_description( 'Migrate this Elementor page to a block theme.' );
+
+		$this->assertStringContainsString( 'wp-block-themes', $result );
+		$this->assertStringNotContainsString( 'elementor-builder', $result );
+	}
+
 	/** Runtime-registered Elementor abilities attach the corresponding skill. */
 	public function test_elementor_abilities_map_to_elementor_builder_skill(): void {
 		$this->assertSame( 'elementor-builder', SkillAutoInjector::skill_for_ability( 'elementor/get-page-structure' ) );

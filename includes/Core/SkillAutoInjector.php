@@ -59,8 +59,8 @@ class SkillAutoInjector {
 
 		// Explicit migration targets must precede Elementor so the target guide
 		// wins when converting an Elementor document to block-based content.
-		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:gutenberg|blocks?)\b/i' => 'gutenberg-blocks',
 		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:block\s+theme|full\s*site\s*edit(?:ing)?|fse|theme\.json)\b/i' => 'wp-block-themes',
+		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:gutenberg|blocks?)\b/i' => 'gutenberg-blocks',
 
 		// Elementor must precede generic page/layout triggers so its document storage
 		// is never treated as Gutenberg block content.

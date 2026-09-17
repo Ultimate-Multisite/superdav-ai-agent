@@ -204,13 +204,47 @@ final class RemoteMcpConnectionRepository {
 	/** @return array<string, array<string, mixed>> */
 	private function connections(): array {
 		$value = get_option( self::CONNECTIONS_OPTION, array() );
-		return is_array( $value ) ? $value : array();
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+		$connections = array();
+		foreach ( $value as $id => $connection ) {
+			if ( is_string( $id ) && is_array( $connection ) ) {
+				$connections[ $id ] = $this->normalise_record( $connection );
+			}
+		}
+		return $connections;
 	}
 
 	/** @return array<string, array<string, mixed>> */
 	private function secrets(): array {
 		$value = get_option( self::SECRETS_OPTION, array() );
-		return is_array( $value ) ? $value : array();
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+		$secrets = array();
+		foreach ( $value as $id => $secret ) {
+			if ( is_string( $id ) && is_array( $secret ) ) {
+				$secrets[ $id ] = $this->normalise_record( $secret );
+			}
+		}
+		return $secrets;
+	}
+
+	/**
+	 * Remove malformed numeric keys from a persisted option record.
+	 *
+	 * @param array<mixed> $record Stored option value.
+	 * @return array<string, mixed> String-keyed record.
+	 */
+	private function normalise_record( array $record ): array {
+		$normalised = array();
+		foreach ( $record as $key => $value ) {
+			if ( is_string( $key ) ) {
+				$normalised[ $key ] = $value;
+			}
+		}
+		return $normalised;
 	}
 
 	/**

@@ -38,7 +38,7 @@ final class RemoteMcpClient {
 
 		$initialized = $this->initialize( $connection );
 		if ( is_wp_error( $initialized ) ) {
-			$this->connections->mark_failed( $connection_id, $initialized->get_error_code() );
+			$this->connections->mark_failed( $connection_id, (string) $initialized->get_error_code() );
 			return $initialized;
 		}
 
@@ -48,13 +48,13 @@ final class RemoteMcpClient {
 			$params = '' === $cursor ? array() : array( 'cursor' => $cursor );
 			$result = $this->send_request( $connection, 'tools/list', $params );
 			if ( is_wp_error( $result ) ) {
-				$this->connections->mark_failed( $connection_id, $result->get_error_code() );
+				$this->connections->mark_failed( $connection_id, (string) $result->get_error_code() );
 				return $result;
 			}
 			$listed = isset( $result['tools'] ) && is_array( $result['tools'] ) ? $result['tools'] : null;
 			if ( null === $listed ) {
 				$error = new WP_Error( 'sd_ai_agent_remote_mcp_invalid_tools', __( 'The remote MCP server returned an invalid tool list.', 'superdav-ai-agent' ) );
-				$this->connections->mark_failed( $connection_id, $error->get_error_code() );
+				$this->connections->mark_failed( $connection_id, (string) $error->get_error_code() );
 				return $error;
 			}
 			foreach ( $listed as $tool ) {
@@ -168,7 +168,12 @@ final class RemoteMcpClient {
 		if ( isset( $response['error'] ) ) {
 			return new WP_Error( 'sd_ai_agent_remote_mcp_protocol_error', __( 'The remote MCP server returned a protocol error.', 'superdav-ai-agent' ) );
 		}
-		return isset( $response['result'] ) && is_array( $response['result'] ) ? $response['result'] : new WP_Error( 'sd_ai_agent_remote_mcp_invalid_response', __( 'The remote MCP server returned an invalid result.', 'superdav-ai-agent' ) );
+		if ( ! isset( $response['result'] ) || ! is_array( $response['result'] ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_response', __( 'The remote MCP server returned an invalid result.', 'superdav-ai-agent' ) );
+		}
+		/** @var array<string, mixed> $result */
+		$result = $response['result'];
+		return $result;
 	}
 
 	/**

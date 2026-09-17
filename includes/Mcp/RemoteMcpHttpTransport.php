@@ -81,7 +81,7 @@ final class RemoteMcpHttpTransport {
 		$headers               = wp_remote_retrieve_headers( $response );
 		$this->last_session_id = is_object( $headers ) && isset( $headers['mcp-session-id'] ) ? substr( (string) $headers['mcp-session-id'], 0, 256 ) : ( is_array( $headers ) ? substr( (string) ( $headers['mcp-session-id'] ?? '' ), 0, 256 ) : '' );
 		if ( ! array_key_exists( 'id', $message ) ) {
-			return array();
+			return array( 'accepted' => true );
 		}
 		$body     = wp_remote_retrieve_body( $response );
 		$content  = is_object( $headers ) && isset( $headers['content-type'] ) ? (string) $headers['content-type'] : ( is_array( $headers ) ? (string) ( $headers['content-type'] ?? '' ) : '' );
@@ -91,6 +91,7 @@ final class RemoteMcpHttpTransport {
 		}
 		foreach ( $messages as $candidate ) {
 			if ( is_array( $candidate ) && array_key_exists( 'id', $candidate ) && (string) $candidate['id'] === (string) $id ) {
+				/** @var array<string, mixed> $candidate */
 				return $candidate;
 			}
 		}
@@ -103,6 +104,7 @@ final class RemoteMcpHttpTransport {
 
 	/** @return list<array<string, mixed>> */
 	private function parse_sse( string $body ): array {
+		/** @var list<array<string, mixed>> $messages */
 		$messages = array();
 		$event    = '';
 		foreach ( preg_split( '/\r?\n/', $body ) ?: array() as $line ) {
@@ -115,6 +117,7 @@ final class RemoteMcpHttpTransport {
 			}
 			$decoded = json_decode( $event, true );
 			if ( is_array( $decoded ) ) {
+				/** @var array<string, mixed> $decoded */
 				$messages[] = $decoded;
 			}
 			$event = '';
@@ -125,6 +128,7 @@ final class RemoteMcpHttpTransport {
 		if ( '' !== $event && count( $messages ) < self::MAX_SSE_EVENTS ) {
 			$decoded = json_decode( $event, true );
 			if ( is_array( $decoded ) ) {
+				/** @var array<string, mixed> $decoded */
 				$messages[] = $decoded;
 			}
 		}

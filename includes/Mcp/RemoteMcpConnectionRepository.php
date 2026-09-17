@@ -100,6 +100,12 @@ final class RemoteMcpConnectionRepository {
 
 		$connections        = $this->connections();
 		$existing           = isset( $connections[ $id ] ) && is_array( $connections[ $id ] ) ? $connections[ $id ] : array();
+		$has_secret         = array_key_exists( $id, $this->secrets() );
+		$has_new_secret     = isset( $secret['value'] ) && '' !== (string) $secret['value'];
+		$changes_credential = ! empty( $existing ) && ( $endpoint !== (string) ( $existing['endpoint'] ?? '' ) || $auth !== (string) ( $existing['auth_type'] ?? 'none' ) );
+		if ( 'none' !== $auth && $has_secret && $changes_credential && ! $has_new_secret && empty( $input['reuse_secret'] ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_credential_confirmation_required', __( 'Changing the endpoint or authentication type requires a new credential or confirmation to reuse the existing credential.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
 		$connections[ $id ] = array(
 			'id'               => $id,
 			'name'             => $name,
@@ -119,7 +125,9 @@ final class RemoteMcpConnectionRepository {
 		);
 		update_option( self::CONNECTIONS_OPTION, $connections, false );
 
-		if ( ! empty( $secret ) ) {
+		if ( 'none' === $auth ) {
+			$this->delete_secret( $id );
+		} elseif ( $has_new_secret ) {
 			$this->save_secret( $id, $auth, $secret );
 		}
 
@@ -147,7 +155,15 @@ final class RemoteMcpConnectionRepository {
 		$connections[ $id ]['last_error_code']  = '';
 		$connections[ $id ]['last_discovered']  = gmdate( 'c' );
 		$connections[ $id ]['updated_at']       = gmdate( 'c' );
-		return update_option( self::CONNECTIONS_OPTION, $connections, false );
+		if ( update_option( self::CONNECTIONS_OPTION, $connections, false ) ) {
+			return true;
+		}
+		$stored = $this->connections()[ $id ] ?? null;
+		return is_array( $stored )
+			&& $tools === $stored['tools']
+			&& sanitize_text_field( $protocol_version ) === $stored['protocol_version']
+			&& $capabilities === $stored['capabilities']
+			&& 'ready' === $stored['status'];
 	}
 
 	public function mark_failed( string $id, string $error_code ): void {
@@ -197,6 +213,9 @@ final class RemoteMcpConnectionRepository {
 		if ( 'custom_header' === $connection['auth_type'] ) {
 			$name = isset( $secret['header_name'] ) ? (string) $secret['header_name'] : '';
 			return preg_match( '/^[A-Za-z0-9-]{1,64}$/', $name ) ? array( $name => $value ) : array();
+		}
+		if ( ! in_array( $connection['auth_type'], array( 'bearer', 'api_key' ), true ) ) {
+			return array();
 		}
 		return array( 'Authorization' => ( 'bearer' === $connection['auth_type'] ? 'Bearer ' : '' ) . $value );
 	}
@@ -259,10 +278,17 @@ final class RemoteMcpConnectionRepository {
 		if ( '' === $value ) {
 			return;
 		}
+		$secrets        = $this->secrets();
 		$secrets[ $id ] = array( 'value' => $value );
 		if ( 'custom_header' === $auth && isset( $secret['header_name'] ) && preg_match( '/^[A-Za-z0-9-]{1,64}$/', (string) $secret['header_name'] ) ) {
 			$secrets[ $id ]['header_name'] = (string) $secret['header_name'];
 		}
+		update_option( self::SECRETS_OPTION, $secrets, false );
+	}
+
+	private function delete_secret( string $id ): void {
+		$secrets = $this->secrets();
+		unset( $secrets[ $id ] );
 		update_option( self::SECRETS_OPTION, $secrets, false );
 	}
 

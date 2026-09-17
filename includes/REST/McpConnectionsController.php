@@ -139,15 +139,31 @@ final class McpConnectionsController {
 
 	public function handle_import( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$params = $request->get_json_params();
-		$server = is_array( $params ) && isset( $params['server'] ) && is_array( $params['server'] ) ? $params['server'] : array();
-		$input  = array(
-			'name'      => $server['name'] ?? $server['displayName'] ?? '',
-			'endpoint'  => $server['url'] ?? $server['endpoint'] ?? '',
-			'auth_type' => $server['auth_type'] ?? 'none',
-			'enabled'   => false,
-		);
-		$result = $this->repository()->save( $input );
-		return is_wp_error( $result ) ? $result : new WP_REST_Response( array( 'connection' => $result ), 201 );
+		if ( ! is_array( $params ) ) {
+			$params = array();
+		}
+		$servers = isset( $params['mcpServers'] ) && is_array( $params['mcpServers'] ) ? $params['mcpServers'] : array( $params['server'] ?? array() );
+		$created = array();
+		foreach ( $servers as $key => $server ) {
+			if ( ! is_array( $server ) ) {
+				continue;
+			}
+			$input  = array(
+				'name'      => $server['name'] ?? $server['displayName'] ?? ( is_string( $key ) ? $key : '' ),
+				'endpoint'  => $server['url'] ?? $server['endpoint'] ?? '',
+				'auth_type' => $server['auth_type'] ?? 'none',
+				'enabled'   => false,
+			);
+			$result = $this->repository()->save( $input );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			$created[] = $result;
+		}
+		if ( empty( $created ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_connection', __( 'At least one valid MCP server is required.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
+		return new WP_REST_Response( array( 'connections' => $created ), 201 );
 	}
 
 	public function handle_export(): WP_REST_Response {

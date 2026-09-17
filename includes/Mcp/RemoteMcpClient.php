@@ -63,7 +63,9 @@ final class RemoteMcpClient {
 					$tools[] = $normalised;
 				}
 				if ( count( $tools ) >= 100 ) {
-					break 2;
+					$error = new WP_Error( 'sd_ai_agent_remote_mcp_discovery_bounded', __( 'The remote MCP server returned more tools than can be safely discovered.', 'superdav-ai-agent' ) );
+					$this->connections->mark_failed( $connection_id, (string) $error->get_error_code() );
+					return $error;
 				}
 			}
 			$cursor = isset( $result['nextCursor'] ) ? sanitize_text_field( (string) $result['nextCursor'] ) : '';
@@ -71,10 +73,19 @@ final class RemoteMcpClient {
 				break;
 			}
 		}
+		if ( '' !== $cursor ) {
+			$error = new WP_Error( 'sd_ai_agent_remote_mcp_discovery_bounded', __( 'The remote MCP server returned more tool-list pages than can be safely discovered.', 'superdav-ai-agent' ) );
+			$this->connections->mark_failed( $connection_id, (string) $error->get_error_code() );
+			return $error;
+		}
 
 		$protocol     = isset( $initialized['protocolVersion'] ) ? (string) $initialized['protocolVersion'] : '2025-06-18';
 		$capabilities = isset( $initialized['capabilities'] ) && is_array( $initialized['capabilities'] ) ? $initialized['capabilities'] : array();
-		$this->connections->replace_snapshot( $connection_id, $tools, $protocol, $capabilities );
+		if ( ! $this->connections->replace_snapshot( $connection_id, $tools, $protocol, $capabilities ) ) {
+			$error = new WP_Error( 'sd_ai_agent_remote_mcp_snapshot_failed', __( 'The discovered MCP tools could not be saved.', 'superdav-ai-agent' ) );
+			$this->connections->mark_failed( $connection_id, (string) $error->get_error_code() );
+			return $error;
+		}
 		return array(
 			'tools'            => $tools,
 			'protocol_version' => $protocol,

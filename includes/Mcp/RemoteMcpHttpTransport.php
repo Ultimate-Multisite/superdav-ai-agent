@@ -41,6 +41,12 @@ final class RemoteMcpHttpTransport {
 			return new WP_Error( 'sd_ai_agent_remote_mcp_unsafe_endpoint', __( 'The MCP endpoint is not permitted.', 'superdav-ai-agent' ) );
 		}
 
+		$credentials = $this->connections->authorization_headers( (string) ( $connection['id'] ?? '' ) );
+		$scheme      = wp_parse_url( $endpoint, PHP_URL_SCHEME );
+		if ( ! empty( $credentials ) && 'https' !== strtolower( (string) $scheme ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_insecure_credentials', __( 'Credentials require an HTTPS MCP endpoint.', 'superdav-ai-agent' ) );
+		}
+
 		$id       = $message['id'] ?? null;
 		$headers  = array_merge(
 			array(
@@ -48,7 +54,7 @@ final class RemoteMcpHttpTransport {
 				'Content-Type'         => 'application/json',
 				'MCP-Protocol-Version' => '2025-06-18',
 			),
-			$this->connections->authorization_headers( (string) ( $connection['id'] ?? '' ) ),
+			$credentials,
 			$session_headers
 		);
 		$response = wp_remote_post(

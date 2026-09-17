@@ -1043,6 +1043,11 @@ PROMPT;
 				$results[ $result_index ]['result'] = $result_payload;
 			}
 
+			if ( ! isset( $result['error'] ) ) {
+				$result_payload                     = ToolResultTruncator::truncate( $result_payload, $name );
+				$results[ $result_index ]['result'] = $result_payload;
+			}
+
 			// Encode the bounded result payload for the function response.
 			$response_payload = isset( $result['error'] )
 				? wp_json_encode( array( 'error' => $result['error'] ) )

@@ -1868,6 +1868,56 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertCount( 1, $resumed_loop->requestSizes );
 	}
 
+	/** Browser-submitted tool results are bounded before entering persisted model history. */
+	public function test_client_results_are_truncated_before_history_persistence(): void {
+		$session_id = Database::create_session( [
+			'user_id' => 1,
+			'title'   => 'Bound client tool results',
+		] );
+		$job_id     = '77777777-8888-9999-aaaa-bbbbbbbbbbbb';
+		$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, 1 ) );
+		$tool_name = 'sd-ai-agent-js/elementor-editor-mcp-call-tool';
+		$history   = [
+			new UserMessage( [ new MessagePart( 'Inspect the active Elementor document.' ) ] ),
+			new ModelMessage(
+				[
+					new MessagePart( new FunctionCall( 'call_elementor', $tool_name, [ 'toolName' => 'inspect' ] ) ),
+				]
+			),
+		];
+		$loop      = new ScriptedAgentLoop(
+			'',
+			[],
+			$history,
+			[
+				'session_id'    => $session_id,
+				'active_job_id' => $job_id,
+				'provider_id'   => 'scripted-provider',
+				'model_id'      => 'scripted-model',
+			],
+			[ new WP_Error( 'sd_ai_agent_test_provider_timeout', 'Managed service unavailable.' ) ]
+		);
+		$oversized = str_repeat( 'elementor-output-', 1000 );
+
+		$result = $loop->resume_after_client_tools(
+			[
+				[
+					'id'     => 'call_elementor',
+					'name'   => $tool_name,
+					'result' => [ 'success' => true, 'result' => [ 'content' => $oversized ] ],
+				],
+			],
+			3
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$state = Database::load_and_clear_paused_state( $session_id );
+		$this->assertIsArray( $state );
+		$serialized = (string) wp_json_encode( $state['history'] );
+		$this->assertStringContainsString( '... [truncated]', $serialized );
+		$this->assertStringNotContainsString( $oversized, $serialized );
+	}
+
 	/**
 	 * Test run() returns WP_Error on network failure (wp_remote_post returns WP_Error).
 	 */

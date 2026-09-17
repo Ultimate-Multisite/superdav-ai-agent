@@ -57,6 +57,11 @@ class SkillAutoInjector {
 		'/\bkadence\b|kadence\/(?:rowlayout|column|advancedheading|advancedbtn|singlebtn)|\bkbVersion\b|\bcolLayout\b|kt-adv-heading|kt-inside-inner-col|kb-section-dir-horizontal|kt-highlight/i' => 'kadence-blocks',
 		'/\b(?:header\s*builder|footer\s*builder|kadence\s*theme)\b|kadence_(?:before|after)_/i'                                       => 'kadence-theme',
 
+		// Explicit migration targets must precede Elementor so the target guide
+		// wins when converting an Elementor document to block-based content.
+		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:gutenberg|blocks?)\b/i' => 'gutenberg-blocks',
+		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:block\s+theme|full\s*site\s*edit(?:ing)?|fse|theme\.json)\b/i' => 'wp-block-themes',
+
 		// Elementor must precede generic page/layout triggers so its document storage
 		// is never treated as Gutenberg block content.
 		'/\belementor\b|\belementor\s+(?:editor|page|document|widget|template|section|container)\b/i'                                    => 'elementor-builder',

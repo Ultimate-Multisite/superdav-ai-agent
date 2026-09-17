@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Bootstrap;
 
+use SdAiAgent\Admin\FloatingWidget;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
 
@@ -83,6 +84,11 @@ final class ElementorEditorHandler {
 	 */
 	#[Action( tag: 'elementor/editor/v2/scripts/enqueue', priority: 10 )]
 	public function enqueue_editor_package(): void {
+		// Elementor builds an optimized editor script queue after the normal
+		// admin_enqueue_scripts pass. Re-enqueue the shared widget here so the
+		// chat and editor MCP callbacks live in the same top-level window.
+		FloatingWidget::enqueue_assets_admin( 'post.php' );
+
 		if ( wp_script_is( self::SCRIPT_HANDLE, 'registered' ) ) {
 			wp_enqueue_script( self::SCRIPT_HANDLE );
 		}

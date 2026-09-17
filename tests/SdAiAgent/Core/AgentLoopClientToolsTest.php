@@ -478,6 +478,82 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'url' => home_url( '/' ) ), $result['client'][0]['args'] );
 	}
 
+	/** Tier-2 Elementor MCP discovery calls execute in the advertising browser. */
+	public function test_partition_routes_nested_elementor_mcp_calls_to_browser(): void {
+		$client_names = array(
+			'sd-ai-agent-js/get-elementor-editor-mcp-context',
+			'sd-ai-agent-js/list-elementor-editor-mcp-capabilities',
+		);
+		$loop         = new AgentLoop(
+			'test',
+			array(),
+			array(),
+			array(
+				'client_abilities' => array_map(
+					static fn( string $name ): array => array( 'name' => $name ),
+					$client_names
+				),
+			)
+		);
+
+		$reflection = new \ReflectionClass( $loop );
+		$method     = $reflection->getMethod( 'partition_tool_calls' );
+		$method->setAccessible( true );
+		$calls = array(
+			$this->create_mock_message_part(
+				'sd-ai-agent/ability-call',
+				'call-context',
+				array(
+					'ability'   => $client_names[0],
+					'arguments' => array(),
+				)
+			),
+			$this->create_mock_message_part(
+				'sd-ai-agent/ability-call',
+				'call-capabilities',
+				array(
+					'ability'   => $client_names[1],
+					'arguments' => array( 'includeResources' => true ),
+				)
+			),
+		);
+
+		$result = $method->invoke( $loop, $this->create_mock_message( $calls ), $client_names );
+
+		$this->assertCount( 0, $result['php'] );
+		$this->assertCount( 2, $result['client'] );
+		$this->assertSame( 'call-context', $result['client'][0]['id'] );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['client'][0]['name'] );
+		$this->assertSame( $client_names[0], $result['client'][0]['client_name'] );
+		$this->assertSame( array(), $result['client'][0]['args'] );
+		$this->assertTrue( $result['client'][0]['annotations']['readonly'] );
+		$this->assertSame( 'call-capabilities', $result['client'][1]['id'] );
+		$this->assertSame( $client_names[1], $result['client'][1]['client_name'] );
+		$this->assertSame( array( 'includeResources' => true ), $result['client'][1]['args'] );
+		$this->assertTrue( $result['client'][1]['annotations']['readonly'] );
+	}
+
+	/** Unadvertised nested browser names remain on the server rejection path. */
+	public function test_partition_does_not_route_unadvertised_nested_client_call(): void {
+		$loop       = new AgentLoop( 'test' );
+		$reflection = new \ReflectionClass( $loop );
+		$method     = $reflection->getMethod( 'partition_tool_calls' );
+		$method->setAccessible( true );
+		$call = $this->create_mock_message_part(
+			'sd-ai-agent/ability-call',
+			'call-unadvertised',
+			array(
+				'ability'   => 'sd-ai-agent-js/get-elementor-editor-mcp-context',
+				'arguments' => array(),
+			)
+		);
+
+		$result = $method->invoke( $loop, $this->create_mock_message( array( $call ) ), array() );
+
+		$this->assertCount( 1, $result['php'] );
+		$this->assertCount( 0, $result['client'] );
+	}
+
 	/**
 	 * Invalid nested navigation URLs remain server-side so NavigateAbility can
 	 * return its normal validation error instead of bypassing that contract.

@@ -857,7 +857,7 @@ describe( 'actions', () => {
 		}
 	} );
 
-	test( 'pollJob executes only server-confirmed mutating client abilities', async () => {
+	test( 'pollJob executes only server-approved mutating client abilities', async () => {
 		jest.useFakeTimers();
 		apiFetch.mockReset();
 		executeClientAbility.mockReset();
@@ -875,10 +875,17 @@ describe( 'actions', () => {
 							args: { blockName: 'core/paragraph' },
 						},
 						{
+							id: 'call-authorized-insert',
+							name: 'sd-ai-agent-js/insert-block',
+							annotations: { readonly: false },
+							server_authorized: true,
+							args: { blockName: 'core/image' },
+						},
+						{
 							id: 'call-unconfirmed-insert',
 							name: 'sd-ai-agent-js/insert-block',
 							annotations: { readonly: false },
-							args: { blockName: 'core/image' },
+							args: { blockName: 'core/quote' },
 						},
 					],
 				} );
@@ -900,10 +907,16 @@ describe( 'actions', () => {
 			actions.pollJob( 'client-tool-job', 17 )( { dispatch, select } );
 			await jest.advanceTimersByTimeAsync( 2000 );
 
-			expect( executeClientAbility ).toHaveBeenCalledTimes( 1 );
-			expect( executeClientAbility ).toHaveBeenCalledWith(
+			expect( executeClientAbility ).toHaveBeenCalledTimes( 2 );
+			expect( executeClientAbility ).toHaveBeenNthCalledWith(
+				1,
 				'sd-ai-agent-js/insert-block',
 				{ blockName: 'core/paragraph' }
+			);
+			expect( executeClientAbility ).toHaveBeenNthCalledWith(
+				2,
+				'sd-ai-agent-js/insert-block',
+				{ blockName: 'core/image' }
 			);
 			expect( apiFetch ).toHaveBeenCalledWith( {
 				path: '/sd-ai-agent/v1/chat/tool-result',
@@ -914,6 +927,11 @@ describe( 'actions', () => {
 					tool_results: [
 						{
 							id: 'call-confirmed-insert',
+							name: 'sd-ai-agent-js/insert-block',
+							result: { inserted: true },
+						},
+						{
+							id: 'call-authorized-insert',
 							name: 'sd-ai-agent-js/insert-block',
 							result: { inserted: true },
 						},

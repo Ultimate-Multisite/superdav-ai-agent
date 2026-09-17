@@ -195,6 +195,103 @@ class JsAbilityCatalog {
 				'screens'       => array( 'editor' ),
 			),
 			array(
+				'name'          => 'sd-ai-agent-js/get-elementor-editor-mcp-context',
+				'label'         => 'Get Elementor Editor Context',
+				'description'   => 'Return bounded current Elementor editor document identity and explicitly advertised selection-resource hints without changing editor state.',
+				'category'      => 'sd-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
+				'output_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'available'   => array( 'type' => 'boolean' ),
+						'document'    => array( 'type' => 'object' ),
+						'fingerprint' => array( 'type' => 'string' ),
+						'reason'      => array( 'type' => 'string' ),
+						'selection'   => array( 'type' => 'object' ),
+					),
+				),
+				'annotations'   => array(
+					'readonly' => true,
+				),
+				'screens'       => array( 'editor' ),
+			),
+			array(
+				'name'          => 'sd-ai-agent-js/list-elementor-editor-mcp-capabilities',
+				'label'         => 'List Elementor Editor MCP Capabilities',
+				'description'   => 'List bounded tools and resources currently advertised by Elementor\'s active public in-editor MCP bridge.',
+				'category'      => 'sd-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
+				'output_schema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'available'   => array( 'type' => 'boolean' ),
+						'document'    => array( 'type' => 'object' ),
+						'fingerprint' => array( 'type' => 'string' ),
+						'reason'      => array( 'type' => 'string' ),
+						'resources'   => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'object' ),
+						),
+						'tools'       => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'object' ),
+						),
+						'truncated'   => array( 'type' => 'boolean' ),
+					),
+				),
+				'annotations'   => array(
+					'readonly' => true,
+				),
+				'screens'       => array( 'editor' ),
+			),
+			array(
+				'name'          => 'sd-ai-agent-js/read-elementor-editor-mcp-resource',
+				'label'         => 'Read Elementor Editor MCP Resource',
+				'description'   => 'Read a bounded resource only when it is currently advertised by the active Elementor editor and the supplied document fingerprint still matches.',
+				'category'      => 'sd-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'uri'                         => array( 'type' => 'string' ),
+						'expectedDocumentFingerprint' => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'uri', 'expectedDocumentFingerprint' ),
+				),
+				'output_schema' => self::elementor_editor_mcp_result_schema( 'uri' ),
+				'annotations'   => array(
+					'readonly' => true,
+				),
+				'screens'       => array( 'editor' ),
+			),
+			array(
+				'name'          => 'sd-ai-agent-js/call-elementor-editor-mcp-tool',
+				'label'         => 'Call Elementor Editor MCP Tool',
+				'description'   => 'Call a currently advertised Elementor editor MCP tool only after Superdav confirmation and only when the supplied document fingerprint still matches.',
+				'category'      => 'sd-ai-agent-js',
+				'input_schema'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'arguments'                   => array( 'type' => 'object' ),
+						'expectedDocumentFingerprint' => array( 'type' => 'string' ),
+						'toolName'                    => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'toolName', 'arguments', 'expectedDocumentFingerprint' ),
+				),
+				'output_schema' => self::elementor_editor_mcp_result_schema( 'toolName' ),
+				'annotations'   => array(
+					'readonly' => false,
+				),
+				'screens'       => array( 'editor' ),
+			),
+			array(
 				'name'          => 'sd-ai-agent-js/get-editor-capabilities',
 				'label'         => 'Get Editor Capabilities',
 				'description'   => 'Return a bounded, current manifest of installed Gutenberg blocks and active editor/theme capabilities without changing editor state.',
@@ -557,6 +654,27 @@ class JsAbilityCatalog {
 					'type'  => 'array',
 					'items' => array( 'type' => 'object' ),
 				),
+			),
+		);
+	}
+
+	/**
+	 * Return the bounded result schema shared by dynamic Elementor bridge calls.
+	 *
+	 * @param string $identifier_property The public resource or tool identifier.
+	 * @return array<string,mixed>
+	 */
+	private static function elementor_editor_mcp_result_schema( string $identifier_property ): array {
+		return array(
+			'type'       => 'object',
+			'properties' => array(
+				'documentFingerprint' => array( 'type' => 'string' ),
+				'error'               => array( 'type' => 'string' ),
+				'reason'              => array( 'type' => 'string' ),
+				'result'              => array( 'type' => array( 'object', 'array', 'string', 'number', 'boolean', 'null' ) ),
+				'success'             => array( 'type' => 'boolean' ),
+				$identifier_property  => array( 'type' => 'string' ),
+				'truncated'           => array( 'type' => 'boolean' ),
 			),
 		);
 	}

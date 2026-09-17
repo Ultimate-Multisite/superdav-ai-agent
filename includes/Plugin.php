@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use SdAiAgent\Bootstrap\AbilitiesHandler;
 use SdAiAgent\Bootstrap\AdminHandler;
+use SdAiAgent\Bootstrap\ElementorEditorHandler;
 use SdAiAgent\Bootstrap\BlockInventoryHandler;
 use SdAiAgent\Bootstrap\BlockPreferencesAdminHandler;
 use SdAiAgent\Bootstrap\BlockUsageAdminHandler;
@@ -106,6 +107,7 @@ use XWP\DI\Decorators\Module;
 		AbilitiesHandler::class,
 		WooCommerceIntegrationHandler::class,
 		AdminHandler::class,
+		ElementorEditorHandler::class,
 		BlockValidatorPageHandler::class,
 		BlockInventoryHandler::class,
 		BlockPreferencesAdminHandler::class,

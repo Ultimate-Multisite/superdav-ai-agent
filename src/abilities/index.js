@@ -55,6 +55,17 @@ import {
 const WIN_REGISTRATION_KEY = '__sdAiAgentAbilitiesRegistering';
 
 /**
+ * Page-global Promise published by the optional Elementor editor package.
+ *
+ * Keeping this boundary as a string avoids loading the Elementor bridge into
+ * the normal floating/admin chat bundles.
+ *
+ * @type {string}
+ */
+const WIN_ELEMENTOR_REGISTRATION_KEY =
+	'__sdAiAgentElementorEditorMcpRegistration';
+
+/**
  * Single in-flight registration Promise for this module instance, so
  * concurrent callers (e.g. multiple components in the same bundle that
  * each call ensureRegistered()) await the same pipeline rather than
@@ -63,6 +74,21 @@ const WIN_REGISTRATION_KEY = '__sdAiAgentAbilitiesRegistering';
  * @type {Promise<void>|null}
  */
 let registrationPromise = null;
+
+/**
+ * Await optional Elementor bridge registration when its editor-only package
+ * is active on this page. Outside Elementor this resolves immediately.
+ *
+ * @return {Promise<void>} Optional package registration completion.
+ */
+function waitForElementorEditorMcpRegistration() {
+	const registration = window[ WIN_ELEMENTOR_REGISTRATION_KEY ];
+	if ( registration && typeof registration.then === 'function' ) {
+		return registration.catch( () => undefined );
+	}
+
+	return Promise.resolve();
+}
 
 /**
  * Ensure all client-side abilities are registered.
@@ -93,7 +119,10 @@ export function ensureRegistered() {
 		// bundle that reuses this Promise can execute abilities registered by
 		// the bundle that created it even without wp.abilities.executeAbility().
 		registrationPromise = window[ WIN_REGISTRATION_KEY ];
-		return registrationPromise;
+		return Promise.all( [
+			registrationPromise,
+			waitForElementorEditorMcpRegistration(),
+		] ).then( () => undefined );
 	}
 
 	// Same-bundle dedup: a concurrent caller within this bundle.
@@ -126,6 +155,8 @@ export function ensureRegistered() {
 		} catch {
 			// Keep the already-registered core browser abilities available.
 		}
+
+		await waitForElementorEditorMcpRegistration();
 
 		// If the abilities API was not available (e.g. script module not
 		// yet loaded), the registration calls above silently no-oped.

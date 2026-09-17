@@ -73,6 +73,10 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertContains( 'sd-ai-agent-js/replace-editor-selection', $names );
 		$this->assertContains( 'sd-ai-agent-js/insert-block-markup', $names );
 		$this->assertContains( 'sd-ai-agent-js/change-editor-history', $names );
+		$this->assertContains( 'sd-ai-agent-js/get-elementor-editor-mcp-context', $names );
+		$this->assertContains( 'sd-ai-agent-js/list-elementor-editor-mcp-capabilities', $names );
+		$this->assertContains( 'sd-ai-agent-js/read-elementor-editor-mcp-resource', $names );
+		$this->assertContains( 'sd-ai-agent-js/call-elementor-editor-mcp-tool', $names );
 		$this->assertContains( 'sd-ai-agent-js/validate-page-quality', $names );
 		$this->assertContains( 'sd-ai-agent-js/validate-theme-completion', $names );
 	}
@@ -90,6 +94,10 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/replace-editor-selection' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/insert-block-markup' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/change-editor-history' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/get-elementor-editor-mcp-context' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/list-elementor-editor-mcp-capabilities' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/read-elementor-editor-mcp-resource' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/call-elementor-editor-mcp-tool' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/validate-page-quality' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/validate-theme-completion' ) );
 		$this->assertFalse( JsAbilityCatalog::has( 'sd-ai-agent-js/unknown-ability' ) );
@@ -149,6 +157,24 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 			$this->assertFalse( $map[ $name ]['annotations']['readonly'] );
 			$this->assertSame( array( 'editor' ), $map[ $name ]['screens'] );
 		}
+
+		$elementor_context = $map['sd-ai-agent-js/get-elementor-editor-mcp-context'];
+		$this->assertTrue( $elementor_context['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'selection', $elementor_context['output_schema']['properties'] );
+
+		$elementor_capabilities = $map['sd-ai-agent-js/list-elementor-editor-mcp-capabilities'];
+		$this->assertTrue( $elementor_capabilities['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'tools', $elementor_capabilities['output_schema']['properties'] );
+		$this->assertArrayHasKey( 'resources', $elementor_capabilities['output_schema']['properties'] );
+
+		$elementor_resource = $map['sd-ai-agent-js/read-elementor-editor-mcp-resource'];
+		$this->assertTrue( $elementor_resource['annotations']['readonly'] );
+		$this->assertSame( array( 'uri', 'expectedDocumentFingerprint' ), $elementor_resource['input_schema']['required'] );
+
+		$elementor_tool = $map['sd-ai-agent-js/call-elementor-editor-mcp-tool'];
+		$this->assertFalse( $elementor_tool['annotations']['readonly'] );
+		$this->assertSame( array( 'toolName', 'arguments', 'expectedDocumentFingerprint' ), $elementor_tool['input_schema']['required'] );
+		$this->assertArrayHasKey( 'toolName', $elementor_tool['output_schema']['properties'] );
 
 		$this->assertSame(
 			$map['sd-ai-agent-js/replace-editor-selection']['output_schema'],

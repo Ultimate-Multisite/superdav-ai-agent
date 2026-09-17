@@ -19,6 +19,11 @@ module.exports = {
 			'src/embed-widget',
 			'index.js'
 		),
+		'elementor-editor-mcp': path.resolve(
+			process.cwd(),
+			'src/elementor-editor-mcp',
+			'index.js'
+		),
 		'unified-admin': path.resolve(
 			process.cwd(),
 			'src/unified-admin',

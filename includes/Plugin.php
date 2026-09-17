@@ -66,6 +66,7 @@ use SdAiAgent\REST\FeedbackController;
 use SdAiAgent\REST\KnowledgeController;
 use SdAiAgent\REST\InstructionsController;
 use SdAiAgent\REST\McpController;
+use SdAiAgent\REST\McpConnectionsController;
 use SdAiAgent\REST\MemoryController;
 use SdAiAgent\REST\PublicSpeechController;
 use SdAiAgent\REST\RestController;
@@ -131,6 +132,7 @@ use XWP\DI\Decorators\Module;
 		TraceController::class,
 		InstructionsController::class,
 		McpController::class,
+		McpConnectionsController::class,
 		RestController::class,
 		ToolController::class,
 		AgentController::class,

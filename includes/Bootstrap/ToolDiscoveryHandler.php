@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Bootstrap;
 
+use SdAiAgent\Mcp\RemoteMcpAbilityRegistrar;
+use SdAiAgent\Mcp\RemoteMcpConnectionRepository;
 use SdAiAgent\Tools\CustomToolExecutor;
 use SdAiAgent\Tools\ToolDiscovery;
 use XWP\DI\Decorators\Action;
@@ -60,5 +62,6 @@ final class ToolDiscoveryHandler {
 	public function register_tool_abilities(): void {
 		ToolDiscovery::register_abilities();
 		CustomToolExecutor::register_abilities();
+		( new RemoteMcpAbilityRegistrar( new RemoteMcpConnectionRepository() ) )->register_abilities();
 	}
 }

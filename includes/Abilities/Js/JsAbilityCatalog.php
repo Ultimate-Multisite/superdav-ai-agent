@@ -675,6 +675,11 @@ class JsAbilityCatalog {
 				'success'             => array( 'type' => 'boolean' ),
 				$identifier_property  => array( 'type' => 'string' ),
 				'truncated'           => array( 'type' => 'boolean' ),
+				'mutationPossible'    => array( 'type' => 'boolean' ),
+				'outcome'             => array(
+					'type' => 'string',
+					'enum' => array( 'not_started', 'completed', 'unknown' ),
+				),
 			),
 		);
 	}

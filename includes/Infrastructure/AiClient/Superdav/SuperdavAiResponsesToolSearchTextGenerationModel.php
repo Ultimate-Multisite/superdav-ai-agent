@@ -10,6 +10,7 @@ use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
 use WordPress\AiClient\Providers\ApiBasedImplementation\AbstractApiBasedModel;
+use WordPress\AiClient\Providers\Http\DTO\ApiKeyRequestAuthentication;
 use WordPress\AiClient\Providers\Http\DTO\Request;
 use WordPress\AiClient\Providers\Http\DTO\Response;
 use WordPress\AiClient\Providers\Http\Enums\HttpMethodEnum;
@@ -42,6 +43,14 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	/** Keep namespaces small as recommended by the OpenAI tool-search guide. */
 	private const NAMESPACE_TOOL_LIMIT = 10;
 
+	/** @var int Session owning the encrypted native replay snapshot (zero disables persistence). */
+	private int $continuation_session_id = 0;
+
+	/** Bind continuation to the agent's server-owned session, not a user-supplied response ID. */
+	public function set_continuation_session_id( int $session_id ): void {
+		$this->continuation_session_id = max( 0, $session_id );
+	}
+
 	/**
 	 * Generate text through `/responses`, falling back to Chat Completions if the
 	 * experimental endpoint/tool is unavailable.
@@ -51,8 +60,28 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @return GenerativeAiResult
 	 */
 	public function generateTextResult( array $prompt ): GenerativeAiResult {
+		$cursor = new ResponsesContinuation( $this->continuation_session_id, get_current_user_id() );
 		try {
-			$params  = $this->prepare_responses_params( $prompt );
+			$params     = $this->prepare_responses_params( $prompt );
+			$full_input = $params['input'];
+			$scope      = $this->continuation_scope();
+			if ( array_key_exists( 'previous_response_id', $params ) ) {
+				$cursor->clear();
+				return $this->generate_chat_completions_fallback( $prompt );
+			}
+			$params['store']   = false;
+			$params['include'] = array( 'reasoning.encrypted_content' );
+			if ( null === $scope ) {
+				$cursor->clear();
+			}
+			$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
+			if ( null !== $continuation ) {
+				$params['input'] = $continuation['input'];
+			} elseif ( $this->has_tool_history( $full_input ) ) {
+				// An expired/edited snapshot cannot faithfully replay native namespaces or reasoning.
+				$cursor->clear();
+				return $this->generate_chat_completions_fallback( $prompt );
+			}
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
 				'responses',
@@ -64,14 +93,96 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$response = $this->getHttpTransporter()->send( $request );
 			ResponseUtil::throwIfNotSuccessful( $response );
 
-			return $this->parse_response_to_generative_ai_result( $response );
+			$result = $this->parse_response_to_generative_ai_result( $response );
+			$data   = $response->getData();
+			if ( null !== $scope && is_array( $data ) && ( $data['status'] ?? 'completed' ) === 'completed' ) {
+				// The agent may split this message for transport; input normalization is identical.
+				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
+				$output       = $this->native_output_items( $data['output'] ?? null );
+				if ( null !== $output ) {
+					$native_input = array_merge( $continuation['input'] ?? $full_input, $output );
+					$cursor->acknowledge( $result->getId(), $acknowledged, $scope, $native_input );
+				} else {
+					$cursor->clear();
+				}
+			} else {
+				$cursor->clear();
+			}
+			return $result;
 		} catch ( ClientException $e ) {
 			if ( $this->should_fallback_to_chat_completions( $e ) ) {
+				$cursor->clear();
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
 
 			throw $e;
 		}
+	}
+
+	/**
+	 * Validate native rows without discarding provider-specific fields.
+	 *
+	 * @return list<array<string, mixed>>|null
+	 */
+	private function native_output_items( mixed $output ): ?array {
+		if ( ! is_array( $output ) || ! array_is_list( $output ) ) {
+			return null;
+		}
+		$rows = array();
+		foreach ( $output as $item ) {
+			if ( ! is_array( $item ) ) {
+				return null;
+			}
+			$row = array();
+			foreach ( $item as $key => $value ) {
+				if ( ! is_string( $key ) ) {
+					return null;
+				}
+				$row[ $key ] = $value;
+			}
+			$rows[] = $row;
+		}
+		return $rows;
+	}
+
+	/** Scope by model, endpoint, credential and tools, independent of usage-driven deferral. */
+	private function continuation_scope(): ?string {
+		$authentication = $this->getRequestAuthentication();
+		if ( ! $authentication instanceof ApiKeyRequestAuthentication ) {
+			// Unknown authentication cannot establish a stable cross-request account identity.
+			return null;
+		}
+		$functions = array();
+		foreach ( $this->getConfig()->getFunctionDeclarations() ?? array() as $declaration ) {
+			$functions[ $declaration->getName() ] = array(
+				'description' => $declaration->getDescription(),
+				'parameters'  => $declaration->getParameters(),
+			);
+		}
+		ksort( $functions );
+		return ResponsesContinuation::fingerprint(
+			array(
+				$this->providerMetadata()->getId(),
+				$this->metadata()->getId(),
+				SuperdavAiProvider::configured_base_url(),
+				hash_hmac( 'sha256', $authentication->getApiKey(), wp_salt( 'auth' ) ),
+				$functions,
+			)
+		);
+	}
+
+	/**
+	 * Determine whether local input requires native context that ordinary SDK messages cannot retain.
+	 *
+	 * @param list<array<string, mixed>> $input Locally reconstructed input.
+	 */
+	private function has_tool_history( array $input ): bool {
+		foreach ( $input as $item ) {
+			if ( in_array( $item['type'] ?? '', array( 'function_call', 'function_call_output', 'reasoning' ), true ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -97,6 +208,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @param Message[] $prompt Prompt messages.
 	 * @phpstan-param list<Message> $prompt
 	 * @return array<string, mixed>
+	 * @phpstan-return array{model: string, input: list<array<string, mixed>>, ...}
 	 */
 	protected function prepare_responses_params( array $prompt ): array {
 		$config = $this->getConfig();
@@ -136,14 +248,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$params['parallel_tool_calls'] = false;
 		}
 
-		foreach ( $config->getCustomOptions() as $key => $value ) {
+		foreach ( array_keys( $config->getCustomOptions() ) as $key ) {
 			if ( isset( $params[ $key ] ) ) {
 				throw new InvalidArgumentException( sprintf( 'The custom option "%s" conflicts with an existing Responses parameter.', esc_html( (string) $key ) ) );
 			}
-			$params[ $key ] = $value;
 		}
 
-		return $params;
+		return array_merge( $config->getCustomOptions(), $params );
 	}
 
 	/**
@@ -243,6 +354,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 		$immediate_function_names = $this->immediate_tool_function_names();
 		$groups                   = array();
+		$has_deferred_tools       = false;
 		foreach ( $declarations as $declaration ) {
 			if ( ! $declaration instanceof FunctionDeclaration ) {
 				continue;
@@ -250,7 +362,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 			$function_name    = $declaration->getName();
 			$key              = $this->namespace_key_for_function( $function_name );
-			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, ! isset( $immediate_function_names[ $function_name ] ) );
+			$deferred         = ! isset( $immediate_function_names[ $function_name ] );
+			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, $deferred );
+
+			$has_deferred_tools = $has_deferred_tools || $deferred;
 		}
 
 		$tools = array();
@@ -267,7 +382,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			}
 		}
 
-		if ( ! empty( $tools ) ) {
+		if ( $has_deferred_tools ) {
 			$tools[] = array( 'type' => 'tool_search' );
 		}
 
@@ -495,7 +610,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			return false;
 		}
 
-		return (bool) preg_match( '/\b(tool_search|defer_loading|responses|unsupported|unknown parameter)\b/i', $e->getMessage() );
+		return (bool) preg_match( '/\b(tool_search|defer_loading|previous_response_id|responses|unsupported|unknown parameter)\b/i', $e->getMessage() );
 	}
 
 	/**
@@ -506,7 +621,11 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 */
 	private function generate_chat_completions_fallback( array $prompt ): GenerativeAiResult {
 		$fallback = new SuperdavAiTextGenerationModel( $this->metadata(), $this->providerMetadata() );
-		$fallback->setConfig( $this->getConfig() );
+		$config   = clone $this->getConfig();
+		$options  = $config->getCustomOptions();
+		unset( $options['previous_response_id'] );
+		$config->setCustomOptions( $options );
+		$fallback->setConfig( $config );
 		$fallback->setHttpTransporter( $this->getHttpTransporter() );
 		$fallback->setRequestAuthentication( $this->getRequestAuthentication() );
 

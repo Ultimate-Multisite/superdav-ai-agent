@@ -245,6 +245,49 @@ describe( 'Elementor editor MCP bridge', () => {
 		expect( execute ).toHaveBeenCalledTimes( 1 );
 	} );
 
+	test( 'accepts nested official Elementor style prop values', async () => {
+		const registerMcpAdapter = provideElementorApi();
+		const { bridge } = loadBridge();
+		bridge.installElementorEditorMcpBridge();
+		const adapter = getAdapter( registerMcpAdapter );
+		const execute = jest.fn().mockResolvedValue( { success: true } );
+		adapter.onToolRegistered( {
+			execute,
+			name: 'configure-element',
+		} );
+
+		const manifest = await bridge.listElementorEditorMcpCapabilities();
+		const result = await bridge.callElementorEditorMcpTool( {
+			arguments: {
+				elementId: 'section-42',
+				elementType: 'e-flexbox',
+				stylePropertiesToChange: {
+					padding: {
+						$$type: 'dimensions',
+						value: {
+							'block-start': {
+								$$type: 'size',
+								value: {
+									size: { $$type: 'number', value: 5 },
+									unit: { $$type: 'string', value: 'rem' },
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedDocumentFingerprint: manifest.fingerprint,
+			toolName: 'configure-element',
+		} );
+
+		expect( result ).toMatchObject( {
+			mutationPossible: false,
+			outcome: 'completed',
+			success: true,
+		} );
+		expect( execute ).toHaveBeenCalledTimes( 1 );
+	} );
+
 	test( 'rejects unsafe arguments and bounds dynamic tool output', async () => {
 		const registerMcpAdapter = provideElementorApi();
 		const { bridge } = loadBridge();

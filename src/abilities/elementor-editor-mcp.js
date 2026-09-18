@@ -17,6 +17,7 @@ const MAX_SELECTION_RESOURCES = 10;
 const MAX_TOOL_NAME_BYTES = 200;
 const MAX_RESOURCE_URI_BYTES = 2 * 1024;
 const MAX_ARGUMENT_BYTES = 64 * 1024;
+const MAX_INPUT_DEPTH = 12;
 const MAX_OUTPUT_BYTES = 60 * 1024;
 const MAX_OUTPUT_STRING_BYTES = 8 * 1024;
 const MAX_OUTPUT_DEPTH = 6;
@@ -706,7 +707,7 @@ function hasCurrentFingerprint( args, context ) {
  * @return {boolean} Whether the value contains only safe JSON values.
  */
 function hasSafeJsonKeys( value, depth = 0 ) {
-	if ( depth > MAX_OUTPUT_DEPTH ) {
+	if ( depth > MAX_INPUT_DEPTH ) {
 		return false;
 	}
 

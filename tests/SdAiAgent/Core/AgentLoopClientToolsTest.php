@@ -175,6 +175,9 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertFalse( $elementor_tool['annotations']['readonly'] );
 		$this->assertSame( array( 'toolName', 'arguments', 'expectedDocumentFingerprint' ), $elementor_tool['input_schema']['required'] );
 		$this->assertArrayHasKey( 'toolName', $elementor_tool['output_schema']['properties'] );
+		$this->assertSame( 'boolean', $elementor_tool['output_schema']['properties']['mutationPossible']['type'] );
+		$this->assertSame( 'string', $elementor_tool['output_schema']['properties']['outcome']['type'] );
+		$this->assertSame( array( 'not_started', 'completed', 'unknown' ), $elementor_tool['output_schema']['properties']['outcome']['enum'] );
 
 		$this->assertSame(
 			$map['sd-ai-agent-js/replace-editor-selection']['output_schema'],

@@ -17,6 +17,7 @@ const MAX_SELECTION_RESOURCES = 10;
 const MAX_TOOL_NAME_BYTES = 200;
 const MAX_RESOURCE_URI_BYTES = 2 * 1024;
 const MAX_ARGUMENT_BYTES = 64 * 1024;
+const MAX_INPUT_DEPTH = 12;
 const MAX_OUTPUT_BYTES = 60 * 1024;
 const MAX_OUTPUT_STRING_BYTES = 8 * 1024;
 const MAX_OUTPUT_DEPTH = 6;
@@ -30,6 +31,27 @@ const MAX_OUTPUT_NODES = 500;
  */
 function emptyDocument() {
 	return { id: '', origin: '', path: '' };
+}
+
+/**
+ * Create a page-local opaque token that models can copy without normalizing it
+ * as a URL. The token is a stale-document guard, not an authentication secret.
+ *
+ * @return {string} Opaque document fingerprint.
+ */
+function createOpaqueDocumentFingerprint() {
+	const values = new Uint32Array( 4 );
+	if ( window.crypto?.getRandomValues ) {
+		window.crypto.getRandomValues( values );
+	} else {
+		for ( let index = 0; index < values.length; index++ ) {
+			values[ index ] = Math.floor( Math.random() * 0x100000000 );
+		}
+	}
+
+	return `elementor-document-${ Array.from( values )
+		.map( ( value ) => value.toString( 16 ).padStart( 8, '0' ) )
+		.join( '' ) }`;
 }
 
 /**
@@ -237,12 +259,24 @@ function getDocumentContext() {
 			origin: url.origin,
 			path: url.pathname,
 		};
+		const identity = `${ document.origin }\n${ document.path }\n${ document.id }`;
+		const state = getBridgeState();
+		if ( ! state ) {
+			throw new Error( 'bridge_state_unavailable' );
+		}
+		if (
+			state.issuedDocumentIdentity !== identity ||
+			! state.issuedDocumentFingerprint
+		) {
+			state.issuedDocumentIdentity = identity;
+			state.issuedDocumentFingerprint = createOpaqueDocumentFingerprint();
+		}
 
 		return {
 			available: true,
 			reason: '',
 			document,
-			fingerprint: `elementor:${ document.origin }:${ document.path }:${ id }`,
+			fingerprint: state.issuedDocumentFingerprint,
 		};
 	} catch ( _error ) {
 		return {
@@ -267,6 +301,8 @@ function createBridgeState() {
 		documentFingerprint: '',
 		failureReason: '',
 		installed: false,
+		issuedDocumentFingerprint: '',
+		issuedDocumentIdentity: '',
 		listenersAttached: false,
 		resources: new Map(),
 		tools: new Map(),
@@ -332,6 +368,8 @@ function clearRegistrations( state, deactivate = false ) {
 	state.tools.clear();
 	state.resources.clear();
 	state.documentFingerprint = '';
+	state.issuedDocumentFingerprint = '';
+	state.issuedDocumentIdentity = '';
 	state.truncatedTools = false;
 	state.truncatedResources = false;
 	if ( deactivate ) {
@@ -669,7 +707,7 @@ function hasCurrentFingerprint( args, context ) {
  * @return {boolean} Whether the value contains only safe JSON values.
  */
 function hasSafeJsonKeys( value, depth = 0 ) {
-	if ( depth > MAX_OUTPUT_DEPTH ) {
+	if ( depth > MAX_INPUT_DEPTH ) {
 		return false;
 	}
 
@@ -831,6 +869,8 @@ export async function callElementorEditorMcpTool( args = {} ) {
 		success: false,
 		toolName,
 		truncated: false,
+		mutationPossible: false,
+		outcome: 'not_started',
 	};
 
 	if ( ! context.available ) {
@@ -867,6 +907,8 @@ export async function callElementorEditorMcpTool( args = {} ) {
 			result: bounded.value,
 			success: ! isError,
 			truncated: bounded.truncated,
+			mutationPossible: isError,
+			outcome: isError ? 'unknown' : 'completed',
 		};
 	} catch ( error ) {
 		const message = truncateText(
@@ -876,8 +918,10 @@ export async function callElementorEditorMcpTool( args = {} ) {
 		return {
 			...base,
 			error: message.value,
-			reason: 'tool_failed',
+			reason: 'tool_outcome_unknown',
 			truncated: message.truncated,
+			mutationPossible: true,
+			outcome: 'unknown',
 		};
 	}
 }
@@ -1032,7 +1076,7 @@ export async function registerElementorEditorMcpAbilities() {
 		name: 'sd-ai-agent-js/call-elementor-editor-mcp-tool',
 		label: 'Call Elementor Editor MCP Tool',
 		description:
-			'Call a currently advertised Elementor editor MCP tool only after Superdav confirmation and only when the supplied document fingerprint still matches.',
+			'Call a currently advertised Elementor editor MCP tool only after Superdav confirmation and only when the supplied document fingerprint still matches. If outcome is unknown, inspect the current document before retrying because the tool may have mutated it before failing.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -1065,6 +1109,11 @@ export async function registerElementorEditorMcpAbilities() {
 				success: { type: 'boolean' },
 				toolName: { type: 'string' },
 				truncated: { type: 'boolean' },
+				mutationPossible: { type: 'boolean' },
+				outcome: {
+					type: 'string',
+					enum: [ 'not_started', 'completed', 'unknown' ],
+				},
 			},
 		},
 		annotations: { readonly: false },

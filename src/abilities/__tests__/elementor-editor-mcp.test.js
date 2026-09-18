@@ -146,6 +146,9 @@ describe( 'Elementor editor MCP bridge', () => {
 		);
 
 		const manifest = await bridge.listElementorEditorMcpCapabilities();
+		expect( manifest.fingerprint ).toMatch(
+			/^elementor-document-[a-f0-9]{32}$/
+		);
 		expect( manifest ).toMatchObject( {
 			available: true,
 			tools: [
@@ -192,6 +195,8 @@ describe( 'Elementor editor MCP bridge', () => {
 		} );
 		expect( toolResult ).toMatchObject( {
 			documentFingerprint: manifest.fingerprint,
+			mutationPossible: false,
+			outcome: 'completed',
 			result: { updated: true },
 			success: true,
 		} );
@@ -205,6 +210,81 @@ describe( 'Elementor editor MCP bridge', () => {
 			toolName: 'elementor.update-selected-section',
 		} );
 		expect( stale.reason ).toBe( 'stale_document' );
+		expect( execute ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	test( 'reports thrown mutating tool outcomes as unknown', async () => {
+		const registerMcpAdapter = provideElementorApi();
+		const { bridge } = loadBridge();
+		bridge.installElementorEditorMcpBridge();
+		const adapter = getAdapter( registerMcpAdapter );
+		const execute = jest
+			.fn()
+			.mockRejectedValue(
+				new Error( 'Cannot convert undefined to object' )
+			);
+		adapter.onToolRegistered( {
+			execute,
+			name: 'elementor.partial-mutation',
+		} );
+
+		const manifest = await bridge.listElementorEditorMcpCapabilities();
+		const result = await bridge.callElementorEditorMcpTool( {
+			arguments: {},
+			expectedDocumentFingerprint: manifest.fingerprint,
+			toolName: 'elementor.partial-mutation',
+		} );
+
+		expect( result ).toMatchObject( {
+			error: 'Cannot convert undefined to object',
+			mutationPossible: true,
+			outcome: 'unknown',
+			reason: 'tool_outcome_unknown',
+			success: false,
+		} );
+		expect( execute ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	test( 'accepts nested official Elementor style prop values', async () => {
+		const registerMcpAdapter = provideElementorApi();
+		const { bridge } = loadBridge();
+		bridge.installElementorEditorMcpBridge();
+		const adapter = getAdapter( registerMcpAdapter );
+		const execute = jest.fn().mockResolvedValue( { success: true } );
+		adapter.onToolRegistered( {
+			execute,
+			name: 'configure-element',
+		} );
+
+		const manifest = await bridge.listElementorEditorMcpCapabilities();
+		const result = await bridge.callElementorEditorMcpTool( {
+			arguments: {
+				elementId: 'section-42',
+				elementType: 'e-flexbox',
+				stylePropertiesToChange: {
+					padding: {
+						$$type: 'dimensions',
+						value: {
+							'block-start': {
+								$$type: 'size',
+								value: {
+									size: { $$type: 'number', value: 5 },
+									unit: { $$type: 'string', value: 'rem' },
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedDocumentFingerprint: manifest.fingerprint,
+			toolName: 'configure-element',
+		} );
+
+		expect( result ).toMatchObject( {
+			mutationPossible: false,
+			outcome: 'completed',
+			success: true,
+		} );
 		expect( execute ).toHaveBeenCalledTimes( 1 );
 	} );
 
@@ -250,9 +330,9 @@ describe( 'Elementor editor MCP bridge', () => {
 			name: 'elementor.document-42',
 		} );
 
-		expect(
-			( await bridge.listElementorEditorMcpCapabilities() ).tools
-		).toHaveLength( 1 );
+		const initialManifest =
+			await bridge.listElementorEditorMcpCapabilities();
+		expect( initialManifest.tools ).toHaveLength( 1 );
 		window.history.replaceState(
 			{},
 			'',
@@ -261,6 +341,20 @@ describe( 'Elementor editor MCP bridge', () => {
 		expect(
 			( await bridge.listElementorEditorMcpCapabilities() ).tools
 		).toEqual( [] );
+		const nextFingerprint = ( await bridge.getElementorEditorMcpContext() )
+			.fingerprint;
+		expect( nextFingerprint ).not.toBe( initialManifest.fingerprint );
+		await expect(
+			bridge.callElementorEditorMcpTool( {
+				arguments: {},
+				expectedDocumentFingerprint: initialManifest.fingerprint,
+				toolName: 'elementor.document-42',
+			} )
+		).resolves.toMatchObject( {
+			documentFingerprint: nextFingerprint,
+			reason: 'stale_document',
+			success: false,
+		} );
 
 		adapter.onToolRegistered( {
 			execute: jest.fn(),

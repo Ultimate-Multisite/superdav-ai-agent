@@ -33,6 +33,27 @@ function emptyDocument() {
 }
 
 /**
+ * Create a page-local opaque token that models can copy without normalizing it
+ * as a URL. The token is a stale-document guard, not an authentication secret.
+ *
+ * @return {string} Opaque document fingerprint.
+ */
+function createOpaqueDocumentFingerprint() {
+	const values = new Uint32Array( 4 );
+	if ( window.crypto?.getRandomValues ) {
+		window.crypto.getRandomValues( values );
+	} else {
+		for ( let index = 0; index < values.length; index++ ) {
+			values[ index ] = Math.floor( Math.random() * 0x100000000 );
+		}
+	}
+
+	return `elementor-document-${ Array.from( values )
+		.map( ( value ) => value.toString( 16 ).padStart( 8, '0' ) )
+		.join( '' ) }`;
+}
+
+/**
  * Determine whether a value can be handled as a JSON object.
  *
  * @param {*} value Candidate value.
@@ -237,12 +258,24 @@ function getDocumentContext() {
 			origin: url.origin,
 			path: url.pathname,
 		};
+		const identity = `${ document.origin }\n${ document.path }\n${ document.id }`;
+		const state = getBridgeState();
+		if ( ! state ) {
+			throw new Error( 'bridge_state_unavailable' );
+		}
+		if (
+			state.issuedDocumentIdentity !== identity ||
+			! state.issuedDocumentFingerprint
+		) {
+			state.issuedDocumentIdentity = identity;
+			state.issuedDocumentFingerprint = createOpaqueDocumentFingerprint();
+		}
 
 		return {
 			available: true,
 			reason: '',
 			document,
-			fingerprint: `elementor:${ document.origin }:${ document.path }:${ id }`,
+			fingerprint: state.issuedDocumentFingerprint,
 		};
 	} catch ( _error ) {
 		return {
@@ -267,6 +300,8 @@ function createBridgeState() {
 		documentFingerprint: '',
 		failureReason: '',
 		installed: false,
+		issuedDocumentFingerprint: '',
+		issuedDocumentIdentity: '',
 		listenersAttached: false,
 		resources: new Map(),
 		tools: new Map(),
@@ -332,6 +367,8 @@ function clearRegistrations( state, deactivate = false ) {
 	state.tools.clear();
 	state.resources.clear();
 	state.documentFingerprint = '';
+	state.issuedDocumentFingerprint = '';
+	state.issuedDocumentIdentity = '';
 	state.truncatedTools = false;
 	state.truncatedResources = false;
 	if ( deactivate ) {
@@ -831,6 +868,8 @@ export async function callElementorEditorMcpTool( args = {} ) {
 		success: false,
 		toolName,
 		truncated: false,
+		mutationPossible: false,
+		outcome: 'not_started',
 	};
 
 	if ( ! context.available ) {
@@ -867,6 +906,8 @@ export async function callElementorEditorMcpTool( args = {} ) {
 			result: bounded.value,
 			success: ! isError,
 			truncated: bounded.truncated,
+			mutationPossible: isError,
+			outcome: isError ? 'unknown' : 'completed',
 		};
 	} catch ( error ) {
 		const message = truncateText(
@@ -876,8 +917,10 @@ export async function callElementorEditorMcpTool( args = {} ) {
 		return {
 			...base,
 			error: message.value,
-			reason: 'tool_failed',
+			reason: 'tool_outcome_unknown',
 			truncated: message.truncated,
+			mutationPossible: true,
+			outcome: 'unknown',
 		};
 	}
 }
@@ -1032,7 +1075,7 @@ export async function registerElementorEditorMcpAbilities() {
 		name: 'sd-ai-agent-js/call-elementor-editor-mcp-tool',
 		label: 'Call Elementor Editor MCP Tool',
 		description:
-			'Call a currently advertised Elementor editor MCP tool only after Superdav confirmation and only when the supplied document fingerprint still matches.',
+			'Call a currently advertised Elementor editor MCP tool only after Superdav confirmation and only when the supplied document fingerprint still matches. If outcome is unknown, inspect the current document before retrying because the tool may have mutated it before failing.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -1065,6 +1108,11 @@ export async function registerElementorEditorMcpAbilities() {
 				success: { type: 'boolean' },
 				toolName: { type: 'string' },
 				truncated: { type: 'boolean' },
+				mutationPossible: { type: 'boolean' },
+				outcome: {
+					type: 'string',
+					enum: [ 'not_started', 'completed', 'unknown' ],
+				},
 			},
 		},
 		annotations: { readonly: false },

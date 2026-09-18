@@ -3458,9 +3458,10 @@ class AgentLoopTest extends WP_UnitTestCase {
 
 	/** Confirmed nested browser calls must carry approval across ability-call routing. */
 	public function test_confirmation_resume_marks_nested_client_call_as_confirmed(): void {
-		$ability_name = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
-		$catalog      = JsAbilityCatalog::get_descriptors_by_name();
-		$loop         = new ScriptedAgentLoop(
+		$ability_name            = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
+		$unapproved_ability_name = 'sd-ai-agent-js/insert-block';
+		$catalog                 = JsAbilityCatalog::get_descriptors_by_name();
+		$loop                    = new ScriptedAgentLoop(
 			'',
 			array(),
 			array(
@@ -3477,14 +3478,29 @@ class AgentLoopTest extends WP_UnitTestCase {
 										'toolName' => 'build-compositions',
 									),
 								)
+								)
+							),
+							new MessagePart(
+								new FunctionCall(
+									'call_unconfirmed_insert',
+									'sd-ai-agent/ability-call',
+									array(
+										'ability'   => $unapproved_ability_name,
+										'arguments' => array(
+											'blockName' => 'core/paragraph',
+										),
+									)
+								)
 							)
-						)
 					)
 				),
 			),
 			array(
 				'approved_once_abilities' => array( $ability_name ),
-				'client_abilities'        => array( $catalog[ $ability_name ] ),
+				'client_abilities'        => array(
+					$catalog[ $ability_name ],
+					$catalog[ $unapproved_ability_name ],
+				),
 			),
 			array()
 		);
@@ -3495,6 +3511,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd-ai-agent/ability-call', $result['pending_client_tool_calls'][0]['name'] );
 		$this->assertSame( $ability_name, $result['pending_client_tool_calls'][0]['client_name'] );
 		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['pending_client_tool_calls'][1]['name'] );
+		$this->assertSame( $unapproved_ability_name, $result['pending_client_tool_calls'][1]['client_name'] );
+		$this->assertArrayNotHasKey( 'user_confirmed', $result['pending_client_tool_calls'][1] );
 	}
 
 	/** Server-approved browser writes carry authorization without weakening disabled tools. */

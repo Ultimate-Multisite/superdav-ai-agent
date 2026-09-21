@@ -372,6 +372,54 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assert_status( 403, $forbidden );
 	}
 
+	/** CSV attachments reach the agent as bounded context without retaining their data URL. */
+	public function test_csv_attachment_is_available_to_the_agent_without_raw_data_url(): void {
+		$session_id     = $this->create_session();
+		$block_loopback = static function () {
+			return [
+				'headers'  => [],
+				'body'     => '',
+				'response' => [ 'code' => 200, 'message' => 'OK' ],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $block_loopback, 10, 3 );
+		try {
+			$response = $this->dispatch(
+				'POST',
+				'/sd-ai-agent/v1/run',
+				[
+					'message'      => 'Update product categories from the attached CSV.',
+					'session_id'   => $session_id,
+					'attachments'  => [
+						[
+							'name'     => 'product-categories.csv',
+							'type'     => 'text/csv',
+							'data_url' => 'data:text/csv;base64,c2t1LGNhdGVnb3J5ClAxLFNob2Vz',
+							'is_image' => false,
+						],
+					],
+				]
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $block_loopback, 10 );
+		}
+
+		$this->assert_status( 202, $response );
+		$job_id = (string) $response->get_data()['job_id'];
+		$job    = get_transient( RestController::JOB_PREFIX . $job_id );
+		$this->assertIsArray( $job );
+		$this->assertArrayNotHasKey( 'data_url', $job['params']['attachments'][0] );
+		$this->assertStringContainsString(
+			"sku,category\nP1,Shoes",
+			RestController::get_agent_attachment_context( $job['params']['attachments'] )
+		);
+
+		delete_transient( RestController::JOB_PREFIX . $job_id );
+		ActiveJobRepository::delete( $job_id );
+	}
+
 	/** A durable phase remains queued in storage until its worker claims it. */
 	public function test_durable_plan_continue_queues_the_worker_until_process_claims_it(): void {
 		$session_id = $this->create_session();

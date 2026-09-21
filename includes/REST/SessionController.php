@@ -3902,9 +3902,17 @@ final class SessionController {
 				// error to the user when the key is merely absent.
 				$result = $loop->resume_after_confirmation( $confirmed, (int) ( $state['iterations_remaining'] ?? 100 ) );
 			} else {
-				$abilities = $params['abilities'] ?? array();
+				$abilities          = $params['abilities'] ?? array();
+				$attachments        = $params['attachments'] ?? array();
+				$attachment_context = RestController::get_agent_attachment_context(
+					is_array( $attachments ) ? $attachments : array()
+				);
+				$user_message       = (string) $params['message'];
+				if ( '' !== $attachment_context ) {
+					$user_message .= "\n\n" . $attachment_context;
+				}
 				// @phpstan-ignore-next-line
-				$loop   = new AgentLoop( (string) $params['message'], is_array( $abilities ) ? $abilities : array(), $history, $options );
+				$loop   = new AgentLoop( $user_message, is_array( $abilities ) ? $abilities : array(), $history, $options );
 				$result = $loop->run();
 			}
 		} catch ( \Throwable $e ) {

@@ -166,7 +166,10 @@ export default function WidgetPanel( {
 		[ isMinimized, dragMoved, setFloatingMinimized ]
 	);
 
-	const showEmpty = messageCount === 0 && ! sending;
+	// Automatic onboarding owns the first turn. Do not flash the generic greeting
+	// and suggestion cards while the bootstrap session opens and sends its kickoff.
+	const showEmpty =
+		messageCount === 0 && ! sending && ! frontendOnboardingMode;
 
 	const panelStyle = {};
 	if ( position && ! frontendOnboardingMode ) {

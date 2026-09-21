@@ -54,18 +54,6 @@ export function isFrontendOnboardingEnabled( data ) {
 }
 
 /**
- * Detect whether the viewport should prefer a minimized mobile build view.
- *
- * @return {boolean} True for narrow screens.
- */
-export function isMobileViewport() {
-	return (
-		typeof window !== 'undefined' &&
-		window.matchMedia?.( '(max-width: 600px)' )?.matches === true
-	);
-}
-
-/**
  * Whether live job activity contains a site-mutating response.
  *
  * The live-preview reflection bus uses `response.affected` as the contract for
@@ -170,43 +158,6 @@ export function openHydrated( sessions, sessionJobs, openSession, isCurrent ) {
 }
 
 /**
- * Determine whether first-run frontend onboarding may start.
- *
- * Onboarding must wait until sessions have loaded. Otherwise a reload during a
- * real submitted build can briefly look empty and bootstrap a fresh setup
- * session before the existing conversation list arrives.
- *
- * @param {Object}  options
- * @param {boolean} options.enabled          Frontend onboarding flag.
- * @param {boolean} options.started          Whether this page already started onboarding.
- * @param {boolean} options.providersLoaded  Whether providers finished loading.
- * @param {number}  options.providerCount    Number of available providers.
- * @param {boolean} options.sessionsLoaded   Whether sessions finished loading.
- * @param {number}  options.sessionCount     Number of existing sessions.
- * @param {?number} options.currentSessionId Currently opened session ID.
- * @return {boolean} True when it is safe to create the setup session.
- */
-export function shouldStartFrontendOnboarding( {
-	enabled,
-	started,
-	providersLoaded,
-	providerCount,
-	sessionsLoaded,
-	sessionCount,
-	currentSessionId,
-} ) {
-	return (
-		!! enabled &&
-		! started &&
-		!! providersLoaded &&
-		providerCount > 0 &&
-		!! sessionsLoaded &&
-		sessionCount === 0 &&
-		! currentSessionId
-	);
-}
-
-/**
  * Start frontend onboarding and send its first message when appropriate.
  *
  * @param {Object}   options                    Start options.
@@ -214,15 +165,13 @@ export function shouldStartFrontendOnboarding( {
  * @param {Function} options.openSession        Store action to open a session.
  * @param {Function} options.sendMessage        Store action to send a message.
  * @param {Function} options.setSelectedAgentId Store action to select an agent.
- * @param {string}   options.fallbackMessage    Message used when REST omits one.
- * @return {Promise<Object|null>} Start metadata, or null if no session returned.
+ * @return {Promise<boolean|null>} Whether a kickoff was sent, or null without a session.
  */
 export async function startOnboarding( {
 	apiFetch = defaultApiFetch,
 	openSession,
 	sendMessage,
 	setSelectedAgentId,
-	fallbackMessage = "Hi! I'm ready to set up this site.",
 } ) {
 	const data = await apiFetch( {
 		path: ONBOARDING_START_PATH,
@@ -239,9 +188,11 @@ export async function startOnboarding( {
 
 	await openSession( data.session_id );
 
-	await sendMessage( data.kickoff_message || fallbackMessage );
+	const shouldSendKickoff = data.kickoff_required !== false;
 
-	return {
-		data,
-	};
+	if ( shouldSendKickoff ) {
+		await sendMessage( data.kickoff_message || 'Start setup.' );
+	}
+
+	return shouldSendKickoff;
 }

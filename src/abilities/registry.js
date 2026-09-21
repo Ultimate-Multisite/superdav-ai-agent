@@ -128,6 +128,33 @@ function recordCoreRegistrationFailure( registry, error ) {
 }
 
 /**
+ * Detect the category-hydration failure emitted when another provider leaves
+ * the shared core abilities store in an unusable state.
+ *
+ * @param {*} error Registration error.
+ * @return {boolean} True when core category hydration failed.
+ */
+function isCoreCategoryHydrationFailure( error ) {
+	const message =
+		error instanceof Error ? error.message : String( error || '' );
+
+	return /references non-existent category/i.test( message );
+}
+
+/**
+ * Detect an idempotent category-registration result from the core store.
+ *
+ * @param {*} error Registration error.
+ * @return {boolean} True when the category was already registered.
+ */
+function isDuplicateCategoryError( error ) {
+	const message =
+		error instanceof Error ? error.message : String( error || '' );
+
+	return /category.+already registered/i.test( message );
+}
+
+/**
  * Detect whether the WP 7.0 abilities API is available on this page.
  *
  * @return {boolean} True when wp.abilities is loaded and exposes the
@@ -224,7 +251,16 @@ export async function registerCategory() {
 					description: CATEGORY_DESCRIPTION,
 				} );
 			} catch ( error ) {
-				recordCoreRegistrationFailure( registry, error );
+				// A second bundle or core may have registered this category first.
+				// Treat that idempotent result as success. Other individual category
+				// validation failures must not disable later ability registrations.
+				if ( isDuplicateCategoryError( error ) ) {
+					return;
+				}
+
+				if ( isCoreCategoryHydrationFailure( error ) ) {
+					recordCoreRegistrationFailure( registry, error );
+				}
 			}
 		} )();
 
@@ -318,7 +354,8 @@ export async function registerClientAbility( def ) {
 			},
 		} );
 	} catch ( error ) {
-		recordCoreRegistrationFailure( registry, error );
+		// Ability registration is independent. A duplicate, validation error, or
+		// provider failure for this definition must not block later abilities.
 	}
 }
 

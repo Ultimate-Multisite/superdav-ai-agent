@@ -56,8 +56,11 @@ const CATEGORY_DESCRIPTION = __(
 const WIN_REGISTRY_KEY = '__sdAiAgentClientAbilityRegistry';
 
 /**
- * Single category-registration Promise for this module instance. Cross-bundle
- * category registration is already coordinated by index.js.
+ * Single category-registration Promise for this module instance.
+ *
+ * The page registry also stores this promise, which makes category
+ * registration safe when separate webpack bundles evaluate their own copy of
+ * this module before (or independently from) the index.js coordinator.
  *
  * @type {Promise<void>|null}
  */
@@ -77,16 +80,51 @@ function getPageRegistry() {
 	const page = window;
 
 	if ( page[ WIN_REGISTRY_KEY ] ) {
-		return page[ WIN_REGISTRY_KEY ];
+		const registry = page[ WIN_REGISTRY_KEY ];
+		// Preserve state published by an earlier compatible bundle revision while
+		// adding bootstrap state introduced by a newer one.
+		registry.categoryRegistrationPromise ??= null;
+		registry.coreRegistrationFailed ??= false;
+		registry.coreRegistrationDiagnosticEmitted ??= false;
+
+		return registry;
 	}
 
 	page[ WIN_REGISTRY_KEY ] = {
 		n: new Set(),
 		c: new Map(),
 		d: new Map(),
+		categoryRegistrationPromise: null,
+		coreRegistrationFailed: false,
+		coreRegistrationDiagnosticEmitted: false,
 	};
 
 	return page[ WIN_REGISTRY_KEY ];
+}
+
+/**
+ * Record one core-store bootstrap failure without disabling the local
+ * client-ability fallback. A malformed third-party ability can cause core's
+ * initial ability hydration to reject; retrying every local registration
+ * against that same broken store only repeats the provider error.
+ *
+ * @param {Object} registry Shared page registry.
+ * @param {*}      error    Core registration failure.
+ * @return {void}
+ */
+function recordCoreRegistrationFailure( registry, error ) {
+	registry.coreRegistrationFailed = true;
+
+	if ( registry.coreRegistrationDiagnosticEmitted ) {
+		return;
+	}
+
+	registry.coreRegistrationDiagnosticEmitted = true;
+	// eslint-disable-next-line no-console
+	console.warn(
+		'[sd-ai-agent] WordPress abilities registration failed; local client abilities remain available.',
+		error
+	);
 }
 
 /**
@@ -148,41 +186,47 @@ async function waitForAbilitiesApi( maxWaitMs = 30_000 ) {
  * @return {Promise<void>}
  */
 export async function registerCategory() {
-	if ( categoryRegistrationPromise ) {
+	const registry = getPageRegistry();
+	if ( registry.categoryRegistrationPromise ) {
+		categoryRegistrationPromise = registry.categoryRegistrationPromise;
 		return categoryRegistrationPromise;
+	}
+
+	if ( registry.coreRegistrationFailed ) {
+		return;
 	}
 
 	// Set the promise immediately — before any awaits — to prevent concurrent
 	// callers from racing into this function and launching duplicate registrations.
 	// The async body inside will wait for wp.abilities to become available.
-	categoryRegistrationPromise = ( async () => {
-		// Wait for @wordpress/core-abilities to populate wp.abilities. This
-		// handles the race condition where floating-widget.js (regular deferred
-		// script) runs before the @wordpress/core-abilities script module has
-		// executed. Previously we returned early with `undefined`, which left
-		// categoryRegistrationPromise null and silently skipped all ability
-		// registration with no retry path.
-		await waitForAbilitiesApi();
+	categoryRegistrationPromise = registry.categoryRegistrationPromise =
+		( async () => {
+			// Wait for @wordpress/core-abilities to populate wp.abilities. This
+			// handles the race condition where floating-widget.js (regular deferred
+			// script) runs before the @wordpress/core-abilities script module has
+			// executed. Previously we returned early with `undefined`, which left
+			// categoryRegistrationPromise null and silently skipped all ability
+			// registration with no retry path.
+			await waitForAbilitiesApi();
 
-		if ( ! abilitiesApiAvailable() ) {
-			// API never became available (e.g. not a WP 7.0+ site). Skip silently.
-			// Clear the module value so a later call can retry after the core
-			// script module becomes available.
-			categoryRegistrationPromise = null;
-			return;
-		}
+			if ( ! abilitiesApiAvailable() ) {
+				// API never became available (e.g. not a WP 7.0+ site). Skip silently.
+				// Clear the module value so a later call can retry after the core
+				// script module becomes available.
+				categoryRegistrationPromise = null;
+				registry.categoryRegistrationPromise = null;
+				return;
+			}
 
-		try {
-			await wp.abilities.registerAbilityCategory( CATEGORY_SLUG, {
-				label: CATEGORY_LABEL,
-				description: CATEGORY_DESCRIPTION,
-			} );
-		} catch ( _err ) {
-			// Already registered by another bundle on the same page —
-			// safe to ignore. Both bundles will continue to register
-			// their abilities into the same shared category.
-		}
-	} )();
+			try {
+				await wp.abilities.registerAbilityCategory( CATEGORY_SLUG, {
+					label: CATEGORY_LABEL,
+					description: CATEGORY_DESCRIPTION,
+				} );
+			} catch ( error ) {
+				recordCoreRegistrationFailure( registry, error );
+			}
+		} )();
 
 	return categoryRegistrationPromise;
 }
@@ -244,6 +288,13 @@ export async function registerClientAbility( def ) {
 		annotations: def.annotations || {},
 	} );
 
+	// A malformed third-party ability can make core's shared hydration reject.
+	// Keep the local callback and descriptor available, but do not make each
+	// remaining Superdav ability restart the same failing core request.
+	if ( registry.coreRegistrationFailed ) {
+		return;
+	}
+
 	// The WP 7.0 store is only updated when the abilities API is present
 	// on this page. If it is not, the local callback above is sufficient
 	// to keep client-side tool execution working; snapshotDescriptors()
@@ -266,10 +317,8 @@ export async function registerClientAbility( def ) {
 				annotations: def.annotations || {},
 			},
 		} );
-	} catch ( _err ) {
-		// Already registered by another bundle on the same page — fine.
-		// We've already added it to registeredAbilityNames so we won't
-		// retry from this module instance.
+	} catch ( error ) {
+		recordCoreRegistrationFailure( registry, error );
 	}
 }
 

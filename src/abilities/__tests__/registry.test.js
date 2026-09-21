@@ -121,6 +121,91 @@ describe( 'registry — sd-ai-86a regression', () => {
 		expect( registerAbility ).toHaveBeenCalledTimes( 1 );
 	} );
 
+	test( 'registers the category once between webpack module instances', async () => {
+		const registerAbilityCategory = jest
+			.fn()
+			.mockResolvedValue( undefined );
+		global.wp = {
+			abilities: {
+				registerAbility: jest.fn().mockResolvedValue( undefined ),
+				registerAbilityCategory,
+			},
+		};
+		const firstBundle = loadRegistry();
+		const secondBundle = loadRegistry();
+
+		await Promise.all( [
+			firstBundle.registerCategory(),
+			secondBundle.registerCategory(),
+		] );
+
+		expect( registerAbilityCategory ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	test( 'keeps local abilities available after a malformed provider breaks core registration', async () => {
+		const providerError = new Error(
+			'Ability "wpforms/list-forms" references non-existent category "wpforms-forms".'
+		);
+		const registerAbilityCategory = jest
+			.fn()
+			.mockRejectedValue( providerError );
+		const registerAbility = jest.fn().mockResolvedValue( undefined );
+		const warning = jest
+			.spyOn( console, 'warn' )
+			.mockImplementation( () => {} );
+		global.wp = {
+			abilities: {
+				registerAbility,
+				registerAbilityCategory,
+			},
+		};
+		const firstBundle = loadRegistry();
+		const secondBundle = loadRegistry();
+		const callback = jest.fn().mockResolvedValue( { available: true } );
+
+		await firstBundle.registerCategory();
+		await firstBundle.registerClientAbility( {
+			name: 'sd-ai-agent-js/first-local-fallback',
+			label: 'First local fallback',
+			description: 'Works when core registration fails',
+			inputSchema: { type: 'object' },
+			outputSchema: { type: 'object' },
+			annotations: { readonly: true },
+			callback,
+		} );
+		await secondBundle.registerCategory();
+		await secondBundle.registerClientAbility( {
+			name: 'sd-ai-agent-js/second-local-fallback',
+			label: 'Second local fallback',
+			description: 'Does not retry the broken core store',
+			inputSchema: { type: 'object' },
+			outputSchema: { type: 'object' },
+			annotations: { readonly: true },
+			callback: jest.fn(),
+		} );
+
+		expect( registerAbilityCategory ).toHaveBeenCalledTimes( 1 );
+		expect( registerAbility ).not.toHaveBeenCalled();
+		expect( warning ).toHaveBeenCalledTimes( 1 );
+		await expect(
+			secondBundle.executeClientAbility(
+				'sd-ai-agent-js/first-local-fallback',
+				{}
+			)
+		).resolves.toEqual( { available: true } );
+		await expect( secondBundle.snapshotDescriptors() ).resolves.toEqual(
+			expect.arrayContaining( [
+				expect.objectContaining( {
+					name: 'sd-ai-agent-js/first-local-fallback',
+				} ),
+				expect.objectContaining( {
+					name: 'sd-ai-agent-js/second-local-fallback',
+				} ),
+			] )
+		);
+		warning.mockRestore();
+	} );
+
 	test( 'registerClientAbility stores callback locally even when wp.abilities is undefined', async () => {
 		// Simulate a page where @wordpress/abilities never loaded.
 		delete global.wp;

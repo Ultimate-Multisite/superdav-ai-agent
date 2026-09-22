@@ -1,26 +1,11 @@
 /**
- * Unit tests for src/abilities/registry.js
- *
- * Tests cover the sd-ai-86a regression: the local clientCallbacks map must
- * be populated even when the WP 7.0 `@wordpress/abilities` script module has
- * not loaded on the page, so that jobSlice's executeClientAbility() can still
- * invoke screenshot-url, navigate-to, capture-screenshot, and insert-block
- * when the chat job returns pending_client_tool_calls.
- *
- * Bug history:
- *   - registerClientAbility() previously returned early (registry.js:189-192)
- *     when abilitiesApiAvailable() was false, before storing the callback in
- *     clientCallbacks. executeClientAbility() then threw
- *     'Client ability "X" is not registered on this page' even though the
- *     callback existed in the bundle.
- *   - Fix: store the local callback first, then gate only the
- *     wp.abilities.registerAbility() call on API availability.
+ * Unit tests for the page-local browser ability registry.
  */
 
 /**
- * Each test loads a fresh registry module via jest.isolateModules. The
- * page-global registry is cleared in beforeEach so tests avoid cross-test
- * bleed while still exercising the real registry code (not a mock).
+ * Load an isolated registry module instance.
+ *
+ * @return {Object} Registry exports.
  */
 function loadRegistry() {
 	let mod;
@@ -31,12 +16,10 @@ function loadRegistry() {
 	return mod;
 }
 
-const WIN_REGISTRY_KEY = '__sdAiAgentClientAbilityRegistry';
-
 /**
- * Load refresh-page and its matching registry module instance.
+ * Load refresh-page and its matching isolated registry instance.
  *
- * @return {{ refreshPage: Object, registry: Object }} Isolated modules.
+ * @return {{refreshPage: Object, registry: Object}} Module exports.
  */
 function loadRefreshPageAndRegistry() {
 	let refreshPage;
@@ -50,21 +33,25 @@ function loadRefreshPageAndRegistry() {
 	return { refreshPage, registry };
 }
 
-describe( 'registry — sd-ai-86a regression', () => {
+const WIN_REGISTRY_KEY = '__sdAiAgentClientAbilityRegistry';
+const WIN_API_KEY = 'sdAiAgentClientAbilities';
+
+describe( 'browser ability registry', () => {
 	let originalWp;
 
 	beforeEach( () => {
 		originalWp = global.wp;
 		delete window[ WIN_REGISTRY_KEY ];
+		delete window[ WIN_API_KEY ];
 	} );
 
 	afterEach( () => {
 		global.wp = originalWp;
 		delete window[ WIN_REGISTRY_KEY ];
+		delete window[ WIN_API_KEY ];
 	} );
 
-	test( 'shares callbacks and descriptors between webpack module instances without the WP API', async () => {
-		delete global.wp;
+	test( 'shares callbacks and descriptors between webpack module instances', async () => {
 		const firstBundle = loadRegistry();
 		const secondBundle = loadRegistry();
 		const callback = jest.fn().mockResolvedValue( { shared: true } );
@@ -93,351 +80,109 @@ describe( 'registry — sd-ai-86a regression', () => {
 		] );
 	} );
 
-	test( 'deduplicates WP ability registration between webpack module instances', async () => {
-		const registerAbility = jest.fn().mockResolvedValue( undefined );
-		global.wp = {
-			abilities: {
-				registerAbility,
-				registerAbilityCategory: jest
-					.fn()
-					.mockResolvedValue( undefined ),
-			},
+	test( 'does not hydrate or write to the shared WordPress abilities store', async () => {
+		const abilities = {
+			registerAbility: jest.fn(),
+			registerAbilityCategory: jest.fn(),
+			getAbilities: jest.fn(),
+			executeAbility: jest.fn(),
 		};
+		global.wp = { abilities };
+		const registry = loadRegistry();
+		const callback = jest.fn().mockResolvedValue( { local: true } );
+
+		await registry.registerCategory();
+		await registry.registerClientAbility( {
+			name: 'sd-ai-agent-js/local-only',
+			label: 'Local Only',
+			description: 'Never hydrates providers',
+			inputSchema: { type: 'object' },
+			outputSchema: { type: 'object' },
+			annotations: { readonly: true },
+			callback,
+		} );
+		await registry.snapshotDescriptors();
+		await registry.executeClientAbility( 'sd-ai-agent-js/local-only', {} );
+
+		expect( abilities.registerAbilityCategory ).not.toHaveBeenCalled();
+		expect( abilities.registerAbility ).not.toHaveBeenCalled();
+		expect( abilities.getAbilities ).not.toHaveBeenCalled();
+		expect( abilities.executeAbility ).not.toHaveBeenCalled();
+	} );
+
+	test( 'deduplicates local registration between bundle instances', async () => {
 		const firstBundle = loadRegistry();
 		const secondBundle = loadRegistry();
+		const firstCallback = jest.fn();
+		const secondCallback = jest.fn();
 		const definition = {
 			name: 'sd-ai-agent-js/deduplicated',
 			label: 'Deduplicated',
 			description: 'Shared registration state',
 			inputSchema: { type: 'object' },
 			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback: jest.fn(),
+			annotations: {},
+			callback: firstCallback,
 		};
 
 		await firstBundle.registerClientAbility( definition );
-		await secondBundle.registerClientAbility( definition );
-
-		expect( registerAbility ).toHaveBeenCalledTimes( 1 );
-	} );
-
-	test( 'registers the category once between webpack module instances', async () => {
-		const registerAbilityCategory = jest
-			.fn()
-			.mockResolvedValue( undefined );
-		global.wp = {
-			abilities: {
-				registerAbility: jest.fn().mockResolvedValue( undefined ),
-				registerAbilityCategory,
-			},
-		};
-		const firstBundle = loadRegistry();
-		const secondBundle = loadRegistry();
-
-		await Promise.all( [
-			firstBundle.registerCategory(),
-			secondBundle.registerCategory(),
-		] );
-
-		expect( registerAbilityCategory ).toHaveBeenCalledTimes( 1 );
-	} );
-
-	test( 'keeps local abilities available after a malformed provider breaks core registration', async () => {
-		const providerError = new Error(
-			'Ability "wpforms/list-forms" references non-existent category "wpforms-forms".'
-		);
-		const registerAbilityCategory = jest
-			.fn()
-			.mockRejectedValue( providerError );
-		const registerAbility = jest.fn().mockResolvedValue( undefined );
-		const warning = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
-		global.wp = {
-			abilities: {
-				registerAbility,
-				registerAbilityCategory,
-			},
-		};
-		const firstBundle = loadRegistry();
-		const secondBundle = loadRegistry();
-		const callback = jest.fn().mockResolvedValue( { available: true } );
-
-		await firstBundle.registerCategory();
-		await firstBundle.registerClientAbility( {
-			name: 'sd-ai-agent-js/first-local-fallback',
-			label: 'First local fallback',
-			description: 'Works when core registration fails',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback,
-		} );
-		await secondBundle.registerCategory();
 		await secondBundle.registerClientAbility( {
-			name: 'sd-ai-agent-js/second-local-fallback',
-			label: 'Second local fallback',
-			description: 'Does not retry the broken core store',
+			...definition,
+			callback: secondCallback,
+		} );
+		await firstBundle.executeClientAbility(
+			'sd-ai-agent-js/deduplicated',
+			{}
+		);
+
+		expect( firstCallback ).toHaveBeenCalledTimes( 1 );
+		expect( secondCallback ).not.toHaveBeenCalled();
+	} );
+
+	test( 'publishes a diagnostic API without replacing wp.abilities', async () => {
+		const coreAbilities = { getAbilities: jest.fn() };
+		global.wp = { abilities: coreAbilities };
+		const registry = loadRegistry();
+
+		await registry.registerClientAbility( {
+			name: 'sd-ai-agent-js/diagnostic',
+			label: 'Diagnostic',
+			description: 'Visible through the local API',
 			inputSchema: { type: 'object' },
 			outputSchema: { type: 'object' },
 			annotations: { readonly: true },
-			callback: jest.fn(),
+			callback: jest.fn().mockResolvedValue( { ok: true } ),
 		} );
 
-		expect( registerAbilityCategory ).toHaveBeenCalledTimes( 1 );
-		expect( registerAbility ).not.toHaveBeenCalled();
-		expect( warning ).toHaveBeenCalledTimes( 1 );
+		expect( global.wp.abilities ).toBe( coreAbilities );
+		await expect( window[ WIN_API_KEY ].getAbilities() ).resolves.toEqual( [
+			expect.objectContaining( {
+				name: 'sd-ai-agent-js/diagnostic',
+				meta: { annotations: { readonly: true } },
+			} ),
+		] );
 		await expect(
-			secondBundle.executeClientAbility(
-				'sd-ai-agent-js/first-local-fallback',
-				{}
-			)
-		).resolves.toEqual( { available: true } );
-		await expect( secondBundle.snapshotDescriptors() ).resolves.toEqual(
-			expect.arrayContaining( [
-				expect.objectContaining( {
-					name: 'sd-ai-agent-js/first-local-fallback',
-				} ),
-				expect.objectContaining( {
-					name: 'sd-ai-agent-js/second-local-fallback',
-				} ),
-			] )
+			window[ WIN_API_KEY ].getAbilityCategory( 'sd-ai-agent-js' )
+		).resolves.toEqual(
+			expect.objectContaining( {
+				slug: 'sd-ai-agent-js',
+				label: 'SD AI Agent',
+			} )
 		);
-		warning.mockRestore();
 	} );
 
-	test( 'continues after an already registered category', async () => {
-		const duplicateCategoryError = new Error(
-			'Ability category "sd-ai-agent-js" is already registered.'
-		);
-		const registerAbility = jest.fn().mockResolvedValue( undefined );
-		const warning = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
-		global.wp = {
-			abilities: {
-				registerAbility,
-				registerAbilityCategory: jest
-					.fn()
-					.mockRejectedValue( duplicateCategoryError ),
-			},
-		};
-		const { registerCategory, registerClientAbility } = loadRegistry();
-
-		await registerCategory();
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/after-duplicate-category',
-			label: 'After duplicate category',
-			description: 'Registers after an idempotent category response',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: {},
-			callback: jest.fn(),
-		} );
-
-		expect( registerAbility ).toHaveBeenCalledTimes( 1 );
-		expect( warning ).not.toHaveBeenCalled();
-		warning.mockRestore();
-	} );
-
-	test( 'continues registering after an individual ability fails', async () => {
-		const registerAbility = jest
-			.fn()
-			.mockRejectedValueOnce( new Error( 'Ability validation failed.' ) )
-			.mockResolvedValueOnce( undefined );
-		const warning = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
-		global.wp = {
-			abilities: {
-				registerAbility,
-				registerAbilityCategory: jest
-					.fn()
-					.mockResolvedValue( undefined ),
-			},
-		};
-		const { registerClientAbility } = loadRegistry();
-
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/invalid-ability',
-			label: 'Invalid ability',
-			description: 'Fails independently',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: {},
-			callback: jest.fn(),
-		} );
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/valid-ability',
-			label: 'Valid ability',
-			description: 'Still reaches the store',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: {},
-			callback: jest.fn(),
-		} );
-
-		expect( registerAbility ).toHaveBeenCalledTimes( 2 );
-		expect( warning ).not.toHaveBeenCalled();
-		warning.mockRestore();
-	} );
-
-	test( 'registerClientAbility stores callback locally even when wp.abilities is undefined', async () => {
-		// Simulate a page where @wordpress/abilities never loaded.
-		delete global.wp;
-		const { registerClientAbility, executeClientAbility } = loadRegistry();
-
-		const callback = jest.fn().mockResolvedValue( { ok: true } );
-
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/test-no-api',
-			label: 'Test No API',
-			description: 'Test that callbacks register without the WP API',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback,
-		} );
-
-		const result = await executeClientAbility(
-			'sd-ai-agent-js/test-no-api',
-			{ foo: 'bar' }
-		);
-		expect( callback ).toHaveBeenCalledWith( { foo: 'bar' } );
-		expect( result ).toEqual( { ok: true } );
-	} );
-
-	test( 'executeClientAbility throws for truly unknown abilities', async () => {
-		delete global.wp;
+	test( 'throws for unknown browser abilities without using the core store', async () => {
+		const executeAbility = jest.fn();
+		global.wp = { abilities: { executeAbility } };
 		const { executeClientAbility } = loadRegistry();
 
 		await expect(
 			executeClientAbility( 'sd-ai-agent-js/never-registered', {} )
 		).rejects.toThrow( /is not registered on this page/ );
-	} );
-
-	test( 'snapshotDescriptors falls back to locally registered descriptors when wp.abilities is unavailable', async () => {
-		delete global.wp;
-		const { registerClientAbility, snapshotDescriptors } = loadRegistry();
-
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/local-only',
-			label: 'Local Only',
-			description: 'Available via local fallback',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback: jest.fn(),
-		} );
-
-		await expect( snapshotDescriptors() ).resolves.toEqual( [
-			expect.objectContaining( {
-				name: 'sd-ai-agent-js/local-only',
-				label: 'Local Only',
-				annotations: { readonly: true },
-			} ),
-		] );
-	} );
-
-	test( 'snapshotDescriptors falls back to local descriptors when wp store returns no client abilities', async () => {
-		global.wp = {
-			abilities: {
-				executeAbility: jest.fn(),
-				registerAbility: jest.fn().mockResolvedValue( undefined ),
-				registerAbilityCategory: jest
-					.fn()
-					.mockResolvedValue( undefined ),
-				getAbilities: jest.fn().mockReturnValue( [] ),
-			},
-		};
-		const { registerClientAbility, snapshotDescriptors } = loadRegistry();
-
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/local-fallback',
-			label: 'Local Fallback',
-			description: 'Store was empty',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback: jest.fn(),
-		} );
-
-		const descriptors = await snapshotDescriptors();
-		expect( descriptors ).toEqual( [
-			expect.objectContaining( {
-				name: 'sd-ai-agent-js/local-fallback',
-			} ),
-		] );
-	} );
-
-	test( 'executeClientAbility falls back to wp.abilities.executeAbility when the local map misses but WP API is present', async () => {
-		// Local map does NOT contain this ability (different module
-		// instance scenario), but wp.abilities.executeAbility is wired up.
-		global.wp = {
-			abilities: {
-				executeAbility: jest
-					.fn()
-					.mockResolvedValue( { fromWpApi: true } ),
-				registerAbility: jest.fn().mockResolvedValue( undefined ),
-				registerAbilityCategory: jest
-					.fn()
-					.mockResolvedValue( undefined ),
-				getAbilities: jest.fn().mockReturnValue( [] ),
-			},
-		};
-		const { executeClientAbility } = loadRegistry();
-
-		const result = await executeClientAbility(
-			'sd-ai-agent-js/only-in-wp-store',
-			{ key: 'value' }
-		);
-
-		expect( global.wp.abilities.executeAbility ).toHaveBeenCalledWith(
-			'sd-ai-agent-js/only-in-wp-store',
-			{ key: 'value' }
-		);
-		expect( result ).toEqual( { fromWpApi: true } );
-	} );
-
-	test( 'registerClientAbility writes to wp.abilities when API is available', async () => {
-		const registerAbility = jest.fn().mockResolvedValue( undefined );
-		global.wp = {
-			abilities: {
-				executeAbility: jest.fn(),
-				registerAbility,
-				registerAbilityCategory: jest
-					.fn()
-					.mockResolvedValue( undefined ),
-				getAbilities: jest.fn().mockReturnValue( [] ),
-			},
-		};
-		const { registerClientAbility, executeClientAbility } = loadRegistry();
-
-		const callback = jest.fn().mockResolvedValue( { wired: true } );
-		await registerClientAbility( {
-			name: 'sd-ai-agent-js/with-api',
-			label: 'With API',
-			description: 'Should also reach wp.abilities.registerAbility',
-			inputSchema: { type: 'object' },
-			outputSchema: { type: 'object' },
-			annotations: { readonly: true },
-			callback,
-		} );
-
-		expect( registerAbility ).toHaveBeenCalledTimes( 1 );
-		expect( registerAbility.mock.calls[ 0 ][ 0 ] ).toMatchObject( {
-			name: 'sd-ai-agent-js/with-api',
-			category: 'sd-ai-agent-js',
-			callback,
-		} );
-
-		// Local execution path still works alongside the WP store entry.
-		await executeClientAbility( 'sd-ai-agent-js/with-api', { x: 1 } );
-		expect( callback ).toHaveBeenCalledWith( { x: 1 } );
+		expect( executeAbility ).not.toHaveBeenCalled();
 	} );
 
 	test( 'registers refresh-page without an empty required array', async () => {
-		delete global.wp;
 		const { refreshPage, registry } = loadRefreshPageAndRegistry();
 		await refreshPage.registerRefreshPageAbility();
 		const descriptor = ( await registry.snapshotDescriptors() ).find(

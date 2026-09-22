@@ -63,9 +63,9 @@ async function goToDashboard( page ) {
 }
 
 /**
- * Check whether the WP 7.0 abilities API is available on the current page.
+ * Check whether the page-local browser abilities API is available.
  *
- * Returns true if wp.abilities exists and exposes the functions required
+ * Returns true if the local API exposes the functions required
  * by the client-abilities tests. This check runs after the page has fully
  * loaded and the FAB is visible (ensureRegistered has been called), so a
  * false result reliably means the API is not available in this environment
@@ -75,16 +75,16 @@ async function goToDashboard( page ) {
  * Explicitly optional compatibility environments may opt into graceful skips.
  *
  * @param {import('@playwright/test').Page} page
- * @return {Promise<boolean>} True when all required wp.abilities methods exist.
+ * @return {Promise<boolean>} True when all required browser API methods exist.
  */
 async function isAbilitiesApiAvailable( page ) {
 	return page.evaluate( () => {
+		const abilities = window.sdAiAgentClientAbilities;
 		return (
-			typeof wp !== 'undefined' &&
-			!! wp.abilities &&
-			typeof wp.abilities.getAbilities === 'function' &&
-			typeof wp.abilities.registerAbility === 'function' &&
-			typeof wp.abilities.registerAbilityCategory === 'function'
+			!! abilities &&
+			typeof abilities.getAbilities === 'function' &&
+			typeof abilities.getAbilityCategory === 'function' &&
+			typeof abilities.executeAbility === 'function'
 		);
 	} );
 }
@@ -92,7 +92,7 @@ async function isAbilitiesApiAvailable( page ) {
 /**
  * Require the abilities API for the current test.
  *
- * Call this at the top of any test body that depends on wp.abilities. The
+ * Call this at the top of any test body that depends on browser abilities. The
  * default E2E project is a required WordPress 7.0 coverage environment, so an
  * unavailable API must fail with an actionable error instead of silently
  * skipping the test. Compatibility jobs may opt into a graceful skip by
@@ -110,20 +110,20 @@ async function requireAbilitiesApi( page ) {
 	) {
 		test.skip(
 			true,
-			'wp.abilities API not available in this explicitly optional compatibility environment'
+			'browser abilities API not available in this explicitly optional compatibility environment'
 		);
 	}
 
 	expect(
 		available,
-		'wp.abilities API is required for client-ability E2E coverage. Use a WordPress 7.0 runtime that loads @wordpress/core-abilities, or set PLAYWRIGHT_ALLOW_MISSING_ABILITIES_API=1 only for an explicitly optional compatibility environment.'
+		'the page-local browser abilities API is required for client-ability E2E coverage.'
 	).toBe( true );
 }
 
 /**
  * Wait for the sd-ai-agent-js abilities to be registered.
  *
- * Polls wp.abilities.getAbilities() until both abilities appear or the
+ * Polls the page-local API until both abilities appear or the
  * timeout is reached. This is necessary because registration is async —
  * the category Promise must resolve before abilities can register.
  *
@@ -151,10 +151,10 @@ async function requireAbilitiesApi( page ) {
 async function waitForAbilitiesRegistered( page, timeout = 45_000 ) {
 	await page.waitForFunction(
 		() => {
+			const abilitiesApi = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.getAbilities !== 'function'
+				! abilitiesApi ||
+				typeof abilitiesApi.getAbilities !== 'function'
 			) {
 				return false;
 			}
@@ -162,7 +162,7 @@ async function waitForAbilitiesRegistered( page, timeout = 45_000 ) {
 			// and async shapes defensively. The polling loop will retry until
 			// the Promise resolves with the expected abilities.
 			try {
-				const result = wp.abilities.getAbilities();
+				const result = abilitiesApi.getAbilities();
 				if ( result && typeof result.then === 'function' ) {
 					// Async path: can't await inside waitForFunction, so we
 					// attach a side-effect that sets a flag when resolved.
@@ -305,17 +305,15 @@ test.describe( 'client-abilities — category registration', () => {
 		await waitForAbilitiesRegistered( page );
 
 		const category = await page.evaluate( async () => {
+			const abilities = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.getAbilityCategory !== 'function'
+				! abilities ||
+				typeof abilities.getAbilityCategory !== 'function'
 			) {
 				return null;
 			}
 			try {
-				return await wp.abilities.getAbilityCategory(
-					'sd-ai-agent-js'
-				);
+				return await abilities.getAbilityCategory( 'sd-ai-agent-js' );
 			} catch ( _e ) {
 				return null;
 			}
@@ -326,6 +324,11 @@ test.describe( 'client-abilities — category registration', () => {
 			label: expect.stringContaining( 'SD AI Agent' ),
 			description: expect.stringContaining( 'browser' ),
 		} );
+		await expect(
+			page.evaluate(
+				() => window.wp?.abilities === window.sdAiAgentClientAbilities
+			)
+		).resolves.toBe( false );
 	} );
 } );
 
@@ -346,15 +349,15 @@ test.describe( 'client-abilities — ability registration', () => {
 		await waitForAbilitiesRegistered( page );
 
 		const abilities = await page.evaluate( async () => {
+			const abilitiesApi = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.getAbilities !== 'function'
+				! abilitiesApi ||
+				typeof abilitiesApi.getAbilities !== 'function'
 			) {
 				return [];
 			}
 			try {
-				const all = await wp.abilities.getAbilities();
+				const all = await abilitiesApi.getAbilities();
 				return ( Array.isArray( all ) ? all : [] ).filter( ( a ) =>
 					a?.name?.startsWith( 'sd-ai-agent-js/' )
 				);
@@ -451,7 +454,7 @@ test.describe( 'client-abilities — public schema validation', () => {
 
 		const result = await page.evaluate( async () => {
 			try {
-				return await wp.abilities.executeAbility(
+				return await window.sdAiAgentClientAbilities.executeAbility(
 					'sd-ai-agent-js/get-editor-selection',
 					{}
 				);
@@ -495,7 +498,7 @@ test.describe( 'client-abilities — screenshot-url execution', () => {
 		try {
 			await waitForAbilitiesRegistered( page );
 			const result = await page.evaluate( async ( url ) => {
-				return wp.abilities.executeAbility(
+				return window.sdAiAgentClientAbilities.executeAbility(
 					'sd-ai-agent-js/screenshot-url',
 					{ url }
 				);
@@ -531,15 +534,15 @@ test.describe( 'client-abilities — navigate-to execution', () => {
 		// Navigation is intentionally deferred until jobSlice has posted the tool
 		// result, otherwise unloading the page can strand the server-side job.
 		const result = await page.evaluate( async () => {
+			const abilities = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.executeAbility !== 'function'
+				! abilities ||
+				typeof abilities.executeAbility !== 'function'
 			) {
 				return null;
 			}
 			try {
-				const ret = await wp.abilities.executeAbility(
+				const ret = await abilities.executeAbility(
 					'sd-ai-agent-js/navigate-to',
 					{ path: 'plugins.php' }
 				);
@@ -597,15 +600,15 @@ test.describe( 'client-abilities — insert-block on editor screen', () => {
 		await waitForAbilitiesRegistered( page );
 
 		const result = await page.evaluate( async () => {
+			const abilities = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.executeAbility !== 'function'
+				! abilities ||
+				typeof abilities.executeAbility !== 'function'
 			) {
 				return null;
 			}
 			try {
-				return await wp.abilities.executeAbility(
+				return await abilities.executeAbility(
 					'sd-ai-agent-js/insert-block',
 					{
 						blockName: 'core/paragraph',
@@ -696,7 +699,7 @@ test.describe( 'client-abilities — nested block insertion', () => {
 
 		const inserted = await page.evaluate( async ( prepared ) => {
 			const blockEditor = wp.data.select( 'core/block-editor' );
-			const result = await wp.abilities.executeAbility(
+			const result = await window.sdAiAgentClientAbilities.executeAbility(
 				'sd-ai-agent-js/insert-block-markup',
 				{
 					markup: prepared.paragraphMarkup,
@@ -828,12 +831,12 @@ test.describe( 'client-abilities — editor history', () => {
 				);
 				check();
 			} );
-			const undo = await wp.abilities.executeAbility(
+			const undo = await window.sdAiAgentClientAbilities.executeAbility(
 				'sd-ai-agent-js/change-editor-history',
 				{ direction: 'undo' }
 			);
 			const afterUndo = wp.blocks.serialize( blockEditor.getBlocks() );
-			const redo = await wp.abilities.executeAbility(
+			const redo = await window.sdAiAgentClientAbilities.executeAbility(
 				'sd-ai-agent-js/change-editor-history',
 				{ direction: 'redo' }
 			);
@@ -1049,15 +1052,15 @@ test.describe( 'client-abilities — insert-block no-op on non-editor screen', (
 		await waitForAbilitiesRegistered( page );
 
 		const result = await page.evaluate( async () => {
+			const abilities = window.sdAiAgentClientAbilities;
 			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.executeAbility !== 'function'
+				! abilities ||
+				typeof abilities.executeAbility !== 'function'
 			) {
 				return null;
 			}
 			try {
-				return await wp.abilities.executeAbility(
+				return await abilities.executeAbility(
 					'sd-ai-agent-js/insert-block',
 					{ blockName: 'core/paragraph' }
 				);
@@ -1092,19 +1095,14 @@ test.describe( 'client-abilities — snapshotDescriptors', () => {
 	} ) => {
 		await waitForAbilitiesRegistered( page );
 
-		// Evaluate snapshotDescriptors via the built bundle's exposed global,
-		// or inline a mirror of the function using wp.abilities.getAbilities().
+		// Evaluate descriptors through the built bundle's page-local API.
 		const descriptors = await page.evaluate( async () => {
-			if (
-				typeof wp === 'undefined' ||
-				! wp.abilities ||
-				typeof wp.abilities.getAbilities !== 'function'
-			) {
+			const abilities = window.sdAiAgentClientAbilities;
+			if ( ! abilities || typeof abilities.getAbilities !== 'function' ) {
 				return [];
 			}
 			try {
-				const allAbilities =
-					( await wp.abilities.getAbilities() ) || [];
+				const allAbilities = ( await abilities.getAbilities() ) || [];
 				return allAbilities
 					.filter(
 						( ability ) =>
@@ -1337,6 +1335,9 @@ test.describe( 'client-abilities — no relevant console errors', () => {
 		'Ability name is required',
 		'must contain a `description` string',
 		'references non-existent category',
+		'is already registered',
+		'Failed to fetch ability categories',
+		'Failed to fetch abilities',
 		'Category not found: sd-ai-agent-js',
 		'Failed to resolve module specifier "@wordpress/abilities"',
 	];

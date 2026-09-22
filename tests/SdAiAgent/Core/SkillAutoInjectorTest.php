@@ -63,6 +63,20 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Active Skill Guide', $result );
 	}
 
+	/** A CSV category request receives the WooCommerce dry-run workflow. */
+	public function test_inject_woocommerce_csv_category_update_includes_dry_run_workflow(): void {
+		$skill = Skill::get_by_slug( 'woocommerce' );
+		$this->assertNotNull( $skill );
+		$this->assertTrue( Skill::reset_builtin( (int) $skill->id ) );
+
+		$result = SkillAutoInjector::inject_for_message( 'Use the attached CSV to update WooCommerce product categories.' );
+
+		$this->assertStringContainsString( 'Updating Product Categories from an Attached CSV', $result );
+		$this->assertStringContainsString( 'Produce a dry run before any mutation', $result );
+		$this->assertStringContainsString( 'woocommerce/products-update', $result );
+		$this->assertStringContainsString( 'explicitly confirms', $result );
+	}
+
 	/**
 	 * Auto-injection records telemetry when model and session context are provided.
 	 */

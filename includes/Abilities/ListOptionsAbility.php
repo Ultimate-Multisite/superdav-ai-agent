@@ -1,0 +1,216 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * Options management abilities for the AI agent.
+ *
+ * Provides get, update, and delete operations for WordPress options. Writes
+ * are default-deny: only plugin-owned options and site-allowlisted option
+ * names can be modified, and critical core options remain blocklisted.
+ *
+ * @package SdAiAgent
+ * @license GPL-2.0-or-later
+ */
+
+namespace SdAiAgent\Abilities;
+
+use WP_Error;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class ListOptionsAbility extends AbstractAbility {
+
+	/**
+	 * Maximum number of characters to include per option value in the listing.
+	 * Large values (serialised arrays, HTML blobs) are truncated to keep the
+	 * response token-efficient.
+	 */
+	private const VALUE_TRUNCATE_LENGTH = 200;
+
+	protected function label(): string {
+		return __( 'List Options', 'superdav-ai-agent' );
+	}
+
+	protected function description(): string {
+		return __( 'List WordPress options with optional prefix filtering. Returns option names and values (truncated for large values). Useful for discovering plugin/theme settings.', 'superdav-ai-agent' );
+	}
+
+	protected function input_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'prefix'   => [
+					'type'        => 'string',
+					'description' => 'Filter options whose names start with this prefix (e.g. "woocommerce_", "elementor_"). Leave empty to list all options.',
+					'default'     => '',
+				],
+				'limit'    => [
+					'type'        => 'integer',
+					'description' => 'Maximum number of options to return (default: 50, max: 200).',
+					'default'     => 50,
+				],
+				'autoload' => [
+					'type'        => 'string',
+					'enum'        => [ 'all', 'yes', 'no' ],
+					'description' => 'Filter by autoload status: "yes" (autoloaded), "no" (not autoloaded), or "all" (default).',
+					'default'     => 'all',
+				],
+			],
+		];
+	}
+
+	protected function output_schema(): array {
+		return [
+			'type'       => 'object',
+			'properties' => [
+				'options'        => [ 'type' => 'array' ],
+				'total'          => [ 'type' => 'integer' ],
+				'prefix'         => [ 'type' => 'string' ],
+				'redacted_count' => [
+					'type'        => 'integer',
+					'description' => 'Number of rows removed from the response because their option_name is on the secret read blocklist (e.g. auth_key, secure_auth_salt).',
+				],
+			],
+		];
+	}
+
+	protected function execute_callback( $input ) {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$prefix   = isset( $input['prefix'] ) ? (string) $input['prefix'] : '';
+		$limit    = min( 200, max( 1, (int) ( $input['limit'] ?? 50 ) ) );
+		$autoload = isset( $input['autoload'] ) ? (string) $input['autoload'] : 'all';
+
+		// Each branch uses a fully static SQL template — $autoload and $prefix are never
+		// interpolated into SQL; only %i/%s/%d placeholders carry runtime values.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Discovery query; caching not appropriate for dynamic option listings.
+		if ( '' !== $prefix ) {
+			if ( 'yes' === $autoload ) {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value, autoload FROM %i WHERE option_name LIKE %s AND autoload IN ('yes', 'on', '1', 'true') ORDER BY option_name LIMIT %d",
+						$wpdb->options,
+						$prefix,
+						$limit
+					),
+					ARRAY_A
+				);
+			} elseif ( 'no' === $autoload ) {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value, autoload FROM %i WHERE option_name LIKE %s AND autoload NOT IN ('yes', 'on', '1', 'true') ORDER BY option_name LIMIT %d",
+						$wpdb->options,
+						$prefix,
+						$limit
+					),
+					ARRAY_A
+				);
+			} else {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						'SELECT option_name, option_value, autoload FROM %i WHERE option_name LIKE %s ORDER BY option_name LIMIT %d',
+						$wpdb->options,
+						$prefix,
+						$limit
+					),
+					ARRAY_A
+				);
+			}
+		} elseif ( 'yes' === $autoload ) {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value, autoload FROM %i WHERE autoload IN ('yes', 'on', '1', 'true') ORDER BY option_name LIMIT %d",
+						$wpdb->options,
+						$limit
+					),
+					ARRAY_A
+				);
+		} elseif ( 'no' === $autoload ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value, autoload FROM %i WHERE autoload NOT IN ('yes', 'on', '1', 'true') ORDER BY option_name LIMIT %d",
+					$wpdb->options,
+					$limit
+				),
+				ARRAY_A
+			);
+		} else {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT option_name, option_value, autoload FROM %i ORDER BY option_name LIMIT %d',
+					$wpdb->options,
+					$limit
+				),
+				ARRAY_A
+			);
+		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		if ( null === $rows ) {
+			return new WP_Error(
+				'sd_ai_agent_db_error',
+				__( 'Database query failed while listing options.', 'superdav-ai-agent' )
+			);
+		}
+
+		$options        = [];
+		$redacted_count = 0;
+		foreach ( $rows as $row ) {
+			// Secret-option read gate. Omit the row entirely so the AI
+			// neither sees the value nor learns whether the option is
+			// stored as an option or defined in wp-config.php.
+			if ( OptionsAbilities::is_secret_option_name( (string) $row['option_name'] ) ) {
+				++$redacted_count;
+				continue;
+			}
+
+			$value = $row['option_value'];
+
+			// Attempt to unserialise so the caller sees the real data type.
+			$unserialized = maybe_unserialize( $value );
+
+			// Truncate large values to keep the response token-efficient.
+			if ( is_string( $unserialized ) && strlen( $unserialized ) > self::VALUE_TRUNCATE_LENGTH ) {
+				$unserialized = substr( $unserialized, 0, self::VALUE_TRUNCATE_LENGTH ) . '…';
+			} elseif ( ! is_scalar( $unserialized ) ) {
+				// For arrays/objects, encode to JSON and truncate if needed.
+				$encoded = wp_json_encode( $unserialized );
+				if ( false !== $encoded && strlen( $encoded ) > self::VALUE_TRUNCATE_LENGTH ) {
+					$unserialized = substr( $encoded, 0, self::VALUE_TRUNCATE_LENGTH ) . '…';
+				}
+			}
+
+			$options[] = [
+				'option_name'  => $row['option_name'],
+				'option_value' => $unserialized,
+				'autoload'     => $row['autoload'],
+			];
+		}
+
+		return [
+			'options'        => $options,
+			'total'          => count( $options ),
+			'prefix'         => $prefix,
+			'redacted_count' => $redacted_count,
+		];
+	}
+
+	protected function permission_callback( $input = null ): bool {
+		return ToolCapabilities::current_user_can( $this->name );
+	}
+
+	protected function meta(): array {
+		return [
+			'mcp'          => [ 'public' => true ],
+			'annotations'  => [
+				'readonly'    => true,
+				'destructive' => false,
+				'idempotent'  => true,
+			],
+			'show_in_rest' => true,
+		];
+	}
+}

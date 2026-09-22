@@ -25,18 +25,18 @@ final class Autoloader {
 	 */
 	public static function register( string $plugin_dir ): void {
 		$classmap = array(
-			'SdAiAgent\\Abilities\\DatabaseQueryAbility'  => $plugin_dir . '/includes/Abilities/DatabaseAbilities.php',
-			'SdAiAgent\\Abilities\\ListModifiedPluginsAbility' => $plugin_dir . '/includes/Abilities/PluginDownloadAbilities.php',
-			'SdAiAgent\\Abilities\\GetPluginDownloadUrlAbility' => $plugin_dir . '/includes/Abilities/PluginDownloadAbilities.php',
-			'SdAiAgent\\Abilities\\FileWriteAbility'      => $plugin_dir . '/includes/Abilities/FileMutationAbilities.php',
-			'SdAiAgent\\Abilities\\FileEditAbility'       => $plugin_dir . '/includes/Abilities/FileMutationAbilities.php',
-			'SdAiAgent\\Abilities\\FileDeleteAbility'     => $plugin_dir . '/includes/Abilities/FileMutationAbilities.php',
-			'SdAiAgent\\Abilities\\UpdatePluginAbility'   => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
-			'SdAiAgent\\Abilities\\InstallPluginFromUrlAbility' => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
-			'SdAiAgent\\Abilities\\ActivatePluginAbility' => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
-			'SdAiAgent\\Abilities\\DeactivatePluginAbility' => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
-			'SdAiAgent\\Abilities\\DeletePluginAbility'   => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
-			'SdAiAgent\\Abilities\\SwitchPluginAbility'   => $plugin_dir . '/includes/Abilities/WordPressAdvancedAbilities.php',
+			'SdAiAgent\\Abilities\\DatabaseQueryAbility'      => $plugin_dir . '/includes/Abilities/DatabaseQueryAbility.php',
+			'SdAiAgent\\Abilities\\ListModifiedPluginsAbility' => $plugin_dir . '/includes/Abilities/ListModifiedPluginsAbility.php',
+			'SdAiAgent\\Abilities\\GetPluginDownloadUrlAbility' => $plugin_dir . '/includes/Abilities/GetPluginDownloadUrlAbility.php',
+			'SdAiAgent\\Abilities\\FileWriteAbility'          => $plugin_dir . '/includes/Abilities/FileWriteAbility.php',
+			'SdAiAgent\\Abilities\\FileEditAbility'           => $plugin_dir . '/includes/Abilities/FileEditAbility.php',
+			'SdAiAgent\\Abilities\\FileDeleteAbility'         => $plugin_dir . '/includes/Abilities/FileDeleteAbility.php',
+			'SdAiAgent\\Abilities\\UpdatePluginAbility'       => $plugin_dir . '/includes/Abilities/UpdatePluginAbility.php',
+			'SdAiAgent\\Abilities\\InstallPluginFromUrlAbility' => $plugin_dir . '/includes/Abilities/InstallPluginFromUrlAbility.php',
+			'SdAiAgent\\Abilities\\ActivatePluginAbility'     => $plugin_dir . '/includes/Abilities/ActivatePluginAbility.php',
+			'SdAiAgent\\Abilities\\DeactivatePluginAbility'   => $plugin_dir . '/includes/Abilities/DeactivatePluginAbility.php',
+			'SdAiAgent\\Abilities\\DeletePluginAbility'       => $plugin_dir . '/includes/Abilities/DeletePluginAbility.php',
+			'SdAiAgent\\Abilities\\SwitchPluginAbility'       => $plugin_dir . '/includes/Abilities/SwitchPluginAbility.php',
 		);
 
 		$prefixes = array(

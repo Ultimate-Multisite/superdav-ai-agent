@@ -184,7 +184,26 @@ describe( 'feedback reporting helpers', () => {
 		).toBeNull();
 	} );
 
-	test( 'detects explicit tool response failures only', () => {
+	test( 'ignores tool logs with no responses', () => {
+		expect( toolCallsContainFailure( [] ) ).toBe( false );
+		expect(
+			toolCallsContainFailure( [ { type: 'call', status: 'error' } ] )
+		).toBe( false );
+	} );
+
+	test( 'ignores successful tool responses', () => {
+		expect(
+			toolCallsContainFailure( [
+				{
+					type: 'response',
+					id: '2',
+					response: { success: true },
+				},
+			] )
+		).toBe( false );
+	} );
+
+	test( 'detects explicit failed tool responses', () => {
 		expect(
 			toolCallsContainFailure( [
 				{ type: 'call', id: '1' },
@@ -199,21 +218,15 @@ describe( 'feedback reporting helpers', () => {
 			toolCallsContainFailure( [
 				{
 					type: 'response',
-					id: '2',
-					response: { success: true },
-				},
-			] )
-		).toBe( false );
-		expect(
-			toolCallsContainFailure( [
-				{
-					type: 'response',
 					response: {
 						success: true,
 						result: { success: false, error: 'Validation failed.' },
 					},
 				},
 			] )
+		).toBe( true );
+		expect(
+			toolCallsContainFailure( [ { type: 'response', status: 'error' } ] )
 		).toBe( true );
 	} );
 } );

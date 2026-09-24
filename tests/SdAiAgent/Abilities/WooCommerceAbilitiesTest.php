@@ -315,6 +315,44 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		$this->assertSame( [ $other_category ], $this->get_categories_for_product_on_blog( $this->other_blog_id, $other_product ) );
 		$this->assertSame( $initial_blog_id, get_current_blog_id(), 'Approved execution must restore the caller blog.' );
 		$this->assertGreaterThan( 0, $this->change_log_count_for_blog( $this->target_blog_id ) );
+
+		switch_to_blog( $this->target_blog_id );
+		$changes = ChangesLog::list(
+			[
+				'object_id'  => $target_product,
+				'revertable' => false,
+			]
+		);
+		restore_current_blog();
+
+		$this->assertSame( 1, $changes['total'] );
+	}
+
+	public function test_plan_rejects_duplicate_product_category_assignments(): void {
+		$target_product = $this->create_product_for_blog( $this->target_blog_id, 'Target product' );
+		$category_one   = $this->create_category_for_blog( $this->target_blog_id, 'Category one' );
+		$category_two   = $this->create_category_for_blog( $this->target_blog_id, 'Category two' );
+
+		$result = WooCommerceAbilities::handle_create_plan(
+			[
+				'target_blog_id' => $this->target_blog_id,
+				'operations'     => [
+					[
+						'operation'    => 'assign_product_categories',
+						'product_id'   => $target_product,
+						'category_ids' => [ $category_one ],
+					],
+					[
+						'operation'    => 'assign_product_categories',
+						'product_id'   => $target_product,
+						'category_ids' => [ $category_two ],
+					],
+				],
+			]
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_commerce_product_assignment_duplicate', $result->get_error_code() );
 	}
 
 	private function install_changes_log_table_for_blog( int $blog_id ): void {

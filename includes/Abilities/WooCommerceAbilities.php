@@ -494,8 +494,9 @@ final class WooCommerceAbilities {
 			return new WP_Error( 'sd_ai_agent_commerce_operations_required', __( 'At least one supported commerce operation is required.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
 		}
 
-		$operations    = [];
-		$prerequisites = [];
+		$operations        = [];
+		$prerequisites     = [];
+		$assigned_products = [];
 
 		foreach ( array_values( $raw_operations ) as $index => $raw_operation ) {
 			if ( ! is_array( $raw_operation ) ) {
@@ -517,7 +518,11 @@ final class WooCommerceAbilities {
 				if ( is_wp_error( $assignment ) ) {
 					return $assignment;
 				}
-				$operations[] = $assignment;
+				if ( isset( $assigned_products[ $assignment['product_id'] ] ) ) {
+					return new WP_Error( 'sd_ai_agent_commerce_product_assignment_duplicate', __( 'Each product may appear in only one category assignment. Merge its categories into one complete list.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+				}
+				$assigned_products[ $assignment['product_id'] ] = true;
+				$operations[]                                   = $assignment;
 				continue;
 			}
 
@@ -754,6 +759,7 @@ final class WooCommerceAbilities {
 				'field_name'   => self::TAXONOMY,
 				'before_value' => (string) wp_json_encode( $current_category_ids ),
 				'after_value'  => (string) wp_json_encode( $category_ids ),
+				'revertable'   => false,
 			]
 		);
 

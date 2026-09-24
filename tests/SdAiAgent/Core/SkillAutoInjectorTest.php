@@ -75,6 +75,9 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Produce a dry run before any mutation', $result );
 		$this->assertStringContainsString( 'woocommerce/products-update', $result );
 		$this->assertStringContainsString( 'explicitly confirms', $result );
+		$this->assertStringContainsString( 'sd-ai-agent/commerce-plan', $result );
+		$this->assertStringContainsString( 'assign_product_categories', $result );
+		$this->assertStringContainsString( 'sd-ai-agent/commerce-execute-approved-plan', $result );
 	}
 
 	/**

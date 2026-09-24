@@ -29,6 +29,7 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 	private int $target_blog_id;
 	private int $other_blog_id;
 	private bool $registered_product_taxonomy = false;
+	private bool $registered_product_post_type = false;
 	/** @var array<string, mixed> */
 	private array $original_network_active_plugins = [];
 	private bool $network_active_plugins_changed = false;
@@ -46,8 +47,12 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		$this->original_network_active_plugins = (array) get_site_option( 'active_sitewide_plugins', [] );
 
 		if ( ! taxonomy_exists( 'product_cat' ) ) {
-			register_taxonomy( 'product_cat', [ 'post' ] );
+			register_taxonomy( 'product_cat', [ 'product' ] );
 			$this->registered_product_taxonomy = true;
+		}
+		if ( ! post_type_exists( 'product' ) ) {
+			register_post_type( 'product' );
+			$this->registered_product_post_type = true;
 		}
 
 		if ( ! class_exists( 'WooCommerce' ) ) {
@@ -75,6 +80,9 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 
 		if ( $this->registered_product_taxonomy ) {
 			unregister_taxonomy( 'product_cat' );
+		}
+		if ( $this->registered_product_post_type ) {
+			unregister_post_type( 'product' );
 		}
 
 		parent::tear_down();
@@ -271,6 +279,44 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $this->change_log_count_for_blog( $this->target_blog_id ) );
 	}
 
+	public function test_approved_plan_assigns_product_categories_only_on_target_site_and_logs_the_change(): void {
+		$initial_blog_id = get_current_blog_id();
+		$target_product  = $this->create_product_for_blog( $this->target_blog_id, 'Target product' );
+		$other_product   = $this->create_product_for_blog( $this->other_blog_id, 'Other product' );
+		$old_category    = $this->create_category_for_blog( $this->target_blog_id, 'Old category' );
+		$new_category    = $this->create_category_for_blog( $this->target_blog_id, 'New category' );
+		$other_category  = $this->create_category_for_blog( $this->other_blog_id, 'Other category' );
+		$this->assign_categories_for_blog( $this->target_blog_id, $target_product, [ $old_category ] );
+		$this->assign_categories_for_blog( $this->other_blog_id, $other_product, [ $other_category ] );
+
+		$plan = WooCommerceAbilities::handle_create_plan(
+			[
+				'target_blog_id' => $this->target_blog_id,
+				'operations'     => [
+					[
+						'operation'    => 'assign_product_categories',
+						'product_id'   => $target_product,
+						'category_ids' => [ $new_category ],
+					],
+				],
+			]
+		);
+
+		$this->assertIsArray( $plan );
+		$this->assertSame( 'pending_approval', $plan['status'] );
+		$this->assertSame( [ $old_category ], $plan['plan']['operations'][0]['before_category_ids'] );
+		$this->assertSame( $initial_blog_id, get_current_blog_id(), 'Planning must restore the caller blog.' );
+
+		$approved = HumanApprovalGate::approve( (int) $plan['approval_request_id'], $this->admin_id );
+
+		$this->assertIsArray( $approved );
+		$this->assertSame( HumanApprovalGate::STATUS_EXECUTED, $approved['status'] );
+		$this->assertSame( [ $new_category ], $this->get_categories_for_product_on_blog( $this->target_blog_id, $target_product ) );
+		$this->assertSame( [ $other_category ], $this->get_categories_for_product_on_blog( $this->other_blog_id, $other_product ) );
+		$this->assertSame( $initial_blog_id, get_current_blog_id(), 'Approved execution must restore the caller blog.' );
+		$this->assertGreaterThan( 0, $this->change_log_count_for_blog( $this->target_blog_id ) );
+	}
+
 	private function install_changes_log_table_for_blog( int $blog_id ): void {
 		switch_to_blog( $blog_id );
 
@@ -309,6 +355,44 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		switch_to_blog( $blog_id );
 		update_option( $option, $value );
 		restore_current_blog();
+	}
+
+	private function create_product_for_blog( int $blog_id, string $title ): int {
+		switch_to_blog( $blog_id );
+		$product_id = self::factory()->post->create(
+			[
+				'post_title' => $title,
+				'post_type'  => 'product',
+			]
+		);
+		restore_current_blog();
+
+		return $product_id;
+	}
+
+	private function create_category_for_blog( int $blog_id, string $name ): int {
+		switch_to_blog( $blog_id );
+		$category = wp_insert_term( $name, 'product_cat' );
+		restore_current_blog();
+
+		return (int) $category['term_id'];
+	}
+
+	/** @param list<int> $category_ids */
+	private function assign_categories_for_blog( int $blog_id, int $product_id, array $category_ids ): void {
+		switch_to_blog( $blog_id );
+		wp_set_object_terms( $product_id, $category_ids, 'product_cat' );
+		restore_current_blog();
+	}
+
+	/** @return list<int> */
+	private function get_categories_for_product_on_blog( int $blog_id, int $product_id ): array {
+		switch_to_blog( $blog_id );
+		$category_ids = array_map( 'intval', wp_get_object_terms( $product_id, 'product_cat', [ 'fields' => 'ids' ] ) );
+		restore_current_blog();
+		sort( $category_ids, SORT_NUMERIC );
+
+		return $category_ids;
 	}
 
 	private function set_plugin_active_for_blog( int $blog_id, string $plugin_file, bool $active ): void {

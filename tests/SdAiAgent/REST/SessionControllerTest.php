@@ -31,8 +31,8 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 	private int $other_admin_id;
 
-	/** Jobs are queued once on the main site and preserve blog context. */
-	public function test_background_dispatcher_queues_job_on_main_site_once(): void {
+	/** Jobs are queued once on their own site so the worker can read that site's transient. */
+	public function test_background_dispatcher_queues_job_on_target_site_once(): void {
 		$tenant_id = is_multisite() ? self::factory()->blog->create() : get_current_blog_id();
 		$job_id    = '11111111-2222-3333-4444-555555555555';
 		$args      = array( $tenant_id, $job_id );
@@ -49,14 +49,15 @@ class SessionControllerTest extends WP_UnitTestCase {
 		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
 		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
 		$this->assertSame( $tenant_id, get_current_blog_id() );
+		$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
+		wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
 		if ( is_multisite() ) {
 			restore_current_blog();
+			$this->assertFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
 		}
 		remove_filter( 'pre_http_request', $intercept );
 
-		$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
 		$this->assertSame( 0, $requests, 'An already queued event must not fall back to an HTTP loopback.' );
-		wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
 	}
 
 	public function set_up(): void {

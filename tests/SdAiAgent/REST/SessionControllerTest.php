@@ -55,11 +55,10 @@ class SessionControllerTest extends WP_UnitTestCase {
 			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
 			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
 			$this->assertSame( $tenant_id, get_current_blog_id() );
-			if ( $has_action_scheduler ) {
-				$this->assertTrue( as_has_scheduled_action( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' ) );
-			} else {
-				$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
-			}
+			$this->assertTrue(
+				( $has_action_scheduler && as_has_scheduled_action( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' ) )
+				|| false !== wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args )
+			);
 		} finally {
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' );

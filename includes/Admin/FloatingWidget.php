@@ -127,26 +127,6 @@ class FloatingWidget {
 
 		wp_set_script_translations( 'sd-ai-agent-floating-widget', 'superdav-ai-agent' );
 
-		// WP 7.0+: expose the `@wordpress/abilities` script-module exports to
-		// our classic bundles through a small module bridge. Script modules do
-		// not create a `wp.abilities` global by themselves.
-		//
-		// Also enqueue `@wordpress/core-abilities` explicitly. Despite the
-		// WP 7.0 dev note claiming core enqueues it on all admin pages, the
-		// module is only registered by core. Enqueueing it mirrors server
-		// abilities into the same store used by the bridge.
-		// Root-cause investigation: t169 / GH#825.
-		if ( function_exists( 'wp_enqueue_script_module' ) ) {
-			wp_enqueue_script_module( '@wordpress/abilities' );
-			wp_enqueue_script_module(
-				'sd-ai-agent/abilities-global-bridge',
-				SD_AI_AGENT_URL . 'assets/admin/abilities-global-bridge.js',
-				array( array( 'id' => '@wordpress/abilities' ) ),
-				SD_AI_AGENT_VERSION
-			);
-			wp_enqueue_script_module( '@wordpress/core-abilities' );
-		}
-
 		// Pass white-label branding values to the widget (t075).
 		// Only applied when the branding feature is enabled.
 		if ( Features::is_enabled( Features::BRANDING ) ) {

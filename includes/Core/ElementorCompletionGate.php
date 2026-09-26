@@ -610,10 +610,11 @@ final class ElementorCompletionGate {
 				continue;
 			}
 
-			$hash = self::extract_preview_url_hash( $args );
+			$hash = self::extract_declared_preview_url_hash( $args );
 			if ( '' === $capability ) {
 				// Do not revive a pre-sealing paused payload that still carries a
-				// marked private preview URL in plaintext.
+				// marked private preview URL in plaintext. An ordinary screenshot
+				// URL has no explicit preview hash and must remain executable.
 				if ( self::is_preview_url_hash( $hash ) && is_string( $args['url'] ?? null ) ) {
 					unset( $args['url'] );
 					$args['elementor_preview_capability_error'] = 'The persisted private Elementor preview link cannot be restored safely. Create a fresh preview link before retrying the browser check.';
@@ -1177,6 +1178,16 @@ final class ElementorCompletionGate {
 
 	/** @param array<string,mixed> $payload */
 	private static function extract_preview_url_hash( array $payload ): string {
+		$declared_hash = self::extract_declared_preview_url_hash( $payload );
+		if ( '' !== $declared_hash ) {
+			return $declared_hash;
+		}
+
+		return self::hash_url( self::extract_preview_url( $payload ) );
+	}
+
+	/** @param array<string,mixed> $payload */
+	private static function extract_declared_preview_url_hash( array $payload ): string {
 		foreach ( array( self::PREVIEW_URL_HASH_KEY, 'preview_url_hash' ) as $key ) {
 			$hash = (string) ( $payload[ $key ] ?? '' );
 			if ( self::is_preview_url_hash( $hash ) ) {
@@ -1186,14 +1197,14 @@ final class ElementorCompletionGate {
 
 		foreach ( array( 'preview', 'data', 'result' ) as $container ) {
 			if ( is_array( $payload[ $container ] ?? null ) ) {
-				$hash = self::extract_preview_url_hash( $payload[ $container ] );
+				$hash = self::extract_declared_preview_url_hash( $payload[ $container ] );
 				if ( '' !== $hash ) {
 					return $hash;
 				}
 			}
 		}
 
-		return self::hash_url( self::extract_preview_url( $payload ) );
+		return '';
 	}
 
 	/** @param array<string,mixed> $payload */

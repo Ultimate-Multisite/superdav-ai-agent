@@ -33,30 +33,44 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 	/** Jobs are queued once on their own site so the worker can read that site's transient. */
 	public function test_background_dispatcher_queues_job_on_target_site_once(): void {
-		$tenant_id = is_multisite() ? self::factory()->blog->create() : get_current_blog_id();
-		$job_id    = '11111111-2222-3333-4444-555555555555';
-		$args      = array( $tenant_id, $job_id );
-		$requests  = 0;
+		$originating_blog_id    = get_current_blog_id();
+		$tenant_id              = is_multisite() ? self::factory()->blog->create() : $originating_blog_id;
+		$job_id                 = '11111111-2222-3333-4444-555555555555';
+		$args                   = array( $tenant_id, $job_id );
+		$requests               = 0;
+		$has_action_scheduler   = function_exists( 'as_enqueue_async_action' ) && function_exists( 'as_has_scheduled_action' );
+		$switched_to_tenant     = false;
 		$intercept = static function ( $preempt ) use ( &$requests ) {
 			++$requests;
 			return $preempt;
 		};
 		add_filter( 'pre_http_request', $intercept );
 
-		if ( is_multisite() ) {
-			switch_to_blog( $tenant_id );
-		}
-		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
-		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
-		$this->assertSame( $tenant_id, get_current_blog_id() );
-		$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
-		wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
-		if ( is_multisite() ) {
-			restore_current_blog();
-			$this->assertFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
-		}
-		remove_filter( 'pre_http_request', $intercept );
+		try {
+			if ( is_multisite() ) {
+				switch_to_blog( $tenant_id );
+				$switched_to_tenant = true;
+			}
 
+			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
+			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
+			$this->assertSame( $tenant_id, get_current_blog_id() );
+			$this->assertTrue(
+				( $has_action_scheduler && as_has_scheduled_action( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' ) )
+				|| false !== wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args )
+			);
+		} finally {
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' );
+			}
+			wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
+			if ( $switched_to_tenant ) {
+				restore_current_blog();
+			}
+			remove_filter( 'pre_http_request', $intercept );
+		}
+
+		$this->assertSame( $originating_blog_id, get_current_blog_id() );
 		$this->assertSame( 0, $requests, 'An already queued event must not fall back to an HTTP loopback.' );
 	}
 

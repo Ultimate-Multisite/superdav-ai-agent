@@ -2343,6 +2343,68 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( $current, (string) wp_json_encode( $data['history'] ) );
 	}
 
+	/** Large managed history is compacted for the request, not the saved conversation. */
+	public function test_managed_context_pressure_compacts_before_provider_call(): void {
+		$original = str_repeat( 'Prior completed evidence. ', 11000 );
+		$history  = array(
+			new UserMessage( array( new MessagePart( 'Inspect the site.' ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'call_big', 'wpab__sd-ai-agent__site-info', array() ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'call_big', 'wpab__sd-ai-agent__site-info', array( 'content' => $original ) ) ) ) ),
+		);
+		$loop     = new ScriptedAgentLoop(
+			'Only reply OK.',
+			array(),
+			$history,
+			array(
+				'provider_id' => 'sd-ai-agent-cloud',
+				'model_id'    => 'superdav-chat-pro',
+			),
+			array( $this->create_scripted_result( 'OK' ) )
+		);
+
+		$result = $loop->run();
+
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $loop->requestSizes );
+		$this->assertLessThanOrEqual( ConversationTrimmer::COMPACT_MAX_BYTES, $loop->requestSizes[0] );
+		$this->assertStringContainsString( $original, (string) wp_json_encode( $result['history'] ) );
+	}
+
+	/** Managed chat respects the gateway's byte-as-token context check. */
+	public function test_managed_chat_budget_reserves_output_tokens_below_context_limit(): void {
+		$this->assertSame( 183616, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( 150848, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( 524288, ConversationTrimmer::get_request_byte_budget( 'openai', 'gpt-test' ) );
+	}
+
+	/** Compact a large discovery/list turn while retaining intent and product identities. */
+	public function test_managed_compaction_retains_coupon_intent_and_product_ids(): void {
+		$schema  = array( 'type' => 'object', 'properties' => array( 'details' => array( 'type' => 'string', 'description' => str_repeat( 'schema detail ', 1600 ) ) ) );
+		$results = array_fill( 0, 10, array( 'id' => 'woocommerce/products-list', 'label' => 'Products', 'input_schema' => $schema, 'output_schema' => $schema ) );
+		$data    = array_fill( 0, 10, array( 'id' => 42, 'name' => 'Multi Tenancy Addon', 'sku' => 'ADDON', 'status' => 'publish', 'description' => str_repeat( 'PRIVATE_DESCRIPTION ', 350 ) ) );
+		$history = array(
+			new UserMessage( array( new MessagePart( 'Create a 100% coupon BETA for the Multi Tenancy Addon, one product per customer.' ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'search', 'wpab__sd-ai-agent__ability-search', array( 'query' => 'create coupon' ) ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'search', 'wpab__sd-ai-agent__ability-search', array( 'results' => $results ) ) ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'products', 'wpab__woocommerce__products-list', array( 'search' => 'multi tenancy addon' ) ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'products', 'wpab__woocommerce__products-list', array( 'data' => $data ) ) ) ) ),
+		);
+
+		$compacted = ConversationTrimmer::compact_serialized_history( ConversationSerializer::serialize( $history ) );
+		$text      = (string) ( $compacted['messages'][0]['parts'][0]['text'] ?? '' );
+		$this->assertStringContainsString( '100% coupon BETA', $text );
+		$this->assertStringContainsString( 'Multi Tenancy Addon', $text );
+		$this->assertStringContainsString( '"id":42', $text );
+		$this->assertStringNotContainsString( 'PRIVATE_DESCRIPTION', $text );
+
+		$loop   = new ScriptedAgentLoop( 'Continue.', array(), $history, array( 'provider_id' => 'sd-ai-agent-cloud', 'model_id' => 'superdav-chat-pro' ), array( $this->create_scripted_result( 'OK' ) ) );
+		$result = $loop->run();
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $loop->requestSizes );
+		$this->assertLessThanOrEqual( ConversationTrimmer::COMPACT_MAX_BYTES, $loop->requestSizes[0] );
+		$this->assertStringContainsString( 'PRIVATE_DESCRIPTION', (string) wp_json_encode( $result['history'] ) );
+	}
+
 	/** A measured local transport preflight rejection receives one reduced retry. */
 	public function test_local_transport_payload_rejection_retries_once_with_reduced_history(): void {
 		$history = array(

@@ -2752,11 +2752,20 @@ PROMPT;
 			}
 		}
 
-		if ( ! $compaction_active ) {
+		$provider_id      = $this->resolve_provider_id();
+		$model_id         = $this->resolve_effective_model_id( $provider_id );
+		$request_bytes    = ConversationTrimmer::estimate_total_bytes( $this->history );
+		$managed_pressure = 'sd-ai-agent-cloud' === $provider_id
+			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true )
+			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
+
+		// A newest tool-response cluster cannot always be dropped by turn-based
+		// trimming. Compact a provider-only copy before the managed gateway sees
+		// it; the full transcript is restored by the caller after this request.
+		if ( ! $compaction_active && ! $managed_pressure ) {
 			return null;
 		}
 
-		$request_bytes  = ConversationTrimmer::estimate_total_bytes( $this->history );
 		$request_tokens = ConversationTrimmer::estimate_total_tokens( $this->history );
 		if ( $request_bytes <= ConversationTrimmer::COMPACT_MAX_BYTES && $request_tokens <= ConversationTrimmer::COMPACT_MAX_TOKENS ) {
 			return null;

@@ -749,7 +749,7 @@ final class WooCommerceAbilities {
 			return $assigned;
 		}
 
-		ChangesLog::record(
+		$change_id = ChangesLog::record(
 			[
 				'session_id'   => ChangeLogger::get_session_id(),
 				'object_type'  => 'product',
@@ -762,6 +762,29 @@ final class WooCommerceAbilities {
 				'revertable'   => false,
 			]
 		);
+
+		if ( false === $change_id ) {
+			$rollback = wp_set_object_terms( $product_id, $current_category_ids, self::TAXONOMY, false );
+			if ( is_wp_error( $rollback ) ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_failed',
+					__( 'The product category assignment was applied, but the change log write and rollback both failed.', 'superdav-ai-agent' ),
+					[
+						'status'              => 500,
+						'product_id'          => $product_id,
+						'assigned_category_ids' => $category_ids,
+						'before_category_ids' => $current_category_ids,
+						'rollback_error'      => $rollback->get_error_messages(),
+					]
+				);
+			}
+
+			return new WP_Error(
+				'sd_ai_agent_commerce_assignment_log_failed',
+				__( 'The change log could not be written, so the product category assignment was rolled back.', 'superdav-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
 
 		return [
 			'operation'    => 'assign_product_categories',

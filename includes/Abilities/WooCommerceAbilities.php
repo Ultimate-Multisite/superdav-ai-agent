@@ -764,6 +764,37 @@ final class WooCommerceAbilities {
 		);
 
 		if ( false === $change_id ) {
+			$rollback_current_category_ids = wp_get_object_terms( $product_id, self::TAXONOMY, [ 'fields' => 'ids' ] );
+			if ( is_wp_error( $rollback_current_category_ids ) ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_state_read_failed',
+					__( 'The product category assignment was applied, but the change log write failed and the current categories could not be read for a safe rollback.', 'superdav-ai-agent' ),
+					[
+						'status'              => 500,
+						'product_id'          => $product_id,
+						'category_ids'        => $category_ids,
+						'before_category_ids' => $current_category_ids,
+						'rollback_error'      => $rollback_current_category_ids->get_error_messages(),
+					]
+				);
+			}
+
+			$rollback_current_category_ids = array_map( 'intval', $rollback_current_category_ids );
+			sort( $rollback_current_category_ids, SORT_NUMERIC );
+			if ( $category_ids !== $rollback_current_category_ids ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_conflict',
+					__( 'The product category assignment was applied, but the change log write failed after the categories changed again. The assignment was not rolled back to avoid overwriting the newer categories.', 'superdav-ai-agent' ),
+					[
+						'status'               => 409,
+						'product_id'           => $product_id,
+						'category_ids'         => $category_ids,
+						'before_category_ids'  => $current_category_ids,
+						'current_category_ids' => $rollback_current_category_ids,
+					]
+				);
+			}
+
 			$rollback = wp_set_object_terms( $product_id, $current_category_ids, self::TAXONOMY, false );
 			if ( is_wp_error( $rollback ) ) {
 				return new WP_Error(
@@ -772,7 +803,7 @@ final class WooCommerceAbilities {
 					[
 						'status'              => 500,
 						'product_id'          => $product_id,
-						'assigned_category_ids' => $category_ids,
+						'category_ids'        => $category_ids,
 						'before_category_ids' => $current_category_ids,
 						'rollback_error'      => $rollback->get_error_messages(),
 					]

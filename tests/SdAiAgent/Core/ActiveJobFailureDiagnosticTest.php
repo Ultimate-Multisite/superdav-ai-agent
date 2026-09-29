@@ -99,6 +99,14 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 				),
 				ActiveJobFailureDiagnostic::REASON_PROVIDER_TIMEOUT,
 			),
+			'provider unavailable'      => array(
+				new \WP_Error(
+					'sd_ai_agent_provider_retry_failed',
+					'The AI service is temporarily unavailable.',
+					array( 'status_code' => 503 )
+				),
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
+			),
 			'gateway rejection'         => array(
 				new \WP_Error(
 					'provider_http_error',
@@ -201,11 +209,33 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_retry_exhaustion_uses_underlying_safe_error_code_without_assuming_timeout(): void {
+		$timeout = new \WP_Error(
+			'sd_ai_agent_provider_retry_failed',
+			'The AI service is temporarily unavailable.',
+			array( 'provider_error_code' => 'provider_timeout' )
+		);
+		$connection = new \WP_Error(
+			'sd_ai_agent_provider_retry_failed',
+			'The AI service is temporarily unavailable.',
+			array( 'provider_error_code' => 'provider_connection_failure' )
+		);
+		$unknown = new \WP_Error(
+			'sd_ai_agent_provider_retry_failed',
+			'The AI service is temporarily unavailable.'
+		);
+
+		$this->assertSame( ActiveJobFailureDiagnostic::REASON_PROVIDER_TIMEOUT, ActiveJobFailureDiagnostic::reason_from_error( $timeout ) );
+		$this->assertSame( ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE, ActiveJobFailureDiagnostic::reason_from_error( $connection ) );
+		$this->assertSame( ActiveJobFailureDiagnostic::REASON_UNKNOWN, ActiveJobFailureDiagnostic::reason_from_error( $unknown ) );
+	}
+
 	public function test_all_normalized_reasons_have_safe_recovery_metadata(): void {
 		$expected = array(
 			ActiveJobFailureDiagnostic::REASON_LOCAL_PAYLOAD_GUARD        => array( 'compact', false ),
 			ActiveJobFailureDiagnostic::REASON_UPSTREAM_PAYLOAD_REJECTION => array( 'compact', false ),
 			ActiveJobFailureDiagnostic::REASON_PROVIDER_TIMEOUT           => array( 'retry', true ),
+			ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE       => array( 'retry', true ),
 			ActiveJobFailureDiagnostic::REASON_GATEWAY_REJECTION          => array( 'contact_support', false ),
 			ActiveJobFailureDiagnostic::REASON_CREDIT_EXHAUSTED           => array( 'purchase_credits', false ),
 			ActiveJobFailureDiagnostic::REASON_WORKER_TERMINATED          => array( 'retry', true ),

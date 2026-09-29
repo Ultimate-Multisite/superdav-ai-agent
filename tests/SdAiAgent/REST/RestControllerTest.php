@@ -2926,8 +2926,12 @@ class RestControllerTest extends WP_UnitTestCase {
 			[
 				'history'     => [ [ 'private' => str_repeat( 'x', 900000 ) ] ],
 				'tool_calls'  => [ [ 'private' => 'MUST_NOT_ESCAPE' ] ],
-				'provider_id' => 'sd-ai-agent-cloud',
-				'model_id'    => 'superdav-chat-pro',
+				'provider_id'        => 'sd-ai-agent-cloud',
+				'model_id'           => 'superdav-chat-pro',
+				'status_code'        => 503,
+				'provider_error_code' => 'provider_http_503',
+				'failure_source'     => 'http',
+				'attempts'           => 6,
 			]
 		);
 
@@ -2950,7 +2954,9 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertTrue( $data['results_accepted'] );
 		$this->assertTrue( $data['recoverable'] );
 		$this->assertSame( 'recoverable_error', $data['status'] );
-		$this->assertSame( 'provider_timeout', $data['diagnostic']['reason'] );
+		$this->assertSame( 'provider_unavailable', $data['diagnostic']['reason'] );
+		$this->assertSame( 503, $data['diagnostic']['status_code'] );
+		$this->assertSame( 6, $data['diagnostic']['attempts'] );
 		$this->assertSame( 'client_tool_resume', $data['diagnostic']['last_safe_phase'] );
 		$this->assertLessThan( 4096, strlen( (string) wp_json_encode( $data ) ) );
 		$this->assertStringNotContainsString( 'MUST_NOT_ESCAPE', (string) wp_json_encode( $data ) );

@@ -536,7 +536,7 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 
 	/** Retry exhaustion has one prompt-free terminal trace even when transport callbacks never run. */
 	public function test_retry_exhaustion_writes_safe_terminal_trace(): void {
-		ProviderTrace::set_enabled( true );
+		ProviderTrace::set_enabled( false );
 		ProviderTrace::clear();
 
 		ProviderTraceLogger::record_retry_exhausted_failure(
@@ -572,6 +572,50 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 		$this->assertSame( 73, $diagnostics['session_id'] );
 		$this->assertSame( 'job-123', $diagnostics['job_id'] );
 		$this->assertStringNotContainsString( 'PRIVATE_HOST', $trace->response_body );
+	}
+
+	/** Failed attempts retain bounded correlation metadata when full tracing is disabled. */
+	public function test_provider_attempt_failure_writes_safe_trace_without_debug_tracing(): void {
+		ProviderTrace::set_enabled( false );
+		ProviderTrace::clear();
+
+		ProviderTraceLogger::record_provider_attempt_failure(
+			'openai_compat',
+			'gpt-test',
+			new \WP_Error( 'provider_http_error', 'PRIVATE_PROVIDER_RESPONSE Authorization: Bearer PRIVATE_TOKEN' ),
+			503,
+			2,
+			6,
+			1250,
+			true,
+			'provider_followup_call',
+			73,
+			'job-123',
+			array(
+				'request_bytes'      => 2048,
+				'request_size_class' => 'small',
+				'prompt'             => 'PRIVATE_HTTP_PROMPT',
+			)
+		);
+
+		$rows = ProviderTrace::list( array( 'limit' => 1 ) );
+		$this->assertCount( 1, $rows );
+		$this->assertSame( 503, $rows[0]->status_code );
+		$this->assertSame( 'provider_http_503', $rows[0]->error );
+
+		$trace = ProviderTrace::get( $rows[0]->id );
+		$this->assertNotNull( $trace );
+		$diagnostics = json_decode( $trace->response_body, true );
+		$this->assertIsArray( $diagnostics );
+		$this->assertSame( 'provider_attempt_failed', $diagnostics['event'] );
+		$this->assertSame( 2, $diagnostics['attempt'] );
+		$this->assertSame( 6, $diagnostics['max_attempts'] );
+		$this->assertSame( 73, $diagnostics['session_id'] );
+		$this->assertTrue( $diagnostics['retryable'] );
+		$persisted_trace = (string) wp_json_encode( $trace );
+		$this->assertStringNotContainsString( 'PRIVATE_PROVIDER_RESPONSE', $persisted_trace );
+		$this->assertStringNotContainsString( 'PRIVATE_HTTP_PROMPT', $persisted_trace );
+		$this->assertStringNotContainsString( 'PRIVATE_TOKEN', $persisted_trace );
 	}
 
 	/** Timeout, connection, and rate-limit failures retain only bounded retry diagnostics. */

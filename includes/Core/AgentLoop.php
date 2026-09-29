@@ -3136,8 +3136,9 @@ PROMPT;
 		$status_code              = 0;
 
 		for ( $attempt = 1; $attempt <= $this->provider_retry_max_attempts; ++$attempt ) {
-			$request_envelope = array();
-			$provider_phase   = $this->get_provider_trace_phase();
+			$attempt_started_at = microtime( true );
+			$request_envelope   = array();
+			$provider_phase     = $this->get_provider_trace_phase();
 			ProviderTraceLogger::set_runtime_context(
 				$provider_id,
 				$model_id,
@@ -3173,7 +3174,22 @@ PROMPT;
 			}
 
 			$status_code = $this->extract_provider_error_status( $last_error );
-			if ( ! $this->is_retryable_provider_error( $last_error, $status_code ) ) {
+			$retryable   = $this->is_retryable_provider_error( $last_error, $status_code );
+			ProviderTraceLogger::record_provider_attempt_failure(
+				$provider_id,
+				$model_id,
+				$last_error,
+				$status_code,
+				$attempt,
+				$this->provider_retry_max_attempts,
+				(int) round( ( microtime( true ) - $attempt_started_at ) * 1000 ),
+				$retryable,
+				$provider_phase,
+				$this->session_id,
+				$this->active_job_id,
+				$request_envelope
+			);
+			if ( ! $retryable ) {
 				return $this->provider_error_to_wp_error( $last_error, $status_code, $provider_id, $model_id, $attempt );
 			}
 
@@ -3302,11 +3318,12 @@ PROMPT;
 		}
 
 		$context       = array(
-			'status_code'    => max( 0, $status_code ),
-			'provider_id'    => sanitize_key( $provider_id ),
-			'model_id'       => sanitize_text_field( $model_id ),
-			'failure_source' => $source,
-			'attempts'       => min( 10, max( 1, $attempts ) ),
+			'status_code'         => max( 0, $status_code ),
+			'provider_id'         => sanitize_key( $provider_id ),
+			'model_id'            => sanitize_text_field( $model_id ),
+			'provider_error_code' => ProviderErrorClassifier::get_safe_error_code( $error, $status_code ),
+			'failure_source'      => $source,
+			'attempts'            => min( 10, max( 1, $attempts ) ),
 		);
 		$failure_class = ProviderErrorClassifier::get_safe_failure_class( $error, $status_code );
 		if ( '' !== $failure_class ) {

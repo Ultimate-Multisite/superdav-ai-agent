@@ -1324,8 +1324,38 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 3, $call_count );
 		$data = $result->get_error_data();
 		$this->assertIsArray( $data );
+		$this->assertSame( 503, $data['status_code'] );
+		$this->assertSame( 'provider_http_503', $data['provider_error_code'] );
+		$this->assertSame(
+			ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
+			ActiveJobFailureDiagnostic::reason_from_error( $result )
+		);
 		$retry_entries = array_filter( $data['messages'], static fn( $entry ) => 'provider_retry' === ( $entry['type'] ?? '' ) );
 		$this->assertCount( 2, $retry_entries );
+	}
+
+	public function test_provider_failure_context_preserves_only_safe_error_classification(): void {
+		$error = new \WP_Error(
+			'provider_http_error',
+			'PRIVATE_PROVIDER_RESPONSE Authorization: Bearer PRIVATE_TOKEN',
+			array(
+				'status_code'   => 503,
+				'response_body' => 'PRIVATE_RESPONSE_BODY',
+			)
+		);
+		$method = new \ReflectionMethod( AgentLoop::class, 'provider_failure_context' );
+		$method->setAccessible( true );
+		$context = $method->invoke( new AgentLoop( 'PRIVATE_PROMPT_CONTENT' ), $error, 503, 'openai_compat', 'gpt-test', 6 );
+
+		$this->assertIsArray( $context );
+		$this->assertSame( 503, $context['status_code'] );
+		$this->assertSame( 'provider_http_503', $context['provider_error_code'] );
+		$this->assertSame( 'http', $context['failure_source'] );
+		$this->assertSame( 6, $context['attempts'] );
+		$this->assertStringNotContainsString( 'PRIVATE_PROVIDER_RESPONSE', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_RESPONSE_BODY', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_PROMPT_CONTENT', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_TOKEN', (string) wp_json_encode( $context ) );
 	}
 
 	public function test_run_classifies_imunify_gateway_rejection_without_retrying(): void {

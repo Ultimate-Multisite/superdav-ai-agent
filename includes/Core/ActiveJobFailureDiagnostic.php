@@ -34,6 +34,9 @@ final class ActiveJobFailureDiagnostic {
 	/** Failure caused by an upstream provider timeout. */
 	public const REASON_PROVIDER_TIMEOUT = 'provider_timeout';
 
+	/** Failure caused by a retryable upstream or transport outage. */
+	public const REASON_PROVIDER_UNAVAILABLE = 'provider_unavailable';
+
 	/** Failure caused by an upstream security gateway or WAF rejection. */
 	public const REASON_GATEWAY_REJECTION = 'gateway_rejection';
 
@@ -63,6 +66,7 @@ final class ActiveJobFailureDiagnostic {
 		self::REASON_LOCAL_PAYLOAD_GUARD,
 		self::REASON_UPSTREAM_PAYLOAD_REJECTION,
 		self::REASON_PROVIDER_TIMEOUT,
+		self::REASON_PROVIDER_UNAVAILABLE,
 		self::REASON_GATEWAY_REJECTION,
 		self::REASON_CREDIT_EXHAUSTED,
 		self::REASON_WORKER_TERMINATED,
@@ -151,11 +155,12 @@ final class ActiveJobFailureDiagnostic {
 	 * @return string Normalized diagnostic reason.
 	 */
 	public static function reason_from_error( \WP_Error $error, string $provider_id = '' ): string {
-		$code        = sanitize_key( (string) $error->get_error_code() );
-		$data        = $error->get_error_data();
-		$data        = is_array( $data ) ? $data : array();
-		$provider_id = sanitize_key( $provider_id );
-		$status_code = (int) ( $data['status_code'] ?? ProviderErrorClassifier::extract_status_code( $error ) );
+		$code                = sanitize_key( (string) $error->get_error_code() );
+		$data                = $error->get_error_data();
+		$data                = is_array( $data ) ? $data : array();
+		$provider_id         = sanitize_key( $provider_id );
+		$status_code         = (int) ( $data['status_code'] ?? ProviderErrorClassifier::extract_status_code( $error ) );
+		$provider_error_code = sanitize_key( (string) ( $data['provider_error_code'] ?? '' ) );
 
 		if (
 			ProviderErrorClassifier::FAILURE_CLASS_GATEWAY_REJECTION === ( $data['failure_class'] ?? '' ) ||
@@ -183,10 +188,18 @@ final class ActiveJobFailureDiagnostic {
 		}
 
 		if (
-			in_array( $code, array( 'sd_ai_agent_provider_timeout', 'sd_ai_agent_provider_retry_failed', 'timeout', 'timed_out', 'deadline_exceeded' ), true ) ||
+			in_array( $code, array( 'sd_ai_agent_provider_timeout', 'timeout', 'timed_out', 'deadline_exceeded' ), true ) ||
+			'provider_timeout' === $provider_error_code ||
 			in_array( $status_code, array( 408, 504, 524 ), true )
 		) {
 			return self::REASON_PROVIDER_TIMEOUT;
+		}
+
+		if (
+			in_array( $status_code, array( 429, 500, 502, 503 ), true ) ||
+			in_array( $provider_error_code, array( 'provider_dns_failure', 'provider_connection_failure' ), true )
+		) {
+			return self::REASON_PROVIDER_UNAVAILABLE;
 		}
 
 		$message = strtolower( $error->get_error_message() );
@@ -256,6 +269,7 @@ final class ActiveJobFailureDiagnostic {
 			self::REASON_LOCAL_PAYLOAD_GUARD => __( 'This request is too large to send safely. Compact the conversation, shorten the latest message, or remove large attachments before retrying.', 'superdav-ai-agent' ),
 			self::REASON_UPSTREAM_PAYLOAD_REJECTION => __( 'The selected AI provider rejected this request because it exceeds its payload limit. Start a smaller continuation and retry.', 'superdav-ai-agent' ),
 			self::REASON_PROVIDER_TIMEOUT => __( 'The AI provider timed out before finishing. Retry the request shortly.', 'superdav-ai-agent' ),
+			self::REASON_PROVIDER_UNAVAILABLE => __( 'The AI provider is temporarily unavailable. Retry the request shortly. If the problem continues, contact support with the correlation ID.', 'superdav-ai-agent' ),
 			self::REASON_GATEWAY_REJECTION => __( 'The AI request was rejected by an upstream security gateway. Verify that the provider endpoint is allowed by your hosting or network policy, then retry. If it continues, contact support with the correlation ID.', 'superdav-ai-agent' ),
 			self::REASON_CREDIT_EXHAUSTED => __( 'Your Superdav account needs more credits to continue. Purchase credits in your account settings.', 'superdav-ai-agent' ),
 			self::REASON_WORKER_TERMINATED => __( 'The background worker stopped before the job could finish. Retry the job or start a continuation from the saved conversation.', 'superdav-ai-agent' ),
@@ -308,6 +322,7 @@ final class ActiveJobFailureDiagnostic {
 			$reason,
 			array(
 				self::REASON_PROVIDER_TIMEOUT,
+				self::REASON_PROVIDER_UNAVAILABLE,
 				self::REASON_WORKER_TERMINATED,
 				self::REASON_APPROVAL_WAIT,
 				self::REASON_UNKNOWN,
@@ -322,6 +337,7 @@ final class ActiveJobFailureDiagnostic {
 			self::REASON_LOCAL_PAYLOAD_GUARD,
 			self::REASON_UPSTREAM_PAYLOAD_REJECTION => 'compact',
 			self::REASON_PROVIDER_TIMEOUT,
+			self::REASON_PROVIDER_UNAVAILABLE,
 			self::REASON_WORKER_TERMINATED => 'retry',
 			self::REASON_GATEWAY_REJECTION => 'contact_support',
 			self::REASON_CREDIT_EXHAUSTED => 'purchase_credits',

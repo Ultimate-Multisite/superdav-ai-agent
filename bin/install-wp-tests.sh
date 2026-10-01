@@ -30,45 +30,8 @@ TESTS_STAGING=''
 WP_TESTS_TAG=''
 ARCHIVE_NAME=''
 
-validate_test_database() {
-	if [[ ! $DB_NAME =~ (^|[_-])(test|tests|phpunit|ci)([_-]|$) ]]; then
-		printf 'Refusing to use a database whose name is not clearly a test database. Use a separate name containing test, tests, phpunit, or ci.\n' >&2
-		return 1
-	fi
-
-	if [ -n "${WP_LIVE_DB_NAME:-}" ] && [ "$DB_NAME" = "$WP_LIVE_DB_NAME" ]; then
-		printf 'Refusing to use the database declared by WP_LIVE_DB_NAME. Configure a separate test database.\n' >&2
-		return 1
-	fi
-
-	return 0
-}
-
-validate_existing_test_config() {
-	local config_file="$WP_TESTS_DIR/wp-tests-config.php"
-	local configured_database=''
-
-	if [ ! -f "$config_file" ]; then
-		return 0
-	fi
-
-	configured_database="$(sed -nE "s|^[[:space:]]*define[[:space:]]*\([[:space:]]*['\"]DB_NAME['\"][[:space:]]*,[[:space:]]*['\"]([^'\"]*)['\"].*|\1|p" "$config_file")"
-	if [ -z "$configured_database" ]; then
-		printf 'Existing WordPress test config cannot be safely validated. Use a fresh WP_PHPUNIT_CACHE_DIR for the dedicated test database.\n' >&2
-		return 1
-	fi
-
-	if [ "$configured_database" != "$DB_NAME" ]; then
-		printf 'Existing WordPress test config selects a different database. Use a fresh WP_PHPUNIT_CACHE_DIR for the dedicated test database.\n' >&2
-		return 1
-	fi
-
-	if ! grep -Eq "define[[:space:]]*\\([[:space:]]*'SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED'[[:space:]]*,[[:space:]]*true[[:space:]]*\\)" "$config_file"; then
-		printf 'Existing WordPress test config is not marked as isolated. Use a fresh WP_PHPUNIT_CACHE_DIR and rerun setup before tests can mutate a database.\n' >&2
-		return 1
-	fi
-
-	return 0
+validate_test_config() {
+	php "$(dirname "$0")/wp-phpunit-database.php" "$WP_TESTS_DIR" "$DB_NAME"
 }
 
 download() {
@@ -396,10 +359,9 @@ install_db() {
 }
 
 mkdir -p "$CACHE_ROOT"
-validate_test_database
-validate_existing_test_config
+validate_test_config
 acquire_lock
-validate_existing_test_config
+validate_test_config
 WORK_DIR="$(mktemp -d "$CACHE_ROOT/.wordpress-phpunit-${VERSION_KEY}.XXXXXX")"
 set_wp_tests_tag
 install_wp

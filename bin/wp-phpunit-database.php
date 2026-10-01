@@ -9,81 +9,93 @@
 declare(strict_types=1);
 
 /**
- * Read supported PHPUnit safety declarations without loading configuration.
+ * Read literal, unconditional configuration declarations without executing PHP.
  *
- * @param string $config_file WordPress PHPUnit configuration file.
- * @return array<string, string|bool>|false False when a relevant declaration is unsupported or ambiguous.
+ * Comments and unrelated strings cannot supply declarations. Duplicate,
+ * conditional, interpolated, or computed declarations fail closed.
+ *
+ * @param string $config_file Configuration path.
+ * @return array<string, string|bool>|false False for unsupported or ambiguous declarations.
  */
 function sd_ai_agent_phpunit_read_config_definitions(string $config_file): array|false
 {
-	if (! is_file($config_file)) {
-		return array();
-	}
-
-	$content = file_get_contents($config_file);
+	$content = is_file($config_file) ? file_get_contents($config_file) : false;
 	if (false === $content) {
 		return array();
 	}
 
-	$definitions = array();
-	$constants   = array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED');
-	$tokens      = token_get_all($content);
-
-	for ($index = 0; isset($tokens[$index]); ++$index) {
-		if (! is_array($tokens[$index]) || T_STRING !== $tokens[$index][0] || 'define' !== strtolower($tokens[$index][1])) {
-			continue;
-		}
-
-		$next_token = static function () use ($tokens, &$index) {
-			do {
-				++$index;
-			} while (isset($tokens[$index]) && is_array($tokens[$index]) && in_array($tokens[$index][0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true));
-
-			return $tokens[$index] ?? null;
-		};
-
-		if ('(' !== $next_token() || ! is_array($next_token()) || T_CONSTANT_ENCAPSED_STRING !== $tokens[$index][0]) {
-			continue;
-		}
-
-		$name_literal = $tokens[$index][1];
-		$name         = substr($name_literal, 1, -1);
-		if (! in_array($name, $constants, true)) {
-			continue;
-		}
-
-		if (',' !== $next_token()) {
-			return false;
-		}
-
-		$value_token = $next_token();
-		if (isset($definitions[$name]) || ')' !== $next_token()) {
-			return false;
-		}
-
-		if ('SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED' === $name) {
-			if (! is_array($value_token) || T_STRING !== $value_token[0] || 'true' !== strtolower($value_token[1])) {
+	$tokens = array_values(array_filter(token_get_all($content), static function ($token): bool {
+		return ! is_array($token) || ! in_array($token[0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true);
+	}));
+	$names = array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED');
+	$constants = array();
+	$depth = 0;
+	foreach ($tokens as $index => $token) {
+		// Dynamic define names and const declarations cannot be checked
+		// against the selected connection, so refuse them before bootstrap.
+		if (is_array($token) && in_array($token[0], array(T_STRING, T_NAME_FULLY_QUALIFIED), true)
+			&& 'define' === strtolower(ltrim($token[1], '\\')) && '(' === ($tokens[$index + 1] ?? null)) {
+			$name_token = $tokens[$index + 2] ?? null;
+			if (! is_array($name_token) || T_CONSTANT_ENCAPSED_STRING !== $name_token[0] || ',' !== ($tokens[$index + 3] ?? null) || str_contains($name_token[1], '\\')) {
 				return false;
 			}
-			$definitions[$name] = true;
+		}
+		if (is_array($token) && T_CONST === $token[0]) {
+			for ($cursor = $index + 1; isset($tokens[$cursor]) && ';' !== $tokens[$cursor]; ++$cursor) {
+				if (is_array($tokens[$cursor]) && T_STRING === $tokens[$cursor][0] && in_array($tokens[$cursor][1], $names, true)) {
+					return false;
+				}
+			}
+		}
+		if (in_array($token, array('{', '(', '['), true)) {
+			++$depth;
+		} elseif (in_array($token, array('}', ')', ']'), true)) {
+			--$depth;
+		}
+		if (! is_array($token) || T_CONSTANT_ENCAPSED_STRING !== $token[0]) {
 			continue;
 		}
-
-		if (! is_array($value_token) || T_CONSTANT_ENCAPSED_STRING !== $value_token[0]) {
+		$name = substr($token[1], 1, -1);
+		if (! in_array($name, $names, true)) {
+			continue;
+		}
+		$function = $tokens[$index - 2] ?? null;
+		// Ignore names in unrelated strings, but never accept a nested define.
+		if (! is_array($function) || ! in_array($function[0], array(T_STRING, T_NAME_FULLY_QUALIFIED), true) || 'define' !== strtolower(ltrim($function[1], '\\'))) {
+			continue;
+		}
+		$previous = $tokens[$index - 3] ?? null;
+		$value = $tokens[$index + 2] ?? null;
+		if (1 !== $depth || isset($constants[$name])
+			|| ! (';' === $previous || (is_array($previous) && T_OPEN_TAG === $previous[0]))
+			|| '(' !== ($tokens[$index - 1] ?? null) || ',' !== ($tokens[$index + 1] ?? null)
+			|| ')' !== ($tokens[$index + 3] ?? null) || ';' !== ($tokens[$index + 4] ?? null)
+			|| ! is_array($value)) {
 			return false;
 		}
-
-		$value_literal       = $value_token[1];
-		$quote               = $value_literal[0];
-		$definitions[$name] = str_replace(array('\\\\', '\\' . $quote), array('\\', $quote), substr($value_literal, 1, -1));
+		if ('SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED' === $name) {
+			if (T_STRING !== $value[0] || 'true' !== strtolower($value[1])) {
+				return false;
+			}
+			$constants[$name] = true;
+		} else {
+			if (T_CONSTANT_ENCAPSED_STRING !== $value[0]) {
+				return false;
+			}
+			$literal = substr($value[1], 1, -1);
+			// Support PHP single-quoted escapes; reject double-quoted escapes
+			// rather than risk decoding a different connection than PHP uses.
+			if ('"' === $value[1][0] && str_contains($literal, '\\')) {
+				return false;
+			}
+			$constants[$name] = str_replace(array("\\'", '\\\\'), array("'", '\\'), $literal);
+		}
 	}
-
-	return $definitions;
+	return $constants;
 }
 
 /**
- * Read database connection values from a WordPress PHPUnit config without
- * loading executable configuration code.
+ * Read the selected test connection without executing configuration code.
  *
  * @param string $tests_dir WordPress PHPUnit test-library directory.
  * @return array<string, string>
@@ -94,12 +106,8 @@ function sd_ai_agent_phpunit_read_config_database(string $tests_dir): array
 	if (false === $definitions) {
 		return array();
 	}
-
-	return array_filter(
-		$definitions,
-		static fn (string $constant): bool => in_array($constant, array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST'), true),
-		ARRAY_FILTER_USE_KEY
-	);
+	unset($definitions['SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED']);
+	return $definitions;
 }
 
 /**
@@ -110,9 +118,10 @@ function sd_ai_agent_phpunit_read_config_database(string $tests_dir): array
  * collision is always rejected even when its name happens to include "test".
  *
  * @param string $database_name Database name selected for PHPUnit.
+ * @param string|null $live_config Shared WordPress config path (defaults to ../wordpress).
  * @return string|null
  */
-function sd_ai_agent_phpunit_validate_database_name(string $database_name): ?string
+function sd_ai_agent_phpunit_validate_database_name(string $database_name, ?string $live_config = null): ?string
 {
 	if ('' === $database_name) {
 		return 'WordPress PHPUnit requires a dedicated test database. Set WP_TESTS_DB_NAME to a separate database name.';
@@ -123,6 +132,16 @@ function sd_ai_agent_phpunit_validate_database_name(string $database_name): ?str
 	}
 
 	$live_database = getenv('WP_LIVE_DB_NAME');
+	$live_config ??= dirname(__DIR__, 2) . '/wordpress/wp-config.php';
+	if (is_file($live_config)) {
+		$live = sd_ai_agent_phpunit_read_config_definitions($live_config);
+		if (! isset($live['DB_NAME']) && (false === $live_database || '' === $live_database)) {
+			return 'Cannot determine the shared WordPress database. Set WP_LIVE_DB_NAME before PHPUnit setup or execution.';
+		}
+		if (($live['DB_NAME'] ?? null) === $database_name) {
+			return 'Refusing to use the shared WordPress database. Configure a separate test database.';
+		}
+	}
 	if (false !== $live_database && '' !== $live_database && hash_equals($live_database, $database_name)) {
 		return 'Refusing to use the database declared by WP_LIVE_DB_NAME. Configure WP_TESTS_DB_NAME with a separate test database.';
 	}
@@ -138,11 +157,15 @@ function sd_ai_agent_phpunit_validate_database_name(string $database_name): ?str
  */
 function sd_ai_agent_phpunit_validate_test_config(string $tests_dir): ?string
 {
-	return sd_ai_agent_phpunit_validate_test_config_file(rtrim($tests_dir, '/') . '/wp-tests-config.php');
+	$config_file = rtrim($tests_dir, '/') . '/wp-tests-config.php';
+	if (defined('WP_TESTS_CONFIG_FILE_PATH') && realpath((string) WP_TESTS_CONFIG_FILE_PATH) !== realpath($config_file)) {
+		return 'Refusing an alternate WP_TESTS_CONFIG_FILE_PATH. Use the validated test-library configuration.';
+	}
+	return sd_ai_agent_phpunit_validate_test_config_file($config_file);
 }
 
 /**
- * Return the validation error for a specific WordPress PHPUnit config file.
+ * Validate the declarations in a specific configuration file.
  *
  * @param string $config_file WordPress PHPUnit configuration file.
  * @return string|null
@@ -152,26 +175,14 @@ function sd_ai_agent_phpunit_validate_test_config_file(string $config_file): ?st
 	if (! is_file($config_file)) {
 		return 'WordPress test config not found. Run `pnpm run test:php:setup` with a dedicated WP_TESTS_DB_NAME.';
 	}
-
-	$content = file_get_contents($config_file);
-	if (false === $content) {
-		return 'WordPress test config could not be read. Create a fresh isolated PHPUnit cache before running tests.';
-	}
-
-	$definitions = sd_ai_agent_phpunit_read_config_definitions($config_file);
-	if (false === $definitions) {
+	$database = sd_ai_agent_phpunit_read_config_definitions($config_file);
+	if (false === $database) {
 		return 'WordPress test config contains unsupported or ambiguous safety declarations. Create a fresh isolated PHPUnit cache before running tests.';
 	}
-
-	if (! isset($definitions['SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED'])) {
+	if (($database['SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED'] ?? null) !== true) {
 		return 'WordPress test config is not marked as isolated. Create a fresh WP_PHPUNIT_CACHE_DIR and run `pnpm run test:php:setup` with a dedicated WP_TESTS_DB_NAME.';
 	}
 
-	$database = array_filter(
-		$definitions,
-		static fn (string $constant): bool => in_array($constant, array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST'), true),
-		ARRAY_FILTER_USE_KEY
-	);
 	foreach (array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST') as $constant) {
 		if (! isset($database[$constant])) {
 			return 'WordPress test config does not declare a complete database connection. Create a fresh isolated PHPUnit cache before running tests.';
@@ -179,4 +190,20 @@ function sd_ai_agent_phpunit_validate_test_config_file(string $config_file): ?st
 	}
 
 	return sd_ai_agent_phpunit_validate_database_name($database['DB_NAME']);
+}
+
+// The shell installer uses exactly the same parser and policy as PHPUnit.
+if (isset($argv[0]) && realpath($argv[0]) === __FILE__) {
+	$error = sd_ai_agent_phpunit_validate_database_name($argv[2] ?? '');
+	if (null === $error && is_file(($argv[1] ?? '') . '/wp-tests-config.php')) {
+		$error = sd_ai_agent_phpunit_validate_test_config($argv[1]);
+		$database = sd_ai_agent_phpunit_read_config_database($argv[1]);
+		if (null === $error && ($database['DB_NAME'] ?? null) !== ($argv[2] ?? '')) {
+			$error = 'Existing test config selects a different database. Use a fresh WP_PHPUNIT_CACHE_DIR.';
+		}
+	}
+	if (null !== $error) {
+		fwrite(STDERR, $error . PHP_EOL);
+		exit(1);
+	}
 }

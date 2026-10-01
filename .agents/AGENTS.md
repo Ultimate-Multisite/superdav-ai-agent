@@ -106,7 +106,9 @@ working here in OpenCode headless mode:
   database name containing `test`, `tests`, `phpunit`, or `ci`; a table prefix
   is not database isolation.
 - Set `WP_LIVE_DB_NAME` to the browser-demo WordPress database name whenever it
-  is known. Setup and bootstrap reject a matching test database before any
+  is known. The shared `../wordpress/wp-config.php` is also checked automatically; if
+  its database name is computed, `WP_LIVE_DB_NAME` is required.
+  Setup and bootstrap reject a matching test database before any
   database mutation or PHPUnit boot.
 - Do not reuse an unmarked cached `wp-tests-config.php`. Create a fresh
   `WP_PHPUNIT_CACHE_DIR` and run `WP_TESTS_DB_NAME=<dedicated_test_database>

@@ -42,8 +42,11 @@ not invalidate a completed shared cache.
 
 The test database name must visibly contain `test`, `tests`, `phpunit`, or
 `ci`. Setup marks its generated `wp-tests-config.php` as isolated; PHPUnit
-refuses an unmarked cache before it boots WordPress. When the live database
-name is known, set `WP_LIVE_DB_NAME` alongside setup to reject a collision:
+refuses an unmarked cache before it boots WordPress. The shared
+`../wordpress/wp-config.php` database is checked automatically.
+If its database name uses a computed declaration, set `WP_LIVE_DB_NAME`
+explicitly. For any other live install, set `WP_LIVE_DB_NAME` alongside setup
+to reject a collision:
 
 ```bash
 WP_LIVE_DB_NAME=local_wordpress \
@@ -51,8 +54,20 @@ WP_TESTS_DB_NAME=sd_ai_agent_tests \
 pnpm run test:php:setup
 ```
 
+Only unconditional literal `define()` declarations are supported for database
+settings and the isolation marker; comments, duplicate declarations, and
+computed values are rejected. Dynamic `define()` names are also rejected.
+Alternate `WP_TESTS_CONFIG_FILE_PATH` locations
+are rejected; configure `WP_TESTS_DIR` instead.
+
 Use a fresh `WP_PHPUNIT_CACHE_DIR` instead of repurposing an old or unknown
 cache. A different table prefix does not make a live database safe for tests.
+
+The database-guard regressions can also run without WordPress or MySQL:
+
+```bash
+vendor/bin/phpunit --no-configuration tests/SdAiAgent/Core/PhpunitDatabaseSafetyTest.php
+```
 
 Useful overrides:
 

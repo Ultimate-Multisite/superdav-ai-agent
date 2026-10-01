@@ -66,8 +66,7 @@ if ( ! file_exists("{$_tests_dir}/includes/functions.php") ) {
 	exit(1);
 }
 
-$_test_config_file = defined( 'WP_TESTS_CONFIG_FILE_PATH' ) ? WP_TESTS_CONFIG_FILE_PATH : "{$_tests_dir}/wp-tests-config.php";
-$_database_error  = sd_ai_agent_phpunit_validate_test_config_file( $_test_config_file );
+$_database_error = sd_ai_agent_phpunit_validate_test_config( $_tests_dir );
 if ( null !== $_database_error ) {
 	echo $_database_error . PHP_EOL; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	exit( 1 );

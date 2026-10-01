@@ -100,6 +100,20 @@ working here in OpenCode headless mode:
   non-inline command and a clear `description`, avoid heredocs/process or command
   substitution, and preserve any implementation diff before reporting BLOCKED.
 
+## PHPUnit Database Safety
+
+- PHPUnit setup may recreate its selected database. Always use a dedicated
+  database name containing `test`, `tests`, `phpunit`, or `ci`; a table prefix
+  is not database isolation.
+- Set `WP_LIVE_DB_NAME` to the browser-demo WordPress database name whenever it
+  is known. Setup and bootstrap reject a matching test database before any
+  database mutation or PHPUnit boot.
+- Do not reuse an unmarked cached `wp-tests-config.php`. Create a fresh
+  `WP_PHPUNIT_CACHE_DIR` and run `WP_TESTS_DB_NAME=<dedicated_test_database>
+  pnpm run test:php:setup`; then use that same cache for PHPUnit verification.
+- Never run setup or verification against the shared browser-demo database,
+  even when its table prefix differs from the PHPUnit prefix.
+
 ## Contributor Insight Follow-through
 
 When an auto-filed contributor insight asks whether instructions or scripts need

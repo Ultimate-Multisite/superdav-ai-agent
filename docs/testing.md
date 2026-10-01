@@ -14,10 +14,11 @@ Default shared paths:
 - WordPress core: `~/.cache/wordpress-phpunit/wordpress-trunk`
 - WordPress tests: `~/.cache/wordpress-phpunit/wordpress-tests-lib-trunk`
 
-Provision the shared files and local test database once:
+Provision the shared files and a dedicated test database once. Never point this
+at the browser-demo or any other live WordPress database:
 
 ```bash
-pnpm run test:php:setup
+WP_TESTS_DB_NAME=sd_ai_agent_tests pnpm run test:php:setup
 ```
 
 Then run the suite from any checkout:
@@ -38,6 +39,20 @@ If setup is interrupted, rerun the same setup command. An existing cache that
 lacks either sentinel is treated as incomplete and rebuilt. Database creation
 runs only after the file cache has been validated, so a database failure does
 not invalidate a completed shared cache.
+
+The test database name must visibly contain `test`, `tests`, `phpunit`, or
+`ci`. Setup marks its generated `wp-tests-config.php` as isolated; PHPUnit
+refuses an unmarked cache before it boots WordPress. When the live database
+name is known, set `WP_LIVE_DB_NAME` alongside setup to reject a collision:
+
+```bash
+WP_LIVE_DB_NAME=local_wordpress \
+WP_TESTS_DB_NAME=sd_ai_agent_tests \
+pnpm run test:php:setup
+```
+
+Use a fresh `WP_PHPUNIT_CACHE_DIR` instead of repurposing an old or unknown
+cache. A different table prefix does not make a live database safe for tests.
 
 Useful overrides:
 

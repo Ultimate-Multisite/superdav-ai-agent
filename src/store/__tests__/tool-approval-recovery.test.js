@@ -1,4 +1,4 @@
-/** Regression coverage for ambiguous approval responses. */
+/** Regression coverage using the real job poller after ambiguous approvals. */
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( '../../abilities/registry', () => ( {
 	snapshotDescriptors: jest.fn(),
@@ -22,22 +22,31 @@ const { actions } = require( '../slices/sessionsSlice' );
 const { actions: jobActions } = require( '../slices/jobSlice' );
 
 describe( 'Tool approval recovery', () => {
-	const makeDispatch = () => ( {
-		setPendingConfirmation: jest.fn(),
-		setPendingActionCard: jest.fn(),
-		pollJob: jest.fn(),
-		appendMessage: jest.fn(),
-		setSending: jest.fn(),
-		setCurrentJobId: jest.fn(),
-		setSessionJob: jest.fn(),
-		setCurrentSession: jest.fn(),
-		setLiveToolCalls: jest.fn(),
-		fetchSessions: jest.fn(),
-		drainMessageQueue: jest.fn(),
-	} );
 	const select = {
 		getCurrentSessionId: jest.fn(),
+		getCurrentJobId: () => 'job-1',
 		getSessionJob: jest.fn(),
+	};
+	const makeDispatch = () => {
+		const dispatch = {
+			setPendingConfirmation: jest.fn(),
+			setPendingActionCard: jest.fn(),
+			setPendingProposal: jest.fn(),
+			appendMessage: jest.fn(),
+			setSending: jest.fn(),
+			setCurrentJobId: jest.fn(),
+			setSessionJob: jest.fn(),
+			setCurrentSession: jest.fn(),
+			setLiveToolCalls: jest.fn(),
+			setStreamError: jest.fn(),
+			setFeedbackBanner: jest.fn(),
+			fetchSessions: jest.fn(),
+			drainMessageQueue: jest.fn(),
+		};
+		dispatch.pollJob = jest.fn( ( jobId, sessionId ) =>
+			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
+		);
+		return dispatch;
 	};
 	const approvalError = {
 		code: 'sd_ai_agent_invalid_job',
@@ -46,198 +55,178 @@ describe( 'Tool approval recovery', () => {
 	};
 
 	beforeEach( () => {
+		jest.useFakeTimers();
 		apiFetch.mockReset();
 		select.getCurrentSessionId.mockReset().mockReturnValue( 12 );
 		select.getSessionJob.mockReset().mockReturnValue( { jobId: 'job-1' } );
 	} );
 
-	afterEach( () => jest.useRealTimers() );
+	afterEach( () => {
+		jest.clearAllTimers();
+		jest.useRealTimers();
+	} );
 
-	it( 'the real poller restores only the fresh pending tools after an approval error', async () => {
-		jest.useFakeTimers();
+	it.each( [
+		new Error( 'Lost response' ),
+		approvalError,
+		{ message: 'Gateway refused the response', data: { status: 403 } },
+		{ message: 'Gateway timeout', data: { status: 503 } },
+	] )(
+		'recovers processing status before new activity arrives: %s',
+		async ( error ) => {
+			apiFetch.mockRejectedValueOnce( error ).mockResolvedValue( {
+				status: 'processing',
+				tool_calls: [],
+			} );
+			const dispatch = makeDispatch();
+			await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( apiFetch ).toHaveBeenCalledTimes( 2 );
+			expect( apiFetch ).toHaveBeenLastCalledWith( {
+				path: '/sd-ai-agent/v1/job/job-1',
+			} );
+			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, {
+				jobId: 'job-1',
+				status: 'processing',
+				toolCalls: [],
+			} );
+			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+		}
+	);
+
+	it( 'restores only fresh pending tools without submitting another approval', async () => {
 		const tools = [ { name: 'new-tool-batch' } ];
 		apiFetch.mockRejectedValueOnce( approvalError ).mockResolvedValue( {
 			status: 'awaiting_confirmation',
 			pending_tools: tools,
 		} );
 		const dispatch = makeDispatch();
-		dispatch.pollJob.mockImplementation( ( jobId, sessionId ) =>
-			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
-		);
-		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
+		await actions.confirmToolCall( 'job-1', true )( { dispatch, select } );
 		await jest.advanceTimersByTimeAsync( 2000 );
 		expect( dispatch.setPendingConfirmation ).toHaveBeenLastCalledWith( {
 			jobId: 'job-1',
 			tools,
 		} );
-		expect( apiFetch ).toHaveBeenCalledTimes( 3 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 2 );
 		expect( apiFetch ).toHaveBeenLastCalledWith( {
 			path: '/sd-ai-agent/v1/job/job-1',
 		} );
 	} );
 
-	it( 'the real poller reloads completed work instead of showing the approval error', async () => {
-		jest.useFakeTimers();
-		const complete = { status: 'complete', session_id: 12 };
-		const messages = [
-			{ role: 'model', parts: [ { text: 'Work done' } ] },
-		];
-		apiFetch
-			.mockRejectedValueOnce( approvalError )
-			.mockResolvedValueOnce( complete )
-			.mockResolvedValueOnce( complete )
-			.mockResolvedValueOnce( { id: 12, messages, tool_calls: [] } );
-		const dispatch = makeDispatch();
-		dispatch.pollJob.mockImplementation( ( jobId, sessionId ) =>
-			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
-		);
-		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-		await jest.advanceTimersByTimeAsync( 2000 );
-		expect( dispatch.setCurrentSession ).toHaveBeenCalledWith(
-			12,
-			messages,
-			[]
-		);
-		expect( dispatch.setSessionJob ).toHaveBeenLastCalledWith( 12, null );
-		expect( dispatch.setSending ).toHaveBeenLastCalledWith( false );
-		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
-	} );
-
-	it( 'polls the job after a successful approval response', async () => {
-		apiFetch.mockResolvedValue( { status: 'processing', job_id: 'job-1' } );
-		const dispatch = makeDispatch();
-		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-		expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
-		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
-	} );
-
-	it.each( [ new Error( 'Lost response' ), approvalError ] )(
-		'recovers processing work after an ambiguous approval error: %s',
-		async ( error ) => {
-			apiFetch.mockRejectedValueOnce( error ).mockResolvedValueOnce( {
-				status: 'processing',
+	it.each( [ 'complete', 'missing' ] )(
+		'reloads saved work for a %s job rather than displaying the approval error',
+		async ( status ) => {
+			apiFetch.mockRejectedValueOnce( approvalError );
+			if ( status === 'complete' ) {
+				apiFetch.mockResolvedValueOnce( { status, session_id: 12 } );
+			} else {
+				apiFetch.mockRejectedValueOnce( {
+					code: 'sd_ai_agent_job_not_found',
+					data: { status: 404 },
+				} );
+			}
+			const messages = [ { role: 'model', parts: [ { text: 'Done' } ] } ];
+			apiFetch.mockResolvedValueOnce( {
+				id: 12,
+				messages,
 				tool_calls: [],
 			} );
 			const dispatch = makeDispatch();
 			await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-			expect( apiFetch ).toHaveBeenCalledTimes( 2 );
-			expect( apiFetch ).toHaveBeenLastCalledWith( {
-				path: '/sd-ai-agent/v1/job/job-1',
-			} );
-			expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
-			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, {
-				jobId: 'job-1',
-				status: 'processing',
-				toolCalls: [],
-			} );
-			expect( dispatch.setSending ).toHaveBeenCalledWith( true );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( dispatch.setCurrentSession ).toHaveBeenCalledWith(
+				12,
+				messages,
+				[]
+			);
+			expect( dispatch.setSessionJob ).toHaveBeenLastCalledWith(
+				12,
+				null
+			);
+			expect( dispatch.setSending ).toHaveBeenLastCalledWith( false );
 			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
 		}
 	);
 
-	it.each( [ 'complete', 'error' ] )(
-		'clears stale approval status and lets the poller handle %s',
+	it.each( [ 400, 401, 403 ] )(
+		'stops after a definitively rejected HTTP %s status read',
 		async ( status ) => {
-			apiFetch
-				.mockRejectedValueOnce( approvalError )
-				.mockResolvedValueOnce( { status } );
-			const dispatch = makeDispatch();
-			await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, null );
-			expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
-			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
-		}
-	);
-
-	it.each( [
-		'awaiting_confirmation',
-		'awaiting_client_tools',
-		'pending_proposal',
-	] )(
-		'restores %s through polling without automatically approving another batch',
-		async ( status ) => {
-			apiFetch
-				.mockRejectedValueOnce( approvalError )
-				.mockResolvedValueOnce( { status } );
-			const dispatch = makeDispatch();
-			await actions.confirmToolCall(
-				'job-1',
-				true
-			)( { dispatch, select } );
-			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, {
-				jobId: 'job-1',
-				status,
-				toolCalls: [],
+			apiFetch.mockRejectedValue( {
+				message: 'Status request refused.',
+				data: { status },
 			} );
-			expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
-			expect(
-				apiFetch.mock.calls.filter(
-					( [ request ] ) => request.method === 'POST'
-				)
-			).toHaveLength( 1 );
-		}
-	);
-
-	it( 'reloads saved results through the missing-job polling path', async () => {
-		apiFetch
-			.mockRejectedValueOnce( approvalError )
-			.mockRejectedValueOnce( { data: { status: 404 } } );
-		const dispatch = makeDispatch();
-		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-		expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, null );
-		expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
-	} );
-
-	it.each( [
-		{ data: { status: 403 } },
-		new Error( 'Offline' ),
-		{ status: 'unknown' },
-	] )(
-		'surfaces the original error when status cannot be reconciled: %s',
-		async ( result ) => {
-			apiFetch.mockRejectedValueOnce( approvalError );
-			if ( result.status ) {
-				apiFetch.mockResolvedValueOnce( result );
-			} else {
-				apiFetch.mockRejectedValueOnce( result );
-			}
 			const dispatch = makeDispatch();
 			await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-			expect( dispatch.pollJob ).not.toHaveBeenCalled();
+			await jest.advanceTimersByTimeAsync( 10000 );
+			expect( apiFetch ).toHaveBeenCalledTimes( 3 );
 			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, null );
 			expect( dispatch.setSending ).toHaveBeenCalledWith( false );
 			expect( dispatch.appendMessage ).toHaveBeenCalledWith( {
 				role: 'system',
-				parts: [ { text: `Error: ${ approvalError.message }` } ],
+				parts: [ { text: 'Error: Status request refused.' } ],
 			} );
 		}
 	);
 
-	it( 'does not change another session after switching during approval', async () => {
+	it( 'does not clear another session while recovering completed work', async () => {
 		apiFetch
 			.mockImplementationOnce( async () => {
 				select.getCurrentSessionId.mockReturnValue( 99 );
-				throw new Error( 'Lost response' );
+				throw approvalError;
 			} )
-			.mockResolvedValueOnce( { status: 'processing' } );
+			.mockResolvedValueOnce( { status: 'complete', session_id: 12 } );
 		const dispatch = makeDispatch();
 		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
-		expect( dispatch.pollJob ).toHaveBeenCalledWith( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
 		expect( dispatch.setCurrentJobId ).not.toHaveBeenCalled();
 		expect( dispatch.setSending ).not.toHaveBeenCalled();
+		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+		expect( dispatch.setSessionJob ).toHaveBeenLastCalledWith( 12, null );
 	} );
 
-	it( 'does not overwrite a newer job started during reconciliation', async () => {
-		apiFetch
-			.mockRejectedValueOnce( approvalError )
-			.mockImplementationOnce( async () => {
-				select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
-				return { status: 'processing' };
-			} );
+	it( 'does not poll an old job after a newer job starts during approval', async () => {
+		apiFetch.mockImplementationOnce( async () => {
+			select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+			throw approvalError;
+		} );
 		const dispatch = makeDispatch();
 		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
 		expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
 		expect( dispatch.pollJob ).not.toHaveBeenCalled();
 		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+	} );
+
+	it( 'recovers a lost denial response without sending approval or retrying denial', async () => {
+		apiFetch.mockRejectedValueOnce( approvalError ).mockResolvedValueOnce( {
+			status: 'awaiting_confirmation',
+			pending_tools: [],
+		} );
+		const dispatch = makeDispatch();
+		await actions.rejectToolCall( 'job-1' )( { dispatch, select } );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 2 );
+		expect( apiFetch.mock.calls[ 0 ][ 0 ] ).toEqual( {
+			path: '/sd-ai-agent/v1/job/job-1/reject',
+			method: 'POST',
+			data: undefined,
+		} );
+		expect( apiFetch ).toHaveBeenLastCalledWith( {
+			path: '/sd-ai-agent/v1/job/job-1',
+		} );
+	} );
+
+	it( 'keeps bounded polling recovery for a connection that remains unavailable', async () => {
+		apiFetch.mockRejectedValue( new Error( 'Offline' ) );
+		const dispatch = makeDispatch();
+		await actions.confirmToolCall( 'job-1' )( { dispatch, select } );
+		await jest.advanceTimersByTimeAsync( 10000 );
+		expect( dispatch.setStreamError ).toHaveBeenCalledWith( true, 12 );
+		expect( dispatch.setSessionJob ).toHaveBeenLastCalledWith( 12, null );
+		expect( dispatch.setSending ).toHaveBeenLastCalledWith( false );
+		expect(
+			apiFetch.mock.calls.filter(
+				( [ request ] ) => request.method === 'POST'
+			)
+		).toHaveLength( 1 );
 	} );
 } );

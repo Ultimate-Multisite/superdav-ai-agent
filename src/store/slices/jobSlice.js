@@ -24,6 +24,50 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 const activePollersByDispatch = new WeakMap();
 
 /**
+ * Submit one decision, then use polling to reconcile ambiguous responses.
+ *
+ * @param {Object}  context     Store helpers.
+ * @param {string}  jobId       Paused job identifier.
+ * @param {string}  decision    Confirm or reject.
+ * @param {boolean} alwaysAllow Persist permission for confirmed tools.
+ * @return {Promise<void>} Decision submission.
+ */
+export async function submitToolDecision(
+	context,
+	jobId,
+	decision,
+	alwaysAllow = false
+) {
+	const { dispatch, select } = context;
+	const sessionId = select.getCurrentSessionId();
+	dispatch.setPendingConfirmation( null );
+	dispatch.setPendingActionCard( null );
+	clearNotification( jobId );
+	try {
+		await apiFetch( {
+			path: `/sd-ai-agent/v1/job/${ jobId }/${ decision }`,
+			method: 'POST',
+			data:
+				decision === 'confirm'
+					? { always_allow: alwaysAllow }
+					: undefined,
+		} );
+	} catch {
+		const activeJobId = select.getSessionJob( sessionId )?.jobId;
+		if ( activeJobId && activeJobId !== jobId ) {
+			return;
+		}
+		// Never retry a decision POST or infer approval from a failed response.
+		if ( select.getCurrentSessionId() === sessionId ) {
+			dispatch.setCurrentJobId( jobId );
+			dispatch.setSending( true );
+		}
+	}
+	// The poller restores fresh approvals, saved results, or a real job error.
+	dispatch.pollJob( jobId, sessionId );
+}
+
+/**
  * Merge real tool calls with assistant channel messages for live rendering.
  *
  * Backend `tool_calls` contains real tool invocations/results. Model preambles
@@ -424,6 +468,7 @@ export const actions = {
 				pollingStopped = true;
 				activePollers.delete( pollerKey );
 				unsubscribeVisibility();
+				clearActiveJob( sessionId );
 			};
 
 			/**
@@ -455,7 +500,6 @@ export const actions = {
 				attempts++;
 				if ( attempts > maxAttempts ) {
 					stopPolling();
-					clearActiveJob( sessionId );
 					// Only append error and update UI for the current session.
 					if ( select.getCurrentSessionId() === sessionId ) {
 						dispatch.appendMessage( {
@@ -467,8 +511,8 @@ export const actions = {
 							eventId: jobId,
 						} );
 						dispatch.setSending( false );
+						dispatch.setCurrentJobId( null );
 					}
-					dispatch.setCurrentJobId( null );
 					dispatch.setSessionJob( sessionId, null );
 					return;
 				}
@@ -509,14 +553,13 @@ export const actions = {
 					}
 
 					if ( result.status === 'processing' ) {
-						// Update per-session job state for ALL sessions.
+						// Clear stale approval status even before new activity arrives.
+						dispatch.setSessionJob( sessionId, {
+							jobId,
+							toolCalls: liveActivity,
+							status: 'processing',
+						} );
 						if ( liveActivity.length ) {
-							dispatch.setSessionJob( sessionId, {
-								jobId,
-								toolCalls: liveActivity,
-								status: 'processing',
-							} );
-
 							// Fire `tool-applied` reflection events for any
 							// new response entries that carry an `affected`
 							// descriptor. Cursor-driven so each event fires
@@ -573,7 +616,6 @@ export const actions = {
 						if ( currentJobId !== jobId && currentJobId !== null ) {
 							// Different job is now active; stop this poller.
 							stopPolling();
-							clearActiveJob( sessionId );
 							return;
 						}
 
@@ -614,7 +656,6 @@ export const actions = {
 
 						// Don't clear sending — still waiting.
 						stopPolling();
-						clearActiveJob( sessionId );
 						return;
 					}
 
@@ -636,7 +677,6 @@ export const actions = {
 
 						// Don't clear sending — still waiting.
 						stopPolling();
-						clearActiveJob( sessionId );
 						return;
 					}
 
@@ -769,7 +809,6 @@ export const actions = {
 								dispatch.setSending( false );
 							}
 							stopPolling();
-							clearActiveJob( sessionId );
 							dispatch.setCurrentJobId( null );
 							dispatch.setSessionJob( sessionId, null );
 							return;
@@ -785,7 +824,6 @@ export const actions = {
 						if ( window._sdAiAgentPendingNavigation ) {
 							const target = window._sdAiAgentPendingNavigation;
 							delete window._sdAiAgentPendingNavigation;
-							clearActiveJob( sessionId );
 							stopPolling();
 							window.location.assign( target );
 							return;
@@ -804,7 +842,6 @@ export const actions = {
 									} )
 								);
 							} catch ( _err ) {}
-							clearActiveJob( sessionId );
 							stopPolling();
 							window.location.assign( target );
 							return;
@@ -1193,7 +1230,6 @@ export const actions = {
 						}
 
 						stopPolling();
-						clearActiveJob( sessionId );
 						if ( select.getCurrentSessionId() === sessionId ) {
 							dispatch.setPendingConfirmation?.( null );
 							dispatch.setPendingActionCard?.( null );
@@ -1217,20 +1253,23 @@ export const actions = {
 							}
 							dispatch.setSending( false );
 							dispatch.setLiveToolCalls( [] );
+							dispatch.setCurrentJobId( null );
 							dispatch.drainMessageQueue();
 						}
-						dispatch.setCurrentJobId( null );
 						dispatch.setSessionJob( sessionId, null );
 						return;
 					}
 
-					// Transient (network blip, 5xx, parse error). Retry with
-					// backoff but cap consecutive failures so a dead endpoint
-					// cannot keep the user trapped on the sending spinner.
-					consecutiveErrors++;
+					// Rejected status reads are terminal; network/5xx failures get
+					// bounded retries. Never confuse an access refusal with job success.
+					const requestRejected = [ 400, 401, 403 ].includes(
+						err?.data?.status
+					);
+					consecutiveErrors = requestRejected
+						? maxConsecutiveErrors
+						: consecutiveErrors + 1;
 					if ( consecutiveErrors >= maxConsecutiveErrors ) {
 						stopPolling();
-						clearActiveJob( sessionId );
 						if ( select.getCurrentSessionId() === sessionId ) {
 							let sessionReloaded = false;
 							try {
@@ -1265,10 +1304,13 @@ export const actions = {
 								role: 'system',
 								parts: [
 									{
-										text: __(
-											'Error: Lost connection to the server while waiting for the job to finish. Reload the page to see if anything was saved.',
-											'superdav-ai-agent'
-										),
+										text:
+											requestRejected && err.message
+												? `Error: ${ err.message }`
+												: __(
+														'Error: Lost connection to the server while waiting for the job to finish. Reload the page to see if anything was saved.',
+														'superdav-ai-agent'
+												  ),
 									},
 								],
 							} );
@@ -1279,8 +1321,8 @@ export const actions = {
 							} );
 							dispatch.setSending( false );
 							dispatch.setLiveToolCalls( [] );
+							dispatch.setCurrentJobId( null );
 						}
-						dispatch.setCurrentJobId( null );
 						dispatch.setSessionJob( sessionId, null );
 						return;
 					}
@@ -1294,7 +1336,6 @@ export const actions = {
 
 				// Job finished (complete or error).
 				stopPolling();
-				clearActiveJob( sessionId );
 				if ( select.getCurrentSessionId() === sessionId ) {
 					// Play success sound when the job completed without error.
 					if ( lastStatusComplete ) {
@@ -1302,10 +1343,10 @@ export const actions = {
 					}
 					dispatch.setSending( false );
 					dispatch.setLiveToolCalls( [] );
+					dispatch.setCurrentJobId( null );
 					// Auto-drain the message queue.
 					dispatch.drainMessageQueue();
 				}
-				dispatch.setCurrentJobId( null );
 				dispatch.setSessionJob( sessionId, null );
 			};
 

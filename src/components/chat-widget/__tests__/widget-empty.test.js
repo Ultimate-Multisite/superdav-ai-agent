@@ -9,6 +9,7 @@ import { act } from 'react';
 import WidgetEmpty from '../widget-empty';
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
+let mockBranding = {};
 
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn(),
@@ -21,7 +22,7 @@ jest.mock( '@wordpress/i18n', () => ( {
 
 jest.mock( '../../../store', () => 'sd-ai-agent' );
 jest.mock( '../../../utils/branding', () => ( {
-	getBranding: () => ( {} ),
+	getBranding: () => mockBranding,
 } ) );
 
 /**
@@ -49,7 +50,27 @@ async function renderEmptyState( selectedAgent ) {
 
 describe( 'WidgetEmpty suggestions', () => {
 	afterEach( () => {
+		mockBranding = {};
 		jest.clearAllMocks();
+	} );
+
+	test( 'uses the white-label greeting when no agent greeting exists', async () => {
+		mockBranding = {
+			agentName: 'Crowds AI',
+			greetingMessage: 'Hey! How are you?',
+			greeting: 'Hey! How are you?',
+		};
+
+		const { container, root } = await renderEmptyState( null );
+
+		expect(
+			container.querySelector( '.sdaa-w-empty-greeting' ).textContent
+		).toBe( 'Hey! How are you?' );
+		expect(
+			container.querySelector( '.sdaa-w-empty-foot' ).textContent
+		).toBe( 'Crowds AI' );
+
+		await act( async () => root.unmount() );
 	} );
 
 	test( 'suppresses suggestion UI for an explicitly empty agent list', async () => {

@@ -44,6 +44,80 @@ function normalizeSession( session ) {
 }
 
 /**
+ * Recover an ambiguous approval response without submitting another decision.
+ * The existing poller restores fresh approvals and handles terminal/session
+ * recovery; it must never infer approval from a failed POST.
+ *
+ * @param {Object} dispatch  Store dispatchers.
+ * @param {Object} select    Store selectors.
+ * @param {string} jobId     Job whose approval response failed.
+ * @param {number} sessionId Owning session captured before the request.
+ * @return {Promise<boolean>} Whether authoritative job tracking was restored.
+ */
+async function reconcileToolApproval( dispatch, select, jobId, sessionId ) {
+	const hasNewerJob = () => {
+		const job = select.getSessionJob( sessionId );
+		return job?.jobId && job.jobId !== jobId;
+	};
+	if ( hasNewerJob() ) {
+		return true;
+	}
+
+	let result;
+	try {
+		result = await apiFetch( {
+			path: `/sd-ai-agent/v1/job/${ jobId }`,
+		} );
+	} catch ( error ) {
+		if ( hasNewerJob() ) {
+			return true;
+		}
+		if ( error?.data?.status !== 404 ) {
+			return false;
+		}
+		// Let the poller's missing-job path reload the saved conversation.
+		dispatch.setSessionJob( sessionId, null );
+		dispatch.pollJob( jobId, sessionId );
+		return true;
+	}
+
+	if ( hasNewerJob() ) {
+		return true;
+	}
+	if (
+		! [
+			'processing',
+			'awaiting_confirmation',
+			'awaiting_client_tools',
+			'pending_proposal',
+			'complete',
+			'error',
+		].includes( result?.status )
+	) {
+		return false;
+	}
+
+	const terminal = [ 'complete', 'error' ].includes( result.status );
+	dispatch.setSessionJob(
+		sessionId,
+		terminal
+			? null
+			: {
+					jobId,
+					status: result.status,
+					toolCalls: result.tool_calls || [],
+			  }
+	);
+	if ( select.getCurrentSessionId() === sessionId ) {
+		dispatch.setCurrentJobId( jobId );
+		dispatch.setSending( true );
+	}
+	// This reads current state again: a newer pending batch needs fresh approval.
+	dispatch.pollJob( jobId, sessionId );
+	return true;
+}
+
+/**
  * Associate tool call log entries with the correct model text messages.
  *
  * The DB stores tool calls as a flat chronological array and messages separately.
@@ -1281,6 +1355,20 @@ export const actions = {
 				} );
 				dispatch.pollJob( jobId, sessionId );
 			} catch ( err ) {
+				if (
+					await reconcileToolApproval(
+						dispatch,
+						select,
+						jobId,
+						sessionId
+					)
+				) {
+					return;
+				}
+				dispatch.setSessionJob( sessionId, null );
+				if ( select.getCurrentSessionId() !== sessionId ) {
+					return;
+				}
 				dispatch.appendMessage( {
 					role: 'system',
 					parts: [

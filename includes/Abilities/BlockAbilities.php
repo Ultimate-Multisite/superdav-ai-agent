@@ -1019,7 +1019,7 @@ class BlockAbilities {
 						],
 						'blocks'               => [
 							'type'        => 'array',
-							'description' => 'Complete replacement block tree. Each block: blockName (string), attrs (object), innerHTML (string), innerBlocks (array). Maximum 200 top-level blocks.',
+							'description' => 'Complete replacement block tree. Each block: blockName (string), attrs (object), innerHTML (string), innerBlocks (array), and optional innerContent (HTML fragments plus null child placeholders). Omit innerContent for leaf blocks; nested blocks with wrapper HTML must provide it. Maximum 200 top-level blocks.',
 							'items'       => [
 								'type' => 'object',
 							],

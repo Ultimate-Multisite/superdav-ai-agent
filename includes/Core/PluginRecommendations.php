@@ -32,39 +32,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.11.0
  */
-final class PluginRecommendation {
-
-	/**
-	 * @since 1.11.0
-	 *
-	 * @param string   $name               Human-readable plugin name, e.g. "Jetpack Forms".
-	 * @param string   $plugin_slug        WordPress.org plugin slug, e.g. "jetpack".
-	 * @param string[] $blocks             Block names this plugin registers, e.g. ['jetpack/contact-form'].
-	 * @param string   $guidance           System-prompt guidance appended under ## Plugin Recommendations.
-	 * @param string[] $html_patterns      Regex patterns matched against core/html innerHTML.
-	 *                                     If any pattern matches, $html_policy_message is returned.
-	 * @param string   $html_policy_message Message to return when an html_pattern matches.
-	 *                                     Empty string means "fall through to default message".
-	 */
-	public function __construct(
-		public readonly string $name,
-		public readonly string $plugin_slug,
-		public readonly array $blocks = [],
-		public readonly string $guidance = '',
-		public readonly array $html_patterns = [],
-		public readonly string $html_policy_message = '',
-	) {}
-}
-
-/**
- * Registry and factory for PluginRecommendation entries.
- *
- * Recommendations are populated in {@see self::get_all()} and cached for the
- * lifetime of the request. Third-party code can extend the registry via the
- * `sd_ai_agent_plugin_recommendations` filter.
- *
- * @since 1.11.0
- */
 class PluginRecommendations {
 
 	/**

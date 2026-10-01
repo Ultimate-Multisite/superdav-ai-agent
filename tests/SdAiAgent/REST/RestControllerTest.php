@@ -2926,8 +2926,12 @@ class RestControllerTest extends WP_UnitTestCase {
 			[
 				'history'     => [ [ 'private' => str_repeat( 'x', 900000 ) ] ],
 				'tool_calls'  => [ [ 'private' => 'MUST_NOT_ESCAPE' ] ],
-				'provider_id' => 'sd-ai-agent-cloud',
-				'model_id'    => 'superdav-chat-pro',
+				'provider_id'        => 'sd-ai-agent-cloud',
+				'model_id'           => 'superdav-chat-pro',
+				'status_code'        => 503,
+				'provider_error_code' => 'provider_http_503',
+				'failure_source'     => 'http',
+				'attempts'           => 6,
 			]
 		);
 
@@ -2950,7 +2954,9 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertTrue( $data['results_accepted'] );
 		$this->assertTrue( $data['recoverable'] );
 		$this->assertSame( 'recoverable_error', $data['status'] );
-		$this->assertSame( 'provider_timeout', $data['diagnostic']['reason'] );
+		$this->assertSame( 'provider_unavailable', $data['diagnostic']['reason'] );
+		$this->assertSame( 503, $data['diagnostic']['status_code'] );
+		$this->assertSame( 6, $data['diagnostic']['attempts'] );
 		$this->assertSame( 'client_tool_resume', $data['diagnostic']['last_safe_phase'] );
 		$this->assertLessThan( 4096, strlen( (string) wp_json_encode( $data ) ) );
 		$this->assertStringNotContainsString( 'MUST_NOT_ESCAPE', (string) wp_json_encode( $data ) );
@@ -3203,6 +3209,58 @@ class RestControllerTest extends WP_UnitTestCase {
 			$session_after->paused_state,
 			'Unauthorized tool-result requests must not clear another user\'s paused state.'
 		);
+	}
+
+	/** A session owner cannot consume a private browser call owned by a shared-session job. */
+	public function test_tool_result_rejects_session_owner_when_private_elementor_job_id_is_omitted(): void {
+		wp_set_current_user( $this->admin_id );
+		$session_id = Database::create_session( [
+			'user_id' => $this->admin_id,
+			'title'   => 'Private Elementor preview owner session',
+		] );
+		$this->assertIsInt( $session_id );
+		$this->assertTrue( Database::share_session( $session_id, $this->admin_id ) );
+		$paused_state = [
+			'history'                   => [],
+			'iterations_remaining'      => 3,
+			'pending_client_tool_calls' => [
+				[
+					'id'   => 'private_elementor_preview',
+					'name' => 'sd-ai-agent-js/screenshot-url',
+					'args' => [
+						'elementor_preview_url_hash'  => str_repeat( 'a', 64 ),
+						'elementor_preview_capability' => 'sealed-private-preview',
+					],
+				],
+			],
+		];
+		Database::save_paused_state( $session_id, $paused_state );
+
+		$active_job_owner = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		$job_id           = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+		ActiveJobRepository::create( $session_id, $job_id, $active_job_owner, 'awaiting_client_tools' );
+		$request = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/chat/tool-result' );
+		$request->set_body( wp_json_encode( [
+			'session_id'   => $session_id,
+			'tool_results' => [
+				[
+					'id'     => 'private_elementor_preview',
+					'name'   => 'sd-ai-agent-js/screenshot-url',
+					'result' => [ 'success' => true ],
+				],
+			],
+		] ) );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$response = $this->server->dispatch( $request );
+
+		$this->assertStatus( 403, $response );
+		$session_after = Database::get_session( $session_id );
+		$this->assertNotNull( $session_after );
+		$this->assertSame( $paused_state, json_decode( (string) $session_after->paused_state, true ) );
+		$row = ActiveJobRepository::get_by_job_id( $job_id );
+		$this->assertNotNull( $row );
+		$this->assertSame( $active_job_owner, $row->user_id );
+		$this->assertSame( 'awaiting_client_tools', $row->status );
 	}
 
 	/**

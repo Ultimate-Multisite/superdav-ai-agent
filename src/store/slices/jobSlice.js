@@ -647,7 +647,8 @@ export const actions = {
 						// `readonly: true` execute immediately without a
 						// confirmation dialog (screenshots, DOM reads, etc.).
 						// A mutating client ability executes only when the server
-						// returned `user_confirmed: true` after user approval.
+						// returned `user_confirmed: true` after user approval or
+						// `server_authorized: true` after permission resolution.
 						// Restored jobs can begin polling before the asynchronously loaded
 						// browser-ability bundles finish registration. Wait once for the
 						// shared callback pipeline before running the batch, so a valid

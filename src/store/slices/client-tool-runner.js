@@ -70,8 +70,14 @@ const runScreenshotUrl = createConcurrencyLimiter( SCREENSHOT_URL_CONCURRENCY );
  */
 export async function runClientTools( pendingClientToolCalls ) {
 	const readiness = pendingClientToolCalls.some(
-		( { annotations, user_confirmed: userConfirmed } ) =>
-			annotations?.readonly === true || userConfirmed === true
+		( {
+			annotations,
+			user_confirmed: userConfirmed,
+			server_authorized: serverAuthorized,
+		} ) =>
+			annotations?.readonly === true ||
+			userConfirmed === true ||
+			serverAuthorized === true
 	)
 		? withTimeout(
 				window.__sdAiAgentAbilitiesRegistering,
@@ -87,6 +93,7 @@ export async function runClientTools( pendingClientToolCalls ) {
 		args = {},
 		annotations,
 		user_confirmed: userConfirmed,
+		server_authorized: serverAuthorized,
 	} ) => {
 		const abilityName = clientName || name;
 		let timeoutMs = 30000;
@@ -96,7 +103,11 @@ export async function runClientTools( pendingClientToolCalls ) {
 			timeoutMs = 120000;
 		}
 
-		if ( annotations?.readonly !== true && userConfirmed !== true ) {
+		if (
+			annotations?.readonly !== true &&
+			userConfirmed !== true &&
+			serverAuthorized !== true
+		) {
 			return {
 				id,
 				name,

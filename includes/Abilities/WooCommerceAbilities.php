@@ -16,6 +16,7 @@ namespace SdAiAgent\Abilities;
 
 use SdAiAgent\Automations\HumanApprovalGate;
 use SdAiAgent\Core\ChangeLogger;
+use SdAiAgent\Models\ChangesLog;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -158,15 +159,24 @@ final class WooCommerceAbilities {
 							'items'       => [
 								'type'       => 'object',
 								'properties' => [
-									'operation'   => [
+									'operation'    => [
 										'type' => 'string',
-										'enum' => [ 'create_category', 'update_setting' ],
+										'enum' => [ 'assign_product_categories', 'create_category', 'update_setting' ],
 									],
-									'name'        => [ 'type' => 'string' ],
-									'slug'        => [ 'type' => 'string' ],
-									'parent_id'   => [ 'type' => 'integer' ],
-									'setting_key' => [ 'type' => 'string' ],
-									'value'       => [ 'type' => 'string' ],
+									'product_id'   => [
+										'type'        => 'integer',
+										'description' => 'The resolved WooCommerce product ID for a category assignment.',
+									],
+									'category_ids' => [
+										'type'        => 'array',
+										'description' => 'The complete resolved product category ID list that replaces the product’s current categories.',
+										'items'       => [ 'type' => 'integer' ],
+									],
+									'name'         => [ 'type' => 'string' ],
+									'slug'         => [ 'type' => 'string' ],
+									'parent_id'    => [ 'type' => 'integer' ],
+									'setting_key'  => [ 'type' => 'string' ],
+									'value'        => [ 'type' => 'string' ],
 								],
 							],
 						],
@@ -484,8 +494,9 @@ final class WooCommerceAbilities {
 			return new WP_Error( 'sd_ai_agent_commerce_operations_required', __( 'At least one supported commerce operation is required.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
 		}
 
-		$operations    = [];
-		$prerequisites = [];
+		$operations        = [];
+		$prerequisites     = [];
+		$assigned_products = [];
 
 		foreach ( array_values( $raw_operations ) as $index => $raw_operation ) {
 			if ( ! is_array( $raw_operation ) ) {
@@ -502,6 +513,19 @@ final class WooCommerceAbilities {
 				continue;
 			}
 
+			if ( 'assign_product_categories' === $type ) {
+				$assignment = self::normalize_product_category_assignment( $raw_operation, (int) $index );
+				if ( is_wp_error( $assignment ) ) {
+					return $assignment;
+				}
+				if ( isset( $assigned_products[ $assignment['product_id'] ] ) ) {
+					return new WP_Error( 'sd_ai_agent_commerce_product_assignment_duplicate', __( 'Each product may appear in only one category assignment. Merge its categories into one complete list.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+				}
+				$assigned_products[ $assignment['product_id'] ] = true;
+				$operations[]                                   = $assignment;
+				continue;
+			}
+
 			if ( 'update_setting' === $type ) {
 				$setting = self::normalize_setting_operation( $raw_operation, (int) $index );
 				if ( is_wp_error( $setting ) ) {
@@ -515,7 +539,7 @@ final class WooCommerceAbilities {
 				continue;
 			}
 
-			return new WP_Error( 'sd_ai_agent_commerce_operation_unsupported', __( 'Only create_category and update_setting commerce operations are supported.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error( 'sd_ai_agent_commerce_operation_unsupported', __( 'Only assign_product_categories, create_category, and update_setting commerce operations are supported.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
 		}
 
 		return [
@@ -549,6 +573,59 @@ final class WooCommerceAbilities {
 			'name'      => $name,
 			'slug'      => $slug,
 			'parent_id' => $parent_id,
+		];
+	}
+
+	/**
+	 * Normalize a resolved product-category assignment for approval.
+	 *
+	 * CSV data is parsed as untrusted turn context by the agent. This typed plan
+	 * accepts only the resolved IDs, snapshots the current assignment for review,
+	 * and refuses to overwrite a product changed after approval.
+	 *
+	 * @param array<string,mixed> $operation Raw operation.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function normalize_product_category_assignment( array $operation, int $index ): array|WP_Error {
+		$product_id = absint( $operation['product_id'] ?? 0 );
+		$product    = $product_id > 0 ? get_post( $product_id ) : null;
+		if ( null === $product || 'product' !== $product->post_type ) {
+			return new WP_Error( 'sd_ai_agent_commerce_product_not_found', __( 'The requested WooCommerce product does not exist on the target site.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+		}
+
+		$raw_category_ids = $operation['category_ids'] ?? null;
+		if ( ! is_array( $raw_category_ids ) || [] === $raw_category_ids ) {
+			return new WP_Error( 'sd_ai_agent_commerce_product_categories_required', __( 'At least one resolved product category ID is required.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+		}
+
+		$category_ids = array_values( array_unique( array_filter( array_map( static fn( mixed $value ): int => absint( $value ), $raw_category_ids ) ) ) );
+		if ( count( $category_ids ) !== count( $raw_category_ids ) ) {
+			return new WP_Error( 'sd_ai_agent_commerce_product_categories_invalid', __( 'Product category IDs must be unique positive integers.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+		}
+
+		foreach ( $category_ids as $category_id ) {
+			$term = get_term( $category_id, self::TAXONOMY );
+			if ( ! $term || is_wp_error( $term ) ) {
+				return new WP_Error( 'sd_ai_agent_commerce_product_category_not_found', __( 'A requested product category does not exist on the target site.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+			}
+		}
+
+		$before_category_ids = wp_get_object_terms( $product_id, self::TAXONOMY, [ 'fields' => 'ids' ] );
+		if ( is_wp_error( $before_category_ids ) ) {
+			return $before_category_ids;
+		}
+
+		$before_category_ids = array_map( 'intval', $before_category_ids );
+		sort( $before_category_ids, SORT_NUMERIC );
+		sort( $category_ids, SORT_NUMERIC );
+
+		return [
+			'index'               => $index,
+			'operation'           => 'assign_product_categories',
+			'product_id'          => $product_id,
+			'product_name'        => $product->post_title,
+			'before_category_ids' => $before_category_ids,
+			'category_ids'        => $category_ids,
 		];
 	}
 
@@ -592,6 +669,15 @@ final class WooCommerceAbilities {
 		$changes = [];
 		foreach ( $operations as $operation ) {
 			$type = (string) ( $operation['operation'] ?? '' );
+			if ( 'assign_product_categories' === $type ) {
+				$result = self::assign_product_categories( $operation );
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
+				$changes[] = $result;
+				continue;
+			}
+
 			if ( 'create_category' === $type ) {
 				$result = self::create_category( $operation );
 				if ( is_wp_error( $result ) ) {
@@ -618,6 +704,124 @@ final class WooCommerceAbilities {
 			'target_blog_id' => $target_blog_id,
 			'changes'        => $changes,
 			'change_log'     => __( 'Changes were recorded in the target site’s change log.', 'superdav-ai-agent' ),
+		];
+	}
+
+	/**
+	 * Replace a product's category assignment from an approved, drift-checked plan.
+	 *
+	 * @param array<string,mixed> $operation Normalized operation.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function assign_product_categories( array $operation ): array|WP_Error {
+		$product_id          = absint( $operation['product_id'] ?? 0 );
+		$expected_before_ids = array_map( static fn( mixed $value ): int => (int) $value, (array) ( $operation['before_category_ids'] ?? [] ) );
+		$category_ids        = array_map( static fn( mixed $value ): int => (int) $value, (array) ( $operation['category_ids'] ?? [] ) );
+		$product             = $product_id > 0 ? get_post( $product_id ) : null;
+		if ( null === $product || 'product' !== $product->post_type || [] === $category_ids ) {
+			return new WP_Error( 'sd_ai_agent_commerce_product_assignment_invalid', __( 'The approved product category assignment is invalid.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+		}
+
+		$current_category_ids = wp_get_object_terms( $product_id, self::TAXONOMY, [ 'fields' => 'ids' ] );
+		if ( is_wp_error( $current_category_ids ) ) {
+			return $current_category_ids;
+		}
+
+		$current_category_ids = array_map( 'intval', $current_category_ids );
+		sort( $expected_before_ids, SORT_NUMERIC );
+		sort( $current_category_ids, SORT_NUMERIC );
+		sort( $category_ids, SORT_NUMERIC );
+		if ( $current_category_ids !== $expected_before_ids ) {
+			return new WP_Error( 'sd_ai_agent_commerce_product_categories_changed', __( 'The product categories changed after approval. Create a new plan to review the current categories.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+		}
+
+		if ( $current_category_ids === $category_ids ) {
+			return [
+				'operation'    => 'assign_product_categories',
+				'status'       => 'unchanged',
+				'product_id'   => $product_id,
+				'category_ids' => $category_ids,
+			];
+		}
+
+		$assigned = wp_set_object_terms( $product_id, $category_ids, self::TAXONOMY, false );
+		if ( is_wp_error( $assigned ) ) {
+			return $assigned;
+		}
+
+		$change_id = ChangesLog::record(
+			[
+				'session_id'   => ChangeLogger::get_session_id(),
+				'object_type'  => 'product',
+				'object_id'    => $product_id,
+				'object_title' => $product->post_title,
+				'ability_name' => ChangeLogger::get_ability_name() ?: self::EXECUTE_ABILITY,
+				'field_name'   => self::TAXONOMY,
+				'before_value' => (string) wp_json_encode( $current_category_ids ),
+				'after_value'  => (string) wp_json_encode( $category_ids ),
+				'revertable'   => false,
+			]
+		);
+
+		if ( false === $change_id ) {
+			$rollback_current_category_ids = wp_get_object_terms( $product_id, self::TAXONOMY, [ 'fields' => 'ids' ] );
+			if ( is_wp_error( $rollback_current_category_ids ) ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_state_read_failed',
+					__( 'The product category assignment was applied, but the change log write failed and the current categories could not be read for a safe rollback.', 'superdav-ai-agent' ),
+					[
+						'status'              => 500,
+						'product_id'          => $product_id,
+						'category_ids'        => $category_ids,
+						'before_category_ids' => $current_category_ids,
+						'rollback_error'      => $rollback_current_category_ids->get_error_messages(),
+					]
+				);
+			}
+
+			$rollback_current_category_ids = array_map( 'intval', $rollback_current_category_ids );
+			sort( $rollback_current_category_ids, SORT_NUMERIC );
+			if ( $category_ids !== $rollback_current_category_ids ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_conflict',
+					__( 'The product category assignment was applied, but the change log write failed after the categories changed again. The assignment was not rolled back to avoid overwriting the newer categories.', 'superdav-ai-agent' ),
+					[
+						'status'               => 409,
+						'product_id'           => $product_id,
+						'category_ids'         => $category_ids,
+						'before_category_ids'  => $current_category_ids,
+						'current_category_ids' => $rollback_current_category_ids,
+					]
+				);
+			}
+
+			$rollback = wp_set_object_terms( $product_id, $current_category_ids, self::TAXONOMY, false );
+			if ( is_wp_error( $rollback ) ) {
+				return new WP_Error(
+					'sd_ai_agent_commerce_assignment_rollback_failed',
+					__( 'The product category assignment was applied, but the change log write and rollback both failed.', 'superdav-ai-agent' ),
+					[
+						'status'              => 500,
+						'product_id'          => $product_id,
+						'category_ids'        => $category_ids,
+						'before_category_ids' => $current_category_ids,
+						'rollback_error'      => $rollback->get_error_messages(),
+					]
+				);
+			}
+
+			return new WP_Error(
+				'sd_ai_agent_commerce_assignment_log_failed',
+				__( 'The change log could not be written, so the product category assignment was rolled back.', 'superdav-ai-agent' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return [
+			'operation'    => 'assign_product_categories',
+			'status'       => 'updated',
+			'product_id'   => $product_id,
+			'category_ids' => $category_ids,
 		];
 	}
 

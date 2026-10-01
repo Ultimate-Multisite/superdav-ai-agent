@@ -389,6 +389,7 @@ class OnboardingManager {
 					'session_id'          => $existing_session_id ?: null,
 					'agent_id'            => $onboarding_agent_id,
 					'kickoff_message'     => $kickoff_message,
+					'kickoff_required'    => self::session_needs_kickoff( (int) $existing_session_id ),
 				],
 				200
 			);
@@ -452,10 +453,27 @@ class OnboardingManager {
 				'session_id'          => $session_id,
 				'agent_id'            => $onboarding_agent_id,
 				'kickoff_message'     => $kickoff_message,
+				'kickoff_required'    => true,
 				'woo_detected'        => $woo_active,
 			],
 			200
 		);
+	}
+
+	/**
+	 * Whether the persisted bootstrap session still needs its automatic first turn.
+	 *
+	 * @param int $session_id Bootstrap session ID.
+	 */
+	private static function session_needs_kickoff( int $session_id ): bool {
+		if ( $session_id <= 0 ) {
+			return false;
+		}
+
+		$session  = Database::get_session( $session_id );
+		$messages = $session ? json_decode( (string) $session->messages, true ) : null;
+
+		return is_array( $messages ) && [] === $messages;
 	}
 
 	/**

@@ -2,9 +2,9 @@
  * Compact empty state — agent-aware greeting + suggestion cards that
  * seed common first-turn prompts. Dispatches sendMessage on pick.
  *
- * When a selected agent has suggestions, those are shown instead of the
- * hardcoded defaults. The greeting text comes from the agent's greeting
- * field, falling back to branding or the generic default.
+ * When a selected agent provides a suggestions array, that choice is respected,
+ * including an explicitly empty array. The greeting text comes from the agent's
+ * greeting field, falling back to branding or the generic default.
  */
 
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -14,8 +14,7 @@ import STORE_NAME from '../../store';
 import { getBranding } from '../../utils/branding';
 
 /**
- * Default suggestions used when no agent is selected or the agent has
- * no suggestions configured.
+ * Default suggestions used when no agent-specific suggestions array is available.
  */
 const DEFAULT_SUGGESTIONS = [
 	{
@@ -74,10 +73,9 @@ export default function WidgetEmpty() {
 
 	// Agent-aware suggestions.
 	const agentSuggestions = selectedAgent?.suggestions;
-	const suggestions =
-		Array.isArray( agentSuggestions ) && agentSuggestions.length > 0
-			? agentSuggestions
-			: DEFAULT_SUGGESTIONS;
+	const suggestions = Array.isArray( agentSuggestions )
+		? agentSuggestions
+		: DEFAULT_SUGGESTIONS;
 
 	// Agent name for the footer.
 	const agentName =
@@ -96,29 +94,33 @@ export default function WidgetEmpty() {
 						'sd-ai-agent'
 					) }
 			</p>
-			<div className="sdaa-w-empty-label">
-				{ __( 'Suggested', 'sd-ai-agent' ) }
-			</div>
-			<div className="sdaa-w-suggestion-list">
-				{ suggestions.map( ( s, i ) => (
-					<button
-						key={ i }
-						type="button"
-						className="sdaa-w-suggestion-card"
-						onClick={ () => sendMessage( s.prompt, [] ) }
-						aria-label={ s.title }
-					>
-						<span className="sdaa-w-suggestion-card-body">
-							<span className="sdaa-w-suggestion-card-title">
-								{ s.title }
-							</span>
-							<span className="sdaa-w-suggestion-card-sub">
-								{ s.description }
-							</span>
-						</span>
-					</button>
-				) ) }
-			</div>
+			{ suggestions.length > 0 && (
+				<>
+					<div className="sdaa-w-empty-label">
+						{ __( 'Suggested', 'sd-ai-agent' ) }
+					</div>
+					<div className="sdaa-w-suggestion-list">
+						{ suggestions.map( ( s, i ) => (
+							<button
+								key={ i }
+								type="button"
+								className="sdaa-w-suggestion-card"
+								onClick={ () => sendMessage( s.prompt, [] ) }
+								aria-label={ s.title }
+							>
+								<span className="sdaa-w-suggestion-card-body">
+									<span className="sdaa-w-suggestion-card-title">
+										{ s.title }
+									</span>
+									<span className="sdaa-w-suggestion-card-sub">
+										{ s.description }
+									</span>
+								</span>
+							</button>
+						) ) }
+					</div>
+				</>
+			) }
 			<p className="sdaa-w-empty-foot">{ agentName }</p>
 		</div>
 	);

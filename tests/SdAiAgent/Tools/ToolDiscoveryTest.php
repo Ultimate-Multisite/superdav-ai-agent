@@ -386,6 +386,39 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd-ai-agent/update-post', $result['results'][0]['id'] );
 	}
 
+	public function test_ability_search_discovers_elementor_widget_editing_and_reports_compatibility(): void {
+		$this->register_test_ability(
+			'elementor/manage-elements',
+			array(
+				'label'               => 'Manage Elementor Elements',
+				'description'         => 'Edit Elementor sections, containers, and widgets.',
+				'category'            => 'elementor',
+				'execute_callback'    => '__return_true',
+				'permission_callback' => '__return_true',
+				'meta'                => array( 'mcp' => array( 'public' => true ) ),
+			)
+		);
+
+		$result = ToolDiscovery::handle_ability_search(
+			array(
+				'query'       => 'edit Elementor section',
+				'max_results' => 5,
+			)
+		);
+
+		$ids = array_map(
+			static function ( array $item ): string {
+				return $item['id'];
+			},
+			$result['results']
+		);
+
+		$this->assertContains( 'elementor/manage-elements', $ids );
+		$this->assertArrayHasKey( 'elementor_compatibility', $result );
+		$this->assertTrue( $result['elementor_compatibility']['element_mutation']['available'] );
+		$this->assertSame( 'elementor/manage-elements', $result['elementor_compatibility']['element_mutation']['ability_id'] );
+	}
+
 	public function test_ability_search_caches_schemas_for_recently_fetched_section(): void {
 		ToolDiscovery::handle_ability_search(
 			[ 'query' => 'select:sd-ai-agent/get-plugins' ]
@@ -484,6 +517,19 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'success', $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertArrayHasKey( 'result', $result );
+	}
+
+	public function test_ability_call_normalizes_parameters_alias_for_direct_callers(): void {
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'    => 'sd-ai-agent/get-plugins',
+				'parameters' => [],
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 'sd-ai-agent/get-plugins', $result['ability'] );
 	}
 
 	public function test_ability_call_records_usage(): void {

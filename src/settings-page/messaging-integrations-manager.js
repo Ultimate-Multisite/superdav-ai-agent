@@ -155,16 +155,27 @@ export default function MessagingIntegrationsManager() {
 			) }
 
 			<h4>{ __( 'WhatsApp Cloud API', 'superdav-ai-agent' ) }</h4>
+			<Notice status="info" isDismissible={ false }>
+				<ol>
+					<li>
+						{ __(
+							'Meta: add WhatsApp to a Business app, verify the sender, then copy its Phone number ID and a permanent token with whatsapp_business_messaging.',
+							'superdav-ai-agent'
+						) }
+					</li>
+					<li>
+						{ __(
+							'Paste both values, save, enter an E.164 recipient, and send a test.',
+							'superdav-ai-agent'
+						) }
+					</li>
+				</ol>
+			</Notice>
 			<p className="description">
-				{ whatsapp.configured
-					? __(
-							'Configured. Leave the token blank to keep the saved token. Free-form text messages require an open 24-hour customer service window.',
-							'superdav-ai-agent'
-					  )
-					: __(
-							'Configure a Meta access token and WhatsApp phone number ID. Free-form text messages require an open 24-hour customer service window.',
-							'superdav-ai-agent'
-					  ) }
+				{ __(
+					'Leave the token blank to keep it. Free-form messages require an open 24-hour customer service window.',
+					'superdav-ai-agent'
+				) }
 			</p>
 			<TextControl
 				label={ __( 'Access token', 'superdav-ai-agent' ) }

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Tests\Core;
 
+use SdAiAgent\Core\Database;
 use SdAiAgent\Core\OnboardingManager;
 use SdAiAgent\Core\SiteScanner;
 use WP_UnitTestCase;
@@ -423,6 +424,7 @@ class OnboardingManagerTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'session_id', $data );
 		$this->assertArrayHasKey( 'agent_id', $data );
 		$this->assertArrayHasKey( 'kickoff_message', $data );
+		$this->assertTrue( $data['kickoff_required'] );
 		$this->assertArrayHasKey( 'onboarding_complete', $data );
 		$this->assertArrayNotHasKey( 'is_fresh_start', $data );
 		$this->assertArrayNotHasKey( 'started_at', $data );
@@ -458,6 +460,15 @@ class OnboardingManagerTest extends WP_UnitTestCase {
 
 		$this->assertSame( $first['session_id'], $second['session_id'] );
 		$this->assertTrue( $second['already_complete'] );
+		$this->assertTrue( $second['kickoff_required'] );
+
+		Database::append_to_session(
+			(int) $first['session_id'],
+			array( array( 'role' => 'user', 'content' => 'Onboarding started.' ) )
+		);
+
+		$third = OnboardingManager::rest_start()->get_data();
+		$this->assertFalse( $third['kickoff_required'] );
 	}
 
 	/**

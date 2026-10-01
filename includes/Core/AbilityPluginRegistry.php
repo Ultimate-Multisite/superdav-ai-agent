@@ -205,12 +205,12 @@ class AbilityPluginRegistry {
 		[
 			'slug'            => 'elementor',
 			'name'            => 'Elementor',
-			'ability_count'   => 8,
+			'ability_count'   => 0,
 			'has_abilities'   => true,
 			'has_blocks'      => false,
 			'categories'      => [ 'page-builder', 'design', 'layout', 'templates' ],
 			'active_installs' => 10000000,
-			'description'     => 'Visual drag-and-drop page builder with 100+ widgets and theme builder.',
+			'description'     => 'Visual drag-and-drop page builder with 100+ widgets and theme builder. Its official WordPress Abilities catalog varies by installed release; discover registered elementor/* abilities at runtime before offering an Elementor workflow.',
 		],
 
 		// ── Membership / Users ────────────────────────────────────────────────

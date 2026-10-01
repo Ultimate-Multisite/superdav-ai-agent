@@ -13,6 +13,7 @@ namespace SdAiAgent\Tests\Admin;
 
 use SdAiAgent\Admin\FloatingWidget;
 use SdAiAgent\Admin\UnifiedAdminMenu;
+use SdAiAgent\Core\RolePermissions;
 use SdAiAgent\Core\Settings;
 use WP_UnitTestCase;
 
@@ -57,6 +58,7 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 	 */
 	public function tear_down(): void {
 		parent::tear_down();
+		delete_option( RolePermissions::OPTION_NAME );
 		delete_option( Settings::OPTION_NAME );
 		remove_all_filters( 'locale' );
 		wp_dequeue_script( 'sd-ai-agent-floating-widget' );
@@ -122,6 +124,28 @@ class FloatingWidgetTest extends WP_UnitTestCase {
 		FloatingWidget::enqueue_assets_admin( 'dashboard' );
 
 		$this->assertFalse( wp_script_is( 'sd-ai-agent-floating-widget', 'enqueued' ) );
+	}
+
+	/**
+	 * Test enqueue_assets_admin() supports editors granted chat access.
+	 */
+	public function test_enqueue_assets_admin_loads_for_editor_with_chat_access(): void {
+		wp_set_current_user( $this->editor_id );
+		RolePermissions::update(
+			[
+				'editor' => [
+					'chat_access'       => true,
+					'allowed_abilities' => [],
+				],
+			]
+		);
+		$fixture_dir = dirname( __DIR__, 2 ) . '/fixtures/assets';
+		add_filter( 'sd_ai_agent_build_dir', static fn() => $fixture_dir );
+
+		FloatingWidget::enqueue_assets_admin( 'post.php' );
+		remove_all_filters( 'sd_ai_agent_build_dir' );
+
+		$this->assertTrue( wp_script_is( 'sd-ai-agent-floating-widget', 'enqueued' ) );
 	}
 
 	/**

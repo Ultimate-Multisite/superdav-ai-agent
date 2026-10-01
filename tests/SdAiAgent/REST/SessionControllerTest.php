@@ -15,6 +15,7 @@ use SdAiAgent\Core\BackgroundJobDispatcher;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\DurablePlanRunner;
+use SdAiAgent\Core\ElementorCompletionGate;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\DurablePlanRepository;
 use SdAiAgent\REST\RestController;
@@ -30,32 +31,47 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 	private int $other_admin_id;
 
-	/** Jobs are queued once on the main site and preserve blog context. */
-	public function test_background_dispatcher_queues_job_on_main_site_once(): void {
-		$tenant_id = is_multisite() ? self::factory()->blog->create() : get_current_blog_id();
-		$job_id    = '11111111-2222-3333-4444-555555555555';
-		$args      = array( $tenant_id, $job_id );
-		$requests  = 0;
+	/** Jobs are queued once on their own site so the worker can read that site's transient. */
+	public function test_background_dispatcher_queues_job_on_target_site_once(): void {
+		$originating_blog_id    = get_current_blog_id();
+		$tenant_id              = is_multisite() ? self::factory()->blog->create() : $originating_blog_id;
+		$job_id                 = '11111111-2222-3333-4444-555555555555';
+		$args                   = array( $tenant_id, $job_id );
+		$requests               = 0;
+		$has_action_scheduler   = function_exists( 'as_enqueue_async_action' ) && function_exists( 'as_has_scheduled_action' );
+		$switched_to_tenant     = false;
 		$intercept = static function ( $preempt ) use ( &$requests ) {
 			++$requests;
 			return $preempt;
 		};
 		add_filter( 'pre_http_request', $intercept );
 
-		if ( is_multisite() ) {
-			switch_to_blog( $tenant_id );
-		}
-		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
-		BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
-		$this->assertSame( $tenant_id, get_current_blog_id() );
-		if ( is_multisite() ) {
-			restore_current_blog();
-		}
-		remove_filter( 'pre_http_request', $intercept );
+		try {
+			if ( is_multisite() ) {
+				switch_to_blog( $tenant_id );
+				$switched_to_tenant = true;
+			}
 
-		$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args ) );
+			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
+			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
+			$this->assertSame( $tenant_id, get_current_blog_id() );
+			$this->assertTrue(
+				( $has_action_scheduler && as_has_scheduled_action( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' ) )
+				|| false !== wp_next_scheduled( BackgroundJobDispatcher::HOOK, $args )
+			);
+		} finally {
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' );
+			}
+			wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
+			if ( $switched_to_tenant ) {
+				restore_current_blog();
+			}
+			remove_filter( 'pre_http_request', $intercept );
+		}
+
+		$this->assertSame( $originating_blog_id, get_current_blog_id() );
 		$this->assertSame( 0, $requests, 'An already queued event must not fall back to an HTTP loopback.' );
-		wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, $args );
 	}
 
 	public function set_up(): void {
@@ -371,6 +387,54 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assert_status( 403, $forbidden );
 	}
 
+	/** CSV attachments reach the agent as bounded context without retaining their data URL. */
+	public function test_csv_attachment_is_available_to_the_agent_without_raw_data_url(): void {
+		$session_id     = $this->create_session();
+		$block_loopback = static function () {
+			return [
+				'headers'  => [],
+				'body'     => '',
+				'response' => [ 'code' => 200, 'message' => 'OK' ],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $block_loopback, 10, 3 );
+		try {
+			$response = $this->dispatch(
+				'POST',
+				'/sd-ai-agent/v1/run',
+				[
+					'message'      => 'Update product categories from the attached CSV.',
+					'session_id'   => $session_id,
+					'attachments'  => [
+						[
+							'name'     => 'product-categories.csv',
+							'type'     => 'text/csv',
+							'data_url' => 'data:text/csv;base64,c2t1LGNhdGVnb3J5ClAxLFNob2Vz',
+							'is_image' => false,
+						],
+					],
+				]
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $block_loopback, 10 );
+		}
+
+		$this->assert_status( 202, $response );
+		$job_id = (string) $response->get_data()['job_id'];
+		$job    = get_transient( RestController::JOB_PREFIX . $job_id );
+		$this->assertIsArray( $job );
+		$this->assertArrayNotHasKey( 'data_url', $job['params']['attachments'][0] );
+		$this->assertStringContainsString(
+			"sku,category\nP1,Shoes",
+			RestController::get_agent_attachment_context( $job['params']['attachments'] )
+		);
+
+		delete_transient( RestController::JOB_PREFIX . $job_id );
+		ActiveJobRepository::delete( $job_id );
+	}
+
 	/** A durable phase remains queued in storage until its worker claims it. */
 	public function test_durable_plan_continue_queues_the_worker_until_process_claims_it(): void {
 		$session_id = $this->create_session();
@@ -469,6 +533,128 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$other_fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
 		$this->assert_status( 200, $other_fallback );
 		$this->assertArrayNotHasKey( 'durable_plan', $other_fallback->get_data() );
+
+		ActiveJobRepository::delete( $job_id );
+	}
+
+	/** Elementor preview URLs remain sealed in job stores and restore only in the owner response. */
+	public function test_job_status_restores_sealed_elementor_preview_only_for_browser_delivery(): void {
+		if ( ! function_exists( 'sodium_crypto_secretbox' ) || ! function_exists( 'sodium_crypto_secretbox_open' ) ) {
+			$this->markTestSkipped( 'Sodium is unavailable.' );
+		}
+
+		$preview_url = 'https://example.test/?elementor-preview=41&preview-token=private-token';
+		$gate        = new ElementorCompletionGate(
+			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),
+			array( ElementorCompletionGate::PREVIEW_ABILITY, ElementorCompletionGate::PUBLISH_ABILITY )
+		);
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response( 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response(
+			ElementorCompletionGate::PREVIEW_ABILITY,
+			array( 'success' => true, 'post_id' => 41, 'revision_id' => 101, 'preview_url' => $preview_url )
+		);
+		$pending = $gate->seal_pending_client_tool_calls(
+			array(
+				array(
+					'id'          => 'elementor-preview-job-call',
+					'name'        => ElementorCompletionGate::SCREENSHOT_ABILITY,
+					'args'        => $gate->get_render_validation_calls()[0],
+					'annotations' => array( 'readonly' => true ),
+				)
+			)
+		);
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $pending ) );
+
+		$session_id = $this->create_session();
+		$job_id     = '00000000-0000-4000-8000-000000000105';
+		$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'awaiting_client_tools' ) );
+		set_transient(
+			RestController::JOB_PREFIX . $job_id,
+			array(
+				'status'                    => 'awaiting_client_tools',
+				'user_id'                   => $this->admin_id,
+				'pending_client_tool_calls' => $pending,
+			),
+			RestController::JOB_TTL
+		);
+		$this->assertTrue(
+			ActiveJobRepository::update_status(
+				$job_id,
+				'awaiting_client_tools',
+				array( 'pending_tools' => wp_json_encode( $pending ) )
+			)
+		);
+
+		$stored_job = get_transient( RestController::JOB_PREFIX . $job_id );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $stored_job ) );
+		$stored_row = ActiveJobRepository::get_by_job_id( $job_id );
+		$this->assertNotNull( $stored_row );
+		$this->assertStringNotContainsString( $preview_url, $stored_row->pending_tools );
+		$inline = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $inline );
+		$this->assertSame( $preview_url, $inline->get_data()['pending_client_tool_calls'][0]['args']['url'] );
+
+		wp_set_current_user( $this->other_admin_id );
+		$other_administrator = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $other_administrator );
+		$this->assertArrayNotHasKey( 'pending_client_tool_calls', $other_administrator->get_data() );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $other_administrator->get_data() ) );
+		delete_transient( RestController::JOB_PREFIX . $job_id );
+		$other_fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $other_fallback );
+		$this->assertArrayNotHasKey( 'pending_client_tool_calls', $other_fallback->get_data() );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $other_fallback->get_data() ) );
+		wp_set_current_user( $this->admin_id );
+		$owner_fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 404, $owner_fallback );
+
+		ActiveJobRepository::delete( $job_id );
+	}
+
+	/** Shared-session viewers retain ordinary pending browser calls without private capabilities. */
+	public function test_job_status_keeps_ordinary_browser_calls_available_to_other_administrators(): void {
+		$session_id = $this->create_session();
+		$this->assertTrue( Database::share_session( $session_id, $this->admin_id ) );
+		$job_id     = '00000000-0000-4000-8000-000000000106';
+		$pending    = array(
+			array(
+				'id'          => 'ordinary-browser-call',
+				'name'        => 'sd-ai-agent-js/refresh-page',
+				'args'        => array(),
+				'annotations' => array( 'readonly' => true ),
+			)
+		);
+		$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'awaiting_client_tools' ) );
+		$this->assertTrue(
+			ActiveJobRepository::update_status(
+				$job_id,
+				'awaiting_client_tools',
+				array( 'pending_tools' => wp_json_encode( $pending ) )
+			)
+		);
+		set_transient(
+			RestController::JOB_PREFIX . $job_id,
+			array(
+				'status'                    => 'awaiting_client_tools',
+				'user_id'                   => $this->admin_id,
+				'pending_client_tool_calls' => $pending,
+			),
+			RestController::JOB_TTL
+		);
+
+		wp_set_current_user( $this->other_admin_id );
+		$inline = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $inline );
+		$this->assertSame( $pending, $inline->get_data()['pending_client_tool_calls'] );
+
+		delete_transient( RestController::JOB_PREFIX . $job_id );
+		$fallback = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $fallback );
+		$this->assertArrayNotHasKey( 'pending_client_tool_calls', $fallback->get_data() );
+		$this->assertSame( 'error', $fallback->get_data()['status'] );
+		wp_set_current_user( $this->admin_id );
 
 		ActiveJobRepository::delete( $job_id );
 	}

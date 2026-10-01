@@ -57,6 +57,15 @@ class SkillAutoInjector {
 		'/\bkadence\b|kadence\/(?:rowlayout|column|advancedheading|advancedbtn|singlebtn)|\bkbVersion\b|\bcolLayout\b|kt-adv-heading|kt-inside-inner-col|kb-section-dir-horizontal|kt-highlight/i' => 'kadence-blocks',
 		'/\b(?:header\s*builder|footer\s*builder|kadence\s*theme)\b|kadence_(?:before|after)_/i'                                       => 'kadence-theme',
 
+		// Explicit migration targets must precede Elementor so the target guide
+		// wins when converting an Elementor document to block-based content.
+		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:block\s+theme|full\s*site\s*edit(?:ing)?|fse|theme\.json)\b/i' => 'wp-block-themes',
+		'/\b(?:convert|migrate|rebuild|transform|translate)\b.*\belementor\b.*\b(?:to|into|as|using|with)\b.*\b(?:gutenberg|blocks?)\b/i' => 'gutenberg-blocks',
+
+		// Elementor must precede generic page/layout triggers so its document storage
+		// is never treated as Gutenberg block content.
+		'/\belementor\b|\belementor\s+(?:editor|page|document|widget|template|section|container)\b/i'                                    => 'elementor-builder',
+
 		// WP REST API — precedes wp-plugin-development to avoid ambiguity on 'endpoint'/'register'.
 		'/\brest\b.*\bendpoint\b|\bendpoint\b.*\brest\b|wp\/v2|REST_Controller|\/wp-json\/|register_rest_route|rest_api_init\b/i'     => 'wp-rest-api',
 
@@ -211,6 +220,7 @@ class SkillAutoInjector {
 	 * @var array<string, string>
 	 */
 	private const ABILITY_PREFIX_TO_SKILL = [
+		'elementor/'                         => 'elementor-builder',
 		'sd-ai-agent/seo-'                   => 'seo-optimization',
 		'sd-ai-agent/create-block-content'   => 'gutenberg-blocks',
 		'sd-ai-agent/parse-block-content'    => 'gutenberg-blocks',

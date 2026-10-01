@@ -193,6 +193,7 @@ final class ClientAbilityRouter {
 				$ability_name = \WP_AI_Client_Ability_Function_Resolver::function_name_to_ability_name( $fn_name );
 			}
 			$browser_navigation_args = $this->get_browser_navigation_args( $ability_name, $call->getArgs(), $client_names );
+			$nested_client_call      = $this->get_nested_client_ability_call( $ability_name, $call->getArgs(), $client_names );
 
 			if ( in_array( $ability_name, $client_names, true ) ) {
 				$client[] = array(
@@ -214,6 +215,17 @@ final class ClientAbilityRouter {
 					'client_name' => 'sd-ai-agent-js/navigate-to',
 					'args'        => $browser_navigation_args,
 					'annotations' => $annotations_by_name['sd-ai-agent-js/navigate-to'] ?? array(),
+				);
+			} elseif ( null !== $nested_client_call ) {
+				// Tier-2 discovery normally instructs models to invoke abilities through
+				// ability-call. Validated browser abilities must still execute in the
+				// owning browser rather than reaching the server-only dispatcher.
+				$client[] = array(
+					'id'          => (string) $call->getId(),
+					'name'        => $ability_name,
+					'client_name' => $nested_client_call['client_name'],
+					'args'        => $nested_client_call['args'],
+					'annotations' => $annotations_by_name[ $nested_client_call['client_name'] ] ?? array(),
 				);
 			} else {
 				$php_parts[] = $part;
@@ -261,6 +273,47 @@ final class ClientAbilityRouter {
 		}
 
 		return array( 'url' => (string) $validated['url'] );
+	}
+
+	/**
+	 * Resolve a generic Tier-2 ability-call wrapper to a validated browser tool.
+	 *
+	 * The outer call identity remains intact for model-history and result matching,
+	 * while client_name tells the browser which registered callback to execute.
+	 * Only canonical abilities advertised by this browser for the current request
+	 * can cross this boundary.
+	 *
+	 * @param string        $ability_name Resolved outer ability name.
+	 * @param mixed         $args         Outer ability arguments.
+	 * @param array<string> $client_names Validated browser ability names.
+	 * @return array{client_name: string, args: array<string, mixed>}|null
+	 */
+	private function get_nested_client_ability_call(
+		string $ability_name,
+		mixed $args,
+		array $client_names
+	): ?array {
+		if ( 'sd-ai-agent/ability-call' !== $ability_name || ! is_array( $args ) ) {
+			return null;
+		}
+
+		$client_name = (string) ( $args['ability'] ?? '' );
+		$client_args = $args['arguments'] ?? null;
+		if ( '' === $client_name || ! in_array( $client_name, $client_names, true ) || ! is_array( $client_args ) ) {
+			return null;
+		}
+
+		$normalized_args = array();
+		foreach ( $client_args as $key => $value ) {
+			if ( is_string( $key ) ) {
+				$normalized_args[ $key ] = $value;
+			}
+		}
+
+		return array(
+			'client_name' => $client_name,
+			'args'        => $normalized_args,
+		);
 	}
 
 	/**

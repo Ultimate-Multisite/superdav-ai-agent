@@ -620,6 +620,78 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 		$this->assertSame( 'draft', get_post_status( $post_id ) );
 	}
 
+	/** An explicit status-only change bypasses preview staging for a governed page. */
+	public function test_handle_update_post_unpublishes_governed_page_when_confirmed(): void {
+		$post_id = $this->factory->post->create(
+			[
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			]
+		);
+		PagePreviewWorkspace::activate( 'incremental', 903, '', true );
+
+		$result = PostAbilities::handle_update_post(
+			[
+				'post_id'               => $post_id,
+				'status'                => 'draft',
+				'confirm_status_change' => true,
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'draft', $result['status'] );
+		$this->assertSame( 'draft', get_post_status( $post_id ) );
+		$this->assertSame( [ 'post_status' ], $result['affected']['fields'] );
+		$this->assertFalse( PagePreviewWorkspace::has_workspace( $post_id ) );
+	}
+
+	/** Governed pages reject status changes that lack an explicit confirmation. */
+	public function test_handle_update_post_blocks_unconfirmed_governed_page_unpublish(): void {
+		$post_id = $this->factory->post->create(
+			[
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			]
+		);
+		PagePreviewWorkspace::activate( 'incremental', 904, '', true );
+
+		$result = PostAbilities::handle_update_post(
+			[
+				'post_id' => $post_id,
+				'status'  => 'draft',
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_status_change_confirmation_required', $result->get_error_code() );
+		$this->assertSame( 'publish', get_post_status( $post_id ) );
+	}
+
+	/** The direct status workflow still requires edit permission for the page. */
+	public function test_handle_update_post_blocks_unauthorized_governed_page_unpublish(): void {
+		$post_id       = $this->factory->post->create(
+			[
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			]
+		);
+		$subscriber_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
+		PagePreviewWorkspace::activate( 'incremental', 905, '', true );
+		wp_set_current_user( $subscriber_id );
+
+		$result = PostAbilities::handle_update_post(
+			[
+				'post_id'               => $post_id,
+				'status'                => 'draft',
+				'confirm_status_change' => true,
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'insufficient_capability', $result->get_error_code() );
+		$this->assertSame( 'publish', get_post_status( $post_id ) );
+	}
+
 	/**
 	 * Explicitly trashing a page remains available instead of silently erasing it.
 	 */

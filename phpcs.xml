@@ -90,9 +90,6 @@
         <!-- Allow 'class' as parameter name -->
         <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.classFound"/>
 
-        <!-- Allow multiple classes per file for compat layer -->
-        <exclude name="Generic.Files.OneObjectStructurePerFile.MultipleFound"/>
-
         <!-- Allow property names from external APIs -->
         <exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
 

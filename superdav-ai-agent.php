@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: SD AI Agent
- * Plugin URI:  https://github.com/Ultimate-Multisite/superdav-ai-agent
+ * Plugin URI:  https://sdaiagent.com
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
  * Version:     1.23.0
  * Author:      superdav42

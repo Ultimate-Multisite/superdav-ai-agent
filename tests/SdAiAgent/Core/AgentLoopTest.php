@@ -39,6 +39,7 @@ use SdAiAgent\Core\ClientAbilityRouter;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\ProviderCredentialLoader;
 use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Core\Settings;
@@ -80,6 +81,10 @@ class ScriptedAgentLoop extends AgentLoop {
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
 	public array $requestAttemptLimits = array();
 
+	/** @var list<int> Output-token caps selected at the scripted provider boundary. */
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
+	public array $requestedOutputTokenCaps = array();
+
 	/** @var list<array{ability_mode:bool,collection_mode:bool,knowledge_allowed:bool}> */
 	public array $policySnapshots = array();
 
@@ -105,6 +110,9 @@ class ScriptedAgentLoop extends AgentLoop {
 		$attempts_property = new \ReflectionProperty( AgentLoop::class, 'provider_retry_max_attempts' );
 		$attempts_property->setAccessible( true );
 		$this->requestAttemptLimits[] = (int) $attempts_property->getValue( $this );
+		$output_cap_method = new \ReflectionMethod( AgentLoop::class, 'get_effective_max_output_tokens' );
+		$output_cap_method->setAccessible( true );
+		$this->requestedOutputTokenCaps[] = (int) $output_cap_method->invoke( $this );
 
 		$this->policySnapshots[] = array(
 			'ability_mode'     => ToolDiscovery::is_anonymous_ability_mode(),
@@ -1046,9 +1054,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test run() with empty reply text returns empty string (not null/false).
+	 * Empty model replies return an actionable fallback with a diagnostic reason.
 	 */
-	public function test_run_with_empty_reply_returns_empty_string(): void {
+	public function test_run_with_empty_reply_returns_actionable_fallback(): void {
 		$this->skip_if_sdk_unavailable();
 		$this->mock_ai_response( '' );
 
@@ -1058,6 +1066,8 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'reply', $result );
 		$this->assertIsString( $result['reply'] );
+		$this->assertNotSame( '', trim( $result['reply'] ) );
+		$this->assertSame( 'empty_final_response', $result['exit_reason'] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -1314,8 +1324,38 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 3, $call_count );
 		$data = $result->get_error_data();
 		$this->assertIsArray( $data );
+		$this->assertSame( 503, $data['status_code'] );
+		$this->assertSame( 'provider_http_503', $data['provider_error_code'] );
+		$this->assertSame(
+			ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
+			ActiveJobFailureDiagnostic::reason_from_error( $result )
+		);
 		$retry_entries = array_filter( $data['messages'], static fn( $entry ) => 'provider_retry' === ( $entry['type'] ?? '' ) );
 		$this->assertCount( 2, $retry_entries );
+	}
+
+	public function test_provider_failure_context_preserves_only_safe_error_classification(): void {
+		$error = new \WP_Error(
+			'provider_http_error',
+			'PRIVATE_PROVIDER_RESPONSE Authorization: Bearer PRIVATE_TOKEN',
+			array(
+				'status_code'   => 503,
+				'response_body' => 'PRIVATE_RESPONSE_BODY',
+			)
+		);
+		$method = new \ReflectionMethod( AgentLoop::class, 'provider_failure_context' );
+		$method->setAccessible( true );
+		$context = $method->invoke( new AgentLoop( 'PRIVATE_PROMPT_CONTENT' ), $error, 503, 'openai_compat', 'gpt-test', 6 );
+
+		$this->assertIsArray( $context );
+		$this->assertSame( 503, $context['status_code'] );
+		$this->assertSame( 'provider_http_503', $context['provider_error_code'] );
+		$this->assertSame( 'http', $context['failure_source'] );
+		$this->assertSame( 6, $context['attempts'] );
+		$this->assertStringNotContainsString( 'PRIVATE_PROVIDER_RESPONSE', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_RESPONSE_BODY', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_PROMPT_CONTENT', (string) wp_json_encode( $context ) );
+		$this->assertStringNotContainsString( 'PRIVATE_TOKEN', (string) wp_json_encode( $context ) );
 	}
 
 	public function test_run_classifies_imunify_gateway_rejection_without_retrying(): void {
@@ -1867,6 +1907,128 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Browser-tool resumes retain the prior request cap while still respecting
+	 * refreshed provider capability metadata on every provider call.
+	 */
+	public function test_client_tool_resumes_preserve_clamped_output_token_cap(): void {
+		$session_id   = Database::create_session( array( 'user_id' => 1, 'title' => 'Output cap continuation' ) );
+		$model_id     = SuperdavAiProvider::DEFAULT_MODEL_ID;
+		$ability_name = 'sd-ai-agent-js/screenshot-url';
+		$catalog      = JsAbilityCatalog::get_descriptors_by_name();
+		$this->assertArrayHasKey( $ability_name, $catalog );
+
+		ModelCapabilityRegistry::set( $model_id, 8192, 200000 );
+
+		try {
+			$options = array(
+				'session_id'        => $session_id,
+				'provider_id'       => SuperdavAiProvider::PROVIDER_ID,
+				'model_id'          => $model_id,
+				'max_output_tokens' => 16384,
+				'client_abilities'  => array( $catalog[ $ability_name ] ),
+			);
+			$initial = new ScriptedAgentLoop(
+				'Inspect the page.',
+				array(),
+				array(),
+				$options,
+				array( $this->create_scripted_result( '', new FunctionCall( 'browser-one', $ability_name, array( 'url' => '/' ) ) ) )
+			);
+			$initial->run();
+			$this->assertSame( array( 8192 ), $initial->requestedOutputTokenCaps );
+
+			$first_pause = Database::load_and_clear_paused_state( $session_id );
+			$this->assertIsArray( $first_pause );
+			$this->assertSame( 8192, $first_pause['max_output_tokens'] );
+
+			$second = new ScriptedAgentLoop(
+				'',
+				array(),
+				ConversationSerializer::deserialize( $first_pause['history'] ),
+				array_merge( $options, array( 'max_output_tokens' => $first_pause['max_output_tokens'] ) ),
+				array( $this->create_scripted_result( '', new FunctionCall( 'browser-two', $ability_name, array( 'url' => '/next' ) ) ) )
+			);
+			$second->resume_after_client_tools(
+				array( array( 'id' => 'browser-one', 'name' => $ability_name, 'result' => array( 'ok' => true ) ) ),
+				3
+			);
+			$this->assertSame( array( 8192 ), $second->requestedOutputTokenCaps );
+
+			$second_pause = Database::load_and_clear_paused_state( $session_id );
+			$this->assertIsArray( $second_pause );
+			$this->assertSame( 8192, $second_pause['max_output_tokens'] );
+
+			$third = new ScriptedAgentLoop(
+				'',
+				array(),
+				ConversationSerializer::deserialize( $second_pause['history'] ),
+				array_merge( $options, array( 'max_output_tokens' => $second_pause['max_output_tokens'] ) ),
+				array( $this->create_scripted_result( 'Browser workflow completed.' ) )
+			);
+			$result = $third->resume_after_client_tools(
+				array( array( 'id' => 'browser-two', 'name' => $ability_name, 'result' => array( 'ok' => true ) ) ),
+				2
+			);
+
+			$this->assertIsArray( $result );
+			$this->assertSame( 'Browser workflow completed.', $result['reply'] );
+			$this->assertSame( array( 8192 ), $third->requestedOutputTokenCaps );
+		} finally {
+			ModelCapabilityRegistry::forget( $model_id );
+		}
+	}
+
+	/** Browser-submitted tool results are bounded before entering persisted model history. */
+	public function test_client_results_are_truncated_before_history_persistence(): void {
+		$session_id = Database::create_session( [
+			'user_id' => 1,
+			'title'   => 'Bound client tool results',
+		] );
+		$job_id     = '77777777-8888-9999-aaaa-bbbbbbbbbbbb';
+		$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, 1 ) );
+		$tool_name = 'sd-ai-agent-js/elementor-editor-mcp-call-tool';
+		$history   = [
+			new UserMessage( [ new MessagePart( 'Inspect the active Elementor document.' ) ] ),
+			new ModelMessage(
+				[
+					new MessagePart( new FunctionCall( 'call_elementor', $tool_name, [ 'toolName' => 'inspect' ] ) ),
+				]
+			),
+		];
+		$loop      = new ScriptedAgentLoop(
+			'',
+			[],
+			$history,
+			[
+				'session_id'    => $session_id,
+				'active_job_id' => $job_id,
+				'provider_id'   => 'scripted-provider',
+				'model_id'      => 'scripted-model',
+			],
+			[ new WP_Error( 'sd_ai_agent_test_provider_timeout', 'Managed service unavailable.' ) ]
+		);
+		$oversized = str_repeat( 'elementor-output-', 1000 );
+
+		$result = $loop->resume_after_client_tools(
+			[
+				[
+					'id'     => 'call_elementor',
+					'name'   => $tool_name,
+					'result' => [ 'success' => true, 'result' => [ 'content' => $oversized ] ],
+				],
+			],
+			3
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$state = Database::load_and_clear_paused_state( $session_id );
+		$this->assertIsArray( $state );
+		$serialized = (string) wp_json_encode( $state['history'] );
+		$this->assertStringContainsString( '... [truncated]', $serialized );
+		$this->assertStringNotContainsString( $oversized, $serialized );
+	}
+
+	/**
 	 * Test run() returns WP_Error on network failure (wp_remote_post returns WP_Error).
 	 */
 	public function test_run_returns_wp_error_on_network_failure(): void {
@@ -2209,6 +2371,68 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 'compact_session', $data['recovery']['action'] );
 		$this->assertSame( 47, $data['recovery']['source_session_id'] );
 		$this->assertStringContainsString( $current, (string) wp_json_encode( $data['history'] ) );
+	}
+
+	/** Large managed history is compacted for the request, not the saved conversation. */
+	public function test_managed_context_pressure_compacts_before_provider_call(): void {
+		$original = str_repeat( 'Prior completed evidence. ', 11000 );
+		$history  = array(
+			new UserMessage( array( new MessagePart( 'Inspect the site.' ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'call_big', 'wpab__sd-ai-agent__site-info', array() ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'call_big', 'wpab__sd-ai-agent__site-info', array( 'content' => $original ) ) ) ) ),
+		);
+		$loop     = new ScriptedAgentLoop(
+			'Only reply OK.',
+			array(),
+			$history,
+			array(
+				'provider_id' => 'sd-ai-agent-cloud',
+				'model_id'    => 'superdav-chat-pro',
+			),
+			array( $this->create_scripted_result( 'OK' ) )
+		);
+
+		$result = $loop->run();
+
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $loop->requestSizes );
+		$this->assertLessThanOrEqual( ConversationTrimmer::COMPACT_MAX_BYTES, $loop->requestSizes[0] );
+		$this->assertStringContainsString( $original, (string) wp_json_encode( $result['history'] ) );
+	}
+
+	/** Managed chat respects the gateway's byte-as-token context check. */
+	public function test_managed_chat_budget_reserves_output_tokens_below_context_limit(): void {
+		$this->assertSame( 183616, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( 150848, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( 524288, ConversationTrimmer::get_request_byte_budget( 'openai', 'gpt-test' ) );
+	}
+
+	/** Compact a large discovery/list turn while retaining intent and product identities. */
+	public function test_managed_compaction_retains_coupon_intent_and_product_ids(): void {
+		$schema  = array( 'type' => 'object', 'properties' => array( 'details' => array( 'type' => 'string', 'description' => str_repeat( 'schema detail ', 1600 ) ) ) );
+		$results = array_fill( 0, 10, array( 'id' => 'woocommerce/products-list', 'label' => 'Products', 'input_schema' => $schema, 'output_schema' => $schema ) );
+		$data    = array_fill( 0, 10, array( 'id' => 42, 'name' => 'Multi Tenancy Addon', 'sku' => 'ADDON', 'status' => 'publish', 'description' => str_repeat( 'PRIVATE_DESCRIPTION ', 350 ) ) );
+		$history = array(
+			new UserMessage( array( new MessagePart( 'Create a 100% coupon BETA for the Multi Tenancy Addon, one product per customer.' ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'search', 'wpab__sd-ai-agent__ability-search', array( 'query' => 'create coupon' ) ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'search', 'wpab__sd-ai-agent__ability-search', array( 'results' => $results ) ) ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'products', 'wpab__woocommerce__products-list', array( 'search' => 'multi tenancy addon' ) ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'products', 'wpab__woocommerce__products-list', array( 'data' => $data ) ) ) ) ),
+		);
+
+		$compacted = ConversationTrimmer::compact_serialized_history( ConversationSerializer::serialize( $history ) );
+		$text      = (string) ( $compacted['messages'][0]['parts'][0]['text'] ?? '' );
+		$this->assertStringContainsString( '100% coupon BETA', $text );
+		$this->assertStringContainsString( 'Multi Tenancy Addon', $text );
+		$this->assertStringContainsString( '"id":42', $text );
+		$this->assertStringNotContainsString( 'PRIVATE_DESCRIPTION', $text );
+
+		$loop   = new ScriptedAgentLoop( 'Continue.', array(), $history, array( 'provider_id' => 'sd-ai-agent-cloud', 'model_id' => 'superdav-chat-pro' ), array( $this->create_scripted_result( 'OK' ) ) );
+		$result = $loop->run();
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $loop->requestSizes );
+		$this->assertLessThanOrEqual( ConversationTrimmer::COMPACT_MAX_BYTES, $loop->requestSizes[0] );
+		$this->assertStringContainsString( 'PRIVATE_DESCRIPTION', (string) wp_json_encode( $result['history'] ) );
 	}
 
 	/** A measured local transport preflight rejection receives one reduced retry. */
@@ -3324,6 +3548,104 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
 	}
 
+	/** Confirmed nested browser calls must carry approval across ability-call routing. */
+	public function test_confirmation_resume_marks_nested_client_call_as_confirmed(): void {
+		$ability_name            = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
+		$unapproved_ability_name = 'sd-ai-agent-js/insert-block';
+		$catalog                 = JsAbilityCatalog::get_descriptors_by_name();
+		$loop                    = new ScriptedAgentLoop(
+			'',
+			array(),
+			array(
+				new UserMessage( array( new MessagePart( 'Update Elementor after approval.' ) ) ),
+				new ModelMessage(
+					array(
+						new MessagePart(
+							new FunctionCall(
+								'call_confirmed_elementor',
+								'sd-ai-agent/ability-call',
+								array(
+									'ability'   => $ability_name,
+									'arguments' => array(
+										'toolName' => 'build-compositions',
+									),
+								)
+								)
+							),
+							new MessagePart(
+								new FunctionCall(
+									'call_unconfirmed_insert',
+									'sd-ai-agent/ability-call',
+									array(
+										'ability'   => $unapproved_ability_name,
+										'arguments' => array(
+											'blockName' => 'core/paragraph',
+										),
+									)
+								)
+							)
+					)
+				),
+			),
+			array(
+				'approved_once_abilities' => array( $ability_name ),
+				'client_abilities'        => array(
+					$catalog[ $ability_name ],
+					$catalog[ $unapproved_ability_name ],
+				),
+			),
+			array()
+		);
+
+		$result = $loop->resume_after_confirmation( true, 1 );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['pending_client_tool_calls'][0]['name'] );
+		$this->assertSame( $ability_name, $result['pending_client_tool_calls'][0]['client_name'] );
+		$this->assertTrue( $result['pending_client_tool_calls'][0]['user_confirmed'] ?? false );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['pending_client_tool_calls'][1]['name'] );
+		$this->assertSame( $unapproved_ability_name, $result['pending_client_tool_calls'][1]['client_name'] );
+		$this->assertArrayNotHasKey( 'user_confirmed', $result['pending_client_tool_calls'][1] );
+	}
+
+	/** Server-approved browser writes carry authorization without weakening disabled tools. */
+	public function test_server_authorizes_allowed_client_mutations_only(): void {
+		$allowed_name  = 'sd-ai-agent-js/call-elementor-editor-mcp-tool';
+		$disabled_name = 'sd-ai-agent-js/insert-block';
+		$loop          = new AgentLoop(
+			'',
+			array(),
+			array(),
+			array(
+				'tool_permissions' => array( $disabled_name => 'disabled' ),
+			)
+		);
+		$method        = new \ReflectionMethod( AgentLoop::class, 'mark_server_authorized_client_tool_calls' );
+		$method->setAccessible( true );
+		$result = $method->invoke(
+			$loop,
+			array(
+				array(
+					'name'        => 'sd-ai-agent/ability-call',
+					'client_name' => $allowed_name,
+					'annotations' => array( 'readonly' => false, 'destructive' => false ),
+				),
+				array(
+					'name'        => $disabled_name,
+					'annotations' => array( 'readonly' => false, 'destructive' => false ),
+				),
+				array(
+					'name'        => 'sd-ai-agent-js/get-elementor-editor-mcp-context',
+					'annotations' => array( 'readonly' => true, 'destructive' => false ),
+				),
+			)
+		);
+
+		$this->assertTrue( $result[0]['server_authorized'] ?? false );
+		$this->assertArrayNotHasKey( 'server_authorized', $result[1] );
+		$this->assertArrayNotHasKey( 'server_authorized', $result[2] );
+	}
+
 	/**
 	 * A confirmed mixed response executes only the PHP partition, persists the
 	 * browser call, and continues after its result without a live provider.
@@ -3897,16 +4219,10 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regression test: the legacy 4096 default must NOT reach the provider.
-	 *
-	 * Existing installs that upgraded from pre-7rl carry a saved
-	 * `max_output_tokens=4096` they never explicitly chose. AgentLoop's
-	 * resolver maps that exact value to AUTO so the per-model catalog
-	 * picks a sensible cap (64K for Sonnet 4). This test proves the
-	 * resolver's output actually reaches the outgoing request body — i.e.
-	 * that the builder's `using_max_tokens()` call is wired up.
+	 * A configured 4096-token cap is a valid user limit and must reach the
+	 * provider unchanged rather than being expanded to the model catalog cap.
 	 */
-	public function test_builder_emits_catalog_value_when_legacy_4096_saved(): void {
+	public function test_builder_preserves_configured_4096_token_cap(): void {
 		$this->skip_if_sdk_unavailable();
 
 		Settings::instance()->update( [ 'max_output_tokens' => 4096 ] );
@@ -3922,11 +4238,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsArray( $decoded );
 
 		$this->assertArrayHasKey( 'max_tokens', $decoded );
-		$this->assertGreaterThan(
-			4096,
-			(int) $decoded['max_tokens'],
-			'Saved 4096 must be remapped via the catalog (Sonnet 4 documents 64K), not honoured verbatim.'
-		);
+		$this->assertSame( 4096, (int) $decoded['max_tokens'] );
 	}
 
 	/**
@@ -4116,20 +4428,12 @@ class AgentLoopTest extends WP_UnitTestCase {
 		);
 	}
 
-	/**
-	 * Test the legacy 4096 default is treated as AUTO so existing installs
-	 * benefit from the per-model catalog without a settings migration.
-	 *
-	 * Regression test for the truncated-tool-call class of bug where existing
-	 * installs upgraded from pre-7rl carry max_output_tokens=4096 that they
-	 * never explicitly chose, and modern models cannot complete a single
-	 * landing-page tool call within that budget.
-	 */
-	public function test_effective_max_tokens_legacy_4096_treated_as_auto(): void {
+	/** A configured 4096-token cap must remain a lower user limit. */
+	public function test_effective_max_tokens_4096_is_a_user_limit(): void {
 		$this->assertSame(
-			64000,
+			4096,
 			$this->resolve_effective_tokens( 4096, 'claude-sonnet-4-6' ),
-			'Saved 4096 (the legacy default) should resolve via catalog, not be honoured as an explicit cap.'
+			'Configured 4096 must not be expanded to the model catalog cap.'
 		);
 	}
 
@@ -4148,23 +4452,37 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame(
 			4095,
 			$this->resolve_effective_tokens( 4095, 'claude-sonnet-4-6' ),
-			'4095 is not the legacy default and must be honoured as an explicit cap.'
+			'4095 must be honoured as an explicit cap.'
 		);
 		$this->assertSame(
 			4097,
 			$this->resolve_effective_tokens( 4097, 'claude-sonnet-4-6' ),
-			'4097 is not the legacy default and must be honoured as an explicit cap.'
+			'4097 must be honoured as an explicit cap.'
 		);
 	}
 
+	/** Provider-advertised caps override a larger configured output budget. */
+	public function test_effective_max_tokens_is_clamped_to_live_provider_cap(): void {
+		$model_id = SuperdavAiProvider::DEFAULT_MODEL_ID;
+		ModelCapabilityRegistry::set( $model_id, 8192, 200000 );
+
+		try {
+			$this->assertSame( 8192, $this->resolve_effective_tokens( 16384, $model_id ) );
+			$this->assertSame( 4096, $this->resolve_effective_tokens( 4096, $model_id ) );
+		} finally {
+			ModelCapabilityRegistry::forget( $model_id );
+		}
+	}
+
 	/**
-	 * Test ceiling clamp applies to absurdly large saved values.
+	 * An oversized configured value remains bounded by the selected model's
+	 * advertised cap, even when the global ceiling is higher.
 	 */
 	public function test_effective_max_tokens_clamped_at_ceiling(): void {
 		$this->assertSame(
-			Settings::MAX_OUTPUT_TOKENS_CEILING,
+			64000,
 			$this->resolve_effective_tokens( 9_999_999, 'claude-sonnet-4-6' ),
-			'Values above MAX_OUTPUT_TOKENS_CEILING must be clamped.'
+			'A configured value must not exceed the selected model capability.'
 		);
 	}
 
@@ -5198,6 +5516,58 @@ class AgentLoopTest extends WP_UnitTestCase {
 				wp_unregister_ability( $target );
 			}
 		}
+	}
+
+	/** Elementor publication always needs per-request confirmation, including in YOLO mode. */
+	public function test_elementor_publish_requires_confirmation_for_direct_and_wrapped_calls_despite_always_allow(): void {
+		$resolver = new ToolPermissionResolver(
+			true,
+			array( 'elementor/publish-document' => 'always_allow' )
+		);
+		$direct = new ModelMessage(
+			array(
+				new MessagePart(
+					new FunctionCall(
+						'call_elementor_publish_direct',
+						'wpab__elementor__publish-document',
+						array( 'post_id' => 41 )
+					)
+				),
+			)
+		);
+		$wrapped = new ModelMessage(
+			array(
+				new MessagePart(
+					new FunctionCall(
+						'call_elementor_publish_wrapped',
+						'wpab__sd-ai-agent__ability-call',
+						array(
+							'ability'   => 'elementor/publish-document',
+							'arguments' => array( 'document_id' => 41 ),
+						)
+					)
+				),
+			)
+		);
+
+		$this->assertTrue(
+			ToolPermissionResolver::ability_needs_confirmation(
+				'wpab__elementor__publish-document',
+				null,
+				array( 'elementor/publish-document' => 'always_allow' )
+			)
+		);
+		$this->assertTrue( ToolPermissionResolver::message_has_mutating_tools( $direct ) );
+		$this->assertTrue( ToolPermissionResolver::message_has_mutating_tools( $wrapped ) );
+
+		$direct_pending  = $resolver->get_tools_needing_confirmation( $direct );
+		$wrapped_pending = $resolver->get_tools_needing_confirmation( $wrapped );
+		$this->assertCount( 1, $direct_pending );
+		$this->assertCount( 1, $wrapped_pending );
+		$this->assertSame( 'elementor/publish-document', $direct_pending[0]['ability'] );
+		$this->assertSame( 'elementor/publish-document', $wrapped_pending[0]['ability'] );
+		$this->assertSame( 'wpab__elementor__publish-document', $direct_pending[0]['name'] );
+		$this->assertSame( 'wpab__sd-ai-agent__ability-call', $wrapped_pending[0]['name'] );
 	}
 
 	/**

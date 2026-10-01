@@ -14,6 +14,8 @@ A native AI agent for WordPress. Fix, publish, optimise, and run your site from 
 
 SD AI Agent is a native AI agent for the WordPress site you already run. Ask it to improve a page, draft content, review SEO opportunities, prepare media, answer questions with site context, or run routine admin work from inside WordPress using natural language.
 
+Try it at [sdaiagent.com](https://sdaiagent.com), an AI site builder demo site.
+
 You stay in control: choose the included SD AI-managed service or your own compatible WordPress AI provider, decide which tools the agent can use, and require confirmation before consequential actions run.
 
 = What it helps you do =

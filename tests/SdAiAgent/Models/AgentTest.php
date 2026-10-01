@@ -619,6 +619,8 @@ class AgentTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Treat `success: false`, an `error`, `attachment_id: 0`, or an empty `url` as failed acquisition', $prompt );
 		$this->assertStringContainsString( 'If both stock calls fail, use `sd-ai-agent/generate-image` once', $prompt );
 		$this->assertStringContainsString( 'do not publish a homepage that requires primary media as weak/text-only', $prompt );
+		$this->assertStringContainsString( 'An established Elementor document remains authoritative', $prompt );
+		$this->assertStringContainsString( 'do not create a Gutenberg or block-theme replacement', $prompt );
 	}
 
 	/**

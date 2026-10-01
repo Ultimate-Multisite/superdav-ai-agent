@@ -1162,14 +1162,9 @@ export const actions = {
 
 			// Include client-side ability descriptors so the server can route
 			// JS tool calls back to the browser instead of executing them
-			// server-side. The WP 7.0 abilities API is fully async — both
-			// registerAbilityCategory and registerAbility return Promises —
-			// so we must await ensureRegistered() before snapshotting,
-			// otherwise the @wordpress/data store will be empty even though
-			// the registration calls have been kicked off (the t166 fix
-			// for the bug t165 only partially closed). snapshotDescriptors()
-			// itself is synchronous: it reads directly from the data store
-			// once registration has completed.
+			// server-side. Registration is asynchronous because some browser
+			// abilities are loaded in dynamic chunks, so await the page-local
+			// pipeline before snapshotting its descriptors.
 			try {
 				await ensureClientAbilitiesRegistered();
 			} catch ( _err ) {
@@ -1180,10 +1175,7 @@ export const actions = {
 			try {
 				clientAbilities = await snapshotDescriptors();
 			} catch ( _err ) {
-				// snapshotDescriptors() calls wp.abilities.getAbilities()
-				// which may throw or reject if the WP 7.0 abilities API is
-				// not available or returns an error. Fall through with an
-				// empty descriptor list so the message is still sent.
+				// Descriptor collection must not block the user's message.
 			}
 			if (
 				Array.isArray( clientAbilities ) &&

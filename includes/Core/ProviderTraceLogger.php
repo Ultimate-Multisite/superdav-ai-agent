@@ -95,6 +95,7 @@ class ProviderTraceLogger {
 	private static array $provider_patterns = [
 		'api.anthropic.com'                 => 'anthropic',
 		'api.openai.com'                    => 'openai',
+		'api.sdaiagent.com'                 => 'sd-ai-agent-cloud',
 		'generativelanguage.googleapis.com' => 'google',
 		'localhost:11434'                   => 'ollama',
 		'127.0.0.1:11434'                   => 'ollama',
@@ -264,6 +265,11 @@ class ProviderTraceLogger {
 	 */
 	public static function get_runtime_failure_metadata(): array {
 		$metadata = array();
+		if ( 'local_payload_guard' === self::$runtimeContext['failure_class'] ) {
+			$metadata['local_rejection']    = 1;
+			$metadata['fallback_attempted'] = self::$runtimeContext['retry_baseline_request_bytes'] > 0 ? 1 : 0;
+			$metadata['recovery_outcome']   = self::local_payload_recovery_outcome();
+		}
 		if ( self::$runtimeContext['failure_status_code'] > 0 ) {
 			$metadata['status_code'] = self::$runtimeContext['failure_status_code'];
 		}
@@ -340,6 +346,9 @@ class ProviderTraceLogger {
 		$fallback_attempted = $has_context && self::$runtimeContext['retry_baseline_request_bytes'] > 0;
 
 		if ( $has_context && $request_bytes > $byte_budget ) {
+			self::$runtimeContext['failure_status_code'] = 413;
+			self::$runtimeContext['failure_class']       = 'local_payload_guard';
+			self::$runtimeContext['failure_source']      = 'transport';
 			self::record_payload_limit(
 				$provider_id,
 				$model_id,
@@ -376,6 +385,9 @@ class ProviderTraceLogger {
 
 		$retry_baseline_bytes = self::$runtimeContext['retry_baseline_request_bytes'];
 		if ( $has_context && $retry_baseline_bytes > 0 && ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes ) ) {
+			self::$runtimeContext['failure_status_code'] = 413;
+			self::$runtimeContext['failure_class']       = 'local_payload_guard';
+			self::$runtimeContext['failure_source']      = 'transport';
 			self::record_payload_limit(
 				$provider_id,
 				$model_id,
@@ -477,7 +489,8 @@ class ProviderTraceLogger {
 			? ProviderErrorClassifier::FAILURE_CLASS_GATEWAY_REJECTION
 			: '';
 
-		if ( $has_context && $status_code >= 400 ) {
+		$matches_runtime_provider = $has_context && $canonical_provider_id === self::$runtimeContext['provider_id'];
+		if ( $matches_runtime_provider && $status_code >= 400 ) {
 			self::$runtimeContext['failure_status_code'] = $status_code;
 			self::$runtimeContext['failure_class']       = $failure_class;
 			self::$runtimeContext['failure_source']      = 'http';
@@ -487,7 +500,7 @@ class ProviderTraceLogger {
 		// responses from canonical AI providers regardless of debug mode.
 		// Uses the strict allowlist so unrelated 4xx responses (update
 		// checks, WP.org, etc.) never produce noise here.
-		$request_provider_id = $has_context ? self::$runtimeContext['provider_id'] : $canonical_provider_id;
+		$request_provider_id = $has_context && ! $matches_runtime_provider ? '' : $canonical_provider_id;
 		if ( '' !== $request_provider_id && $status_code >= 400 ) {
 			$model_id_for_log = self::$runtimeContext['model_id'];
 			if ( '' === $model_id_for_log ) {
@@ -775,6 +788,94 @@ class ProviderTraceLogger {
 	}
 
 	/**
+	 * Persist one prompt-free record for a failed provider attempt.
+	 *
+	 * This path is always active, including when full provider tracing is
+	 * disabled. It stores only bounded scalar diagnostics and never the URL,
+	 * headers, request body, response body, provider message, or stack trace.
+	 *
+	 * @param string                    $provider_id     Runtime provider ID.
+	 * @param string                    $model_id        Runtime model ID.
+	 * @param \WP_Error|\Throwable|null $error           Provider error.
+	 * @param int                       $status_code     HTTP status, or 0 when unavailable.
+	 * @param int                       $attempt         Current one-based attempt.
+	 * @param int                       $max_attempts    Configured attempt limit.
+	 * @param int                       $duration_ms     Attempt duration.
+	 * @param bool                      $retryable       Whether another attempt is allowed.
+	 * @param string                    $phase           Safe invocation phase.
+	 * @param int                       $session_id      Correlating chat session, if any.
+	 * @param string                    $job_id          Correlating background job, if any.
+	 * @param array<string, int|string> $request_metrics Prompt-free envelope measurements.
+	 */
+	public static function record_provider_attempt_failure(
+		string $provider_id,
+		string $model_id,
+		$error,
+		int $status_code,
+		int $attempt,
+		int $max_attempts,
+		int $duration_ms,
+		bool $retryable,
+		string $phase,
+		int $session_id = 0,
+		string $job_id = '',
+		array $request_metrics = array()
+	): void {
+		$allowed_phases = array( 'initial_provider_call', 'client_tool_resume', 'provider_followup_call' );
+		if ( ! in_array( $phase, $allowed_phases, true ) ) {
+			$phase = 'initial_provider_call';
+		}
+
+		$metrics = array(
+			'request_size_class' => 'unknown',
+		);
+		foreach ( array( 'request_bytes', 'request_tokens_estimate', 'request_provider_limit_bytes', 'request_budget_bytes', 'request_safety_margin_bytes' ) as $key ) {
+			if ( isset( $request_metrics[ $key ] ) && is_numeric( $request_metrics[ $key ] ) ) {
+				$metrics[ $key ] = max( 0, (int) $request_metrics[ $key ] );
+			}
+		}
+		if ( isset( $request_metrics['request_size_class'] ) && is_string( $request_metrics['request_size_class'] ) ) {
+			$metrics['request_size_class'] = sanitize_key( $request_metrics['request_size_class'] );
+		}
+
+		$diagnostics   = array(
+			'event'          => 'provider_attempt_failed',
+			'error_code'     => ProviderErrorClassifier::get_safe_error_code( $error, $status_code ),
+			'failure_source' => $status_code >= 400 ? 'http' : 'transport',
+			'attempt'        => max( 1, $attempt ),
+			'max_attempts'   => max( 1, $max_attempts ),
+			'duration_ms'    => max( 0, $duration_ms ),
+			'retryable'      => $retryable,
+			'phase'          => $phase,
+			'session_id'     => max( 0, $session_id ),
+		);
+		$failure_class = ProviderErrorClassifier::get_safe_failure_class( $error, $status_code );
+		if ( '' !== $failure_class ) {
+			$diagnostics['failure_class'] = $failure_class;
+		}
+		if ( '' !== $job_id ) {
+			$diagnostics['job_id']         = sanitize_text_field( $job_id );
+			$diagnostics['correlation_id'] = self::job_correlation_id( $job_id );
+		}
+
+		ProviderTrace::insert(
+			array(
+				'provider_id'      => sanitize_key( $provider_id ),
+				'model_id'         => sanitize_text_field( $model_id ),
+				'url'              => '',
+				'method'           => 'SDK',
+				'status_code'      => max( 0, $status_code ),
+				'duration_ms'      => max( 0, $duration_ms ),
+				'request_headers'  => '{}',
+				'request_body'     => (string) wp_json_encode( $metrics ),
+				'response_headers' => '{}',
+				'response_body'    => (string) wp_json_encode( $diagnostics ),
+				'error'            => (string) $diagnostics['error_code'],
+			)
+		);
+	}
+
+	/**
 	 * Persist one bounded terminal trace for a retry-exhausted provider call.
 	 *
 	 * WordPress's HTTP response filter does not run when a transport returns a
@@ -810,10 +911,6 @@ class ProviderTraceLogger {
 		string $job_id = '',
 		array $request_metrics = array()
 	): void {
-		if ( ! ProviderTrace::is_enabled() ) {
-			return;
-		}
-
 		$allowed_phases = array( 'initial_provider_call', 'client_tool_resume', 'provider_followup_call' );
 		if ( ! in_array( $phase, $allowed_phases, true ) ) {
 			$phase = 'initial_provider_call';
@@ -852,6 +949,22 @@ class ProviderTraceLogger {
 			$diagnostics['job_id']         = sanitize_text_field( $job_id );
 			$diagnostics['correlation_id'] = self::job_correlation_id( $job_id );
 		}
+
+		$event_context = array(
+			'session_id'  => max( 0, $session_id ),
+			'provider_id' => sanitize_key( $provider_id ),
+			'model_id'    => sanitize_text_field( $model_id ),
+			'code'        => (string) $diagnostics['error_code'],
+			'status_code' => max( 0, $status_code ),
+			'attempts'    => max( 1, $attempts ),
+			'duration_ms' => max( 0, $elapsed_ms ),
+			'phase'       => $phase,
+			'retryable'   => true,
+		);
+		if ( isset( $diagnostics['correlation_id'] ) ) {
+			$event_context['correlation_id'] = $diagnostics['correlation_id'];
+		}
+		AgentEventLog::log( 'provider_retry_exhausted', AgentEventLog::SEVERITY_ERROR, $event_context );
 
 		ProviderTrace::insert(
 			array(

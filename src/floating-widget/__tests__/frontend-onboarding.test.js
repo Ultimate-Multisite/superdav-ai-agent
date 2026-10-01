@@ -2,9 +2,7 @@ import {
 	getHydrationSessionId,
 	hasLiveSiteChangeActivity,
 	isFrontendOnboardingEnabled,
-	isMobileViewport,
 	shouldHydrateSession,
-	shouldStartFrontendOnboarding,
 	startOnboarding,
 } from '../frontend-onboarding';
 
@@ -12,11 +10,6 @@ describe( 'frontend onboarding helpers', () => {
 	beforeEach( () => {
 		document.body.className = '';
 		window.history.pushState( {}, '', '/' );
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			writable: true,
-			value: undefined,
-		} );
 	} );
 
 	test( 'enables onboarding only for incomplete frontend pages', () => {
@@ -58,19 +51,6 @@ describe( 'frontend onboarding helpers', () => {
 		expect(
 			isFrontendOnboardingEnabled( { onboarding_complete: false } )
 		).toBe( false );
-	} );
-
-	test( 'detects mobile viewport preference', () => {
-		Object.defineProperty( window, 'matchMedia', {
-			configurable: true,
-			writable: true,
-			value: jest.fn().mockReturnValue( { matches: true } ),
-		} );
-
-		expect( isMobileViewport() ).toBe( true );
-		expect( window.matchMedia ).toHaveBeenCalledWith(
-			'(max-width: 600px)'
-		);
 	} );
 
 	test( 'detects live site-change activity from affected tool responses', () => {
@@ -137,44 +117,6 @@ describe( 'frontend onboarding helpers', () => {
 		).toBe( true );
 	} );
 
-	test( 'starts frontend onboarding only after sessions load empty', () => {
-		expect(
-			shouldStartFrontendOnboarding( {
-				enabled: true,
-				started: false,
-				providersLoaded: true,
-				providerCount: 1,
-				sessionsLoaded: false,
-				sessionCount: 0,
-				currentSessionId: null,
-			} )
-		).toBe( false );
-
-		expect(
-			shouldStartFrontendOnboarding( {
-				enabled: true,
-				started: false,
-				providersLoaded: true,
-				providerCount: 1,
-				sessionsLoaded: true,
-				sessionCount: 1,
-				currentSessionId: null,
-			} )
-		).toBe( false );
-
-		expect(
-			shouldStartFrontendOnboarding( {
-				enabled: true,
-				started: false,
-				providersLoaded: true,
-				providerCount: 1,
-				sessionsLoaded: true,
-				sessionCount: 0,
-				currentSessionId: null,
-			} )
-		).toBe( true );
-	} );
-
 	test( 'starts unified onboarding from the frontend', async () => {
 		const apiFetch = jest.fn().mockResolvedValueOnce( {
 			agent_id: 7,
@@ -190,7 +132,6 @@ describe( 'frontend onboarding helpers', () => {
 			openSession,
 			sendMessage,
 			setSelectedAgentId,
-			fallbackMessage: 'Fallback',
 		} );
 
 		expect( apiFetch ).toHaveBeenCalledWith( {
@@ -200,6 +141,51 @@ describe( 'frontend onboarding helpers', () => {
 		expect( setSelectedAgentId ).toHaveBeenCalledWith( 7 );
 		expect( openSession ).toHaveBeenCalledWith( 42 );
 		expect( sendMessage ).toHaveBeenCalledWith( 'Welcome' );
+	} );
+
+	test( 'restarts an existing empty onboarding session', async () => {
+		const apiFetch = jest.fn().mockResolvedValueOnce( {
+			agent_id: 7,
+			session_id: 42,
+			kickoff_message: 'Welcome',
+			already_complete: true,
+			kickoff_required: true,
+		} );
+		const openSession = jest.fn().mockResolvedValue( undefined );
+		const sendMessage = jest.fn().mockResolvedValue( undefined );
+
+		const result = await startOnboarding( {
+			apiFetch,
+			openSession,
+			sendMessage,
+			setSelectedAgentId: jest.fn(),
+		} );
+
+		expect( sendMessage ).toHaveBeenCalledWith( 'Welcome' );
+		expect( result ).toBe( true );
+	} );
+
+	test( 'does not duplicate kickoff in a populated onboarding session', async () => {
+		const apiFetch = jest.fn().mockResolvedValueOnce( {
+			agent_id: 7,
+			session_id: 42,
+			kickoff_message: 'Welcome',
+			already_complete: true,
+			kickoff_required: false,
+		} );
+		const openSession = jest.fn().mockResolvedValue( undefined );
+		const sendMessage = jest.fn().mockResolvedValue( undefined );
+
+		const result = await startOnboarding( {
+			apiFetch,
+			openSession,
+			sendMessage,
+			setSelectedAgentId: jest.fn(),
+		} );
+
+		expect( openSession ).toHaveBeenCalledWith( 42 );
+		expect( sendMessage ).not.toHaveBeenCalled();
+		expect( result ).toBe( false );
 	} );
 
 	test( 'returns null when onboarding start omits a session id', async () => {
@@ -215,7 +201,6 @@ describe( 'frontend onboarding helpers', () => {
 				openSession,
 				sendMessage,
 				setSelectedAgentId: jest.fn(),
-				fallbackMessage: 'Fallback',
 			} )
 		).resolves.toBeNull();
 
@@ -235,10 +220,9 @@ describe( 'frontend onboarding helpers', () => {
 			openSession,
 			sendMessage,
 			setSelectedAgentId: jest.fn(),
-			fallbackMessage: 'Fallback',
 		} );
 
 		expect( openSession ).toHaveBeenCalledWith( 42 );
-		expect( sendMessage ).toHaveBeenCalledWith( 'Fallback' );
+		expect( sendMessage ).toHaveBeenCalledWith( 'Start setup.' );
 	} );
 } );

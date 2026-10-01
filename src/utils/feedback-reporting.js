@@ -77,12 +77,12 @@ export function toolCallsContainFailure( toolCalls ) {
 	}
 
 	return toolCalls.some( ( entry ) => {
-		if ( entry?.status === 'error' ) {
-			return true;
-		}
-
 		if ( entry?.type !== 'response' && entry?.type !== 'result' ) {
 			return false;
+		}
+
+		if ( entry.status === 'error' ) {
+			return true;
 		}
 
 		const result = entry.response ?? entry.result;

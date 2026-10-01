@@ -63,6 +63,23 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Active Skill Guide', $result );
 	}
 
+	/** A CSV category request receives the WooCommerce dry-run workflow. */
+	public function test_inject_woocommerce_csv_category_update_includes_dry_run_workflow(): void {
+		$skill = Skill::get_by_slug( 'woocommerce' );
+		$this->assertNotNull( $skill );
+		$this->assertTrue( Skill::reset_builtin( (int) $skill->id ) );
+
+		$result = SkillAutoInjector::inject_for_message( 'Use the attached CSV to update WooCommerce product categories.' );
+
+		$this->assertStringContainsString( 'Updating Product Categories from an Attached CSV', $result );
+		$this->assertStringContainsString( 'Produce a dry run before any mutation', $result );
+		$this->assertStringContainsString( 'woocommerce/products-update', $result );
+		$this->assertStringContainsString( 'explicitly confirms', $result );
+		$this->assertStringContainsString( 'sd-ai-agent/commerce-plan', $result );
+		$this->assertStringContainsString( 'assign_product_categories', $result );
+		$this->assertStringContainsString( 'sd-ai-agent/commerce-execute-approved-plan', $result );
+	}
+
 	/**
 	 * Auto-injection records telemetry when model and session context are provided.
 	 */
@@ -200,6 +217,36 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'kadence-blocks', $result );
 		$this->assertStringNotContainsString( 'gutenberg-blocks', $result );
+	}
+
+	/** Elementor intent must win over the generic Gutenberg page/layout fallback. */
+	public function test_get_index_description_routes_elementor_intent_to_elementor_builder(): void {
+		$result = SkillAutoInjector::get_index_description( 'Update the hero widget in my Elementor landing page.' );
+
+		$this->assertStringContainsString( 'elementor-builder', $result );
+		$this->assertStringNotContainsString( 'gutenberg-blocks', $result );
+	}
+
+	/** Explicit Gutenberg migration targets must win over the Elementor catch-all. */
+	public function test_get_index_description_routes_elementor_migrations_to_gutenberg_blocks(): void {
+		$result = SkillAutoInjector::get_index_description( 'Convert this Elementor page to Gutenberg blocks.' );
+
+		$this->assertStringContainsString( 'gutenberg-blocks', $result );
+		$this->assertStringNotContainsString( 'elementor-builder', $result );
+	}
+
+	/** Explicit block-theme migration targets must win over the Elementor catch-all. */
+	public function test_get_index_description_routes_elementor_migrations_to_block_themes(): void {
+		$result = SkillAutoInjector::get_index_description( 'Migrate this Elementor page to a block theme.' );
+
+		$this->assertStringContainsString( 'wp-block-themes', $result );
+		$this->assertStringNotContainsString( 'elementor-builder', $result );
+	}
+
+	/** Runtime-registered Elementor abilities attach the corresponding skill. */
+	public function test_elementor_abilities_map_to_elementor_builder_skill(): void {
+		$this->assertSame( 'elementor-builder', SkillAutoInjector::skill_for_ability( 'elementor/get-page-structure' ) );
+		$this->assertSame( 'elementor-builder', SkillAutoInjector::skill_for_ability( 'elementor/manage-elements' ) );
 	}
 
 	/**

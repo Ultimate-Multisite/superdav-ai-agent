@@ -17,26 +17,18 @@ final class BackgroundJobDispatcher {
 	private const GROUP = 'sd-ai-agent';
 
 	/**
-	 * Queue a job on the main site's out-of-process worker.
+	 * Queue a job on its own site's out-of-process worker.
+	 *
+	 * The worker bootstraps the site from the queued action's URL. Switching
+	 * from the main site only after bootstrap cannot access a tenant's job
+	 * transient when its object-cache prefix is isolated.
 	 */
 	public static function dispatch( string $job_id, string $token ): void {
 		$target_blog_id = get_current_blog_id();
-		$main_blog_id   = get_main_site_id();
-		$switched       = $target_blog_id !== $main_blog_id;
-		if ( $switched ) {
-			switch_to_blog( $main_blog_id );
-		}
-
-		try {
-			$args      = array( $target_blog_id, $job_id );
-			$scheduled = self::schedule_action( $args );
-			if ( ! $scheduled ) {
-				$scheduled = false !== wp_next_scheduled( self::HOOK, $args ) || wp_schedule_single_event( time(), self::HOOK, $args, true );
-			}
-		} finally {
-			if ( $switched ) {
-				restore_current_blog();
-			}
+		$args           = array( $target_blog_id, $job_id );
+		$scheduled      = self::schedule_action( $args );
+		if ( ! $scheduled ) {
+			$scheduled = false !== wp_next_scheduled( self::HOOK, $args ) || wp_schedule_single_event( time(), self::HOOK, $args, true );
 		}
 		if ( true === $scheduled ) {
 			return;

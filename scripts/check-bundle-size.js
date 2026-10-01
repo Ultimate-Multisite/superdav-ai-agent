@@ -12,6 +12,7 @@ const ENTRYPOINT_JAVASCRIPT = new Set( [
 	'admin-page.js',
 	'block-validator.js',
 	'embed-widget.js',
+	'elementor-editor-mcp.js',
 	'floating-widget.js',
 	'superdav-connector-card.js',
 	'unified-admin.js',

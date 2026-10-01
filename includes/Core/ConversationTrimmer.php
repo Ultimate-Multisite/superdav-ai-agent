@@ -1180,7 +1180,7 @@ class ConversationTrimmer {
 		$args    = self::compact_tool_payload_array( $function_call['args'] ?? array() );
 		$summary = self::compact_receipt_fields(
 			$args,
-			array( 'query', 'search', 'prefix', 'post_type', 'post_status', 'mime_type', 'limit', 'autoload', 'stylesheet', 'area' )
+			array( 'query', 'search', 'prefix', 'post_type', 'post_status', 'mime_type', 'limit', 'per_page', 'status', 'autoload', 'stylesheet', 'area' )
 		);
 
 		return '[inspection call: ' . $name . ' args=' . self::compact_receipt_json( $summary ) . ']';
@@ -1200,6 +1200,9 @@ class ConversationTrimmer {
 		$response = self::compact_tool_payload_array( $function_response['response'] ?? array() );
 		if ( self::tool_name_has_suffix( $name, 'ability-search' ) ) {
 			return self::compact_ability_search_response_receipt( $name, $response );
+		}
+		if ( self::is_woocommerce_product_list_tool( $name ) ) {
+			return self::compact_woocommerce_products_list_receipt( $name, $response );
 		}
 
 		$summary = self::compact_receipt_fields(
@@ -1231,6 +1234,36 @@ class ConversationTrimmer {
 			$summary[ $key ] = $entities;
 		}
 
+		return '[inspection result: ' . $name . ' summary=' . self::compact_receipt_json( $summary ) . ']';
+	}
+
+	/**
+	 * Retain product identities for a follow-up action without replaying full REST objects.
+	 *
+	 * @param string              $name     WooCommerce ability name.
+	 * @param array<string,mixed> $response WooCommerce ability response.
+	 */
+	private static function compact_woocommerce_products_list_receipt( string $name, array $response ): string {
+		$data    = isset( $response['data'] ) && is_array( $response['data'] ) ? $response['data'] : array();
+		$summary = array(
+			'returned_count' => count( $data ),
+			'products'       => array(),
+		);
+
+		foreach ( array_slice( $data, 0, 10 ) as $product ) {
+			if ( ! is_array( $product ) || ! isset( $product['id'] ) ) {
+				continue;
+			}
+			$candidate               = $summary;
+			$candidate['products'][] = self::compact_receipt_fields( $product, array( 'id', 'name', 'sku', 'status' ) );
+			$encoded                 = wp_json_encode( $candidate );
+			if ( ! is_string( $encoded ) || strlen( $encoded ) > 1000 ) {
+				break;
+			}
+			$summary = $candidate;
+		}
+
+		$summary['omitted'] = max( 0, count( $data ) - count( $summary['products'] ) );
 		return '[inspection result: ' . $name . ' summary=' . self::compact_receipt_json( $summary ) . ']';
 	}
 
@@ -1352,6 +1385,9 @@ class ConversationTrimmer {
 
 	/** Whether a tool is a read-only inspection whose bounded result aids continuation. */
 	private static function is_compact_inspection_tool( string $name ): bool {
+		if ( self::is_woocommerce_product_list_tool( $name ) ) {
+			return true;
+		}
 		foreach (
 			array(
 				'ability-search',
@@ -1370,6 +1406,11 @@ class ConversationTrimmer {
 		}
 
 		return false;
+	}
+
+	/** Match only WooCommerce's read-only product listing, not arbitrary tools. */
+	private static function is_woocommerce_product_list_tool( string $name ): bool {
+		return 'woocommerce/products-list' === $name || 'wpab__woocommerce__products-list' === $name;
 	}
 
 	/**
@@ -1604,6 +1645,16 @@ class ConversationTrimmer {
 		 * @param string $model_id Runtime-selected model ID.
 		 */
 		$filtered = (int) apply_filters( 'sd_ai_agent_provider_request_max_bytes', $configured, $provider_id, $model_id );
+
+		// The managed gateway conservatively counts each UTF-8 message byte as
+		// one input token. Its context check also reserves the requested output
+		// tokens, so the generic 512 KiB HTTP budget can admit requests that the
+		// gateway will always reject with max_tokens_exceeded (HTTP 400).
+		if ( 'sd-ai-agent-cloud' === $provider_id && in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true ) ) {
+			$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
+			$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
+			$filtered       = min( $filtered, $context_window - $output_limit );
+		}
 
 		return max( 1024, $filtered );
 	}

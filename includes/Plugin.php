@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use SdAiAgent\Bootstrap\AbilitiesHandler;
 use SdAiAgent\Bootstrap\AdminHandler;
+use SdAiAgent\Bootstrap\ElementorEditorHandler;
 use SdAiAgent\Bootstrap\BlockInventoryHandler;
 use SdAiAgent\Bootstrap\BlockPreferencesAdminHandler;
 use SdAiAgent\Bootstrap\BlockUsageAdminHandler;
@@ -66,6 +67,7 @@ use SdAiAgent\REST\FeedbackController;
 use SdAiAgent\REST\KnowledgeController;
 use SdAiAgent\REST\InstructionsController;
 use SdAiAgent\REST\McpController;
+use SdAiAgent\REST\McpConnectionsController;
 use SdAiAgent\REST\MemoryController;
 use SdAiAgent\REST\PublicSpeechController;
 use SdAiAgent\REST\RestController;
@@ -105,6 +107,7 @@ use XWP\DI\Decorators\Module;
 		AbilitiesHandler::class,
 		WooCommerceIntegrationHandler::class,
 		AdminHandler::class,
+		ElementorEditorHandler::class,
 		BlockValidatorPageHandler::class,
 		BlockInventoryHandler::class,
 		BlockPreferencesAdminHandler::class,
@@ -131,6 +134,7 @@ use XWP\DI\Decorators\Module;
 		TraceController::class,
 		InstructionsController::class,
 		McpController::class,
+		McpConnectionsController::class,
 		RestController::class,
 		ToolController::class,
 		AgentController::class,

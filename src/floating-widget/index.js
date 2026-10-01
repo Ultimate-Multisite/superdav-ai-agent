@@ -137,6 +137,7 @@ function FloatingWidget() {
 	useEffect( () => {
 		let active = true;
 		if (
+			frontendOnboardingMode ||
 			! sessionsLoaded ||
 			( ! sessions.length && providers.length > 0 )
 		) {
@@ -158,6 +159,7 @@ function FloatingWidget() {
 			active = false;
 		};
 	}, [
+		frontendOnboardingMode,
 		providers.length,
 		sessionsLoaded,
 		sessions,
@@ -170,12 +172,11 @@ function FloatingWidget() {
 	useEffect( () => {
 		if (
 			! sessionsLoaded ||
-			sessions.length ||
 			! providers.length ||
 			! frontendOnboardingEnabled ||
 			frontendOnboardingStartedRef.current ||
 			! providersLoaded ||
-			currentSessionId
+			isNewChatPending
 		) {
 			return;
 		}
@@ -189,6 +190,10 @@ function FloatingWidget() {
 					setSelectedAgentId,
 				} )
 			)
+			.then(
+				( kickoffSent ) =>
+					kickoffSent || setFrontendOnboardingMode( null )
+			)
 			.catch( () => {
 				setFrontendOnboardingMode( null );
 			} );
@@ -197,8 +202,6 @@ function FloatingWidget() {
 		providersLoaded,
 		providers.length,
 		sessionsLoaded,
-		sessions.length,
-		currentSessionId,
 		isNewChatPending,
 		openSession,
 		sendMessage,

@@ -374,6 +374,9 @@ PROMPT;
 	/** @var RenderedOutputEvidenceGate Tracks post-file-mutation browser evidence for rendered claims. */
 	private RenderedOutputEvidenceGate $rendered_output_evidence_gate;
 
+	/** @var ElementorCompletionGate Tracks current Elementor preview/render evidence before publication. */
+	private ElementorCompletionGate $elementor_completion_gate;
+
 	/**
 	 * @param string               $user_message     The user's prompt.
 	 * @param string[]             $abilities         Ability names to enable (empty = all).
@@ -444,11 +447,9 @@ PROMPT;
 		$this->temperature = $options['temperature'] ?? ( $settings['temperature'] ?? 0.7 );
 		// max_output_tokens semantics:
 		// - 0 (Settings::MAX_OUTPUT_TOKENS_AUTO) means "resolve per model at
-		// request time" — see send_prompt(). This is the default for new
-		// installs; existing installs may have a saved 4096 from the
-		// pre-7rl default, which we honour as an explicit override.
-		// - a positive value is treated as an explicit user override and
-		// passed to the provider (clamped to MAX_OUTPUT_TOKENS_CEILING).
+		// request time" — see send_prompt(). This is the default for new installs.
+		// - a positive value is an explicit user cap. It remains an upper bound
+		// for every provider request, including browser-tool continuations.
 		// @phpstan-ignore-next-line
 		$this->max_output_tokens = (int) ( $options['max_output_tokens'] ?? ( $settings['max_output_tokens'] ?? Settings::MAX_OUTPUT_TOKENS_AUTO ) );
 
@@ -614,6 +615,10 @@ PROMPT;
 			$this->client_router->get_names()
 		);
 		$this->rendered_output_evidence_gate->replay_tool_call_log( $this->tool_call_log );
+		$this->elementor_completion_gate = new ElementorCompletionGate(
+			$this->client_router->get_names()
+		);
+		$this->elementor_completion_gate->replay_tool_call_log( $this->tool_call_log );
 
 		// Build or lock the initial system instruction.
 		if ( $this->durable_plan_mode ) {
@@ -851,8 +856,8 @@ PROMPT;
 							$this->last_loop_phase = 'confirmed_ability_response_received';
 							// Truncate then split for OpenAI-compatible providers.
 							$truncated_message = self::truncate_tool_results( $response_message );
-							$this->append_tool_response_to_history( $truncated_message );
 							$this->log_tool_responses( $truncated_message );
+							$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 						}
 
 						$this->last_loop_phase = 'confirmed_client_tools_pending';
@@ -873,8 +878,8 @@ PROMPT;
 				$this->last_loop_phase = 'confirmed_ability_response_received';
 				// Truncate then split for OpenAI-compatible providers.
 				$truncated_message = self::truncate_tool_results( $response_message );
-				$this->append_tool_response_to_history( $truncated_message );
 				$this->log_tool_responses( $truncated_message );
+				$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 			} else {
 				// Remove the entire model tool-call batch and tell the model the call
 				// was rejected. Parallel function calls may have been split into
@@ -995,6 +1000,10 @@ PROMPT;
 			$review_parts   = array();
 			$result_payload = $result['result'] ?? array();
 			if ( self::is_screenshot_tool_name( $name ) && is_array( $result_payload ) ) {
+				// Browser result payloads are untrusted. This marker becomes true only
+				// after this server has converted a valid data URI into an SDK image part;
+				// accepting a browser-supplied value would let it forge render evidence.
+				$result_payload = self::strip_untrusted_screenshot_attachment_claim( $result_payload );
 				if ( is_string( $result_payload['image'] ?? null ) && str_starts_with( $result_payload['image'], 'data:image/' ) ) {
 					try {
 						$mime_type = self::screenshot_data_uri_mime_type( $result_payload['image'] );
@@ -1032,6 +1041,11 @@ PROMPT;
 				$results[ $result_index ]['result'] = $result_payload;
 			}
 
+			if ( ! isset( $result['error'] ) ) {
+				$result_payload                     = ToolResultTruncator::truncate( $result_payload, $name );
+				$results[ $result_index ]['result'] = $result_payload;
+			}
+
 			// Encode the bounded result payload for the function response.
 			$response_payload = isset( $result['error'] )
 				? wp_json_encode( array( 'error' => $result['error'] ) )
@@ -1049,7 +1063,8 @@ PROMPT;
 
 		if ( ! empty( $parts ) ) {
 			$response_message = new UserMessage( $parts );
-			$this->append_tool_response_to_history( $response_message );
+			$this->log_client_tool_responses( $results );
+			$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $response_message ) );
 
 			AgentEventLog::log(
 				'client_tools_result_received',
@@ -1061,29 +1076,6 @@ PROMPT;
 					)
 				)
 			);
-
-			// Log the client tool responses for transparency.
-			foreach ( $results as $result ) {
-				$id   = (string) ( $result['id'] ?? '' );
-				$name = (string) ( $result['name'] ?? '' );
-				if ( '' === $id || '' === $name ) {
-					continue;
-				}
-
-				$this->tool_call_log[] = array(
-					'type'     => 'response',
-					'id'       => $id,
-					'name'     => $name,
-					'response' => $result['result'] ?? $result['error'] ?? null,
-					'source'   => 'client',
-					'sequence' => $this->next_activity_sequence(),
-				);
-
-				$client_result = $result['result'] ?? array( 'error' => $result['error'] ?? '' );
-				$this->generated_theme_completion_gate->record_tool_response( $name, $client_result );
-				$this->page_completion_gate->record_tool_response( $name, $client_result );
-				$this->rendered_output_evidence_gate->record_tool_response( $name, $client_result );
-			}
 
 			// Fire progress so the UI reflects the client tool responses
 			// immediately, matching the behaviour of server-side tool calls.
@@ -1123,6 +1115,9 @@ PROMPT;
 		}
 		if ( $this->rendered_output_evidence_gate->get_status()['required'] ) {
 			$payload['rendered_output_evidence'] = $this->rendered_output_evidence_gate->get_status();
+		}
+		if ( $this->elementor_completion_gate->is_required() ) {
+			$payload['elementor_completion'] = $this->elementor_completion_gate->get_status();
 		}
 		return $payload;
 	}
@@ -1173,6 +1168,9 @@ PROMPT;
 
 		if ( $this->rendered_output_evidence_gate->get_status()['required'] ) {
 			$payload['rendered_output_evidence'] = $this->rendered_output_evidence_gate->get_status();
+		}
+		if ( $this->elementor_completion_gate->is_required() ) {
+			$payload['elementor_completion'] = $this->elementor_completion_gate->get_status();
 		}
 		return $payload;
 	}
@@ -1288,10 +1286,46 @@ PROMPT;
 		$marked   = array();
 
 		foreach ( $client_calls as $call ) {
-			$name = (string) ( $call['name'] ?? '' );
+			// Nested browser calls preserve the outer ability-call identity in
+			// `name`; confirmation applies to the validated inner browser ability.
+			$name = (string) ( $call['client_name'] ?? ( $call['name'] ?? '' ) );
 			if ( '' !== $name && isset( $approved[ $name ] ) ) {
 				$call['user_confirmed'] = true;
 			}
+			$marked[] = $call;
+		}
+
+		return $marked;
+	}
+
+	/**
+	 * Authorize mutating browser calls that passed server-side permission checks.
+	 *
+	 * The ordinary loop reaches client routing only after
+	 * ToolPermissionResolver found no call that needs confirmation. The browser
+	 * still requires a server-issued marker for every mutation, so mark allowed
+	 * non-readonly calls here. A disabled client ability remains unmarked and
+	 * therefore cannot execute even though disabled tools do not pause for a
+	 * confirmation dialog.
+	 *
+	 * @param list<array<string, mixed>> $client_calls Pending client calls.
+	 * @return list<array<string, mixed>>
+	 */
+	private function mark_server_authorized_client_tool_calls( array $client_calls ): array {
+		$marked = array();
+
+		foreach ( $client_calls as $call ) {
+			$name        = (string) ( $call['client_name'] ?? ( $call['name'] ?? '' ) );
+			$annotations = is_array( $call['annotations'] ?? null ) ? $call['annotations'] : array();
+
+			if (
+				'' !== $name
+				&& true !== ( $annotations['readonly'] ?? false )
+				&& 'disabled' !== ( $this->tool_permissions[ $name ] ?? 'auto' )
+			) {
+				$call['server_authorized'] = true;
+			}
+
 			$marked[] = $call;
 		}
 
@@ -1306,6 +1340,12 @@ PROMPT;
 	 * @return array<string, mixed>
 	 */
 	private function pause_for_client_tools( array $partition, int $iterations_remaining ): array {
+		// Elementor preview links are one-time private capabilities. Preserve only
+		// an encrypted, call-bound transport value in paused state and job data;
+		// REST restores the raw URL solely while responding to the authenticated
+		// browser that must execute the screenshot.
+		$partition['client'] = $this->elementor_completion_gate->seal_pending_client_tool_calls( $partition['client'] );
+
 		// Persist loop state so the resume endpoint can reconstruct it.
 		if ( $this->session_id > 0 ) {
 			$paused_state = array(
@@ -1317,6 +1357,9 @@ PROMPT;
 				'iterations_remaining'      => $iterations_remaining,
 				'model_id'                  => $this->model_id,
 				'provider_id'               => $this->provider_id,
+				// Preserve the exact cap sent before this browser hand-off. A resumed
+				// loop must not re-read a broader setting and increase its budget.
+				'max_output_tokens'         => $this->get_effective_max_output_tokens(),
 				'client_abilities'          => $this->client_abilities,
 				'agent_slug'                => $this->agent_slug,
 				'page_context'              => $this->checkpoint_page_context(),
@@ -1821,6 +1864,10 @@ PROMPT;
 			// aware of the new context on this iteration.
 			$this->check_and_inject_interrupts();
 
+			if ( $this->elementor_completion_gate->should_dispatch_render_validation() ) {
+				return $this->pause_for_elementor_render_validation( $iterations );
+			}
+
 			// Preserve the full pre-trim history for recovery payloads. The provider
 			// call may need a trimmed prompt, but error recovery must append against
 			// the untrimmed session prefix so the failed user turn is not skipped.
@@ -1974,7 +2021,7 @@ PROMPT;
 			// "function_call + other part" shapes (see
 			// ConversationSerializer::append_assistant_message for the full
 			// rationale and provider-side validator reference).
-			$this->append_assistant_message_to_history( $history_message );
+			$this->append_assistant_message_to_history( $this->redact_elementor_preview_call_message( $history_message ) );
 			$this->save_active_job_checkpoint( self::CHECKPOINT_PROVIDER_RESPONSE_RECORDED, $iterations );
 
 			// Check if the model wants to call tools.
@@ -2044,6 +2091,11 @@ PROMPT;
 					continue;
 				}
 
+				if ( $this->elementor_completion_gate->requires_repair() && $iterations > 0 ) {
+					$this->inject_elementor_completion_guidance();
+					continue;
+				}
+
 				// If the response is empty or whitespace-only after tool results,
 				// inject a follow-up user message asking the AI to summarize.
 				// This handles models that silently return an empty text turn
@@ -2082,11 +2134,24 @@ PROMPT;
 					}
 				}
 
+				// A provider can return an empty response both before and after the
+				// one bounded summarization retry. Never surface that as a silent
+				// successful turn: return a clear customer-facing fallback and retain
+				// a diagnostic reason for feedback and job consumers.
+				$empty_final_response = '' === trim( $reply );
+				if ( $empty_final_response ) {
+					$reply = __(
+						'I could not generate a final response after completing the available steps. Please continue the conversation or try the request again.',
+						'superdav-ai-agent'
+					);
+				}
+
 				// Post-process the reply to inject real permalinks from create-post responses.
 				$reply = $this->inject_real_permalinks( $reply );
 				$reply = $this->append_generated_theme_completion_notice( $reply );
 				$reply = $this->append_page_completion_notice( $reply );
 				$reply = $this->append_rendered_output_evidence_notice( $reply );
+				$reply = $this->append_elementor_completion_notice( $reply );
 
 				return $this->inject_inability_data(
 					$this->with_result_logs(
@@ -2097,6 +2162,7 @@ PROMPT;
 							'token_usage'     => $this->token_usage,
 							'iterations_used' => $this->iterations_used,
 							'model_id'        => $this->model_id,
+							'exit_reason'     => $empty_final_response ? 'empty_final_response' : '',
 						)
 					)
 				);
@@ -2107,8 +2173,8 @@ PROMPT;
 			// Log tool calls and check for confirmation requirement.
 			$this->log_tool_calls( $history_message );
 			if ( null !== $reuse_plan['reused'] ) {
-				$this->append_tool_response_to_history( $reuse_plan['reused'] );
 				$this->log_tool_responses( $reuse_plan['reused'] );
+				$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $reuse_plan['reused'] ) );
 				$this->message_log[] = array(
 					'type'     => 'event',
 					'reason'   => 'repeated_readonly_tool_calls_reused',
@@ -2124,10 +2190,19 @@ PROMPT;
 
 			$empty_global_styles_guard = $this->build_empty_global_styles_guard_response( $assistant_message );
 			if ( null !== $empty_global_styles_guard ) {
-				$this->append_tool_response_to_history( $empty_global_styles_guard );
 				$this->log_tool_responses( $empty_global_styles_guard );
+				$this->append_tool_response_to_history( $empty_global_styles_guard );
 				$this->inject_empty_global_styles_update_guidance();
 				$this->last_loop_phase = 'empty_global_styles_update_guarded';
+				continue;
+			}
+
+			$elementor_publish_guard = $this->build_elementor_publish_guard_response( $assistant_message );
+			if ( null !== $elementor_publish_guard ) {
+				$this->log_tool_responses( $elementor_publish_guard );
+				$this->append_tool_response_to_history( $elementor_publish_guard );
+				$this->inject_elementor_completion_guidance();
+				$this->last_loop_phase = 'elementor_publish_guarded';
 				continue;
 			}
 
@@ -2147,7 +2222,7 @@ PROMPT;
 						'pending_tools'               => $confirm_needed,
 						'approved_once_abilities'     => $this->approved_once_abilities,
 						'confirmation_message'        => $assistant_message->toArray(),
-						'confirmation_history_before' => ConversationSerializer::serialize( $history_before_assistant ),
+						'confirmation_history_before' => $this->elementor_completion_gate->redact_serialized_history( ConversationSerializer::serialize( $history_before_assistant ) ),
 						'history'                     => $this->serialize_history(),
 						'tool_call_log'               => $this->tool_call_log,
 						'token_usage'                 => $this->token_usage,
@@ -2167,6 +2242,7 @@ PROMPT;
 				$partition = $this->partition_tool_calls( $assistant_message, $client_names );
 
 				if ( ! empty( $partition['client'] ) ) {
+					$partition['client'] = $this->mark_server_authorized_client_tool_calls( $partition['client'] );
 					// Execute any PHP-side calls inline first.
 					if ( ! empty( $partition['php'] ) ) {
 						$php_message           = ClientAbilityRouter::build_message_from_parts( $assistant_message, $partition['php'] );
@@ -2180,8 +2256,8 @@ PROMPT;
 						}
 						$this->last_loop_phase = 'client_partition_ability_response_received';
 						$truncated_php         = self::truncate_tool_results( $php_response );
-						$this->append_tool_response_to_history( $truncated_php );
 						$this->log_tool_responses( $truncated_php );
+						$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_php ) );
 					}
 
 					$this->last_loop_phase = 'client_tools_pending';
@@ -2241,8 +2317,8 @@ PROMPT;
 			// append (splitting multi-part responses for OpenAI-compatible
 			// providers that only accept one tool result per message).
 			$truncated_message = self::truncate_tool_results( $response_message );
-			$this->append_tool_response_to_history( $truncated_message );
 			$this->log_tool_responses( $truncated_message );
+			$this->append_tool_response_to_history( $this->redact_elementor_preview_response_message( $truncated_message ) );
 			$this->readonly_tool_cache->record( $history_message, $truncated_message );
 
 			$tool_progress      = $this->record_tool_progress( $assistant_message, $readonly_rounds );
@@ -2364,6 +2440,7 @@ PROMPT;
 			$reply = $this->append_generated_theme_completion_notice( $reply );
 			$reply = $this->append_page_completion_notice( $reply );
 			$reply = $this->append_rendered_output_evidence_notice( $reply );
+			$reply = $this->append_elementor_completion_notice( $reply );
 
 			return $this->inject_inability_data(
 				$this->with_result_logs(
@@ -2572,12 +2649,15 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, false );
 		}
 
-		$target_bytes  = max( 1, (int) floor( $before_bytes * 0.6 ) );
-		$target_tokens = max( 1, (int) floor( $before_tokens * 0.6 ) );
-		$reduced       = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
-		$after_bytes   = ConversationTrimmer::estimate_total_bytes( $reduced );
-		$after_tokens  = ConversationTrimmer::estimate_total_tokens( $reduced );
-		if ( $after_bytes >= $before_bytes && is_array( $provider_recovery_history ) ) {
+		// Reserve measured system/tool overhead, and require a ten-percent smaller
+		// complete envelope rather than budgeting the conversation alone.
+		$envelope_overhead = max( 0, $complete_envelope_bytes - $before_bytes );
+		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $byte_budget - $envelope_overhead, (int) floor( $complete_envelope_bytes * 0.9 ) - $envelope_overhead ) );
+		$target_tokens     = max( 1, (int) floor( $before_tokens * 0.6 ) );
+		$reduced           = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
+		$after_bytes       = ConversationTrimmer::estimate_total_bytes( $reduced );
+		$after_tokens      = ConversationTrimmer::estimate_total_tokens( $reduced );
+		if ( $after_bytes >= $before_bytes ) {
 			$compacted_reduction = ConversationTrimmer::compact_serialized_history(
 				$this->serialize_history(),
 				$target_bytes,
@@ -2599,10 +2679,11 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, $fallback_exhausted );
 		}
 
-		$this->history       = $reduced;
-		$this->message_log[] = array(
+		$provider_recovery_history ??= $this->history;
+		$this->history               = $reduced;
+		$this->message_log[]         = array(
 			'type'               => 'provider_payload_recovery',
-			'message'            => __( 'The provider rejected the request size. Retrying once with reduced conversation history.', 'superdav-ai-agent' ),
+			'message'            => __( 'The request exceeded its size limit. Retrying once with reduced conversation history.', 'superdav-ai-agent' ),
 			'status_code'        => 413,
 			'request_size_class' => ProviderTraceLogger::classify_request_size( $before_bytes ),
 			'fallback_attempted' => true,
@@ -2612,11 +2693,14 @@ PROMPT;
 		$this->fire_progress();
 
 		$this->provider_retry_baseline_envelope_bytes = $complete_envelope_bytes;
+		$previous_persistence_history                 = $this->providerPersistenceHistory;
+		$this->providerPersistenceHistory             = $previous_persistence_history ?? $provider_recovery_history;
 
 		try {
 			$retry_result = $this->send_prompt( $provider_id, $model_id );
 		} finally {
 			$this->provider_retry_baseline_envelope_bytes = 0;
+			$this->providerPersistenceHistory             = $previous_persistence_history;
 		}
 		if ( is_wp_error( $retry_result ) ) {
 			if ( $this->is_payload_limit_error( $retry_result ) ) {
@@ -2675,11 +2759,20 @@ PROMPT;
 			}
 		}
 
-		if ( ! $compaction_active ) {
+		$provider_id      = $this->resolve_provider_id();
+		$model_id         = $this->resolve_effective_model_id( $provider_id );
+		$request_bytes    = ConversationTrimmer::estimate_total_bytes( $this->history );
+		$managed_pressure = 'sd-ai-agent-cloud' === $provider_id
+			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true )
+			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
+
+		// A newest tool-response cluster cannot always be dropped by turn-based
+		// trimming. Compact a provider-only copy before the managed gateway sees
+		// it; the full transcript is restored by the caller after this request.
+		if ( ! $compaction_active && ! $managed_pressure ) {
 			return null;
 		}
 
-		$request_bytes  = ConversationTrimmer::estimate_total_bytes( $this->history );
 		$request_tokens = ConversationTrimmer::estimate_total_tokens( $this->history );
 		if ( $request_bytes <= ConversationTrimmer::COMPACT_MAX_BYTES && $request_tokens <= ConversationTrimmer::COMPACT_MAX_TOKENS ) {
 			return null;
@@ -2976,9 +3069,6 @@ PROMPT;
 			);
 		}
 
-		$builder = wp_ai_client_prompt();
-		/** @var \WP_AI_Client_Prompt_Builder $builder */
-
 		// Resolve abilities once here so they are available for both the prompt
 		// builder's using_abilities() call and the system-instruction rebuild.
 		// When native Responses tool search is active this may include the full
@@ -2995,52 +3085,6 @@ PROMPT;
 			$ability_names            = $this->system_prompt_ability_names( $abilities );
 			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names );
 		}
-		$builder->using_system_instruction( $this->system_instruction );
-		$this->configure_model( $builder, $provider_id, $model_id );
-
-		// NOTE: weak-model temperature/parallel-tool overrides are disabled
-		// alongside the weak-model iteration cap (see constructor comment).
-		// The same telemetry-reliability concerns apply: flagging Opus 4.7
-		// or Sonnet 4.6 as weak because of past framework bugs would force
-		// temperature=0 and disable parallel tool calls, making real model
-		// usage noticeably slower and lower-quality without surfacing why
-		// to the user. Restore once telemetry is reliable.
-		//
-		// The builder is `WP_AI_Client_Prompt_Builder`, a thin wrapper that
-		// forwards snake_case calls (e.g. `using_max_tokens`) to the SDK's
-		// camelCase `usingMaxTokens` via PHP's `__call`. An earlier version
-		// of this block guarded both setters with `method_exists()`, which
-		// does NOT detect `__call`-routed methods and silently skipped them
-		// — leaving `max_tokens` unset (so the anthropic-max connector fell
-		// back to its hard-coded 4096 default) and `temperature` absent
-		// from the outgoing request body. The guards are removed because
-		// the wrapper's `__call` is guaranteed to exist and the `@method`
-		// declarations on the wrapper enumerate the supported API.
-		//
-		// Model-specific exception: some model families reject or deprecate
-		// `temperature` outright with HTTP 400 even though standard models still
-		// accept it. OpenAI reasoning families (gpt-5*, o1*, o3*, o4*) run at the
-		// model's implicit sampling setting. Anthropic Max Claude Opus 4.7 also
-		// rejects the OpenAI-compatible `temperature` field as deprecated.
-		// Skip the setter for those model IDs so the request body omits the field
-		// entirely. `max_tokens` is still safe to send.
-		//
-		// Use the same validated effective model for configuration, request
-		// budgets, temperature handling, and safe trace attribution.
-		if ( ! self::model_omits_temperature( $model_id ) ) {
-			$builder->using_temperature( (float) $this->temperature );
-		}
-		$builder->using_max_tokens( $this->get_effective_max_output_tokens() );
-
-		// $abilities was already resolved before the system-instruction rebuild
-		// above; reuse it here instead of calling resolve_abilities() twice.
-		if ( ! empty( $abilities ) ) {
-			$builder->using_abilities( ...$abilities );
-		}
-
-		if ( ! empty( $this->history ) ) {
-			$builder->with_history( ...$this->history );
-		}
 
 		$started_at               = microtime( true );
 		$last_error               = null;
@@ -3050,8 +3094,9 @@ PROMPT;
 		$status_code              = 0;
 
 		for ( $attempt = 1; $attempt <= $this->provider_retry_max_attempts; ++$attempt ) {
-			$request_envelope = array();
-			$provider_phase   = $this->get_provider_trace_phase();
+			$attempt_started_at = microtime( true );
+			$request_envelope   = array();
+			$provider_phase     = $this->get_provider_trace_phase();
 			ProviderTraceLogger::set_runtime_context(
 				$provider_id,
 				$model_id,
@@ -3065,7 +3110,10 @@ PROMPT;
 				$provider_phase
 			);
 			try {
-				$result = $builder->generate_text_result();
+				// WordPress retains errors on a builder. Every attempt needs a new
+				// instance so a transient failure actually retries the transport.
+				$builder = $this->create_provider_prompt_builder( $provider_id, $model_id, $abilities );
+				$result  = $builder->generate_text_result();
 				if ( is_wp_error( $result ) ) {
 					/** @var WP_Error $result */
 					$last_error = $result;
@@ -3080,14 +3128,37 @@ PROMPT;
 				ProviderTraceLogger::clear_runtime_context();
 			}
 
-			if ( $last_error instanceof WP_Error && ! empty( $request_envelope ) ) {
+			if ( ! empty( $request_envelope['local_rejection'] ) ) {
+				// The SDK wraps local WP_Error rejections as NetworkException/503.
+				// Restore our prompt-free classification before deciding to retry.
+				$last_error = new WP_Error(
+					'sd_ai_agent_provider_payload_budget_exceeded',
+					ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_LOCAL_PAYLOAD_GUARD ),
+					$request_envelope
+				);
+			} elseif ( $last_error instanceof WP_Error && ! empty( $request_envelope ) ) {
 				$last_error = $this->with_request_envelope_metadata( $last_error, $request_envelope );
 			} elseif ( $last_error instanceof \Throwable ) {
 				$last_error = $this->normalize_runtime_gateway_exception( $last_error, $request_envelope );
 			}
 
 			$status_code = $this->extract_provider_error_status( $last_error );
-			if ( ! $this->is_retryable_provider_error( $last_error, $status_code ) ) {
+			$retryable   = $this->is_retryable_provider_error( $last_error, $status_code );
+			ProviderTraceLogger::record_provider_attempt_failure(
+				$provider_id,
+				$model_id,
+				$last_error,
+				$status_code,
+				$attempt,
+				$this->provider_retry_max_attempts,
+				(int) round( ( microtime( true ) - $attempt_started_at ) * 1000 ),
+				$retryable,
+				$provider_phase,
+				$this->session_id,
+				$this->active_job_id,
+				$request_envelope
+			);
+			if ( ! $retryable ) {
 				return $this->provider_error_to_wp_error( $last_error, $status_code, $provider_id, $model_id, $attempt );
 			}
 
@@ -3125,6 +3196,33 @@ PROMPT;
 			$model_id,
 			$this->provider_retry_max_attempts
 		);
+	}
+
+	/**
+	 * Build fresh SDK state while retaining the logical request's configuration.
+	 *
+	 * @param string             $provider_id Effective provider ID.
+	 * @param string             $model_id Effective model ID.
+	 * @param array<\WP_Ability> $abilities Resolved abilities for this request.
+	 * @return \WP_AI_Client_Prompt_Builder
+	 */
+	private function create_provider_prompt_builder( string $provider_id, string $model_id, array $abilities ): \WP_AI_Client_Prompt_Builder {
+		$builder = wp_ai_client_prompt();
+		$builder->using_system_instruction( $this->system_instruction );
+		$this->configure_model( $builder, $provider_id, $model_id );
+		// These setters use __call; method_exists() cannot detect them. Reasoning
+		// models retain their implicit temperature, but still receive max_tokens.
+		if ( ! self::model_omits_temperature( $model_id ) ) {
+			$builder->using_temperature( (float) $this->temperature );
+		}
+		$builder->using_max_tokens( $this->get_effective_max_output_tokens() );
+		if ( ! empty( $abilities ) ) {
+			$builder->using_abilities( ...$abilities );
+		}
+		if ( ! empty( $this->history ) ) {
+			$builder->with_history( ...$this->history );
+		}
+		return $builder;
 	}
 
 	/** Return the bounded provider invocation phase stored in terminal traces. */
@@ -3216,11 +3314,12 @@ PROMPT;
 		}
 
 		$context       = array(
-			'status_code'    => max( 0, $status_code ),
-			'provider_id'    => sanitize_key( $provider_id ),
-			'model_id'       => sanitize_text_field( $model_id ),
-			'failure_source' => $source,
-			'attempts'       => min( 10, max( 1, $attempts ) ),
+			'status_code'         => max( 0, $status_code ),
+			'provider_id'         => sanitize_key( $provider_id ),
+			'model_id'            => sanitize_text_field( $model_id ),
+			'provider_error_code' => ProviderErrorClassifier::get_safe_error_code( $error, $status_code ),
+			'failure_source'      => $source,
+			'attempts'            => min( 10, max( 1, $attempts ) ),
 		);
 		$failure_class = ProviderErrorClassifier::get_safe_failure_class( $error, $status_code );
 		if ( '' !== $failure_class ) {
@@ -3556,6 +3655,7 @@ PROMPT;
 		$serialized_history = is_array( $this->providerPersistenceHistory )
 			? ConversationSerializer::serialize( $this->providerPersistenceHistory )
 			: $this->serialize_history();
+		$serialized_history = $this->elementor_completion_gate->redact_serialized_history( $serialized_history );
 		$message            = sprintf(
 			/* translators: 1: attempts, 2: elapsed seconds */
 			__( 'The AI service is temporarily unavailable after %1$d attempts over %2$ds. Please try again shortly.', 'superdav-ai-agent' ),
@@ -3743,7 +3843,9 @@ PROMPT;
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function serialize_history(): array {
-		return ConversationSerializer::serialize( $this->history );
+		return $this->elementor_completion_gate->redact_serialized_history(
+			ConversationSerializer::serialize( $this->history )
+		);
 	}
 
 	/**
@@ -3818,7 +3920,9 @@ PROMPT;
 			'iterations_used'         => $this->iterations_used,
 			'model_id'                => $this->model_id,
 			'provider_id'             => $this->provider_id,
-			'history'                 => ConversationSerializer::serialize( $history ),
+			'history'                 => $this->elementor_completion_gate->redact_serialized_history(
+				ConversationSerializer::serialize( $history )
+			),
 			'client_abilities'        => $this->client_abilities,
 			'recoverable'             => true,
 			'mutation_policy_context' => $this->mutation_policy_context,
@@ -4953,6 +5057,76 @@ PROMPT;
 	}
 
 	/**
+	 * Block an Elementor publication until the matching gate has current evidence.
+	 *
+	 * A provider may combine calls in one tool-use turn. When one publication is
+	 * unsafe, return matched failures for the entire batch rather than execute a
+	 * subset and leave unmatched calls in provider history.
+	 *
+	 * @param Message $message Assistant message to inspect.
+	 * @return Message|null Guard response, or null when no publication is blocked.
+	 */
+	private function build_elementor_publish_guard_response( Message $message ): ?Message {
+		$calls       = array();
+		$blockers    = array();
+		$first_error = array();
+
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				continue;
+			}
+
+			$name    = (string) $call->getName();
+			$args    = self::normalize_function_call_args( $call->getArgs() );
+			$calls[] = array(
+				'id'   => (string) $call->getId(),
+				'name' => $name,
+			);
+			$blocker = $this->elementor_completion_gate->get_publish_blocker( $name, $args );
+			if ( null === $blocker ) {
+				continue;
+			}
+
+			$blockers[ (string) $call->getId() ] = $blocker;
+			if ( empty( $first_error ) ) {
+				$first_error = $blocker;
+			}
+		}
+
+		if ( empty( $blockers ) ) {
+			return null;
+		}
+
+		$parts = array();
+		foreach ( $calls as $call ) {
+			$payload = $blockers[ $call['id'] ] ?? array(
+				'success' => false,
+				'code'    => 'sd_ai_agent_elementor_publish_batch_guarded',
+				'error'   => 'This tool batch was not dispatched because it included an Elementor publication blocked by the current completion gate. Retry non-publication work separately after resolving the stated Elementor requirement.',
+				'hint'    => (string) ( $first_error['hint'] ?? '' ),
+			);
+			$encoded = wp_json_encode( $payload );
+			$parts[] = new MessagePart(
+				new FunctionResponse(
+					$call['id'],
+					$call['name'],
+					is_string( $encoded ) ? $encoded : '{}'
+				)
+			);
+		}
+
+		$this->message_log[] = array(
+			'type'     => 'guardrail',
+			'reason'   => 'elementor_publish_guarded',
+			'count'    => count( $blockers ),
+			'sequence' => $this->next_activity_sequence(),
+		);
+
+		return new UserMessage( $parts );
+	}
+
+	/**
 	 * Normalize function-call args to an array.
 	 *
 	 * @param mixed $args Raw function-call arguments.
@@ -5303,16 +5477,18 @@ PROMPT;
 				if ( '' === $name ) {
 					continue;
 				}
+				$raw_args        = $call->getArgs();
+				$normalized_args = self::normalize_function_call_args( $raw_args );
+				$this->elementor_completion_gate->record_tool_call( $name, $normalized_args );
 
 				$this->tool_call_log[] = array(
 					'type'     => 'call',
 					'id'       => $call->getId(),
 					'name'     => $name,
-					'args'     => $call->getArgs(),
+					'args'     => $this->elementor_completion_gate->redact_tool_call_args( $name, $raw_args ),
 					'sequence' => $this->next_activity_sequence(),
 				);
 
-				$normalized_args = self::normalize_function_call_args( $call->getArgs() );
 				$this->generated_theme_completion_gate->record_tool_call( $name, $normalized_args );
 				$this->page_completion_gate->record_tool_call( $name, $normalized_args );
 				$this->rendered_output_evidence_gate->record_tool_call( $name, $normalized_args );
@@ -5320,6 +5496,58 @@ PROMPT;
 		}
 
 		$this->fire_progress();
+	}
+
+	/**
+	 * Replace private Elementor preview URLs before tool calls enter model history.
+	 *
+	 * @param Message $message Assistant tool-call message.
+	 */
+	private function redact_elementor_preview_call_message( Message $message ): Message {
+		$parts = array();
+		foreach ( $message->getParts() as $part ) {
+			$call = $part->getFunctionCall();
+			if ( ! $call ) {
+				$parts[] = $part;
+				continue;
+			}
+
+			$parts[] = new MessagePart(
+				new FunctionCall(
+					(string) $call->getId(),
+					(string) $call->getName(),
+					$this->elementor_completion_gate->redact_tool_call_args( (string) $call->getName(), $call->getArgs() )
+				)
+			);
+		}
+
+		return new ModelMessage( $parts );
+	}
+
+	/**
+	 * Replace private Elementor preview URLs before tool results enter model history.
+	 *
+	 * @param Message $message Tool response message.
+	 */
+	private function redact_elementor_preview_response_message( Message $message ): Message {
+		$parts = array();
+		foreach ( $message->getParts() as $part ) {
+			$response = $part->getFunctionResponse();
+			if ( ! $response ) {
+				$parts[] = $part;
+				continue;
+			}
+
+			$parts[] = new MessagePart(
+				new FunctionResponse(
+					(string) $response->getId(),
+					(string) $response->getName(),
+					$this->elementor_completion_gate->redact_tool_response( (string) $response->getName(), $response->getResponse() )
+				)
+			);
+		}
+
+		return new UserMessage( $parts );
 	}
 
 	/**
@@ -5566,34 +5794,21 @@ PROMPT;
 	/**
 	 * Resolve the effective max output token cap used for provider requests.
 	 *
-	 * Legacy 4096 handling: the pre-7rl plugin shipped with a default of 4096
-	 * which is too low for modern Claude/GPT models to complete a single
-	 * page-building tool call. Existing installs carry that saved value as an
-	 * "explicit" override even though the user never chose it. We treat the
-	 * exact legacy default as AUTO so existing installs get the per-model
-	 * catalog value transparently — without forcing a settings migration.
-	 *
-	 * Users who genuinely want a 4096 cap (rare) can set 4097 or any other
-	 * value via the Settings UI; the legacy-default trigger is exact match
-	 * only.
+	 * A positive configured value is always an upper bound, including 4096.
+	 * Provider capability metadata is a hard ceiling: users may lower a cap,
+	 * but cannot make the request exceed the selected model's advertised limit.
 	 */
 	private function get_effective_max_output_tokens(): int {
 		// AUTO (0): consult the per-model catalog so each provider/model gets a
-		// sensible value. EXPLICIT (>0): honour the saved override but clamp at
-		// MAX_OUTPUT_TOKENS_CEILING to defend against runaway generations.
-		$max_tokens = $this->max_output_tokens;
-		if (
-			$max_tokens <= Settings::MAX_OUTPUT_TOKENS_AUTO
-			|| Settings::MAX_OUTPUT_TOKENS_LEGACY_DEFAULT === $max_tokens
-		) {
-			return Settings::get_max_output_tokens_for_model( $this->model_id );
+		// sensible value. EXPLICIT (>0): retain the user's lower limit while
+		// clamping it to both the model's live/catalog capability and our ceiling.
+		$max_tokens  = $this->max_output_tokens;
+		$model_limit = Settings::get_max_output_tokens_for_model( $this->model_id );
+		if ( $max_tokens <= Settings::MAX_OUTPUT_TOKENS_AUTO ) {
+			return $model_limit;
 		}
 
-		if ( $max_tokens > Settings::MAX_OUTPUT_TOKENS_CEILING ) {
-			return Settings::MAX_OUTPUT_TOKENS_CEILING;
-		}
-
-		return $max_tokens;
+		return min( $max_tokens, $model_limit, Settings::MAX_OUTPUT_TOKENS_CEILING );
 	}
 
 	/**
@@ -5610,23 +5825,55 @@ PROMPT;
 				if ( '' === $name ) {
 					continue;
 				}
+				$raw_response = $response->getResponse();
 
-				$this->track_block_validation_response( $name, $response->getResponse() );
-				$this->generated_theme_completion_gate->record_tool_response( $name, $response->getResponse() );
-				$this->page_completion_gate->record_tool_response( $name, $response->getResponse() );
-				$this->rendered_output_evidence_gate->record_tool_response( $name, $response->getResponse() );
+				$this->track_block_validation_response( $name, $raw_response );
+				$this->generated_theme_completion_gate->record_tool_response( $name, $raw_response );
+				$this->page_completion_gate->record_tool_response( $name, $raw_response );
+				$this->rendered_output_evidence_gate->record_tool_response( $name, $raw_response );
+				$this->elementor_completion_gate->record_tool_response( $name, $raw_response );
 
 				$this->tool_call_log[] = array(
 					'type'     => 'response',
 					'id'       => $response->getId(),
 					'name'     => $name,
-					'response' => $response->getResponse(),
+					'response' => $this->elementor_completion_gate->redact_tool_response( $name, $raw_response ),
 					'sequence' => $this->next_activity_sequence(),
 				);
 			}
 		}
 
 		$this->fire_progress();
+	}
+
+	/**
+	 * Record browser results before constructing redacted model history.
+	 *
+	 * @param list<array{id:string,name:string,result?:mixed,error?:string}> $results Browser result batch.
+	 */
+	private function log_client_tool_responses( array $results ): void {
+		foreach ( $results as $result ) {
+			$id   = (string) ( $result['id'] ?? '' );
+			$name = (string) ( $result['name'] ?? '' );
+			if ( '' === $id || '' === $name ) {
+				continue;
+			}
+
+			$client_result = $result['result'] ?? array( 'error' => $result['error'] ?? '' );
+			$this->generated_theme_completion_gate->record_tool_response( $name, $client_result );
+			$this->page_completion_gate->record_tool_response( $name, $client_result );
+			$this->rendered_output_evidence_gate->record_tool_response( $name, $client_result );
+			$this->elementor_completion_gate->record_tool_response( $name, $client_result );
+
+			$this->tool_call_log[] = array(
+				'type'     => 'response',
+				'id'       => $id,
+				'name'     => $name,
+				'response' => $this->elementor_completion_gate->redact_tool_response( $name, $client_result ),
+				'source'   => 'client',
+				'sequence' => $this->next_activity_sequence(),
+			);
+		}
 	}
 
 	/**
@@ -5763,6 +6010,57 @@ PROMPT;
 		}
 
 		return $notice;
+	}
+
+	/**
+	 * Pause for the exact Elementor preview captures owned by the completion gate.
+	 *
+	 * The raw preview URL is sent only to the current browser call. The synthetic
+	 * assistant message and activity log receive the gate-redacted counterpart,
+	 * so neither the model nor serializable conversation state learns the URL.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function pause_for_elementor_render_validation( int $iterations ): array {
+		$calls   = $this->elementor_completion_gate->get_render_validation_calls();
+		$parts   = array();
+		$pending = array();
+
+		foreach ( $calls as $args ) {
+			$call_id   = 'elementor_preview_' . str_replace( '-', '', wp_generate_uuid4() );
+			$parts[]   = new MessagePart(
+				new FunctionCall(
+					$call_id,
+					'wpab__sd-ai-agent-js__screenshot-url',
+					$args
+				)
+			);
+			$pending[] = array(
+				'id'          => $call_id,
+				'name'        => ElementorCompletionGate::SCREENSHOT_ABILITY,
+				'args'        => $args,
+				'annotations' => array( 'readonly' => true ),
+			);
+		}
+
+		$message = new ModelMessage( $parts );
+		$this->append_assistant_message_to_history( $this->redact_elementor_preview_call_message( $message ) );
+		$this->log_tool_calls( $message );
+		$this->message_log[]   = array(
+			'type'       => 'guardrail',
+			'reason'     => 'elementor_render_validation_dispatched',
+			'completion' => $this->elementor_completion_gate->get_status(),
+			'sequence'   => $this->next_activity_sequence(),
+		);
+		$this->last_loop_phase = 'elementor_render_validation_pending';
+
+		return $this->pause_for_client_tools(
+			array(
+				'php'    => array(),
+				'client' => $pending,
+			),
+			$iterations
+		);
 	}
 
 	/**
@@ -5944,6 +6242,32 @@ PROMPT;
 		return '' === $notice ? $reply : $notice;
 	}
 
+	/** Inject the exact missing Elementor completion step as a repair turn. */
+	private function inject_elementor_completion_guidance(): void {
+		$guidance = $this->elementor_completion_gate->get_repair_guidance();
+		if ( '' === $guidance ) {
+			return;
+		}
+
+		$this->history[]       = new UserMessage( array( new MessagePart( $guidance ) ) );
+		$this->message_log[]   = array(
+			'type'       => 'guardrail',
+			'reason'     => 'elementor_completion_required',
+			'completion' => $this->elementor_completion_gate->get_status(),
+			'sequence'   => $this->next_activity_sequence(),
+		);
+		$this->last_loop_phase = 'elementor_completion_repair_required';
+		$this->fire_progress();
+	}
+
+	/** Prevent unsupported Elementor completion or publication claims. */
+	private function append_elementor_completion_notice( string $reply ): string {
+		$notice = $this->elementor_completion_gate->get_terminal_notice();
+		return '' === $notice
+			? $this->elementor_completion_gate->redact_text( $reply )
+			: $notice;
+	}
+
 	/** Prevent unsupported rendered-success claims after a successful file mutation. */
 	private function append_rendered_output_evidence_notice( string $reply ): string {
 		if ( ! $this->rendered_output_evidence_gate->blocks_rendered_claim( $reply ) ) {
@@ -5977,6 +6301,17 @@ PROMPT;
 		return strtolower( (string) $matches[1] );
 	}
 
+	/**
+	 * Remove a browser-provided visual-attachment marker.
+	 *
+	 * @param array<string,mixed> $payload Browser-supplied screenshot payload.
+	 * @return array<string,mixed> Payload without an untrusted attachment claim.
+	 */
+	private static function strip_untrusted_screenshot_attachment_claim( array $payload ): array {
+		unset( $payload['attached_to_model'] );
+		return $payload;
+	}
+
 	/** Return whether an SDK function name produces visual screenshot evidence. */
 	private static function is_screenshot_tool_name( string $tool_name ): bool {
 		return in_array(
@@ -6002,6 +6337,12 @@ PROMPT;
 	private static function normalize_logged_tool_name( string $tool_name ): string {
 		if ( str_starts_with( $tool_name, 'wpab__sd-ai-agent__' ) ) {
 			return 'sd-ai-agent/' . substr( $tool_name, strlen( 'wpab__sd-ai-agent__' ) );
+		}
+		if ( str_starts_with( $tool_name, 'wpab__sd-ai-agent-js__' ) ) {
+			return 'sd-ai-agent-js/' . substr( $tool_name, strlen( 'wpab__sd-ai-agent-js__' ) );
+		}
+		if ( str_starts_with( $tool_name, 'wpab__elementor__' ) ) {
+			return 'elementor/' . str_replace( '_', '-', substr( $tool_name, strlen( 'wpab__elementor__' ) ) );
 		}
 
 		return $tool_name;

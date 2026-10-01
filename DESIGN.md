@@ -97,6 +97,11 @@ Never set a custom font family. The plugin must feel native to the admin environ
 ### General rule
 Use `@wordpress/components` for every interactive element. Do not reach for raw `<button>` or `<input>` elements unless unavoidable (e.g. hidden file inputs). Using WordPress components ensures keyboard accessibility, focus management, and visual consistency come for free.
 
+### Automatic onboarding
+- When checkout or another trusted launch path opens the Setup Assistant, start its agent loop immediately after providers and sessions load.
+- Do not flash generic greeting or suggestion cards while the automatic kickoff is opening or recovering an empty bootstrap session. Show the onboarding status and then the real conversation.
+- Reopening a populated bootstrap session must never submit a duplicate kickoff.
+
 ### Privacy review screens
 - Use a compact filterable summary list with an explicit detail selection; never place transcript text, profile identifiers, tokens, hashes, tool data, or raw provider payloads in list rows.
 - Keep transcript detail text-only, bounded, and visibly separate from its summary. Use pagination to load earlier retained messages instead of rendering an unbounded conversation at once.

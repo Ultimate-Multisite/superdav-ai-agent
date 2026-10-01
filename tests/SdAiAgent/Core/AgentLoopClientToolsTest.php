@@ -23,6 +23,7 @@ use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\ClientAbilityRouter;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\ElementorCompletionGate;
 use SdAiAgent\Core\Settings;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Messages\DTO\UserMessage;
@@ -72,6 +73,10 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertContains( 'sd-ai-agent-js/replace-editor-selection', $names );
 		$this->assertContains( 'sd-ai-agent-js/insert-block-markup', $names );
 		$this->assertContains( 'sd-ai-agent-js/change-editor-history', $names );
+		$this->assertContains( 'sd-ai-agent-js/get-elementor-editor-mcp-context', $names );
+		$this->assertContains( 'sd-ai-agent-js/list-elementor-editor-mcp-capabilities', $names );
+		$this->assertContains( 'sd-ai-agent-js/read-elementor-editor-mcp-resource', $names );
+		$this->assertContains( 'sd-ai-agent-js/call-elementor-editor-mcp-tool', $names );
 		$this->assertContains( 'sd-ai-agent-js/validate-page-quality', $names );
 		$this->assertContains( 'sd-ai-agent-js/validate-theme-completion', $names );
 	}
@@ -89,6 +94,10 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/replace-editor-selection' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/insert-block-markup' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/change-editor-history' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/get-elementor-editor-mcp-context' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/list-elementor-editor-mcp-capabilities' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/read-elementor-editor-mcp-resource' ) );
+		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/call-elementor-editor-mcp-tool' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/validate-page-quality' ) );
 		$this->assertTrue( JsAbilityCatalog::has( 'sd-ai-agent-js/validate-theme-completion' ) );
 		$this->assertFalse( JsAbilityCatalog::has( 'sd-ai-agent-js/unknown-ability' ) );
@@ -148,6 +157,27 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 			$this->assertFalse( $map[ $name ]['annotations']['readonly'] );
 			$this->assertSame( array( 'editor' ), $map[ $name ]['screens'] );
 		}
+
+		$elementor_context = $map['sd-ai-agent-js/get-elementor-editor-mcp-context'];
+		$this->assertTrue( $elementor_context['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'selection', $elementor_context['output_schema']['properties'] );
+
+		$elementor_capabilities = $map['sd-ai-agent-js/list-elementor-editor-mcp-capabilities'];
+		$this->assertTrue( $elementor_capabilities['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'tools', $elementor_capabilities['output_schema']['properties'] );
+		$this->assertArrayHasKey( 'resources', $elementor_capabilities['output_schema']['properties'] );
+
+		$elementor_resource = $map['sd-ai-agent-js/read-elementor-editor-mcp-resource'];
+		$this->assertTrue( $elementor_resource['annotations']['readonly'] );
+		$this->assertSame( array( 'uri', 'expectedDocumentFingerprint' ), $elementor_resource['input_schema']['required'] );
+
+		$elementor_tool = $map['sd-ai-agent-js/call-elementor-editor-mcp-tool'];
+		$this->assertFalse( $elementor_tool['annotations']['readonly'] );
+		$this->assertSame( array( 'toolName', 'arguments', 'expectedDocumentFingerprint' ), $elementor_tool['input_schema']['required'] );
+		$this->assertArrayHasKey( 'toolName', $elementor_tool['output_schema']['properties'] );
+		$this->assertSame( 'boolean', $elementor_tool['output_schema']['properties']['mutationPossible']['type'] );
+		$this->assertSame( 'string', $elementor_tool['output_schema']['properties']['outcome']['type'] );
+		$this->assertSame( array( 'not_started', 'completed', 'unknown' ), $elementor_tool['output_schema']['properties']['outcome']['enum'] );
 
 		$this->assertSame(
 			$map['sd-ai-agent-js/replace-editor-selection']['output_schema'],
@@ -449,6 +479,82 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd-ai-agent/ability-call', $result['client'][0]['name'] );
 		$this->assertSame( 'sd-ai-agent-js/navigate-to', $result['client'][0]['client_name'] );
 		$this->assertSame( array( 'url' => home_url( '/' ) ), $result['client'][0]['args'] );
+	}
+
+	/** Tier-2 Elementor MCP discovery calls execute in the advertising browser. */
+	public function test_partition_routes_nested_elementor_mcp_calls_to_browser(): void {
+		$client_names = array(
+			'sd-ai-agent-js/get-elementor-editor-mcp-context',
+			'sd-ai-agent-js/list-elementor-editor-mcp-capabilities',
+		);
+		$loop         = new AgentLoop(
+			'test',
+			array(),
+			array(),
+			array(
+				'client_abilities' => array_map(
+					static fn( string $name ): array => array( 'name' => $name ),
+					$client_names
+				),
+			)
+		);
+
+		$reflection = new \ReflectionClass( $loop );
+		$method     = $reflection->getMethod( 'partition_tool_calls' );
+		$method->setAccessible( true );
+		$calls = array(
+			$this->create_mock_message_part(
+				'sd-ai-agent/ability-call',
+				'call-context',
+				array(
+					'ability'   => $client_names[0],
+					'arguments' => array(),
+				)
+			),
+			$this->create_mock_message_part(
+				'sd-ai-agent/ability-call',
+				'call-capabilities',
+				array(
+					'ability'   => $client_names[1],
+					'arguments' => array( 'includeResources' => true ),
+				)
+			),
+		);
+
+		$result = $method->invoke( $loop, $this->create_mock_message( $calls ), $client_names );
+
+		$this->assertCount( 0, $result['php'] );
+		$this->assertCount( 2, $result['client'] );
+		$this->assertSame( 'call-context', $result['client'][0]['id'] );
+		$this->assertSame( 'sd-ai-agent/ability-call', $result['client'][0]['name'] );
+		$this->assertSame( $client_names[0], $result['client'][0]['client_name'] );
+		$this->assertSame( array(), $result['client'][0]['args'] );
+		$this->assertTrue( $result['client'][0]['annotations']['readonly'] );
+		$this->assertSame( 'call-capabilities', $result['client'][1]['id'] );
+		$this->assertSame( $client_names[1], $result['client'][1]['client_name'] );
+		$this->assertSame( array( 'includeResources' => true ), $result['client'][1]['args'] );
+		$this->assertTrue( $result['client'][1]['annotations']['readonly'] );
+	}
+
+	/** Unadvertised nested browser names remain on the server rejection path. */
+	public function test_partition_does_not_route_unadvertised_nested_client_call(): void {
+		$loop       = new AgentLoop( 'test' );
+		$reflection = new \ReflectionClass( $loop );
+		$method     = $reflection->getMethod( 'partition_tool_calls' );
+		$method->setAccessible( true );
+		$call = $this->create_mock_message_part(
+			'sd-ai-agent/ability-call',
+			'call-unadvertised',
+			array(
+				'ability'   => 'sd-ai-agent-js/get-elementor-editor-mcp-context',
+				'arguments' => array(),
+			)
+		);
+
+		$result = $method->invoke( $loop, $this->create_mock_message( array( $call ) ), array() );
+
+		$this->assertCount( 1, $result['php'] );
+		$this->assertCount( 0, $result['client'] );
 	}
 
 	/**
@@ -1008,6 +1114,156 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertSame( $expected, $pending[0]['args'] );
 		$this->assertSame( 'preview', $pending[0]['args']['render_mode'] );
 		$this->assertSame( 7, $result['iterations_remaining'] );
+	}
+
+	/** Private Elementor preview URLs are sealed before AgentLoop returns a browser pause. */
+	public function test_elementor_render_dispatch_seals_private_preview_before_browser_pause(): void {
+		if ( ! function_exists( 'sodium_crypto_secretbox' ) || ! function_exists( 'sodium_crypto_secretbox_open' ) ) {
+			$this->markTestSkipped( 'Sodium is unavailable.' );
+		}
+
+		$loop = new AgentLoop(
+			'test',
+			array(),
+			array(),
+			array(
+				'client_abilities' => array(
+					array( 'name' => ElementorCompletionGate::SCREENSHOT_ABILITY ),
+				),
+			)
+		);
+		$gate = new ElementorCompletionGate(
+			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),
+			array( ElementorCompletionGate::PREVIEW_ABILITY, ElementorCompletionGate::PUBLISH_ABILITY )
+		);
+		$preview_url = 'https://example.test/?elementor-preview=41&preview-token=private-token';
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response( 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response(
+			ElementorCompletionGate::PREVIEW_ABILITY,
+			array( 'success' => true, 'post_id' => 41, 'revision_id' => 101, 'preview_url' => $preview_url )
+		);
+
+		$reflection = new \ReflectionClass( $loop );
+		$property   = $reflection->getProperty( 'elementor_completion_gate' );
+		$property->setAccessible( true );
+		$property->setValue( $loop, $gate );
+		$method = $reflection->getMethod( 'pause_for_elementor_render_validation' );
+		$method->setAccessible( true );
+		$result = $method->invoke( $loop, 7 );
+
+		$this->assertCount( 2, $result['pending_client_tool_calls'] );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $result['pending_client_tool_calls'] ) );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $result['history'] ) );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $result['tool_call_log'] ) );
+		$restored = ElementorCompletionGate::restore_pending_client_tool_calls( $result['pending_client_tool_calls'] );
+		$this->assertSame( $preview_url, $restored[0]['args']['url'] );
+	}
+
+	/** Provider-error recovery serializes Elementor preview responses without their private URL. */
+	public function test_elementor_preview_url_is_redacted_from_error_recovery_history(): void {
+		$loop        = new AgentLoop( 'test' );
+		$preview_url = 'https://example.test/?elementor-preview=41&preview-token=private-token';
+		$gate        = new ElementorCompletionGate(
+			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),
+			array( ElementorCompletionGate::PREVIEW_ABILITY, ElementorCompletionGate::PUBLISH_ABILITY )
+		);
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response( 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response(
+			ElementorCompletionGate::PREVIEW_ABILITY,
+			array( 'success' => true, 'post_id' => 41, 'revision_id' => 101, 'preview_url' => $preview_url )
+		);
+
+		$reflection = new \ReflectionClass( $loop );
+		$property   = $reflection->getProperty( 'elementor_completion_gate' );
+		$property->setAccessible( true );
+		$property->setValue( $loop, $gate );
+		$method = $reflection->getMethod( 'with_error_recovery_data' );
+		$method->setAccessible( true );
+		$recovery_history = array(
+			new UserMessage(
+				array(
+					new MessagePart(
+						new FunctionResponse(
+							'elementor-preview-call',
+							ElementorCompletionGate::PREVIEW_ABILITY,
+							array( 'success' => true, 'post_id' => 41, 'preview_url' => $preview_url )
+						)
+					)
+				)
+			)
+		);
+		/** @var \WP_Error $error */
+		$error = $method->invoke( $loop, new \WP_Error( 'test_error', 'Test error.' ), $recovery_history );
+		$data  = $error->get_error_data();
+
+		$this->assertIsArray( $data );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $data['history'] ) );
+
+		$provider_persistence_history = $reflection->getProperty( 'providerPersistenceHistory' );
+		$provider_persistence_history->setAccessible( true );
+		$provider_persistence_history->setValue( $loop, $recovery_history );
+		$provider_retry_failed_error = $reflection->getMethod( 'build_provider_retry_failed_error' );
+		$provider_retry_failed_error->setAccessible( true );
+		/** @var \WP_Error $provider_error */
+		$provider_error = $provider_retry_failed_error->invoke(
+			$loop,
+			new \WP_Error( 'test_error', 'Test error.' ),
+			1,
+			500,
+			'test-provider',
+			'test-model',
+			1
+		);
+		$provider_data = $provider_error->get_error_data();
+
+		$this->assertIsArray( $provider_data );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $provider_data['history'] ) );
+	}
+
+	/** A browser cannot forge Elementor render evidence with an attachment marker alone. */
+	public function test_untrusted_screenshot_attachment_claim_does_not_satisfy_elementor_render_evidence(): void {
+		$preview_url = 'https://example.test/?elementor-preview=41&preview-token=private-token';
+		$reflection  = new \ReflectionClass( AgentLoop::class );
+		$method      = $reflection->getMethod( 'strip_untrusted_screenshot_attachment_claim' );
+		$method->setAccessible( true );
+		$payload = $method->invoke(
+			null,
+			array(
+				'success'           => true,
+				'attached_to_model' => true,
+				'url'               => $preview_url,
+				'width'             => 375,
+				'height'            => 812,
+				'truncated'         => false,
+			)
+		);
+
+		$this->assertIsArray( $payload );
+		$this->assertArrayNotHasKey( 'attached_to_model', $payload );
+		$gate = new ElementorCompletionGate(
+			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),
+			array( ElementorCompletionGate::PREVIEW_ABILITY, ElementorCompletionGate::PUBLISH_ABILITY )
+		);
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response( 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response(
+			ElementorCompletionGate::PREVIEW_ABILITY,
+			array( 'success' => true, 'post_id' => 41, 'revision_id' => 101, 'preview_url' => $preview_url )
+		);
+		$gate->record_tool_call(
+			ElementorCompletionGate::SCREENSHOT_ABILITY,
+			array( 'url' => $preview_url, 'width' => 375, 'height' => 812, 'fullPage' => false )
+		);
+		$gate->record_tool_response( ElementorCompletionGate::SCREENSHOT_ABILITY, $payload );
+		$status = $gate->get_status();
+
+		$this->assertSame( array(), $status['targets'][0]['passed_viewports'] );
+		$this->assertFalse( $status['targets'][0]['current_render_verified'] );
 	}
 
 	// ── Helper methods ────────────────────────────────────────────────────

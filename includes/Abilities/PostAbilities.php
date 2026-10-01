@@ -1588,6 +1588,19 @@ class PostAbilities {
 			$unsafe_provider_default = 'publish' === $post->post_status
 				&& 'draft' === $new_status
 				&& true !== ( $input['confirm_status_change'] ?? false );
+			$preview_status_change   = PagePreviewWorkspace::governs( $post )
+				&& in_array( $new_status, $allowed_statuses, true )
+				&& $new_status !== $post->post_status;
+			if ( $preview_status_change && true !== ( $input['confirm_status_change'] ?? false ) ) {
+				if ( $switched ) {
+					restore_current_blog();
+				}
+				return new WP_Error(
+					'sd_ai_agent_status_change_confirmation_required',
+					__( 'Changing the status of a published page requires confirm_status_change=true.', 'superdav-ai-agent' ),
+					array( 'status' => 400 )
+				);
+			}
 			if ( in_array( $new_status, $allowed_statuses, true ) && $new_status !== $post->post_status && ! $unsafe_provider_default ) {
 				$post_data['post_status'] = $new_status;
 			}
@@ -1614,7 +1627,16 @@ class PostAbilities {
 			);
 		}
 
-		if ( PagePreviewWorkspace::governs( $post ) ) {
+		$direct_status_change = isset( $post_data['post_status'] )
+			&& true === ( $input['confirm_status_change'] ?? false )
+			&& 2 === count( $post_data )
+			&& ! $has_categories_update
+			&& ! $has_tags_update
+			&& null === $page_template
+			&& $featured_image_id <= 0
+			&& ! $has_meta_update;
+
+		if ( PagePreviewWorkspace::governs( $post ) && ! $direct_status_change ) {
 			$status_changes = isset( $post_data['post_status'] ) && (string) $post_data['post_status'] !== $post->post_status;
 			if ( $status_changes || $has_categories_update || $has_tags_update || null !== $page_template || $has_meta_update ) {
 				if ( $switched ) {

@@ -320,6 +320,26 @@ class ElementorCompletionGateTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'cannot be restored safely', $legacy_restored[0]['args']['elementor_preview_capability_error'] );
 	}
 
+	/** Ordinary screenshot URLs are not private Elementor preview capabilities. */
+	public function test_ordinary_pending_screenshot_url_remains_executable(): void {
+		$pending = array(
+			array(
+				'id'   => 'ordinary_screenshot_call',
+				'name' => ElementorCompletionGate::SCREENSHOT_ABILITY,
+				'args' => array(
+					'url'      => 'https://example.test/',
+					'width'    => 1024,
+					'height'   => 768,
+					'fullPage' => false,
+				),
+			),
+		);
+
+		$restored = ElementorCompletionGate::restore_pending_client_tool_calls( $pending );
+
+		$this->assertSame( $pending, $restored );
+	}
+
 	private function gate(): ElementorCompletionGate {
 		return new ElementorCompletionGate(
 			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),

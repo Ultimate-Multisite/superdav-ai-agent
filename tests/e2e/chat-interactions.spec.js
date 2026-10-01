@@ -549,50 +549,21 @@ test.describe( 'Chat Input Interactions', () => {
 
 test.describe( 'Confirmation and client-tool continuation', () => {
 	test.beforeEach( async ( { page } ) => {
-		// Keep client-ability registration deterministic. The fake registry still
-		// stores the actual callbacks registered by the admin bundle, so the test
-		// exercises validate-theme-completion rather than hand-crafting a result.
-		await page.addInitScript( () => {
-			if ( typeof window.wp === 'undefined' ) {
-				window.wp = {};
-			}
-			const registeredAbilities = [];
-			const abilitiesStub = {
-				registerAbilityCategory: async () => {},
-				registerAbility: async ( ability ) => {
-					registeredAbilities.push( ability );
-				},
-				getAbilities: () => registeredAbilities,
-				getAbilityCategory: async () => null,
-				executeAbility: async ( name, args ) => {
-					const ability = registeredAbilities.find(
-						( item ) => item.name === name
-					);
-					return ability?.callback( args );
-				},
-			};
-			Object.defineProperty( window.wp, 'abilities', {
-				value: abilitiesStub,
-				writable: false,
-				configurable: true,
-				enumerable: true,
-			} );
-		} );
-
 		await loginToWordPress( page );
 		await goToAgentPage( page );
 		await page
 			.locator( '.sdaa-cr' )
 			.waitFor( { state: 'visible', timeout: 30_000 } );
 		await page.waitForFunction(
-			() =>
-				window.wp?.abilities
-					?.getAbilities()
-					?.some(
-						( ability ) =>
-							ability.name ===
-							'sd-ai-agent-js/validate-theme-completion'
-					),
+			async () =>
+				(
+					( await window.sdAiAgentClientAbilities?.getAbilities?.() ) ||
+					[]
+				).some(
+					( ability ) =>
+						ability.name ===
+						'sd-ai-agent-js/validate-theme-completion'
+				),
 			null,
 			{ timeout: 10_000 }
 		);

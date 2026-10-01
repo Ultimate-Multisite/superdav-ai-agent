@@ -1,40 +1,14 @@
 /**
- * Client-side abilities registry for sd-ai-agent-js namespace.
+ * Page-local registry for browser-executed SD AI Agent abilities.
  *
- * Thin wrapper around @wordpress/abilities (exposed by core 7.0 as the
- * `wp.abilities` global, populated when the script module loads) that:
+ * Browser abilities are deliberately kept out of WordPress's shared
+ * `core/abilities` data store. Registering them there causes the store to
+ * hydrate every provider's categories and abilities. One malformed provider
+ * can then reject the shared hydration request, while server-registered
+ * `sd-ai-agent-js/*` stubs make client category registration a duplicate.
  *
- *   - Registers the sd-ai-agent-js category (idempotent, async).
- *   - Provides registerClientAbility() to register abilities with the
- *     correct shape required by the WP 7.0 API (single options object,
- *     with `name` as a property).
- *   - Provides snapshotDescriptors() to capture current descriptors for
- *     posting to the server in the /chat request body
- *     (used by sessionsSlice sendMessage thunk).
- *
- * Bug history (#806 → #815 → #821 → t166):
- *   - #815 (in #815's PR) shipped this file with three API misuses that
- *     prevented any ability from registering at runtime:
- *       a) registerAbilityCategory() was called without a `description`
- *          field, which is required per the WP 7.0 dev note. Fix: add it.
- *       b) registerAbility() was called with two positional arguments
- *          (def.name, options) instead of the documented single options
- *          object containing `name`. The library read `.name` off the
- *          options bag, found undefined, and threw "Ability name is
- *          required". Fix: pass a single object.
- *       c) Both registerAbilityCategory() and registerAbility() in the
- *          WP 7.0 API are ASYNC and return Promises. The category Promise
- *          had not yet resolved when the abilities tried to register
- *          synchronously, so the abilities looked up a not-yet-existent
- *          category and threw "Ability references non-existent category".
- *          Fix: await every registration call.
- *
- *   - #821 (t165) wired the entry-point imports so this file actually
- *     ran, which surfaced the throws above as visible console errors
- *     during a browser smoke test.
- *
- *   - This task (t166) fixes all three API misuses and makes the
- *     registration pipeline properly async-aware.
+ * The server catalog remains the discovery source. This registry owns only
+ * page-lifetime callbacks and the descriptors posted with chat requests.
  */
 
 import { __ } from '@wordpress/i18n';
@@ -45,247 +19,53 @@ const CATEGORY_DESCRIPTION = __(
 	'SD AI Agent browser abilities',
 	'superdav-ai-agent'
 );
-
-/**
- * Window-global key used to share client-ability state between webpack module
- * instances. Each entry-point bundle has its own module scope, but they all
- * execute in the same browser page.
- *
- * @type {string}
- */
 const WIN_REGISTRY_KEY = '__sdAiAgentClientAbilityRegistry';
+const WIN_API_KEY = 'sdAiAgentClientAbilities';
 
 /**
- * Single category-registration Promise for this module instance.
+ * Return the shared page-lifetime registry used by every webpack bundle.
  *
- * The page registry also stores this promise, which makes category
- * registration safe when separate webpack bundles evaluate their own copy of
- * this module before (or independently from) the index.js coordinator.
- *
- * @type {Promise<void>|null}
- */
-let categoryRegistrationPromise = null;
-
-/**
- * Return the page-lifetime client-ability registry.
- *
- * The registration coordinator in index.js is already page-global. Its
- * callback and descriptor state must be page-global too: otherwise a second
- * bundle can await the first bundle's registration Promise but still be
- * unable to execute the ability from its own module-local Map.
- *
- * @return {{n: Set<string>, c: Map<string, Function>, d: Map<string, Object>}} Shared browser-page state.
+ * @return {{n: Set<string>, c: Map<string, Function>, d: Map<string, Object>}} Shared registry.
  */
 function getPageRegistry() {
 	const page = window;
 
 	if ( page[ WIN_REGISTRY_KEY ] ) {
-		const registry = page[ WIN_REGISTRY_KEY ];
-		// Preserve state published by an earlier compatible bundle revision while
-		// adding bootstrap state introduced by a newer one.
-		registry.categoryRegistrationPromise ??= null;
-		registry.coreRegistrationFailed ??= false;
-		registry.coreRegistrationDiagnosticEmitted ??= false;
-
-		return registry;
+		return page[ WIN_REGISTRY_KEY ];
 	}
 
 	page[ WIN_REGISTRY_KEY ] = {
 		n: new Set(),
 		c: new Map(),
 		d: new Map(),
-		categoryRegistrationPromise: null,
-		coreRegistrationFailed: false,
-		coreRegistrationDiagnosticEmitted: false,
 	};
 
 	return page[ WIN_REGISTRY_KEY ];
 }
 
 /**
- * Record one core-store bootstrap failure without disabling the local
- * client-ability fallback. A malformed third-party ability can cause core's
- * initial ability hydration to reject; retrying every local registration
- * against that same broken store only repeats the provider error.
+ * Preserve the registration pipeline contract.
  *
- * @param {Object} registry Shared page registry.
- * @param {*}      error    Core registration failure.
- * @return {void}
+ * The category is registered server-side by ToolDiscoveryHandler. No client
+ * registration is needed, and avoiding the shared store prevents unrelated
+ * provider hydration failures from reaching the browser console.
+ *
+ * @return {Promise<void>} Resolved registration step.
  */
-function recordCoreRegistrationFailure( registry, error ) {
-	registry.coreRegistrationFailed = true;
-
-	if ( registry.coreRegistrationDiagnosticEmitted ) {
-		return;
-	}
-
-	registry.coreRegistrationDiagnosticEmitted = true;
-	// eslint-disable-next-line no-console
-	console.warn(
-		'[sd-ai-agent] WordPress abilities registration failed; local client abilities remain available.',
-		error
-	);
-}
+export async function registerCategory() {}
 
 /**
- * Detect the category-hydration failure emitted when another provider leaves
- * the shared core abilities store in an unusable state.
- *
- * @param {*} error Registration error.
- * @return {boolean} True when core category hydration failed.
- */
-function isCoreCategoryHydrationFailure( error ) {
-	const message =
-		error instanceof Error ? error.message : String( error || '' );
-
-	return /references non-existent category/i.test( message );
-}
-
-/**
- * Detect an idempotent category-registration result from the core store.
- *
- * @param {*} error Registration error.
- * @return {boolean} True when the category was already registered.
- */
-function isDuplicateCategoryError( error ) {
-	const message =
-		error instanceof Error ? error.message : String( error || '' );
-
-	return /category.+already registered/i.test( message );
-}
-
-/**
- * Detect whether the WP 7.0 abilities API is available on this page.
- *
- * @return {boolean} True when wp.abilities is loaded and exposes the
- *                   functions we need.
- */
-function abilitiesApiAvailable() {
-	return (
-		typeof wp !== 'undefined' &&
-		!! wp.abilities &&
-		typeof wp.abilities.registerAbility === 'function' &&
-		typeof wp.abilities.registerAbilityCategory === 'function'
-	);
-}
-
-/**
- * Wait up to maxWaitMs for the WP 7.0 abilities API to become available.
- *
- * Addresses the race condition where floating-widget.js (a regular deferred
- * script) may execute before @wordpress/core-abilities (a script module with
- * implicit defer) has had a chance to populate wp.abilities. Previously the
- * code returned early with `undefined`, leaving abilities unregistered with
- * no retry path. Now we poll every 100 ms until the API appears or the
- * deadline passes.
- *
- * @param {number} maxWaitMs Maximum milliseconds to wait (default 30 000).
- * @return {Promise<void>} Resolves when the API is available or the deadline passes.
- */
-async function waitForAbilitiesApi( maxWaitMs = 30_000 ) {
-	if ( abilitiesApiAvailable() ) {
-		return;
-	}
-	await new Promise( ( resolve ) => {
-		const deadline = Date.now() + maxWaitMs;
-		const check = () => {
-			if ( abilitiesApiAvailable() || Date.now() >= deadline ) {
-				resolve();
-			} else {
-				setTimeout( check, 100 );
-			}
-		};
-		setTimeout( check, 50 );
-	} );
-}
-
-/**
- * Register the sd-ai-agent-js category (idempotent, async).
- *
- * Must be awaited before any registerClientAbility() call — the WP 7.0
- * `registerAbilityCategory` API is async, and abilities registered
- * before the category Promise resolves throw
- * "Ability references non-existent category".
- *
- * Multiple concurrent callers receive the same in-flight Promise so we
- * never double-register.
- *
- * @return {Promise<void>}
- */
-export async function registerCategory() {
-	const registry = getPageRegistry();
-	if ( registry.categoryRegistrationPromise ) {
-		categoryRegistrationPromise = registry.categoryRegistrationPromise;
-		return categoryRegistrationPromise;
-	}
-
-	if ( registry.coreRegistrationFailed ) {
-		return;
-	}
-
-	// Set the promise immediately — before any awaits — to prevent concurrent
-	// callers from racing into this function and launching duplicate registrations.
-	// The async body inside will wait for wp.abilities to become available.
-	categoryRegistrationPromise = registry.categoryRegistrationPromise =
-		( async () => {
-			// Wait for @wordpress/core-abilities to populate wp.abilities. This
-			// handles the race condition where floating-widget.js (regular deferred
-			// script) runs before the @wordpress/core-abilities script module has
-			// executed. Previously we returned early with `undefined`, which left
-			// categoryRegistrationPromise null and silently skipped all ability
-			// registration with no retry path.
-			await waitForAbilitiesApi();
-
-			if ( ! abilitiesApiAvailable() ) {
-				// API never became available (e.g. not a WP 7.0+ site). Skip silently.
-				// Clear the module value so a later call can retry after the core
-				// script module becomes available.
-				categoryRegistrationPromise = null;
-				registry.categoryRegistrationPromise = null;
-				return;
-			}
-
-			try {
-				await wp.abilities.registerAbilityCategory( CATEGORY_SLUG, {
-					label: CATEGORY_LABEL,
-					description: CATEGORY_DESCRIPTION,
-				} );
-			} catch ( error ) {
-				// A second bundle or core may have registered this category first.
-				// Treat that idempotent result as success. Other individual category
-				// validation failures must not disable later ability registrations.
-				if ( isDuplicateCategoryError( error ) ) {
-					return;
-				}
-
-				if ( isCoreCategoryHydrationFailure( error ) ) {
-					recordCoreRegistrationFailure( registry, error );
-				}
-			}
-		} )();
-
-	return categoryRegistrationPromise;
-}
-
-/**
- * Register a single client-side ability (async).
- *
- * Shapes the definition with the correct category and meta.annotations,
- * and guards against double-registration.
- *
- * The WP 7.0 `registerAbility` API takes a SINGLE options object whose
- * `name` field identifies the ability — calling it with two positional
- * arguments throws "Ability name is required". The call is also async.
+ * Register one browser ability in the page-local registry.
  *
  * @param {Object}   def              Ability definition.
- * @param {string}   def.name         Fully-qualified ability name (sd-ai-agent-js/...).
+ * @param {string}   def.name         Fully-qualified ability name.
  * @param {string}   def.label        Human-readable label.
- * @param {string}   def.description  Description of what the ability does.
- * @param {Object}   def.inputSchema  JSON Schema for the ability's input.
- * @param {Object}   def.outputSchema JSON Schema for the ability's output.
- * @param {Object}   def.annotations  Annotations (e.g. { readonly: true }).
- * @param {Function} def.callback     The function to execute when the ability is called.
- * @return {Promise<void>}
+ * @param {string}   def.description  Ability description.
+ * @param {Object}   def.inputSchema  JSON Schema for input.
+ * @param {Object}   def.outputSchema JSON Schema for output.
+ * @param {Object}   def.annotations  Ability annotations.
+ * @param {Function} def.callback     Browser execution callback.
+ * @return {Promise<void>} Registration completion.
  */
 export async function registerClientAbility( def ) {
 	if ( ! def || typeof def.name !== 'string' || def.name === '' ) {
@@ -296,22 +76,8 @@ export async function registerClientAbility( def ) {
 	if ( registry.n.has( def.name ) ) {
 		return;
 	}
-	registry.n.add( def.name );
 
-	// Store the callback so executeClientAbility() can invoke it by name
-	// without going through the WP abilities API (which may not expose the
-	// raw return value needed for tool-result forwarding).
-	//
-	// IMPORTANT (sd-ai-86a): this MUST happen BEFORE the
-	// abilitiesApiAvailable() guard. jobSlice's executeClientAbility()
-	// reads only from this local map, so even on pages where the WP 7.0
-	// `@wordpress/abilities` script module did not load in time (or at
-	// all — e.g. some frontend contexts in WP 7.0-RC2), the chat job's
-	// pending_client_tool_calls handler can still invoke
-	// screenshot-url, navigate-to, capture-screenshot, and insert-block.
-	// Without this ordering, executeClientAbility throws
-	// 'Client ability "..." is not registered on this page' even though
-	// the callback function is present in the bundle.
+	registry.n.add( def.name );
 	if ( typeof def.callback === 'function' ) {
 		registry.c.set( def.name, def.callback );
 	}
@@ -323,126 +89,24 @@ export async function registerClientAbility( def ) {
 		output_schema: def.outputSchema || {},
 		annotations: def.annotations || {},
 	} );
-
-	// A malformed third-party ability can make core's shared hydration reject.
-	// Keep the local callback and descriptor available, but do not make each
-	// remaining Superdav ability restart the same failing core request.
-	if ( registry.coreRegistrationFailed ) {
-		return;
-	}
-
-	// The WP 7.0 store is only updated when the abilities API is present
-	// on this page. If it is not, the local callback above is sufficient
-	// to keep client-side tool execution working; snapshotDescriptors()
-	// will fall back to an empty descriptor list and the server-side
-	// JsAbilityCatalog still advertises the abilities for tool calls.
-	if ( ! abilitiesApiAvailable() ) {
-		return;
-	}
-
-	try {
-		await wp.abilities.registerAbility( {
-			name: def.name,
-			label: def.label,
-			description: def.description,
-			category: CATEGORY_SLUG,
-			callback: def.callback,
-			input_schema: def.inputSchema,
-			output_schema: def.outputSchema,
-			meta: {
-				annotations: def.annotations || {},
-			},
-		} );
-	} catch ( error ) {
-		// Ability registration is independent. A duplicate, validation error, or
-		// provider failure for this definition must not block later abilities.
-	}
 }
 
 /**
- * Snapshot the current sd-ai-agent-js/* ability descriptors as plain objects.
+ * Snapshot descriptors for the chat request.
  *
- * Returns an array of descriptor objects suitable for posting to the server
- * as `client_abilities` in the /chat request body. The server validates each
- * name against JsAbilityCatalog::get_descriptors() and drops unknown names.
- *
- * Reads via `wp.abilities.getAbilities()` (the script-module API) rather
- * than via `wp.data.select('core/abilities').getAbilities()`.
- *
- * Root cause (t169 / GH#825, investigated 2026-04-08):
- * The WP 7.0 dev note claims `@wordpress/core-abilities` is enqueued by
- * core on all admin pages, but in WP 7.0-RC2 the module is only
- * *registered* — never added to the script-module queue. Without an
- * explicit `wp_enqueue_script_module('@wordpress/core-abilities')` call,
- * the REST fetch that populates the `core/abilities` wp.data store never
- * runs, so `wp.data.select('core/abilities').getAbilities()` returns 0
- * items. Our PHP enqueue (FloatingWidget, UnifiedAdminMenu)
- * now explicitly enqueues `@wordpress/core-abilities` to fix this.
- *
- * The `wp.abilities.getAbilities()` call below reads from the same Redux
- * store via `select(store).getAbilities()` — it is synchronous and returns
- * an array, not a Promise. The `await` is kept for forward-compatibility
- * in case the API becomes async in a future WP version.
- *
- * TODO(t169): Once WP 7.0 final ships and the upstream enqueue gap is
- * confirmed fixed (or a core bug is filed), verify whether the explicit
- * `@wordpress/core-abilities` enqueue in our PHP files can be removed.
- * If core reliably enqueues it, the workaround becomes redundant.
- *
- * Callers should `await ensureRegistered()` from index.js before calling
- * this so the registration Promises are guaranteed to have resolved.
- *
- * @return {Promise<Array<{name: string, label: string, description: string, input_schema: Object, output_schema: Object, annotations: Object}>>} Promise of client ability descriptors.
+ * @return {Promise<Array<Object>>} Locally registered descriptors.
  */
 export async function snapshotDescriptors() {
-	const registry = getPageRegistry();
-
-	if (
-		typeof wp === 'undefined' ||
-		! wp.abilities ||
-		typeof wp.abilities.getAbilities !== 'function'
-	) {
-		return Array.from( registry.d.values() );
-	}
-
-	try {
-		const allAbilities = ( await wp.abilities.getAbilities() ) || [];
-
-		const descriptors = allAbilities
-			.filter(
-				( ability ) =>
-					ability &&
-					ability.name &&
-					ability.name.startsWith( CATEGORY_SLUG + '/' )
-			)
-			.map( ( ability ) => ( {
-				name: ability.name,
-				label: ability.label || ability.name,
-				description: ability.description || '',
-				input_schema: ability.input_schema || {},
-				output_schema: ability.output_schema || {},
-				annotations: ability.meta?.annotations || {},
-			} ) );
-
-		return descriptors.length
-			? descriptors
-			: Array.from( registry.d.values() );
-	} catch ( _err ) {
-		return Array.from( registry.d.values() );
-	}
+	return Array.from( getPageRegistry().d.values() );
 }
 
 /**
- * Execute a registered client-side ability by name.
+ * Execute a registered browser ability by name.
  *
- * Called by the job-polling logic in jobSlice when the server returns
- * `pending_client_tool_calls`. The ability must have been registered via
- * `registerClientAbility()` in the same page lifetime.
- *
- * @param {string} name Fully-qualified ability name (sd-ai-agent-js/...).
- * @param {Object} args Ability arguments from the model's tool call.
- * @return {Promise<Object>} The ability's result object.
- * @throws {Error} When the ability is not registered in the current page.
+ * @param {string} name Fully-qualified ability name.
+ * @param {Object} args Ability arguments.
+ * @return {Promise<Object>} Ability result.
+ * @throws {Error} When the ability is not registered on this page.
  */
 export async function executeClientAbility( name, args ) {
 	const callback = getPageRegistry().c.get( name );
@@ -450,29 +114,31 @@ export async function executeClientAbility( name, args ) {
 		return callback( args );
 	}
 
-	// Defensive fallback (sd-ai-86a): if the local callback map missed
-	// (e.g. another bundle on the same page registered the ability but
-	// this bundle's module scope did not), try the shared WP 7.0
-	// abilities API. This is rare in practice — both bundles import
-	// the same `src/abilities` tree — but keeps execution resilient
-	// when only the WP store has the ability.
-	if (
-		typeof wp !== 'undefined' &&
-		!! wp.abilities &&
-		typeof wp.abilities.executeAbility === 'function'
-	) {
-		try {
-			return await wp.abilities.executeAbility( name, args );
-		} catch ( err ) {
-			// Surface the WP error message rather than the generic
-			// "not registered" string so the model gets actionable
-			// feedback in the tool result.
-			throw err instanceof Error ? err : new Error( String( err ) );
-		}
-	}
-
 	throw new Error(
 		`Client ability "${ name }" is not registered on this page. ` +
 			'Ensure the ability was registered via registerClientAbility() before the job completed.'
 	);
 }
+
+/**
+ * Publish a small browser API for diagnostics and end-to-end tests.
+ *
+ * This intentionally does not write to `wp.abilities`; that namespace belongs
+ * to WordPress and using it would restart shared provider hydration.
+ */
+window[ WIN_API_KEY ] = {
+	getAbilities: async () =>
+		( await snapshotDescriptors() ).map( ( descriptor ) => ( {
+			...descriptor,
+			meta: { annotations: descriptor.annotations },
+		} ) ),
+	getAbilityCategory: async ( slug ) =>
+		slug === CATEGORY_SLUG
+			? {
+					slug: CATEGORY_SLUG,
+					label: CATEGORY_LABEL,
+					description: CATEGORY_DESCRIPTION,
+			  }
+			: null,
+	executeAbility: executeClientAbility,
+};

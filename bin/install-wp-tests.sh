@@ -399,6 +399,7 @@ mkdir -p "$CACHE_ROOT"
 validate_test_database
 validate_existing_test_config
 acquire_lock
+validate_existing_test_config
 WORK_DIR="$(mktemp -d "$CACHE_ROOT/.wordpress-phpunit-${VERSION_KEY}.XXXXXX")"
 set_wp_tests_tag
 install_wp

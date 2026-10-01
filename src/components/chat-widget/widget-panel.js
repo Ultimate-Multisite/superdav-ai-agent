@@ -33,6 +33,7 @@ import WidgetMessageList from './widget-message-list';
 import WidgetInput from './widget-input';
 import useDrag from './use-drag';
 import useResize from './use-resize';
+import { getBrandingCssVariables } from '../../utils/branding';
 
 const PANEL_POSITION_STORAGE_KEY = 'aiAgentWidgetPanelPosition';
 const PANEL_SIZE_STORAGE_KEY = 'aiAgentWidgetPanelSize';
@@ -171,7 +172,7 @@ export default function WidgetPanel( {
 	const showEmpty =
 		messageCount === 0 && ! sending && ! frontendOnboardingMode;
 
-	const panelStyle = {};
+	const panelStyle = getBrandingCssVariables();
 	if ( position && ! frontendOnboardingMode ) {
 		// Bottom-anchored so minimizing keeps the pill visually at the
 		// bottom of its previous rect (the input row sits where it was).

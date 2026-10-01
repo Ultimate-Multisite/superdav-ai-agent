@@ -29,6 +29,50 @@
 	animation: sdaa-w-panel-in 180ms ease;
 }
 
+.sdaa-w-panel *,
+.sdaa-w-panel *::before,
+.sdaa-w-panel *::after {
+	box-sizing: border-box;
+}
+
+.sdaa-w-panel button,
+.sdaa-w-panel input,
+.sdaa-w-panel textarea,
+.sdaa-w-panel select {
+	font: inherit;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.sdaa-w-panel button {
+	appearance: none;
+	box-shadow: none;
+	text-decoration: none;
+}
+
+.sdaa-w-panel .sdaa-cr-model-chip,
+.sdaa-w-panel .sdaa-cr-popover-item,
+.sdaa-w-panel .sdaa-cr-icon-btn,
+.sdaa-w-panel .sdaa-cr-send-btn,
+.sdaa-w-panel .sdaa-w-head-session,
+.sdaa-w-panel .sdaa-w-new-btn,
+.sdaa-w-panel .sdaa-w-followup-chip,
+.sdaa-w-panel .sdaa-w-icon-btn {
+	font: inherit;
+	letter-spacing: normal;
+	text-transform: none;
+	box-shadow: none;
+}
+
+.sdaa-w-panel .sdaa-cr-send-btn {
+	background: var(--sdaa-primary);
+	color: var(--sdaa-on-primary, #fff);
+}
+
+.sdaa-w-panel .sdaa-cr-send-btn:hover:not(:disabled) {
+	background: var(--sdaa-primary-dark);
+}
+
 .sdaa-w-panel.is-minimized {
 	width: 320px;
 	height: auto;
@@ -244,7 +288,7 @@
 	justify-content: center;
 	border-radius: 50%;
 	background: var(--sdaa-w-primary);
-	color: #fff;
+	color: var(--sdaa-w-on-primary);
 }
 
 .sdaa-w-avatar svg {
@@ -670,7 +714,7 @@
 	margin-top: 1px;
 	border-radius: 50%;
 	background: var(--sdaa-w-primary);
-	color: #fff;
+	color: var(--sdaa-w-on-primary);
 }
 
 .sdaa-w-msg-avatar svg {
@@ -1475,7 +1519,7 @@
 	padding: 0 4px;
 	border-radius: var(--sdaa-w-radius-pill);
 	background: var(--sdaa-w-primary);
-	color: #fff;
+	color: var(--sdaa-w-on-primary, #fff);
 	font-size: 10px;
 	font-weight: 700;
 }

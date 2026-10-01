@@ -15,6 +15,7 @@
  * @property {string} primaryColor    CSS colour string for FAB/title-bar background.
  * @property {string} textColor       CSS colour string for FAB/title-bar text.
  * @property {string} logoUrl         URL of the logo/avatar image (may be empty).
+ * @property {string} greeting        Normalized custom greeting message.
  * @property {string} greetingMessage Custom greeting message (may be empty).
  */
 
@@ -24,15 +25,21 @@
  * @return {BrandingConfig} The branding configuration object.
  */
 export function getBranding() {
-	return (
-		( typeof window !== 'undefined' && window.sdAiAgentBranding ) || {
-			agentName: '',
-			primaryColor: '',
-			textColor: '',
-			logoUrl: '',
-			greetingMessage: '',
-		}
-	);
+	const branding = ( typeof window !== 'undefined' &&
+		window.sdAiAgentBranding ) || {
+		agentName: '',
+		primaryColor: '',
+		textColor: '',
+		logoUrl: '',
+		greetingMessage: '',
+	};
+
+	return {
+		...branding,
+		// Older frontend code read `greeting`; keep it normalized so every
+		// widget surface consumes the same localized `greetingMessage` value.
+		greeting: branding.greeting || branding.greetingMessage || '',
+	};
 }
 
 /**
@@ -45,12 +52,30 @@ export function getBranding() {
  */
 export function getBrandingStyle() {
 	const { primaryColor, textColor } = getBranding();
+	return {
+		...getBrandingCssVariables(),
+		...( primaryColor ? { background: primaryColor } : {} ),
+		...( textColor ? { color: textColor } : {} ),
+	};
+}
+
+/**
+ * Build CSS custom properties for widget surfaces that should inherit branding.
+ *
+ * @return {Object} CSS custom property style object.
+ */
+export function getBrandingCssVariables() {
+	const { primaryColor, textColor } = getBranding();
 	const style = {};
 	if ( primaryColor ) {
-		style.background = primaryColor;
+		style[ '--sdaa-w-primary' ] = primaryColor;
+		style[ '--sdaa-w-primary-dark' ] = primaryColor;
+		style[ '--sdaa-primary' ] = primaryColor;
+		style[ '--sdaa-primary-dark' ] = primaryColor;
 	}
 	if ( textColor ) {
-		style.color = textColor;
+		style[ '--sdaa-w-on-primary' ] = textColor;
+		style[ '--sdaa-on-primary' ] = textColor;
 	}
 	return style;
 }

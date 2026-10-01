@@ -468,10 +468,25 @@ class BlockMutator {
 		$normalized = [];
 		foreach ( $blocks as $block ) {
 			if ( ! is_array( $block ) ) {
-				continue;
+				return new \WP_Error(
+					'invalid_rewrite_block',
+					__( 'Each rewrite block must be an object.', 'superdav-ai-agent' ),
+					[ 'status' => 400 ]
+				);
 			}
-			$norm         = self::normalize_block( $block );
-			$normalized[] = self::sanitize_block_tree( $norm );
+
+			$norm = self::normalize_rewrite_block( $block );
+			if ( is_wp_error( $norm ) ) {
+				return $norm;
+			}
+
+			$sanitized     = self::sanitize_block_tree( $norm );
+			$content_check = self::validate_rewrite_block_content( $block, $sanitized );
+			if ( is_wp_error( $content_check ) ) {
+				return $content_check;
+			}
+
+			$normalized[] = $sanitized;
 		}
 
 		// ── Depth check ─────────────────────────────────────────────
@@ -2115,6 +2130,158 @@ class BlockMutator {
 	}
 
 	/**
+	 * Normalize a rewrite payload without losing supplied leaf HTML.
+	 *
+	 * WordPress serializes block content from innerContent, not innerHTML. The
+	 * rewrite ability documents innerHTML and innerBlocks as its public shape,
+	 * so callers are not required to know WordPress's internal innerContent
+	 * representation. Nested blocks require explicit wrapper fragments and null
+	 * placeholders because their placement cannot be inferred from innerHTML.
+	 *
+	 * @param array<string,mixed> $block Raw rewrite block.
+	 * @return array<string,mixed>|\WP_Error Normalized block or a structural error.
+	 */
+	private static function normalize_rewrite_block( array $block ) {
+		$name  = isset( $block['blockName'] ) && is_string( $block['blockName'] ) ? $block['blockName'] : '';
+		$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : [];
+		$html  = isset( $block['innerHTML'] ) && is_string( $block['innerHTML'] ) ? $block['innerHTML'] : '';
+		$inner = $block['innerBlocks'] ?? [];
+
+		if ( ! is_array( $inner ) ) {
+			return new \WP_Error(
+				'invalid_inner_blocks',
+				__( 'innerBlocks must be an array.', 'superdav-ai-agent' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$normalized_inner = [];
+		foreach ( $inner as $child ) {
+			if ( ! is_array( $child ) ) {
+				return new \WP_Error(
+					'invalid_inner_blocks',
+					__( 'Each innerBlocks entry must be an object.', 'superdav-ai-agent' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$normalized_child = self::normalize_rewrite_block( $child );
+			if ( is_wp_error( $normalized_child ) ) {
+				return $normalized_child;
+			}
+
+			$normalized_inner[] = $normalized_child;
+		}
+
+		$has_inner_content = array_key_exists( 'innerContent', $block );
+		$raw_inner_content = $block['innerContent'] ?? [];
+
+		if ( $has_inner_content && ! is_array( $raw_inner_content ) ) {
+			return new \WP_Error(
+				'invalid_inner_content',
+				__( 'innerContent must be an array of HTML fragments and child placeholders.', 'superdav-ai-agent' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$inner_content = is_array( $raw_inner_content ) ? $raw_inner_content : [];
+
+		if ( $has_inner_content ) {
+			foreach ( $inner_content as $fragment ) {
+				if ( ! is_string( $fragment ) && null !== $fragment ) {
+					return new \WP_Error(
+						'invalid_inner_content',
+						__( 'innerContent entries must be HTML strings or null child placeholders.', 'superdav-ai-agent' ),
+						[ 'status' => 400 ]
+					);
+				}
+			}
+		}
+
+		if ( empty( $normalized_inner ) ) {
+			// Preserve leaf HTML even when the public input omitted innerContent.
+			if ( empty( $inner_content ) && '' !== $html ) {
+				$inner_content = [ $html ];
+			}
+		} elseif ( ! $has_inner_content ) {
+			if ( '' !== trim( $html ) ) {
+				return new \WP_Error(
+					'ambiguous_inner_content',
+					__( 'Nested blocks with wrapper HTML must include innerContent fragments and null child placeholders.', 'superdav-ai-agent' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$inner_content = array_fill( 0, count( $normalized_inner ), null );
+		}
+
+		if ( count( array_filter( $inner_content, 'is_null' ) ) !== count( $normalized_inner ) ) {
+			return new \WP_Error(
+				'invalid_inner_content',
+				__( 'innerContent must contain exactly one null placeholder for each inner block.', 'superdav-ai-agent' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return [
+			'blockName'    => $name,
+			'attrs'        => $attrs,
+			'innerBlocks'  => $normalized_inner,
+			'innerHTML'    => $html,
+			'innerContent' => $inner_content,
+		];
+	}
+
+	/**
+	 * Reject a static leaf whose supplied HTML would serialize as empty content.
+	 *
+	 * @param array<string,mixed> $raw_block Original caller-supplied block.
+	 * @param array<string,mixed> $block Sanitized normalized block.
+	 * @return true|\WP_Error True when the block can serialize without lost text.
+	 */
+	private static function validate_rewrite_block_content( array $raw_block, array $block ) {
+		$raw_html = isset( $raw_block['innerHTML'] ) && is_string( $raw_block['innerHTML'] ) ? $raw_block['innerHTML'] : '';
+		$contents = isset( $block['innerContent'] ) && is_array( $block['innerContent'] ) ? $block['innerContent'] : [];
+		$children = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ? $block['innerBlocks'] : [];
+
+		if ( empty( $children ) && '' !== trim( $raw_html ) && ! self::is_dynamic_block( $block['blockName'] ?? '' ) ) {
+			$has_content = false;
+			foreach ( $contents as $fragment ) {
+				if ( is_string( $fragment ) && '' !== trim( $fragment ) ) {
+					$has_content = true;
+					break;
+				}
+			}
+
+			if ( ! $has_content ) {
+				return new \WP_Error(
+					'rewrite_html_lost',
+					__( 'Supplied HTML for a static block was removed during sanitization; the rewrite was not applied.', 'superdav-ai-agent' ),
+					[ 'status' => 400 ]
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Determine whether a registered block renders dynamically.
+	 *
+	 * @param mixed $block_name Block name.
+	 * @return bool Whether the block uses a server-side render callback.
+	 */
+	private static function is_dynamic_block( mixed $block_name ): bool {
+		if ( ! is_string( $block_name ) || '' === $block_name ) {
+			return false;
+		}
+
+		$block_type = \WP_Block_Type_Registry::get_instance()->get_registered( $block_name );
+
+		return $block_type instanceof \WP_Block_Type && is_callable( $block_type->render_callback );
+	}
+
+	/**
 	 * Strip WordPress block comment delimiters from HTML content.
 	 *
 	 * Block comment delimiters like `<!-- wp:html -->` and `<!-- /wp:paragraph -->`
@@ -2174,6 +2341,25 @@ class BlockMutator {
 			}
 
 			$block['innerBlocks'] = $sanitized;
+		}
+
+		// Dynamic leaf blocks use self-closing comments when sanitization removes
+		// all supplied fragments. Keep that native serialization rather than
+		// turning the block into an empty static wrapper.
+		if ( empty( $block['innerBlocks'] ) && self::is_dynamic_block( $block['blockName'] ?? '' ) ) {
+			$contents         = isset( $block['innerContent'] ) && is_array( $block['innerContent'] ) ? $block['innerContent'] : [];
+			$has_html_content = false;
+
+			foreach ( $contents as $fragment ) {
+				if ( is_string( $fragment ) && '' !== trim( $fragment ) ) {
+					$has_html_content = true;
+					break;
+				}
+			}
+
+			if ( ! $has_html_content ) {
+				$block['innerContent'] = [];
+			}
 		}
 
 		return $block;

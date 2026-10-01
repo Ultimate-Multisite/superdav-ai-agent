@@ -4,6 +4,29 @@ For full browser-accessible local WordPress testing without Docker, including
 multi-worktree site provisioning, see
 [`local-wordpress-worktree-testing.md`](local-wordpress-worktree-testing.md).
 
+## wp-env loopbacks
+
+The browser sites use published ports 8890 and 8893, but Apache listens on port
+80 inside Docker. `tests/mu-plugins/wp-env-loopback.php` routes WordPress HTTP
+requests to its own local site through the Docker service configured by
+`SD_AI_AGENT_WP_ENV_LOOPBACK_HOST` in `.wp-env.json`: `wordpress` for development
+and `tests-wordpress` for tests. It preserves the public Host header and leaves
+external API requests unchanged. The helper requires the explicit wp-env constant
+and the development environment; it is not part of the released plugin.
+
+Run `pnpm exec wp-env start` after changing the configuration. Check the cron
+loopback from the separate CLI container with:
+
+```bash
+pnpm exec wp-env run tests-cli wp eval '$r = wp_remote_get( site_url( "/wp-cron.php" ), array( "timeout" => 5 ) ); echo is_wp_error( $r ) ? $r->get_error_message() : wp_remote_retrieve_response_code( $r );'
+```
+
+Expect HTTP 200. A connection failure to `localhost:8893` means the helper or
+constant is missing. Jobs stuck in `processing` with overdue
+`sd_ai_agent_process_background_job` cron events and no chat-completion traces
+indicate the queue has not reached the provider yet. Check loopback connectivity
+before diagnosing inference latency.
+
 ## PHP unit tests without wp-env
 
 `pnpm run test:php` runs PHPUnit against a shared WordPress core and

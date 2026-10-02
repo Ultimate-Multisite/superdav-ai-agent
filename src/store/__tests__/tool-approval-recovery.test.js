@@ -79,6 +79,48 @@ describe( 'Tool approval recovery', () => {
 		jest.useRealTimers();
 	} );
 
+	it.each( [ false, true ] )(
+		'keeps a saved terminal explanation without duplicating it (reload fails: %s)',
+		async ( reloadFails ) => {
+			apiFetch.mockResolvedValueOnce( {
+				status: 'error',
+				session_id: 12,
+				message: 'The pending approval expired. Start a continuation.',
+				diagnostic: {
+					reason: 'approval_expired',
+					next_action: 'continuation',
+					correlation_id: 'job-123456abcdef',
+				},
+				failure_message_persisted: true,
+			} );
+			if ( reloadFails ) {
+				apiFetch.mockRejectedValueOnce(
+					new Error( 'Reload unavailable' )
+				);
+			} else {
+				apiFetch.mockResolvedValueOnce( {
+					id: 12,
+					messages: [
+						{ role: 'model', parts: [ { text: 'Saved stop' } ] },
+					],
+					tool_calls: [],
+				} );
+			}
+			const dispatch = makeDispatch();
+			await dispatch.pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( dispatch.appendMessage ).toHaveBeenCalledTimes(
+				reloadFails ? 1 : 0
+			);
+			expect( dispatch.setPendingActionCard ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					type: 'active_job_failure',
+					sessionId: 12,
+				} )
+			);
+		}
+	);
+
 	it.each( [
 		'processing',
 		'awaiting_confirmation',

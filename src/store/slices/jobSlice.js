@@ -1045,14 +1045,19 @@ export const actions = {
 								}
 							}
 
-							dispatch.appendMessage(
-								isCreditNotice
-									? creditNoticeMessage
-									: {
-											role: 'system',
-											parts: [ { text: errorText } ],
-									  }
-							);
+							if (
+								! sessionReloaded ||
+								! result.failure_message_persisted
+							) {
+								dispatch.appendMessage(
+									isCreditNotice
+										? creditNoticeMessage
+										: {
+												role: 'system',
+												parts: [ { text: errorText } ],
+										  }
+								);
+							}
 							if ( ! isDurablePlan && ! isCreditNotice ) {
 								if ( canCompactConversation ) {
 									dispatch.setPendingActionCard( {

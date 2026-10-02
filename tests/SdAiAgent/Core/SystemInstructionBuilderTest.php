@@ -221,6 +221,27 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'update options', $section );
 	}
 
+	/** Category/database reports require execution evidence, including with custom prompts. */
+	public function test_category_database_diagnostics_policy_survives_custom_and_native_prompts(): void {
+		$request = 'I need you to check my WooCommerce category database for errors and give me a simple report.';
+		foreach ( [ [], [ 'system_prompt' => 'You are a helpful store assistant.' ] ] as $settings ) {
+			foreach ( [ [ false, true ], [ true, true ], [ true, false ] ] as [ $native_search, $full_catalog ] ) {
+				$instruction = ( new SystemInstructionBuilder( '', $request ) )->build(
+					$settings,
+					[ 'sd-ai-agent/ability-search', 'sd-ai-agent/ability-call' ],
+					$native_search,
+					$full_catalog
+				);
+				$this->assertStringContainsString( 'WooCommerce category database', $instruction );
+				$this->assertStringContainsString( 'Execute available authorized read-only checks', $instruction );
+				$this->assertStringContainsString( 'unexecuted guidance', $instruction );
+				$this->assertStringContainsString( 'not proof of database integrity', $instruction );
+				$this->assertStringContainsString( '`{prefix}`', $instruction );
+				$this->assertSame( 1, substr_count( $instruction, '## Read-only diagnostic requests' ) );
+			}
+		}
+	}
+
 	/** Underspecified prompts must not be treated as permission to mutate. */
 	public function test_underspecified_request_policy_requires_clarification_before_mutation(): void {
 		$section = SystemInstructionBuilder::build_underspecified_request_section();

@@ -130,8 +130,11 @@ class SystemInstructionBuilder {
 		// Use custom system prompt if set, otherwise the built-in default.
 		$custom = $settings['system_prompt'] ?? '';
 		$base   = is_string( $custom ) && '' !== $custom ? $custom : self::default_system_instruction();
-		$base  .= "\n\n" . self::build_advanced_companion_section();
-		$base  .= "\n\n" . self::build_underspecified_request_section();
+		if ( is_string( $custom ) && '' !== $custom ) {
+			$base .= "\n\n" . self::build_read_only_diagnostics_section();
+		}
+		$base .= "\n\n" . self::build_advanced_companion_section();
+		$base .= "\n\n" . self::build_underspecified_request_section();
 
 		// Append memory section if memories exist.
 		$memory_text = Memory::get_formatted_for_prompt();
@@ -369,6 +372,11 @@ class SystemInstructionBuilder {
 		return "## Read-only diagnostic requests\n\n"
 			. 'When the user asks to check, scan, audit, review, or summarize site health, security, performance, updates, or logs, treat the request as read-only unless they explicitly ask you to fix or remediate. '
 			. 'For read-only diagnostic requests, call only inspection abilities, then summarize findings, severity, and recommended next steps. '
+			. 'This also applies to database and taxonomy integrity requests such as "check my WooCommerce category database for errors and give me a simple report". '
+			. 'Execute available authorized read-only checks before reporting; do not replace callable inspection tools with SQL advice. Follow Tool routing to discover suitable tools before declaring execution unavailable. '
+			. 'Use only the current site and real current user. For an available `sd-ai-agent/db-query`, use SELECT checks with `{prefix}` for the current site tables and schema-declared placeholders/params for values; never blindly use a user-supplied table prefix. '
+			. 'Report only findings supported by successful tool results, state which checks actually ran, and disclose errors, pagination, and unchecked areas. A category inventory is not proof of database integrity. '
+			. 'If no suitable tool is available or access is denied, explicitly say that the requested database check could not be executed in this session and explain the observed availability or permission limitation. Label any suggested SQL as unexecuted guidance, not a completed check; never invent findings or bypass access controls. '
 			. 'Do not install or activate plugins, change security settings, write files, run privileged configuration commands, update options, execute remediation PHP/SQL/WP-CLI, or navigate to unrelated admin pages. '
 			. 'If remediation seems useful, ask for explicit approval and name the proposed changes before taking action.';
 	}

@@ -839,6 +839,51 @@ class AgentLoopTest extends WP_UnitTestCase {
 	// run() — happy path
 	// -------------------------------------------------------------------------
 
+	/** Script only model decisions; execute the real discovery/bridge/database path. */
+	public function test_category_database_request_runs_read_only_check_before_scripted_report(): void {
+		$admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+		grant_super_admin( $admin_id );
+		$report = 'The executed orphan-parent check found 0 orphan categories. Other database checks were not performed.';
+		$loop = new ScriptedAgentLoop(
+			'I need you to check my WooCommerce category database for errors and give me a simple report.',
+			[ 'sd-ai-agent/ability-search', 'sd-ai-agent/ability-call' ],
+			[],
+			[ 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model' ],
+			[
+				$this->create_scripted_result( '', new FunctionCall( 'category-search', 'wpab__sd-ai-agent__ability-search', [ 'query' => 'database' ] ) ),
+				$this->create_scripted_result(
+					'',
+					new FunctionCall(
+						'category-check',
+						'wpab__sd-ai-agent__ability-call',
+						[
+							'ability'   => 'sd-ai-agent/db-query',
+							'arguments' => [
+								'sql'    => 'SELECT COUNT(*) AS orphan_categories FROM {prefix}term_taxonomy AS child LEFT JOIN {prefix}term_taxonomy AS parent ON parent.term_id = child.parent AND parent.taxonomy = child.taxonomy WHERE child.taxonomy = %s AND child.parent <> 0 AND parent.term_id IS NULL',
+								'params' => [ 'product_cat' ],
+							],
+						]
+					)
+				),
+				$this->create_scripted_result( $report ),
+			]
+		);
+		$result = $loop->run();
+		$this->assertIsArray( $result );
+		$this->assertSame( $report, $result['reply'] );
+		$this->assertCount( 4, $result['tool_calls'] );
+		$check_response = $result['tool_calls'][3]['response'];
+		$this->assertTrue( $check_response['success'] );
+		$this->assertSame( '0', (string) $check_response['result']['rows'][0]['orphan_categories'] );
+		$this->assertSame( 3, $result['iterations_used'] );
+		$history = (string) wp_json_encode( $result['history'] );
+		$this->assertStringContainsString( 'orphan_categories', $history );
+		$this->assertStringContainsString( 'product_cat', $history );
+		$this->assertStringNotContainsString( 'ability_disabled', $history );
+		$this->assertSame( $admin_id, get_current_user_id() );
+	}
+
 	/**
 	 * Test run() returns a reply when the AI responds with text.
 	 */

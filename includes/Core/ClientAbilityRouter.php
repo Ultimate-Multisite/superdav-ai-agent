@@ -268,7 +268,7 @@ final class ClientAbilityRouter {
 		}
 
 		$validated = NavigationAbilities::handle_navigate( $args['arguments'] );
-		if ( is_wp_error( $validated ) || ! is_array( $validated ) || empty( $validated['url'] ) ) {
+		if ( is_wp_error( $validated ) || ! is_array( $validated ) || empty( $validated['url'] ) || 'navigate' !== ( $validated['action'] ?? '' ) ) {
 			return null;
 		}
 

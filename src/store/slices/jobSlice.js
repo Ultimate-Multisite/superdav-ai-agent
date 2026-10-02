@@ -24,6 +24,19 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 const activePollersByDispatch = new WeakMap();
 
 /**
+ * Check whether a newer job owns the session.
+ *
+ * @param {Object} select    Store selectors.
+ * @param {number} sessionId Session identifier.
+ * @param {string} jobId     Job whose ownership is being checked.
+ * @return {boolean} Whether the tracked job belongs to another poller.
+ */
+function hasReplacementJob( select, sessionId, jobId ) {
+	const sessionJob = select.getSessionJob( sessionId );
+	return !! sessionJob && sessionJob.jobId !== jobId;
+}
+
+/**
  * Submit one decision, then use polling to reconcile ambiguous responses.
  *
  * @param {Object}  context     Store helpers.
@@ -53,8 +66,7 @@ export async function submitToolDecision(
 					: undefined,
 		} );
 	} catch {
-		const activeJobId = select.getSessionJob( sessionId )?.jobId;
-		if ( activeJobId && activeJobId !== jobId ) {
+		if ( hasReplacementJob( select, sessionId, jobId ) ) {
 			return;
 		}
 		// Never retry a decision POST or infer approval from a failed response.
@@ -461,10 +473,6 @@ export const actions = {
 				}
 			} );
 			let pollingStopped = false;
-			const ownsSessionJob = () => {
-				const sessionJob = select.getSessionJob( sessionId );
-				return ! sessionJob || sessionJob.jobId === jobId;
-			};
 			const stopPolling = () => {
 				if ( pollingStopped ) {
 					return;
@@ -472,7 +480,7 @@ export const actions = {
 				pollingStopped = true;
 				activePollers.delete( pollerKey );
 				unsubscribeVisibility();
-				if ( ownsSessionJob() ) {
+				if ( ! hasReplacementJob( select, sessionId, jobId ) ) {
 					clearActiveJob( sessionId );
 				}
 			};
@@ -559,7 +567,7 @@ export const actions = {
 					}
 
 					if ( result.status === 'processing' ) {
-						if ( ! ownsSessionJob() ) {
+						if ( hasReplacementJob( select, sessionId, jobId ) ) {
 							return stopPolling();
 						}
 						// Clear stale approval status even before new activity arrives.
@@ -621,11 +629,11 @@ export const actions = {
 						}
 
 						// Re-check job is still active before continuing.
-						if ( ownsSessionJob() ) {
-							poll();
-						} else {
+						if ( hasReplacementJob( select, sessionId, jobId ) ) {
 							// Different job is now active; stop this poller.
 							stopPolling();
+						} else {
+							poll();
 						}
 						return;
 					}
@@ -662,8 +670,7 @@ export const actions = {
 						}
 
 						// Don't clear sending — still waiting.
-						stopPolling();
-						return;
+						return stopPolling();
 					}
 
 					if ( result.status === 'pending_proposal' ) {
@@ -683,8 +690,7 @@ export const actions = {
 						}
 
 						// Don't clear sending — still waiting.
-						stopPolling();
-						return;
+						return stopPolling();
 					}
 
 					if ( result.status === 'awaiting_client_tools' ) {

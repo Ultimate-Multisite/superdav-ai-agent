@@ -3100,7 +3100,7 @@ PROMPT;
 		// when content-generation or theme-modification tools are in scope.
 		if ( ! $this->system_instruction_locked ) {
 			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search() );
+			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->native_full_catalog && $this->should_use_native_tool_search() );
 		}
 
 		$started_at               = microtime( true );
@@ -4470,7 +4470,7 @@ PROMPT;
 	 * @return list<string>
 	 */
 	private function system_prompt_ability_names( array $resolved_abilities ): array {
-		if ( ! $this->should_use_native_tool_search() ) {
+		if ( ! $this->native_full_catalog || ! $this->should_use_native_tool_search() ) {
 			return array_values(
 				array_map(
 					static fn( \WP_Ability $a ): string => $a->get_name(),

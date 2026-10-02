@@ -24,6 +24,81 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 const activePollersByDispatch = new WeakMap();
 
 /**
+ * Check whether a newer job owns the session.
+ *
+ * @param {Object} select    Store selectors.
+ * @param {number} sessionId Session identifier.
+ * @param {string} jobId     Job whose ownership is being checked.
+ * @return {boolean} Whether the tracked job belongs to another poller.
+ */
+function hasReplacementJob( select, sessionId, jobId ) {
+	const sessionJob = select.getSessionJob( sessionId );
+	return !! sessionJob && sessionJob.jobId !== jobId;
+}
+
+/**
+ * Store a job's identity, status, and activity using one consistent shape.
+ *
+ * @param {Object} dispatch  Store actions.
+ * @param {number} sessionId Session identifier.
+ * @param {string} jobId     Job identifier.
+ * @param {string} status    Job status.
+ * @param {Array}  toolCalls Live activity.
+ */
+export function trackSessionJob(
+	dispatch,
+	sessionId,
+	jobId,
+	status = 'processing',
+	toolCalls = []
+) {
+	dispatch.setSessionJob( sessionId, { jobId, toolCalls, status } );
+}
+
+/**
+ * Submit one decision, then use polling to reconcile ambiguous responses.
+ *
+ * @param {Object}  context     Store helpers.
+ * @param {string}  jobId       Paused job identifier.
+ * @param {string}  decision    Confirm or reject.
+ * @param {boolean} alwaysAllow Persist permission for confirmed tools.
+ * @return {Promise<void>} Decision submission.
+ */
+export async function submitToolDecision(
+	context,
+	jobId,
+	decision,
+	alwaysAllow = false
+) {
+	const { dispatch, select } = context;
+	const sessionId = select.getCurrentSessionId();
+	dispatch.setPendingConfirmation( null );
+	dispatch.setPendingActionCard( null );
+	clearNotification( jobId );
+	try {
+		await apiFetch( {
+			path: `/sd-ai-agent/v1/job/${ jobId }/${ decision }`,
+			method: 'POST',
+			data:
+				decision === 'confirm'
+					? { always_allow: alwaysAllow }
+					: undefined,
+		} );
+	} catch {
+		if ( hasReplacementJob( select, sessionId, jobId ) ) {
+			return;
+		}
+		// Never retry a decision POST or infer approval from a failed response.
+		if ( select.getCurrentSessionId() === sessionId ) {
+			dispatch.setCurrentJobId( jobId );
+			dispatch.setSending( true );
+		}
+	}
+	// The poller restores fresh approvals, saved results, or a real job error.
+	dispatch.pollJob( jobId, sessionId );
+}
+
+/**
  * Merge real tool calls with assistant channel messages for live rendering.
  *
  * Backend `tool_calls` contains real tool invocations/results. Model preambles
@@ -239,11 +314,7 @@ export const actions = {
 
 				dispatch.setPendingActionCard( null );
 				dispatch.setCurrentJobId( result.job_id );
-				dispatch.setSessionJob( sessionId, {
-					jobId: result.job_id,
-					toolCalls: [],
-					status: 'processing',
-				} );
+				trackSessionJob( dispatch, sessionId, result.job_id );
 				dispatch.pollJob( result.job_id, sessionId );
 			} catch ( err ) {
 				dispatch.appendMessage( {
@@ -328,11 +399,7 @@ export const actions = {
 				// Re-register and resume polling the existing job.
 				setActiveJob( sessionId, jobId );
 				dispatch.setCurrentJobId( jobId );
-				dispatch.setSessionJob( sessionId, {
-					jobId,
-					toolCalls: [],
-					status: 'processing',
-				} );
+				trackSessionJob( dispatch, sessionId, jobId );
 				dispatch.pollJob( jobId, sessionId );
 			} else {
 				// Still failing — restore retry state and surface the error.
@@ -424,6 +491,36 @@ export const actions = {
 				pollingStopped = true;
 				activePollers.delete( pollerKey );
 				unsubscribeVisibility();
+				if ( ! hasReplacementJob( select, sessionId, jobId ) ) {
+					clearActiveJob( sessionId );
+				}
+			};
+			let ownershipLost = false;
+			const stopIfReplaced = () => {
+				ownershipLost =
+					ownershipLost ||
+					hasReplacementJob( select, sessionId, jobId );
+				if ( ownershipLost ) {
+					stopPolling();
+				}
+				return ownershipLost;
+			};
+			const reloadSession = async () => {
+				const session = await apiFetch( {
+					path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
+				} );
+				if (
+					stopIfReplaced() ||
+					select.getCurrentSessionId() !== sessionId
+				) {
+					return false;
+				}
+				dispatch.setCurrentSession(
+					session.id,
+					session.messages || [],
+					session.tool_calls || []
+				);
+				return true;
 			};
 
 			/**
@@ -449,13 +546,41 @@ export const actions = {
 			// Used outside the try block to decide whether to play the ding.
 			let lastStatusComplete = false;
 			let lastLiveActivity = [];
+			const finishJob = (
+				drainQueue = false,
+				clearLiveActivity = true
+			) => {
+				if ( stopIfReplaced() ) {
+					return;
+				}
+				stopPolling();
+				if ( select.getCurrentSessionId() === sessionId ) {
+					if ( lastStatusComplete ) {
+						playDing();
+					}
+					dispatch.setSending( false );
+					if ( clearLiveActivity ) {
+						dispatch.setLiveToolCalls( [] );
+					}
+					dispatch.setCurrentJobId( null );
+				}
+				// Release the old owner before a queued message can register a new job.
+				dispatch.setSessionJob( sessionId, null );
+				if (
+					drainQueue &&
+					select.getCurrentSessionId() === sessionId
+				) {
+					dispatch.drainMessageQueue();
+				}
+			};
 
 			const poll = async () => {
+				if ( stopIfReplaced() ) {
+					return;
+				}
 				lastStatusComplete = false;
 				attempts++;
 				if ( attempts > maxAttempts ) {
-					stopPolling();
-					clearActiveJob( sessionId );
 					// Only append error and update UI for the current session.
 					if ( select.getCurrentSessionId() === sessionId ) {
 						dispatch.appendMessage( {
@@ -466,10 +591,8 @@ export const actions = {
 							reason: 'timeout',
 							eventId: jobId,
 						} );
-						dispatch.setSending( false );
 					}
-					dispatch.setCurrentJobId( null );
-					dispatch.setSessionJob( sessionId, null );
+					finishJob( false, false );
 					return;
 				}
 
@@ -477,6 +600,9 @@ export const actions = {
 					const result = await apiFetch( {
 						path: `/sd-ai-agent/v1/job/${ jobId }`,
 					} );
+					if ( stopIfReplaced() ) {
+						return;
+					}
 
 					// Successful poll — reset the transient-error counter so
 					// only *consecutive* failures count toward the cap.
@@ -497,26 +623,39 @@ export const actions = {
 							/* webpackChunkName: "durable-plan-actions" */
 							'./durable-plan-actions'
 						)
-							.then( ( { syncDurablePlanCard } ) =>
-								syncDurablePlanCard(
+							.then( ( { syncDurablePlanCard } ) => {
+								if ( stopIfReplaced() ) {
+									return;
+								}
+								return syncDurablePlanCard(
 									{ dispatch, select },
 									durablePlan,
 									sessionId,
 									result.status
-								)
-							)
+								);
+							} )
 							.catch( () => undefined );
 					}
 
-					if ( result.status === 'processing' ) {
-						// Update per-session job state for ALL sessions.
-						if ( liveActivity.length ) {
-							dispatch.setSessionJob( sessionId, {
-								jobId,
-								toolCalls: liveActivity,
-								status: 'processing',
-							} );
+					// Update owned running/paused state even before activity arrives.
+					if (
+						[
+							'processing',
+							'awaiting_confirmation',
+							'pending_proposal',
+						].includes( result.status )
+					) {
+						trackSessionJob(
+							dispatch,
+							sessionId,
+							jobId,
+							result.status,
+							liveActivity
+						);
+					}
 
+					if ( result.status === 'processing' ) {
+						if ( liveActivity.length ) {
 							// Fire `tool-applied` reflection events for any
 							// new response entries that carry an `affected`
 							// descriptor. Cursor-driven so each event fires
@@ -568,26 +707,12 @@ export const actions = {
 							);
 						}
 
-						// Re-check job is still active before continuing.
-						const currentJobId = select.getCurrentJobId();
-						if ( currentJobId !== jobId && currentJobId !== null ) {
-							// Different job is now active; stop this poller.
-							stopPolling();
-							clearActiveJob( sessionId );
-							return;
-						}
-
+						// The next poll re-checks ownership before requesting status.
 						poll();
 						return;
 					}
 
 					if ( result.status === 'awaiting_confirmation' ) {
-						dispatch.setSessionJob( sessionId, {
-							jobId,
-							toolCalls: liveActivity,
-							status: 'awaiting_confirmation',
-						} );
-
 						// Only show confirmation UI for the active session.
 						if ( select.getCurrentSessionId() === sessionId ) {
 							const cardData = {
@@ -613,20 +738,12 @@ export const actions = {
 						}
 
 						// Don't clear sending — still waiting.
-						stopPolling();
-						clearActiveJob( sessionId );
-						return;
+						return stopPolling();
 					}
 
 					if ( result.status === 'pending_proposal' ) {
 						// The agent loop has paused for a proposal approval (GH#1824).
 						// Show the proposal panel to the user.
-						dispatch.setSessionJob( sessionId, {
-							jobId,
-							toolCalls: liveActivity,
-							status: 'pending_proposal',
-						} );
-
 						// Only show proposal UI for the active session.
 						if ( select.getCurrentSessionId() === sessionId ) {
 							dispatch.setPendingProposal(
@@ -635,9 +752,7 @@ export const actions = {
 						}
 
 						// Don't clear sending — still waiting.
-						stopPolling();
-						clearActiveJob( sessionId );
-						return;
+						return stopPolling();
 					}
 
 					if ( result.status === 'awaiting_client_tools' ) {
@@ -661,6 +776,9 @@ export const actions = {
 								/* webpackChunkName: "client-tool-runner" */
 								'./client-tool-runner'
 							);
+							if ( stopIfReplaced() ) {
+								return;
+							}
 							toolResults = await runClientTools(
 								pendingClientToolCalls
 							);
@@ -674,6 +792,9 @@ export const actions = {
 								( { id, name } ) => ( { id, name, error } )
 							);
 						}
+						if ( stopIfReplaced() ) {
+							return;
+						}
 
 						// POST results back to the server so the agent loop
 						// can continue with the screenshot/DOM data.
@@ -685,16 +806,18 @@ export const actions = {
 						// job_id is passed so the server can update the job
 						// transient from 'awaiting_client_tools' to the correct
 						// post-resume state, preventing an infinite 409 loop.
-						const currentSessionId = select.getCurrentSessionId();
 						let postSucceeded = false;
 						let postErr = null;
 						for ( let attempt = 0; attempt < 3; attempt++ ) {
+							if ( stopIfReplaced() ) {
+								return;
+							}
 							try {
 								await apiFetch( {
 									path: '/sd-ai-agent/v1/chat/tool-result',
 									method: 'POST',
 									data: {
-										session_id: currentSessionId,
+										session_id: sessionId,
 										job_id: jobId,
 										tool_results: toolResults,
 									},
@@ -723,16 +846,19 @@ export const actions = {
 							}
 						}
 
+						if ( stopIfReplaced() ) {
+							return;
+						}
 						if ( ! postSucceeded ) {
 							// All retries exhausted — preserve the tool results so
 							// the user can retry via the action card without
 							// re-running the browser-side tools.
-							if ( currentSessionId === sessionId ) {
+							if ( select.getCurrentSessionId() === sessionId ) {
 								const toolNames = toolResults.map(
 									( r ) => r.name
 								);
 								dispatch.setPendingToolResultRetry( {
-									sessionId: currentSessionId,
+									sessionId,
 									jobId,
 									toolResults,
 									toolNames,
@@ -766,12 +892,8 @@ export const actions = {
 									reason: 'client_tool_submission_error',
 									eventId: jobId,
 								} );
-								dispatch.setSending( false );
 							}
-							stopPolling();
-							clearActiveJob( sessionId );
-							dispatch.setCurrentJobId( null );
-							dispatch.setSessionJob( sessionId, null );
+							finishJob( false, false );
 							return;
 						}
 
@@ -785,7 +907,6 @@ export const actions = {
 						if ( window._sdAiAgentPendingNavigation ) {
 							const target = window._sdAiAgentPendingNavigation;
 							delete window._sdAiAgentPendingNavigation;
-							clearActiveJob( sessionId );
 							stopPolling();
 							window.location.assign( target );
 							return;
@@ -804,7 +925,6 @@ export const actions = {
 									} )
 								);
 							} catch ( _err ) {}
-							clearActiveJob( sessionId );
 							stopPolling();
 							window.location.assign( target );
 							return;
@@ -827,9 +947,9 @@ export const actions = {
 						// terminal error so the UI cannot submit a confirmation for a
 						// job that has already been closed.
 						const isDurablePlan = durablePlan?.plan_id;
-						const isCurrentSession =
+						const isCurrentSession = () =>
 							select.getCurrentSessionId() === sessionId;
-						if ( isCurrentSession ) {
+						if ( isCurrentSession() ) {
 							dispatch.setPendingConfirmation?.( null );
 							if ( ! isDurablePlan ) {
 								dispatch.setPendingActionCard?.( null );
@@ -857,6 +977,9 @@ export const actions = {
 							);
 						} catch {
 							// Continue terminal cleanup with generic, display-safe copy.
+						}
+						if ( stopIfReplaced() ) {
+							return;
 						}
 
 						if ( hasFailureDiagnostic && failureHelpers ) {
@@ -886,7 +1009,7 @@ export const actions = {
 								  )
 								: null;
 
-						if ( isCurrentSession ) {
+						if ( isCurrentSession() ) {
 							let sessionReloaded = false;
 							const payloadRecovery = result.payload_recovery;
 							const sourceSessionId = Number(
@@ -898,23 +1021,16 @@ export const actions = {
 								sourceSessionId === Number( sessionId );
 							if ( result.session_id ) {
 								try {
-									const session = await apiFetch( {
-										path: `/sd-ai-agent/v1/sessions/${ result.session_id }`,
-									} );
-									if (
-										select.getCurrentSessionId() ===
-										sessionId
-									) {
-										dispatch.setCurrentSession(
-											session.id,
-											session.messages || [],
-											session.tool_calls || []
-										);
-										sessionReloaded = true;
-									}
+									sessionReloaded = await reloadSession();
 								} catch {
 									// Fall back to the live polling snapshot below.
 								}
+							}
+							if ( stopIfReplaced() ) {
+								return;
+							}
+							if ( ! isCurrentSession() ) {
+								return finishJob();
 							}
 
 							if ( ! sessionReloaded ) {
@@ -1010,21 +1126,14 @@ export const actions = {
 							select.getCurrentSessionId() === sessionId
 						) {
 							try {
-								const session = await apiFetch( {
-									path: `/sd-ai-agent/v1/sessions/${ result.session_id }`,
-								} );
-								// Guard: still the active session after the async fetch.
-								if (
-									select.getCurrentSessionId() ===
-									result.session_id
-								) {
-									dispatch.setCurrentSession(
-										session.id,
-										session.messages || [],
-										session.tool_calls || []
-									);
+								await reloadSession();
+								if ( stopIfReplaced() ) {
+									return;
 								}
 							} catch {
+								if ( stopIfReplaced() ) {
+									return;
+								}
 								// Fallback: append locally if DB reload fails.
 								if ( result.reply ) {
 									dispatch.appendMessage( {
@@ -1155,6 +1264,9 @@ export const actions = {
 						lastStatusComplete = true;
 					}
 				} catch ( err ) {
+					if ( stopIfReplaced() ) {
+						return;
+					}
 					// Classify the failure so the customer is always told
 					// what happened instead of staring at "Composing reply…".
 					//
@@ -1178,22 +1290,14 @@ export const actions = {
 					if ( isJobMissing ) {
 						let reloadFailed = false;
 						try {
-							const session = await apiFetch( {
-								path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
-							} );
-							if ( select.getCurrentSessionId() === sessionId ) {
-								dispatch.setCurrentSession(
-									session.id,
-									session.messages || [],
-									session.tool_calls || []
-								);
-							}
+							await reloadSession();
 						} catch {
 							reloadFailed = true;
 						}
+						if ( stopIfReplaced() ) {
+							return;
+						}
 
-						stopPolling();
-						clearActiveJob( sessionId );
 						if ( select.getCurrentSessionId() === sessionId ) {
 							dispatch.setPendingConfirmation?.( null );
 							dispatch.setPendingActionCard?.( null );
@@ -1215,40 +1319,32 @@ export const actions = {
 									eventId: jobId,
 								} );
 							}
-							dispatch.setSending( false );
-							dispatch.setLiveToolCalls( [] );
-							dispatch.drainMessageQueue();
 						}
-						dispatch.setCurrentJobId( null );
-						dispatch.setSessionJob( sessionId, null );
+						finishJob( true );
 						return;
 					}
 
-					// Transient (network blip, 5xx, parse error). Retry with
-					// backoff but cap consecutive failures so a dead endpoint
-					// cannot keep the user trapped on the sending spinner.
-					consecutiveErrors++;
+					// Rejected status reads are terminal; network/5xx failures get
+					// bounded retries. Never confuse an access refusal with job success.
+					const requestRejected = [ 400, 401, 403 ].includes(
+						err?.data?.status
+					);
+					consecutiveErrors = requestRejected
+						? maxConsecutiveErrors
+						: consecutiveErrors + 1;
 					if ( consecutiveErrors >= maxConsecutiveErrors ) {
-						stopPolling();
-						clearActiveJob( sessionId );
 						if ( select.getCurrentSessionId() === sessionId ) {
 							let sessionReloaded = false;
 							try {
-								const session = await apiFetch( {
-									path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
-								} );
-								if (
-									select.getCurrentSessionId() === sessionId
-								) {
-									dispatch.setCurrentSession(
-										session.id,
-										session.messages || [],
-										session.tool_calls || []
-									);
-									sessionReloaded = true;
-								}
+								sessionReloaded = await reloadSession();
 							} catch {
 								// Preserve the live polling snapshot below.
+							}
+							if ( stopIfReplaced() ) {
+								return;
+							}
+							if ( select.getCurrentSessionId() !== sessionId ) {
+								return finishJob();
 							}
 
 							if ( ! sessionReloaded ) {
@@ -1265,10 +1361,13 @@ export const actions = {
 								role: 'system',
 								parts: [
 									{
-										text: __(
-											'Error: Lost connection to the server while waiting for the job to finish. Reload the page to see if anything was saved.',
-											'superdav-ai-agent'
-										),
+										text:
+											requestRejected && err.message
+												? `Error: ${ err.message }`
+												: __(
+														'Error: Lost connection to the server while waiting for the job to finish. Reload the page to see if anything was saved.',
+														'superdav-ai-agent'
+												  ),
 									},
 								],
 							} );
@@ -1277,11 +1376,8 @@ export const actions = {
 								reason: 'server_connection_error',
 								eventId: jobId,
 							} );
-							dispatch.setSending( false );
-							dispatch.setLiveToolCalls( [] );
 						}
-						dispatch.setCurrentJobId( null );
-						dispatch.setSessionJob( sessionId, null );
+						finishJob();
 						return;
 					}
 
@@ -1293,22 +1389,12 @@ export const actions = {
 				}
 
 				// Job finished (complete or error).
-				stopPolling();
-				clearActiveJob( sessionId );
-				if ( select.getCurrentSessionId() === sessionId ) {
-					// Play success sound when the job completed without error.
-					if ( lastStatusComplete ) {
-						playDing();
-					}
-					dispatch.setSending( false );
-					dispatch.setLiveToolCalls( [] );
-					// Auto-drain the message queue.
-					dispatch.drainMessageQueue();
-				}
-				dispatch.setCurrentJobId( null );
-				dispatch.setSessionJob( sessionId, null );
+				finishJob( true );
 			};
 
+			if ( stopIfReplaced() ) {
+				return;
+			}
 			// Persist to sessionStorage so the poll loop survives same-tab
 			// wp-admin page navigation (Phase 4 / t206).
 			setActiveJob( sessionId, jobId );

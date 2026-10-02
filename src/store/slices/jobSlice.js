@@ -461,6 +461,10 @@ export const actions = {
 				}
 			} );
 			let pollingStopped = false;
+			const ownsSessionJob = () => {
+				const sessionJob = select.getSessionJob( sessionId );
+				return ! sessionJob || sessionJob.jobId === jobId;
+			};
 			const stopPolling = () => {
 				if ( pollingStopped ) {
 					return;
@@ -468,8 +472,7 @@ export const actions = {
 				pollingStopped = true;
 				activePollers.delete( pollerKey );
 				unsubscribeVisibility();
-				const sessionJob = select.getSessionJob( sessionId );
-				if ( ! sessionJob || sessionJob.jobId === jobId ) {
+				if ( ownsSessionJob() ) {
 					clearActiveJob( sessionId );
 				}
 			};
@@ -556,8 +559,7 @@ export const actions = {
 					}
 
 					if ( result.status === 'processing' ) {
-						const sessionJob = select.getSessionJob( sessionId );
-						if ( sessionJob && sessionJob.jobId !== jobId ) {
+						if ( ! ownsSessionJob() ) {
 							stopPolling();
 							return;
 						}
@@ -620,8 +622,7 @@ export const actions = {
 						}
 
 						// Re-check job is still active before continuing.
-						const currentJobId = select.getCurrentJobId();
-						if ( currentJobId !== jobId && currentJobId !== null ) {
+						if ( ! ownsSessionJob() ) {
 							// Different job is now active; stop this poller.
 							stopPolling();
 							return;

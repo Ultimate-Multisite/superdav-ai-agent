@@ -29,7 +29,7 @@ const { onVisibilityChange } = require( '../../utils/visibility-manager' );
 describe( 'Tool approval recovery', () => {
 	const select = {
 		getCurrentSessionId: jest.fn(),
-		getCurrentJobId: () => 'job-1',
+		getCurrentJobId: jest.fn(),
 		getSessionJob: jest.fn(),
 	};
 	const makeDispatch = () => {
@@ -64,6 +64,7 @@ describe( 'Tool approval recovery', () => {
 		apiFetch.mockReset();
 		sessionStorage.clear();
 		select.getCurrentSessionId.mockReset().mockReturnValue( 12 );
+		select.getCurrentJobId.mockReset().mockReturnValue( 'job-1' );
 		select.getSessionJob.mockReset().mockReturnValue( { jobId: 'job-1' } );
 	} );
 
@@ -91,6 +92,28 @@ describe( 'Tool approval recovery', () => {
 		expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
 		expect( unsubscribe ).toHaveBeenCalledTimes( 1 );
 		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'stops when session ownership changes during the polling delay', async () => {
+		apiFetch.mockResolvedValue( { status: 'processing', tool_calls: [] } );
+		await makeDispatch().pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+		setActiveJob( 12, 'newer-job' );
+		await jest.advanceTimersByTimeAsync( 20000 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+	} );
+
+	it( 'keeps polling its session when another session has the current job', async () => {
+		select.getCurrentSessionId.mockReturnValue( 99 );
+		select.getCurrentJobId.mockReturnValue( 'other-session-job' );
+		apiFetch
+			.mockResolvedValueOnce( { status: 'processing', tool_calls: [] } )
+			.mockResolvedValueOnce( { status: 'awaiting_confirmation' } );
+		await makeDispatch().pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 3000 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 2 );
 	} );
 
 	it.each( [ null, { jobId: 'job-1' } ] )(

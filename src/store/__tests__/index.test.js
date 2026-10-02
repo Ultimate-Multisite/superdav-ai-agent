@@ -902,6 +902,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'client-tool-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'client-tool-job' } ) ),
 		};
 
 		try {
@@ -1105,6 +1106,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'runner-failure-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'runner-failure-job' } ) ),
 		};
 
 		try {
@@ -1170,6 +1172,9 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'restored-client-tool-job' ),
+			getSessionJob: jest.fn( () => ( {
+				jobId: 'restored-client-tool-job',
+			} ) ),
 		};
 
 		try {
@@ -1253,6 +1258,9 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'readiness-failure-job' ),
+			getSessionJob: jest.fn( () => ( {
+				jobId: 'readiness-failure-job',
+			} ) ),
 		};
 
 		try {
@@ -1322,6 +1330,9 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'readiness-timeout-job' ),
+			getSessionJob: jest.fn( () => ( {
+				jobId: 'readiness-timeout-job',
+			} ) ),
 		};
 
 		try {
@@ -1394,6 +1405,9 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'readiness-window-job' ),
+			getSessionJob: jest.fn( () => ( {
+				jobId: 'readiness-window-job',
+			} ) ),
 		};
 
 		try {
@@ -1472,6 +1486,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'client-tool-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'client-tool-job' } ) ),
 		};
 
 		try {
@@ -1538,6 +1553,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'page-quality-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'page-quality-job' } ) ),
 		};
 
 		try {

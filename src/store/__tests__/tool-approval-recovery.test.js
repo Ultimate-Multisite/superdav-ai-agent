@@ -31,6 +31,7 @@ describe( 'Tool approval recovery', () => {
 		getCurrentSessionId: jest.fn(),
 		getCurrentJobId: jest.fn(),
 		getSessionJob: jest.fn(),
+		getSessionJobs: jest.fn(),
 	};
 	const makeDispatch = () => {
 		const dispatch = {
@@ -47,6 +48,8 @@ describe( 'Tool approval recovery', () => {
 			setFeedbackBanner: jest.fn(),
 			fetchSessions: jest.fn(),
 			drainMessageQueue: jest.fn(),
+			resetSessionTokens: jest.fn(),
+			addOpenTab: jest.fn(),
 		};
 		dispatch.pollJob = jest.fn( ( jobId, sessionId ) =>
 			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
@@ -66,6 +69,9 @@ describe( 'Tool approval recovery', () => {
 		select.getCurrentSessionId.mockReset().mockReturnValue( 12 );
 		select.getCurrentJobId.mockReset().mockReturnValue( 'job-1' );
 		select.getSessionJob.mockReset().mockReturnValue( { jobId: 'job-1' } );
+		select.getSessionJobs.mockReset().mockReturnValue( {
+			12: { jobId: 'job-1' },
+		} );
 	} );
 
 	afterEach( () => {
@@ -73,26 +79,159 @@ describe( 'Tool approval recovery', () => {
 		jest.useRealTimers();
 	} );
 
-	it( 'preserves a newer session job when an older processing response arrives', async () => {
-		const unsubscribe = jest.fn();
-		onVisibilityChange.mockReturnValueOnce( unsubscribe );
-		let resolvePoll;
-		apiFetch.mockImplementationOnce(
-			() => new Promise( ( resolve ) => ( resolvePoll = resolve ) )
-		);
-		const dispatch = makeDispatch();
-		await dispatch.pollJob( 'job-1', 12 );
-		await jest.advanceTimersByTimeAsync( 2000 );
-		select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
-		setActiveJob( 12, 'newer-job' );
-		resolvePoll( { status: 'processing', tool_calls: [] } );
-		await jest.advanceTimersByTimeAsync( 20000 );
-		expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
-		expect( dispatch.setLiveToolCalls ).not.toHaveBeenCalled();
-		expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
-		expect( unsubscribe ).toHaveBeenCalledTimes( 1 );
-		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
-	} );
+	it.each( [
+		'processing',
+		'awaiting_confirmation',
+		'pending_proposal',
+		'awaiting_client_tools',
+		'complete',
+		'error',
+	] )(
+		'preserves a newer session job when an older %s response arrives',
+		async ( status ) => {
+			const unsubscribe = jest.fn();
+			onVisibilityChange.mockReturnValueOnce( unsubscribe );
+			let resolvePoll;
+			apiFetch.mockImplementationOnce(
+				() => new Promise( ( resolve ) => ( resolvePoll = resolve ) )
+			);
+			const dispatch = makeDispatch();
+			await dispatch.pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+			setActiveJob( 12, 'newer-job' );
+			resolvePoll( { status, tool_calls: [] } );
+			await jest.advanceTimersByTimeAsync( 20000 );
+			expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+			expect( dispatch.setLiveToolCalls ).not.toHaveBeenCalled();
+			expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+			expect( unsubscribe ).toHaveBeenCalledTimes( 1 );
+			expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+			expect( dispatch.setPendingConfirmation ).not.toHaveBeenCalled();
+			expect( dispatch.setPendingActionCard ).not.toHaveBeenCalled();
+			expect( dispatch.setSending ).not.toHaveBeenCalled();
+		}
+	);
+
+	it.each( [ 404, 403, 500 ] )(
+		'ignores an older HTTP %s failure after the session owner changes',
+		async ( status ) => {
+			let rejectPoll;
+			apiFetch.mockImplementationOnce(
+				() =>
+					new Promise(
+						( resolve, reject ) => ( rejectPoll = reject )
+					)
+			);
+			const dispatch = makeDispatch();
+			await dispatch.pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+			setActiveJob( 12, 'newer-job' );
+			rejectPoll( { data: { status } } );
+			await jest.advanceTimersByTimeAsync( 20000 );
+			expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+			expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+			expect( dispatch.setCurrentSession ).not.toHaveBeenCalled();
+			expect( dispatch.setSending ).not.toHaveBeenCalled();
+			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+			expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+		}
+	);
+
+	it.each(
+		[ 'complete', 'error', 'missing', 'rejected' ].flatMap( ( status ) =>
+			[ false, true ].map( ( reloadFails ) => [ status, reloadFails ] )
+		)
+	)(
+		'preserves replacement state during %s session reload (failure: %s)',
+		async ( status, reloadFails ) => {
+			if ( status === 'missing' || status === 'rejected' ) {
+				apiFetch.mockRejectedValueOnce( {
+					data: { status: status === 'missing' ? 404 : 403 },
+				} );
+			} else {
+				apiFetch.mockResolvedValueOnce( { status, session_id: 12 } );
+			}
+			apiFetch.mockImplementationOnce( async () => {
+				select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+				setActiveJob( 12, 'newer-job' );
+				if ( reloadFails ) {
+					throw new Error( 'Reload unavailable' );
+				}
+				return { id: 12, messages: [], tool_calls: [] };
+			} );
+			const dispatch = makeDispatch();
+			await dispatch.pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( apiFetch ).toHaveBeenCalledTimes( 2 );
+			expect( dispatch.setCurrentSession ).not.toHaveBeenCalled();
+			expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+			expect( dispatch.setSending ).not.toHaveBeenCalled();
+			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+			expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+		}
+	);
+
+	it.each( [ 'restoreActiveJobs', 'openSession' ] )(
+		'%s registers the discovered owner before its first poll',
+		async ( action ) => {
+			const discovered = {
+				job_id: 'discovered-job',
+				session_id: 12,
+				status: 'processing',
+			};
+			if ( action === 'openSession' ) {
+				apiFetch.mockResolvedValueOnce( { id: 12, messages: [] } );
+			}
+			apiFetch
+				.mockResolvedValueOnce(
+					action === 'openSession' ? discovered : [ discovered ]
+				)
+				.mockResolvedValueOnce( {
+					status: 'processing',
+					tool_calls: [],
+				} );
+			const dispatch = makeDispatch();
+			dispatch.setSessionJob.mockImplementation( ( id, job ) =>
+				select.getSessionJob.mockReturnValue( job )
+			);
+			await actions[ action ]( 12 )( { dispatch, select } );
+			expect( dispatch.setSessionJob ).toHaveBeenCalledWith( 12, {
+				jobId: 'discovered-job',
+				toolCalls: [],
+				status: 'processing',
+			} );
+			expect(
+				dispatch.setSessionJob.mock.invocationCallOrder[ 0 ]
+			).toBeLessThan( dispatch.pollJob.mock.invocationCallOrder[ 0 ] );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( apiFetch ).toHaveBeenLastCalledWith( {
+				path: '/sd-ai-agent/v1/job/discovered-job',
+			} );
+			expect( getActiveJobs() ).toEqual( { 12: 'discovered-job' } );
+		}
+	);
+
+	it.each( [ 'restoreActiveJobs', 'openSession' ] )(
+		'%s does not replace a job started during discovery',
+		async ( action ) => {
+			if ( action === 'openSession' ) {
+				apiFetch.mockResolvedValueOnce( { id: 12, messages: [] } );
+			}
+			apiFetch.mockImplementationOnce( async () => {
+				select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+				setActiveJob( 12, 'newer-job' );
+				const discovered = { job_id: 'old-discovery', session_id: 12 };
+				return action === 'openSession' ? discovered : [ discovered ];
+			} );
+			const dispatch = makeDispatch();
+			await actions[ action ]( 12 )( { dispatch, select } );
+			expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+			expect( dispatch.pollJob ).not.toHaveBeenCalled();
+			expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+		}
+	);
 
 	it( 'stops when session ownership changes during the polling delay', async () => {
 		apiFetch.mockResolvedValue( { status: 'processing', tool_calls: [] } );
@@ -279,6 +418,81 @@ describe( 'Tool approval recovery', () => {
 			path: '/sd-ai-agent/v1/job/job-1',
 		} );
 	} );
+
+	it( 'does not resume an abandoned poller after the replacement finishes', async () => {
+		apiFetch.mockResolvedValueOnce( {
+			status: 'complete',
+			session_id: 12,
+		} );
+		apiFetch.mockImplementationOnce( async () => {
+			select.getSessionJob
+				.mockReturnValueOnce( { jobId: 'newer-job' } )
+				.mockReturnValue( null );
+			return { id: 12, messages: [] };
+		} );
+		const dispatch = makeDispatch();
+		await dispatch.pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		expect( dispatch.setCurrentSession ).not.toHaveBeenCalled();
+		expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+		expect( dispatch.setSending ).not.toHaveBeenCalled();
+	} );
+
+	it( 'releases the old owner before draining a queued replacement', async () => {
+		apiFetch.mockResolvedValueOnce( { status: 'complete' } );
+		const dispatch = makeDispatch();
+		dispatch.setSessionJob.mockImplementation( ( id, job ) =>
+			select.getSessionJob.mockReturnValue( job )
+		);
+		dispatch.drainMessageQueue.mockImplementation( () => {
+			dispatch.setSessionJob( 12, { jobId: 'queued-job' } );
+			setActiveJob( 12, 'queued-job' );
+		} );
+		await dispatch.pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		expect( select.getSessionJob() ).toEqual( { jobId: 'queued-job' } );
+		expect( getActiveJobs() ).toEqual( { 12: 'queued-job' } );
+	} );
+
+	it( 'submits background client-tool results to their owning session', async () => {
+		select.getCurrentSessionId.mockReturnValue( 99 );
+		apiFetch
+			.mockResolvedValueOnce( { status: 'awaiting_client_tools' } )
+			.mockResolvedValueOnce( { status: 'processing' } );
+		await makeDispatch().pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		expect( apiFetch ).toHaveBeenLastCalledWith( {
+			path: '/sd-ai-agent/v1/chat/tool-result',
+			method: 'POST',
+			data: { session_id: 12, job_id: 'job-1', tool_results: [] },
+		} );
+	} );
+
+	it.each( [ 'error', 'rejected' ] )(
+		'does not render %s recovery into a session opened during reload',
+		async ( status ) => {
+			if ( status === 'rejected' ) {
+				apiFetch.mockRejectedValueOnce( { data: { status: 403 } } );
+			} else {
+				apiFetch.mockResolvedValueOnce( { status, session_id: 12 } );
+			}
+			apiFetch.mockImplementationOnce( async () => {
+				select.getCurrentSessionId.mockReturnValue( 99 );
+				return { id: 12, messages: [], tool_calls: [] };
+			} );
+			const dispatch = makeDispatch();
+			await dispatch.pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( dispatch.setCurrentSession ).not.toHaveBeenCalled();
+			expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+			expect( dispatch.setSending ).not.toHaveBeenCalled();
+			expect( dispatch.setCurrentJobId ).not.toHaveBeenCalled();
+			expect( dispatch.setSessionJob ).toHaveBeenLastCalledWith(
+				12,
+				null
+			);
+		}
+	);
 
 	it( 'keeps bounded polling recovery for a connection that remains unavailable', async () => {
 		apiFetch.mockRejectedValue( new Error( 'Offline' ) );

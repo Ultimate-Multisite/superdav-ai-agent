@@ -34,7 +34,7 @@ const BUDGETS = [
 const DEFERRED_JAVASCRIPT_BUDGET = {
 	name: 'deferred-javascript',
 	minifiedBudgetKiB: 1720,
-	gzipBudgetKiB: 528,
+	gzipBudgetKiB: 529,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,
 };

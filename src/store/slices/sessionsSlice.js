@@ -18,7 +18,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { snapshotDescriptors } from '../../abilities/registry';
 import { ensureRegistered as ensureClientAbilitiesRegistered } from '../../abilities';
-import { submitToolDecision } from './jobSlice';
+import { submitToolDecision, trackSessionJob } from './jobSlice';
 import {
 	extractMessageText,
 	isVisibleTextPart,
@@ -41,6 +41,34 @@ function normalizeSession( session ) {
 				? parseInt( session.id, 10 )
 				: session.id,
 	};
+}
+
+/**
+ * Register a discovered owner unless another job started during discovery.
+ *
+ * @param {Object}           context       Store helpers.
+ * @param {number}           sessionId     Session identifier.
+ * @param {Object}           job           Active-job response.
+ * @param {string|undefined} previousJobId Owner before the request.
+ */
+function registerDiscoveredJob( context, sessionId, job, previousJobId ) {
+	const { dispatch, select } = context;
+	const currentJobId = select.getSessionJob( sessionId )?.jobId;
+	if (
+		currentJobId &&
+		currentJobId !== previousJobId &&
+		currentJobId !== job.job_id
+	) {
+		return;
+	}
+	trackSessionJob(
+		dispatch,
+		sessionId,
+		job.job_id,
+		job.status || 'processing',
+		job.tool_calls || []
+	);
+	dispatch.pollJob( job.job_id, sessionId );
 }
 
 /**
@@ -612,11 +640,18 @@ export const actions = {
 
 				// Resume polling for any active background job on this session (t202).
 				try {
+					const previousJobId =
+						select.getSessionJob( sessionId )?.jobId;
 					const activeJob = await apiFetch( {
 						path: `/sd-ai-agent/v1/sessions/${ sessionId }/active-job`,
 					} );
 					if ( activeJob && activeJob.job_id ) {
-						dispatch.pollJob( activeJob.job_id, sessionId );
+						registerDiscoveredJob(
+							{ dispatch, select },
+							sessionId,
+							activeJob,
+							previousJobId
+						);
 					}
 				} catch {
 					// 404 means no active job — normal case, ignore.
@@ -639,8 +674,9 @@ export const actions = {
 	 * @return {Function} Redux thunk.
 	 */
 	restoreActiveJobs() {
-		return async ( { dispatch } ) => {
+		return async ( { dispatch, select } ) => {
 			try {
+				const previousJobs = select.getSessionJobs();
 				const activeJobs = await apiFetch( {
 					path: '/sd-ai-agent/v1/sessions/active-jobs',
 				} );
@@ -649,7 +685,12 @@ export const actions = {
 				}
 				for ( const job of activeJobs ) {
 					if ( job.job_id && job.session_id ) {
-						dispatch.pollJob( job.job_id, job.session_id );
+						registerDiscoveredJob(
+							{ dispatch, select },
+							job.session_id,
+							job,
+							previousJobs[ job.session_id ]?.jobId
+						);
 					}
 				}
 			} catch {
@@ -1225,11 +1266,7 @@ export const actions = {
 				// for setting up per-session tracking, but we set initial state here
 				// so the UI shows "processing" immediately before the first poll.
 				if ( sessionId ) {
-					dispatch.setSessionJob( sessionId, {
-						jobId: runResult.job_id,
-						toolCalls: [],
-						status: 'processing',
-					} );
+					trackSessionJob( dispatch, sessionId, runResult.job_id );
 				}
 				// Pass sessionId so jobSlice can do session-scoped polling (t204).
 				dispatch.pollJob( runResult.job_id, sessionId );

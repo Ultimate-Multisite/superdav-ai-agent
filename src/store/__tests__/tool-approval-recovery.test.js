@@ -20,6 +20,11 @@ jest.mock( '../../utils/sound-manager', () => ( {
 const apiFetch = require( '@wordpress/api-fetch' );
 const { actions } = require( '../slices/sessionsSlice' );
 const { actions: jobActions } = require( '../slices/jobSlice' );
+const {
+	setActiveJob,
+	getActiveJobs,
+} = require( '../../utils/active-jobs-storage' );
+const { onVisibilityChange } = require( '../../utils/visibility-manager' );
 
 describe( 'Tool approval recovery', () => {
 	const select = {
@@ -57,6 +62,7 @@ describe( 'Tool approval recovery', () => {
 	beforeEach( () => {
 		jest.useFakeTimers();
 		apiFetch.mockReset();
+		sessionStorage.clear();
 		select.getCurrentSessionId.mockReset().mockReturnValue( 12 );
 		select.getSessionJob.mockReset().mockReturnValue( { jobId: 'job-1' } );
 	} );
@@ -65,6 +71,42 @@ describe( 'Tool approval recovery', () => {
 		jest.clearAllTimers();
 		jest.useRealTimers();
 	} );
+
+	it( 'preserves a newer session job when an older processing response arrives', async () => {
+		const unsubscribe = jest.fn();
+		onVisibilityChange.mockReturnValueOnce( unsubscribe );
+		let resolvePoll;
+		apiFetch.mockImplementationOnce(
+			() => new Promise( ( resolve ) => ( resolvePoll = resolve ) )
+		);
+		const dispatch = makeDispatch();
+		await dispatch.pollJob( 'job-1', 12 );
+		await jest.advanceTimersByTimeAsync( 2000 );
+		select.getSessionJob.mockReturnValue( { jobId: 'newer-job' } );
+		setActiveJob( 12, 'newer-job' );
+		resolvePoll( { status: 'processing', tool_calls: [] } );
+		await jest.advanceTimersByTimeAsync( 20000 );
+		expect( dispatch.setSessionJob ).not.toHaveBeenCalled();
+		expect( dispatch.setLiveToolCalls ).not.toHaveBeenCalled();
+		expect( getActiveJobs() ).toEqual( { 12: 'newer-job' } );
+		expect( unsubscribe ).toHaveBeenCalledTimes( 1 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it.each( [ null, { jobId: 'job-1' } ] )(
+		'clears persisted polling state when the tracked session job is %s',
+		async ( sessionJob ) => {
+			select.getSessionJob.mockReturnValue( sessionJob );
+			setActiveJob( 12, 'job-1' );
+			apiFetch.mockResolvedValueOnce( {
+				status: 'awaiting_confirmation',
+				pending_tools: [],
+			} );
+			await makeDispatch().pollJob( 'job-1', 12 );
+			await jest.advanceTimersByTimeAsync( 2000 );
+			expect( getActiveJobs() ).toEqual( {} );
+		}
+	);
 
 	it.each( [
 		new Error( 'Lost response' ),

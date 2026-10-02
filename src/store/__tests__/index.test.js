@@ -828,6 +828,7 @@ describe( 'actions', () => {
 		};
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
+			getSessionJob: jest.fn( () => ( { jobId: 'deduplicated-job' } ) ),
 		};
 
 		try {
@@ -1632,6 +1633,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'failed-job' } ) ),
 		};
 
 		try {
@@ -1690,6 +1692,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'durable-failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'durable-failed-job' } ) ),
 		};
 
 		try {
@@ -1737,6 +1740,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'failed-job' } ) ),
 		};
 
 		try {
@@ -1787,6 +1791,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'failed-job' } ) ),
 		};
 
 		try {
@@ -1848,6 +1853,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'failed-job' } ) ),
 			getProviders: jest.fn( () => [
 				{
 					id: 'sd-ai-agent-cloud',
@@ -1915,6 +1921,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'failed-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'failed-job' } ) ),
 		};
 
 		try {
@@ -1955,6 +1962,7 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'payload-job' ),
+			getSessionJob: jest.fn( () => ( { jobId: 'payload-job' } ) ),
 		};
 
 		try {
@@ -1997,6 +2005,9 @@ describe( 'actions', () => {
 		const select = {
 			getCurrentSessionId: jest.fn( () => 17 ),
 			getCurrentJobId: jest.fn( () => 'mismatched-payload-job' ),
+			getSessionJob: jest.fn( () => ( {
+				jobId: 'mismatched-payload-job',
+			} ) ),
 		};
 
 		try {

@@ -468,7 +468,10 @@ export const actions = {
 				pollingStopped = true;
 				activePollers.delete( pollerKey );
 				unsubscribeVisibility();
-				clearActiveJob( sessionId );
+				const sessionJob = select.getSessionJob( sessionId );
+				if ( ! sessionJob || sessionJob.jobId === jobId ) {
+					clearActiveJob( sessionId );
+				}
 			};
 
 			/**
@@ -553,6 +556,11 @@ export const actions = {
 					}
 
 					if ( result.status === 'processing' ) {
+						const sessionJob = select.getSessionJob( sessionId );
+						if ( sessionJob && sessionJob.jobId !== jobId ) {
+							stopPolling();
+							return;
+						}
 						// Clear stale approval status even before new activity arrives.
 						dispatch.setSessionJob( sessionId, {
 							jobId,

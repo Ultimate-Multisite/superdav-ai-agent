@@ -1187,7 +1187,9 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$log->setAccessible( true );
 		$log->invoke( $loop, $batch );
 		$this->assertFalse( $gate->get_status()['targets'][0]['current_preview_available'] );
-		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $loop->get_tool_call_log(), JSON_UNESCAPED_SLASHES ) );
+		$tool_call_log = $reflection->getProperty( 'tool_call_log' );
+		$tool_call_log->setAccessible( true );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $tool_call_log->getValue( $loop ), JSON_UNESCAPED_SLASHES ) );
 
 		$redact = $reflection->getMethod( 'redact_elementor_preview_response_message' );
 		$redact->setAccessible( true );

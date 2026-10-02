@@ -24,14 +24,29 @@ class ConversationSerializer {
 	/**
 	 * Serialize conversation history to transportable arrays.
 	 *
-	 * @param Message[] $history The conversation history.
+	 * @param Message[] $history                The conversation history.
+	 * @param bool      $stringify_tool_results Preserve native tool JSON across database decoding.
 	 * @return list<array<string, mixed>>
 	 */
-	public static function serialize( array $history ): array {
+	public static function serialize( array $history, bool $stringify_tool_results = false ): array {
 		return array_values(
 			array_map(
-				static function ( Message $msg ): array {
-					return $msg->toArray();
+				static function ( Message $msg ) use ( $stringify_tool_results ): array {
+					$data = $msg->toArray();
+					if ( $stringify_tool_results ) {
+						foreach ( $data['parts'] as &$part ) {
+							if ( isset( $part['functionResponse'] ) && ! is_string( $part['functionResponse']['response'] ) ) {
+								// JSON strings preserve nested empty objects across associative
+								// database decoding and match Responses function output text.
+								$encoded = wp_json_encode( $part['functionResponse']['response'] );
+								if ( is_string( $encoded ) ) {
+									$part['functionResponse']['response'] = $encoded;
+								}
+							}
+						}
+						unset( $part );
+					}
+					return $data;
 				},
 				$history
 			)

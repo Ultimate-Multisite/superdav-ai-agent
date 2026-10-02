@@ -7,6 +7,7 @@ namespace SdAiAgent\Tests\Infrastructure\AiClient\Superdav;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\ElementorCompletionGate;
 use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Infrastructure\AiClient\Superdav\ResponsesContinuation;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
@@ -150,6 +151,27 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]->getData()['input'], -1 ) );
 	}
 
+	/** Browser persistence must preserve JSON text and empty schema objects. */
+	public function test_paused_browser_history_preserves_json_tool_results_for_native_replay(): void {
+		$requests = array();
+		$history  = $this->pending_history( $requests );
+		$payload  = array( 'schema' => array( 'properties' => new \stdClass() ), 'description' => 'Read /wp-admin/plugins.php' );
+		$history[2] = new UserMessage( array( new MessagePart( new FunctionResponse( 'call_1', 'lookup', $payload ) ) ) );
+		$browser_output = array( array( 'type' => 'function_call', 'call_id' => 'call_browser', 'name' => 'lookup', 'arguments' => '{}' ) );
+		$browser = new Response( 200, array(), wp_json_encode( array( 'id' => 'resp_browser', 'status' => 'completed', 'output' => $browser_output ) ) );
+		$second = $this->model( array( $browser ), $requests )->generateTextResult( $history );
+		ConversationSerializer::append_assistant_message( $history, $second->toMessage() );
+		// Use the same privacy scrubber and serialization boundary as a browser pause.
+		$gate = new ElementorCompletionGate();
+		$serialized = $gate->redact_serialized_history( ConversationSerializer::serialize( $history, true ) );
+		$history = ConversationSerializer::deserialize( json_decode( wp_json_encode( $serialized ), true ) );
+		ConversationSerializer::append_tool_response( $history, new UserMessage( array( new MessagePart( new FunctionResponse( 'call_browser', 'lookup', array( 'navigated' => true ) ) ) ) ) );
+		$this->model( array( $this->text_response( 'resp_after_browser' ) ), $requests )->generateTextResult( $history );
+		$this->assertCount( 3, $requests );
+		$this->assertStringEndsWith( '/responses', $requests[2]->getUri() );
+		$this->assertSame( array_merge( $requests[1]->getData()['input'], $browser_output ), array_slice( $requests[2]->getData()['input'], 0, -1 ) );
+	}
+
 	/** An unavailable server cursor falls back once with full history, without native parameters. */
 	public function test_rejected_response_id_falls_back_with_full_history(): void {
 		$requests = array();
@@ -200,6 +222,22 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->model( array( $this->chat_response() ), $requests )->generateTextResult( $history );
 		$this->assertStringEndsWith( '/chat/completions', $requests[0]->getUri() );
 		$this->assertStringContainsString( $uri, wp_json_encode( $requests[0]->getData(), JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/** Deferred catalogs respect the HTTP cap independently of Chat context estimates. */
+	public function test_native_body_budget_accepts_deferred_catalog_without_relaxing_chat_guard(): void {
+		$body = wp_json_encode( array( 'model' => 'superdav-chat-pro', 'tools' => array( array( 'type' => 'function', 'name' => 'fixture', 'defer_loading' => true, 'description' => str_repeat( 'schema ', 28000 ) ) ) ) );
+		$limit = static fn(): int => 65536;
+		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-pro', 123 );
+		try {
+			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
+			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'chat/completions' ) ) );
+			add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
+		} finally {
+			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+			ProviderTraceLogger::clear_runtime_context();
+		}
 	}
 
 	/** Reject a larger catalog without erasing the snapshot for a bounded retry. */
@@ -307,7 +345,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			);
 			$first = ( new AgentLoop( 'Find posts.', array( 'sd-ai-agent/list-posts' ), array(), $options ) )->run();
 			$this->assertIsArray( $first );
-			$this->assertNotContains( 'tool_search', array_column( $requests[0]['tools'], 'type' ) );
+			$this->assertContains( 'tool_search', array_column( $requests[0]['tools'], 'type' ) );
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[1] );
 			$this->assertSame( $tool['output'], array_slice( $requests[1]['input'], 1, 4 ) );
 			$this->assertSame( array( 'function_call_output' ), array_column( array_slice( $requests[1]['input'], -1 ), 'type' ) );

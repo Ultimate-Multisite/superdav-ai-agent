@@ -839,9 +839,9 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertFalse( $params['parallel_tool_calls'] );
 		$this->assertSame( array( 'type' => 'tool_search' ), $params['tools'][2] );
 		$this->assertSame( 'namespace', $params['tools'][0]['type'] );
-		$this->assertSame( 'wp_abilities_sd_ai_agent', $params['tools'][0]['name'] );
+		$this->assertSame( 'wp_abilities_posts', $params['tools'][0]['name'] );
 		$this->assertSame( 'function', $params['tools'][0]['tools'][0]['type'] );
-		$this->assertArrayNotHasKey( 'defer_loading', $params['tools'][0]['tools'][0] );
+		$this->assertTrue( $params['tools'][0]['tools'][0]['defer_loading'] );
 		$this->assertSame( 'wpab__sd-ai-agent__list-posts', $params['tools'][0]['tools'][0]['name'] );
 		$this->assertSame( 'namespace', $params['tools'][1]['type'] );
 		$this->assertSame( 'wp_abilities_example_plugin', $params['tools'][1]['name'] );

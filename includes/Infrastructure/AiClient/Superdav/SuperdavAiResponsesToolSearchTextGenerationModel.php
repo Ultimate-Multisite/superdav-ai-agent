@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
-use SdAiAgent\Tools\ToolDiscovery;
 use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\ProviderTraceLogger;
 use WordPress\AiClient\Common\Exception\InvalidArgumentException;
@@ -82,7 +81,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			// catalog. AgentLoop can retry with Tier 1 without destroying the
 			// matching snapshot used by an earlier browser/confirmation request.
 			$body = $this->json_encode_for_api( $params );
-			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId() ) ) {
+			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {
 				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) );
 				if ( is_wp_error( $rejection ) ) {
 					throw new \RuntimeException( $rejection->get_error_message() );
@@ -334,7 +333,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$items[] = array(
 					'type'    => 'function_call_output',
 					'call_id' => $response->getId() ?? $response->getName() ?? 'unknown',
-					'output'  => $this->json_encode_for_api( $response->getResponse() ),
+					'output'  => is_string( $response->getResponse() ) ? $response->getResponse() : $this->json_encode_for_api( $response->getResponse() ),
 				);
 			}
 		}
@@ -434,16 +433,22 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * Return function names that should remain immediately visible to the model.
 	 *
 	 * Native Responses tool search receives the whole visible catalog. Keeping the
-	 * established Tier-1 abilities non-deferred preserves the cold-start direct
-	 * tool path while the long tail stays searchable behind `tool_search`.
+	 * small coordination tools non-deferred keeps them available immediately;
+	 * operational schemas stay searchable behind `tool_search`.
 	 *
 	 * @return array<string, true>
 	 */
 	private function immediate_tool_function_names(): array {
-		$ability_names = ToolDiscovery::DEFAULT_TIER_1;
-		foreach ( ToolDiscovery::tier_1_for_run() as $ability_name ) {
-			$ability_names[] = $ability_name;
-		}
+		// Compatibility Tier 1 contains dozens of full schemas. Native search
+		// needs only these small coordination tools immediately; replay retains
+		// tools already loaded through search without usage-based promotion.
+		$ability_names = array(
+			'sd-ai-agent/skill-load',
+			'sd-ai-agent/memory-save',
+			'sd-ai-agent/memory-list',
+			'sd-ai-agent/knowledge-search',
+			'sd-ai-agent/report-inability',
+		);
 
 		$function_names = array();
 		foreach ( array_unique( $ability_names ) as $ability_name ) {
@@ -465,6 +470,31 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$without_prefix = substr( $function_name, strlen( 'wpab__' ) );
 			$parts          = explode( '__', $without_prefix );
 			$raw            = (string) ( $parts[0] ?? 'general' );
+			if ( 'sd-ai-agent-js' === $raw ) {
+				$raw = 'browser';
+			} elseif ( 'sd-ai-agent' === $raw ) {
+				$operation = (string) ( $parts[1] ?? '' );
+				$families  = array(
+					'posts'     => 'posts?|post-content',
+					'blocks'    => 'blocks?|editor',
+					'themes'    => 'themes?|templates?|template-parts?|styles?|design|tokens',
+					'media'     => 'media|images?|logo|screenshot',
+					'taxonomy'  => 'terms?|taxonomy|categories|tags',
+					'menus'     => 'menus?|menu-items?',
+					'plugins'   => 'plugins?',
+					'files'     => 'files?|directory',
+					'options'   => 'options?',
+					'users'     => 'users?|roles?|capabilities',
+					'knowledge' => 'knowledge|memory|skills?',
+					'discovery' => 'ability|site|health|fresh-install|report-inability',
+				);
+				foreach ( $families as $family => $pattern ) {
+					if ( preg_match( '/(?:^|-)(?:' . $pattern . ')(?:-|$)/', $operation ) ) {
+						$raw = $family;
+						break;
+					}
+				}
+			}
 		}
 
 		$slug = strtolower( (string) preg_replace( '/[^A-Za-z0-9_]+/', '_', $raw ) );

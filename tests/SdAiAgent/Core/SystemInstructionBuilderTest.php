@@ -28,6 +28,16 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 
 
 	/**
+	 * A bounded native catalog retains bridge instructions without the full manifest.
+	 */
+	public function test_bounded_native_catalog_keeps_compatibility_bridge_without_full_manifest(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build( array(), array( 'sd-ai-agent/list-posts' ), true, false );
+		$this->assertStringContainsString( '## Partial native catalog', $instruction );
+		$this->assertStringContainsString( 'must be executed through `sd-ai-agent/ability-call`', $instruction );
+		$this->assertStringNotContainsString( 'The abilities listed below are NOT loaded as direct tools', $instruction );
+	}
+
+	/**
 	 * Test that the default system instruction includes site configuration guidance.
 	 *
 	 * This test verifies the fix for issue #1497: the system prompt should

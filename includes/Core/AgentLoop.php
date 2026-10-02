@@ -2229,7 +2229,7 @@ PROMPT;
 						'pending_tools'               => $confirm_needed,
 						'approved_once_abilities'     => $this->approved_once_abilities,
 						'confirmation_message'        => $assistant_message->toArray(),
-						'confirmation_history_before' => $this->elementor_completion_gate->redact_serialized_history( ConversationSerializer::serialize( $history_before_assistant ) ),
+						'confirmation_history_before' => $this->elementor_completion_gate->redact_serialized_history( ConversationSerializer::serialize( $history_before_assistant, $this->should_use_native_tool_search() ) ),
 						'history'                     => $this->serialize_history(),
 						'tool_call_log'               => $this->tool_call_log,
 						'token_usage'                 => $this->token_usage,
@@ -3100,7 +3100,7 @@ PROMPT;
 		// when content-generation or theme-modification tools are in scope.
 		if ( ! $this->system_instruction_locked ) {
 			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->native_full_catalog && $this->should_use_native_tool_search() );
+			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
 		}
 
 		$started_at               = microtime( true );
@@ -3670,7 +3670,7 @@ PROMPT;
 			$attempts = $this->provider_retry_max_attempts;
 		}
 		$serialized_history = is_array( $this->providerPersistenceHistory )
-			? ConversationSerializer::serialize( $this->providerPersistenceHistory )
+			? ConversationSerializer::serialize( $this->providerPersistenceHistory, $this->should_use_native_tool_search() )
 			: $this->serialize_history();
 		$serialized_history = $this->elementor_completion_gate->redact_serialized_history( $serialized_history );
 		$message            = sprintf(
@@ -3861,7 +3861,7 @@ PROMPT;
 	 */
 	private function serialize_history(): array {
 		return $this->elementor_completion_gate->redact_serialized_history(
-			ConversationSerializer::serialize( $this->history )
+			ConversationSerializer::serialize( $this->history, $this->should_use_native_tool_search() )
 		);
 	}
 
@@ -3938,7 +3938,7 @@ PROMPT;
 			'model_id'                => $this->model_id,
 			'provider_id'             => $this->provider_id,
 			'history'                 => $this->elementor_completion_gate->redact_serialized_history(
-				ConversationSerializer::serialize( $history )
+				ConversationSerializer::serialize( $history, $this->should_use_native_tool_search() )
 			),
 			'client_abilities'        => $this->client_abilities,
 			'recoverable'             => true,

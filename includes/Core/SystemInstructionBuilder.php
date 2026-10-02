@@ -121,9 +121,10 @@ class SystemInstructionBuilder {
 	 * @param string[]             $ability_names Names of active Tier-1 abilities for this turn.
 	 *                                             Used to conditionally inject the Working-cadence section.
 	 * @param bool                 $native_tool_search Whether the provider exposes deferred native functions.
+	 * @param bool                 $native_full_catalog Whether every visible function is supplied to native search.
 	 * @return string
 	 */
-	public function build( array $settings, array $ability_names = array(), bool $native_tool_search = false ): string {
+	public function build( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true ): string {
 		$ability_names = array_values( array_map( 'strval', $ability_names ) );
 
 		// Use custom system prompt if set, otherwise the built-in default.
@@ -224,6 +225,18 @@ class SystemInstructionBuilder {
 		$base .= "\n\n" . self::build_tool_routing_section( $ability_names, $native_tool_search );
 
 		$manifest = $native_tool_search ? '' : ToolDiscovery::build_manifest_section( $ability_names );
+		if ( $native_tool_search && ! $native_full_catalog ) {
+			// A bounded transport retry cannot expose the whole native catalog.
+			// Keep the compatibility bridge usable without duplicating the manifest.
+			$manifest = "## Partial native catalog\n\n"
+				. 'Native tool search can load only functions in the supplied catalog. For other registered capabilities, call `sd-ai-agent/ability-search`. '
+				. 'Server abilities returned by ability-search but absent from the supplied native catalog must be executed through `sd-ai-agent/ability-call`, with their exact id and arguments matching input_schema. '
+				. 'An ability-search result does not add a callable native function. Do not substitute knowledge search or SQL for a registered ability that this bridge can execute.';
+			$recent   = ToolDiscovery::recently_fetched_section();
+			if ( '' !== $recent ) {
+				$manifest .= "\n\n" . $recent;
+			}
+		}
 		if ( '' !== $manifest ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . $manifest;
@@ -318,7 +331,7 @@ class SystemInstructionBuilder {
 			return "## Tool routing\n\n"
 				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, use it to load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
 				. 'A deferred function is available after discovery even if its ability name is absent from this prompt. Do not invent function names or claim a capability is unavailable before searching the declared tool namespaces. '
-				. 'When no native search tool is supplied, call the available functions directly. Use `sd-ai-agent/ability-search` and `sd-ai-agent/ability-call` only as a compatibility path when those tools are available. '
+				. 'When no native search tool is supplied, call the available functions directly. If native search cannot find a required function in the supplied catalog, use `sd-ai-agent/ability-search` and `sd-ai-agent/ability-call` as a compatibility path when those tools are available. '
 				. 'Call browser functions directly; server-side `sd-ai-agent/ability-call` cannot execute browser tools. Tool calls must use the actual tool interface, never textual `<tool_call>` markup.';
 		}
 

@@ -957,7 +957,12 @@ final class ElementorCompletionGate {
 			$decoded = json_decode( $value, true );
 			if ( is_array( $decoded ) ) {
 				$redacted = $this->redact_preview_urls_from_value( $decoded, $tool_name );
-				$encoded  = wp_json_encode( $redacted );
+				// Preserve unchanged JSON byte-for-byte. Re-encoding can turn empty
+				// objects into arrays and invalidate native provider replay prefixes.
+				if ( $redacted === $decoded ) {
+					return $value;
+				}
+				$encoded = wp_json_encode( $redacted );
 				return is_string( $encoded ) ? $encoded : $value;
 			}
 

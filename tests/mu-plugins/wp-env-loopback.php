@@ -41,6 +41,19 @@ add_filter(
 			$internal_url .= '?' . $request['query'];
 		}
 
+		if ( is_string( $args['headers'] ?? null ) ) {
+			$headers = array();
+			foreach ( preg_split( '/\r\n|\r|\n/', $args['headers'] ) ?: array() as $header ) {
+				$separator = strpos( $header, ':' );
+				if ( false !== $separator ) {
+					$header_name              = trim( substr( $header, 0, $separator ) );
+					$headers[ $header_name ] = trim( substr( $header, $separator + 1 ) );
+				}
+			}
+
+			$args['headers'] = $headers;
+		}
+
 		$args['headers']['Host'] = $site['host'] . ':' . $site['port'];
 
 		return wp_remote_request( $internal_url, $args );

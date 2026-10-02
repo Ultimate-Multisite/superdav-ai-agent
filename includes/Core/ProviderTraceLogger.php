@@ -265,6 +265,11 @@ class ProviderTraceLogger {
 	 */
 	public static function get_runtime_failure_metadata(): array {
 		$metadata = array();
+		if ( 'local_payload_guard' === self::$runtimeContext['failure_class'] ) {
+			$metadata['local_rejection']    = 1;
+			$metadata['fallback_attempted'] = self::$runtimeContext['retry_baseline_request_bytes'] > 0 ? 1 : 0;
+			$metadata['recovery_outcome']   = self::local_payload_recovery_outcome();
+		}
 		if ( self::$runtimeContext['failure_status_code'] > 0 ) {
 			$metadata['status_code'] = self::$runtimeContext['failure_status_code'];
 		}
@@ -341,6 +346,9 @@ class ProviderTraceLogger {
 		$fallback_attempted = $has_context && self::$runtimeContext['retry_baseline_request_bytes'] > 0;
 
 		if ( $has_context && $request_bytes > $byte_budget ) {
+			self::$runtimeContext['failure_status_code'] = 413;
+			self::$runtimeContext['failure_class']       = 'local_payload_guard';
+			self::$runtimeContext['failure_source']      = 'transport';
 			self::record_payload_limit(
 				$provider_id,
 				$model_id,
@@ -377,6 +385,9 @@ class ProviderTraceLogger {
 
 		$retry_baseline_bytes = self::$runtimeContext['retry_baseline_request_bytes'];
 		if ( $has_context && $retry_baseline_bytes > 0 && ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes ) ) {
+			self::$runtimeContext['failure_status_code'] = 413;
+			self::$runtimeContext['failure_class']       = 'local_payload_guard';
+			self::$runtimeContext['failure_source']      = 'transport';
 			self::record_payload_limit(
 				$provider_id,
 				$model_id,

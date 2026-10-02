@@ -11,7 +11,7 @@ import { useCallback } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 
 import STORE_NAME from '../../store';
-import { getBranding } from '../../utils/branding';
+import { getBranding, getBrandingStyle } from '../../utils/branding';
 import { AiIcon } from '../chat-redesign/icons';
 import useDrag from './use-drag';
 
@@ -75,13 +75,17 @@ export default function WidgetLauncher( { onActivate, label: labelOverride } ) {
 				top: 'auto',
 		  }
 		: undefined;
+	const style = {
+		...getBrandingStyle(),
+		...( positionStyle || {} ),
+	};
 
 	return (
 		<button
 			type="button"
 			className={ LAUNCHER_CLASS_NAME }
 			data-drag-target="true"
-			style={ positionStyle }
+			style={ style }
 			onMouseDown={ handleMouseDown }
 			onClick={ handleClick }
 			aria-label={ label }

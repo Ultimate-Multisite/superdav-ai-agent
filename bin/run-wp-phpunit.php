@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 $plugin_dir = dirname(__DIR__);
+require_once __DIR__ . '/wp-phpunit-database.php';
 
 /**
  * Read an environment variable, returning null for unset or empty values.
@@ -138,6 +139,12 @@ if (! is_file($tests_dir . '/wp-tests-config.php')) {
 		"WordPress test config not found at {$tests_dir}/wp-tests-config.php." . PHP_EOL
 		. 'Run `pnpm run test:php:setup`, or create wp-tests-config.php for your local test database.' . PHP_EOL
 	);
+	exit(1);
+}
+
+$database_error = sd_ai_agent_phpunit_validate_test_config($tests_dir);
+if (null !== $database_error) {
+	fwrite(STDERR, $database_error . PHP_EOL);
 	exit(1);
 }
 

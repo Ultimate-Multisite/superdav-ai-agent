@@ -1,32 +1,23 @@
 /**
  * Client-side abilities entry point.
  *
- * Registers the sd-ai-agent-js category and all client-side abilities
- * into the WP 7.0 `core/abilities` store. Import this module at the top of
- * each plugin entry point so registration happens before the chat UI mounts.
+ * Registers all client-side abilities in the shared page-local registry.
+ * Import this module at the top of each plugin entry point so registration
+ * happens before the chat UI mounts.
  *
  * This module is idempotent — safe to import multiple times.
  *
- * Order matters here: the category MUST be registered (and its async
- * `registerAbilityCategory` Promise MUST resolve) before any ability that
- * lives in it. Previously navigation.js and editor.js self-registered at
- * module-eval time and the registry helpers called the WP 7.0 API
- * synchronously without awaiting the returned Promises — leaving abilities
- * trying to register into a not-yet-resolved category and the
- * `@wordpress/abilities` library throwing
- * "Ability references non-existent category" errors. (Fix landed in t166.)
+ * The category step remains in the pipeline for compatibility, but the
+ * category and discoverable ability stubs are registered server-side. Browser
+ * callbacks stay local so malformed third-party providers cannot break the
+ * shared WordPress abilities store during plugin bootstrap.
  *
- * Cross-bundle deduplication (GH#990):
+ * Cross-bundle deduplication:
  * Each webpack entry-point bundle has its own module scope and therefore its
  * own `registrationPromise`. When multiple bundles (e.g. floating-widget.js
  * and admin-page.js) are enqueued on the same admin page, each bundle
- * previously ran the full registration pipeline independently. This caused
- * `wp.abilities.registerAbilityCategory()` to be called once per bundle,
- * which in WP 7.0-RC2 triggers a REST fetch to `/wp-json/wp-abilities/v1/abilities`
- * for each call — resulting in duplicate simultaneous requests, one of which
- * was aborted and logged a console error.
- *
- * The fix: `ensureRegistered()` checks a page-level window global
+ * can otherwise run the full local registration pipeline independently.
+ * `ensureRegistered()` checks a page-level window global
  * (`window.__sdAiAgentAbilitiesRegistering`) before creating a new
  * Promise. If another bundle on the same page has already started or
  * completed the pipeline, the second bundle awaits the same Promise instead
@@ -99,21 +90,11 @@ function waitForElementorEditorMcpRegistration() {
  * bundle on the same page has already started or completed registration,
  * this call returns the existing Promise without re-running the pipeline.
  *
- * If the abilities API was not available when the attempt ran (e.g. the
- * `@wordpress/core-abilities` script module hadn't loaded yet),
- * registerCategory() silently no-ops and the promise resolves without
- * registering anything. In that case both the module-level promise and the
- * window global are reset to null AFTER the attempt completes so a future
- * call can retry. Concurrent callers during the in-flight attempt all
- * receive the same promise — the reset only happens once the promise settles.
- *
  * @return {Promise<void>}
  */
 export function ensureRegistered() {
 	// Cross-bundle dedup: another webpack bundle on this page may have
-	// already started or completed the registration pipeline. Reuse its
-	// Promise so we don't call wp.abilities.registerAbilityCategory() a
-	// second time (each call can trigger a REST fetch in WP 7.0-RC2).
+	// already started or completed the registration pipeline.
 	if ( window[ WIN_REGISTRATION_KEY ] ) {
 		// The registry module keeps callback execution state page-global, so a
 		// bundle that reuses this Promise can execute abilities registered by
@@ -134,10 +115,9 @@ export function ensureRegistered() {
 	// bundle and from other bundles that load immediately after see the
 	// in-flight Promise rather than starting a new one.
 	registrationPromise = window[ WIN_REGISTRATION_KEY ] = ( async () => {
-		// Category MUST come first AND its Promise MUST resolve before
-		// abilities can register into it.
+		// Preserve category-first ordering for the registration contract.
 		await registerCategory();
-		// Now safe to register abilities — the category exists in the store.
+		// Register callbacks and descriptors in the page-local store.
 		await registerNavigationAbility();
 		await registerRefreshPageAbility();
 		await registerEditorAbility();
@@ -153,24 +133,10 @@ export function ensureRegistered() {
 		try {
 			await ( await import( './page-quality-validator' ) ).default();
 		} catch {
-			// Keep the already-registered core browser abilities available.
+			// Keep the already-registered browser abilities available.
 		}
 
 		await waitForElementorEditorMcpRegistration();
-
-		// If the abilities API was not available (e.g. script module not
-		// yet loaded), the registration calls above silently no-oped.
-		// Reset both caches so a future call can retry after the API loads.
-		// This MUST happen after the await chain settles — resetting during
-		// the in-flight attempt would break concurrent callers' dedup.
-		const apiAvailable =
-			typeof wp !== 'undefined' &&
-			!! wp.abilities &&
-			typeof wp.abilities.getAbilities === 'function';
-		if ( ! apiAvailable ) {
-			registrationPromise = null;
-			window[ WIN_REGISTRATION_KEY ] = null;
-		}
 	} )();
 
 	return registrationPromise;

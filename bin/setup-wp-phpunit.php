@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 $plugin_dir = dirname(__DIR__);
+require_once __DIR__ . '/wp-phpunit-database.php';
 
 /**
  * Read an environment variable, returning null for unset or empty values.
@@ -126,39 +127,6 @@ function sd_ai_agent_setup_shell_command(array $parts): string
 }
 
 /**
- * Read database connection values from an existing wp-tests-config.php file.
- *
- * The test installer writes this configuration once and leaves it in place on
- * later setup runs. Reusing every database setting keeps mysqladmin and the
- * WP-CLI-compatible core config aligned with the parent PHPUnit bootstrap.
- *
- * @param string $tests_dir WordPress test library directory.
- * @return array<string, string> Connection values keyed by DB constant name.
- */
-function sd_ai_agent_setup_read_config_database(string $tests_dir): array
-{
-	$config_file = rtrim($tests_dir, '/') . '/wp-tests-config.php';
-	if (! is_file($config_file)) {
-		return array();
-	}
-
-	$content = file_get_contents($config_file);
-	if (false === $content) {
-		return array();
-	}
-
-	$database = array();
-	foreach (array('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST') as $constant) {
-		$pattern = "/define\s*\(\s*'" . $constant . "'\s*,\s*'((?:\\\\.|[^'])*)'\s*\)/";
-		if (preg_match($pattern, $content, $matches)) {
-			$database[$constant] = str_replace(array("\\'", "\\\\"), array("'", "\\"), $matches[1]);
-		}
-	}
-
-	return $database;
-}
-
-/**
  * Recreate the configured test database.
  *
  * @param string $db_name Database name.
@@ -237,12 +205,33 @@ $cache_root  = sd_ai_agent_setup_cache_root();
 $tests_dir   = sd_ai_agent_setup_env('WP_TESTS_DIR') ?? $cache_root . '/wordpress-tests-lib-' . $version_key;
 $core_dir    = sd_ai_agent_setup_env('WP_CORE_DIR') ?? $cache_root . '/wordpress-' . $version_key;
 
-$test_database = sd_ai_agent_setup_read_config_database($tests_dir);
-$db_name       = sd_ai_agent_setup_env('WP_TESTS_DB_NAME') ?? $test_database['DB_NAME'] ?? 'sd_ai_agent_tests';
+$db_name       = sd_ai_agent_setup_env('WP_TESTS_DB_NAME') ?? 'sd_ai_agent_tests';
+$test_database = sd_ai_agent_phpunit_read_config_database($tests_dir);
+$config_file   = rtrim($tests_dir, '/') . '/wp-tests-config.php';
+
+if (is_file($config_file)) {
+	$config_error = sd_ai_agent_phpunit_validate_test_config($tests_dir);
+	if (null !== $config_error) {
+		fwrite(STDERR, $config_error . PHP_EOL);
+		exit(1);
+	}
+
+	if ($db_name !== $test_database['DB_NAME']) {
+		fwrite(STDERR, 'Existing WordPress test config selects a different database. Use a fresh WP_PHPUNIT_CACHE_DIR for the dedicated test database.' . PHP_EOL);
+		exit(1);
+	}
+}
+
 $db_user       = sd_ai_agent_setup_env('WP_TESTS_DB_USER') ?? $test_database['DB_USER'] ?? 'root';
 $db_pass       = sd_ai_agent_setup_env('WP_TESTS_DB_PASS') ?? $test_database['DB_PASSWORD'] ?? '';
 $db_host       = sd_ai_agent_setup_env('WP_TESTS_DB_HOST') ?? $test_database['DB_HOST'] ?? 'localhost';
 $skip_db = 'true' === strtolower(sd_ai_agent_setup_env('WP_TESTS_SKIP_DB_CREATE') ?? 'false');
+
+$database_error = sd_ai_agent_phpunit_validate_database_name($db_name);
+if (null !== $database_error) {
+	fwrite(STDERR, $database_error . PHP_EOL);
+	exit(1);
+}
 
 $installer = $plugin_dir . '/bin/install-wp-tests.sh';
 if (! is_file($installer)) {

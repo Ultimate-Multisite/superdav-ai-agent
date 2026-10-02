@@ -326,6 +326,13 @@ PROMPT;
 	private array $client_abilities = array();
 
 	/**
+	 * Use compatibility discovery if the full native catalog exceeds transport limits.
+	 *
+	 * @var bool
+	 */
+	private bool $native_full_catalog = true;
+
+	/**
 	 * Optional callback invoked after each tool call/response pair.
 	 *
 	 * Signature: function( list<array<string, mixed>> $tool_call_log, list<array<string, mixed>> $message_log ): void
@@ -2607,6 +2614,16 @@ PROMPT;
 		$provider_recovery_history      = null;
 		$provider_recovery_paused_state = null;
 		$result                         = $this->send_prompt( $provider_id, $model_id );
+		if ( is_wp_error( $result ) && $this->is_local_payload_limit_error( $result )
+			&& empty( $this->abilities ) && $this->native_full_catalog && $this->should_use_native_tool_search()
+		) {
+			// Deferred schemas still occupy the HTTP envelope. Retry with Tier 1
+			// and the existing ability-search/ability-call discovery path rather
+			// than trimming a new user's message to fit an oversized tool catalog.
+			// The final transport guard remains authoritative for this retry.
+			$this->native_full_catalog = false;
+			$result                    = $this->send_prompt( $provider_id, $model_id );
+		}
 		if ( is_wp_error( $result ) && 'sd_ai_agent_provider_retry_failed' === $result->get_error_code() ) {
 			$result        = $this->retry_large_provider_failure_with_compacted_history( $result, $provider_id, $model_id, $provider_recovery_history, $provider_recovery_paused_state );
 			$before_bytes  = ConversationTrimmer::estimate_total_bytes( $this->history );
@@ -2649,12 +2666,15 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, false );
 		}
 
-		$target_bytes  = max( 1, (int) floor( $before_bytes * 0.6 ) );
-		$target_tokens = max( 1, (int) floor( $before_tokens * 0.6 ) );
-		$reduced       = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
-		$after_bytes   = ConversationTrimmer::estimate_total_bytes( $reduced );
-		$after_tokens  = ConversationTrimmer::estimate_total_tokens( $reduced );
-		if ( $after_bytes >= $before_bytes && is_array( $provider_recovery_history ) ) {
+		// Reserve measured system/tool overhead, and require a ten-percent smaller
+		// complete envelope rather than budgeting the conversation alone.
+		$envelope_overhead = max( 0, $complete_envelope_bytes - $before_bytes );
+		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $byte_budget - $envelope_overhead, (int) floor( $complete_envelope_bytes * 0.9 ) - $envelope_overhead ) );
+		$target_tokens     = max( 1, (int) floor( $before_tokens * 0.6 ) );
+		$reduced           = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
+		$after_bytes       = ConversationTrimmer::estimate_total_bytes( $reduced );
+		$after_tokens      = ConversationTrimmer::estimate_total_tokens( $reduced );
+		if ( $after_bytes >= $before_bytes ) {
 			$compacted_reduction = ConversationTrimmer::compact_serialized_history(
 				$this->serialize_history(),
 				$target_bytes,
@@ -2676,10 +2696,11 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, $fallback_exhausted );
 		}
 
-		$this->history       = $reduced;
-		$this->message_log[] = array(
+		$provider_recovery_history ??= $this->history;
+		$this->history               = $reduced;
+		$this->message_log[]         = array(
 			'type'               => 'provider_payload_recovery',
-			'message'            => __( 'The provider rejected the request size. Retrying once with reduced conversation history.', 'superdav-ai-agent' ),
+			'message'            => __( 'The request exceeded its size limit. Retrying once with reduced conversation history.', 'superdav-ai-agent' ),
 			'status_code'        => 413,
 			'request_size_class' => ProviderTraceLogger::classify_request_size( $before_bytes ),
 			'fallback_attempted' => true,
@@ -2689,11 +2710,14 @@ PROMPT;
 		$this->fire_progress();
 
 		$this->provider_retry_baseline_envelope_bytes = $complete_envelope_bytes;
+		$previous_persistence_history                 = $this->providerPersistenceHistory;
+		$this->providerPersistenceHistory             = $previous_persistence_history ?? $provider_recovery_history;
 
 		try {
 			$retry_result = $this->send_prompt( $provider_id, $model_id );
 		} finally {
 			$this->provider_retry_baseline_envelope_bytes = 0;
+			$this->providerPersistenceHistory             = $previous_persistence_history;
 		}
 		if ( is_wp_error( $retry_result ) ) {
 			if ( $this->is_payload_limit_error( $retry_result ) ) {
@@ -3062,9 +3086,6 @@ PROMPT;
 			);
 		}
 
-		$builder = wp_ai_client_prompt();
-		/** @var \WP_AI_Client_Prompt_Builder $builder */
-
 		// Resolve abilities once here so they are available for both the prompt
 		// builder's using_abilities() call and the system-instruction rebuild.
 		// When native Responses tool search is active this may include the full
@@ -3079,53 +3100,7 @@ PROMPT;
 		// when content-generation or theme-modification tools are in scope.
 		if ( ! $this->system_instruction_locked ) {
 			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names );
-		}
-		$builder->using_system_instruction( $this->system_instruction );
-		$this->configure_model( $builder, $provider_id, $model_id );
-
-		// NOTE: weak-model temperature/parallel-tool overrides are disabled
-		// alongside the weak-model iteration cap (see constructor comment).
-		// The same telemetry-reliability concerns apply: flagging Opus 4.7
-		// or Sonnet 4.6 as weak because of past framework bugs would force
-		// temperature=0 and disable parallel tool calls, making real model
-		// usage noticeably slower and lower-quality without surfacing why
-		// to the user. Restore once telemetry is reliable.
-		//
-		// The builder is `WP_AI_Client_Prompt_Builder`, a thin wrapper that
-		// forwards snake_case calls (e.g. `using_max_tokens`) to the SDK's
-		// camelCase `usingMaxTokens` via PHP's `__call`. An earlier version
-		// of this block guarded both setters with `method_exists()`, which
-		// does NOT detect `__call`-routed methods and silently skipped them
-		// — leaving `max_tokens` unset (so the anthropic-max connector fell
-		// back to its hard-coded 4096 default) and `temperature` absent
-		// from the outgoing request body. The guards are removed because
-		// the wrapper's `__call` is guaranteed to exist and the `@method`
-		// declarations on the wrapper enumerate the supported API.
-		//
-		// Model-specific exception: some model families reject or deprecate
-		// `temperature` outright with HTTP 400 even though standard models still
-		// accept it. OpenAI reasoning families (gpt-5*, o1*, o3*, o4*) run at the
-		// model's implicit sampling setting. Anthropic Max Claude Opus 4.7 also
-		// rejects the OpenAI-compatible `temperature` field as deprecated.
-		// Skip the setter for those model IDs so the request body omits the field
-		// entirely. `max_tokens` is still safe to send.
-		//
-		// Use the same validated effective model for configuration, request
-		// budgets, temperature handling, and safe trace attribution.
-		if ( ! self::model_omits_temperature( $model_id ) ) {
-			$builder->using_temperature( (float) $this->temperature );
-		}
-		$builder->using_max_tokens( $this->get_effective_max_output_tokens() );
-
-		// $abilities was already resolved before the system-instruction rebuild
-		// above; reuse it here instead of calling resolve_abilities() twice.
-		if ( ! empty( $abilities ) ) {
-			$builder->using_abilities( ...$abilities );
-		}
-
-		if ( ! empty( $this->history ) ) {
-			$builder->with_history( ...$this->history );
+			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->native_full_catalog && $this->should_use_native_tool_search() );
 		}
 
 		$started_at               = microtime( true );
@@ -3152,7 +3127,10 @@ PROMPT;
 				$provider_phase
 			);
 			try {
-				$result = $builder->generate_text_result();
+				// WordPress retains errors on a builder. Every attempt needs a new
+				// instance so a transient failure actually retries the transport.
+				$builder = $this->create_provider_prompt_builder( $provider_id, $model_id, $abilities );
+				$result  = $builder->generate_text_result();
 				if ( is_wp_error( $result ) ) {
 					/** @var WP_Error $result */
 					$last_error = $result;
@@ -3167,7 +3145,15 @@ PROMPT;
 				ProviderTraceLogger::clear_runtime_context();
 			}
 
-			if ( $last_error instanceof WP_Error && ! empty( $request_envelope ) ) {
+			if ( ! empty( $request_envelope['local_rejection'] ) ) {
+				// The SDK wraps local WP_Error rejections as NetworkException/503.
+				// Restore our prompt-free classification before deciding to retry.
+				$last_error = new WP_Error(
+					'sd_ai_agent_provider_payload_budget_exceeded',
+					ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_LOCAL_PAYLOAD_GUARD ),
+					$request_envelope
+				);
+			} elseif ( $last_error instanceof WP_Error && ! empty( $request_envelope ) ) {
 				$last_error = $this->with_request_envelope_metadata( $last_error, $request_envelope );
 			} elseif ( $last_error instanceof \Throwable ) {
 				$last_error = $this->normalize_runtime_gateway_exception( $last_error, $request_envelope );
@@ -3227,6 +3213,33 @@ PROMPT;
 			$model_id,
 			$this->provider_retry_max_attempts
 		);
+	}
+
+	/**
+	 * Build fresh SDK state while retaining the logical request's configuration.
+	 *
+	 * @param string             $provider_id Effective provider ID.
+	 * @param string             $model_id Effective model ID.
+	 * @param array<\WP_Ability> $abilities Resolved abilities for this request.
+	 * @return \WP_AI_Client_Prompt_Builder
+	 */
+	private function create_provider_prompt_builder( string $provider_id, string $model_id, array $abilities ): \WP_AI_Client_Prompt_Builder {
+		$builder = wp_ai_client_prompt();
+		$builder->using_system_instruction( $this->system_instruction );
+		$this->configure_model( $builder, $provider_id, $model_id );
+		// These setters use __call; method_exists() cannot detect them. Reasoning
+		// models retain their implicit temperature, but still receive max_tokens.
+		if ( ! self::model_omits_temperature( $model_id ) ) {
+			$builder->using_temperature( (float) $this->temperature );
+		}
+		$builder->using_max_tokens( $this->get_effective_max_output_tokens() );
+		if ( ! empty( $abilities ) ) {
+			$builder->using_abilities( ...$abilities );
+		}
+		if ( ! empty( $this->history ) ) {
+			$builder->with_history( ...$this->history );
+		}
+		return $builder;
 	}
 
 	/** Return the bounded provider invocation phase stored in terminal traces. */
@@ -3758,6 +3771,9 @@ PROMPT;
 				// This bypasses the SDK's model-listing HTTP call which
 				// can fail for OpenAI-compatible endpoints.
 				$model = $registry->getProviderModel( $provider_id, $model_id );
+				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
+					$model->set_continuation_session_id( $this->session_id );
+				}
 				$builder->using_model( $model );
 			} else {
 				$builder->using_provider( $provider_id );
@@ -4402,7 +4418,7 @@ PROMPT;
 			);
 		}
 
-		if ( $this->should_use_native_tool_search() ) {
+		if ( $this->native_full_catalog && $this->should_use_native_tool_search() ) {
 			return $this->deduplicate_by_function_name(
 				array_merge(
 					ToolDiscovery::visible_ai_chat_abilities(),
@@ -4454,7 +4470,7 @@ PROMPT;
 	 * @return list<string>
 	 */
 	private function system_prompt_ability_names( array $resolved_abilities ): array {
-		if ( ! $this->should_use_native_tool_search() ) {
+		if ( ! $this->native_full_catalog || ! $this->should_use_native_tool_search() ) {
 			return array_values(
 				array_map(
 					static fn( \WP_Ability $a ): string => $a->get_name(),
@@ -4463,7 +4479,8 @@ PROMPT;
 			);
 		}
 
-		$names = array_merge( ToolDiscovery::tier_1_for_run( $this->agent_tier_1_tools ), $this->approved_once_abilities );
+		$visible_names = array_map( static fn( \WP_Ability $ability ): string => $ability->get_name(), $resolved_abilities );
+		$names         = array_intersect( array_merge( ToolDiscovery::tier_1_for_run( $this->agent_tier_1_tools ), $this->approved_once_abilities ), $visible_names );
 		return array_values(
 			array_unique(
 				array_filter(

@@ -66,6 +66,32 @@ class BlockAbilitiesTest extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * The rewrite schema documents the public block shape without requiring
+	 * callers to construct WordPress's internal innerContent for leaf blocks.
+	 */
+	public function test_rewrite_post_blocks_schema_documents_inner_content_rules(): void {
+		if ( ! function_exists( 'wp_get_ability' ) || ! function_exists( 'wp_register_ability' ) ) {
+			$this->markTestSkipped( 'WP 7.0+ Abilities API is not available.' );
+		}
+
+		if ( null === wp_get_ability( 'sd-ai-agent/rewrite-post-blocks' ) ) {
+			// wp_register_ability() must run during the Abilities API init hook.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress test global.
+			global $wp_current_filter;
+			$wp_current_filter[] = 'wp_abilities_api_init';
+			try {
+				BlockAbilities::register_abilities();
+			} finally {
+				array_pop( $wp_current_filter );
+			}
+		}
+
+		$schema = wp_get_ability( 'sd-ai-agent/rewrite-post-blocks' )->get_input_schema();
+		$this->assertStringContainsString( 'innerContent', $schema['properties']['blocks']['description'] );
+		$this->assertStringContainsString( 'leaf blocks', $schema['properties']['blocks']['description'] );
+	}
+
 	// ─── markdown-to-blocks ───────────────────────────────────────
 
 	/**

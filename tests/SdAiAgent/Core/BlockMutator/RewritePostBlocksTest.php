@@ -273,6 +273,98 @@ class RewritePostBlocksTest extends WP_UnitTestCase {
 		$this->assertSame( 'core/paragraph', $result[1]['blockName'] );
 	}
 
+	/**
+	 * A leaf block may use the documented innerHTML field without exposing
+	 * WordPress's internal innerContent serialization structure.
+	 */
+	public function test_validate_leaf_html_without_inner_content_is_preserved(): void {
+		$result = BlockMutator::validate_rewrite_blocks( [
+			[
+				'blockName'   => 'core/paragraph',
+				'attrs'       => [],
+				'innerHTML'   => '<p>Rewrite preservation probe</p>',
+				'innerBlocks' => [],
+			],
+		] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( [ '<p>Rewrite preservation probe</p>' ], $result[0]['innerContent'] );
+		$this->assertStringContainsString( '<p>Rewrite preservation probe</p>', serialize_blocks( $result ) );
+	}
+
+	/**
+	 * Static HTML that sanitizes to nothing must not become a self-closing block.
+	 */
+	public function test_validate_static_leaf_with_removed_html_returns_error(): void {
+		$result = BlockMutator::validate_rewrite_blocks( [
+			[
+				'blockName'   => 'core/paragraph',
+				'attrs'       => [],
+				'innerHTML'   => '<!-- wp:html -->',
+				'innerBlocks' => [],
+			],
+		] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rewrite_html_lost', $result->get_error_code() );
+	}
+
+	/**
+	 * Dynamic blocks may retain their self-closing serialization semantics.
+	 */
+	public function test_validate_dynamic_leaf_allows_empty_sanitized_html(): void {
+		register_block_type(
+			'sd-ai-agent/rewrite-dynamic-test',
+			[
+				'render_callback' => static fn(): string => '<div>Dynamic output</div>',
+			]
+		);
+
+		try {
+			$result = BlockMutator::validate_rewrite_blocks( [
+				[
+					'blockName'   => 'sd-ai-agent/rewrite-dynamic-test',
+					'attrs'       => [],
+					'innerHTML'   => '<!-- wp:html -->',
+					'innerBlocks' => [],
+				],
+			] );
+
+			$this->assertIsArray( $result );
+			$this->assertSame( [], $result[0]['innerContent'] );
+		} finally {
+			unregister_block_type( 'sd-ai-agent/rewrite-dynamic-test' );
+		}
+	}
+
+	/**
+	 * Nested blocks retain supplied wrapper fragments and child placeholders.
+	 */
+	public function test_validate_nested_blocks_preserves_wrappers_and_child_text(): void {
+		$result = BlockMutator::validate_rewrite_blocks( [
+			[
+				'blockName'    => 'core/group',
+				'attrs'        => [],
+				'innerHTML'    => '<div class="wp-block-group"></div>',
+				'innerContent' => [ '<div class="wp-block-group">', null, '</div>' ],
+				'innerBlocks'  => [
+					[
+						'blockName'   => 'core/paragraph',
+						'attrs'       => [],
+						'innerHTML'   => '<p>Nested rewrite text</p>',
+						'innerBlocks' => [],
+					],
+				],
+			],
+		] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( [ '<div class="wp-block-group">', null, '</div>' ], $result[0]['innerContent'] );
+		$serialized = serialize_blocks( $result );
+		$this->assertStringContainsString( '<div class="wp-block-group">', $serialized );
+		$this->assertStringContainsString( '<p>Nested rewrite text</p>', $serialized );
+	}
+
 	// ── Handler integration tests ─────────────────────────────────────────
 
 	/**
@@ -419,6 +511,37 @@ class RewritePostBlocksTest extends WP_UnitTestCase {
 		// Original content is gone.
 		$this->assertStringNotContainsString( 'Original content', $post->post_content );
 		$this->assertStringNotContainsString( 'Original heading', $post->post_content );
+	}
+
+	/**
+	 * Ambiguous nested input is rejected before the existing post is changed.
+	 */
+	public function test_handler_ambiguous_nested_input_leaves_post_unchanged(): void {
+		$post_id = $this->create_post_with_blocks();
+		$before  = (string) get_post( $post_id )->post_content;
+
+		$result = BlockAbilities::handle_rewrite_post_blocks( [
+			'post_id' => $post_id,
+			'blocks'  => [
+				[
+					'blockName'   => 'core/group',
+					'attrs'       => [],
+					'innerHTML'   => '<div class="wp-block-group"></div>',
+					'innerBlocks' => [
+						[
+							'blockName'   => 'core/paragraph',
+							'attrs'       => [],
+							'innerHTML'   => '<p>Nested rewrite text</p>',
+							'innerBlocks' => [],
+						],
+					],
+				],
+			],
+		] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ambiguous_inner_content', $result->get_error_code() );
+		$this->assertSame( $before, (string) get_post( $post_id )->post_content );
 	}
 
 	/**

@@ -4,6 +4,57 @@ For full browser-accessible local WordPress testing without Docker, including
 multi-worktree site provisioning, see
 [`local-wordpress-worktree-testing.md`](local-wordpress-worktree-testing.md).
 
+## wp-env loopbacks
+
+The browser sites use published ports 8890 and 8893, but Apache listens on port
+80 inside Docker. `tests/mu-plugins/wp-env-loopback.php` routes WordPress HTTP
+requests to its own local site through the Docker service configured by
+`SD_AI_AGENT_WP_ENV_LOOPBACK_HOST` in `.wp-env.json`: `wordpress` for development
+and `tests-wordpress` for tests. It preserves the public Host header and leaves
+external API requests unchanged. The helper requires the explicit wp-env constant
+and the development environment; it is not part of the released plugin.
+
+Run `pnpm exec wp-env start` after changing the configuration. Check the cron
+loopback from the separate CLI container with:
+
+```bash
+pnpm exec wp-env run tests-cli wp eval '$r = wp_remote_get( site_url( "/wp-cron.php" ), array( "timeout" => 5 ) ); echo is_wp_error( $r ) ? $r->get_error_message() : wp_remote_retrieve_response_code( $r );'
+```
+
+Expect HTTP 200. A connection failure to `localhost:8893` means the helper or
+constant is missing. Jobs stuck in `processing` with overdue
+`sd_ai_agent_process_background_job` cron events and no provider traces indicate
+the queue has not reached inference yet. Check loopback connectivity before
+diagnosing inference latency.
+
+## Native tool-search validation
+
+Use the installed site's existing connector credentials and managed model. Check
+actual outgoing provider routes rather than the browser's WordPress REST route.
+Discovery, a follow-up message, an approved confirmation, and browser navigation
+should all remain on `/v1/responses` when native search is eligible. Repeat the
+browser handoff in fresh sessions; compare the replayed input prefix with the
+prior native input plus output, including JSON tool-result strings and empty
+schema objects. Record hashes and request metadata, never credentials or full
+conversation payloads.
+
+Native tool search sends deferred schemas over HTTP without loading them all into
+model context. Keep the configured HTTP body cap, but do not apply the managed
+Chat Completions byte-as-token context clamp to native deferred catalogs. The
+service must exclude deferred definitions from context admission while retaining
+loaded `tool_search_output` and conservative quota reservations. Deploy that
+service support before releasing the client change that admits the full catalog.
+
+For benchmarks, record upstream input, output, and cached input tokens for every
+request in a complete task, including retries and discovery. Compare the same
+model, permissions, fixtures, and catalog; distinguish prompt-manifest removal
+from schema-deferral savings. A first-request control is not a complete task.
+Run paired repeated samples and report correctness, total input context, uncached
+input, and elapsed time separately. Deferred catalog bytes and a cold/warm cache
+difference alone do not establish token or performance gains. Report rejected
+requests and bounded-catalog conditions explicitly; full-catalog deployment is
+not verified by a smaller-catalog test.
+
 ## PHP unit tests without wp-env
 
 `pnpm run test:php` runs PHPUnit against a shared WordPress core and

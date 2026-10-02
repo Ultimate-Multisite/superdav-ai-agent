@@ -324,8 +324,9 @@ class ProviderTraceLogger {
 
 		$request_bytes        = strlen( $request_body );
 		$request_tokens       = (int) ceil( $request_bytes / 4 );
-		$provider_limit_bytes = ConversationTrimmer::get_request_byte_budget( $provider_id, $model_id );
-		$byte_budget          = ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
+		$native_responses     = 'sd-ai-agent-cloud' === $provider_id && str_ends_with( (string) wp_parse_url( $url, PHP_URL_PATH ), '/responses' );
+		$provider_limit_bytes = ConversationTrimmer::get_request_byte_budget( $provider_id, $model_id, $native_responses );
+		$byte_budget          = ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id, $native_responses );
 		$safety_margin_bytes  = max( 0, $provider_limit_bytes - $byte_budget );
 
 		if ( $has_context ) {

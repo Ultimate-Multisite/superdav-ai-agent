@@ -1628,9 +1628,10 @@ class ConversationTrimmer {
 	 *
 	 * @param string $provider_id Runtime-selected provider ID.
 	 * @param string $model_id    Runtime-selected model ID.
+	 * @param bool   $native_responses Whether deferred schemas need a separate native context check.
 	 * @return int Effective request byte budget.
 	 */
-	public static function get_request_byte_budget( string $provider_id = '', string $model_id = '' ): int {
+	public static function get_request_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false ): int {
 		// @phpstan-ignore-next-line
 		$configured = (int) Settings::instance()->get( 'provider_request_max_bytes' );
 		if ( $configured <= 0 ) {
@@ -1650,7 +1651,9 @@ class ConversationTrimmer {
 		// one input token. Its context check also reserves the requested output
 		// tokens, so the generic 512 KiB HTTP budget can admit requests that the
 		// gateway will always reject with max_tokens_exceeded (HTTP 400).
-		if ( 'sd-ai-agent-cloud' === $provider_id && in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true ) ) {
+		// Native deferred catalogs occupy HTTP bytes without all entering model
+		// context. Keep the configured body cap; the service checks native context.
+		if ( ! $native_responses && 'sd-ai-agent-cloud' === $provider_id && in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true ) ) {
 			$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
 			$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
 			$filtered       = min( $filtered, $context_window - $output_limit );
@@ -1686,10 +1689,11 @@ class ConversationTrimmer {
 	 *
 	 * @param string $provider_id Runtime-selected provider ID.
 	 * @param string $model_id    Runtime-selected model ID.
+	 * @param bool   $native_responses Whether this envelope uses native Responses tool search.
 	 * @return int Effective full-envelope byte budget.
 	 */
-	public static function get_request_envelope_byte_budget( string $provider_id = '', string $model_id = '' ): int {
-		$request_limit = self::get_request_byte_budget( $provider_id, $model_id );
+	public static function get_request_envelope_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false ): int {
+		$request_limit = self::get_request_byte_budget( $provider_id, $model_id, $native_responses );
 		$safety_margin = self::resolve_request_safety_margin_bytes( $request_limit, $provider_id, $model_id );
 
 		return max( 1024, $request_limit - $safety_margin );

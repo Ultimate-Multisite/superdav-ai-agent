@@ -10,7 +10,8 @@
 		"WP_DEBUG": true,
 		"WP_DEBUG_LOG": true,
 		"SCRIPT_DEBUG": true,
-		"WP_ENVIRONMENT_TYPE": "development"
+		"WP_ENVIRONMENT_TYPE": "development",
+		"SD_AI_AGENT_WP_ENV_LOOPBACK_HOST": "wordpress"
 	},
 	"mappings": {
 		"wp-content/mu-plugins": "./tests/mu-plugins"
@@ -22,7 +23,8 @@
 			"config": {
 				"WP_DEBUG": true,
 				"WP_DEBUG_LOG": true,
-				"WP_ENVIRONMENT_TYPE": "development"
+				"WP_ENVIRONMENT_TYPE": "development",
+				"SD_AI_AGENT_WP_ENV_LOOPBACK_HOST": "tests-wordpress"
 			},
 			"mappings": {
 				"wp-content/mu-plugins": "./tests/mu-plugins"

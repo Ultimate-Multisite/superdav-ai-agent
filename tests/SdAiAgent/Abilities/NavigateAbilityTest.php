@@ -194,4 +194,72 @@ class NavigateAbilityTest extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertStringContainsString( 'wp-admin', $result['message'] );
 	}
+
+	/** Admin-relative paths use the authoritative admin URL. */
+	public function test_admin_path_uses_current_blog_url(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$result = $this->make_ability()->run( [ 'path' => 'plugins.php' ] );
+		$this->assertIsArray( $result );
+		$this->assertSame( get_admin_url( null, 'plugins.php' ), $result['url'] );
+		$this->assertSame( 'navigate', $result['action'] );
+	}
+
+	/** Reject duplicated admin paths and ambiguous URL forms. */
+	public function test_rejects_malformed_admin_urls(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		foreach ( [ '/wp-admin/woo/wp-admin/plugins.php', '//evil.example/wp-admin/', '/wp-admin/../woo/wp-admin/plugins.php', '/wp-admin/%2e%2e/woo/wp-admin/plugins.php', '/unknown-blog/wp-admin/plugins.php', '/wp-admin/%252e%252e/woo/', '/woo%2fwp-admin/plugins.php' ] as $url ) {
+			$this->assertWPError( $this->make_ability()->run( [ 'url' => $url ] ) );
+		}
+	}
+
+	/** Cross-blog navigation returns a link without switching current context. */
+	public function test_multisite_target_admin_link_preserves_origin(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Multisite fixture required.' );
+		}
+		$user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $user_id );
+		$blog_id = self::factory()->blog->create( [ 'path' => '/woo/' ] );
+		add_user_to_blog( $blog_id, $user_id, 'administrator' );
+		$origin = get_current_blog_id();
+		$result = $this->make_ability()->run( [ 'blog_id' => $blog_id, 'path' => 'plugins.php' ] );
+		$this->assertIsArray( $result );
+		$this->assertSame( get_admin_url( $blog_id, 'plugins.php' ), $result['url'] );
+		$this->assertSame( 'link', $result['action'] );
+		$this->assertSame( $origin, get_current_blog_id() );
+		$result = $this->make_ability()->run( [ 'url' => get_admin_url( $blog_id, 'plugins.php' ) ] );
+		$this->assertSame( 'link', $result['action'] );
+		$router = \SdAiAgent\Core\ClientAbilityRouter::from_raw( [ [ 'name' => 'sd-ai-agent-js/navigate-to' ] ] );
+		$method = new \ReflectionMethod( $router, 'get_browser_navigation_args' );
+		$this->assertNull( $method->invoke( $router, 'sd-ai-agent/ability-call', [ 'ability' => 'sd-ai-agent/navigate', 'arguments' => [ 'blog_id' => $blog_id, 'path' => 'plugins.php' ] ], [ 'sd-ai-agent-js/navigate-to' ] ) );
+		switch_to_blog( $blog_id );
+		try {
+			$result = $this->make_ability()->run( [ 'url' => get_admin_url( $origin, 'plugins.php' ) ] );
+			$this->assertSame( 'link', $result['action'] );
+			$result = $this->make_ability()->run( [ 'path' => 'plugins.php' ] );
+			$this->assertSame( get_admin_url( $blog_id, 'plugins.php' ), $result['url'] );
+			$this->assertSame( 'navigate', $result['action'] );
+		} finally {
+			restore_current_blog();
+		}
+		remove_user_from_blog( $user_id, $blog_id );
+		$this->assertWPError( $this->make_ability()->run( [ 'blog_id' => $blog_id, 'path' => 'plugins.php' ] ) );
+	}
+
+	/** Subdomain and port-bearing WordPress domains are distinct blogs too. */
+	public function test_multisite_subdomain_and_port_links(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Multisite fixture required.' );
+		}
+		$user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $user_id );
+		foreach ( [ [ 'domain' => 'woo.example.org', 'path' => '/' ], [ 'domain' => 'example.org:8080', 'path' => '/woo/' ] ] as $site ) {
+			$blog_id = self::factory()->blog->create( $site );
+			add_user_to_blog( $blog_id, $user_id, 'administrator' );
+			$result = $this->make_ability()->run( [ 'blog_id' => $blog_id, 'path' => 'plugins.php' ] );
+			$this->assertIsArray( $result );
+			$this->assertSame( get_admin_url( $blog_id, 'plugins.php' ), $result['url'] );
+			$this->assertSame( 'link', $result['action'] );
+		}
+	}
 }

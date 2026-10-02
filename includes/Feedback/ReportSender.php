@@ -28,7 +28,7 @@ class ReportSender {
 	 *
 	 * Reports are always sent here. No configuration or API key is required.
 	 */
-	const ENDPOINT_URL = 'https://ultimateagentwp.ai/wp-json/gratis-ai-server/v1/reports';
+	const ENDPOINT_URL = 'https://sdaiagent.com/wp-json/gratis-ai-server/v1/reports';
 
 	/**
 	 * Send a sanitized report payload to the feedback endpoint.

@@ -47,6 +47,23 @@ use XWP\DI\Decorators\Action;
  * Covers provider metadata, registration, and credential bridging.
  */
 final class SuperdavAiProviderTest extends WP_UnitTestCase {
+	/** Deployed managed chat aliases select Responses while retaining an opt-out. */
+	public function test_managed_chat_aliases_use_native_search_and_can_opt_out(): void {
+		$this->skip_if_sdk_unavailable();
+		$create = new \ReflectionMethod( SuperdavAiProvider::class, 'createModel' );
+		foreach ( array( SuperdavAiProvider::FAST_MODEL_ID, SuperdavAiProvider::DEFAULT_MODEL_ID, SuperdavAiProvider::STRONG_MODEL_ID ) as $model_id ) {
+			$this->assertTrue( SuperdavAiProvider::responses_tool_search_enabled( SuperdavAiProvider::PROVIDER_ID, $model_id ) );
+			$model = $create->invoke( null, new ModelMetadata( $model_id, $model_id, array( CapabilityEnum::textGeneration() ), array() ), SuperdavAiProvider::metadata() );
+			$this->assertInstanceOf( SuperdavAiResponsesToolSearchTextGenerationModel::class, $model );
+		}
+		$this->assertFalse( SuperdavAiProvider::responses_tool_search_enabled( 'openai', SuperdavAiProvider::DEFAULT_MODEL_ID ) );
+		$this->assertFalse( SuperdavAiProvider::responses_tool_search_enabled( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-unknown' ) );
+		add_filter( 'sd_ai_agent_openai_tool_search_enabled', '__return_false' );
+		$this->assertFalse( SuperdavAiProvider::responses_tool_search_enabled( SuperdavAiProvider::PROVIDER_ID, SuperdavAiProvider::DEFAULT_MODEL_ID ) );
+		$model = $create->invoke( null, new ModelMetadata( SuperdavAiProvider::DEFAULT_MODEL_ID, 'SD Chat', array( CapabilityEnum::textGeneration() ), array() ), SuperdavAiProvider::metadata() );
+		$this->assertInstanceOf( SuperdavAiTextGenerationModel::class, $model );
+	}
+
 
 	/**
 	 * Clean up provider-specific options.

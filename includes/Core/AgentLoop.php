@@ -326,6 +326,13 @@ PROMPT;
 	private array $client_abilities = array();
 
 	/**
+	 * Use compatibility discovery if the full native catalog exceeds transport limits.
+	 *
+	 * @var bool
+	 */
+	private bool $native_full_catalog = true;
+
+	/**
 	 * Optional callback invoked after each tool call/response pair.
 	 *
 	 * Signature: function( list<array<string, mixed>> $tool_call_log, list<array<string, mixed>> $message_log ): void
@@ -2607,6 +2614,16 @@ PROMPT;
 		$provider_recovery_history      = null;
 		$provider_recovery_paused_state = null;
 		$result                         = $this->send_prompt( $provider_id, $model_id );
+		if ( is_wp_error( $result ) && $this->is_local_payload_limit_error( $result )
+			&& empty( $this->abilities ) && $this->native_full_catalog && $this->should_use_native_tool_search()
+		) {
+			// Deferred schemas still occupy the HTTP envelope. Retry with Tier 1
+			// and the existing ability-search/ability-call discovery path rather
+			// than trimming a new user's message to fit an oversized tool catalog.
+			// The final transport guard remains authoritative for this retry.
+			$this->native_full_catalog = false;
+			$result                    = $this->send_prompt( $provider_id, $model_id );
+		}
 		if ( is_wp_error( $result ) && 'sd_ai_agent_provider_retry_failed' === $result->get_error_code() ) {
 			$result        = $this->retry_large_provider_failure_with_compacted_history( $result, $provider_id, $model_id, $provider_recovery_history, $provider_recovery_paused_state );
 			$before_bytes  = ConversationTrimmer::estimate_total_bytes( $this->history );
@@ -3083,7 +3100,7 @@ PROMPT;
 		// when content-generation or theme-modification tools are in scope.
 		if ( ! $this->system_instruction_locked ) {
 			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names );
+			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->native_full_catalog && $this->should_use_native_tool_search() );
 		}
 
 		$started_at               = microtime( true );
@@ -3754,6 +3771,9 @@ PROMPT;
 				// This bypasses the SDK's model-listing HTTP call which
 				// can fail for OpenAI-compatible endpoints.
 				$model = $registry->getProviderModel( $provider_id, $model_id );
+				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
+					$model->set_continuation_session_id( $this->session_id );
+				}
 				$builder->using_model( $model );
 			} else {
 				$builder->using_provider( $provider_id );
@@ -4398,7 +4418,7 @@ PROMPT;
 			);
 		}
 
-		if ( $this->should_use_native_tool_search() ) {
+		if ( $this->native_full_catalog && $this->should_use_native_tool_search() ) {
 			return $this->deduplicate_by_function_name(
 				array_merge(
 					ToolDiscovery::visible_ai_chat_abilities(),
@@ -4450,7 +4470,7 @@ PROMPT;
 	 * @return list<string>
 	 */
 	private function system_prompt_ability_names( array $resolved_abilities ): array {
-		if ( ! $this->should_use_native_tool_search() ) {
+		if ( ! $this->native_full_catalog || ! $this->should_use_native_tool_search() ) {
 			return array_values(
 				array_map(
 					static fn( \WP_Ability $a ): string => $a->get_name(),
@@ -4459,7 +4479,8 @@ PROMPT;
 			);
 		}
 
-		$names = array_merge( ToolDiscovery::tier_1_for_run( $this->agent_tier_1_tools ), $this->approved_once_abilities );
+		$visible_names = array_map( static fn( \WP_Ability $ability ): string => $ability->get_name(), $resolved_abilities );
+		$names         = array_intersect( array_merge( ToolDiscovery::tier_1_for_run( $this->agent_tier_1_tools ), $this->approved_once_abilities ), $visible_names );
 		return array_values(
 			array_unique(
 				array_filter(

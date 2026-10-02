@@ -159,30 +159,33 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 	}
 
 	/**
-	 * Whether the Responses API tool-search experiment should handle a model.
+	 * Whether native Responses tool search should handle a model.
 	 *
 	 * Tool search is an OpenAI Responses API feature (not Chat Completions) and
-	 * is documented for GPT-5.4+ models. Keep the switch filterable so managed
-	 * aliases can opt in once the service confirms the underlying model/endpoint
-	 * supports `/responses` with `tool_search`.
+	 * is documented for GPT-5.4+ models. The deployed service also supports native
+	 * search on its three managed chat aliases. Keep the switch filterable for
+	 * deployments that need the compatible Chat Completions path.
 	 */
 	public static function responses_tool_search_enabled( string $provider_id, string $model_id ): bool {
 		if ( self::PROVIDER_ID !== $provider_id ) {
 			return false;
 		}
 
-		$supported = self::model_supports_responses_tool_search( $model_id );
+		$supported = self::model_supports_responses_tool_search( $model_id ) || in_array(
+			$model_id,
+			array( self::FAST_MODEL_ID, self::DEFAULT_MODEL_ID, self::STRONG_MODEL_ID ),
+			true
+		);
 
 		/**
-		 * Filter whether the Superdav provider should use OpenAI Responses tool search.
+		 * Filter whether the Superdav provider should use native Responses tool search.
 		 *
-		 * Return true to opt a managed alias into the experiment after verifying the
-		 * endpoint supports `/responses` and the backing model is GPT-5.4 or later.
+		 * Return false to retain Chat Completions on a deployment without Responses.
 		 *
-		 * @param bool   $enabled     Default true only for explicit GPT-5.4+ IDs.
+		 * @param bool   $enabled     True for GPT-5.4+ IDs and supported managed chat aliases.
 		 * @param string $provider_id AI Client provider ID.
 		 * @param string $model_id    Provider model ID.
-		 * @param bool   $supported   Whether the model ID itself matches GPT-5.4+.
+		 * @param bool   $supported   Whether the model ID or managed alias supports native search.
 		 */
 		$enabled = apply_filters( 'sd_ai_agent_openai_tool_search_enabled', $supported, $provider_id, $model_id, $supported );
 

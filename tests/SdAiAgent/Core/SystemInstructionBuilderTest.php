@@ -16,6 +16,16 @@ use WP_UnitTestCase;
  * Test SystemInstructionBuilder functionality.
  */
 class SystemInstructionBuilderTest extends WP_UnitTestCase {
+	/** Native discovery must not be contradicted by the compatibility manifest. */
+	public function test_native_routing_loads_deferred_functions_without_compatibility_manifest(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build( array(), array( 'sd-ai-agent/list-posts' ), true );
+		$this->assertStringContainsString( 'use it to load the relevant deferred functions', $instruction );
+		$this->assertStringContainsString( 'then call those functions directly', $instruction );
+		$this->assertStringContainsString( 'Call browser functions directly', $instruction );
+		$this->assertStringNotContainsString( 'Only call abilities that are present in the current direct tool list', $instruction );
+		$this->assertStringNotContainsString( 'The abilities listed below are NOT loaded as direct tools', $instruction );
+	}
+
 
 	/**
 	 * Test that the default system instruction includes site configuration guidance.

@@ -106,11 +106,11 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		add_filter(
 			'pre_http_request',
 			static function ( $preempt, $args, $url ) use ( &$calls ) {
-				if ( false !== $preempt || ! str_ends_with( $url, '/chat/completions' ) ) {
+				if ( false !== $preempt || ( ! str_ends_with( $url, '/chat/completions' ) && ! str_ends_with( $url, '/responses' ) ) ) {
 					return $preempt;
 				}
 				++$calls;
-				return 1 === $calls ? self::response( 503, array( 'error' => array( 'message' => 'Temporarily unavailable' ) ) ) : self::completion();
+				return 1 === $calls ? self::response( 503, array( 'error' => array( 'message' => 'Temporarily unavailable' ) ) ) : self::completion( str_ends_with( $url, '/responses' ) );
 			},
 			20,
 			3
@@ -136,11 +136,11 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		add_filter(
 			'pre_http_request',
 			static function ( $preempt, $args, $url ) use ( &$forwarded_sizes ) {
-				if ( false !== $preempt || ! str_ends_with( $url, '/chat/completions' ) ) {
+				if ( false !== $preempt || ( ! str_ends_with( $url, '/chat/completions' ) && ! str_ends_with( $url, '/responses' ) ) ) {
 					return $preempt;
 				}
 				$forwarded_sizes[] = strlen( $args['body'] );
-				return self::completion();
+				return self::completion( str_ends_with( $url, '/responses' ) );
 			},
 			20,
 			3
@@ -154,6 +154,42 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( $evidence, (string) wp_json_encode( $result['history'] ) );
 		$this->assertCount( 1, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_payload_recovery' === $entry['type'] ) );
 		$this->assertCount( 0, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_retry' === $entry['type'] ) );
+	}
+
+	/** Oversized catalogs must preserve user input and retry through bounded discovery. */
+	public function test_oversized_native_catalog_retries_bounded_tools_without_trimming_user_input(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		global $wp_current_filter;
+		$wp_current_filter[] = 'wp_abilities_api_init';
+		wp_register_ability( 'sd-ai-agent/native-large-fixture', array(
+			'label' => 'Large fixture', 'description' => str_repeat( 'schema detail ', 20000 ),
+			'category' => 'sd-ai-agent', 'input_schema' => array( 'type' => 'object' ),
+			'execute_callback' => '__return_true', 'permission_callback' => '__return_true',
+		) );
+		array_pop( $wp_current_filter );
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 100000 );
+		$requests = array();
+		add_filter( 'pre_http_request', static function ( $preempt, $args, $url ) use ( &$requests ) {
+			if ( false !== $preempt || ! str_ends_with( $url, '/responses' ) ) {
+				return $preempt;
+			}
+			$requests[] = json_decode( $args['body'], true );
+			return self::completion( true );
+		}, 20, 3 );
+		try {
+			$result = ( new AgentLoop( 'Keep this complete user request.', array(), array(), array(
+				'provider_id' => SuperdavAiProvider::PROVIDER_ID, 'model_id' => 'superdav-chat-pro',
+				'system_instruction' => 'Reply briefly.', 'max_iterations' => 2,
+			) ) )->run();
+			$this->assertIsArray( $result );
+			$this->assertSame( 'Recovered.', $result['reply'] );
+			$this->assertCount( 1, $requests );
+			$this->assertSame( 'Keep this complete user request.', $requests[0]['input'][0]['content'] );
+			$this->assertStringNotContainsString( 'native-large-fixture', wp_json_encode( $requests[0]['tools'] ) );
+			$this->assertStringContainsString( 'ability-search', wp_json_encode( $requests[0]['tools'] ) );
+		} finally {
+			wp_unregister_ability( 'sd-ai-agent/native-large-fixture' );
+		}
 	}
 
 	/** @param array<\WordPress\AiClient\Messages\DTO\Message> $history Conversation evidence. */
@@ -172,8 +208,19 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		);
 	}
 
-	/** @return array<string, mixed> Mock WordPress HTTP response. */
-	private static function completion(): array {
+	/**
+	 * @param bool $native Whether this request uses Responses.
+	 * @return array<string, mixed> Mock WordPress HTTP response.
+	 */
+	private static function completion( bool $native = false ): array {
+		if ( $native ) {
+			return self::response( 200, array(
+				'id'     => 'resp-recovery',
+				'status' => 'completed',
+				'output' => array( array( 'type' => 'message', 'content' => array( array( 'type' => 'output_text', 'text' => 'Recovered.' ) ) ) ),
+				'usage'  => array( 'input_tokens' => 10, 'output_tokens' => 2, 'total_tokens' => 12 ),
+			) );
+		}
 		return self::response(
 			200,
 			array(

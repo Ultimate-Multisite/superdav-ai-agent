@@ -120,9 +120,10 @@ class SystemInstructionBuilder {
 	 * @param array<string, mixed> $settings      Plugin settings.
 	 * @param string[]             $ability_names Names of active Tier-1 abilities for this turn.
 	 *                                             Used to conditionally inject the Working-cadence section.
+	 * @param bool                 $native_tool_search Whether the provider exposes deferred native functions.
 	 * @return string
 	 */
-	public function build( array $settings, array $ability_names = array() ): string {
+	public function build( array $settings, array $ability_names = array(), bool $native_tool_search = false ): string {
 		$ability_names = array_values( array_map( 'strval', $ability_names ) );
 
 		// Use custom system prompt if set, otherwise the built-in default.
@@ -219,12 +220,10 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . self::build_frontend_live_preview_section();
 		}
 
-		// Append the Tier-2 ability manifest so the model knows what's
-		// reachable via ability-search / ability-call. This is the heart of
-		// the auto-discovery layer.
-		$base .= "\n\n" . self::build_tool_routing_section( $ability_names );
+		// Native discovery already supplies the catalog through deferred schemas.
+		$base .= "\n\n" . self::build_tool_routing_section( $ability_names, $native_tool_search );
 
-		$manifest = ToolDiscovery::build_manifest_section( $ability_names );
+		$manifest = $native_tool_search ? '' : ToolDiscovery::build_manifest_section( $ability_names );
 		if ( '' !== $manifest ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . $manifest;
@@ -311,9 +310,18 @@ class SystemInstructionBuilder {
 	 * current direct tool surface.
 	 *
 	 * @param string[] $ability_names Direct abilities exposed to the model this turn.
+	 * @param bool     $native_tool_search Whether deferred functions are available through native search.
 	 * @return string
 	 */
-	public static function build_tool_routing_section( array $ability_names ): string {
+	public static function build_tool_routing_section( array $ability_names, bool $native_tool_search = false ): string {
+		if ( $native_tool_search ) {
+			return "## Tool routing\n\n"
+				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, use it to load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
+				. 'A deferred function is available after discovery even if its ability name is absent from this prompt. Do not invent function names or claim a capability is unavailable before searching the declared tool namespaces. '
+				. 'When no native search tool is supplied, call the available functions directly. Use `sd-ai-agent/ability-search` and `sd-ai-agent/ability-call` only as a compatibility path when those tools are available. '
+				. 'Call browser functions directly; server-side `sd-ai-agent/ability-call` cannot execute browser tools. Tool calls must use the actual tool interface, never textual `<tool_call>` markup.';
+		}
+
 		$first_party = array_values(
 			array_filter(
 				$ability_names,

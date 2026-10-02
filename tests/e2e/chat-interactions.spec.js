@@ -90,8 +90,13 @@ async function interceptStream( page, options = {} ) {
 	// to do so. After that, return 'complete' immediately.
 	// capturedSessionId is guaranteed set before the first poll: the browser
 	// sends POST /run synchronously before fetching GET /job/:id.
+	// Scope the counter to our synthetic job; restored jobs in other sessions
+	// must not consume this test's processing responses.
 	await page.route(
-		( url ) => decodeURIComponent( url.toString() ).includes( 'sd-ai-agent/v1/job/' ),
+		( url ) =>
+			decodeURIComponent( url.toString() ).includes(
+				'sd-ai-agent/v1/job/e2e-test-job-1'
+			),
 		async ( route ) => {
 		jobPollCount += 1;
 		if ( jobPollCount <= processingPolls ) {

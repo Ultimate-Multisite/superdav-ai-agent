@@ -68,12 +68,20 @@ final class ElementorCompletionGate {
 	/**
 	 * Active document state keyed by WordPress post ID.
 	 *
-	 * The private preview URL is held only until serialized history and activity
-	 * log values have been redacted. `get_status()` intentionally excludes it.
+	 * Current preview URLs bind render evidence. `get_status()` excludes them.
 	 *
 	 * @var array<int,array<string,mixed>>
 	 */
 	private array $targets = array();
+
+	/**
+	 * Request-only redaction values, independent of mutable render evidence.
+	 * Later mutations or previews must not expose earlier URLs in a response
+	 * batch, serialized history, progress logs, or provider-recovery state.
+	 *
+	 * @var array<string,string> Preview URLs keyed by their one-way hash.
+	 */
+	private array $private_preview_urls = array();
 
 	private bool $preview_ability_available;
 
@@ -704,6 +712,11 @@ final class ElementorCompletionGate {
 	 * @param array<string,mixed> $pending Pending call metadata.
 	 */
 	private function record_preview_result( array $args, array $payload, array $pending ): void {
+		// Even rejected or stale previews remain private in logs and history.
+		$preview_url = self::extract_preview_url( $payload );
+		if ( '' !== $preview_url ) {
+			$this->private_preview_urls[ self::hash_url( $preview_url ) ] = $preview_url;
+		}
 		$post_id = self::extract_post_id( $payload, $args );
 		if ( ! self::is_successful_response( $payload ) ) {
 			$this->last_failure = 'Elementor preview-link creation did not succeed for the current document.';
@@ -736,7 +749,6 @@ final class ElementorCompletionGate {
 			return;
 		}
 
-		$preview_url      = self::extract_preview_url( $payload );
 		$preview_url_hash = self::extract_preview_url_hash( $payload );
 		if ( '' === $preview_url_hash ) {
 			$this->last_failure = 'Elementor preview-link creation succeeded without a usable preview URL for current render evidence.';
@@ -1046,14 +1058,7 @@ final class ElementorCompletionGate {
 
 	/** @return list<string> */
 	private function get_private_preview_urls(): array {
-		$urls = array();
-		foreach ( $this->targets as $target ) {
-			$url = (string) ( $target['preview_url'] ?? '' );
-			if ( '' !== $url ) {
-				$urls[] = $url;
-			}
-		}
-		return array_values( array_unique( $urls ) );
+		return array_values( $this->private_preview_urls );
 	}
 
 	/**

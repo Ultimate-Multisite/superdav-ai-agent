@@ -247,6 +247,13 @@ System notices:
 
 Use `<Tooltip>` from `@wordpress/components` (or `showTooltip + label` on `<Button>`) for every icon-only button. Do not rely on the native `title` attribute — it has poor accessibility and inconsistent browser styling.
 
+### MCP connections
+
+- Keep the primary setup flow to a server URL, optional display name, and the relevant authentication field. Transport and protocol negotiation are automatic.
+- New and imported servers stay disabled until a successful discovery and an explicit administrator action. Connecting discovers available tools; it never changes a tool's existing confirmation policy.
+- Show connection status and tool count in the normal card. Put protocol versions, timestamps, and safe error codes in an expandable Details section.
+- Keep import/export, edit, refresh, and removal secondary. Do not render credentials in cards, details, exports, or recovered form state.
+
 ---
 
 ## 5. Layout Principles

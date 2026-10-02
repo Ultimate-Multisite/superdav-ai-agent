@@ -1757,6 +1757,121 @@
 	padding: 4px 0;
 }
 
+/* ── MCP integrations ─────────────────────────────────────────── */
+
+.sdaa-mcp-integrations {
+	max-width: 760px;
+}
+
+.sdaa-mcp-integrations__header,
+.sdaa-mcp-integrations__connection-heading,
+.sdaa-mcp-integrations__actions,
+.sdaa-mcp-integrations__secondary-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sdaa-mcp-integrations__header,
+.sdaa-mcp-integrations__connection-heading {
+	justify-content: space-between;
+}
+
+.sdaa-mcp-integrations__header h3,
+.sdaa-mcp-integrations__form h4 {
+	margin: 0;
+}
+
+.sdaa-mcp-integrations__header .description,
+.sdaa-mcp-integrations__connection-heading p {
+	margin: 4px 0 0;
+}
+
+.sdaa-mcp-integrations__form,
+.sdaa-mcp-integrations__connection {
+	margin-top: 16px;
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.sdaa-mcp-integrations__form .components-base-control,
+.sdaa-mcp-integrations__form .components-toggle-control {
+	margin-top: 12px;
+}
+
+.sdaa-mcp-integrations__actions {
+	flex-wrap: wrap;
+	margin-top: 12px;
+}
+
+.sdaa-mcp-integrations__list {
+	display: grid;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.sdaa-mcp-integrations__status {
+	padding: 3px 8px;
+	border-radius: 12px;
+	background: #f0f6fc;
+	color: #135e96;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.sdaa-mcp-integrations__connection details {
+	margin-top: 12px;
+}
+
+.sdaa-mcp-integrations__tools,
+.sdaa-mcp-integrations__details {
+	margin: 8px 0 0;
+	font-size: 12px;
+}
+
+.sdaa-mcp-integrations__tools {
+	padding-left: 20px;
+}
+
+.sdaa-mcp-integrations__details {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 4px 12px;
+}
+
+.sdaa-mcp-integrations__details dd {
+	margin: 0;
+}
+
+.sdaa-mcp-integrations__empty,
+.sdaa-mcp-integrations__secondary-actions {
+	margin-top: 16px;
+}
+
+.sdaa-mcp-integrations__file-input {
+	display: none;
+}
+
+@media (max-width: 600px) {
+	.sdaa-mcp-integrations__header,
+	.sdaa-mcp-integrations__connection-heading,
+	.sdaa-mcp-integrations__actions,
+	.sdaa-mcp-integrations__secondary-actions {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.sdaa-mcp-integrations__header .components-button,
+	.sdaa-mcp-integrations__actions .components-button,
+	.sdaa-mcp-integrations__secondary-actions .components-button {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
 .sdaa-form-label {
 	font-size: 13px;
 	font-weight: 600;

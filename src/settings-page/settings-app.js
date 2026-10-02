@@ -38,6 +38,7 @@ import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
 import UsageDashboard from './usage-dashboard';
 import CustomToolsManager from './custom-tools-manager';
+import McpIntegrationsManager from './mcp-integrations-manager';
 import AutomationsManager from './automations-manager';
 import CalendarSmsManager from './calendar-sms-manager';
 import MessagingIntegrationsManager from './messaging-integrations-manager';
@@ -1943,6 +1944,21 @@ export default function SettingsApp() {
 											) }
 										>
 											<CustomToolsManager />
+										</ErrorBoundary>
+
+										<h3 className="sdaa-settings-section-title">
+											{ __(
+												'MCP servers',
+												'superdav-ai-agent'
+											) }
+										</h3>
+										<ErrorBoundary
+											label={ __(
+												'MCP integrations manager',
+												'superdav-ai-agent'
+											) }
+										>
+											<McpIntegrationsManager />
 										</ErrorBoundary>
 									</div>
 								);

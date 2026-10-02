@@ -304,7 +304,6 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 
 		try {
 			$method = new \ReflectionMethod( GenerateImageAbility::class, 'is_image_generation_supported' );
-			$method->setAccessible( true );
 
 			$this->assertTrue( $method->invoke( null ) );
 			$this->assertSame( 3, $model_hits );

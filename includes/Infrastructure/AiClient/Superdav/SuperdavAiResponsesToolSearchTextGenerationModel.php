@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
 use SdAiAgent\Tools\ToolDiscovery;
+use SdAiAgent\Core\ConversationTrimmer;
+use SdAiAgent\Core\ProviderTraceLogger;
 use WordPress\AiClient\Common\Exception\InvalidArgumentException;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;
@@ -61,16 +63,36 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 */
 	public function generateTextResult( array $prompt ): GenerativeAiResult {
 		$cursor = new ResponsesContinuation( $this->continuation_session_id, get_current_user_id() );
+		foreach ( $prompt as $message ) {
+			foreach ( $message->getParts() as $part ) {
+				if ( null !== $part->getFile() ) {
+					// The managed Responses route accepts text/tool history only.
+					// Preserve attachments through the existing compatible adapter.
+					$cursor->clear();
+					return $this->generate_chat_completions_fallback( $prompt );
+				}
+			}
+		}
 		try {
-			$params     = $this->prepare_responses_params( $prompt );
-			$full_input = $params['input'];
-			$scope      = $this->continuation_scope();
+			$params            = $this->prepare_responses_params( $prompt );
+			$full_input        = $params['input'];
+			$params['store']   = false;
+			$params['include'] = array( 'reasoning.encrypted_content' );
+			// Reject an oversized catalog before inspecting a cursor for another
+			// catalog. AgentLoop can retry with Tier 1 without destroying the
+			// matching snapshot used by an earlier browser/confirmation request.
+			$body = $this->json_encode_for_api( $params );
+			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId() ) ) {
+				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) );
+				if ( is_wp_error( $rejection ) ) {
+					throw new \RuntimeException( $rejection->get_error_message() );
+				}
+			}
+			$scope = $this->continuation_scope();
 			if ( array_key_exists( 'previous_response_id', $params ) ) {
 				$cursor->clear();
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
-			$params['store']   = false;
-			$params['include'] = array( 'reasoning.encrypted_content' );
 			if ( null === $scope ) {
 				$cursor->clear();
 			}
@@ -562,7 +584,9 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				continue;
 			}
 			$type = isset( $part['type'] ) ? (string) $part['type'] : '';
-			if ( in_array( $type, array( 'output_text', 'text' ), true ) && isset( $part['text'] ) && is_string( $part['text'] ) ) {
+			if ( 'refusal' === $type && isset( $part['refusal'] ) && is_string( $part['refusal'] ) ) {
+				$text[] = $part['refusal'];
+			} elseif ( in_array( $type, array( 'output_text', 'text' ), true ) && isset( $part['text'] ) && is_string( $part['text'] ) ) {
 				$text[] = $part['text'];
 			}
 		}

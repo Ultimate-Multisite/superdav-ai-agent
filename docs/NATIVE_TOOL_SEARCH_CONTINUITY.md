@@ -7,10 +7,11 @@ The SD provider keeps its existing OAuth-backed upstream. Native requests use
 They do **not** use `previous_response_id` or require an OpenAI API key.
 
 No PHP AI Client, WordPress core, or OpenAI connector changes are needed. The SD
-service wrapper must expose the stateless Responses forwarding route; the
-previously deployed wrapper lacked it. Managed aliases retain their existing
-`sd_ai_agent_openai_tool_search_enabled` opt-in until the matching service is
-deployed and reviewed. Other providers are unchanged.
+service wrapper exposes the stateless Responses forwarding route after service
+PR #109. Production discovery was verified for `superdav-chat-fast`,
+`superdav-chat-pro`, and `superdav-chat-strong`; these aliases now select native
+Responses automatically. `sd_ai_agent_openai_tool_search_enabled` remains an
+opt-out switch. Other providers are unchanged.
 
 ## Complete native replay
 
@@ -54,6 +55,37 @@ existing job/session serialization remains responsible for parallel requests.
   API-key billing or fabricate missing native state.
 - `tool_search` is emitted only when at least one function is deferred. Upstream
   rejects eager-only catalogs containing a tool-search declaration.
+- Deferred schemas still occupy the HTTP envelope, and the managed service
+  conservatively budgets request bytes against its context window. If the full
+  automatic catalog exceeds the local budget, AgentLoop retries with Tier 1 and
+  browser functions; remaining PHP abilities use `ability-search`/`ability-call`.
+  Native search and replay continue for this bounded catalog. The adapter checks
+  catalog size before cursor lookup so the retry preserves a matching snapshot.
+  Explicit caller-selected ability lists are not silently narrowed, and the
+  existing final transport guard still enforces every request budget.
+- The service's native route accepts text/tool history only. Attachments use the
+  compatible adapter with their original payload rather than silently losing
+  image parts.
+
+## Production verification: 2026-10-01
+
+Production `/v1/responses` returned native search and deferred function calls for
+all three managed aliases using the existing site token. An isolated WordPress
+fixture then ran actual AgentLoop turns for category calibration **7341**, post
+duration **19 minutes**, and **38 minutes**. All six calls returned HTTP 200 on
+Responses. Each follow-up's input prefix exactly matched the prior input plus
+raw output, including encrypted reasoning; later user turns used fresh PHP
+processes. A separate confirmation pause resumed natively in a fresh process.
+
+Browser UI validation used the General agent's complete 203-function catalog.
+The full envelope exceeded the local budget; bounded recovery produced a
+65,091-byte native request with 33 functions. Native discovery loaded the browser
+`navigate-to` function, the actual page-local callback navigated to `plugins.php`,
+and the automatic resume returned HTTP 200 on Responses with a 68,001-byte
+request and the exact native prefix. No Chat Completions fallback occurred in
+this browser run. Fixture databases were separate from the shared development
+site; all content was synthetic. Credentials and raw replay state are excluded
+from committed evidence.
 
 ## Live verification: 2026-09-09
 
@@ -109,6 +141,7 @@ Trace collection uses a per-run high-water mark to exclude older fixture rows.
 ## Regression checks
 
 ```sh
+pnpm run verify
 php bin/run-wp-phpunit.php --filter='ResponsesContinuationTest|SuperdavAiProviderTest' --no-coverage
 php bin/run-wp-phpunit.php --filter='ResponsesContinuationTest|SuperdavAiProviderTest|AgentLoopTest|AgentLoopClientToolsTest' --no-coverage
 vendor/bin/phpcs includes/Infrastructure/AiClient/Superdav/ResponsesContinuation.php includes/Infrastructure/AiClient/Superdav/SuperdavAiResponsesToolSearchTextGenerationModel.php
@@ -119,9 +152,14 @@ Tests cover complete native replay, exact prefix matching, real agent-loop bindi
 with mocked HTTP, encryption/tampering/session isolation, bounded retention,
 credential/catalog changes, eviction, storage opt-out, retries and eager-only tools.
 
+The final production-enablement run passed the full `pnpm run verify` gate:
+4,506 tests, 21,035 assertions, zero errors/failures, 145 skips and four incomplete
+tests. PHP/JS/CSS lint and PHPStan passed; build and enforced bundle budgets passed.
+
 ## Delivery boundary
 
-Keep the PR experimental until the matching service route is deployed and its
-accounting/security review is complete. Browser-tool UI E2E and representative
-large-catalog performance evaluation remain follow-ups. The OAuth continuation
-blocker itself is resolved by replay; no new billing route is needed.
+The service dependency is deployed and production discovery, fresh-process
+continuation, confirmation, and browser-tool UI handoff have been verified.
+Large automatic catalogs remain usable through bounded discovery recovery.
+Representative repeated performance evaluation remains a follow-up; the earlier
+small sample does not establish a speedup. No new billing route is needed.

@@ -7,10 +7,12 @@ namespace SdAiAgent\Tests\Infrastructure\AiClient\Superdav;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Infrastructure\AiClient\Superdav\ResponsesContinuation;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel;
 use WordPress\AiClient\Messages\DTO\MessagePart;
+use WordPress\AiClient\Files\DTO\File;
 use WordPress\AiClient\Messages\DTO\UserMessage;
 use WordPress\AiClient\Providers\Http\Contracts\HttpTransporterInterface;
 use WordPress\AiClient\Providers\Http\DTO\ApiKeyRequestAuthentication;
@@ -164,6 +166,21 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertGreaterThanOrEqual( 3, count( $requests[2]->getData()['messages'] ) );
 	}
 
+	/** Refusals remain visible while their exact native content survives replay. */
+	public function test_refusal_is_visible_and_replayed_without_losing_native_content(): void {
+		$output = array( array( 'type' => 'message', 'role' => 'assistant', 'content' => array( array( 'type' => 'refusal', 'refusal' => 'I cannot help with that.' ) ) ) );
+		$requests = array();
+		$history = array( new UserMessage( array( new MessagePart( 'Inspect the fixture.' ) ) ) );
+		$response = new Response( 200, array(), wp_json_encode( array( 'id' => 'resp_refusal', 'status' => 'completed', 'output' => $output ) ) );
+		$result = $this->model( array( $response ), $requests )->generateTextResult( $history );
+		$this->assertSame( 'I cannot help with that.', $result->toMessage()->getParts()[0]->getText() );
+		ConversationSerializer::append_assistant_message( $history, $result->toMessage() );
+		$history[] = new UserMessage( array( new MessagePart( 'List my pages instead.' ) ) );
+		$this->model( array( $this->text_response( 'resp_after_refusal' ) ), $requests )->generateTextResult( $history );
+		$this->assertSame( $output[0], $requests[1]->getData()['input'][1] );
+		$this->assertCount( 3, $requests[1]->getData()['input'] );
+	}
+
 	/** Storage opt-out cannot accidentally resume an older stored conversation. */
 	public function test_storage_opt_out_uses_stateless_native_replay(): void {
 		$requests = array();
@@ -173,6 +190,43 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertStringEndsWith( '/responses', $requests[0]->getUri() );
 		$this->assertFalse( $requests[0]->getData()['store'] );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[0]->getData() );
+	}
+
+	/** Attachments must retain their compatible payload rather than disappearing. */
+	public function test_attachments_use_compatible_transport_without_silently_dropping_them(): void {
+		$requests = array();
+		$uri = 'data:image/png;base64,AQ==';
+		$history = array( new UserMessage( array( new MessagePart( 'Inspect this image.' ), new MessagePart( new File( $uri, 'image/png' ) ) ) ) );
+		$this->model( array( $this->chat_response() ), $requests )->generateTextResult( $history );
+		$this->assertStringEndsWith( '/chat/completions', $requests[0]->getUri() );
+		$this->assertStringContainsString( $uri, wp_json_encode( $requests[0]->getData(), JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/** Reject a larger catalog without erasing the snapshot for a bounded retry. */
+	public function test_catalog_preflight_preserves_existing_native_replay(): void {
+		$requests = array();
+		$history = $this->pending_history( $requests );
+		$model = $this->model( array(), $requests );
+		$model->getConfig()->setFunctionDeclarations( array( new FunctionDeclaration( 'oversized', str_repeat( 'schema ', 10000 ), array( 'type' => 'object' ) ) ) );
+		$limit = static fn(): int => 32768;
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'gpt-5.5', 123 );
+		try {
+			try {
+				$model->generateTextResult( $history );
+				$this->fail( 'Oversized catalog must fail before transport or cursor invalidation.' );
+			} catch ( \RuntimeException $error ) {
+				$this->assertSame( 1, ProviderTraceLogger::get_runtime_failure_metadata()['local_rejection'] );
+			}
+		} finally {
+			ProviderTraceLogger::clear_runtime_context();
+			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		}
+		$this->model( array( $this->text_response( 'resp_bounded' ) ), $requests )->generateTextResult( $history );
+		$this->assertCount( 2, $requests );
+		$this->assertStringEndsWith( '/responses', $requests[1]->getUri() );
+		$this->assertSame( $requests[0]->getData()['input'][0], $requests[1]->getData()['input'][0] );
+		$this->assertSame( 'tool_search_call', $requests[1]->getData()['input'][1]['type'] );
 	}
 
 	/** Cache eviction must never send a standalone native function result. */

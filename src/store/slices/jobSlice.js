@@ -560,8 +560,7 @@ export const actions = {
 
 					if ( result.status === 'processing' ) {
 						if ( ! ownsSessionJob() ) {
-							stopPolling();
-							return;
+							return stopPolling();
 						}
 						// Clear stale approval status even before new activity arrives.
 						dispatch.setSessionJob( sessionId, {
@@ -622,13 +621,12 @@ export const actions = {
 						}
 
 						// Re-check job is still active before continuing.
-						if ( ! ownsSessionJob() ) {
+						if ( ownsSessionJob() ) {
+							poll();
+						} else {
 							// Different job is now active; stop this poller.
 							stopPolling();
-							return;
 						}
-
-						poll();
 						return;
 					}
 

@@ -164,6 +164,73 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 
 	// ── tier_1_for_run ────────────────────────────────────────────────
 
+	/** The compatibility bridge runs prepared category checks on the current site's database. */
+	public function test_category_database_check_executes_discovered_read_only_ability(): void {
+		$search = ToolDiscovery::handle_ability_search( [ 'query' => 'database' ] );
+		$this->assertContains( 'sd-ai-agent/db-query', array_column( $search['results'], 'id' ) );
+
+		$taxonomy = 'sd_agent_test_product_cat';
+		register_taxonomy( $taxonomy, 'post', [ 'hierarchical' => true ] );
+		try {
+			$term = wp_insert_term( 'Category check fixture', $taxonomy );
+			$this->assertIsArray( $term );
+			$input = [
+				'ability'   => 'sd-ai-agent/db-query',
+				'arguments' => [
+					'sql'    => 'SELECT COUNT(*) AS orphan_categories FROM {prefix}term_taxonomy AS child LEFT JOIN {prefix}term_taxonomy AS parent ON parent.term_id = child.parent AND parent.taxonomy = child.taxonomy WHERE child.taxonomy = %s AND child.parent <> 0 AND parent.term_id IS NULL',
+					'params' => [ $taxonomy ],
+				],
+			];
+			$result = ToolDiscovery::handle_ability_call( $input );
+			$this->assertIsArray( $result );
+			$this->assertTrue( $result['success'], (string) wp_json_encode( $result ) );
+			$this->assertSame( '0', (string) $result['result']['rows'][0]['orphan_categories'] );
+
+			// Corrupt only the isolated fixture, never a live category.
+			global $wpdb;
+			$wpdb->update( $wpdb->term_taxonomy, [ 'parent' => 999999 ], [ 'term_taxonomy_id' => $term['term_taxonomy_id'] ] );
+			$result = ToolDiscovery::handle_ability_call( $input );
+			$this->assertIsArray( $result );
+			$this->assertTrue( $result['success'], (string) wp_json_encode( $result ) );
+			$this->assertSame( '1', (string) $result['result']['rows'][0]['orphan_categories'] );
+			$this->assertStringContainsString( $wpdb->term_taxonomy, $result['result']['query'] );
+			$this->assertSame( $this->admin_id, get_current_user_id() );
+		} finally {
+			unregister_taxonomy( $taxonomy );
+		}
+	}
+
+	/** Core-only catalogs must not manufacture a database executor. */
+	public function test_category_database_check_without_companion_is_unavailable(): void {
+		wp_unregister_ability( 'sd-ai-agent/db-query' );
+		try {
+			$search = ToolDiscovery::handle_ability_search( [ 'query' => 'sd-ai-agent/db-query' ] );
+			$this->assertNotContains( 'sd-ai-agent/db-query', array_column( $search['results'], 'id' ) );
+			$this->assertNotContains( 'sd-ai-agent/db-query', ToolDiscovery::tier_1_for_run() );
+			$result = ToolDiscovery::handle_ability_call( [ 'ability' => 'sd-ai-agent/db-query', 'arguments' => [ 'sql' => 'SELECT 1' ] ] );
+			$this->assertIsArray( $result );
+			$this->assertFalse( $result['success'] );
+		} finally {
+			// Restore only test registration, not plugin activation or user privileges.
+			global $wp_current_filter;
+			$wp_current_filter[] = 'wp_abilities_api_init';
+			try {
+				\SdAiAgent\Abilities\DatabaseAbilities::register_abilities();
+			} finally {
+				array_pop( $wp_current_filter );
+			}
+		}
+	}
+
+	/** A registered database tool still cannot execute as a denied current user. */
+	public function test_category_database_check_denied_profile_cannot_execute(): void {
+		$user_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $user_id );
+		$result = ToolDiscovery::handle_ability_call( [ 'ability' => 'sd-ai-agent/db-query', 'arguments' => [ 'sql' => 'SELECT 1' ] ] );
+		$this->assertWPError( $result );
+		$this->assertSame( $user_id, get_current_user_id() );
+	}
+
 	public function test_tier_1_always_includes_meta_tools(): void {
 		$tier_1 = ToolDiscovery::tier_1_for_run();
 

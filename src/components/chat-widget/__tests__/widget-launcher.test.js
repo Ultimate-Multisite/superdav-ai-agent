@@ -17,6 +17,7 @@ jest.mock( '@wordpress/i18n', () => ( {
 jest.mock( '../../../store', () => 'sd-ai-agent' );
 jest.mock( '../../../utils/branding', () => ( {
 	getBranding: () => ( {} ),
+	getBrandingStyle: () => ( {} ),
 } ) );
 jest.mock( '../../chat-redesign/icons', () => ( {
 	AiIcon: () => null,

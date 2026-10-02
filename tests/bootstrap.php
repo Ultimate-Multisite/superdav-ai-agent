@@ -10,6 +10,7 @@
 // Jetpack Autoloader requires WordPress functions, so we use the standard autoloader for tests.
 $plugin_dir = dirname( __DIR__ );
 require_once $plugin_dir . '/vendor/autoload.php';
+require_once $plugin_dir . '/bin/wp-phpunit-database.php';
 
 /*
  * Force XWP_Context to CTX_REST so the x-wp/di container loads REST handlers.
@@ -63,6 +64,12 @@ if ( is_dir( $_phpunit_polyfills_path ) ) {
 if ( ! file_exists("{$_tests_dir}/includes/functions.php") ) {
 	echo "Could not find {$_tests_dir}/includes/functions.php, have you run bin/install-wp-tests.sh ?" . PHP_EOL; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	exit(1);
+}
+
+$_database_error = sd_ai_agent_phpunit_validate_test_config( $_tests_dir );
+if ( null !== $_database_error ) {
+	echo $_database_error . PHP_EOL; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	exit( 1 );
 }
 
 // Give access to tests_add_filter() function.

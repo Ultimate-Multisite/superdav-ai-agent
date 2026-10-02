@@ -30,6 +30,10 @@ TESTS_STAGING=''
 WP_TESTS_TAG=''
 ARCHIVE_NAME=''
 
+validate_test_config() {
+	php "$(dirname "$0")/wp-phpunit-database.php" "$WP_TESTS_DIR" "$DB_NAME"
+}
+
 download() {
 	local url="$1"
 	local destination="$2"
@@ -257,6 +261,7 @@ write_test_config() {
 	sed "$ioption" "s|yourusernamehere|$db_user_escaped|" "$tests_dir/wp-tests-config.php"
 	sed "$ioption" "s|yourpasswordhere|$db_pass_escaped|" "$tests_dir/wp-tests-config.php"
 	sed "$ioption" "s|localhost|$db_host_escaped|" "$tests_dir/wp-tests-config.php"
+	printf "\\ndefine( 'SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED', true );\\n" >>"$tests_dir/wp-tests-config.php"
 	return 0
 }
 
@@ -354,7 +359,9 @@ install_db() {
 }
 
 mkdir -p "$CACHE_ROOT"
+validate_test_config
 acquire_lock
+validate_test_config
 WORK_DIR="$(mktemp -d "$CACHE_ROOT/.wordpress-phpunit-${VERSION_KEY}.XXXXXX")"
 set_wp_tests_tag
 install_wp

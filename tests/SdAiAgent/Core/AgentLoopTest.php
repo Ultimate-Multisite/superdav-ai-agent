@@ -1113,6 +1113,36 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertIsString( $result['reply'] );
 		$this->assertNotSame( '', trim( $result['reply'] ) );
 		$this->assertSame( 'empty_final_response', $result['exit_reason'] );
+		$this->assertSame( $result['reply'], end( $result['history'] )['parts'][0]['text'] );
+	}
+
+	/** Diagnostic history, including a recovered SQL error, must retain its final stop on reload. */
+	public function test_diagnostic_sql_recovery_persists_empty_reply_fallback(): void {
+		$history = array( new UserMessage( array( new MessagePart( 'Investigate the missing homepage.' ) ) ) );
+		$steps = array(
+			array( 'health', 'wpab__sd-ai-agent__site-health', array(), array( 'loopback' => 'ok', 'homepage' => 200 ) ),
+			array( 'sql-invalid', 'wpab__sd-ai-agent__db-query', array( 'query' => 'SELECT ID FROM wp_posts WHERE ID = 1' ), array( 'error' => 'Prepared SQL parameters are required.' ) ),
+			array( 'sql-recovered', 'wpab__sd-ai-agent__db-query', array( 'query' => 'SELECT ID FROM wp_posts WHERE ID = %d', 'params' => array( 1 ) ), array( array( 'ID' => 1 ) ) ),
+		);
+		foreach ( $steps as [ $id, $name, $args, $output ] ) {
+			$history[] = new ModelMessage( array( new MessagePart( new FunctionCall( $id, $name, $args ) ) ) );
+			$history[] = new UserMessage( array( new MessagePart( new FunctionResponse( $id, $name, $output ) ) ) );
+		}
+		$loop = new ScriptedAgentLoop(
+			'',
+			array(),
+			$history,
+			array( 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model' ),
+			array( $this->create_scripted_result( '' ), $this->create_scripted_result( '' ) )
+		);
+		$result = $loop->run();
+		$this->assertIsArray( $result );
+		$this->assertSame( 'empty_final_response', $result['exit_reason'] );
+		$this->assertStringContainsString( 'continue the conversation', $result['reply'] );
+		$session_id = (int) Database::create_session( array( 'user_id' => get_current_user_id(), 'title' => 'Diagnostic recovery' ) );
+		$this->assertTrue( Database::append_to_session( $session_id, $result['history'], array() ) );
+		$saved = json_decode( Database::get_session( $session_id )->messages, true );
+		$this->assertSame( $result['reply'], end( $saved )['parts'][0]['text'] );
 	}
 
 	// -------------------------------------------------------------------------

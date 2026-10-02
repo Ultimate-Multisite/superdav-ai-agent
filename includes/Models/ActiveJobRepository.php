@@ -188,10 +188,11 @@ class ActiveJobRepository {
 	 * Returns the most-recently-created job that is still in a non-terminal
 	 * state (queued, processing, or awaiting_confirmation).
 	 *
-	 * @param int $session_id Session ID.
+	 * @param int  $session_id Session ID.
+	 * @param bool $include_terminal Include undelivered terminal jobs for reload recovery.
 	 * @return ActiveJobRow|null Row DTO or null if no active job exists.
 	 */
-	public static function get_by_session_id( int $session_id ): ?ActiveJobRow {
+	public static function get_by_session_id( int $session_id, bool $include_terminal = false ): ?ActiveJobRow {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
@@ -199,9 +200,10 @@ class ActiveJobRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE session_id = %d AND status IN ('queued', 'processing', 'awaiting_confirmation', 'awaiting_client_tools') ORDER BY created_at DESC LIMIT 1",
+				"SELECT * FROM %i WHERE session_id = %d AND (%d = 1 OR status IN ('queued', 'processing', 'awaiting_confirmation', 'awaiting_client_tools')) ORDER BY id DESC LIMIT 1",
 				$table,
-				$session_id
+				$session_id,
+				(int) $include_terminal
 			)
 		);
 

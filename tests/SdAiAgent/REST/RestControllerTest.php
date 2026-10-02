@@ -1639,7 +1639,7 @@ class RestControllerTest extends WP_UnitTestCase {
 	/**
 	 * Page-load active-job discovery must not restore expired confirmations.
 	 */
-	public function test_active_jobs_omits_expired_confirmation(): void {
+	public function test_active_jobs_discovers_expired_confirmation_as_terminal_error(): void {
 		wp_set_current_user( $this->admin_id );
 
 		$session_id = Database::create_session( [
@@ -1654,7 +1654,8 @@ class RestControllerTest extends WP_UnitTestCase {
 		$response = $this->dispatch( 'GET', '/sd-ai-agent/v1/sessions/active-jobs' );
 
 		$this->assertStatus( 200, $response );
-		$this->assertNotContains( $job_id, wp_list_pluck( $response->get_data(), 'job_id' ) );
+		$this->assertContains( $job_id, wp_list_pluck( $response->get_data(), 'job_id' ) );
+		$this->assertSame( 'error', $response->get_data()[0]['status'] );
 		$expired_job = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $expired_job );
 		$this->assertSame( 'error', $expired_job->status );
@@ -1681,7 +1682,9 @@ class RestControllerTest extends WP_UnitTestCase {
 
 		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}/active-job" );
 
-		$this->assertStatus( 404, $response );
+		$this->assertStatus( 200, $response );
+		$this->assertSame( 'error', $response->get_data()['status'] );
+		$this->assertArrayNotHasKey( 'pending_tools', $response->get_data() );
 		$expired_job = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $expired_job );
 		$this->assertSame( 'error', $expired_job->status );

@@ -2160,6 +2160,10 @@ PROMPT;
 				$reply = $this->append_rendered_output_evidence_notice( $reply );
 				$reply = $this->append_elementor_completion_notice( $reply );
 
+				if ( $empty_final_response ) {
+					$this->append_assistant_message_to_history( new ModelMessage( array( new MessagePart( $reply ) ) ) );
+				}
+
 				return $this->inject_inability_data(
 					$this->with_result_logs(
 						array(

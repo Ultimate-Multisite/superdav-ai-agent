@@ -1767,9 +1767,10 @@ final class SessionController {
 		}
 
 		if ( in_array( $status, array( 'error', 'interrupted', 'abandoned' ), true ) ) {
-			$diagnostic             = ActiveJobFailureDiagnostic::from_stored( $job_id, $row->error );
-			$response['diagnostic'] = ActiveJobFailureDiagnostic::to_rest( $diagnostic );
-			$response['message']    = $this->filter_failure_message( $diagnostic, $row->session_id );
+			$diagnostic                            = ActiveJobFailureDiagnostic::from_stored( $job_id, $row->error );
+			$response['diagnostic']                = ActiveJobFailureDiagnostic::to_rest( $diagnostic );
+			$response['message']                   = $this->filter_failure_message( $diagnostic, $row->session_id );
+			$response['failure_message_persisted'] = $this->persist_terminal_diagnostic_to_session( $row, $response['message'], $response['diagnostic'] );
 
 			if ( $this->session_has_recoverable_paused_state( $row->session_id ) ) {
 				$response['recoverable'] = true;
@@ -1785,12 +1786,76 @@ final class SessionController {
 			}
 		}
 
-		// Delete DB row on terminal-state delivery (mirrors the transient cleanup).
-		if ( in_array( $status, array( 'complete', 'error', 'interrupted', 'abandoned' ), true ) ) {
+		// Retain session-backed stops until saved; sessionless jobs need no reload.
+		if ( 'complete' === $status || 0 === $row->session_id || ! empty( $response['failure_message_persisted'] ) ) {
 			ActiveJobRepository::delete( $job_id );
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Keep a delivered terminal stop in the conversation after its job is removed.
+	 *
+	 * Only the latest job may append to the session. Correlation identity makes
+	 * repeated delivery safe without storing provider errors or pending mutations.
+	 *
+	 * @param ActiveJobRow        $row        Terminal job row.
+	 * @param string              $message    Prompt-free stop explanation.
+	 * @param array<string,mixed> $diagnostic Public diagnostic envelope.
+	 * @return bool Whether the explanation is saved.
+	 */
+	private function persist_terminal_diagnostic_to_session( ActiveJobRow $row, string $message, array $diagnostic ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$latest = ActiveJobRepository::get_by_session_id( $row->session_id, true );
+		if ( null !== $latest && $latest->job_id !== $row->job_id ) {
+			return false;
+		}
+		$session = $this->database->get_session( $row->session_id );
+		if ( ! $session ) {
+			return false;
+		}
+		$messages = json_decode( (string) $session->messages, true );
+		foreach ( is_array( $messages ) ? $messages : array() as $saved ) {
+			if ( is_array( $saved ) && ( $saved['diagnostic']['correlation_id'] ?? '' ) === $diagnostic['correlation_id'] ) {
+				return true;
+			}
+		}
+		$messages   = is_array( $messages ) ? $messages : array();
+		$messages[] = array(
+			'role'       => 'model',
+			'parts'      => array(
+				array(
+					'type' => 'text',
+					'text' => $message,
+				),
+			),
+			'diagnostic' => $diagnostic,
+		);
+		$encoded    = wp_json_encode( $messages );
+		if ( ! is_string( $encoded ) ) {
+			return false;
+		}
+
+		// Compare-and-swap the message snapshot and job identity in one write.
+		// On contention retain the row so a later delivery can re-read and retry.
+		return 1 === $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i AS session SET messages = %s, updated_at = %s WHERE session.id = %d AND BINARY session.messages = BINARY %s AND EXISTS (SELECT 1 FROM %i AS job WHERE job.id = %d AND job.job_id = %s AND job.session_id = session.id AND job.status IN ('error', 'interrupted', 'abandoned')) AND NOT EXISTS (SELECT 1 FROM %i AS newer WHERE newer.session_id = session.id AND newer.id > %d)",
+				Database::table_name(),
+				$encoded,
+				current_time( 'mysql', true ),
+				$row->session_id,
+				(string) $session->messages,
+				ActiveJobRepository::table_name(),
+				$row->id,
+				$row->job_id,
+				ActiveJobRepository::table_name(),
+				$row->id
+			)
+		);
 	}
 
 	/**
@@ -4317,9 +4382,12 @@ final class SessionController {
 	 */
 	public function handle_session_active_job( WP_REST_Request $request ) {
 		$session_id = (int) $request->get_param( 'id' );
-		$db_row     = ActiveJobRepository::get_by_session_id( $session_id );
+		$db_row     = ActiveJobRepository::get_by_session_id( $session_id, true );
 
-		if ( null === $db_row || $this->discard_expired_paused_job( $db_row ) ) {
+		if ( null !== $db_row && $this->discard_expired_paused_job( $db_row ) ) {
+			$db_row = ActiveJobRepository::get_by_job_id( $db_row->job_id );
+		}
+		if ( null === $db_row ) {
 			return new WP_Error(
 				'sd_ai_agent_no_active_job',
 				__( 'No active job for this session.', 'superdav-ai-agent' ),
@@ -4351,6 +4419,14 @@ final class SessionController {
 	public function handle_list_active_jobs(): WP_REST_Response {
 		$rows = ActiveJobRepository::get_active_for_user( get_current_user_id() );
 
+		$rows = array_filter(
+			array_map(
+			function ( ActiveJobRow $row ): ?ActiveJobRow {
+				return $this->discard_expired_paused_job( $row ) ? ActiveJobRepository::get_by_job_id( $row->job_id ) : $row;
+			},
+				$rows
+		)
+			);
 		$data = array_map(
 			static function ( $row ) {
 				return array(
@@ -4359,10 +4435,7 @@ final class SessionController {
 					'status'     => 'queued' === $row->status ? 'processing' : $row->status,
 				);
 			},
-			array_filter(
-				$rows,
-				fn( ActiveJobRow $row ): bool => ! $this->discard_expired_paused_job( $row )
-			)
+			$rows
 		);
 
 		return new WP_REST_Response( array_values( $data ), 200 );

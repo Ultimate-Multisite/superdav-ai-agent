@@ -1161,6 +1161,48 @@ class AgentLoopClientToolsTest extends WP_UnitTestCase {
 		$this->assertSame( $preview_url, $restored[0]['args']['url'] );
 	}
 
+	/** Preview then mutation batches remain redacted in history and recovery. */
+	public function test_elementor_preview_then_mutation_batch_keeps_urls_private(): void {
+		$loop = new AgentLoop( 'test' );
+		$gate = new ElementorCompletionGate(
+			array( ElementorCompletionGate::SCREENSHOT_ABILITY ),
+			array( ElementorCompletionGate::PREVIEW_ABILITY, ElementorCompletionGate::PUBLISH_ABILITY )
+		);
+		$preview_url = 'https://example.test/?elementor-preview=41&preview-token=private-token';
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_response( 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => 41, 'revision_id' => 101 ) );
+		$gate->record_tool_call( 'elementor/build-composition', array( 'post_id' => 41, 'revision_id' => 102 ) );
+		$batch = new UserMessage(
+			array(
+				new MessagePart( new FunctionResponse( 'preview', ElementorCompletionGate::PREVIEW_ABILITY, array( 'success' => true, 'post_id' => 41, 'preview_url' => $preview_url, 'message' => 'Preview: ' . $preview_url ) ) ),
+				new MessagePart( new FunctionResponse( 'mutation', 'elementor/build-composition', array( 'success' => true, 'post_id' => 41, 'revision_id' => 102, 'message' => $preview_url ) ) ),
+			)
+		);
+		$reflection = new \ReflectionClass( $loop );
+		$property   = $reflection->getProperty( 'elementor_completion_gate' );
+		$property->setAccessible( true );
+		$property->setValue( $loop, $gate );
+		$log = $reflection->getMethod( 'log_tool_responses' );
+		$log->setAccessible( true );
+		$log->invoke( $loop, $batch );
+		$this->assertFalse( $gate->get_status()['targets'][0]['current_preview_available'] );
+		$tool_call_log = $reflection->getProperty( 'tool_call_log' );
+		$tool_call_log->setAccessible( true );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $tool_call_log->getValue( $loop ), JSON_UNESCAPED_SLASHES ) );
+
+		$redact = $reflection->getMethod( 'redact_elementor_preview_response_message' );
+		$redact->setAccessible( true );
+		$redacted = $redact->invoke( $loop, $batch );
+		foreach ( $redacted->getParts() as $part ) {
+			$this->assertStringNotContainsString( $preview_url, wp_json_encode( $part->getFunctionResponse()->getResponse(), JSON_UNESCAPED_SLASHES ) );
+		}
+		$recovery = $reflection->getMethod( 'with_error_recovery_data' );
+		$recovery->setAccessible( true );
+		$error = $recovery->invoke( $loop, new \WP_Error( 'test_error', 'Test error.' ), array( $batch ) );
+		$this->assertStringNotContainsString( $preview_url, wp_json_encode( $error->get_error_data()['history'], JSON_UNESCAPED_SLASHES ) );
+	}
+
 	/** Provider-error recovery serializes Elementor preview responses without their private URL. */
 	public function test_elementor_preview_url_is_redacted_from_error_recovery_history(): void {
 		$loop        = new AgentLoop( 'test' );

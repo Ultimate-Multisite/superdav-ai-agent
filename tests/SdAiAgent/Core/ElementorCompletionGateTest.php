@@ -115,6 +115,51 @@ class ElementorCompletionGateTest extends WP_UnitTestCase {
 		);
 	}
 
+	/** A response batch remains private after mutation invalidates its preview. */
+	public function test_mutation_keeps_previous_preview_urls_private_until_history_is_redacted(): void {
+		$gate = $this->gate();
+		$this->record_mutation( $gate, self::POST_ID, 101 );
+		$this->record_preview( $gate, self::POST_ID, 101, self::PREVIEW_URL );
+		$this->record_mutation( $gate, self::POST_ID, 102 );
+
+		$this->assertFalse( $gate->get_status()['targets'][0]['current_preview_available'] );
+		$this->assertSame( array(), $gate->get_render_validation_calls() );
+		$this->assertIsArray( $gate->get_publish_blocker( ElementorCompletionGate::PUBLISH_ABILITY, array( 'post_id' => self::POST_ID ) ) );
+
+		$replacement_url = 'https://example.test/?elementor-preview=41&preview-token=replacement-token';
+		$this->record_preview( $gate, self::POST_ID, 102, $replacement_url );
+		$history = array(
+			array( 'response' => array( 'message' => 'Preview: ' . self::PREVIEW_URL ) ),
+			array( 'response' => wp_json_encode( array( 'nested' => array( 'message' => $replacement_url ) ) ) ),
+		);
+		$redacted_history = $gate->redact_serialized_history( $history );
+		$this->assertSame( array( 'nested' => array( 'message' => '[redacted_elementor_preview_url]' ) ), json_decode( $redacted_history[1]['response'], true ) );
+		$redacted = wp_json_encode( $redacted_history, JSON_UNESCAPED_SLASHES );
+		$this->assertStringNotContainsString( self::PREVIEW_URL, $redacted );
+		$this->assertStringNotContainsString( $replacement_url, $redacted );
+		$this->assertStringContainsString( '[redacted_elementor_preview_url]', $redacted );
+		$this->assertSame( '[redacted_elementor_preview_url]', $gate->redact_text( self::PREVIEW_URL ) );
+		$this->assertSame(
+			array( 'message' => '[redacted_elementor_preview_url]' ),
+			$gate->redact_tool_response( 'elementor/build-composition', array( 'message' => self::PREVIEW_URL ) )
+		);
+	}
+
+	/** A mutation response arriving before its preview cannot expose stale URLs. */
+	public function test_stale_preview_response_is_redacted_without_accepting_render_evidence(): void {
+		$gate = $this->gate();
+		$this->record_mutation( $gate, self::POST_ID, 101 );
+		$gate->record_tool_call( ElementorCompletionGate::PREVIEW_ABILITY, array( 'post_id' => self::POST_ID, 'revision_id' => 101 ) );
+		$this->record_mutation( $gate, self::POST_ID, 102 );
+		$response = array( 'success' => true, 'post_id' => self::POST_ID, 'preview_url' => self::PREVIEW_URL, 'message' => self::PREVIEW_URL );
+		$gate->record_tool_response( ElementorCompletionGate::PREVIEW_ABILITY, $response );
+		$redacted = $gate->redact_tool_response( ElementorCompletionGate::PREVIEW_ABILITY, $response );
+		$this->assertSame( '[redacted_elementor_preview_url]', $redacted['message'] );
+		$this->assertSame( '[redacted_elementor_preview_url]', $gate->redact_text( self::PREVIEW_URL ) );
+		$this->assertFalse( $gate->get_status()['targets'][0]['current_preview_available'] );
+		$this->assertSame( array(), $gate->get_render_validation_calls() );
+	}
+
 	/** Wrong target, stale call order, and mismatched screenshot URLs cannot pass. */
 	public function test_wrong_post_stale_token_failed_preview_and_wrong_screenshot_url_do_not_satisfy_gate(): void {
 		$gate = $this->gate();

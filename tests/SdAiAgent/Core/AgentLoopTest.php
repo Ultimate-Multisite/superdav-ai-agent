@@ -1176,7 +1176,10 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'continue the conversation', $result['reply'] );
 		$this->assertSame( 'WooCommerce product filter widget sidebar restore', $result['tool_calls'][1]['response']['query'] );
 		$this->assertArrayHasKey( 'results', $result['tool_calls'][1]['response'] );
-		$this->assertSame( $result['reply'], end( $result['history'] )['parts'][0]['text'] );
+		$session_id = (int) Database::create_session( array( 'user_id' => $admin_id, 'title' => 'Shop filter discovery' ) );
+		$this->assertTrue( Database::append_to_session( $session_id, $result['history'], array() ) );
+		$saved = json_decode( Database::get_session( $session_id )->messages, true );
+		$this->assertSame( $result['reply'], end( $saved )['parts'][0]['text'] );
 	}
 
 	// -------------------------------------------------------------------------

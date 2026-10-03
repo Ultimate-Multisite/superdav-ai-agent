@@ -298,6 +298,9 @@ class ProviderTraceLogger {
 	 * @return false|array<string, mixed>|\WP_Error Unchanged response, or a safe local size rejection.
 	 */
 	public static function on_pre_http_request( false|array|\WP_Error $response, array $parsed_args, string $url ): false|array|\WP_Error {
+		if ( ! empty( $parsed_args['sd_ai_agent_mcp_request'] ) ) {
+			return $response; // MCP/OAuth payloads are never provider traces, even with a matching host.
+		}
 		if ( false !== $response ) {
 			return $response;
 		}
@@ -472,6 +475,9 @@ class ProviderTraceLogger {
 	 * @return array<string, mixed> Unchanged response.
 	 */
 	public static function on_http_response( array $response, array $parsed_args, string $url ): array {
+		if ( ! empty( $parsed_args['sd_ai_agent_mcp_request'] ) ) {
+			return $response;
+		}
 		$trace_enabled         = ProviderTrace::is_enabled();
 		$has_context           = '' !== self::$runtimeContext['provider_id'];
 		$canonical_provider_id = self::match_provider( $url );

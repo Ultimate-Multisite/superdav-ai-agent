@@ -1,6 +1,8 @@
 node_modules/
 .agents/loop-state/
 .phpunit.result.cache
+/.phpunit-cache*/
+/.mcp-dev/
 screenshots/
 .aidevops.json
 .beads

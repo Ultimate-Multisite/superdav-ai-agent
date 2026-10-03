@@ -47,6 +47,10 @@ final class RemoteMcpAbilityRegistrar {
 						'meta'                => array(
 							'show_in_rest' => true,
 							'remote_mcp'   => true,
+							'annotations'  => array(
+								'readonly'    => false,
+								'destructive' => true,
+							), // Remote hints are not authority to bypass the normal approval policy.
 						),
 						'permission_callback' => static fn(): bool => ToolCapabilities::current_user_can( $ability_name ),
 						'execute_callback'    => function ( array $input ) use ( $connection, $tool ) {

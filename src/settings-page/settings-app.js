@@ -166,7 +166,12 @@ export default function SettingsApp() {
 	const [ local, setLocal ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ abilities, setAbilities ] = useState( [] );
-	const [ activeTab, setActiveTab ] = useState( 'general' );
+	const initialTab = new URL( window.location.href ).searchParams.has(
+		'mcp_oauth'
+	)
+		? 'tools'
+		: 'general';
+	const [ activeTab, setActiveTab ] = useState( initialTab );
 
 	// Scroll affordance: ref to the wrapper div, state for fade indicators.
 	const tabsWrapperRef = useRef( null );
@@ -689,7 +694,11 @@ export default function SettingsApp() {
 				</a>
 			</Notice>
 			<div ref={ tabsWrapperRef } className={ scrollWrapperClasses }>
-				<TabPanel tabs={ tabs } onSelect={ setActiveTab }>
+				<TabPanel
+					tabs={ tabs }
+					initialTabName={ initialTab }
+					onSelect={ setActiveTab }
+				>
 					{ ( tab ) => {
 						switch ( tab.name ) {
 							case 'superdav-account':

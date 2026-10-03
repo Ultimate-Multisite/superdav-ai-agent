@@ -253,6 +253,8 @@ Use `<Tooltip>` from `@wordpress/components` (or `showTooltip + label` on `<Butt
 - New and imported servers stay disabled until a successful discovery and an explicit administrator action. Connecting discovers available tools; it never changes a tool's existing confirmation policy.
 - Show connection status and tool count in the normal card. Put protocol versions, timestamps, and safe error codes in an expandable Details section.
 - Keep import/export, edit, refresh, and removal secondary. Do not render credentials in cards, details, exports, or recovered form state.
+- OAuth is a Sign in redirect and return to the Tools tab, not a token-copying wizard. Keep registered client details under Advanced; provide the exact redirect URI there when pre-registration is needed.
+- Error notices explain the next action without showing raw remote errors. Duplicate submissions are disabled, and a failed setup preserves safe fields but clears credentials.
 
 ---
 

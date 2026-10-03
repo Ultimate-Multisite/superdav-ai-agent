@@ -109,7 +109,7 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->connections->authorization_headers( $connection['id'] ) );
 	}
 
-	public function test_credentialed_http_endpoint_is_rejected_by_transport(): void {
+	public function test_credentialed_http_endpoint_is_rejected_before_persistence(): void {
 		$connection = $this->connections->save(
 			array(
 				'name'      => 'HTTP fixture',
@@ -118,12 +118,9 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 			),
 			array( 'value' => 'test-secret-value' )
 		);
-		$this->assertIsArray( $connection );
-
-		$result = ( new RemoteMcpHttpTransport( $this->connections ) )->request( $connection, array( 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize' ) );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'sd_ai_agent_remote_mcp_insecure_credentials', $result->get_error_code() );
+		$this->assertWPError( $connection );
+		$this->assertSame( 'sd_ai_agent_remote_mcp_invalid_connection', $connection->get_error_code() );
+		$this->assertSame( array(), $this->connections->list() );
 	}
 
 	public function test_discovery_does_not_replace_snapshot_when_tool_limit_is_reached(): void {

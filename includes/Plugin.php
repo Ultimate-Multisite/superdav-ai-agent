@@ -43,6 +43,7 @@ use SdAiAgent\Bootstrap\ModelCapabilityHandler;
 use SdAiAgent\Bootstrap\KnowledgeHooksHandler;
 use SdAiAgent\Bootstrap\OnboardingHandler;
 use SdAiAgent\Bootstrap\PublicSpeechCorsHandler;
+use SdAiAgent\Bootstrap\RemoteMcpOAuthHandler;
 use SdAiAgent\Bootstrap\SuperdavAiProviderHandler;
 use SdAiAgent\Bootstrap\ToolDiscoveryHandler;
 use SdAiAgent\Contracts\BudgetCheckerInterface;
@@ -126,6 +127,7 @@ use XWP\DI\Decorators\Module;
 		CachePolicy::class,
 		FrontendAssetsHandler::class,
 		PublicSpeechCorsHandler::class,
+		RemoteMcpOAuthHandler::class,
 		MemoryController::class,
 		SkillController::class,
 		BannerController::class,

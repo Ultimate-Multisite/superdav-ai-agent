@@ -19,12 +19,15 @@ const EMPTY_FORM = {
 	auth_type: 'none',
 	secret: '',
 	header_name: '',
+	client_id: '',
+	client_secret: '',
 	reuse_secret: false,
 };
 
 const BASIC_AUTH_OPTIONS = [
 	{ label: __( 'No authentication', 'superdav-ai-agent' ), value: 'none' },
 	{ label: __( 'Access token', 'superdav-ai-agent' ), value: 'bearer' },
+	{ label: __( 'Sign in (OAuth)', 'superdav-ai-agent' ), value: 'oauth' },
 ];
 
 const ADVANCED_AUTH_OPTIONS = [
@@ -57,6 +60,9 @@ function hostnameFromEndpoint( endpoint ) {
  * @return {string} Plain-language status.
  */
 function connectionStatus( connection ) {
+	if ( connection.auth_type === 'oauth' && ! connection.configured ) {
+		return __( 'Authentication required', 'superdav-ai-agent' );
+	}
 	if ( connection.status === 'ready' && connection.enabled ) {
 		return __( 'Connected', 'superdav-ai-agent' );
 	}
@@ -74,9 +80,17 @@ function connectionStatus( connection ) {
  * Keep remote failure details out of the admin UI while giving an actionable next step.
  *
  * @param {string} action Lifecycle action that failed.
+ * @param {Object} error  Optional scrubbed API error.
  * @return {string} Safe user-facing failure message.
  */
-function connectionErrorMessage( action ) {
+function connectionErrorMessage( action, error ) {
+	// Our controller emits fixed, scrubbed messages, never raw remote error bodies.
+	if (
+		String( error?.code || '' ).startsWith( 'sd_ai_agent_remote_mcp_' ) &&
+		typeof error.message === 'string'
+	) {
+		return error.message;
+	}
 	if ( action === 'load' ) {
 		return __(
 			'Could not load MCP servers. Reload this page and try again.',
@@ -100,17 +114,29 @@ function connectionErrorMessage( action ) {
 /** Manage outbound MCP connections without exposing protocol configuration. */
 export default function McpIntegrationsManager() {
 	const [ connections, setConnections ] = useState( [] );
+	const [ oauthSetup, setOAuthSetup ] = useState( {} );
 	const [ form, setForm ] = useState( EMPTY_FORM );
 	const [ editId, setEditId ] = useState( '' );
 	const [ showForm, setShowForm ] = useState( false );
 	const [ showAdvanced, setShowAdvanced ] = useState( false );
 	const [ loading, setLoading ] = useState( true );
-	const [ busy, setBusy ] = useState( '' );
+	const [ busy, setBusyState ] = useState( '' );
 	const [ notice, setNotice ] = useState( null );
 	const fileInputRef = useRef( null );
+	const connectionIdRef = useRef( '' );
+	const busyRef = useRef( '' );
+	const setBusy = useCallback( ( value ) => {
+		busyRef.current = value;
+		setBusyState( value );
+	}, [] );
 
 	const clearSecret = useCallback( () => {
-		setForm( ( current ) => ( { ...current, secret: '' } ) );
+		setForm( ( current ) => ( {
+			...current,
+			secret: '',
+			client_id: '',
+			client_secret: '',
+		} ) );
 	}, [] );
 
 	const loadConnections = useCallback( async () => {
@@ -122,6 +148,7 @@ export default function McpIntegrationsManager() {
 				? result.connections
 				: [];
 			setConnections( rows );
+			setOAuthSetup( result?.oauth_setup || {} );
 			return rows;
 		} catch {
 			setNotice( {
@@ -136,11 +163,31 @@ export default function McpIntegrationsManager() {
 
 	useEffect( () => {
 		loadConnections();
+		const url = new URL( window.location.href );
+		const status = url.searchParams.get( 'mcp_oauth' );
+		if ( status ) {
+			setNotice( {
+				status: status === 'connected' ? 'success' : 'warning',
+				message:
+					status === 'connected'
+						? __(
+								'MCP server connected after sign-in.',
+								'superdav-ai-agent'
+						  )
+						: __(
+								'Sign-in was not completed. Review the server and sign in again.',
+								'superdav-ai-agent'
+						  ),
+			} );
+			url.searchParams.delete( 'mcp_oauth' );
+			window.history.replaceState( null, '', url.href );
+		}
 	}, [ loadConnections ] );
 
 	useEffect( () => clearSecret, [ clearSecret ] );
 
 	const resetForm = useCallback( () => {
+		connectionIdRef.current = '';
 		setForm( EMPTY_FORM );
 		setEditId( '' );
 		setShowAdvanced( false );
@@ -152,6 +199,9 @@ export default function McpIntegrationsManager() {
 	}, [] );
 
 	const connect = useCallback( async () => {
+		if ( busyRef.current ) {
+			return;
+		}
 		const endpoint = form.endpoint.trim();
 		const name = form.name.trim() || hostnameFromEndpoint( endpoint );
 		if ( ! endpoint || ! name ) {
@@ -175,9 +225,18 @@ export default function McpIntegrationsManager() {
 				secret: form.secret,
 				header_name: form.header_name,
 				reuse_secret: form.reuse_secret,
+				client_id: form.client_id,
+				client_secret: form.client_secret,
 			};
 			if ( ! editId ) {
 				data.enabled = false;
+				if ( ! connectionIdRef.current ) {
+					connectionIdRef.current = Array.from(
+						window.crypto.getRandomValues( new Uint8Array( 16 ) ),
+						( value ) => value.toString( 16 ).padStart( 2, '0' )
+					).join( '' );
+				}
+				data.id = connectionIdRef.current;
 			} else {
 				data.id = editId;
 			}
@@ -187,17 +246,28 @@ export default function McpIntegrationsManager() {
 				method: 'POST',
 				data,
 			} );
+			clearSecret();
 			let connection = saved?.connection;
 			if ( ! connection?.id ) {
 				const reloaded = await loadConnections();
 				connection = reloaded.find(
-					( candidate ) =>
-						candidate.endpoint === endpoint &&
-						candidate.name === name
+					( candidate ) => candidate.id === data.id
 				);
 			}
 			if ( ! connection?.id ) {
 				throw new Error( 'connection_not_reconciled' );
+			}
+			if ( form.auth_type === 'oauth' ) {
+				const result = await apiFetch( {
+					path: `/sd-ai-agent/v1/mcp-connections/${ connection.id }/authorize`,
+					method: 'POST',
+				} );
+				const target = new URL( result.authorization_url );
+				if ( target.protocol !== 'https:' ) {
+					throw new Error( 'invalid_authorization_url' );
+				}
+				window.location.assign( target.href );
+				return;
 			}
 
 			await apiFetch( {
@@ -214,27 +284,38 @@ export default function McpIntegrationsManager() {
 				status: 'success',
 				message: __( 'MCP server connected.', 'superdav-ai-agent' ),
 			} );
-		} catch {
+		} catch ( error ) {
 			await loadConnections();
 			setNotice( {
 				status: 'error',
-				message: connectionErrorMessage( 'connect' ),
+				message: connectionErrorMessage( 'connect', error ),
 			} );
 		} finally {
 			clearSecret();
 			setBusy( '' );
 		}
-	}, [ clearSecret, editId, form, loadConnections, resetForm ] );
+	}, [ clearSecret, editId, form, loadConnections, resetForm, setBusy ] );
 
 	const runAction = useCallback(
 		async ( connection, action ) => {
+			if ( busyRef.current ) {
+				return;
+			}
 			setBusy( `${ action }-${ connection.id }` );
 			setNotice( null );
 			try {
-				await apiFetch( {
+				const result = await apiFetch( {
 					path: `/sd-ai-agent/v1/mcp-connections/${ connection.id }/${ action }`,
 					method: 'POST',
 				} );
+				if ( action === 'authorize' ) {
+					const target = new URL( result.authorization_url );
+					if ( target.protocol !== 'https:' ) {
+						throw new Error( 'invalid_authorization_url' );
+					}
+					window.location.assign( target.href );
+					return;
+				}
 				await loadConnections();
 				setNotice( {
 					status: 'success',
@@ -243,17 +324,17 @@ export default function McpIntegrationsManager() {
 							? __( 'Tools refreshed.', 'superdav-ai-agent' )
 							: __( 'Connection updated.', 'superdav-ai-agent' ),
 				} );
-			} catch {
+			} catch ( error ) {
 				await loadConnections();
 				setNotice( {
 					status: 'error',
-					message: connectionErrorMessage( 'connect' ),
+					message: connectionErrorMessage( 'connect', error ),
 				} );
 			} finally {
 				setBusy( '' );
 			}
 		},
-		[ loadConnections ]
+		[ loadConnections, setBusy ]
 	);
 
 	const editConnection = useCallback( ( connection ) => {
@@ -262,6 +343,8 @@ export default function McpIntegrationsManager() {
 			endpoint: connection.endpoint || '',
 			auth_type: connection.auth_type || 'none',
 			secret: '',
+			client_id: '',
+			client_secret: '',
 			header_name: '',
 			reuse_secret: false,
 		} );
@@ -275,6 +358,9 @@ export default function McpIntegrationsManager() {
 
 	const deleteConnection = useCallback(
 		async ( connection ) => {
+			if ( busyRef.current ) {
+				return;
+			}
 			if (
 				// eslint-disable-next-line no-alert
 				! window.confirm(
@@ -306,19 +392,22 @@ export default function McpIntegrationsManager() {
 				setBusy( '' );
 			}
 		},
-		[ loadConnections ]
+		[ loadConnections, setBusy ]
 	);
 
 	const importConnections = useCallback(
 		async ( event ) => {
 			const file = event.target.files?.[ 0 ];
-			if ( ! file ) {
+			if ( ! file || busyRef.current ) {
 				return;
 			}
 
 			setBusy( 'import' );
 			setNotice( null );
 			try {
+				if ( file.size > 65536 ) {
+					throw new Error( 'import_too_large' );
+				}
 				const data = JSON.parse( await file.text() );
 				await apiFetch( {
 					path: '/sd-ai-agent/v1/mcp-connections/import',
@@ -333,10 +422,11 @@ export default function McpIntegrationsManager() {
 						'superdav-ai-agent'
 					),
 				} );
-			} catch {
+			} catch ( error ) {
+				await loadConnections();
 				setNotice( {
 					status: 'error',
-					message: connectionErrorMessage( 'import' ),
+					message: connectionErrorMessage( 'import', error ),
 				} );
 			} finally {
 				if ( fileInputRef.current ) {
@@ -345,10 +435,13 @@ export default function McpIntegrationsManager() {
 				setBusy( '' );
 			}
 		},
-		[ loadConnections ]
+		[ loadConnections, setBusy ]
 	);
 
 	const exportConnections = useCallback( async () => {
+		if ( busyRef.current ) {
+			return;
+		}
 		setBusy( 'export' );
 		try {
 			const data = await apiFetch( {
@@ -374,13 +467,19 @@ export default function McpIntegrationsManager() {
 		} finally {
 			setBusy( '' );
 		}
-	}, [] );
+	}, [ setBusy ] );
 
 	if ( loading ) {
 		return <Spinner />;
 	}
 
-	const isCredentialed = form.auth_type !== 'none';
+	const isCredentialed = ! [ 'none', 'oauth' ].includes( form.auth_type );
+	let connectLabel = editId
+		? __( 'Save and connect', 'superdav-ai-agent' )
+		: __( 'Connect', 'superdav-ai-agent' );
+	if ( form.auth_type === 'oauth' ) {
+		connectLabel = __( 'Sign in', 'superdav-ai-agent' );
+	}
 	const hasCredentialReuseChoice =
 		!! editId &&
 		connections.some(
@@ -388,7 +487,7 @@ export default function McpIntegrationsManager() {
 		);
 
 	return (
-		<div className="sdaa-mcp-integrations">
+		<div className="sd-ai-agent-mcp-integrations">
 			{ notice && (
 				<Notice
 					status={ notice.status }
@@ -398,7 +497,7 @@ export default function McpIntegrationsManager() {
 				</Notice>
 			) }
 
-			<div className="sdaa-mcp-integrations__header">
+			<div className="sd-ai-agent-mcp-integrations__header">
 				<div>
 					<h3>{ __( 'MCP servers', 'superdav-ai-agent' ) }</h3>
 					<p className="description">
@@ -423,7 +522,7 @@ export default function McpIntegrationsManager() {
 			</div>
 
 			{ showForm && (
-				<div className="sdaa-mcp-integrations__form">
+				<div className="sd-ai-agent-mcp-integrations__form">
 					<h4>
 						{ editId
 							? __( 'Edit MCP server', 'superdav-ai-agent' )
@@ -514,20 +613,59 @@ export default function McpIntegrationsManager() {
 							) }
 						</p>
 					) }
-					<div className="sdaa-mcp-integrations__actions">
+					{ showAdvanced && form.auth_type === 'oauth' && (
+						<>
+							<TextControl
+								label={ __(
+									'Registered client ID (optional)',
+									'superdav-ai-agent'
+								) }
+								value={ form.client_id }
+								onChange={ ( value ) =>
+									updateForm( 'client_id', value )
+								}
+								help={ __(
+									'Most modern servers use automatic client metadata. Enter an ID only if this server requires pre-registration.',
+									'superdav-ai-agent'
+								) }
+							/>
+							<TextControl
+								label={ __(
+									'Registered client secret (optional)',
+									'superdav-ai-agent'
+								) }
+								type="password"
+								value={ form.client_secret }
+								onChange={ ( value ) =>
+									updateForm( 'client_secret', value )
+								}
+							/>
+							{ oauthSetup.redirect_uri && (
+								<TextControl
+									label={ __(
+										'Redirect URI for registration',
+										'superdav-ai-agent'
+									) }
+									value={ oauthSetup.redirect_uri }
+									readOnly
+								/>
+							) }
+							<p className="description">
+								{ __(
+									'Leave both blank to keep existing registered client details. HTTPS is required for sign-in.',
+									'superdav-ai-agent'
+								) }
+							</p>
+						</>
+					) }
+					<div className="sd-ai-agent-mcp-integrations__actions">
 						<Button
 							variant="primary"
 							onClick={ connect }
 							disabled={ busy !== '' }
 						>
 							{ busy === 'connect' && <Spinner /> }
-							{ busy !== 'connect' &&
-								( editId
-									? __(
-											'Save and connect',
-											'superdav-ai-agent'
-									  )
-									: __( 'Connect', 'superdav-ai-agent' ) ) }
+							{ busy !== 'connect' && connectLabel }
 						</Button>
 						<Button
 							variant="tertiary"
@@ -541,14 +679,14 @@ export default function McpIntegrationsManager() {
 			) }
 
 			{ connections.length === 0 ? (
-				<p className="description sdaa-mcp-integrations__empty">
+				<p className="description sd-ai-agent-mcp-integrations__empty">
 					{ __(
 						'No MCP servers connected yet.',
 						'superdav-ai-agent'
 					) }
 				</p>
 			) : (
-				<div className="sdaa-mcp-integrations__list">
+				<div className="sd-ai-agent-mcp-integrations__list">
 					{ connections.map( ( connection ) => {
 						const toolCount = Array.isArray( connection.tools )
 							? connection.tools.length
@@ -556,17 +694,21 @@ export default function McpIntegrationsManager() {
 						const connectionBusy = busy.endsWith(
 							`-${ connection.id }`
 						);
+						const reconnectLabel =
+							connection.auth_type === 'oauth'
+								? __( 'Sign in again', 'superdav-ai-agent' )
+								: __( 'Reconnect', 'superdav-ai-agent' );
 						return (
 							<div
-								className="sdaa-mcp-integrations__connection"
+								className="sd-ai-agent-mcp-integrations__connection"
 								key={ connection.id }
 							>
-								<div className="sdaa-mcp-integrations__connection-heading">
+								<div className="sd-ai-agent-mcp-integrations__connection-heading">
 									<div>
 										<strong>{ connection.name }</strong>
 										<p>{ connection.endpoint }</p>
 									</div>
-									<span className="sdaa-mcp-integrations__status">
+									<span className="sd-ai-agent-mcp-integrations__status">
 										{ connectionStatus( connection ) }
 									</span>
 								</div>
@@ -599,23 +741,43 @@ export default function McpIntegrationsManager() {
 									}
 									disabled={ busy !== '' }
 								/>
-								<div className="sdaa-mcp-integrations__actions">
+								<div className="sd-ai-agent-mcp-integrations__actions">
 									<Button
 										variant="secondary"
 										onClick={ () =>
-											runAction( connection, 'refresh' )
+											runAction(
+												connection,
+												connection.auth_type === 'oauth'
+													? 'authorize'
+													: 'enable'
+											)
 										}
 										disabled={ busy !== '' }
 									>
 										{ connectionBusy ? (
 											<Spinner />
 										) : (
-											__(
-												'Reconnect',
-												'superdav-ai-agent'
-											)
+											reconnectLabel
 										) }
 									</Button>
+									{ connection.auth_type === 'oauth' &&
+										connection.oauth_configured && (
+											<Button
+												variant="tertiary"
+												onClick={ () =>
+													runAction(
+														connection,
+														'disconnect'
+													)
+												}
+												disabled={ busy !== '' }
+											>
+												{ __(
+													'Disconnect sign-in',
+													'superdav-ai-agent'
+												) }
+											</Button>
+										) }
 									<Button
 										variant="tertiary"
 										onClick={ () =>
@@ -656,7 +818,7 @@ export default function McpIntegrationsManager() {
 												'superdav-ai-agent'
 											) }
 										</summary>
-										<ul className="sdaa-mcp-integrations__tools">
+										<ul className="sd-ai-agent-mcp-integrations__tools">
 											{ connection.tools.map(
 												( tool ) => (
 													<li key={ tool.name }>
@@ -675,7 +837,7 @@ export default function McpIntegrationsManager() {
 									<summary>
 										{ __( 'Details', 'superdav-ai-agent' ) }
 									</summary>
-									<dl className="sdaa-mcp-integrations__details">
+									<dl className="sd-ai-agent-mcp-integrations__details">
 										<dt>
 											{ __(
 												'Protocol',
@@ -714,13 +876,13 @@ export default function McpIntegrationsManager() {
 				</div>
 			) }
 
-			<div className="sdaa-mcp-integrations__secondary-actions">
+			<div className="sd-ai-agent-mcp-integrations__secondary-actions">
 				<input
 					accept="application/json"
 					type="file"
 					ref={ fileInputRef }
 					onChange={ importConnections }
-					className="sdaa-mcp-integrations__file-input"
+					className="sd-ai-agent-mcp-integrations__file-input"
 				/>
 				<Button
 					variant="tertiary"

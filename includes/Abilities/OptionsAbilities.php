@@ -67,6 +67,8 @@ class OptionsAbilities {
 		'sd_ai_agent_sms_provider',
 		'sd_ai_agent_whatsapp_provider',
 		'sd_ai_agent_telegram_provider',
+		'sd_ai_agent_remote_mcp_secrets',
+		'sd_ai_agent_remote_mcp_oauth_states',
 	];
 
 	/**
@@ -122,6 +124,9 @@ class OptionsAbilities {
 		'sd_ai_agent_sms_provider',
 		'sd_ai_agent_whatsapp_provider',
 		'sd_ai_agent_telegram_provider',
+		'sd_ai_agent_remote_mcp_secrets',
+		'sd_ai_agent_remote_mcp_oauth_states',
+		'sd_ai_agent_remote_mcp_connections',
 	];
 
 	/**

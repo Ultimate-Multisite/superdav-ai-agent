@@ -48,7 +48,12 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		$first = RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo_greet' );
 		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', $first );
 		$this->assertNotSame( $first, RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo-greet' ) );
+		$this->assertNotSame( $first, RemoteMcpAbilityRegistrar::ability_name( 'other-connection', 'demo_greet' ) );
 		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', RemoteMcpAbilityRegistrar::ability_name( 'fixture123', '工具' ) );
+		foreach ( array( 'demo_greet', str_repeat( 'long-tool-name-', 20 ), '工具' ) as $remote_name ) {
+			$id = RemoteMcpAbilityRegistrar::ability_name( str_repeat( 'a', 32 ), $remote_name );
+			$this->assertLessThanOrEqual( 64, strlen( \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $id ) ) );
+		}
 	}
 
 	public function test_connection_metadata_never_includes_secret(): void {

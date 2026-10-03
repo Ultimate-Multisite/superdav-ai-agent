@@ -72,7 +72,9 @@ final class RemoteMcpAbilityRegistrar {
 	public static function ability_name( string $connection_id, string $remote_name ): string {
 		// WordPress ability IDs reject underscores and percent-encoded characters.
 		$slug = (string) preg_replace( '/[^a-z0-9-]/', '-', sanitize_title( $remote_name ) );
-		$slug = '' !== $slug ? substr( $slug, 0, 48 ) : 'tool';
-		return 'sd-ai-agent/mcp-' . sanitize_key( $connection_id ) . '-' . $slug . '-' . substr( hash( 'sha256', $remote_name ), 0, 10 );
+		// The SDK adds wpab__sd-ai-agent__ (19 bytes); keep the full function <=64.
+		$slug = '' !== $slug ? substr( $slug, 0, 24 ) : 'tool';
+		$hash = substr( hash( 'sha256', $connection_id . "\0" . $remote_name ), 0, 16 );
+		return 'sd-ai-agent/mcp-' . $slug . '-' . $hash;
 	}
 }

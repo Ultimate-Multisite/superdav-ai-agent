@@ -25,11 +25,13 @@ Discovery follows MCP authorization specification **2026-07-28**: protected-reso
 - WordPress REST-compatible input schemas. Unsupported schema constructs, external references and unsafe descriptions/results are rejected; no external schema is fetched.
 - Discovery is bounded to fewer than 100 tools and at most 10 pages. HTTP calls have a 15-second timeout and 256 KiB response limit; tool arguments/results have a 64 KiB limit and bounded depth.
 - Snapshots expire after 15 minutes and refresh once on demand or through the explicit Refresh action. Failed refresh keeps the prior list for diagnosis but does not execute unverified stale tools. No persistent listeners or background discovery service run.
-- Long canonical MCP ability IDs use the existing ability-search/ability-call bridge rather than invalidating an AI provider's function-name limit. The connection IDs and WordPress ability names are not renamed.
+- Generated proxy ability IDs combine a short readable slug with a hash of the connection ID and exact remote tool name. The SDK's complete function name fits providers' 64-character limit; display labels and remote dispatch retain the original name. The ability-search/ability-call bridge remains immediately callable under native tool search.
 
 Legacy HTTP+SSE transport and stdio/command execution are not supported. Import accepts the existing `mcpServers` URL format, never executes commands, excludes credentials and saves servers disabled for review.
 
 ## Safety and troubleshooting
+
+After connecting, test through a **new chat**, not just discovery or direct PHP execution. Ask for a discovered tool by its exact server/tool name and provide its required arguments. For a greeting fixture named `demo_greet`, for example: “Use the Local MCP demo server's demo_greet tool to say hi to Dave.” Approve the confirmation when prompted, then check that the activity lists the remote tool as completed and the answer quotes its returned result. A Connected badge alone does not prove chat discovery and dispatch work.
 
 Private/loopback/metadata endpoints are blocked by the existing SSRF policy. Credentials require HTTPS; OAuth metadata/token redirects are rejected instead of forwarding credentials. Tokens stay in the private credential store, encrypted and excluded from generic option tools, exports, provider traces and operational logs. Known locally configured credential values are scrubbed if a remote tool echoes them.
 

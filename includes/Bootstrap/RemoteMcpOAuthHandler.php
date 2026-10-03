@@ -44,14 +44,14 @@ final class RemoteMcpOAuthHandler {
 		if ( is_wp_error( $result ) && 'sd_ai_agent_remote_mcp_oauth_cancelled' === $result->get_error_code() ) {
 			$status = 'cancelled';
 		}
-		wp_safe_redirect( admin_url( 'admin.php?page=sd-ai-agent&mcp_oauth=' . $status . '#settings' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=sd-ai-agent&mcp_oauth=' . $status . '#/settings' ) );
 		exit;
 	}
 
 	#[Action( tag: 'admin_post_nopriv_sd_ai_agent_mcp_oauth_callback' )]
 	public function unauthenticated_callback(): void {
 		// Do not consume state as an anonymous REST caller or forward a code to login.
-		wp_safe_redirect( admin_url( 'admin.php?page=sd-ai-agent&mcp_oauth=failed#settings' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=sd-ai-agent&mcp_oauth=failed#/settings' ) );
 		exit;
 	}
 }

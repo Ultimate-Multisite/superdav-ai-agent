@@ -70,7 +70,8 @@ final class RemoteMcpAbilityRegistrar {
 	 * Derive a collision-resistant local ID while retaining the exact remote name.
 	 */
 	public static function ability_name( string $connection_id, string $remote_name ): string {
-		$slug = sanitize_title( $remote_name );
+		// WordPress ability IDs reject underscores and percent-encoded characters.
+		$slug = (string) preg_replace( '/[^a-z0-9-]/', '-', sanitize_title( $remote_name ) );
 		$slug = '' !== $slug ? substr( $slug, 0, 48 ) : 'tool';
 		return 'sd-ai-agent/mcp-' . sanitize_key( $connection_id ) . '-' . $slug . '-' . substr( hash( 'sha256', $remote_name ), 0, 10 );
 	}

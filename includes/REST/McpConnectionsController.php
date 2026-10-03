@@ -120,6 +120,13 @@ final class McpConnectionsController {
 				'header_name' => $header,
 			);
 		}
+		// Reject advanced credentials before saving any connection metadata.
+		if ( 'oauth' === ( $params['auth_type'] ?? '' ) ) {
+			$details = (string) ( $params['client_id'] ?? '' ) . (string) ( $params['client_secret'] ?? '' );
+			if ( strlen( (string) ( $params['client_id'] ?? '' ) ) > 2048 || strlen( (string) ( $params['client_secret'] ?? '' ) ) > 8192 || preg_match( '/[\r\n\x00]/', $details ) ) {
+				return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_credential', __( 'Enter valid registered client details without line breaks.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+			}
+		}
 		$result = $this->repository()->save( $params, $secret );
 		if ( ! is_wp_error( $result ) && 'oauth' === ( $result['auth_type'] ?? '' ) && ( ! empty( $params['client_id'] ) || ! empty( $params['client_secret'] ) ) ) {
 			$client_id     = (string) ( $params['client_id'] ?? '' );
@@ -208,6 +215,16 @@ final class McpConnectionsController {
 		foreach ( $servers as $server ) {
 			if ( ! is_array( $server ) || isset( $server['command'], $server['args'] ) || isset( $server['command'] ) || ( isset( $server['transport'] ) && 'streamable-http' !== $server['transport'] ) || ! is_string( $server['url'] ?? $server['endpoint'] ?? null ) ) {
 				return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_import', __( 'Import only modern HTTP server URLs; command/stdio configurations are not supported.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+			}
+			$valid = $this->repository()->validate_input(
+				array(
+					'name'      => $server['name'] ?? $server['displayName'] ?? '',
+					'endpoint'  => $server['url'] ?? $server['endpoint'],
+					'auth_type' => $server['auth_type'] ?? 'none',
+				)
+			);
+			if ( is_wp_error( $valid ) ) {
+				return $valid;
 			}
 		}
 		$created = array();

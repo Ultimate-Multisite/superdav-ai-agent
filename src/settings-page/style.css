@@ -1868,6 +1868,7 @@
 	.sd-ai-agent-mcp-integrations__actions .components-button,
 	.sd-ai-agent-mcp-integrations__secondary-actions .components-button {
 		width: 100%;
+		min-height: 44px;
 		justify-content: center;
 	}
 }

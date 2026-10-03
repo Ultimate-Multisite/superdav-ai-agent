@@ -255,6 +255,7 @@ Use `<Tooltip>` from `@wordpress/components` (or `showTooltip + label` on `<Butt
 - Keep import/export, edit, refresh, and removal secondary. Do not render credentials in cards, details, exports, or recovered form state.
 - OAuth is a Sign in redirect and return to the Tools tab, not a token-copying wizard. Keep registered client details under Advanced; provide the exact redirect URI there when pre-registration is needed.
 - Error notices explain the next action without showing raw remote errors. Duplicate submissions are disabled, and a failed setup preserves safe fields but clears credentials.
+- At widths below 600px, stack connection actions as full-width buttons with a minimum 44px touch target; server URLs wrap without horizontal overflow.
 
 ---
 

@@ -99,6 +99,10 @@ final class RemoteMcpConnectionRepository {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function save_unlocked( array $input, array $secret, string $owner ): array|WP_Error {
+		$valid = $this->validate_input( $input );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
 		$id       = isset( $input['id'] ) ? sanitize_key( (string) $input['id'] ) : '';
 		$id       = '' !== $id ? $id : str_replace( '-', '', wp_generate_uuid4() );
 		$name     = sanitize_text_field( (string) ( $input['name'] ?? '' ) );
@@ -107,24 +111,6 @@ final class RemoteMcpConnectionRepository {
 		if ( '' === $name ) {
 			$name = (string) wp_parse_url( $endpoint, PHP_URL_HOST );
 		}
-		$parts = wp_parse_url( $endpoint );
-		if ( ! is_array( $parts ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['fragment'] ) || ( 'none' !== $auth && 'https' !== ( $parts['scheme'] ?? '' ) ) ) {
-			return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_connection', __( 'Use a valid HTTPS server URL without embedded credentials or a fragment.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
-		}
-
-		if ( '' === $name || '' === $endpoint || ! in_array( $auth, self::AUTH_TYPES, true ) ) {
-			return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_connection', __( 'A name, safe endpoint, and supported authentication type are required.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
-		}
-
-		$safe = ( new SsrfGuard() )->assert_safe_url( $endpoint );
-		if ( is_wp_error( $safe ) ) {
-			return new WP_Error( 'sd_ai_agent_remote_mcp_unsafe_endpoint', __( 'The MCP endpoint is not a permitted public HTTP endpoint.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
-		}
-
-		if ( $this->is_self_endpoint( $endpoint ) ) {
-			return new WP_Error( 'sd_ai_agent_remote_mcp_recursive_endpoint', __( 'This site’s private MCP endpoint cannot be configured as an outbound server.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
-		}
-
 		$connections        = $this->connections();
 		$existing           = isset( $connections[ $id ] ) && is_array( $connections[ $id ] ) ? $connections[ $id ] : array();
 		$has_secret         = array_key_exists( $id, $this->secrets() );
@@ -175,6 +161,33 @@ final class RemoteMcpConnectionRepository {
 		}
 
 		return $this->public_connection( $connections[ $id ] );
+	}
+
+	/**
+	 * Validate import fields before any connection is persisted.
+	 *
+	 * @param array<string,mixed> $input Connection fields.
+	 */
+	public function validate_input( array $input ): true|WP_Error {
+		foreach ( array( 'name', 'endpoint', 'auth_type' ) as $field ) {
+			if ( isset( $input[ $field ] ) && ! is_string( $input[ $field ] ) ) {
+				return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_connection', __( 'Connection fields must be text values.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+			}
+		}
+		$endpoint = esc_url_raw( (string) ( $input['endpoint'] ?? '' ) );
+		$auth     = sanitize_key( (string) ( $input['auth_type'] ?? 'none' ) );
+		$parts    = wp_parse_url( $endpoint );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['fragment'] ) || ( 'none' !== $auth && 'https' !== ( $parts['scheme'] ?? '' ) ) || ! in_array( $auth, self::AUTH_TYPES, true ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_invalid_connection', __( 'Use a valid server URL and supported authentication type, without embedded credentials or a fragment.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
+		$safe = ( new SsrfGuard() )->assert_safe_url( $endpoint );
+		if ( is_wp_error( $safe ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_unsafe_endpoint', __( 'The MCP endpoint is not a permitted public HTTP endpoint.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
+		if ( $this->is_self_endpoint( $endpoint ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_recursive_endpoint', __( 'This site’s private MCP endpoint cannot be configured as an outbound server.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
+		return true;
 	}
 
 	/**

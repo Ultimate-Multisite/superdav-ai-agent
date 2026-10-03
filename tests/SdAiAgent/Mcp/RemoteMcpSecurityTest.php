@@ -17,7 +17,9 @@ use SdAiAgent\Mcp\RemoteMcpHttpTransport;
 use SdAiAgent\Mcp\RemoteMcpLock;
 use SdAiAgent\Mcp\RemoteMcpOAuthStateRepository;
 use SdAiAgent\Mcp\RemoteMcpPolicy;
+use SdAiAgent\REST\McpConnectionsController;
 use WP_Error;
+use WP_REST_Request;
 use WP_UnitTestCase;
 
 class RemoteMcpSecurityTest extends WP_UnitTestCase {
@@ -52,6 +54,36 @@ class RemoteMcpSecurityTest extends WP_UnitTestCase {
 		delete_option( RemoteMcpConnectionRepository::SECRETS_OPTION );
 		wp_set_current_user( 0 );
 		parent::tear_down();
+	}
+
+	public function test_invalid_advanced_oauth_details_do_not_save_connection(): void {
+		$before  = $this->repository->list();
+		$request = new WP_REST_Request( 'POST' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( array( 'endpoint' => 'https://fixture.mcp.test/oauth', 'auth_type' => 'oauth', 'client_id' => "invalid\nclient" ) ) );
+		$result = ( new McpConnectionsController() )->handle_save( $request );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_remote_mcp_invalid_credential', $result->get_error_code() );
+		$this->assertSame( $before, $this->repository->list() );
+	}
+
+	public function test_unsafe_later_import_entry_does_not_save_earlier_entries(): void {
+		$before  = $this->repository->list();
+		$request = new WP_REST_Request( 'POST' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body(
+			wp_json_encode(
+				array(
+					'mcpServers' => array(
+						array( 'url' => 'https://fixture.mcp.test/valid' ),
+						array( 'url' => 'https://127.0.0.1/private' ),
+					),
+				)
+			)
+		);
+		$result = ( new McpConnectionsController() )->handle_import( $request );
+		$this->assertWPError( $result );
+		$this->assertSame( $before, $this->repository->list() );
 	}
 
 	public function test_invalid_input_and_denied_user_never_reach_network(): void {

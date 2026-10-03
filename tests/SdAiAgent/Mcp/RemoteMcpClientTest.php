@@ -44,6 +44,13 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	public function test_remote_tool_names_map_to_valid_collision_resistant_ability_ids(): void {
+		$first = RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo_greet' );
+		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', $first );
+		$this->assertNotSame( $first, RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo-greet' ) );
+		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', RemoteMcpAbilityRegistrar::ability_name( 'fixture123', '工具' ) );
+	}
+
 	public function test_connection_metadata_never_includes_secret(): void {
 		$connection = $this->connections->save(
 			array(

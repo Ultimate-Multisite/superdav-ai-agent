@@ -1145,6 +1145,40 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( $result['reply'], end( $saved )['parts'][0]['text'] );
 	}
 
+	/** A successful shop-filter discovery cannot leave the user without a saved result. */
+	public function test_discovery_only_shop_filter_request_persists_actionable_fallback(): void {
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_id );
+		grant_super_admin( $admin_id );
+
+		$loop = new ScriptedAgentLoop(
+			'I mistakenly deleted the default left-side WooCommerce product filter widget on the shop page. Please restore it.',
+			array( 'sd-ai-agent/ability-search' ),
+			array(),
+			array( 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model' ),
+			array(
+				$this->create_scripted_result(
+					'',
+					new FunctionCall(
+						'shop-filter-discovery',
+						'wpab__sd-ai-agent__ability-search',
+						array( 'query' => 'WooCommerce product filter widget sidebar restore' )
+					)
+				),
+				$this->create_scripted_result( '' ),
+				$this->create_scripted_result( '' ),
+			)
+		);
+		$result = $loop->run();
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'empty_final_response', $result['exit_reason'] );
+		$this->assertStringContainsString( 'continue the conversation', $result['reply'] );
+		$this->assertSame( 'WooCommerce product filter widget sidebar restore', $result['tool_calls'][1]['response']['query'] );
+		$this->assertArrayHasKey( 'results', $result['tool_calls'][1]['response'] );
+		$this->assertSame( $result['reply'], end( $result['history'] )['parts'][0]['text'] );
+	}
+
 	// -------------------------------------------------------------------------
 	// run() — error paths
 	// -------------------------------------------------------------------------

@@ -61,6 +61,22 @@ final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGe
 	}
 
 	/**
+	 * The compatible SDK passes raw schemas; the managed API requires an envelope.
+	 *
+	 * @param array<string, mixed>|null $output_schema Requested output schema.
+	 * @return array<string, mixed>
+	 */
+	protected function prepareResponseFormatParam( ?array $output_schema ): array {
+		if ( null === $output_schema ) {
+			return parent::prepareResponseFormatParam( $output_schema );
+		}
+		return array(
+			'type'        => 'json_schema',
+			'json_schema' => SuperdavAiProvider::output_schema_envelope( $output_schema ),
+		);
+	}
+
+	/**
 	 * Create an authenticated API request.
 	 *
 	 * @param HttpMethodEnum                     $method  HTTP method.

@@ -12,6 +12,7 @@ import { __ } from '@wordpress/i18n';
 import STORE_NAME from '../store';
 import {
 	FEEDBACK_REPORTING_PREFERENCES,
+	getAutomaticFeedbackFailureReason,
 	getFeedbackReportingPreference,
 	setFeedbackReportingPreference,
 	submitAutomaticFeedback,
@@ -34,6 +35,7 @@ export default function AutomaticFeedbackPrompt( { sessionId, failure } ) {
 	const [ isSent, setIsSent ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const autoAttemptedRef = useRef( '' );
+	const failureReason = getAutomaticFeedbackFailureReason( failure );
 
 	const dismiss = useCallback( () => {
 		setFeedbackBanner( null );
@@ -67,6 +69,11 @@ export default function AutomaticFeedbackPrompt( { sessionId, failure } ) {
 			return;
 		}
 
+		if ( ! failureReason ) {
+			dismiss();
+			return;
+		}
+
 		if ( preference === FEEDBACK_REPORTING_PREFERENCES.NEVER ) {
 			dismiss();
 			return;
@@ -85,10 +92,11 @@ export default function AutomaticFeedbackPrompt( { sessionId, failure } ) {
 			autoAttemptedRef.current = eventKey;
 			sendReport();
 		}
-	}, [ dismiss, failure, preference, sendReport, sessionId ] );
+	}, [ dismiss, failure, failureReason, preference, sendReport, sessionId ] );
 
 	if (
 		! failure ||
+		! failureReason ||
 		! sessionId ||
 		isSent ||
 		( preference === FEEDBACK_REPORTING_PREFERENCES.NEVER && ! error ) ||

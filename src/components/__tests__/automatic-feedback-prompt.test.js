@@ -11,6 +11,7 @@ import AutomaticFeedbackPrompt from '../automatic-feedback-prompt';
 import {
 	FEEDBACK_REPORTING_PREFERENCE_KEY,
 	setFeedbackReportingPreference,
+	submitAutomaticFeedback,
 	toolCallsContainFailure,
 } from '../../utils/feedback-reporting';
 
@@ -37,10 +38,11 @@ const failure = { reason: 'tool_call_error', eventId: 'job-17' };
 /**
  * Render the automatic feedback prompt.
  *
+ * @param {Object} [promptFailure] Failure metadata to render.
  * @return {Promise<{container: HTMLElement, root: import('@wordpress/element').Root}>}
  *   Rendered prompt and root.
  */
-async function renderPrompt() {
+async function renderPrompt( promptFailure = failure ) {
 	const container = document.createElement( 'div' );
 	document.body.appendChild( container );
 	const root = createRoot( container );
@@ -48,7 +50,7 @@ async function renderPrompt() {
 		root.render(
 			createElement( AutomaticFeedbackPrompt, {
 				sessionId: 17,
-				failure,
+				failure: promptFailure,
 			} )
 		);
 	} );
@@ -95,6 +97,16 @@ describe( 'AutomaticFeedbackPrompt', () => {
 		expect( button( container, 'No, never' ) ).toBeDefined();
 		expect( button( container, 'Yes' ) ).toBeDefined();
 		expect( button( container, 'Yes, always' ) ).toBeDefined();
+
+		await act( async () => root.unmount() );
+	} );
+
+	test( 'dismisses an unknown result from a normal completion', async () => {
+		const { container, root } = await renderPrompt( { reason: 'unknown' } );
+
+		expect( container.textContent ).toBe( '' );
+		expect( setFeedbackBanner ).toHaveBeenCalledWith( null );
+		expect( apiFetch ).not.toHaveBeenCalled();
 
 		await act( async () => root.unmount() );
 	} );
@@ -182,6 +194,31 @@ describe( 'feedback reporting helpers', () => {
 		expect(
 			localStorage.getItem( FEEDBACK_REPORTING_PREFERENCE_KEY )
 		).toBeNull();
+	} );
+
+	test( 'does not report an unknown result from a normal completion', async () => {
+		await expect(
+			submitAutomaticFeedback( 17, { reason: 'unknown' } )
+		).resolves.toBeNull();
+		await expect( submitAutomaticFeedback( 17, {} ) ).resolves.toBeNull();
+
+		expect( apiFetch ).not.toHaveBeenCalled();
+	} );
+
+	test( 'reports a concrete exit reason after an unknown primary reason', async () => {
+		await submitAutomaticFeedback( 17, {
+			reason: ' unknown ',
+			exitReason: ' provider_error ',
+		} );
+
+		expect( apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				data: expect.objectContaining( {
+					user_description:
+						expect.stringContaining( 'provider error' ),
+				} ),
+			} )
+		);
 	} );
 
 	test( 'ignores tool logs with no responses', () => {

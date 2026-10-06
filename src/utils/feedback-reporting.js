@@ -111,13 +111,19 @@ export function toolCallsContainFailure( toolCalls ) {
  * @return {string} Concrete failure reason, or an empty string when unavailable.
  */
 export function getAutomaticFeedbackFailureReason( failure ) {
-	const failureReason = failure?.reason || failure?.exitReason;
-	if ( typeof failureReason !== 'string' ) {
-		return '';
+	const reasons = [ failure?.reason, failure?.exitReason ];
+	for ( const failureReason of reasons ) {
+		if ( typeof failureReason !== 'string' ) {
+			continue;
+		}
+
+		const reason = failureReason.trim();
+		if ( reason && 'unknown' !== reason.toLowerCase() ) {
+			return reason;
+		}
 	}
 
-	const reason = failureReason.trim();
-	return 'unknown' === reason.toLowerCase() ? '' : reason;
+	return '';
 }
 
 /**

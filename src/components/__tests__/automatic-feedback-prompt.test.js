@@ -205,6 +205,22 @@ describe( 'feedback reporting helpers', () => {
 		expect( apiFetch ).not.toHaveBeenCalled();
 	} );
 
+	test( 'reports a concrete exit reason after an unknown primary reason', async () => {
+		await submitAutomaticFeedback( 17, {
+			reason: ' unknown ',
+			exitReason: ' provider_error ',
+		} );
+
+		expect( apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				data: expect.objectContaining( {
+					user_description:
+						expect.stringContaining( 'provider error' ),
+				} ),
+			} )
+		);
+	} );
+
 	test( 'ignores tool logs with no responses', () => {
 		expect( toolCallsContainFailure( [] ) ).toBe( false );
 		expect(

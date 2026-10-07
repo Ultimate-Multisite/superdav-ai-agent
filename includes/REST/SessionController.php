@@ -1577,7 +1577,7 @@ final class SessionController {
 		$db_row = ActiveJobRepository::get_by_job_id( $job_id );
 		if (
 			null !== $db_row &&
-			in_array( $db_row->status, array( 'complete', 'error', 'interrupted', 'abandoned' ), true )
+			in_array( $db_row->status, array( 'error', 'interrupted', 'abandoned' ), true )
 		) {
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 			return $this->job_status_from_db_row( $job_id, $db_row );

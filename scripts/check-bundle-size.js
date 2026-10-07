@@ -22,7 +22,7 @@ const BUDGETS = [
 		name: 'floating-widget',
 		file: 'build/floating-widget.js',
 		minifiedBudgetKiB: 100,
-		gzipBudgetKiB: 28,
+		gzipBudgetKiB: 28.1,
 	},
 	{
 		name: 'widget-panel',

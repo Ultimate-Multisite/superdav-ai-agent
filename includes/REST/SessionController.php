@@ -26,6 +26,7 @@ use SdAiAgent\Core\ElementorCompletionGate;
 use SdAiAgent\Core\Export;
 use SdAiAgent\Core\PublicChatSecurity;
 use SdAiAgent\Core\Settings;
+use SdAiAgent\Core\SessionTitleGenerator;
 use SdAiAgent\Core\ToolPermissionResolver;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\Agent;
@@ -429,6 +430,16 @@ final class SessionController {
 		);
 
 		// Process endpoint (background worker).
+		register_rest_route(
+			RestController::NAMESPACE,
+			'/sessions/(?P<id>\d+)/title',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'handle_session_title' ),
+				'permission_callback' => array( $this, 'check_session_permission' ),
+			)
+		);
+
 		register_rest_route(
 			RestController::NAMESPACE,
 			'/process',
@@ -1088,20 +1099,21 @@ final class SessionController {
 
 		return new WP_REST_Response(
 			array(
-				'id'          => (int) $session->id,
-				'title'       => $session->title,
-				'provider_id' => $session->provider_id,
-				'model_id'    => $session->model_id,
-				'messages'    => ConversationDisplaySanitizer::sanitize_messages( $messages ),
-				'tool_calls'  => json_decode( $session->tool_calls, true ) ?: array(),
-				'token_usage' => array(
+				'id'            => (int) $session->id,
+				'title'         => $session->title,
+				'provider_id'   => $session->provider_id,
+				'model_id'      => $session->model_id,
+				'messages'      => ConversationDisplaySanitizer::sanitize_messages( $messages ),
+				'title_pending' => SessionTitleGenerator::is_pending( $session_id ),
+				'tool_calls'    => json_decode( $session->tool_calls, true ) ?: array(),
+				'token_usage'   => array(
 					'prompt'     => (int) ( $session->prompt_tokens ?? 0 ),
 					'completion' => (int) ( $session->completion_tokens ?? 0 ),
 				),
-				'is_shared'   => $is_shared,
-				'shared_by'   => $is_shared ? (int) $shared->shared_by : null,
-				'created_at'  => $session->created_at,
-				'updated_at'  => $session->updated_at,
+				'is_shared'     => $is_shared,
+				'shared_by'     => $is_shared ? (int) $shared->shared_by : null,
+				'created_at'    => $session->created_at,
+				'updated_at'    => $session->updated_at,
 			),
 			200
 		);
@@ -3645,11 +3657,19 @@ final class SessionController {
 		);
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
+		$session_title = SessionTitleGenerator::start(
+			$session_id,
+			self::get_string_param( $request, 'message' ),
+			self::get_string_param( $request, 'provider_id' ),
+			self::get_string_param( $request, 'model_id' ),
+			self::get_int_param( $request, 'agent_id' )
+		);
 
 		return new WP_REST_Response(
 			array(
 				'job_id' => $job_id,
 				'status' => 'processing',
+				'title'  => $session_title,
 			),
 			202
 		);
@@ -3682,6 +3702,23 @@ final class SessionController {
 		}
 
 		/** @var array<string, mixed> $job */
+		if ( ! empty( $job['title_only'] ) ) {
+			$lock = self::acquire_job_mutation_lock( $job_id );
+			if ( null === $lock ) {
+				return new WP_REST_Response( array( 'ok' => false ), 200 );
+			}
+			try {
+				$job = get_transient( RestController::JOB_PREFIX . $job_id );
+				if ( ! is_array( $job ) || empty( $job['title_only'] ) ) {
+					return new WP_REST_Response( array( 'ok' => false ), 200 );
+				}
+				delete_transient( RestController::JOB_PREFIX . $job_id );
+			} finally {
+				self::release_job_mutation_lock( $lock );
+			}
+			SessionTitleGenerator::process( $job_id, $job );
+			return new WP_REST_Response( array( 'ok' => true ), 200 );
+		}
 
 		// Restore the user context — the loopback request has no cookies,
 		// but the AI Client needs a user for provider auth binding.
@@ -4255,23 +4292,6 @@ final class SessionController {
 						)
 					);
 				}
-
-				// Auto-generate title from first user message if empty.
-				if ( $session && empty( $session->title ) ) {
-					// @phpstan-ignore-next-line
-					$reply = (string) ( $result['reply'] ?? '' );
-					$title = RestController::generate_session_title(
-						// @phpstan-ignore-next-line
-						(string) $params['message'],
-						$reply,
-						// @phpstan-ignore-next-line
-						(string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' ),
-						// @phpstan-ignore-next-line
-						(string) ( $options['model_id'] ?? $params['model_id'] ?? '' )
-					);
-					$this->database->update_session( $session_id, array( 'title' => $title ) );
-					$job['result']['generated_title'] = $title;
-				}
 			}
 
 			// Log webhook execution success.
@@ -4333,6 +4353,23 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/** Read title progress independently of the agent's job state. */
+	public function handle_session_title( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$session_id = self::get_int_param( $request, 'id' );
+		$session    = Database::get_session_maintenance_metadata( $session_id );
+		if ( ! $session ) {
+			return new WP_Error( 'sd_ai_agent_session_not_found', __( 'Session not found.', 'superdav-ai-agent' ), array( 'status' => 404 ) );
+		}
+		return new WP_REST_Response(
+			array(
+				'id'      => $session_id,
+				'title'   => (string) $session->title,
+				'pending' => SessionTitleGenerator::is_pending( $session_id ),
+			),
+			200
+			);
 	}
 
 	/**

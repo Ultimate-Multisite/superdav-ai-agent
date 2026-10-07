@@ -416,13 +416,13 @@ final class RestController {
 	// ─── Session Title Generation ─────────────────────────────────────────────
 
 	/**
-	 * Generate a short 3-5 word session title from the first user message and AI reply.
+	 * Generate a short 3-5 word session title from the first user message.
 	 *
 	 * Routes the request through the WP AI Client SDK so the same provider/model
 	 * resolution as the main chat loop applies.
 	 *
 	 * @param string $user_message The first user message.
-	 * @param string $ai_reply     The first AI reply.
+	 * @param string $ai_reply     Optional reply for callers that already have one.
 	 * @param string $provider_id  Provider identifier.
 	 * @param string $model_id     Model identifier.
 	 * @return string A short title (3-5 words, no quotes, no punctuation at end).
@@ -437,10 +437,8 @@ final class RestController {
 		$prompt_text = sprintf(
 			'Generate a short 3-5 word title for this conversation, prefixed by a single relevant emoji. Reply with ONLY: emoji space title — no quotes, no punctuation at the end, no explanation. Example: "🐱 All about cats".
 
-User: %s
-Assistant: %s',
-			mb_substr( $user_message, 0, 500 ),
-			mb_substr( $ai_reply, 0, 500 )
+User: %s',
+			mb_substr( $user_message, 0, 500 )
 		);
 
 		try {
@@ -463,9 +461,7 @@ Assistant: %s',
 				}
 			}
 
-			if ( method_exists( $builder, 'using_max_tokens' ) ) {
-				$builder->using_max_tokens( 20 );
-			}
+			$builder->using_max_tokens( 20 );
 
 			$result = $builder->generate_text_result();
 			if ( is_wp_error( $result ) ) {
@@ -489,7 +485,7 @@ Assistant: %s',
 	 * @param string $user_message The user message.
 	 * @return string Truncated title.
 	 */
-	private static function title_fallback( string $user_message ): string {
+	public static function title_fallback( string $user_message ): string {
 		$title = mb_substr( $user_message, 0, 60 );
 		if ( mb_strlen( $user_message ) > 60 ) {
 			$title .= '...';

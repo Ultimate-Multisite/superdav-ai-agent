@@ -24,6 +24,32 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SessionRepository {
 
+	/**
+	 * Atomically replace a provisional title without overwriting a user's edit.
+	 *
+	 * @param int    $session_id Session identifier.
+	 * @param int    $user_id Session owner.
+	 * @param string $expected_title Title originally observed by the worker.
+	 * @param string $title Replacement title.
+	 */
+	public static function replace_title( int $session_id, int $user_id, string $expected_title, string $title ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Compare and replace protects concurrent user edits, including case-only edits.
+		return 1 === $wpdb->query(
+			$wpdb->prepare(
+			'UPDATE %i SET title = %s, updated_at = %s WHERE id = %d AND user_id = %d AND BINARY title = BINARY %s AND status <> %s',
+			Database::table_name(),
+			$title,
+			current_time( 'mysql', true ),
+			$session_id,
+			$user_id,
+			$expected_title,
+			'trash'
+		)
+			);
+	}
+
 	/** Soft maintenance threshold for the total persisted session payload (8 MiB). */
 	public const STORAGE_MAINTENANCE_BYTES = 8388608;
 

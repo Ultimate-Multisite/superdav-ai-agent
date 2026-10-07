@@ -1575,6 +1575,8 @@ final class SessionController {
 
 		/** @var array<string, mixed> $job */
 		$db_row = ActiveJobRepository::get_by_job_id( $job_id );
+		// A completed job retains its transient result through the first poll so the
+		// client receives its final reply even when session reload is unavailable.
 		if (
 			null !== $db_row &&
 			in_array( $db_row->status, array( 'error', 'interrupted', 'abandoned' ), true )

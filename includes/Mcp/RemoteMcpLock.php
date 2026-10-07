@@ -35,7 +35,14 @@ final class RemoteMcpLock {
 		if ( is_array( $decoded ) && (int) ( $decoded['expires'] ?? 0 ) < time() ) {
 			self::release( $key, $existing );
 		}
-		if ( ! add_option( $name, $value, '', false ) ) {
+		global $wpdb;
+		if ( ! is_string( $wpdb->options ) ) {
+			return new WP_Error( 'sd_ai_agent_remote_mcp_busy', __( 'This connection is busy. Try again shortly.', 'superdav-ai-agent' ) );
+		}
+		$inserted = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", $name, $value ) );
+		wp_cache_delete( $name, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		if ( 1 !== $inserted ) {
 			return new WP_Error( 'sd_ai_agent_remote_mcp_busy', __( 'This connection is busy. Try again shortly.', 'superdav-ai-agent' ) );
 		}
 		return $value;

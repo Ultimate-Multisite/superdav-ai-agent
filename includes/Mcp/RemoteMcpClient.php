@@ -329,7 +329,8 @@ final class RemoteMcpClient {
 			'type'       => 'object',
 			'properties' => array(),
 		);
-		if ( ! RemoteMcpPolicy::supported_schema( $schema ) || 'object' !== ( $schema['type'] ?? '' ) || ! RemoteMcpPolicy::bounded( $tool ) ) {
+		$types  = (array) ( $schema['type'] ?? 'object' );
+		if ( ! RemoteMcpPolicy::supported_schema( $schema ) || ! in_array( 'object', $types, true ) || ! RemoteMcpPolicy::bounded( $tool ) ) {
 			return null;
 		}
 		return array(

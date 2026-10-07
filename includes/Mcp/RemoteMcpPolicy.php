@@ -65,11 +65,12 @@ final class RemoteMcpPolicy {
 	 * @param array<string,mixed> $schema Discovered schema.
 	 */
 	public static function supported_schema( array $schema ): bool {
-		if ( ! self::bounded( $schema ) || ! in_array( $schema['type'] ?? 'object', array( 'object', 'array', 'string', 'integer', 'number', 'boolean', 'null' ), true ) ) {
+		$types = (array) ( $schema['type'] ?? 'object' );
+		if ( ! self::bounded( $schema ) || array() === $types || array() !== array_diff( $types, array( 'object', 'array', 'string', 'integer', 'number', 'boolean', 'null' ) ) ) {
 			return false;
 		}
 		// Deliberately use the WordPress REST schema dialect, not a bespoke engine.
-		$allowed = array( 'type', 'properties', 'required', 'additionalProperties', 'items', 'enum', 'description', 'title', 'default', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'uniqueItems', 'minProperties', 'maxProperties', 'format', 'anyOf', 'oneOf', '$schema' );
+		$allowed = array( 'type', 'properties', 'required', 'additionalProperties', 'items', 'enum', 'description', 'title', 'default', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'uniqueItems', 'minProperties', 'maxProperties', 'format', 'pattern', 'patternProperties', 'examples', 'const', 'readOnly', 'anyOf', 'oneOf', '$schema' );
 		foreach ( $schema as $key => $value ) {
 			if ( ! in_array( $key, $allowed, true ) ) {
 				return false;

@@ -80,6 +80,8 @@ final class RemoteMcpOAuthClient {
 			return $this->error( 'unsupported_auth', __( 'This server’s token authentication method is not supported.', 'superdav-ai-agent' ) );
 		}
 		$oauth['token_auth_method'] = $method;
+		$state_oauth                = $oauth;
+		unset( $state_oauth['client_secret'] );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- RFC 7636 S256 verifier encoding, not executable code.
 		$verifier = rtrim( strtr( base64_encode( random_bytes( 32 ) ), '+/', '-_' ), '=' );
 		$state    = ( new RemoteMcpOAuthStateRepository() )->create(
@@ -92,7 +94,7 @@ final class RemoteMcpOAuthClient {
 				'endpoint'      => $connection['endpoint'],
 				'callback'      => $callback,
 				'verifier'      => $verifier,
-				'oauth'         => $oauth,
+				'oauth'         => $state_oauth,
 			)
 		);
 		if ( is_wp_error( $state ) ) {
@@ -150,7 +152,9 @@ final class RemoteMcpOAuthClient {
 			return $lock;
 		}
 		try {
-			$record = $this->exchange(
+			$credentials            = $this->connections->get_secret( $id );
+			$oauth['client_secret'] = (string) ( $credentials['client_secret'] ?? '' );
+			$record                 = $this->exchange(
 				$oauth,
 				array(
 					'grant_type'    => 'authorization_code',
@@ -251,7 +255,7 @@ final class RemoteMcpOAuthClient {
 			if ( ! empty( $record['oauth']['revocation_endpoint'] ) ) {
 				$oauth  = $record['oauth'];
 				$params = array(
-					'token'         => $record['refresh_token'] ?? $record['value'] ?? '',
+					'token'         => '' !== (string) ( $record['refresh_token'] ?? '' ) ? (string) $record['refresh_token'] : (string) ( $record['value'] ?? '' ),
 					'client_id'     => $oauth['client_id'],
 					'client_secret' => $oauth['client_secret'] ?? '',
 				);

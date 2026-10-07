@@ -501,11 +501,23 @@ final class RemoteMcpConnectionRepository {
 		if ( '' === $value ) {
 			return true;
 		}
-		$secrets        = $this->secrets();
-		$secrets[ $id ] = array( 'value' => $value );
+		$record = array( 'value' => $value );
 		if ( 'custom_header' === $auth && isset( $secret['header_name'] ) && preg_match( '/^[A-Za-z0-9-]{1,64}$/', (string) $secret['header_name'] ) ) {
-			$secrets[ $id ]['header_name'] = (string) $secret['header_name'];
+			$record['header_name'] = (string) $secret['header_name'];
 		}
+		$json = wp_json_encode( $record );
+		if ( ! is_string( $json ) || strlen( $json ) > 65536 || ! function_exists( 'openssl_encrypt' ) ) {
+			return false;
+		}
+		$iv     = random_bytes( 12 );
+		$tag    = '';
+		$cipher = openssl_encrypt( $json, 'aes-256-gcm', $this->secret_key(), OPENSSL_RAW_DATA, $iv, $tag, $id );
+		if ( false === $cipher ) {
+			return false;
+		}
+		$secrets = $this->secrets();
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Binary AEAD envelope for database storage.
+		$secrets[ $id ] = array( 'sealed' => base64_encode( $iv . $tag . $cipher ) );
 		return RemoteMcpLock::commit( 'connection-store', $owner, self::SECRETS_OPTION, $secrets );
 	}
 

@@ -152,6 +152,28 @@ class RemoteMcpSecurityTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'fixture-private-value', wp_json_encode( $this->repository->list() ) );
 	}
 
+	public function test_static_credentials_are_sealed_when_saved(): void {
+		$connection = $this->repository->save(
+			array( 'name' => 'Static credential', 'endpoint' => 'https://fixture.mcp.test/static', 'auth_type' => 'bearer' ),
+			array( 'value' => 'fixture-static-credential' )
+		);
+		$this->assertIsArray( $connection );
+		$this->assertStringNotContainsString( 'fixture-static-credential', wp_json_encode( get_option( RemoteMcpConnectionRepository::SECRETS_OPTION ) ) );
+		$this->assertSame( 'fixture-static-credential', $this->repository->get_secret( $connection['id'] )['value'] );
+	}
+
+	public function test_schema_patterns_and_object_type_unions_are_supported(): void {
+		$this->assertTrue(
+			RemoteMcpPolicy::supported_schema(
+				array(
+					'type'       => array( 'object', 'null' ),
+					'properties' => array( 'slug' => array( 'type' => 'string', 'pattern' => '^[a-z0-9-]+$' ) ),
+					'examples'   => array( array( 'slug' => 'fixture-tool' ) ),
+				)
+			)
+		);
+	}
+
 	public function test_refresh_lock_is_bounded_and_cannot_be_released_by_another_owner(): void {
 		$key   = 'refresh-' . $this->connection['id'];
 		$owner = RemoteMcpLock::acquire( $key );

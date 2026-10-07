@@ -44,12 +44,15 @@ async function renderCreditExhaustionMessage() {
 	const selectors = {
 		getCurrentSessionMessages: () => [
 			{
-				role: 'system',
+				role: 'model',
 				parts: [
 					{
-						text: 'Client error (402): Superdav credit balance is insufficient for this request.',
+						text: 'Your Superdav account needs more credits to continue. Purchase credits in your account settings.',
 					},
 				],
+				diagnostic: {
+					reason: 'credit_exhausted',
+				},
 			},
 		],
 		isSending: () => false,
@@ -92,7 +95,7 @@ describe( 'WidgetMessageList credit exhaustion notice', () => {
 		jest.clearAllMocks();
 	} );
 
-	test( 'replaces the provider error with an account-settings credit CTA', async () => {
+	test( 'replaces a persisted credit diagnostic with account actions', async () => {
 		const { container, root } = await renderCreditExhaustionMessage();
 		const notice = container.querySelector(
 			'.sd-ai-agent-cr-msg-system--account-action'
@@ -100,16 +103,22 @@ describe( 'WidgetMessageList credit exhaustion notice', () => {
 
 		expect( notice ).not.toBeNull();
 		expect( notice.textContent ).toContain(
-			'Purchase more credits in your account settings'
+			'Good news—as an early adopter, use coupon code EARLY'
 		);
+		expect( notice.textContent ).toContain( '$200 in AI usage credits' );
 		expect( notice.textContent ).not.toMatch( /\b(error|insufficient)\b/i );
 
-		const action = notice.querySelector(
+		const actions = notice.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( action.textContent ).toBe( 'Purchase credits' );
-		expect( action.getAttribute( 'href' ) ).toBe(
+		expect( actions ).toHaveLength( 2 );
+		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
+		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
+		);
+		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
+		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
+			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
 		);
 
 		await act( async () => {

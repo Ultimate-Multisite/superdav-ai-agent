@@ -32,6 +32,14 @@ export default function MessageRow( {
 	onSuggestionSelect,
 	onThumbsDown,
 } ) {
+	if (
+		msg?.notice?.type === 'account_action' ||
+		msg?.diagnostic?.reason === 'credit_exhausted'
+	) {
+		const presentation = resolveSystemMessagePresentation( msg, providers );
+		return <AccountActionMessage notice={ presentation.notice } />;
+	}
+
 	if ( msg.role === 'user' ) {
 		return <UserMessage msg={ msg } index={ index } />;
 	}

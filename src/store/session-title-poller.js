@@ -1,6 +1,9 @@
 import apiFetch from '@wordpress/api-fetch';
 
 const activeTitlePollers = new Set();
+const MAX_POLL_ATTEMPTS = 20;
+const MAX_POLL_DELAY_MS = 8000;
+const INITIAL_POLL_DELAY_MS = 2000;
 
 /**
  * Refresh a session title independently of the main agent job.
@@ -24,7 +27,7 @@ export default async function pollSessionTitle(
 			?.title;
 	let expectedTitle = currentTitle();
 	try {
-		while ( true ) {
+		for ( let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++ ) {
 			const { title, pending } = await apiFetch( {
 				path: `/sd-ai-agent/v1/sessions/${ sessionId }/title`,
 			} );
@@ -37,7 +40,15 @@ export default async function pollSessionTitle(
 			if ( ! pending ) {
 				return;
 			}
-			await new Promise( ( resolve ) => setTimeout( resolve, 2000 ) );
+			if ( attempt < MAX_POLL_ATTEMPTS - 1 ) {
+				const delay = Math.min(
+					INITIAL_POLL_DELAY_MS * 1.5 ** attempt,
+					MAX_POLL_DELAY_MS
+				);
+				await new Promise( ( resolve ) =>
+					setTimeout( resolve, delay )
+				);
+			}
 		}
 	} catch {
 		// A missing title or expired session must not affect the main job.

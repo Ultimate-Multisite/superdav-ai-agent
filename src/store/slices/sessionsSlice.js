@@ -550,9 +550,13 @@ export const actions = {
 	 */
 	pollTitle( sessionId ) {
 		return ( context ) =>
-			import( '../session-title-poller' ).then(
-				( { default: pollTitle } ) => pollTitle( sessionId, context )
-			);
+			import( '../session-title-poller' )
+				.then( ( { default: pollTitle } ) =>
+					pollTitle( sessionId, context )
+				)
+				.catch( () => {
+					// Title polling is best-effort and must not affect the main job.
+				} );
 	},
 
 	/**

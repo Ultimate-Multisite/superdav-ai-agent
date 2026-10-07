@@ -119,7 +119,8 @@ final class SessionTitleGenerator {
 				(string) ( $params['provider_id'] ?? '' ),
 				(string) ( $params['model_id'] ?? '' )
 			);
-			if ( $job_id === get_transient( self::PENDING_PREFIX . $session_id ) ) {
+			$title = sanitize_text_field( $title );
+			if ( '' !== $title && $job_id === get_transient( self::PENDING_PREFIX . $session_id ) ) {
 				SessionRepository::replace_title( $session_id, $user_id, (string) $params['expected_title'], $title );
 			}
 		} finally {

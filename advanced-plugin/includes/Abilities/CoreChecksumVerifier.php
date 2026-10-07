@@ -378,7 +378,9 @@ final class CoreChecksumVerifier {
 			}
 
 			$iterator = new RecursiveIteratorIterator(
-				new RecursiveDirectoryIterator( $path, RecursiveDirectoryIterator::SKIP_DOTS )
+				new RecursiveDirectoryIterator( $path, RecursiveDirectoryIterator::SKIP_DOTS ),
+				RecursiveIteratorIterator::LEAVES_ONLY,
+				RecursiveIteratorIterator::CATCH_GET_CHILD
 			);
 			foreach ( $iterator as $file_info ) {
 				if ( $file_info->isFile() ) {
@@ -417,7 +419,11 @@ final class CoreChecksumVerifier {
 				return self::should_scan_file( $relative, true );
 			}
 		);
-		$iterator  = new RecursiveIteratorIterator( $filter );
+		$iterator  = new RecursiveIteratorIterator(
+			$filter,
+			RecursiveIteratorIterator::LEAVES_ONLY,
+			RecursiveIteratorIterator::CATCH_GET_CHILD
+		);
 		$files     = array();
 
 		foreach ( $iterator as $file_info ) {

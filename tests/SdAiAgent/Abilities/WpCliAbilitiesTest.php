@@ -49,6 +49,8 @@ class WpCliAbilitiesTest extends WP_UnitTestCase {
 		remove_all_filters( 'sd_ai_agent_wp_cli_proc_open_available' );
 		remove_all_filters( 'sd_ai_agent_wp_cli_binary' );
 		remove_all_filters( 'sd_ai_agent_options_read_blocklist' );
+		remove_all_filters( 'sd_ai_agent_ssrf_allow_hosts' );
+		remove_all_filters( 'pre_http_request' );
 		delete_option( 'sd_ai_agent_test_cli_write_option' );
 
 		WpCliAbilities::reset_binary_cache();
@@ -107,6 +109,46 @@ class WpCliAbilitiesTest extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertSame( 'unsupported_command', $result->get_error_code() );
 		$this->assertSame( 501, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * The exact read-only core checksum command is allowed through native dispatch.
+	 */
+	public function test_execute_allows_core_verify_checksums_with_include_root(): void {
+		$file = 'wp-includes/version.php';
+		$this->stub_core_checksum_response(
+			array(
+				$file => (string) md5_file( ABSPATH . $file ),
+			)
+		);
+
+		$result = WpCliAbilities::execute( 'core verify-checksums --include-root' );
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['verified'] );
+		$this->assertTrue( $result['include_root'] );
+		$this->assertSame( 'core verify-checksums', $result['command'] );
+		$this->assertSame( 1, $result['checked_file_count'] );
+	}
+
+	/**
+	 * Other commands in the core group remain blocked.
+	 */
+	public function test_execute_keeps_other_core_commands_blocked(): void {
+		$result = WpCliAbilities::execute( 'core update' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'wp_cli_blocked_command', $result->get_error_code() );
+	}
+
+	/**
+	 * TLS verification cannot be disabled by the native checksum command.
+	 */
+	public function test_execute_rejects_insecure_core_checksum_option(): void {
+		$result = WpCliAbilities::execute( 'core verify-checksums --insecure' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'wp_cli_checksum_unsupported_argument', $result->get_error_code() );
 	}
 
 	/**
@@ -262,6 +304,43 @@ class WpCliAbilitiesTest extends WP_UnitTestCase {
 		$raw    = array( array( 'option_name' => 'auth_key', 'option_value' => 'leaked' ) );
 		$result = WpCliAbilities::scrub_secret_output( 'post list', $raw );
 		$this->assertSame( $raw, $result );
+	}
+
+	/**
+	 * Stub the fixed WordPress.org checksum response.
+	 *
+	 * @param array<string,string> $checksums Checksum map keyed by relative path.
+	 */
+	private function stub_core_checksum_response( array $checksums ): void {
+		add_filter(
+			'sd_ai_agent_ssrf_allow_hosts',
+			static function ( array $hosts ): array {
+				$hosts[] = 'api.wordpress.org';
+				return $hosts;
+			}
+		);
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, array $request, string $url ) use ( $checksums ) {
+				unset( $request );
+				if ( ! str_starts_with( $url, 'https://api.wordpress.org/core/checksums/1.0/' ) ) {
+					return $preempt;
+				}
+
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( array( 'checksums' => $checksums ) ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+					'cookies'  => array(),
+					'filename' => null,
+				);
+			},
+			10,
+			3
+		);
 	}
 
 	/**

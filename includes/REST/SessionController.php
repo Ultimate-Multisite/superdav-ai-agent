@@ -1564,9 +1564,6 @@ final class SessionController {
 					array( 'status' => 404 )
 				);
 			}
-			if ( ! $this->can_current_user_view_job( $db_row ) ) {
-				return self::job_access_error();
-			}
 			if ( $this->discard_expired_paused_job( $db_row ) ) {
 				$expired_row = ActiveJobRepository::get_by_job_id( $job_id );
 				if ( null !== $expired_row ) {
@@ -1578,12 +1575,12 @@ final class SessionController {
 
 		/** @var array<string, mixed> $job */
 		$db_row = ActiveJobRepository::get_by_job_id( $job_id );
-		if ( ! $this->can_current_user_view_job( $db_row, $job ) ) {
-			return self::job_access_error();
-		}
 		// A completed job retains its transient result through the first poll so the
 		// client receives its final reply even when session reload is unavailable.
 		$has_completed_transient_result = 'complete' === $job['status'] && is_array( $job['result'] ?? null );
+		if ( $has_completed_transient_result && ! $this->can_current_user_view_job( $db_row, $job ) ) {
+			return self::job_access_error();
+		}
 		if (
 			null !== $db_row &&
 			(
@@ -1905,7 +1902,12 @@ final class SessionController {
 		return $owner_id > 0 && $owner_id === get_current_user_id();
 	}
 
-	/** Allow the job owner or a shared-session administrator to retrieve an ordinary job. */
+	/**
+	 * Allow the job owner or a shared-session administrator to retrieve a completed result.
+	 *
+	 * @param ActiveJobRow|null    $row Active-job row, when persistence is available.
+	 * @param array<string, mixed> $job Transient job payload when no row is available.
+	 */
 	private function can_current_user_view_job( ?ActiveJobRow $row, array $job = array() ): bool {
 		if ( self::can_current_user_view_private_job( $row, $job ) ) {
 			return true;

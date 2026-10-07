@@ -543,6 +543,19 @@ export const actions = {
 	// ─── Thunks ──────────────────────────────────────────────────
 
 	/**
+	 * Refresh the title independently, including when the answer finishes first.
+	 *
+	 * @param {number} sessionId Session identifier.
+	 * @return {Function} Redux thunk.
+	 */
+	pollTitle( sessionId ) {
+		return ( context ) =>
+			import( '../session-title-poller' ).then(
+				( { default: pollTitle } ) => pollTitle( sessionId, context )
+			);
+	},
+
+	/**
 	 * Fetch sessions from the REST API, applying the current filter/folder/search.
 	 *
 	 * @return {Function} Redux thunk.
@@ -612,6 +625,9 @@ export const actions = {
 					session.messages || [],
 					session.tool_calls || []
 				);
+				if ( session.title_pending ) {
+					dispatch.pollTitle( sessionId );
+				}
 				// Only restore provider/model if the provider is still available.
 				if ( session.provider_id ) {
 					const providers = select.getProviders();
@@ -1261,6 +1277,10 @@ export const actions = {
 			}
 
 			if ( runResult?.job_id ) {
+				if ( runResult.title ) {
+					dispatch.updateSessionTitle( sessionId, runResult.title );
+					dispatch.pollTitle( sessionId );
+				}
 				dispatch.setCurrentJobId( runResult.job_id );
 				// Track job per-session via jobSlice. pollJob is also responsible
 				// for setting up per-session tracking, but we set initial state here

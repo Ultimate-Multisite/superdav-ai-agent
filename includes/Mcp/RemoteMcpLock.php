@@ -30,6 +30,8 @@ final class RemoteMcpLock {
 		if ( ! is_string( $value ) ) {
 			return new WP_Error( 'sd_ai_agent_remote_mcp_busy', __( 'This connection is busy. Try again shortly.', 'superdav-ai-agent' ) );
 		}
+		wp_cache_delete( $name, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
 		$existing = get_option( $name );
 		$decoded  = is_string( $existing ) ? json_decode( $existing, true ) : null;
 		if ( is_array( $decoded ) && (int) ( $decoded['expires'] ?? 0 ) < time() ) {

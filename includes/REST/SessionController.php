@@ -1575,9 +1575,18 @@ final class SessionController {
 
 		/** @var array<string, mixed> $job */
 		$db_row = ActiveJobRepository::get_by_job_id( $job_id );
+		// A completed job retains its transient result through the first poll so the
+		// client receives its final reply even when session reload is unavailable.
+		$has_completed_transient_result = 'complete' === $job['status'] && is_array( $job['result'] ?? null );
+		if ( $has_completed_transient_result && ! $this->can_current_user_view_job( $db_row, $job ) ) {
+			return self::job_access_error();
+		}
 		if (
 			null !== $db_row &&
-			in_array( $db_row->status, array( 'complete', 'error', 'interrupted', 'abandoned' ), true )
+			(
+				in_array( $db_row->status, array( 'error', 'interrupted', 'abandoned' ), true )
+				|| ( 'complete' === $db_row->status && ! $has_completed_transient_result )
+			)
 		) {
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 			return $this->job_status_from_db_row( $job_id, $db_row );
@@ -1891,6 +1900,30 @@ final class SessionController {
 	private static function can_current_user_view_private_job( ?ActiveJobRow $row, array $job = array() ): bool {
 		$owner_id = null !== $row ? (int) $row->user_id : (int) ( $job['user_id'] ?? 0 );
 		return $owner_id > 0 && $owner_id === get_current_user_id();
+	}
+
+	/**
+	 * Allow the job owner or a shared-session administrator to retrieve a completed result.
+	 *
+	 * @param ActiveJobRow|null    $row Active-job row, when persistence is available.
+	 * @param array<string, mixed> $job Transient job payload when no row is available.
+	 */
+	private function can_current_user_view_job( ?ActiveJobRow $row, array $job = array() ): bool {
+		if ( self::can_current_user_view_private_job( $row, $job ) ) {
+			return true;
+		}
+
+		$session_id = null !== $row ? (int) $row->session_id : $this->get_job_session_id( $job );
+		return $session_id > 0 && null !== Database::get_shared_session( $session_id );
+	}
+
+	/** Return the same opaque response for jobs outside the current user's session scope. */
+	private static function job_access_error(): WP_Error {
+		return new WP_Error(
+			'rest_forbidden',
+			__( 'You do not have permission to access this chat session.', 'superdav-ai-agent' ),
+			array( 'status' => 403 )
+		);
 	}
 
 	/**

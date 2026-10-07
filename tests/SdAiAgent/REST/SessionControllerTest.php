@@ -825,6 +825,44 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assertSame( '', $job_response->get_data()['messages'][0]['text'] );
 	}
 
+	/** Completed replies reach their owner or shared-session administrators without leaking to other admins. */
+	public function test_completed_job_returns_transient_final_response_when_db_row_is_complete(): void {
+		$session_id = $this->create_session();
+		$job_id     = '00000000-0000-4000-8000-000000000105';
+		$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'processing' ) );
+		$this->assertTrue( ActiveJobRepository::update_status( $job_id, 'complete' ) );
+		set_transient(
+			RestController::JOB_PREFIX . $job_id,
+			[
+				'status' => 'complete',
+				'result' => [
+					'reply'      => 'The menu options are ready to review.',
+					'history'    => [],
+					'messages'   => [],
+					'tool_calls' => [ [ 'name' => 'wpab__sd-ai-agent__list-options' ] ],
+				],
+			],
+			RestController::JOB_TTL
+		);
+
+		wp_set_current_user( $this->other_admin_id );
+		$forbidden = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 403, $forbidden );
+		$this->assertIsArray( get_transient( RestController::JOB_PREFIX . $job_id ) );
+		$this->assertNotNull( ActiveJobRepository::get_by_job_id( $job_id ) );
+
+		wp_set_current_user( $this->admin_id );
+		$this->assertTrue( Database::share_session( $session_id, $this->admin_id ) );
+		wp_set_current_user( $this->other_admin_id );
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+		$this->assert_status( 200, $response );
+		$data = $response->get_data();
+
+		$this->assertSame( 'complete', $data['status'] );
+		$this->assertSame( 'The menu options are ready to review.', $data['reply'] );
+		$this->assertSame( 'wpab__sd-ai-agent__list-options', $data['tool_calls'][0]['name'] );
+	}
+
 	/**
 	 * @return \WP_REST_Response|\WP_Error
 	 */

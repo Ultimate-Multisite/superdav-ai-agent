@@ -456,9 +456,15 @@ export function renderAccountActionNotice( item, notice ) {
 	item.textContent = '';
 	item.appendChild(
 		document.createTextNode(
-			"You've used all of your available SD AI credits. Purchase more credits in your "
+			'Good news—as an early adopter, use coupon code '
 		)
 	);
+
+	const coupon = document.createElement( 'code' );
+	coupon.className = 'sd-ai-agent-embed-credit-code';
+	coupon.textContent = 'EARLY';
+	item.appendChild( coupon );
+	item.appendChild( document.createTextNode( ' in your ' ) );
 
 	if ( accountUrl ) {
 		const inlineLink = document.createElement( 'a' );
@@ -472,18 +478,37 @@ export function renderAccountActionNotice( item, notice ) {
 		item.appendChild( document.createTextNode( 'account settings' ) );
 	}
 	item.appendChild(
-		document.createTextNode( ' to continue using Standard.' )
+		document.createTextNode(
+			' to claim $200 in AI usage credits. We only ask that you please leave a review.'
+		)
 	);
 
+	const actions = document.createElement( 'div' );
+	actions.className = 'sd-ai-agent-embed-credit-actions';
+	const actionLinks = [
+		[
+			'Leave a review',
+			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post',
+			true,
+		],
+	];
 	if ( accountUrl ) {
+		actionLinks.unshift( [ 'Redeem EARLY coupon', accountUrl, false ] );
+	}
+
+	for ( const [ label, url, secondary ] of actionLinks ) {
 		const action = document.createElement( 'a' );
-		action.className = 'sd-ai-agent-embed-credit-action';
-		action.href = accountUrl;
+		action.className = `sd-ai-agent-embed-credit-action${
+			secondary ? ' sd-ai-agent-embed-credit-action--secondary' : ''
+		}`;
+		action.href = url;
 		action.target = '_blank';
 		action.rel = 'noopener noreferrer';
-		action.textContent = 'Purchase credits';
-		item.appendChild( action );
+		action.textContent = label;
+		actions.appendChild( action );
 	}
+
+	item.appendChild( actions );
 }
 
 /**

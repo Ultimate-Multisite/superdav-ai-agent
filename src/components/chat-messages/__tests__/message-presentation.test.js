@@ -47,6 +47,39 @@ describe( 'shared chat message presentation', () => {
 		).toEqual( { type: 'account_action', notice } );
 	} );
 
+	test( 'restores account actions from a persisted model diagnostic', () => {
+		const presentation = resolveSystemMessagePresentation(
+			{
+				role: 'model',
+				parts: [
+					{
+						text: 'Your Superdav account needs more credits to continue.',
+					},
+				],
+				diagnostic: { reason: 'credit_exhausted' },
+			},
+			[
+				{
+					id: 'sd-ai-agent-cloud',
+					status: {
+						purchase_credits_url:
+							'https://account.example.test/credits',
+					},
+				},
+			]
+		);
+
+		expect( presentation ).toEqual( {
+			type: 'account_action',
+			notice: {
+				type: 'account_action',
+				reason: 'credit_exhausted',
+				action: 'purchase_credits',
+				actionUrl: 'https://account.example.test/credits',
+			},
+		} );
+	} );
+
 	test( 'normalizes legacy credit text without exposing provider details', () => {
 		const presentation = resolveSystemMessagePresentation(
 			{

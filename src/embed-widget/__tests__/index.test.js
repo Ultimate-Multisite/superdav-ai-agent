@@ -75,16 +75,21 @@ describe( 'embed widget', () => {
 
 		const links = message.querySelectorAll( 'a' );
 		expect( message.textContent ).toContain(
-			'Purchase more credits in your account settings'
+			'Good news—as an early adopter, use coupon code EARLY'
 		);
-		expect( links ).toHaveLength( 2 );
+		expect( message.textContent ).toContain( '$200 in AI usage credits' );
+		expect( links ).toHaveLength( 3 );
 		expect( links[ 0 ].textContent ).toBe( 'account settings' );
-		expect( links[ 1 ].textContent ).toBe( 'Purchase credits' );
+		expect( links[ 1 ].textContent ).toBe( 'Redeem EARLY coupon' );
+		expect( links[ 2 ].textContent ).toBe( 'Leave a review' );
 		expect( links[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
 		);
 		expect( links[ 1 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
+		);
+		expect( links[ 2 ].getAttribute( 'href' ) ).toBe(
+			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
 		);
 	} );
 

@@ -7,6 +7,7 @@ namespace SdAiAgent\Tests\REST;
 use SdAiAgent\Core\BackgroundJobDispatcher;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\SessionTitleGenerator;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Repositories\SessionRepository;
 use SdAiAgent\REST\RestController;
@@ -72,6 +73,19 @@ class SessionTitleTest extends WP_UnitTestCase {
 		wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $response->get_data()['job_id'] ) );
 		delete_transient( RestController::JOB_PREFIX . $response->get_data()['job_id'] );
 		ActiveJobRepository::delete( $response->get_data()['job_id'] );
+	}
+
+	public function test_managed_title_generation_prefers_speedy_then_selected_model(): void {
+		$candidates = new \ReflectionMethod( RestController::class, 'session_title_model_candidates' );
+
+		$this->assertSame(
+			array( SuperdavAiProvider::FAST_MODEL_ID, SuperdavAiProvider::DEFAULT_MODEL_ID ),
+			$candidates->invoke( null, SuperdavAiProvider::PROVIDER_ID, SuperdavAiProvider::DEFAULT_MODEL_ID )
+		);
+		$this->assertSame(
+			array( 'selected-model' ),
+			$candidates->invoke( null, 'another-provider', 'selected-model' )
+		);
 	}
 
 	public function test_existing_title_and_duplicate_start_do_not_launch_more_workers(): void {

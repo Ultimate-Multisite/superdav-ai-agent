@@ -13,6 +13,7 @@ namespace SdAiAgent\Tests\Infrastructure\AiClient\Superdav;
 use SdAiAgent\Bootstrap\SuperdavAiProviderHandler;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTranscriptionClient;
+use SdAiAgent\Infrastructure\AiClient\WordPressTransientCache;
 use WordPress\AiClient\AiClient;
 use WordPress\AiClient\Providers\Http\Contracts\HttpTransporterInterface;
 use WordPress\AiClient\Providers\Http\DTO\Request;
@@ -33,6 +34,7 @@ final class SuperdavAiTranscriptionClientTest extends WP_UnitTestCase {
 		}
 
 		( new SuperdavAiProviderHandler() )->register_provider();
+		( new WordPressTransientCache() )->clear();
 		$registry                   = AiClient::defaultRegistry();
 		$this->original_transporter = $registry->getHttpTransporter();
 		update_option( SuperdavAiProvider::CREDENTIAL_OPTION, 'test-speech-token', false );
@@ -41,6 +43,7 @@ final class SuperdavAiTranscriptionClientTest extends WP_UnitTestCase {
 	public function tear_down(): void {
 		AiClient::defaultRegistry()->setHttpTransporter( $this->original_transporter );
 		delete_option( SuperdavAiProvider::CREDENTIAL_OPTION );
+		( new WordPressTransientCache() )->clear();
 		parent::tear_down();
 	}
 
@@ -63,6 +66,21 @@ final class SuperdavAiTranscriptionClientTest extends WP_UnitTestCase {
 		$this->assertSame( 35.0, $request->getOptions()?->getTimeout() );
 		$this->assertSame( 5.0, $request->getOptions()?->getConnectTimeout() );
 		$this->assertSame( 0, $request->getOptions()?->getMaxRedirects() );
+	}
+
+	/** Separate clients share the five-minute capability response. */
+	public function test_capabilities_are_cached_across_client_instances(): void {
+		$transporter = $this->use_outcomes(
+			array(
+				$this->json_response( array( 'text_to_speech' => array( 'model' => 'superdav-tts' ) ) ),
+			)
+		);
+
+		$first  = ( new SuperdavAiTranscriptionClient() )->get_capabilities();
+		$second = ( new SuperdavAiTranscriptionClient() )->get_capabilities();
+
+		$this->assertSame( $first, $second );
+		$this->assertCount( 1, $transporter->requests );
 	}
 
 	/** One controlled multipart request returns normalized public transcript fields. */

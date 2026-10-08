@@ -41,6 +41,7 @@ use SdAiAgent\Core\RolePermissions;
 use SdAiAgent\Core\Settings;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\Agent;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -454,9 +455,17 @@ User: %s',
 
 			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
 			if ( ! empty( $effective_provider ) && $registry->hasProvider( $effective_provider ) ) {
-				if ( ! empty( $model_id ) ) {
-					$builder->using_model( $registry->getProviderModel( $effective_provider, $model_id ) );
-				} else {
+				$model_configured = false;
+				foreach ( self::session_title_model_candidates( $effective_provider, $model_id ) as $candidate_model_id ) {
+					try {
+						$builder->using_model( $registry->getProviderModel( $effective_provider, $candidate_model_id ) );
+						$model_configured = true;
+						break;
+					} catch ( \Throwable ) {
+						// Try the selected model when the preferred fast alias is unavailable.
+					}
+				}
+				if ( ! $model_configured ) {
 					$builder->using_provider( $effective_provider );
 				}
 			}
@@ -477,6 +486,26 @@ User: %s',
 		$title = mb_substr( $title, 0, 100 );
 
 		return '' !== $title ? $title : $fallback;
+	}
+
+	/**
+	 * Prefer the managed Speedy alias for the small, latency-sensitive title task.
+	 *
+	 * The caller's selected model remains the fallback so accounts that do not
+	 * advertise Speedy can still generate a title with their configured model.
+	 *
+	 * @return list<string> Ordered model IDs to try.
+	 */
+	private static function session_title_model_candidates( string $provider_id, string $model_id ): array {
+		$candidates = array();
+		if ( SuperdavAiProvider::PROVIDER_ID === $provider_id ) {
+			$candidates[] = SuperdavAiProvider::FAST_MODEL_ID;
+		}
+		if ( '' !== $model_id ) {
+			$candidates[] = $model_id;
+		}
+
+		return array_values( array_unique( $candidates ) );
 	}
 
 	/**

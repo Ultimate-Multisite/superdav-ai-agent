@@ -29,6 +29,7 @@ export default function ProviderTraceViewer() {
 	const [ notice, setNotice ] = useState( null );
 	const [ filters, setFilters ] = useState( {
 		provider: '',
+		source: 'http',
 		errors_only: false,
 		limit: 50,
 		offset: 0,
@@ -55,6 +56,9 @@ export default function ProviderTraceViewer() {
 			params.set( 'offset', String( filters.offset ) );
 			if ( filters.provider ) {
 				params.set( 'provider', filters.provider );
+			}
+			if ( filters.source ) {
+				params.set( 'source', filters.source );
 			}
 			if ( filters.errors_only ) {
 				params.set( 'errors_only', '1' );
@@ -237,8 +241,8 @@ export default function ProviderTraceViewer() {
 			</h3>
 			<p className="description">
 				{ __(
-					'Capture and inspect HTTP traffic between this plugin and AI providers. Useful for debugging provider errors, malformed requests, and response issues.',
-					'sd-ai-agent'
+					'Capture and inspect HTTP traffic between this plugin and AI providers. Successful SDK events describe the same request and are hidden by default to avoid duplicate-looking rows.',
+					'superdav-ai-agent'
 				) }
 			</p>
 
@@ -326,6 +330,35 @@ export default function ProviderTraceViewer() {
 					}
 					__nextHasNoMarginBottom
 				/>
+				<SelectControl
+					label={ __( 'Trace type', 'superdav-ai-agent' ) }
+					value={ filters.source }
+					options={ [
+						{
+							label: __( 'HTTP requests', 'superdav-ai-agent' ),
+							value: 'http',
+						},
+						{
+							label: __( 'SDK events', 'superdav-ai-agent' ),
+							value: 'sdk',
+						},
+						{
+							label: __(
+								'All trace records',
+								'superdav-ai-agent'
+							),
+							value: '',
+						},
+					] }
+					onChange={ ( v ) =>
+						setFilters( ( prev ) => ( {
+							...prev,
+							source: v,
+							offset: 0,
+						} ) )
+					}
+					__nextHasNoMarginBottom
+				/>
 				<ToggleControl
 					label={ __( 'Errors only', 'sd-ai-agent' ) }
 					checked={ filters.errors_only }
@@ -376,6 +409,7 @@ export default function ProviderTraceViewer() {
 								<th>{ __( 'Time', 'sd-ai-agent' ) }</th>
 								<th>{ __( 'Provider', 'sd-ai-agent' ) }</th>
 								<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Source', 'superdav-ai-agent' ) }</th>
 								<th>{ __( 'Status', 'sd-ai-agent' ) }</th>
 								<th>{ __( 'Duration', 'sd-ai-agent' ) }</th>
 								<th
@@ -407,6 +441,10 @@ export default function ProviderTraceViewer() {
 										{ trace.model_id
 											? trace.model_id
 											: '—' }
+									</td>
+									<td>
+										{ trace.source?.toUpperCase() ||
+											'HTTP' }
 									</td>
 									<td>
 										<StatusBadge
@@ -450,14 +488,19 @@ export default function ProviderTraceViewer() {
 										>
 											{ __( 'View', 'sd-ai-agent' ) }
 										</Button>
-										<Button
-											variant="link"
-											onClick={ () =>
-												handleCopyCurl( trace.id )
-											}
-										>
-											{ __( 'Copy curl', 'sd-ai-agent' ) }
-										</Button>
+										{ trace.source !== 'sdk' && (
+											<Button
+												variant="link"
+												onClick={ () =>
+													handleCopyCurl( trace.id )
+												}
+											>
+												{ __(
+													'Copy curl',
+													'sd-ai-agent'
+												) }
+											</Button>
+										) }
 									</td>
 								</tr>
 							) ) }
@@ -539,6 +582,18 @@ export default function ProviderTraceViewer() {
 												{ __( 'Model', 'sd-ai-agent' ) }
 											</th>
 											<td>{ selectedTrace.model_id }</td>
+										</tr>
+										<tr>
+											<th>
+												{ __(
+													'Source',
+													'superdav-ai-agent'
+												) }
+											</th>
+											<td colSpan="3">
+												{ selectedTrace.source?.toUpperCase() ||
+													'HTTP' }
+											</td>
 										</tr>
 										<tr>
 											<th>
@@ -676,16 +731,18 @@ export default function ProviderTraceViewer() {
 								</div>
 							</div>
 
-							<div className="sdaa-trace-detail-actions">
-								<Button
-									variant="secondary"
-									onClick={ () =>
-										handleCopyCurl( selectedTrace.id )
-									}
-								>
-									{ __( 'Copy as curl', 'sd-ai-agent' ) }
-								</Button>
-							</div>
+							{ selectedTrace.source !== 'sdk' && (
+								<div className="sdaa-trace-detail-actions">
+									<Button
+										variant="secondary"
+										onClick={ () =>
+											handleCopyCurl( selectedTrace.id )
+										}
+									>
+										{ __( 'Copy as curl', 'sd-ai-agent' ) }
+									</Button>
+								</div>
+							) }
 						</div>
 					) }
 				</Modal>

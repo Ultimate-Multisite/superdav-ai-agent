@@ -83,6 +83,24 @@ final class SuperdavAiTranscriptionClientTest extends WP_UnitTestCase {
 		$this->assertCount( 1, $transporter->requests );
 	}
 
+	/** A changed connection token must not reuse capabilities from its predecessor. */
+	public function test_capabilities_cache_is_scoped_to_the_active_connection(): void {
+		$transporter = $this->use_outcomes(
+			array(
+				$this->json_response( array( 'text_to_speech' => array( 'model' => 'first-token-model' ) ) ),
+				$this->json_response( array( 'text_to_speech' => array( 'model' => 'second-token-model' ) ) ),
+			)
+		);
+
+		$first = ( new SuperdavAiTranscriptionClient() )->get_capabilities();
+		update_option( SuperdavAiProvider::CREDENTIAL_OPTION, 'test-speech-token-rotated', false );
+		$second = ( new SuperdavAiTranscriptionClient() )->get_capabilities();
+
+		$this->assertSame( 'first-token-model', $first['text_to_speech']['model'] );
+		$this->assertSame( 'second-token-model', $second['text_to_speech']['model'] );
+		$this->assertCount( 2, $transporter->requests );
+	}
+
 	/** One controlled multipart request returns normalized public transcript fields. */
 	public function test_transcribes_bounded_audio_once(): void {
 		$transporter = $this->use_outcomes(

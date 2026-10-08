@@ -443,9 +443,6 @@ User: %s',
 		);
 
 		try {
-			$builder = wp_ai_client_prompt( $prompt_text );
-			/** @var \WP_AI_Client_Prompt_Builder $builder */
-
 			$effective_provider = $provider_id;
 			if ( empty( $effective_provider ) ) {
 				$settings = Settings::instance()->get();
@@ -454,26 +451,36 @@ User: %s',
 			}
 
 			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+			$result   = null;
 			if ( ! empty( $effective_provider ) && $registry->hasProvider( $effective_provider ) ) {
-				$model_configured = false;
-				foreach ( self::session_title_model_candidates( $effective_provider, $model_id ) as $candidate_model_id ) {
+				$candidates = self::session_title_model_candidates( $effective_provider, $model_id );
+				foreach ( $candidates as $candidate_model_id ) {
 					try {
-						$builder->using_model( $registry->getProviderModel( $effective_provider, $candidate_model_id ) );
-						$model_configured = true;
-						break;
+						$candidate_builder = wp_ai_client_prompt( $prompt_text );
+						$candidate_builder->using_model( $registry->getProviderModel( $effective_provider, $candidate_model_id ) );
+						$candidate_builder->using_max_tokens( 20 );
+						$candidate_result = $candidate_builder->generate_text_result();
+						if ( ! is_wp_error( $candidate_result ) ) {
+							$result = $candidate_result;
+							break;
+						}
 					} catch ( \Throwable ) {
-						// Try the selected model when the preferred fast alias is unavailable.
+						// Try the selected model when a preferred candidate is unavailable or fails.
 					}
 				}
-				if ( ! $model_configured ) {
+				if ( empty( $candidates ) ) {
+					$builder = wp_ai_client_prompt( $prompt_text );
 					$builder->using_provider( $effective_provider );
+					$builder->using_max_tokens( 20 );
+					$result = $builder->generate_text_result();
 				}
+			} else {
+				$builder = wp_ai_client_prompt( $prompt_text );
+				$builder->using_max_tokens( 20 );
+				$result = $builder->generate_text_result();
 			}
 
-			$builder->using_max_tokens( 20 );
-
-			$result = $builder->generate_text_result();
-			if ( is_wp_error( $result ) ) {
+			if ( null === $result || is_wp_error( $result ) ) {
 				return $fallback;
 			}
 			$raw_title = $result->toText();

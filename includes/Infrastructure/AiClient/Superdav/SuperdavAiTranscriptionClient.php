@@ -58,7 +58,12 @@ final class SuperdavAiTranscriptionClient {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function get_capabilities(): array|WP_Error {
-		$cache_key = 'superdav_audio_capabilities_' . md5( SuperdavAiProvider::configured_base_url() );
+		$status = $this->connection->ensure_site_token();
+		if ( $status instanceof WP_Error || empty( $status['configured'] ) ) {
+			return $this->unavailable_error();
+		}
+
+		$cache_key = $this->capabilities_cache_key();
 		try {
 			$cached = $this->cache->get( $cache_key );
 			if ( is_array( $cached ) ) {
@@ -88,6 +93,17 @@ final class SuperdavAiTranscriptionClient {
 		}
 
 		return $capabilities;
+	}
+
+	/** Build a non-secret cache key scoped to the active site connection. */
+	private function capabilities_cache_key(): string {
+		$token = get_option( SuperdavAiProvider::CREDENTIAL_OPTION, '' );
+		$token = is_string( $token ) ? $token : '';
+
+		return 'superdav_audio_capabilities_' . hash(
+			'sha256',
+			SuperdavAiProvider::configured_base_url() . "\0" . $token
+		);
 	}
 
 	/**

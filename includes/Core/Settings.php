@@ -1028,9 +1028,11 @@ class Settings {
 	 * WP AI Client SDK registry.
 	 *
 	 * Per `AGENTS.md → Provider Credentials and Model Discovery`, this method
-	 * does NOT add a second cache: the SDK's PSR-16 backend shares model metadata
-	 * for at most five minutes while each call still walks fresh registry and
-	 * authentication state. This avoids provider-specific option invalidation.
+	 * does NOT add a second cache: when this plugin installs its
+	 * `WordPressTransientCache` backend, the SDK shares model metadata for at
+	 * most five minutes while each call still walks fresh registry and
+	 * authentication state. A host-provided SDK cache retains its own expiry
+	 * policy. This avoids provider-specific option invalidation.
 	 *
 	 * Only providers that have authentication configured are included — an
 	 * unauthenticated provider cannot serve a chat anyway.

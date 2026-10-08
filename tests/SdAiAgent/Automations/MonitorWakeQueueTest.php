@@ -119,6 +119,33 @@ final class MonitorWakeQueueTest extends WP_UnitTestCase {
 		return (int) $wpdb->insert_id;
 	}
 
+	/** Registration uses one fresh enabled-automation read and preserves hook order. */
+	public function test_source_hook_discovery_reads_once_and_observes_consent_changes(): void {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		$monitor_id = $this->create_event_monitor( [ 'monitor_event_sources' => [ 'switch_theme', 'delete_post' ] ] );
+		$this->create_event_monitor( [ 'enabled' => 0, 'monitor_event_sources' => [ 'add_attachment' ] ] );
+		$this->create_event_monitor( [ 'monitor_event_wakes_enabled' => false, 'monitor_event_sources' => [ 'activated_plugin' ] ] );
+
+		$expected = [];
+		foreach ( \SdAiAgent\Automations\EventTriggerRegistry::get_monitor_wake_sources() as $source ) {
+			$hook = $source['hook_name'];
+			if ( Automations::list_monitor_wake_subscribers( $hook ) ) {
+				$expected[ $hook ] = \SdAiAgent\Automations\EventTriggerRegistry::get_monitor_wake_hook_arg_count( $hook );
+			}
+		}
+
+		$before = $wpdb->num_queries;
+		$this->assertSame( $expected, MonitorWakeQueue::get_enabled_source_hooks() );
+		$this->assertSame( 1, $wpdb->num_queries - $before );
+		$this->assertArrayHasKey( 'delete_post', $expected );
+		$this->assertArrayHasKey( 'switch_theme', $expected );
+
+		$this->assertTrue( Automations::update( $monitor_id, [ 'monitor_event_wakes_enabled' => false ] ) );
+		$this->assertArrayNotHasKey( 'delete_post', MonitorWakeQueue::get_enabled_source_hooks() );
+		$this->assertSame( [], Automations::list_monitor_wake_subscribers( 'delete_post' ) );
+	}
+
 	/** Repeated approved events coalesce while retaining only source-safe identifiers. */
 	public function test_capture_coalesces_events_and_clears_them_when_consent_is_revoked(): void {
 		$monitor_id = $this->create_event_monitor();

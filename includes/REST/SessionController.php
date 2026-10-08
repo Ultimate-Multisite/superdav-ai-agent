@@ -1671,9 +1671,12 @@ final class SessionController {
 				(int) ( $tokens['completion'] ?? 0 )
 			);
 
-			// Clean up — result has been delivered.
-			delete_transient( RestController::JOB_PREFIX . $job_id );
-			ActiveJobRepository::delete( $job_id );
+			// Shared-session viewers may inspect the reply, but retain it until the
+			// owning user's poll confirms delivery to the originating client.
+			if ( self::can_current_user_view_private_job( $db_row, $job ) ) {
+				delete_transient( RestController::JOB_PREFIX . $job_id );
+				ActiveJobRepository::delete( $job_id );
+			}
 		}
 
 		if ( 'error' === $job['status'] ) {

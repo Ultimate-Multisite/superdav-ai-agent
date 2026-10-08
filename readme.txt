@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.23.0
+Stable tag: 1.24.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -167,6 +167,13 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 3. Provider and safety settings, including confirmation controls for consequential actions.
 
 == Changelog ==
+
+= 1.24.0 =
+Version 1.24.0 - Released on 2026-10-07
+- New: Use native SD Responses tool search, outbound MCP tools, Elementor workflow detection, and saved agent configuration when initializing cloned sites.
+- New: Change page publication status explicitly and apply approved CSV category assignments during commerce content updates.
+- Improved: Elementor editing, provider retries, session titles, managed schema handling, browser tool calls, and long-running job recovery are more reliable.
+- Fix: Recover final agent responses, preserve originating chats during multisite navigation, and reduce false tool-call and diagnostic reports.
 
 = 1.23.0 =
 Version 1.23.0 - Released on 2026-09-06

@@ -7,7 +7,9 @@ namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 use SdAiAgent\Core\ProviderCredentialLoader;
 use SdAiAgent\Core\SpeechLocaleResolver;
 use SdAiAgent\Core\SuperdavSiteConnectionService;
+use SdAiAgent\Infrastructure\AiClient\WordPressTransientCache;
 use WordPress\AiClient\AiClient;
+use WordPress\AiClientDependencies\Psr\SimpleCache\CacheInterface;
 use WordPress\AiClient\Providers\Http\DTO\Request;
 use WordPress\AiClient\Providers\Http\DTO\RequestOptions;
 use WordPress\AiClient\Providers\Http\DTO\Response;
@@ -38,10 +40,16 @@ final class SuperdavAiTranscriptionClient {
 
 	private SuperdavSiteConnectionService $connection;
 	private SpeechLocaleResolver $locale_resolver;
+	private CacheInterface $cache;
 
-	public function __construct( ?SuperdavSiteConnectionService $connection = null, ?SpeechLocaleResolver $locale_resolver = null ) {
+	public function __construct(
+		?SuperdavSiteConnectionService $connection = null,
+		?SpeechLocaleResolver $locale_resolver = null,
+		?CacheInterface $cache = null
+	) {
 		$this->connection      = $connection ?? new SuperdavSiteConnectionService();
 		$this->locale_resolver = $locale_resolver ?? new SpeechLocaleResolver();
+		$this->cache           = $cache ?? AiClient::getCache() ?? new WordPressTransientCache();
 	}
 
 	/**
@@ -50,6 +58,22 @@ final class SuperdavAiTranscriptionClient {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function get_capabilities(): array|WP_Error {
+		$status = $this->connection->ensure_site_token();
+		if ( $status instanceof WP_Error || empty( $status['configured'] ) ) {
+			return $this->unavailable_error();
+		}
+
+		$cache_key = $this->capabilities_cache_key();
+		try {
+			$cached = $this->cache->get( $cache_key );
+			if ( is_array( $cached ) ) {
+				/** @var array<string, mixed> $cached */
+				return $cached;
+			}
+		} catch ( \Throwable ) {
+			// Capability discovery must remain available if a host cache fails.
+		}
+
 		$response = $this->send_request(
 			HttpMethodEnum::GET(),
 			'audio/capabilities',
@@ -59,7 +83,27 @@ final class SuperdavAiTranscriptionClient {
 			return $response;
 		}
 
-		return $this->decode_json_response( $response );
+		$capabilities = $this->decode_json_response( $response );
+		if ( is_array( $capabilities ) ) {
+			try {
+				$this->cache->set( $cache_key, $capabilities, WordPressTransientCache::MAX_TTL );
+			} catch ( \Throwable ) {
+				// A successful provider response must not become a cache failure.
+			}
+		}
+
+		return $capabilities;
+	}
+
+	/** Build a non-secret cache key scoped to the active site connection. */
+	private function capabilities_cache_key(): string {
+		$token = get_option( SuperdavAiProvider::CREDENTIAL_OPTION, '' );
+		$token = is_string( $token ) ? $token : '';
+
+		return 'superdav_audio_capabilities_' . hash(
+			'sha256',
+			SuperdavAiProvider::configured_base_url() . "\0" . $token
+		);
 	}
 
 	/**

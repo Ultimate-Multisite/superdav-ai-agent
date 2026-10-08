@@ -20,6 +20,7 @@ use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiModelMetadataDirectory;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel;
+use SdAiAgent\Infrastructure\AiClient\WordPressTransientCache;
 use WP_UnitTestCase;
 use WordPress\AiClient\AiClient;
 use WordPress\AiClient\Files\DTO\File;
@@ -97,9 +98,16 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 	public function test_handler_registers_provider_with_default_registry(): void {
 		$this->skip_if_sdk_unavailable();
 
-		( new SuperdavAiProviderHandler() )->register_provider();
+		$original_cache = AiClient::getCache();
+		AiClient::setCache( null );
+		try {
+			( new SuperdavAiProviderHandler() )->register_provider();
 
-		$this->assertTrue( AiClient::defaultRegistry()->hasProvider( SuperdavAiProvider::PROVIDER_ID ) );
+			$this->assertTrue( AiClient::defaultRegistry()->hasProvider( SuperdavAiProvider::PROVIDER_ID ) );
+			$this->assertInstanceOf( WordPressTransientCache::class, AiClient::getCache() );
+		} finally {
+			AiClient::setCache( $original_cache );
+		}
 	}
 
 	/**

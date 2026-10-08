@@ -1515,14 +1515,12 @@ final class SettingsController {
 	/**
 	 * Handle the /providers endpoint — list registered AI providers and models.
 	 *
-	 * No caching layer is needed here: the underlying WP AI Client SDK already
-	 * caches `listModelMetadata()` results for 24 hours via
-	 * `AbstractApiBasedModelMetadataDirectory::getModelMetadataMap()`. Adding a
-	 * second cache on top forced us to invent invalidation rules per provider
-	 * option key, which broke whenever a new third-party provider plugin
-	 * (e.g. `ai-provider-for-anthropic-max`) stored credentials under an
-	 * option we did not know about. Dropping the layer keeps `/providers`
-	 * fresh by construction and removes the entire stale-cache class of bugs.
+	 * No controller cache is needed here: the underlying WP AI Client SDK caches
+	 * `listModelMetadata()` through its PSR-16 backend. This plugin supplies a
+	 * persistent backend capped at five minutes when the host has not configured
+	 * one. Adding another cache here would require brittle invalidation rules for
+	 * every third-party provider option key. `/providers` therefore rebuilds its
+	 * response from fresh registry/authentication state and bounded SDK metadata.
 	 *
 	 * @return WP_REST_Response
 	 */

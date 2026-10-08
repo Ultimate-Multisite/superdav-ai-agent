@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SdAiAgent\Bootstrap;
 
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
+use SdAiAgent\Infrastructure\AiClient\WordPressTransientCache;
+use WordPress\AiClient\AiClient;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Filter;
 use XWP\DI\Decorators\Handler;
@@ -37,7 +39,15 @@ final class SuperdavAiProviderHandler {
 		}
 
 		try {
-			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+			// Core's default adapter uses the request-local WordPress object cache on
+			// sites without a persistent cache service. Replace only that adapter (or
+			// an absent cache), preserving a host-provided persistent PSR-16 backend.
+			$cache = AiClient::getCache();
+			if ( null === $cache || $cache instanceof \WP_AI_Client_Cache ) {
+				AiClient::setCache( new WordPressTransientCache() );
+			}
+
+			$registry = AiClient::defaultRegistry();
 			if ( ! $registry->hasProvider( SuperdavAiProvider::PROVIDER_ID ) ) {
 				$registry->registerProvider( SuperdavAiProvider::class );
 			}

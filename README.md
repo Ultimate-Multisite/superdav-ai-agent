@@ -238,7 +238,7 @@ All settings live under **Tools > AI Agent Settings** with these tabs:
 | General | Default provider, model, max iterations, system prompt, greeting message |
 | Memory & Knowledge | Auto-memory toggle, memory CRUD, RAG collections and sources |
 | Skills | Create and manage instruction guides |
-| Tools | Custom HTTP/ACTION/CLI tools, per-ability permission controls (auto / confirm / disabled) |
+| Tools | Custom tools, [remote MCP connections](docs/outbound-mcp.md), and per-ability permission controls (auto / confirm / disabled) |
 | Automations | Scheduled cron-based AI tasks and event-driven hook automations |
 | Agents | Create and manage custom agents with their own prompts, models, and settings |
 | Access & Branding | Role permissions, custom name, logo, and colors |

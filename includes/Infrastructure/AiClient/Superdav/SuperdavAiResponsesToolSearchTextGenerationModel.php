@@ -451,6 +451,8 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		// needs only these small coordination tools immediately; replay retains
 		// tools already loaded through search without usage-based promotion.
 		$ability_names = array(
+			'sd-ai-agent/ability-search',
+			'sd-ai-agent/ability-call',
 			'sd-ai-agent/skill-load',
 			'sd-ai-agent/memory-save',
 			'sd-ai-agent/memory-list',

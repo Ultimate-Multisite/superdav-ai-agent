@@ -33,8 +33,10 @@ const BUDGETS = [
 ];
 const DEFERRED_JAVASCRIPT_BUDGET = {
 	name: 'deferred-javascript',
-	minifiedBudgetKiB: 1720,
-	gzipBudgetKiB: 529,
+	// MCP manager/sign-in: measured 1730.7 KiB minified / 531.2 KiB gzip.
+	// Only aggregate deferred growth changes; launch/largest-asset caps stay fixed.
+	minifiedBudgetKiB: 1732,
+	gzipBudgetKiB: 532,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,
 };

@@ -38,6 +38,7 @@ import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
 import UsageDashboard from './usage-dashboard';
 import CustomToolsManager from './custom-tools-manager';
+import McpIntegrationsManager from './mcp-integrations-manager';
 import AutomationsManager from './automations-manager';
 import CalendarSmsManager from './calendar-sms-manager';
 import MessagingIntegrationsManager from './messaging-integrations-manager';
@@ -165,7 +166,12 @@ export default function SettingsApp() {
 	const [ local, setLocal ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ abilities, setAbilities ] = useState( [] );
-	const [ activeTab, setActiveTab ] = useState( 'general' );
+	const initialTab = new URL( window.location.href ).searchParams.has(
+		'mcp_oauth'
+	)
+		? 'tools'
+		: 'general';
+	const [ activeTab, setActiveTab ] = useState( initialTab );
 
 	// Scroll affordance: ref to the wrapper div, state for fade indicators.
 	const tabsWrapperRef = useRef( null );
@@ -688,7 +694,11 @@ export default function SettingsApp() {
 				</a>
 			</Notice>
 			<div ref={ tabsWrapperRef } className={ scrollWrapperClasses }>
-				<TabPanel tabs={ tabs } onSelect={ setActiveTab }>
+				<TabPanel
+					tabs={ tabs }
+					initialTabName={ initialTab }
+					onSelect={ setActiveTab }
+				>
 					{ ( tab ) => {
 						switch ( tab.name ) {
 							case 'superdav-account':
@@ -1943,6 +1953,21 @@ export default function SettingsApp() {
 											) }
 										>
 											<CustomToolsManager />
+										</ErrorBoundary>
+
+										<h3 className="sdaa-settings-section-title">
+											{ __(
+												'MCP servers',
+												'superdav-ai-agent'
+											) }
+										</h3>
+										<ErrorBoundary
+											label={ __(
+												'MCP integrations manager',
+												'superdav-ai-agent'
+											) }
+										>
+											<McpIntegrationsManager />
 										</ErrorBoundary>
 									</div>
 								);

@@ -1757,6 +1757,122 @@
 	padding: 4px 0;
 }
 
+/* ── MCP integrations ─────────────────────────────────────────── */
+
+.sd-ai-agent-mcp-integrations {
+	max-width: 760px;
+}
+
+.sd-ai-agent-mcp-integrations__header,
+.sd-ai-agent-mcp-integrations__connection-heading,
+.sd-ai-agent-mcp-integrations__actions,
+.sd-ai-agent-mcp-integrations__secondary-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sd-ai-agent-mcp-integrations__header,
+.sd-ai-agent-mcp-integrations__connection-heading {
+	justify-content: space-between;
+}
+
+.sd-ai-agent-mcp-integrations__header h3,
+.sd-ai-agent-mcp-integrations__form h4 {
+	margin: 0;
+}
+
+.sd-ai-agent-mcp-integrations__header .description,
+.sd-ai-agent-mcp-integrations__connection-heading p {
+	margin: 4px 0 0;
+}
+
+.sd-ai-agent-mcp-integrations__form,
+.sd-ai-agent-mcp-integrations__connection {
+	margin-top: 16px;
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.sd-ai-agent-mcp-integrations__form .components-base-control,
+.sd-ai-agent-mcp-integrations__form .components-toggle-control {
+	margin-top: 12px;
+}
+
+.sd-ai-agent-mcp-integrations__actions {
+	flex-wrap: wrap;
+	margin-top: 12px;
+}
+
+.sd-ai-agent-mcp-integrations__list {
+	display: grid;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.sd-ai-agent-mcp-integrations__status {
+	padding: 3px 8px;
+	border-radius: 12px;
+	background: #f0f6fc;
+	color: #135e96;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.sd-ai-agent-mcp-integrations__connection details {
+	margin-top: 12px;
+}
+
+.sd-ai-agent-mcp-integrations__tools,
+.sd-ai-agent-mcp-integrations__details {
+	margin: 8px 0 0;
+	font-size: 12px;
+}
+
+.sd-ai-agent-mcp-integrations__tools {
+	padding-left: 20px;
+}
+
+.sd-ai-agent-mcp-integrations__details {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 4px 12px;
+}
+
+.sd-ai-agent-mcp-integrations__details dd {
+	margin: 0;
+}
+
+.sd-ai-agent-mcp-integrations__empty,
+.sd-ai-agent-mcp-integrations__secondary-actions {
+	margin-top: 16px;
+}
+
+.sd-ai-agent-mcp-integrations__file-input {
+	display: none;
+}
+
+@media (max-width: 600px) {
+	.sd-ai-agent-mcp-integrations__header,
+	.sd-ai-agent-mcp-integrations__connection-heading,
+	.sd-ai-agent-mcp-integrations__actions,
+	.sd-ai-agent-mcp-integrations__secondary-actions {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.sd-ai-agent-mcp-integrations__header .components-button,
+	.sd-ai-agent-mcp-integrations__actions .components-button,
+	.sd-ai-agent-mcp-integrations__secondary-actions .components-button {
+		width: 100%;
+		min-height: 44px;
+		justify-content: center;
+	}
+}
+
 .sdaa-form-label {
 	font-size: 13px;
 	font-weight: 600;

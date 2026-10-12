@@ -18,38 +18,41 @@ import { getBranding } from '../../utils/branding';
  */
 const DEFAULT_SUGGESTIONS = [
 	{
-		title: __( 'Site health check', 'sd-ai-agent' ),
+		title: __( 'Site health check', 'superdav-ai-agent' ),
 		description: __(
 			'Run a full report and summarize issues',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 		prompt: __(
 			'Run a site health check and summarize the issues you find.',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 	},
 	{
-		title: __( 'Draft a blog post', 'sd-ai-agent' ),
-		description: __( "Pick a topic and I'll set it up", 'sd-ai-agent' ),
+		title: __( 'Draft a blog post', 'superdav-ai-agent' ),
+		description: __(
+			"Pick a topic and I'll set it up",
+			'superdav-ai-agent'
+		),
 		prompt: __(
 			'Help me draft a new blog post - suggest a topic, then create a draft.',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 	},
 	{
-		title: __( 'Review installed plugins', 'sd-ai-agent' ),
-		description: __( 'Find unused or outdated ones', 'sd-ai-agent' ),
+		title: __( 'Review installed plugins', 'superdav-ai-agent' ),
+		description: __( 'Find unused or outdated ones', 'superdav-ai-agent' ),
 		prompt: __(
 			'Review my installed plugins. Flag any that are unused or outdated.',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 	},
 	{
-		title: __( 'List recent signups', 'sd-ai-agent' ),
-		description: __( 'Last 7 days, grouped by role', 'sd-ai-agent' ),
+		title: __( 'List recent signups', 'superdav-ai-agent' ),
+		description: __( 'Last 7 days, grouped by role', 'superdav-ai-agent' ),
 		prompt: __(
 			'List users who signed up in the last 7 days, grouped by role.',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 	},
 ];
@@ -69,7 +72,7 @@ export default function WidgetEmpty() {
 	const greeting =
 		selectedAgent?.greeting ||
 		branding.greeting ||
-		__( 'What can I help you with?', 'sd-ai-agent' );
+		__( 'What can I help you with?', 'superdav-ai-agent' );
 
 	// Agent-aware suggestions.
 	const agentSuggestions = selectedAgent?.suggestions;
@@ -81,7 +84,7 @@ export default function WidgetEmpty() {
 	const agentName =
 		selectedAgent?.name ||
 		branding.agentName ||
-		__( 'SD AI Agent', 'sd-ai-agent' );
+		__( 'SD AI Agent', 'superdav-ai-agent' );
 
 	return (
 		<div className="sdaa-w-empty">
@@ -91,13 +94,13 @@ export default function WidgetEmpty() {
 					branding.tagline ||
 					__(
 						'I can manage content, products, users, SEO and more - across every plugin on your site.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 			</p>
 			{ suggestions.length > 0 && (
 				<>
 					<div className="sdaa-w-empty-label">
-						{ __( 'Suggested', 'sd-ai-agent' ) }
+						{ __( 'Suggested', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-w-suggestion-list">
 						{ suggestions.map( ( s, i ) => (

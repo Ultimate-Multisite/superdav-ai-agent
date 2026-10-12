@@ -300,6 +300,14 @@ class SystemInstructionBuilder {
 				);
 		}
 
+		$language = ( new SpeechLocaleResolver() )->resolve()['initial_locale'];
+		if ( '' !== $language ) {
+			$base .= "\n\n## Conversation language\n"
+				. sprintf( 'The initial user language is %s, resolved from the WordPress user preference with site language as fallback. ', $language )
+				. 'Use that language for your initial greeting, onboarding introduction and follow-up suggestions, even when the setup prompt or examples are in English. '
+				. 'If the user explicitly requests another language, follow that request. This preference does not authorize changing the site language or translating existing content.';
+		}
+
 		// @phpstan-ignore-next-line
 		return $base;
 	}

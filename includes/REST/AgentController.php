@@ -363,7 +363,7 @@ final class AgentController {
 					'name'        => $agent->name,
 					'description' => $agent->description,
 					'avatar_icon' => $agent->avatar_icon,
-					'greeting'    => $agent->greeting,
+					'greeting'    => Agent::get_localized_greeting( $agent ),
 					'suggestions' => $agent->suggestions,
 					'is_builtin'  => $agent->is_builtin,
 					'enabled'     => $agent->enabled,

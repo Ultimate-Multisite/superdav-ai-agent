@@ -657,6 +657,7 @@ class Agent {
 			'temperature'              => $agent->temperature,
 			'max_iterations'           => $agent->max_iterations,
 			'greeting'                 => self::get_localized_greeting( $agent ),
+			'stored_greeting'          => $agent->greeting,
 			'avatar_icon'              => $agent->avatar_icon,
 			'tier_1_tools'             => $agent->tier_1_tools,
 			'suggestions'              => $agent->suggestions,

@@ -589,9 +589,17 @@ class AgentTest extends WP_UnitTestCase {
 			);
 			$agent = AgentRow::from_row( $row );
 			$this->assertSame( 'Come posso aiutarti?', Agent::to_array( $agent )['greeting'] );
+			$this->assertSame( 'What can I help you with?', Agent::to_array( $agent )['stored_greeting'] );
 			$this->assertSame( $original_locale, get_locale() );
 			$this->assertSame( 'What can I help you with?', $agent->greeting );
 
+			$id = Agent::create( array( 'slug' => 'locale-editor-roundtrip', 'name' => 'Locale Editor', 'greeting' => $row->greeting ) );
+			$this->created_ids[] = $id;
+			Agent::update( $id, array( 'greeting' => Agent::to_array( $agent )['stored_greeting'] ) );
+			$this->assertSame( $row->greeting, Agent::get( $id )->greeting );
+
+			$row->greeting = '';
+			$this->assertSame( '', Agent::to_array( AgentRow::from_row( $row ) )['stored_greeting'] );
 			$row->greeting = 'My custom greeting';
 			$this->assertSame( 'My custom greeting', Agent::get_localized_greeting( AgentRow::from_row( $row ) ) );
 			$row->greeting   = 'What can I help you with?';

@@ -4540,6 +4540,12 @@ PROMPT;
 			$fn_name = \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name(
 				$ability->get_name()
 			);
+			$meta    = $ability->get_meta();
+			if ( ! empty( $meta['remote_mcp'] ) && strlen( $fn_name ) > 64 ) {
+				// Preserve canonical IDs; search/call can invoke long MCP names without
+				// invalidating the provider's function-name limit for the entire catalog.
+				continue;
+			}
 
 			// Normalise to the lowest-common-denominator form so that providers
 			// which treat hyphens and underscores as equivalent (or which strip the

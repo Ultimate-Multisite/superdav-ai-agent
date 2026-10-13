@@ -113,6 +113,9 @@ final class HttpTraceHandler {
 	 */
 	#[Filter( tag: 'http_request_args', priority: 9 )]
 	public function on_http_request_args( array $parsed_args, string $url ): array {
+		if ( ! empty( $parsed_args['sd_ai_agent_mcp_request'] ) ) {
+			return $parsed_args;
+		}
 		if ( ! Settings::is_prompt_caching_enabled() ) {
 			return $parsed_args;
 		}

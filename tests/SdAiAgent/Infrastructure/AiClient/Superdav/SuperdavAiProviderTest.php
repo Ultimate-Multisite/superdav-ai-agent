@@ -848,6 +848,32 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertTrue( $params['tools'][1]['tools'][0]['defer_loading'] );
 	}
 
+	/** Compatibility discovery and dispatch must not themselves require discovery. */
+	public function test_responses_discovery_bridge_is_immediately_callable(): void {
+		$this->skip_if_sdk_unavailable();
+		$model = new SuperdavAiResponsesToolSearchTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$config = new ModelConfig();
+		$names  = array( 'ability-search', 'ability-call', 'list-posts' );
+		$config->setFunctionDeclarations(
+			array_map( static fn( string $name ): FunctionDeclaration => new FunctionDeclaration( 'wpab__sd-ai-agent__' . $name, $name, array( 'type' => 'object' ) ), $names )
+		);
+		$model->setConfig( $config );
+		$method = new \ReflectionMethod( $model, 'prepare_tool_search_tools_param' );
+		$method->setAccessible( true );
+		$functions = array();
+		foreach ( $method->invoke( $model ) as $tool ) {
+			foreach ( $tool['tools'] ?? array() as $function ) {
+				$functions[ $function['name'] ] = $function;
+			}
+		}
+		$this->assertArrayNotHasKey( 'defer_loading', $functions['wpab__sd-ai-agent__ability-search'] );
+		$this->assertArrayNotHasKey( 'defer_loading', $functions['wpab__sd-ai-agent__ability-call'] );
+		$this->assertTrue( $functions['wpab__sd-ai-agent__list-posts']['defer_loading'] );
+	}
+
 	/** Managed Responses inference carries the active journey reservation. */
 	public function test_responses_tool_search_request_includes_managed_journey_attribution(): void {
 		$this->skip_if_sdk_unavailable();

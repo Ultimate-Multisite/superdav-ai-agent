@@ -15,7 +15,9 @@ const container = document.getElementById( 'sdaa-abilities-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render(
-		<ErrorBoundary label={ __( 'Abilities Explorer', 'sd-ai-agent' ) }>
+		<ErrorBoundary
+			label={ __( 'Abilities Explorer', 'superdav-ai-agent' ) }
+		>
 			<AbilitiesExplorerApp />
 		</ErrorBoundary>
 	);

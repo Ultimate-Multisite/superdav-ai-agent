@@ -46,10 +46,13 @@ class CanonicalNamingTest extends WP_UnitTestCase {
 	 */
 	public function test_plugin_header_uses_superdav_text_domain(): void {
 		$contents = (string) file_get_contents( $this->root_dir() . '/superdav-ai-agent.php' );
+		$pot      = (string) file_get_contents( $this->root_dir() . '/languages/sd-ai-agent.pot' );
 
 		$this->assertStringContainsString( 'Text Domain: superdav-ai-agent', $contents );
 		$this->assertStringNotContainsString( 'Text Domain: sd-ai-agent', $contents );
 		$this->assertStringNotContainsString( 'Text Domain: gratis-ai-agent', $contents );
+		$this->assertStringContainsString( 'X-Domain: superdav-ai-agent', $pot );
+		$this->assertStringNotContainsString( 'X-Domain: sd-ai-agent', $pot );
 	}
 
 	/**

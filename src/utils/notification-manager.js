@@ -54,7 +54,7 @@ function startTitleFlash() {
 	// Build the flash title once so we don't call __() on every interval tick.
 	const flashTitle =
 		'\u26A0 ' +
-		__( 'Approval needed', 'sd-ai-agent' ) +
+		__( 'Approval needed', 'superdav-ai-agent' ) +
 		' \u2014 ' +
 		originalTitle;
 	let toggle = false;
@@ -140,11 +140,14 @@ export function notifyConfirmationNeeded( jobId, toolName ) {
 	}
 
 	const body = toolName
-		? `${ __( 'Tool approval needed:', 'sd-ai-agent' ) } ${ toolName }`
-		: __( 'A tool is awaiting your approval.', 'sd-ai-agent' );
+		? `${ __(
+				'Tool approval needed:',
+				'superdav-ai-agent'
+		  ) } ${ toolName }`
+		: __( 'A tool is awaiting your approval.', 'superdav-ai-agent' );
 
 	const notification = new Notification(
-		__( 'AI Agent — Approval Required', 'sd-ai-agent' ),
+		__( 'AI Agent — Approval Required', 'superdav-ai-agent' ),
 		{
 			body,
 			requireInteraction: true,

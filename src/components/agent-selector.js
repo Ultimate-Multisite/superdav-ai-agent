@@ -54,7 +54,7 @@ export default function AgentSelector( { compact = false } ) {
 	return (
 		<div className={ `sdaa-selector ${ compact ? 'is-compact' : '' }` }>
 			<SelectControl
-				label={ __( 'Agent', 'sd-ai-agent' ) }
+				label={ __( 'Agent', 'superdav-ai-agent' ) }
 				hideLabelFromVision={ compact }
 				value={ selectedAgentId ? String( selectedAgentId ) : '' }
 				options={ options }

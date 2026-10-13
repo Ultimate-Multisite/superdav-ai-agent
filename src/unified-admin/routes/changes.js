@@ -21,7 +21,7 @@ import '../../changes-page/style.css';
 export default function ChangesRoute() {
 	return (
 		<div className="sdaa-route sdaa-route-changes">
-			<h2>{ __( 'Changes', 'sd-ai-agent' ) }</h2>
+			<h2>{ __( 'Changes', 'superdav-ai-agent' ) }</h2>
 			<ChangesApp />
 		</div>
 	);

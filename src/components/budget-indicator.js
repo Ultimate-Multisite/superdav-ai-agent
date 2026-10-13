@@ -29,13 +29,13 @@ function getTooltip( warningLevel ) {
 	if ( warningLevel === 'exceeded' ) {
 		return __(
 			'Budget exceeded — new requests are blocked.',
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		);
 	}
 	if ( warningLevel === 'warning' ) {
-		return __( 'Approaching budget limit.', 'sd-ai-agent' );
+		return __( 'Approaching budget limit.', 'superdav-ai-agent' );
 	}
-	return __( 'Budget usage', 'sd-ai-agent' );
+	return __( 'Budget usage', 'superdav-ai-agent' );
 }
 
 /**
@@ -100,8 +100,8 @@ export default function BudgetIndicator() {
 	const spend = hasDailyCap ? dailySpend : monthlySpend;
 	const cap = hasDailyCap ? dailyCap : monthlyCap;
 	const label = hasDailyCap
-		? __( 'today', 'sd-ai-agent' )
-		: __( 'this month', 'sd-ai-agent' );
+		? __( 'today', 'superdav-ai-agent' )
+		: __( 'this month', 'superdav-ai-agent' );
 
 	const classMap = {
 		ok: 'sdaa-budget-indicator--ok',

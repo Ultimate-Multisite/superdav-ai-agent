@@ -119,7 +119,7 @@ function ExpandableContent( { content, label, maxPreview = 200 } ) {
 								setExpanded( true );
 							} }
 						>
-							{ __( 'Show full', 'sd-ai-agent' ) }
+							{ __( 'Show full', 'superdav-ai-agent' ) }
 						</button>
 					) }
 				</pre>
@@ -227,13 +227,13 @@ function ToolCallPair( { call, response } ) {
 				<code className="sdaa-tool-pair-name">{ displayName }</code>
 				{ ranInBrowser && (
 					<Badge
-						label={ __( 'Browser', 'sd-ai-agent' ) }
+						label={ __( 'Browser', 'superdav-ai-agent' ) }
 						color="blue"
 					/>
 				) }
 				{ isSkill && (
 					<Badge
-						label={ __( 'Skill', 'sd-ai-agent' ) }
+						label={ __( 'Skill', 'superdav-ai-agent' ) }
 						color="purple"
 					/>
 				) }
@@ -253,7 +253,7 @@ function ToolCallPair( { call, response } ) {
 			{ argsStr && argsStr !== '{}' && argsStr !== 'null' && (
 				<ExpandableContent
 					content={ argsStr }
-					label={ __( 'Arguments', 'sd-ai-agent' ) }
+					label={ __( 'Arguments', 'superdav-ai-agent' ) }
 					maxPreview={ 200 }
 				/>
 			) }
@@ -261,7 +261,7 @@ function ToolCallPair( { call, response } ) {
 			{ responseStr && (
 				<ExpandableContent
 					content={ responseStr }
-					label={ __( 'Response', 'sd-ai-agent' ) }
+					label={ __( 'Response', 'superdav-ai-agent' ) }
 					maxPreview={ 300 }
 				/>
 			) }
@@ -297,19 +297,23 @@ export default function ToolCallDetails( { toolCalls } ) {
 	if ( toolCount > 0 ) {
 		summaryParts.push(
 			toolCount === 1
-				? __( '1 tool used', 'sd-ai-agent' )
-				: `${ toolCount } ${ __( 'tools used', 'sd-ai-agent' ) }`
+				? __( '1 tool used', 'superdav-ai-agent' )
+				: `${ toolCount } ${ __( 'tools used', 'superdav-ai-agent' ) }`
 		);
 	}
 	if ( skillCount > 0 ) {
 		summaryParts.push(
 			skillCount === 1
-				? __( '1 skill loaded', 'sd-ai-agent' )
-				: `${ skillCount } ${ __( 'skills loaded', 'sd-ai-agent' ) }`
+				? __( '1 skill loaded', 'superdav-ai-agent' )
+				: `${ skillCount } ${ __(
+						'skills loaded',
+						'superdav-ai-agent'
+				  ) }`
 		);
 	}
 	const summaryText =
-		summaryParts.join( ', ' ) || __( 'tool calls executed', 'sd-ai-agent' );
+		summaryParts.join( ', ' ) ||
+		__( 'tool calls executed', 'superdav-ai-agent' );
 
 	return (
 		<div className="sdaa-tool-calls">

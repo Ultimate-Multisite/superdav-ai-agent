@@ -90,11 +90,11 @@ export default function Router( { route } ) {
 		default:
 			return (
 				<div className="sdaa-route-not-found">
-					<h2>{ __( 'Page Not Found', 'sd-ai-agent' ) }</h2>
+					<h2>{ __( 'Page Not Found', 'superdav-ai-agent' ) }</h2>
 					<p>
 						{ __(
 							'The requested page could not be found.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 				</div>

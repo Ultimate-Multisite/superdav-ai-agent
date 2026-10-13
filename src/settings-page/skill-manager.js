@@ -38,30 +38,30 @@ function formatRelativeTime( mysqlDatetime ) {
 	}
 	const diffSeconds = Math.floor( ( Date.now() - ts ) / 1000 );
 	if ( diffSeconds < 60 ) {
-		return __( 'just now', 'sd-ai-agent' );
+		return __( 'just now', 'superdav-ai-agent' );
 	}
 	if ( diffSeconds < 3600 ) {
 		const mins = Math.floor( diffSeconds / 60 );
 		if ( mins === 1 ) {
-			return __( '1 minute ago', 'sd-ai-agent' );
+			return __( '1 minute ago', 'superdav-ai-agent' );
 		}
 		/* translators: %d: number of minutes */
-		return sprintf( __( '%d minutes ago', 'sd-ai-agent' ), mins );
+		return sprintf( __( '%d minutes ago', 'superdav-ai-agent' ), mins );
 	}
 	if ( diffSeconds < 86400 ) {
 		const hours = Math.floor( diffSeconds / 3600 );
 		if ( hours === 1 ) {
-			return __( '1 hour ago', 'sd-ai-agent' );
+			return __( '1 hour ago', 'superdav-ai-agent' );
 		}
 		/* translators: %d: number of hours */
-		return sprintf( __( '%d hours ago', 'sd-ai-agent' ), hours );
+		return sprintf( __( '%d hours ago', 'superdav-ai-agent' ), hours );
 	}
 	const days = Math.floor( diffSeconds / 86400 );
 	if ( days === 1 ) {
-		return __( '1 day ago', 'sd-ai-agent' );
+		return __( '1 day ago', 'superdav-ai-agent' );
 	}
 	/* translators: %d: number of days */
-	return sprintf( __( '%d days ago', 'sd-ai-agent' ), days );
+	return sprintf( __( '%d days ago', 'superdav-ai-agent' ), days );
 }
 
 /**
@@ -188,7 +188,9 @@ export default function SkillManager() {
 		async ( id ) => {
 			if (
 				// eslint-disable-next-line no-alert
-				window.confirm( __( 'Delete this skill?', 'sd-ai-agent' ) )
+				window.confirm(
+					__( 'Delete this skill?', 'superdav-ai-agent' )
+				)
 			) {
 				await deleteSkill( id );
 			}
@@ -203,7 +205,7 @@ export default function SkillManager() {
 				window.confirm(
 					__(
 						'Reset this skill to its default content?',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					)
 				)
 			) {
@@ -235,7 +237,7 @@ export default function SkillManager() {
 				status: 'error',
 				message: __(
 					'Could not check for updates. Ensure a manifest URL is configured in settings.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 			return;
@@ -252,7 +254,7 @@ export default function SkillManager() {
 					'%d skill updated automatically.',
 					'%d skills updated automatically.',
 					appliedCount,
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 				appliedCount
 			);
@@ -264,7 +266,7 @@ export default function SkillManager() {
 					'%d update available. Auto-update is disabled or skills have been customised.',
 					'%d updates available. Auto-update is disabled or skills have been customised.',
 					updateCount,
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 				updateCount
 			);
@@ -272,7 +274,10 @@ export default function SkillManager() {
 		} else {
 			setUpdateNotice( {
 				status: 'success',
-				message: __( 'All skills are up to date.', 'sd-ai-agent' ),
+				message: __(
+					'All skills are up to date.',
+					'superdav-ai-agent'
+				),
 			} );
 		}
 	}, [ checkSkillUpdates ] );
@@ -284,11 +289,11 @@ export default function SkillManager() {
 		<div className="sdaa-skill-manager">
 			<div className="sdaa-skill-header">
 				<div>
-					<h3>{ __( 'Agent Skills', 'sd-ai-agent' ) }</h3>
+					<h3>{ __( 'Agent Skills', 'superdav-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Skills are instruction guides loaded on-demand when the AI encounters a relevant task.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 				</div>
@@ -299,7 +304,7 @@ export default function SkillManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Skill', 'sd-ai-agent' ) }
+						{ __( 'Add Skill', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -308,10 +313,13 @@ export default function SkillManager() {
 			{ settingsLoaded && (
 				<div className="sdaa-skill-update-controls">
 					<ToggleControl
-						label={ __( 'Automatic skill updates', 'sd-ai-agent' ) }
+						label={ __(
+							'Automatic skill updates',
+							'superdav-ai-agent'
+						) }
 						help={ __(
 							'When enabled, built-in skills are updated automatically from the remote manifest whenever a newer version is available (unless you have customised them).',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						checked={ autoUpdateEnabled }
 						onChange={ handleAutoUpdateToggle }
@@ -328,8 +336,11 @@ export default function SkillManager() {
 							className="sdaa-check-updates-btn"
 						>
 							{ skillUpdatesChecking
-								? __( 'Checking…', 'sd-ai-agent' )
-								: __( 'Check for Updates', 'sd-ai-agent' ) }
+								? __( 'Checking…', 'superdav-ai-agent' )
+								: __(
+										'Check for Updates',
+										'superdav-ai-agent'
+								  ) }
 						</Button>
 					) }
 				</div>
@@ -349,40 +360,40 @@ export default function SkillManager() {
 				<div className="sdaa-skill-form">
 					{ ! editId && (
 						<TextControl
-							label={ __( 'Slug', 'sd-ai-agent' ) }
+							label={ __( 'Slug', 'superdav-ai-agent' ) }
 							value={ formSlug }
 							onChange={ setFormSlug }
 							help={ __(
 								'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 					) }
 					<TextControl
-						label={ __( 'Name', 'sd-ai-agent' ) }
+						label={ __( 'Name', 'superdav-ai-agent' ) }
 						value={ formName }
 						onChange={ setFormName }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'sd-ai-agent' ) }
+						label={ __( 'Description', 'superdav-ai-agent' ) }
 						value={ formDescription }
 						onChange={ setFormDescription }
 						help={ __(
 							'One-line summary shown in the skill index.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Instructions', 'sd-ai-agent' ) }
+						label={ __( 'Instructions', 'superdav-ai-agent' ) }
 						value={ formContent }
 						onChange={ setFormContent }
 						rows={ 12 }
 						help={ __(
 							'Full markdown instructions loaded when the AI requests this skill.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 					<div className="sdaa-skill-form-actions">
@@ -397,15 +408,15 @@ export default function SkillManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'sd-ai-agent' )
-								: __( 'Create', 'sd-ai-agent' ) }
+								? __( 'Update', 'superdav-ai-agent' )
+								: __( 'Create', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -413,7 +424,7 @@ export default function SkillManager() {
 
 			{ ! skillsLoaded && (
 				<p className="description">
-					{ __( 'Loading…', 'sd-ai-agent' ) }
+					{ __( 'Loading…', 'superdav-ai-agent' ) }
 				</p>
 			) }
 
@@ -421,7 +432,7 @@ export default function SkillManager() {
 				<p className="description">
 					{ __(
 						'No skills found. Deactivate and reactivate the plugin to seed built-in skills.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -455,7 +466,7 @@ export default function SkillManager() {
 											<span className="sdaa-skill-badge">
 												{ __(
 													'Built-in',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</span>
 										) }
@@ -463,7 +474,7 @@ export default function SkillManager() {
 											<span className="sdaa-skill-badge sdaa-skill-badge--modified">
 												{ __(
 													'Modified',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</span>
 										) }
@@ -471,7 +482,7 @@ export default function SkillManager() {
 											<span className="sdaa-skill-badge sdaa-skill-badge--update">
 												{ __(
 													'Update Available',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</span>
 										) }
@@ -489,7 +500,10 @@ export default function SkillManager() {
 									<div className="sdaa-skill-meta">
 										<span className="sdaa-skill-word-count">
 											{ skill.word_count }{ ' ' }
-											{ __( 'words', 'sd-ai-agent' ) }
+											{ __(
+												'words',
+												'superdav-ai-agent'
+											) }
 										</span>
 										{ stats && (
 											<span className="sdaa-skill-usage-stats">
@@ -502,7 +516,7 @@ export default function SkillManager() {
 																	'Used %d time',
 																	'Used %d times',
 																	stats.total_loads,
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																),
 																stats.total_loads
 															) }
@@ -518,7 +532,7 @@ export default function SkillManager() {
 													) : (
 														__(
 															'Never used',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														)
 													) }
 												</span>
@@ -531,7 +545,7 @@ export default function SkillManager() {
 																	'%d helpful',
 																	'%d helpful',
 																	stats.helpful_count,
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																),
 																stats.helpful_count
 															) }
@@ -546,7 +560,7 @@ export default function SkillManager() {
 											size="small"
 											label={ __(
 												'Edit',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 											onClick={ () =>
 												handleEdit( skill )
@@ -558,7 +572,7 @@ export default function SkillManager() {
 												size="small"
 												label={ __(
 													'Reset to Default',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 												onClick={ () =>
 													handleReset( skill.id )
@@ -570,7 +584,7 @@ export default function SkillManager() {
 												size="small"
 												label={ __(
 													'Delete',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 												isDestructive
 												onClick={ () =>

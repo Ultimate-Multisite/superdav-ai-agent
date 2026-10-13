@@ -172,7 +172,7 @@ export default function ModelPicker() {
 					ref={ popoverRef }
 					className="sdaa-cr-popover sdaa-cr-popover-fixed"
 					role="menu"
-					aria-label={ __( 'Select model', 'sd-ai-agent' ) }
+					aria-label={ __( 'Select model', 'superdav-ai-agent' ) }
 					style={ {
 						left: pos.left,
 						bottom: pos.bottom,
@@ -237,7 +237,7 @@ export default function ModelPicker() {
 				}
 				aria-haspopup="menu"
 				aria-expanded={ open }
-				title={ __( 'Change model', 'sd-ai-agent' ) }
+				title={ __( 'Change model', 'superdav-ai-agent' ) }
 			>
 				<span className="sdaa-cr-model-chip-provider">
 					{ activeProvider.name }
@@ -247,7 +247,7 @@ export default function ModelPicker() {
 						activeModel?.id ||
 						( activeProvider.model_discovery
 							? unavailableLabel
-							: __( '(default)', 'sd-ai-agent' ) ) }
+							: __( '(default)', 'superdav-ai-agent' ) ) }
 				</span>
 				<Icon icon={ chevronDown } size={ 14 } />
 			</button>

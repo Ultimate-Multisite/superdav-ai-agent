@@ -17,15 +17,15 @@ import { __, sprintf } from '@wordpress/i18n';
  */
 const PERMISSION_OPTIONS = [
 	{
-		label: __( 'Auto (always allow)', 'sd-ai-agent' ),
+		label: __( 'Auto (always allow)', 'superdav-ai-agent' ),
 		value: 'auto',
 	},
 	{
-		label: __( 'Confirm (ask before use)', 'sd-ai-agent' ),
+		label: __( 'Confirm (ask before use)', 'superdav-ai-agent' ),
 		value: 'confirm',
 	},
 	{
-		label: __( 'Disabled', 'sd-ai-agent' ),
+		label: __( 'Disabled', 'superdav-ai-agent' ),
 		value: 'disabled',
 	},
 ];
@@ -91,7 +91,7 @@ function AbilityCategorySection( {
 				{ nonDefaultCount > 0 && (
 					<span className="sdaa-abilities-category-badge">
 						{ nonDefaultCount }{ ' ' }
-						{ __( 'customised', 'sd-ai-agent' ) }
+						{ __( 'customised', 'superdav-ai-agent' ) }
 					</span>
 				) }
 			</button>
@@ -153,12 +153,12 @@ export default function AbilitiesManager( {
 		const cats = [
 			...new Set(
 				abilities.map(
-					( a ) => a.category || __( 'General', 'sd-ai-agent' )
+					( a ) => a.category || __( 'General', 'superdav-ai-agent' )
 				)
 			),
 		].sort();
 		return [
-			{ label: __( 'All Categories', 'sd-ai-agent' ), value: '' },
+			{ label: __( 'All Categories', 'superdav-ai-agent' ), value: '' },
 			...cats.map( ( c ) => ( { label: c, value: c } ) ),
 		];
 	}, [ abilities ] );
@@ -176,7 +176,7 @@ export default function AbilitiesManager( {
 					.includes( searchLower );
 
 			const abilityCategory =
-				ability.category || __( 'General', 'sd-ai-agent' );
+				ability.category || __( 'General', 'superdav-ai-agent' );
 			const matchesCategory =
 				! categoryFilter || abilityCategory === categoryFilter;
 
@@ -188,7 +188,8 @@ export default function AbilitiesManager( {
 	const grouped = useMemo( () => {
 		const map = {};
 		filtered.forEach( ( ability ) => {
-			const cat = ability.category || __( 'General', 'sd-ai-agent' );
+			const cat =
+				ability.category || __( 'General', 'superdav-ai-agent' );
 			if ( ! map[ cat ] ) {
 				map[ cat ] = [];
 			}
@@ -211,7 +212,7 @@ export default function AbilitiesManager( {
 	}, [] );
 
 	if ( abilities.length === 0 ) {
-		return <p>{ __( 'No abilities registered.', 'sd-ai-agent' ) }</p>;
+		return <p>{ __( 'No abilities registered.', 'superdav-ai-agent' ) }</p>;
 	}
 
 	const isFiltering = search || categoryFilter;
@@ -222,18 +223,18 @@ export default function AbilitiesManager( {
 			<div className="sdaa-abilities-toolbar">
 				<div className="sdaa-abilities-search">
 					<SearchControl
-						label={ __( 'Search abilities', 'sd-ai-agent' ) }
+						label={ __( 'Search abilities', 'superdav-ai-agent' ) }
 						value={ search }
 						onChange={ handleSearchChange }
 						placeholder={ __(
 							'Search by name or description…',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 				</div>
 				<div className="sdaa-abilities-filters">
 					<SelectControl
-						label={ __( 'Category', 'sd-ai-agent' ) }
+						label={ __( 'Category', 'superdav-ai-agent' ) }
 						value={ categoryFilter }
 						options={ categoryOptions }
 						onChange={ setCategoryFilter }
@@ -245,14 +246,14 @@ export default function AbilitiesManager( {
 							size="small"
 							onClick={ handleExpandAll }
 						>
-							{ __( 'Expand all', 'sd-ai-agent' ) }
+							{ __( 'Expand all', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							size="small"
 							onClick={ handleCollapseAll }
 						>
-							{ __( 'Collapse all', 'sd-ai-agent' ) }
+							{ __( 'Collapse all', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -263,14 +264,14 @@ export default function AbilitiesManager( {
 				{ filtered.length === abilities.length
 					? sprintf(
 							/* translators: %d: total number of abilities */
-							__( '%d abilities', 'sd-ai-agent' ),
+							__( '%d abilities', 'superdav-ai-agent' ),
 							abilities.length
 					  )
 					: sprintf(
 							/* translators: 1: filtered count, 2: total count */
 							__(
 								'Showing %1$d of %2$d abilities',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							),
 							filtered.length,
 							abilities.length
@@ -280,7 +281,10 @@ export default function AbilitiesManager( {
 			{ /* No results */ }
 			{ filtered.length === 0 && (
 				<p className="description">
-					{ __( 'No abilities match your search.', 'sd-ai-agent' ) }
+					{ __(
+						'No abilities match your search.',
+						'superdav-ai-agent'
+					) }
 				</p>
 			) }
 

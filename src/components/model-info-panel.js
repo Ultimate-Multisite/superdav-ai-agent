@@ -79,7 +79,7 @@ export default function ModelInfoPanel( { debug } ) {
 		summaryParts.push( formatCost( costEstimate ) );
 	}
 	const summary =
-		summaryParts.join( ' / ' ) || __( 'No metrics', 'sd-ai-agent' );
+		summaryParts.join( ' / ' ) || __( 'No metrics', 'superdav-ai-agent' );
 
 	return (
 		<div className="sdaa-debug-panel">
@@ -98,7 +98,7 @@ export default function ModelInfoPanel( { debug } ) {
 					{ modelId && (
 						<div className="sdaa-debug-row">
 							<span className="sdaa-debug-label">
-								{ __( 'Model', 'sd-ai-agent' ) }
+								{ __( 'Model', 'superdav-ai-agent' ) }
 							</span>
 							<span className="sdaa-debug-value">
 								{ modelId }
@@ -107,7 +107,7 @@ export default function ModelInfoPanel( { debug } ) {
 					) }
 					<div className="sdaa-debug-row">
 						<span className="sdaa-debug-label">
-							{ __( 'Response time', 'sd-ai-agent' ) }
+							{ __( 'Response time', 'superdav-ai-agent' ) }
 						</span>
 						<span className="sdaa-debug-value">
 							{ formatTime( responseTimeMs ) }
@@ -115,7 +115,7 @@ export default function ModelInfoPanel( { debug } ) {
 					</div>
 					<div className="sdaa-debug-row">
 						<span className="sdaa-debug-label">
-							{ __( 'Tokens', 'sd-ai-agent' ) }
+							{ __( 'Tokens', 'superdav-ai-agent' ) }
 						</span>
 						<span className="sdaa-debug-value">
 							{ totalTokens.toLocaleString() }
@@ -132,7 +132,7 @@ export default function ModelInfoPanel( { debug } ) {
 					{ tokensPerSecond > 0 && (
 						<div className="sdaa-debug-row">
 							<span className="sdaa-debug-label">
-								{ __( 'Speed', 'sd-ai-agent' ) }
+								{ __( 'Speed', 'superdav-ai-agent' ) }
 							</span>
 							<span className="sdaa-debug-value">
 								{ tokensPerSecond } tok/s
@@ -142,7 +142,7 @@ export default function ModelInfoPanel( { debug } ) {
 					{ costEstimate > 0 && (
 						<div className="sdaa-debug-row">
 							<span className="sdaa-debug-label">
-								{ __( 'Cost', 'sd-ai-agent' ) }
+								{ __( 'Cost', 'superdav-ai-agent' ) }
 							</span>
 							<span className="sdaa-debug-value">
 								{ formatCost( costEstimate ) }
@@ -151,7 +151,7 @@ export default function ModelInfoPanel( { debug } ) {
 					) }
 					<div className="sdaa-debug-row">
 						<span className="sdaa-debug-label">
-							{ __( 'Iterations', 'sd-ai-agent' ) }
+							{ __( 'Iterations', 'superdav-ai-agent' ) }
 						</span>
 						<span className="sdaa-debug-value">
 							{ iterationsUsed }
@@ -160,7 +160,7 @@ export default function ModelInfoPanel( { debug } ) {
 					{ toolCallCount > 0 && (
 						<div className="sdaa-debug-row">
 							<span className="sdaa-debug-label">
-								{ __( 'Tool calls', 'sd-ai-agent' ) }
+								{ __( 'Tool calls', 'superdav-ai-agent' ) }
 							</span>
 							<span className="sdaa-debug-value">
 								{ toolCallCount }

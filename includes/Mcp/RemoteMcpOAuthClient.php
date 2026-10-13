@@ -487,6 +487,6 @@ final class RemoteMcpOAuthClient {
 	}
 
 	private function error( string $code, string $message ): WP_Error {
-		return new WP_Error( 'sd_ai_agent_remote_mcp_oauth_' . $code, $message );
+		return new WP_Error( 'sd_ai_agent_remote_mcp_oauth_' . $code, $message, array( 'status' => 400 ) );
 	}
 }

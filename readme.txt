@@ -165,9 +165,9 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 
 == Screenshots ==
 
-1. Full-page chat workspace with session history and transparent ability-call arguments and results.
-2. Custom Tools settings for enabling and configuring HTTP and WordPress action tools.
-3. Model and chat behaviour settings, including provider, model, iteration, and greeting controls.
+1. Completed agent conversation that updates a page with a clear site welcome and contact call to action.
+2. Native Gutenberg editor showing the completed page content created through the agent workflow.
+3. Changes review workspace showing the completed page-editing workflow and its recorded updates.
 
 == Changelog ==
 

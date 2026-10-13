@@ -15,16 +15,20 @@ const { chromium } = require( '@playwright/test' );
 const {
 	loginToWordPress,
 	goToAgentPage,
-	goToSettingsPage,
+	goToChangesPage,
 	getMessageInput,
 	getSendButton,
+	getStopButton,
 } = require( '../tests/e2e/utils/wp-admin' );
 
 const baseURL = process.env.WP_BASE_URL;
 const outputDirectory = path.resolve( __dirname, '../.wordpress-org/assets' );
+const editorUrl =
+	process.env.WP_ORG_EDITOR_URL ||
+	'/wp-admin/post.php?post=2&action=edit';
 const capturePrompt =
 	process.env.WP_ORG_CAPTURE_PROMPT ||
-	"Review this site's health and list the first three safe improvements you would make.";
+	'Update the existing Sample Page with a clear welcome heading, a short introduction, and a contact call to action. Complete the edit and summarize what changed.';
 
 if ( ! baseURL ) {
 	throw new Error( 'Set WP_BASE_URL to the local WordPress test site URL.' );
@@ -50,22 +54,28 @@ async function capture() {
 		await goToAgentPage( page );
 		await getMessageInput( page ).fill( capturePrompt );
 		await getSendButton( page ).click();
-		await page.waitForTimeout( 15_000 );
+
+		const stopButton = getStopButton( page );
+		await stopButton.waitFor( { state: 'visible', timeout: 30_000 } );
+		await stopButton.waitFor( { state: 'hidden', timeout: 120_000 } );
+		await page
+			.locator( '.sdaa-cr-msg-assistant' )
+			.last()
+			.waitFor( { state: 'visible', timeout: 15_000 } );
 		await page.locator( '#sdaa-root' ).screenshot( {
 			path: path.join( outputDirectory, 'screenshot-1.png' ),
 		} );
 
-		await goToSettingsPage( page, 'tools' );
-		await page.locator( '.sdaa-route-settings' ).screenshot( {
+		await page.goto( editorUrl );
+		await page
+			.locator( '.editor-styles-wrapper' )
+			.waitFor( { state: 'visible', timeout: 30_000 } );
+		await page.locator( '#wpwrap' ).screenshot( {
 			path: path.join( outputDirectory, 'screenshot-2.png' ),
 		} );
 
-		await goToSettingsPage( page, 'general' );
-		await page.locator( '.sdaa-route-settings' ).evaluate( ( settings ) => {
-			settings.style.height = '720px';
-			settings.style.overflow = 'hidden';
-		} );
-		await page.locator( '.sdaa-route-settings' ).screenshot( {
+		await goToChangesPage( page );
+		await page.locator( '.sdaa-route-changes' ).screenshot( {
 			path: path.join( outputDirectory, 'screenshot-3.png' ),
 		} );
 	} finally {

@@ -20,7 +20,9 @@ function changeTitle( change ) {
 		return change.title;
 	}
 	const action =
-		change.action || change.change_type || __( 'Change', 'sd-ai-agent' );
+		change.action ||
+		change.change_type ||
+		__( 'Change', 'superdav-ai-agent' );
 	const object = change.object_type || change.entity || '';
 	const label = change.object_label || change.label || '';
 	return [ action, object, label ].filter( Boolean ).join( ' ' );
@@ -124,7 +126,7 @@ export default function ChangesDrawer( {
 			'%d change in this session',
 			'%d changes in this session',
 			changes.length,
-			'sd-ai-agent'
+			'superdav-ai-agent'
 		),
 		changes.length
 	);
@@ -133,7 +135,7 @@ export default function ChangesDrawer( {
 		<div
 			className="sdaa-cr-changes-drawer"
 			role="dialog"
-			aria-label={ __( 'Session changes', 'sd-ai-agent' ) }
+			aria-label={ __( 'Session changes', 'superdav-ai-agent' ) }
 		>
 			<div className="sdaa-cr-changes-drawer-head">
 				<span>{ headerLabel }</span>
@@ -141,7 +143,10 @@ export default function ChangesDrawer( {
 					type="button"
 					className="sdaa-cr-icon-btn"
 					onClick={ onClose }
-					aria-label={ __( 'Close changes drawer', 'sd-ai-agent' ) }
+					aria-label={ __(
+						'Close changes drawer',
+						'superdav-ai-agent'
+					) }
 				>
 					<Icon icon={ closeSmall } size={ 18 } />
 				</button>
@@ -149,12 +154,12 @@ export default function ChangesDrawer( {
 			<div className="sdaa-cr-changes-drawer-body">
 				{ loading && changes.length === 0 && (
 					<div className="sdaa-cr-changes-drawer-empty">
-						{ __( 'Loading changes…', 'sd-ai-agent' ) }
+						{ __( 'Loading changes…', 'superdav-ai-agent' ) }
 					</div>
 				) }
 				{ ! loading && changes.length === 0 && (
 					<div className="sdaa-cr-changes-drawer-empty">
-						{ __( 'No un-reverted changes.', 'sd-ai-agent' ) }
+						{ __( 'No un-reverted changes.', 'superdav-ai-agent' ) }
 					</div>
 				) }
 				{ changes.map( ( c ) => (
@@ -173,7 +178,7 @@ export default function ChangesDrawer( {
 							onClick={ () => handleRevert( c.id ) }
 							aria-label={ __(
 								'Revert this change',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 						>
 							<Icon icon={ undo } size={ 14 } />
@@ -189,7 +194,7 @@ export default function ChangesDrawer( {
 						window.location.href.split( '#' )[ 0 ] + '#/changes'
 					}
 				>
-					{ __( 'View full history', 'sd-ai-agent' ) }
+					{ __( 'View full history', 'superdav-ai-agent' ) }
 				</a>
 				<button
 					type="button"
@@ -198,10 +203,10 @@ export default function ChangesDrawer( {
 					disabled={ reverting || changes.length === 0 }
 				>
 					{ reverting
-						? __( 'Reverting…', 'sd-ai-agent' )
+						? __( 'Reverting…', 'superdav-ai-agent' )
 						: sprintf(
 								/* translators: %d: number of changes to revert */
-								__( 'Revert all (%d)', 'sd-ai-agent' ),
+								__( 'Revert all (%d)', 'superdav-ai-agent' ),
 								changes.length
 						  ) }
 				</button>

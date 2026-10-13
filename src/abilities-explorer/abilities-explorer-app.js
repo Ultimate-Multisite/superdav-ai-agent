@@ -179,37 +179,37 @@ function AbilityRow( { ability } ) {
 				<div className="sdaa-ability-badges">
 					{ isClientAbility && (
 						<Badge intent="info">
-							{ __( 'client', 'sd-ai-agent' ) }
+							{ __( 'client', 'superdav-ai-agent' ) }
 						</Badge>
 					) }
 					{ ! isClientAbility && isConfigured && (
 						<Badge intent="success">
-							{ __( 'Configured', 'sd-ai-agent' ) }
+							{ __( 'Configured', 'superdav-ai-agent' ) }
 						</Badge>
 					) }
 					{ ! isClientAbility && ! isConfigured && (
 						<Badge intent="warning">
-							{ __( 'Needs Setup', 'sd-ai-agent' ) }
+							{ __( 'Needs Setup', 'superdav-ai-agent' ) }
 						</Badge>
 					) }
 					<AnnotationBadge
-						label={ __( 'destructive', 'sd-ai-agent' ) }
+						label={ __( 'destructive', 'superdav-ai-agent' ) }
 						active={ annotations.destructive }
 						intent="error"
 					/>
 					<AnnotationBadge
-						label={ __( 'readonly', 'sd-ai-agent' ) }
+						label={ __( 'readonly', 'superdav-ai-agent' ) }
 						active={ annotations.readonly }
 						intent="info"
 					/>
 					<AnnotationBadge
-						label={ __( 'idempotent', 'sd-ai-agent' ) }
+						label={ __( 'idempotent', 'superdav-ai-agent' ) }
 						active={ annotations.idempotent }
 						intent="success"
 					/>
 					{ showInRest && (
 						<Badge intent="default">
-							{ __( 'REST', 'sd-ai-agent' ) }
+							{ __( 'REST', 'superdav-ai-agent' ) }
 						</Badge>
 					) }
 				</div>
@@ -218,21 +218,21 @@ function AbilityRow( { ability } ) {
 				<p className="sdaa-ability-category">{ category }</p>
 				<p className="sdaa-ability-description">
 					{ description ||
-						__( 'No description available.', 'sd-ai-agent' ) }
+						__( 'No description available.', 'superdav-ai-agent' ) }
 				</p>
 				<div className="sdaa-ability-meta">
 					<span className="sdaa-ability-params">
 						{ paramCount === 1
-							? __( '1 parameter', 'sd-ai-agent' )
+							? __( '1 parameter', 'superdav-ai-agent' )
 							: sprintf(
 									/* translators: %d: number of parameters */
-									__( '%d parameters', 'sd-ai-agent' ),
+									__( '%d parameters', 'superdav-ai-agent' ),
 									paramCount
 							  ) }
 					</span>
 					{ requiredParams && requiredParams.length > 0 && (
 						<span className="sdaa-ability-required">
-							{ __( 'Required:', 'sd-ai-agent' ) }{ ' ' }
+							{ __( 'Required:', 'superdav-ai-agent' ) }{ ' ' }
 							<code>{ requiredParams.join( ', ' ) }</code>
 						</span>
 					) }
@@ -245,13 +245,13 @@ function AbilityRow( { ability } ) {
 							isDismissible={ false }
 							className="sdaa-ability-notice"
 						>
-							{ __( 'Requires:', 'sd-ai-agent' ) }{ ' ' }
+							{ __( 'Requires:', 'superdav-ai-agent' ) }{ ' ' }
 							{ requiredApiKeys.join( ', ' ) }{ ' ' }
 							{ sdAiAgentAbilities?.settingsUrl && (
 								<a href={ sdAiAgentAbilities.settingsUrl }>
 									{ __(
 										'Configure in Settings',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 									) }
 								</a>
 							) }
@@ -265,8 +265,14 @@ function AbilityRow( { ability } ) {
 							aria-expanded={ expanded }
 						>
 							{ expanded
-								? __( 'Hide output schema', 'sd-ai-agent' )
-								: __( 'Show output schema', 'sd-ai-agent' ) }
+								? __(
+										'Hide output schema',
+										'superdav-ai-agent'
+								  )
+								: __(
+										'Show output schema',
+										'superdav-ai-agent'
+								  ) }
 						</Button>
 						{ expanded && (
 							<pre className="sdaa-ability-schema">
@@ -356,7 +362,7 @@ export default function AbilitiesExplorerApp() {
 			.catch( ( err ) => {
 				setError(
 					err?.message ||
-						__( 'Failed to load abilities.', 'sd-ai-agent' )
+						__( 'Failed to load abilities.', 'superdav-ai-agent' )
 				);
 				setLoading( false );
 			} );
@@ -365,7 +371,7 @@ export default function AbilitiesExplorerApp() {
 	// Derive unique categories for the filter dropdown.
 	const categoryOptions = useMemo(
 		() => [
-			{ label: __( 'All Categories', 'sd-ai-agent' ), value: '' },
+			{ label: __( 'All Categories', 'superdav-ai-agent' ), value: '' },
 			...[ ...new Set( abilities.map( ( a ) => a.category ) ) ]
 				.sort()
 				.map( ( cat ) => ( { label: cat, value: cat } ) ),
@@ -482,7 +488,9 @@ export default function AbilitiesExplorerApp() {
 			<div className="sdaa-abilities-manager">
 				<div className="sdaa-abilities-loading">
 					<Spinner />
-					<span>{ __( 'Loading abilities…', 'sd-ai-agent' ) }</span>
+					<span>
+						{ __( 'Loading abilities…', 'superdav-ai-agent' ) }
+					</span>
 				</div>
 			</div>
 		);
@@ -505,18 +513,21 @@ export default function AbilitiesExplorerApp() {
 				<div className="sdaa-abilities-controls">
 					<div className="sdaa-abilities-search">
 						<SearchControl
-							label={ __( 'Search abilities', 'sd-ai-agent' ) }
+							label={ __(
+								'Search abilities',
+								'superdav-ai-agent'
+							) }
 							value={ search }
 							onChange={ handleSearchChange }
 							placeholder={ __(
 								'Search by name or description…',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 						/>
 					</div>
 					<div className="sdaa-abilities-filters">
 						<SelectControl
-							label={ __( 'Category', 'sd-ai-agent' ) }
+							label={ __( 'Category', 'superdav-ai-agent' ) }
 							value={ categoryFilter }
 							options={ categoryOptions }
 							onChange={ setCategoryFilter }
@@ -527,10 +538,10 @@ export default function AbilitiesExplorerApp() {
 							variant="tertiary"
 							onClick={ handleCollapseAll }
 						>
-							{ __( 'Collapse all', 'sd-ai-agent' ) }
+							{ __( 'Collapse all', 'superdav-ai-agent' ) }
 						</Button>
 						<Button variant="tertiary" onClick={ handleExpandAll }>
-							{ __( 'Expand all', 'sd-ai-agent' ) }
+							{ __( 'Expand all', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -538,14 +549,17 @@ export default function AbilitiesExplorerApp() {
 					{ filtered.length === abilities.length
 						? sprintf(
 								/* translators: %d: total number of abilities */
-								__( '%d abilities registered', 'sd-ai-agent' ),
+								__(
+									'%d abilities registered',
+									'superdav-ai-agent'
+								),
 								abilities.length
 						  )
 						: sprintf(
 								/* translators: 1: filtered count, 2: total count */
 								__(
 									'Showing %1$d of %2$d abilities',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 								),
 								filtered.length,
 								abilities.length
@@ -557,10 +571,13 @@ export default function AbilitiesExplorerApp() {
 			{ filtered.length === 0 ? (
 				<p className="sdaa-abilities-no-results">
 					{ abilities.length === 0
-						? __( 'No abilities are registered.', 'sd-ai-agent' )
+						? __(
+								'No abilities are registered.',
+								'superdav-ai-agent'
+						  )
 						: __(
 								'No abilities match your current filters.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ) }
 				</p>
 			) : (

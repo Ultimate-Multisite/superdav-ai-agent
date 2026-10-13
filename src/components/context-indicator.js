@@ -67,12 +67,12 @@ export default function ContextIndicator() {
 			<div className="sdaa-context-stats">
 				<span className="sdaa-context-tokens">
 					{ formatTokens( totalTokens ) }{ ' ' }
-					{ __( 'tokens', 'sd-ai-agent' ) }
+					{ __( 'tokens', 'superdav-ai-agent' ) }
 					<span className="sdaa-context-detail">
 						({ formatTokens( tokenUsage.prompt ) }{ ' ' }
-						{ __( 'in', 'sd-ai-agent' ) } /{ ' ' }
+						{ __( 'in', 'superdav-ai-agent' ) } /{ ' ' }
 						{ formatTokens( tokenUsage.completion ) }{ ' ' }
-						{ __( 'out', 'sd-ai-agent' ) })
+						{ __( 'out', 'superdav-ai-agent' ) })
 					</span>
 				</span>
 				<span className="sdaa-context-pct">
@@ -93,7 +93,7 @@ export default function ContextIndicator() {
 					<span>
 						{ __(
 							'Context window is getting full.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</span>
 					<div className="sdaa-context-warning-actions">
@@ -102,14 +102,14 @@ export default function ContextIndicator() {
 							size="small"
 							onClick={ compactConversation }
 						>
-							{ __( 'Compact', 'sd-ai-agent' ) }
+							{ __( 'Compact', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="secondary"
 							size="small"
 							onClick={ clearCurrentSession }
 						>
-							{ __( 'New Chat', 'sd-ai-agent' ) }
+							{ __( 'New Chat', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>

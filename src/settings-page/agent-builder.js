@@ -106,7 +106,7 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 							onClick={ () => handleRemove( toolId ) }
 							aria-label={ sprintf(
 								/* translators: %s: tool name */
-								__( 'Remove %s', 'sd-ai-agent' ),
+								__( 'Remove %s', 'superdav-ai-agent' ),
 								getLabel( toolId )
 							) }
 						>
@@ -119,7 +119,7 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 				<p className="sdaa-tier1-warning">
 					{ __(
 						'Tip: Keep tier 1 tools to around 10 to minimize context size and cost.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -127,7 +127,7 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 				<TextControl
 					placeholder={ __(
 						'Search abilities to add…',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 					value={ search }
 					onChange={ ( v ) => {
@@ -163,7 +163,10 @@ function Tier1ToolsEditor( { tools, onChange, allAbilities } ) {
 				) }
 				{ showResults && search.trim() && filtered.length === 0 && (
 					<p className="sdaa-tier1-no-results">
-						{ __( 'No matching abilities found.', 'sd-ai-agent' ) }
+						{ __(
+							'No matching abilities found.',
+							'superdav-ai-agent'
+						) }
 					</p>
 				) }
 			</div>
@@ -266,14 +269,14 @@ export default function AgentBuilder() {
 		if ( ! form.name.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Agent name is required.', 'sd-ai-agent' ),
+				message: __( 'Agent name is required.', 'superdav-ai-agent' ),
 			} );
 			return;
 		}
 		if ( ! editId && ! form.slug.trim() ) {
 			setNotice( {
 				status: 'error',
-				message: __( 'Agent slug is required.', 'sd-ai-agent' ),
+				message: __( 'Agent slug is required.', 'superdav-ai-agent' ),
 			} );
 			return;
 		}
@@ -309,14 +312,14 @@ export default function AgentBuilder() {
 				await updateAgent( editId, payload );
 				setNotice( {
 					status: 'success',
-					message: __( 'Agent updated.', 'sd-ai-agent' ),
+					message: __( 'Agent updated.', 'superdav-ai-agent' ),
 				} );
 			} else {
 				payload.slug = form.slug;
 				await createAgent( payload );
 				setNotice( {
 					status: 'success',
-					message: __( 'Agent created.', 'sd-ai-agent' ),
+					message: __( 'Agent created.', 'superdav-ai-agent' ),
 				} );
 				resetForm();
 			}
@@ -325,7 +328,7 @@ export default function AgentBuilder() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save agent.', 'sd-ai-agent' ),
+					__( 'Failed to save agent.', 'superdav-ai-agent' ),
 			} );
 		}
 
@@ -339,7 +342,7 @@ export default function AgentBuilder() {
 					status: 'error',
 					message: __(
 						'The General agent cannot be deleted.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					),
 				} );
 				return;
@@ -349,7 +352,7 @@ export default function AgentBuilder() {
 				! window.confirm(
 					sprintf(
 						/* translators: %s: agent name */
-						__( 'Delete agent "%s"?', 'sd-ai-agent' ),
+						__( 'Delete agent "%s"?', 'superdav-ai-agent' ),
 						agent.name
 					)
 				)
@@ -363,7 +366,7 @@ export default function AgentBuilder() {
 					status: 'error',
 					message:
 						err?.message ||
-						__( 'Failed to delete agent.', 'sd-ai-agent' ),
+						__( 'Failed to delete agent.', 'superdav-ai-agent' ),
 				} );
 			}
 		},
@@ -376,7 +379,7 @@ export default function AgentBuilder() {
 			! window.confirm(
 				__(
 					'Reset all built-in agents to their factory defaults? Your customizations to built-in agents will be lost.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				)
 			)
 		) {
@@ -396,7 +399,7 @@ export default function AgentBuilder() {
 				status: 'success',
 				message: __(
 					'Built-in agents reset to factory defaults.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		} catch ( err ) {
@@ -404,7 +407,7 @@ export default function AgentBuilder() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to reset agents.', 'sd-ai-agent' ),
+					__( 'Failed to reset agents.', 'superdav-ai-agent' ),
 			} );
 		}
 
@@ -414,7 +417,7 @@ export default function AgentBuilder() {
 	// Build provider options for the dropdown.
 	const providerOptions = [
 		{
-			label: __( '(use global default)', 'sd-ai-agent' ),
+			label: __( '(use global default)', 'superdav-ai-agent' ),
 			value: '',
 		},
 		...providers.map( ( p ) => ( { label: p.name, value: p.id } ) ),
@@ -426,7 +429,7 @@ export default function AgentBuilder() {
 	);
 	const modelOptions = [
 		{
-			label: __( '(use global default)', 'sd-ai-agent' ),
+			label: __( '(use global default)', 'superdav-ai-agent' ),
 			value: '',
 		},
 		...( selectedProvider?.models || [] ).map( ( m ) => ( {
@@ -460,7 +463,7 @@ export default function AgentBuilder() {
 					<p className="description">
 						{ __(
 							'Agents have specialized system prompts, tools, and settings. Select an agent in the chat to use it. The General agent is used by default.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 
@@ -475,7 +478,7 @@ export default function AgentBuilder() {
 												<span className="sdaa-card-badge">
 													{ __(
 														'Built-in',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</span>
 											) }
@@ -484,7 +487,7 @@ export default function AgentBuilder() {
 													icon={ pencil }
 													label={ __(
 														'Edit agent',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 													onClick={ () =>
 														handleEdit( agent )
@@ -496,7 +499,7 @@ export default function AgentBuilder() {
 														icon={ trash }
 														label={ __(
 															'Delete agent',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 														onClick={ () =>
 															handleDelete(
@@ -524,7 +527,7 @@ export default function AgentBuilder() {
 											<strong>
 												{ __(
 													'Provider:',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.provider_id }
@@ -535,7 +538,7 @@ export default function AgentBuilder() {
 											<strong>
 												{ __(
 													'Model:',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.model_id }
@@ -546,7 +549,7 @@ export default function AgentBuilder() {
 											<strong>
 												{ __(
 													'Tools:',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</strong>{ ' ' }
 											{ agent.tier_1_tools.length }
@@ -577,7 +580,7 @@ export default function AgentBuilder() {
 								setForm( { ...EMPTY_FORM } );
 							} }
 						>
-							{ __( 'Add Agent', 'sd-ai-agent' ) }
+							{ __( 'Add Agent', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
@@ -586,7 +589,7 @@ export default function AgentBuilder() {
 							isBusy={ resetting }
 							disabled={ resetting }
 						>
-							{ __( 'Reset to Defaults', 'sd-ai-agent' ) }
+							{ __( 'Reset to Defaults', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</>
@@ -596,8 +599,8 @@ export default function AgentBuilder() {
 				<div className="sdaa-form">
 					<h3>
 						{ editId
-							? __( 'Edit Agent', 'sd-ai-agent' )
-							: __( 'New Agent', 'sd-ai-agent' ) }
+							? __( 'Edit Agent', 'superdav-ai-agent' )
+							: __( 'New Agent', 'superdav-ai-agent' ) }
 					</h3>
 
 					<table className="form-table sdaa-form-table">
@@ -606,7 +609,10 @@ export default function AgentBuilder() {
 								<tr>
 									<th scope="row">
 										<label htmlFor="agent-slug">
-											{ __( 'Slug', 'sd-ai-agent' ) }
+											{ __(
+												'Slug',
+												'superdav-ai-agent'
+											) }
 										</label>
 									</th>
 									<td>
@@ -621,7 +627,7 @@ export default function AgentBuilder() {
 										<p className="description">
 											{ __(
 												'Unique identifier (lowercase, hyphens). Cannot be changed after creation.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 									</td>
@@ -631,7 +637,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-name">
-										{ __( 'Name', 'sd-ai-agent' ) }
+										{ __( 'Name', 'superdav-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -649,7 +655,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-description">
-										{ __( 'Description', 'sd-ai-agent' ) }
+										{ __(
+											'Description',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -665,7 +674,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Short description shown in the agent list.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -674,7 +683,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-system-prompt">
-										{ __( 'System Prompt', 'sd-ai-agent' ) }
+										{ __(
+											'System Prompt',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -690,7 +702,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Instructions that define how this agent behaves.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -699,7 +711,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-greeting">
-										{ __( 'Greeting', 'sd-ai-agent' ) }
+										{ __(
+											'Greeting',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -715,7 +730,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Message shown when this agent starts a conversation.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -723,13 +738,16 @@ export default function AgentBuilder() {
 
 							<tr>
 								<th scope="row">
-									{ __( 'Tier 1 Tools', 'sd-ai-agent' ) }
+									{ __(
+										'Tier 1 Tools',
+										'superdav-ai-agent'
+									) }
 								</th>
 								<td>
 									<p className="description">
 										{ __(
 											'Tools immediately available to this agent. Others can still be found via search. Aim for ~10 to keep context size low.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 									<Tier1ToolsEditor
@@ -745,7 +763,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-provider">
-										{ __( 'Provider', 'sd-ai-agent' ) }
+										{ __(
+											'Provider',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -762,7 +783,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override the AI provider for this agent.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -771,7 +792,7 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-model">
-										{ __( 'Model', 'sd-ai-agent' ) }
+										{ __( 'Model', 'superdav-ai-agent' ) }
 									</label>
 								</th>
 								<td>
@@ -787,7 +808,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override the AI model for this agent.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -796,7 +817,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-temperature">
-										{ __( 'Temperature', 'sd-ai-agent' ) }
+										{ __(
+											'Temperature',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -816,7 +840,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override temperature (0–2). Leave empty to use the global default (0.2).',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -827,7 +851,7 @@ export default function AgentBuilder() {
 									<label htmlFor="agent-max-iterations">
 										{ __(
 											'Max Iterations',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</label>
 								</th>
@@ -847,7 +871,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Override max tool-call iterations. Leave empty to use the global default (50).',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -856,7 +880,10 @@ export default function AgentBuilder() {
 							<tr>
 								<th scope="row">
 									<label htmlFor="agent-avatar-icon">
-										{ __( 'Avatar Icon', 'sd-ai-agent' ) }
+										{ __(
+											'Avatar Icon',
+											'superdav-ai-agent'
+										) }
 									</label>
 								</th>
 								<td>
@@ -889,7 +916,7 @@ export default function AgentBuilder() {
 											<span className="sdaa-icon-preview-label">
 												{ __(
 													'Preview',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</span>
 										</div>
@@ -897,7 +924,7 @@ export default function AgentBuilder() {
 									<p className="description">
 										{ __(
 											'Dashicon name (e.g. dashicons-cart) or an emoji.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</p>
 								</td>
@@ -913,11 +940,11 @@ export default function AgentBuilder() {
 							disabled={ saving }
 						>
 							{ editId
-								? __( 'Update Agent', 'sd-ai-agent' )
-								: __( 'Create Agent', 'sd-ai-agent' ) }
+								? __( 'Update Agent', 'superdav-ai-agent' )
+								: __( 'Create Agent', 'superdav-ai-agent' ) }
 						</Button>
 						<Button variant="tertiary" onClick={ resetForm }>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>

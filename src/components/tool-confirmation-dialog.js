@@ -49,14 +49,17 @@ export default function ToolConfirmationDialog( {
 			<div className="sdaa-tool-confirm-dialog" ref={ dialogRef }>
 				<div className="sdaa-tool-confirm-header">
 					<h3>
-						{ __( 'Tool Confirmation Required', 'sd-ai-agent' ) }
+						{ __(
+							'Tool Confirmation Required',
+							'superdav-ai-agent'
+						) }
 					</h3>
 				</div>
 				<div className="sdaa-tool-confirm-body">
 					<p className="sdaa-tool-confirm-desc">
 						{ __(
 							'The AI wants to use the following tools:',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 					{ confirmation.tools.map( ( tool ) => (
@@ -74,7 +77,7 @@ export default function ToolConfirmationDialog( {
 									<summary>
 										{ __(
 											'Technical details',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</summary>
 									<div className="sdaa-tool-confirm-tool-name">
@@ -101,7 +104,7 @@ export default function ToolConfirmationDialog( {
 						/>
 						{ __(
 							'Always allow these tools without asking',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</label>
 				</div>
@@ -111,14 +114,14 @@ export default function ToolConfirmationDialog( {
 						className="button"
 						onClick={ onReject }
 					>
-						{ __( 'Deny', 'sd-ai-agent' ) }
+						{ __( 'Deny', 'superdav-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ () => onConfirm( alwaysAllow ) }
 					>
-						{ __( 'Allow', 'sd-ai-agent' ) }
+						{ __( 'Allow', 'superdav-ai-agent' ) }
 					</button>
 				</div>
 			</div>

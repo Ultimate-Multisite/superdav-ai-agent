@@ -106,12 +106,13 @@ export default function EventsManager() {
 			fetchAll();
 			setNotice( {
 				status: 'success',
-				message: __( 'Event automation saved.', 'sd-ai-agent' ),
+				message: __( 'Event automation saved.', 'superdav-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Failed to save.', 'sd-ai-agent' ),
+				message:
+					err.message || __( 'Failed to save.', 'superdav-ai-agent' ),
 			} );
 		}
 	}, [ form, editId, resetForm, fetchAll ] );
@@ -135,7 +136,7 @@ export default function EventsManager() {
 			if (
 				// eslint-disable-next-line no-alert
 				window.confirm(
-					__( 'Delete this event automation?', 'sd-ai-agent' )
+					__( 'Delete this event automation?', 'superdav-ai-agent' )
 				)
 			) {
 				await apiFetch( {
@@ -190,7 +191,7 @@ export default function EventsManager() {
 	}, {} );
 
 	const triggerOptions = [
-		{ label: __( 'Select a trigger…', 'sd-ai-agent' ), value: '' },
+		{ label: __( 'Select a trigger…', 'superdav-ai-agent' ), value: '' },
 		...Object.entries( triggersByCategory ).flatMap(
 			( [ category, items ] ) => [
 				{
@@ -216,11 +217,16 @@ export default function EventsManager() {
 		<div className="sdaa-events-manager">
 			<div className="sdaa-skill-header">
 				<div>
-					<h3>{ __( 'Event-Driven Automations', 'sd-ai-agent' ) }</h3>
+					<h3>
+						{ __(
+							'Event-Driven Automations',
+							'superdav-ai-agent'
+						) }
+					</h3>
 					<p className="description">
 						{ __(
 							'Trigger AI actions when WordPress hooks fire — post published, user registered, order placed, etc.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 				</div>
@@ -234,7 +240,7 @@ export default function EventsManager() {
 						} }
 						size="compact"
 					>
-						{ __( 'Add Event', 'sd-ai-agent' ) }
+						{ __( 'Add Event', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -252,23 +258,23 @@ export default function EventsManager() {
 			{ showForm && (
 				<div className="sdaa-skill-form">
 					<TextControl
-						label={ __( 'Name', 'sd-ai-agent' ) }
+						label={ __( 'Name', 'superdav-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => updateForm( 'name', v ) }
 						placeholder={ __(
 							'e.g., "Auto-tag new posts"',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'sd-ai-agent' ) }
+						label={ __( 'Description', 'superdav-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) => updateForm( 'description', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Trigger Hook', 'sd-ai-agent' ) }
+						label={ __( 'Trigger Hook', 'superdav-ai-agent' ) }
 						value={ form.hook_name }
 						options={ triggerOptions }
 						onChange={ ( v ) => {
@@ -299,7 +305,7 @@ export default function EventsManager() {
 										<strong>
 											{ __(
 												'Available placeholders:',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</strong>{ ' ' }
 										{ keys
@@ -319,7 +325,7 @@ export default function EventsManager() {
 										<strong>
 											{ __(
 												'Available conditions:',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</strong>{ ' ' }
 										{ keys.join( ', ' ) }
@@ -330,27 +336,27 @@ export default function EventsManager() {
 					) }
 
 					<TextareaControl
-						label={ __( 'Prompt Template', 'sd-ai-agent' ) }
+						label={ __( 'Prompt Template', 'superdav-ai-agent' ) }
 						value={ form.prompt_template }
 						onChange={ ( v ) => updateForm( 'prompt_template', v ) }
 						rows={ 6 }
 						help={ __(
 							'Use {{placeholders}} for dynamic data from the triggering event.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 					<TextareaControl
-						label={ __( 'Conditions (JSON)', 'sd-ai-agent' ) }
+						label={ __( 'Conditions (JSON)', 'superdav-ai-agent' ) }
 						value={ form.conditions }
 						onChange={ ( v ) => updateForm( 'conditions', v ) }
 						rows={ 3 }
 						help={ __(
 							'Optional. e.g., {"post_type":"post","new_status":"publish"}',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 					<TextControl
-						label={ __( 'Max Iterations', 'sd-ai-agent' ) }
+						label={ __( 'Max Iterations', 'superdav-ai-agent' ) }
 						type="number"
 						min={ 1 }
 						max={ 50 }
@@ -375,15 +381,15 @@ export default function EventsManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'sd-ai-agent' )
-								: __( 'Create', 'sd-ai-agent' ) }
+								? __( 'Update', 'superdav-ai-agent' )
+								: __( 'Create', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -391,7 +397,7 @@ export default function EventsManager() {
 
 			{ ! loaded && (
 				<p className="description">
-					{ __( 'Loading…', 'sd-ai-agent' ) }
+					{ __( 'Loading…', 'superdav-ai-agent' ) }
 				</p>
 			) }
 
@@ -399,7 +405,7 @@ export default function EventsManager() {
 				<p className="description">
 					{ __(
 						'No event automations configured yet.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -436,14 +442,14 @@ export default function EventsManager() {
 							<div className="sdaa-skill-card-footer">
 								<span className="sdaa-skill-word-count">
 									{ ev.run_count }{ ' ' }
-									{ __( 'runs', 'sd-ai-agent' ) }
+									{ __( 'runs', 'superdav-ai-agent' ) }
 									{ ev.last_run_at && (
 										<>
 											{ ' ' }
 											&middot;{ ' ' }
 											{ __(
 												'Last:',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }{ ' ' }
 											{ ev.last_run_at }
 										</>
@@ -458,19 +464,31 @@ export default function EventsManager() {
 										}
 									>
 										{ viewLogsId === ev.id
-											? __( 'Hide Logs', 'sd-ai-agent' )
-											: __( 'Logs', 'sd-ai-agent' ) }
+											? __(
+													'Hide Logs',
+													'superdav-ai-agent'
+											  )
+											: __(
+													'Logs',
+													'superdav-ai-agent'
+											  ) }
 									</Button>
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __( 'Edit', 'sd-ai-agent' ) }
+										label={ __(
+											'Edit',
+											'superdav-ai-agent'
+										) }
 										onClick={ () => handleEdit( ev ) }
 									/>
 									<Button
 										icon={ trash }
 										size="small"
-										label={ __( 'Delete', 'sd-ai-agent' ) }
+										label={ __(
+											'Delete',
+											'superdav-ai-agent'
+										) }
 										isDestructive
 										onClick={ () => handleDelete( ev.id ) }
 									/>
@@ -483,7 +501,7 @@ export default function EventsManager() {
 										<p className="description">
 											{ __(
 												'No logs yet.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 									) }
@@ -517,7 +535,7 @@ export default function EventsManager() {
 													<summary>
 														{ __(
 															'Response',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</summary>
 													<pre className="sdaa-log-reply">

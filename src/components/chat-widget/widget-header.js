@@ -60,7 +60,7 @@ function relativeTime( dateStr ) {
 	const now = new Date();
 	const diff = Math.floor( ( now - date ) / 1000 );
 	if ( diff < 60 ) {
-		return __( 'just now', 'sd-ai-agent' );
+		return __( 'just now', 'superdav-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -150,7 +150,8 @@ export default function WidgetHeader( {
 
 	const session = sessions.find( ( s ) => s.id === currentSessionId ) || null;
 	const branding = getBranding();
-	const agentName = branding.agentName || __( 'SD AI Agent', 'sd-ai-agent' );
+	const agentName =
+		branding.agentName || __( 'SD AI Agent', 'superdav-ai-agent' );
 	const title = isSimpleMode ? agentName : session?.title || agentName;
 	const runningJob = currentSessionId
 		? sessionJobs[ currentSessionId ]
@@ -163,16 +164,16 @@ export default function WidgetHeader( {
 				( j ) => j && j.status === 'processing'
 			).length;
 			if ( runningCount > 1 ) {
-				return __( 'Working…', 'sd-ai-agent' );
+				return __( 'Working…', 'superdav-ai-agent' );
 			}
-			return __( 'Working…', 'sd-ai-agent' );
+			return __( 'Working…', 'superdav-ai-agent' );
 		}
 		if ( isSimpleMode ) {
-			return __( 'Ready', 'sd-ai-agent' );
+			return __( 'Ready', 'superdav-ai-agent' );
 		}
 		return activeModelName
-			? `${ __( 'Ready', 'sd-ai-agent' ) } · ${ activeModelName }`
-			: __( 'Ready', 'sd-ai-agent' );
+			? `${ __( 'Ready', 'superdav-ai-agent' ) } · ${ activeModelName }`
+			: __( 'Ready', 'superdav-ai-agent' );
 	} )();
 	const displayedStatusLabel =
 		( voiceConversation.phase || 'idle' ) === 'idle'
@@ -238,7 +239,7 @@ export default function WidgetHeader( {
 					title={
 						isSimpleMode
 							? title
-							: __( 'Switch session', 'sd-ai-agent' )
+							: __( 'Switch session', 'superdav-ai-agent' )
 					}
 					aria-haspopup={ isSimpleMode ? undefined : 'menu' }
 					aria-expanded={ isSimpleMode ? undefined : drawerOpen }
@@ -282,13 +283,16 @@ export default function WidgetHeader( {
 					<div className="sdaa-w-session-drawer" role="menu">
 						<div className="sdaa-w-session-drawer-head">
 							<span>
-								{ __( 'Conversations', 'sd-ai-agent' ) }
+								{ __( 'Conversations', 'superdav-ai-agent' ) }
 							</span>
 							<button
 								type="button"
 								className="sdaa-w-icon-btn is-small"
 								onClick={ () => setDrawerOpen( false ) }
-								aria-label={ __( 'Close', 'sd-ai-agent' ) }
+								aria-label={ __(
+									'Close',
+									'superdav-ai-agent'
+								) }
 							>
 								<Icon icon={ close } size={ 14 } />
 							</button>
@@ -298,7 +302,7 @@ export default function WidgetHeader( {
 								<div className="sdaa-w-session-drawer-empty">
 									{ __(
 										'No conversations yet',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 									) }
 								</div>
 							) }
@@ -332,7 +336,7 @@ export default function WidgetHeader( {
 											{ s.title ||
 												__(
 													'Untitled',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 										</span>
 										<span className="sdaa-w-session-drawer-item-time">
@@ -352,8 +356,8 @@ export default function WidgetHeader( {
 					className="sdaa-w-new-btn"
 					onMouseDown={ ( event ) => event.stopPropagation() }
 					onClick={ handleNewChat }
-					aria-label={ __( 'Start new chat', 'sd-ai-agent' ) }
-					title={ __( 'Start new chat', 'sd-ai-agent' ) }
+					aria-label={ __( 'Start new chat', 'superdav-ai-agent' ) }
+					title={ __( 'Start new chat', 'superdav-ai-agent' ) }
 				>
 					<Icon icon={ plus } size={ 18 } />
 				</button>
@@ -408,13 +412,13 @@ export default function WidgetHeader( {
 					onClick={ onToggleMinimize }
 					aria-label={
 						isMinimized
-							? __( 'Expand', 'sd-ai-agent' )
-							: __( 'Minimize', 'sd-ai-agent' )
+							? __( 'Expand', 'superdav-ai-agent' )
+							: __( 'Minimize', 'superdav-ai-agent' )
 					}
 					title={
 						isMinimized
-							? __( 'Expand', 'sd-ai-agent' )
-							: __( 'Minimize', 'sd-ai-agent' )
+							? __( 'Expand', 'superdav-ai-agent' )
+							: __( 'Minimize', 'superdav-ai-agent' )
 					}
 				>
 					<MinimizeIcon />
@@ -427,8 +431,8 @@ export default function WidgetHeader( {
 						e.stopPropagation();
 						setFloatingOpen( false );
 					} }
-					aria-label={ __( 'Close', 'sd-ai-agent' ) }
-					title={ __( 'Close', 'sd-ai-agent' ) }
+					aria-label={ __( 'Close', 'superdav-ai-agent' ) }
+					title={ __( 'Close', 'superdav-ai-agent' ) }
 				>
 					<Icon icon={ close } size={ 16 } />
 				</button>

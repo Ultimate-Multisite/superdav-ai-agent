@@ -199,7 +199,7 @@ export default function AgentPicker() {
 					ref={ popoverRef }
 					className="sdaa-cr-popover sdaa-cr-popover-fixed"
 					role="menu"
-					aria-label={ __( 'Select agent', 'sd-ai-agent' ) }
+					aria-label={ __( 'Select agent', 'superdav-ai-agent' ) }
 					style={ {
 						left: pos.left,
 						bottom: pos.bottom,
@@ -208,7 +208,7 @@ export default function AgentPicker() {
 					} }
 				>
 					<div className="sdaa-cr-popover-section-label">
-						{ __( 'Agent', 'sd-ai-agent' ) }
+						{ __( 'Agent', 'superdav-ai-agent' ) }
 					</div>
 					{ enabledAgents.map( ( agent ) => {
 						const active =
@@ -247,11 +247,12 @@ export default function AgentPicker() {
 				onClick={ () => setOpen( ( v ) => ! v ) }
 				aria-haspopup="menu"
 				aria-expanded={ open }
-				title={ __( 'Change agent', 'sd-ai-agent' ) }
+				title={ __( 'Change agent', 'superdav-ai-agent' ) }
 			>
 				<AgentIcon icon={ activeAgent?.avatar_icon } />
 				<span className="sdaa-cr-model-chip-model">
-					{ activeAgent?.name || __( '(default)', 'sd-ai-agent' ) }
+					{ activeAgent?.name ||
+						__( '(default)', 'superdav-ai-agent' ) }
 				</span>
 				<Icon icon={ chevronDown } size={ 14 } />
 			</button>

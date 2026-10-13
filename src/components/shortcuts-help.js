@@ -55,7 +55,7 @@ export default function ShortcutsHelp( { onClose } ) {
 		<div className="sdaa-shortcuts-overlay">
 			<div className="sdaa-shortcuts-dialog" ref={ dialogRef }>
 				<div className="sdaa-shortcuts-header">
-					<h3>{ __( 'Keyboard Shortcuts', 'sd-ai-agent' ) }</h3>
+					<h3>{ __( 'Keyboard Shortcuts', 'superdav-ai-agent' ) }</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
@@ -75,36 +75,43 @@ export default function ShortcutsHelp( { onClose } ) {
 					) ) }
 				</div>
 				<div className="sdaa-shortcuts-footer">
-					<h4>{ __( 'Slash Commands', 'sd-ai-agent' ) }</h4>
+					<h4>{ __( 'Slash Commands', 'superdav-ai-agent' ) }</h4>
 					<div className="sdaa-shortcut-row">
 						<span>/new</span>
-						<span>{ __( 'New chat', 'sd-ai-agent' ) }</span>
+						<span>{ __( 'New chat', 'superdav-ai-agent' ) }</span>
 					</div>
 					<div className="sdaa-shortcut-row">
 						<span>/model</span>
-						<span>{ __( 'Switch model', 'sd-ai-agent' ) }</span>
+						<span>
+							{ __( 'Switch model', 'superdav-ai-agent' ) }
+						</span>
 					</div>
 					<div className="sdaa-shortcut-row">
 						<span>/clear</span>
 						<span>
-							{ __( 'Clear conversation', 'sd-ai-agent' ) }
+							{ __( 'Clear conversation', 'superdav-ai-agent' ) }
 						</span>
 					</div>
 					<div className="sdaa-shortcut-row">
 						<span>/export</span>
 						<span>
-							{ __( 'Export conversation', 'sd-ai-agent' ) }
+							{ __( 'Export conversation', 'superdav-ai-agent' ) }
 						</span>
 					</div>
 					<div className="sdaa-shortcut-row">
 						<span>/compact</span>
 						<span>
-							{ __( 'Compact conversation', 'sd-ai-agent' ) }
+							{ __(
+								'Compact conversation',
+								'superdav-ai-agent'
+							) }
 						</span>
 					</div>
 					<div className="sdaa-shortcut-row">
 						<span>/help</span>
-						<span>{ __( 'Show shortcuts', 'sd-ai-agent' ) }</span>
+						<span>
+							{ __( 'Show shortcuts', 'superdav-ai-agent' ) }
+						</span>
 					</div>
 				</div>
 			</div>

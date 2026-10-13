@@ -40,15 +40,15 @@ function BrandingPreview( {
 } ) {
 	const fabBg = primaryColor || 'var(--wp-admin-theme-color, #2271b1)';
 	const fabColor = textColor || '#ffffff';
-	const displayName = agentName || __( 'SD AI Agent', 'sd-ai-agent' );
+	const displayName = agentName || __( 'SD AI Agent', 'superdav-ai-agent' );
 	const greeting =
 		greetingMessage ||
-		__( 'Send a message to start a conversation.', 'sd-ai-agent' );
+		__( 'Send a message to start a conversation.', 'superdav-ai-agent' );
 
 	return (
 		<div className="sdaa-branding-preview">
 			<p className="description">
-				{ __( 'Live preview', 'sd-ai-agent' ) }
+				{ __( 'Live preview', 'superdav-ai-agent' ) }
 			</p>
 			{ /* FAB preview */ }
 			<div
@@ -115,28 +115,28 @@ export default function BrandingManager( { local, updateField } ) {
 			<p className="description">
 				{ __(
 					'Customise how the AI agent appears to users. Leave fields empty to use the plugin defaults.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 			</p>
 
 			<TextControl
-				label={ __( 'Agent Display Name', 'sd-ai-agent' ) }
+				label={ __( 'Agent Display Name', 'superdav-ai-agent' ) }
 				value={ local.agent_name || '' }
 				onChange={ ( v ) => updateField( 'agent_name', v ) }
-				placeholder={ __( 'SD AI Agent', 'sd-ai-agent' ) }
+				placeholder={ __( 'SD AI Agent', 'superdav-ai-agent' ) }
 				help={ __(
 					'Name shown in the chat title bar and floating button tooltip. Defaults to "SD AI Agent".',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				__nextHasNoMarginBottom
 			/>
 
 			{ /* Primary / background colour */ }
 			<BaseControl
-				label={ __( 'Primary Brand Color', 'sd-ai-agent' ) }
+				label={ __( 'Primary Brand Color', 'superdav-ai-agent' ) }
 				help={ __(
 					'Background colour for the FAB button and chat title bar. Leave empty to use the WordPress admin theme colour.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				id="sdaa-brand-primary-color"
 			>
@@ -168,8 +168,8 @@ export default function BrandingManager( { local, updateField } ) {
 						} }
 					>
 						{ showPrimaryPicker
-							? __( 'Close', 'sd-ai-agent' )
-							: __( 'Pick', 'sd-ai-agent' ) }
+							? __( 'Close', 'superdav-ai-agent' )
+							: __( 'Pick', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 				{ showPrimaryPicker && (
@@ -185,10 +185,10 @@ export default function BrandingManager( { local, updateField } ) {
 
 			{ /* Text / icon colour */ }
 			<BaseControl
-				label={ __( 'Text & Icon Color', 'sd-ai-agent' ) }
+				label={ __( 'Text & Icon Color', 'superdav-ai-agent' ) }
 				help={ __(
 					'Colour for text and icons inside the FAB button and title bar. Defaults to white (#ffffff).',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				id="sdaa-brand-text-color"
 			>
@@ -219,8 +219,8 @@ export default function BrandingManager( { local, updateField } ) {
 						} }
 					>
 						{ showTextPicker
-							? __( 'Close', 'sd-ai-agent' )
-							: __( 'Pick', 'sd-ai-agent' ) }
+							? __( 'Close', 'superdav-ai-agent' )
+							: __( 'Pick', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 				{ showTextPicker && (
@@ -236,29 +236,29 @@ export default function BrandingManager( { local, updateField } ) {
 
 			{ /* Logo / avatar URL */ }
 			<TextControl
-				label={ __( 'Logo / Avatar URL', 'sd-ai-agent' ) }
+				label={ __( 'Logo / Avatar URL', 'superdav-ai-agent' ) }
 				value={ local.brand_logo_url || '' }
 				onChange={ ( v ) => updateField( 'brand_logo_url', v ) }
 				placeholder="https://example.com/logo.png"
 				help={ __(
 					'URL of an image to display inside the FAB button and title bar instead of the default chat icon. Recommended size: 24×24 px.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				__nextHasNoMarginBottom
 			/>
 
 			{ /* Greeting message */ }
 			<TextareaControl
-				label={ __( 'Greeting Message', 'sd-ai-agent' ) }
+				label={ __( 'Greeting Message', 'superdav-ai-agent' ) }
 				value={ local.greeting_message || '' }
 				onChange={ ( v ) => updateField( 'greeting_message', v ) }
 				placeholder={ __(
 					'Send a message to start a conversation.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				help={ __(
 					'Text shown in the chat before the first message. Leave empty to use the default.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 				rows={ 2 }
 			/>

@@ -55,7 +55,10 @@ export default function KnowledgeManager() {
 			.catch( () =>
 				setNotice( {
 					status: 'error',
-					message: __( 'Failed to load collections.', 'sd-ai-agent' ),
+					message: __(
+						'Failed to load collections.',
+						'superdav-ai-agent'
+					),
 				} )
 			)
 			.finally( () => setLoading( false ) );
@@ -88,7 +91,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection updated.', 'sd-ai-agent' ),
+					message: __( 'Collection updated.', 'superdav-ai-agent' ),
 				} );
 			} else {
 				await apiFetch( {
@@ -98,7 +101,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection created.', 'sd-ai-agent' ),
+					message: __( 'Collection created.', 'superdav-ai-agent' ),
 				} );
 			}
 			setShowCreate( false );
@@ -115,7 +118,8 @@ export default function KnowledgeManager() {
 			setNotice( {
 				status: 'error',
 				message:
-					err.message || __( 'Operation failed.', 'sd-ai-agent' ),
+					err.message ||
+					__( 'Operation failed.', 'superdav-ai-agent' ),
 			} );
 		}
 	}, [ form, editingId, fetchCollections ] );
@@ -127,7 +131,7 @@ export default function KnowledgeManager() {
 				! window.confirm(
 					__(
 						'Delete this collection and all its indexed data?',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					)
 				)
 			) {
@@ -140,7 +144,7 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Collection deleted.', 'sd-ai-agent' ),
+					message: __( 'Collection deleted.', 'superdav-ai-agent' ),
 				} );
 				fetchCollections();
 			} catch {
@@ -148,7 +152,7 @@ export default function KnowledgeManager() {
 					status: 'error',
 					message: __(
 						'Failed to delete collection.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					),
 				} );
 			}
@@ -166,11 +170,13 @@ export default function KnowledgeManager() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: `${ __( 'Indexed:', 'sd-ai-agent' ) } ${
+					message: `${ __( 'Indexed:', 'superdav-ai-agent' ) } ${
 						result.indexed
-					} | ${ __( 'Skipped:', 'sd-ai-agent' ) } ${
+					} | ${ __( 'Skipped:', 'superdav-ai-agent' ) } ${
 						result.skipped
-					} | ${ __( 'Errors:', 'sd-ai-agent' ) } ${ result.errors }`,
+					} | ${ __( 'Errors:', 'superdav-ai-agent' ) } ${
+						result.errors
+					}`,
 				} );
 				fetchCollections();
 				if ( expandedId === id ) {
@@ -179,7 +185,7 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __( 'Indexing failed.', 'sd-ai-agent' ),
+					message: __( 'Indexing failed.', 'superdav-ai-agent' ),
 				} );
 			}
 			setIndexing( ( prev ) => ( { ...prev, [ id ]: false } ) );
@@ -212,7 +218,7 @@ export default function KnowledgeManager() {
 					status: 'success',
 					message: __(
 						'Document uploaded and indexed.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					),
 				} );
 				fetchCollections();
@@ -222,7 +228,7 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __( 'Upload failed.', 'sd-ai-agent' ),
+					message: __( 'Upload failed.', 'superdav-ai-agent' ),
 				} );
 			}
 			setUploading( ( prev ) => ( { ...prev, [ id ]: false } ) );
@@ -242,7 +248,10 @@ export default function KnowledgeManager() {
 			} catch {
 				setNotice( {
 					status: 'error',
-					message: __( 'Failed to delete source.', 'sd-ai-agent' ),
+					message: __(
+						'Failed to delete source.',
+						'superdav-ai-agent'
+					),
 				} );
 			}
 		},
@@ -320,7 +329,7 @@ export default function KnowledgeManager() {
 				} }
 			>
 				<h3 style={ { margin: 0 } }>
-					{ __( 'Collections', 'sd-ai-agent' ) }
+					{ __( 'Collections', 'superdav-ai-agent' ) }
 				</h3>
 				<Button
 					variant="primary"
@@ -336,7 +345,7 @@ export default function KnowledgeManager() {
 						setShowCreate( true );
 					} }
 				>
-					{ __( 'Create Collection', 'sd-ai-agent' ) }
+					{ __( 'Create Collection', 'superdav-ai-agent' ) }
 				</Button>
 			</div>
 
@@ -344,7 +353,7 @@ export default function KnowledgeManager() {
 				<p className="description">
 					{ __(
 						'No collections yet. Create one to start indexing content.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -378,11 +387,11 @@ export default function KnowledgeManager() {
 							>
 								<span className="sdaa-text-muted">
 									{ col.chunk_count }{ ' ' }
-									{ __( 'chunks', 'sd-ai-agent' ) }
+									{ __( 'chunks', 'superdav-ai-agent' ) }
 								</span>
 								{ col.auto_index && (
 									<span className="sdaa-badge">
-										{ __( 'Auto', 'sd-ai-agent' ) }
+										{ __( 'Auto', 'superdav-ai-agent' ) }
 									</span>
 								) }
 							</div>
@@ -394,7 +403,7 @@ export default function KnowledgeManager() {
 						) }
 						{ col.last_indexed_at && (
 							<p className="description">
-								{ __( 'Last indexed:', 'sd-ai-agent' ) }{ ' ' }
+								{ __( 'Last indexed:', 'superdav-ai-agent' ) }{ ' ' }
 								{ col.last_indexed_at }
 							</p>
 						) }
@@ -413,8 +422,8 @@ export default function KnowledgeManager() {
 								disabled={ indexing[ col.id ] }
 							>
 								{ indexing[ col.id ]
-									? __( 'Indexing…', 'sd-ai-agent' )
-									: __( 'Index Now', 'sd-ai-agent' ) }
+									? __( 'Indexing…', 'superdav-ai-agent' )
+									: __( 'Index Now', 'superdav-ai-agent' ) }
 							</Button>
 							<FormFileUpload
 								accept=".pdf,.docx,.txt,.md,.html"
@@ -428,7 +437,7 @@ export default function KnowledgeManager() {
 									>
 										{ __(
 											'Upload Document',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</Button>
 								) }
@@ -438,21 +447,24 @@ export default function KnowledgeManager() {
 								onClick={ () => toggleExpanded( col.id ) }
 							>
 								{ expandedId === col.id
-									? __( 'Hide Sources', 'sd-ai-agent' )
-									: __( 'Show Sources', 'sd-ai-agent' ) }
+									? __( 'Hide Sources', 'superdav-ai-agent' )
+									: __(
+											'Show Sources',
+											'superdav-ai-agent'
+									  ) }
 							</Button>
 							<Button
 								variant="tertiary"
 								onClick={ () => openEdit( col ) }
 							>
-								{ __( 'Edit', 'sd-ai-agent' ) }
+								{ __( 'Edit', 'superdav-ai-agent' ) }
 							</Button>
 							<Button
 								variant="tertiary"
 								isDestructive
 								onClick={ () => handleDelete( col.id ) }
 							>
-								{ __( 'Delete', 'sd-ai-agent' ) }
+								{ __( 'Delete', 'superdav-ai-agent' ) }
 							</Button>
 						</div>
 
@@ -465,7 +477,7 @@ export default function KnowledgeManager() {
 								} }
 							>
 								<h4 style={ { margin: '0 0 8px 0' } }>
-									{ __( 'Sources', 'sd-ai-agent' ) }
+									{ __( 'Sources', 'superdav-ai-agent' ) }
 								</h4>
 								{
 									/* eslint-disable-next-line no-nested-ternary */
@@ -475,7 +487,7 @@ export default function KnowledgeManager() {
 										<p className="description">
 											{ __(
 												'No sources indexed yet.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 									) : (
@@ -488,25 +500,25 @@ export default function KnowledgeManager() {
 													<th>
 														{ __(
 															'Title',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Type',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Status',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<th>
 														{ __(
 															'Chunks',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<th></th>
@@ -520,7 +532,7 @@ export default function KnowledgeManager() {
 																{ src.title ||
 																	__(
 																		'(untitled)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	) }
 															</td>
 															<td>
@@ -570,7 +582,7 @@ export default function KnowledgeManager() {
 																>
 																	{ __(
 																		'Remove',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	) }
 																</Button>
 															</td>
@@ -589,7 +601,7 @@ export default function KnowledgeManager() {
 
 			{ /* Search Preview */ }
 			<div style={ { marginTop: '24px' } }>
-				<h3>{ __( 'Search Preview', 'sd-ai-agent' ) }</h3>
+				<h3>{ __( 'Search Preview', 'superdav-ai-agent' ) }</h3>
 				<div
 					style={ {
 						display: 'flex',
@@ -602,7 +614,7 @@ export default function KnowledgeManager() {
 						onChange={ setSearchQuery }
 						placeholder={ __(
 							'Search the knowledge base…',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						style={ { flex: 1 } }
 						onKeyDown={ ( e ) => {
@@ -618,7 +630,7 @@ export default function KnowledgeManager() {
 						isBusy={ searching }
 						disabled={ searching || ! searchQuery.trim() }
 					>
-						{ __( 'Search', 'sd-ai-agent' ) }
+						{ __( 'Search', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 				{ searchResults.length > 0 && (
@@ -644,7 +656,7 @@ export default function KnowledgeManager() {
 											<span className="sdaa-text-muted">
 												{ __(
 													'Score:',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }{ ' ' }
 												{ result.score.toFixed( 2 ) }
 											</span>
@@ -676,8 +688,8 @@ export default function KnowledgeManager() {
 				<Modal
 					title={
 						editingId
-							? __( 'Edit Collection', 'sd-ai-agent' )
-							: __( 'Create Collection', 'sd-ai-agent' )
+							? __( 'Edit Collection', 'superdav-ai-agent' )
+							: __( 'Create Collection', 'superdav-ai-agent' )
 					}
 					onRequestClose={ () => {
 						setShowCreate( false );
@@ -685,7 +697,7 @@ export default function KnowledgeManager() {
 					} }
 				>
 					<TextControl
-						label={ __( 'Name', 'sd-ai-agent' ) }
+						label={ __( 'Name', 'superdav-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => {
 							setForm( ( prev ) => ( {
@@ -705,20 +717,20 @@ export default function KnowledgeManager() {
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Slug', 'sd-ai-agent' ) }
+						label={ __( 'Slug', 'superdav-ai-agent' ) }
 						value={ form.slug }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( { ...prev, slug: v } ) )
 						}
 						help={ __(
 							'Unique identifier for this collection.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						disabled={ !! editingId }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Description', 'sd-ai-agent' ) }
+						label={ __( 'Description', 'superdav-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( {
@@ -731,7 +743,7 @@ export default function KnowledgeManager() {
 					<TextControl
 						label={ __(
 							'Post Types (comma-separated)',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						value={ ( form.source_config?.post_types || [] ).join(
 							', '
@@ -750,12 +762,12 @@ export default function KnowledgeManager() {
 						}
 						help={ __(
 							'Post types to include when indexing (e.g., post, page, product).',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<ToggleControl
-						label={ __( 'Auto-index', 'sd-ai-agent' ) }
+						label={ __( 'Auto-index', 'superdav-ai-agent' ) }
 						checked={ form.auto_index }
 						onChange={ ( v ) =>
 							setForm( ( prev ) => ( {
@@ -765,7 +777,7 @@ export default function KnowledgeManager() {
 						}
 						help={ __(
 							'Automatically index new and updated posts matching this collection.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
@@ -784,7 +796,7 @@ export default function KnowledgeManager() {
 								setEditingId( null );
 							} }
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="primary"
@@ -792,8 +804,8 @@ export default function KnowledgeManager() {
 							disabled={ ! form.name || ! form.slug }
 						>
 							{ editingId
-								? __( 'Save', 'sd-ai-agent' )
-								: __( 'Create', 'sd-ai-agent' ) }
+								? __( 'Save', 'superdav-ai-agent' )
+								: __( 'Create', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</Modal>

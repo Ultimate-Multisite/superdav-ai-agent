@@ -59,7 +59,9 @@ export default function ExportDialog( { sessionId, onClose } ) {
 		<div className="sdaa-shortcuts-overlay">
 			<div className="sdaa-export-dialog" ref={ dialogRef }>
 				<div className="sdaa-export-header">
-					<h3>{ __( 'Export Conversation', 'sd-ai-agent' ) }</h3>
+					<h3>
+						{ __( 'Export Conversation', 'superdav-ai-agent' ) }
+					</h3>
 					<button type="button" onClick={ onClose }>
 						&times;
 					</button>
@@ -78,11 +80,11 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							onChange={ () => setFormat( 'json' ) }
 						/>
 						<span>
-							{ __( 'JSON', 'sd-ai-agent' ) }
+							{ __( 'JSON', 'superdav-ai-agent' ) }
 							<span className="sdaa-export-option-desc">
 								{ __(
 									'Full conversation data. Can be imported back.',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 								) }
 							</span>
 						</span>
@@ -100,11 +102,11 @@ export default function ExportDialog( { sessionId, onClose } ) {
 							onChange={ () => setFormat( 'markdown' ) }
 						/>
 						<span>
-							{ __( 'Markdown', 'sd-ai-agent' ) }
+							{ __( 'Markdown', 'superdav-ai-agent' ) }
 							<span className="sdaa-export-option-desc">
 								{ __(
 									'Human-readable format. Good for sharing.',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 								) }
 							</span>
 						</span>
@@ -116,14 +118,14 @@ export default function ExportDialog( { sessionId, onClose } ) {
 						className="button"
 						onClick={ onClose }
 					>
-						{ __( 'Cancel', 'sd-ai-agent' ) }
+						{ __( 'Cancel', 'superdav-ai-agent' ) }
 					</button>
 					<button
 						type="button"
 						className="button button-primary"
 						onClick={ handleExport }
 					>
-						{ __( 'Download', 'sd-ai-agent' ) }
+						{ __( 'Download', 'superdav-ai-agent' ) }
 					</button>
 				</div>
 			</div>

@@ -39,18 +39,18 @@ export default function BootError() {
 			<div className="sdaa-boot-error__card">
 				<h2>
 					{ is403
-						? __( 'Access Denied', 'sd-ai-agent' )
-						: __( 'Connection Error', 'sd-ai-agent' ) }
+						? __( 'Access Denied', 'superdav-ai-agent' )
+						: __( 'Connection Error', 'superdav-ai-agent' ) }
 				</h2>
 				<p>
 					{ is403
 						? __(
 								'The AI Agent could not authenticate with the REST API. This usually happens when your session has expired.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  )
 						: __(
 								'The AI Agent could not connect to the REST API. Please check that the plugin is active and try again.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ) }
 				</p>
 				<div className="sdaa-boot-error__actions">
@@ -58,16 +58,16 @@ export default function BootError() {
 						variant="primary"
 						onClick={ () => window.location.reload() }
 					>
-						{ __( 'Reload Page', 'sd-ai-agent' ) }
+						{ __( 'Reload Page', 'superdav-ai-agent' ) }
 					</Button>
 					<Button variant="secondary" onClick={ retryBoot }>
-						{ __( 'Try Again', 'sd-ai-agent' ) }
+						{ __( 'Try Again', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 				<p className="sdaa-boot-error__hint">
 					{ __(
 						'Reloading the page refreshes your session. If the error persists, try logging out and back in.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			</div>

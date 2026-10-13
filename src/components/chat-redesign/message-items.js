@@ -514,7 +514,7 @@ export function UserMessage( { msg, index } ) {
 							className="sdaa-cr-btn-sm"
 							onClick={ () => setEditingMessageIndex( null ) }
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</button>
 						<button
 							type="button"
@@ -522,7 +522,7 @@ export function UserMessage( { msg, index } ) {
 							onClick={ handleSubmit }
 							disabled={ sending || ! draft.trim() }
 						>
-							{ __( 'Send', 'sd-ai-agent' ) }
+							{ __( 'Send', 'superdav-ai-agent' ) }
 						</button>
 					</div>
 				</div>
@@ -567,8 +567,11 @@ export function UserMessage( { msg, index } ) {
 							setEditingMessageIndex( index );
 						} }
 						disabled={ sending }
-						title={ __( 'Edit & resend', 'sd-ai-agent' ) }
-						aria-label={ __( 'Edit & resend', 'sd-ai-agent' ) }
+						title={ __( 'Edit & resend', 'superdav-ai-agent' ) }
+						aria-label={ __(
+							'Edit & resend',
+							'superdav-ai-agent'
+						) }
 					>
 						<Icon icon={ pencil } size={ 16 } />
 					</button>
@@ -578,13 +581,13 @@ export function UserMessage( { msg, index } ) {
 						onClick={ handleCopy }
 						title={
 							copied
-								? __( 'Copied!', 'sd-ai-agent' )
-								: __( 'Copy', 'sd-ai-agent' )
+								? __( 'Copied!', 'superdav-ai-agent' )
+								: __( 'Copy', 'superdav-ai-agent' )
 						}
 						aria-label={
 							copied
-								? __( 'Copied!', 'sd-ai-agent' )
-								: __( 'Copy message', 'sd-ai-agent' )
+								? __( 'Copied!', 'superdav-ai-agent' )
+								: __( 'Copy message', 'superdav-ai-agent' )
 						}
 					>
 						<Icon icon={ copied ? check : copyIcon } size={ 16 } />
@@ -721,13 +724,13 @@ export function AssistantMessage( {
 							onClick={ handleCopy }
 							title={
 								copied
-									? __( 'Copied!', 'sd-ai-agent' )
-									: __( 'Copy', 'sd-ai-agent' )
+									? __( 'Copied!', 'superdav-ai-agent' )
+									: __( 'Copy', 'superdav-ai-agent' )
 							}
 							aria-label={
 								copied
-									? __( 'Copied!', 'sd-ai-agent' )
-									: __( 'Copy message', 'sd-ai-agent' )
+									? __( 'Copied!', 'superdav-ai-agent' )
+									: __( 'Copy message', 'superdav-ai-agent' )
 							}
 						>
 							<Icon
@@ -741,11 +744,11 @@ export function AssistantMessage( {
 							onClick={ () => onThumbsDown?.( index ) }
 							title={ __(
 								'Report an issue with this response',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							aria-label={ __(
 								'Report an issue with this response',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 						>
 							<Icon icon={ thumbsDown } size={ 16 } />

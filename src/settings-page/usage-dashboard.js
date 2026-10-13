@@ -67,7 +67,9 @@ export default function UsageDashboard() {
 	}
 
 	if ( ! data ) {
-		return <p>{ __( 'Failed to load usage data.', 'sd-ai-agent' ) }</p>;
+		return (
+			<p>{ __( 'Failed to load usage data.', 'superdav-ai-agent' ) }</p>
+		);
 	}
 
 	const totals = data.totals || {};
@@ -81,24 +83,24 @@ export default function UsageDashboard() {
 	return (
 		<div className="sdaa-usage-dashboard">
 			<div className="sdaa-usage-header">
-				<h3>{ __( 'Usage Summary', 'sd-ai-agent' ) }</h3>
+				<h3>{ __( 'Usage Summary', 'superdav-ai-agent' ) }</h3>
 				<SelectControl
 					value={ period }
 					options={ [
 						{
-							label: __( 'Last 7 days', 'sd-ai-agent' ),
+							label: __( 'Last 7 days', 'superdav-ai-agent' ),
 							value: '7d',
 						},
 						{
-							label: __( 'Last 30 days', 'sd-ai-agent' ),
+							label: __( 'Last 30 days', 'superdav-ai-agent' ),
 							value: '30d',
 						},
 						{
-							label: __( 'Last 90 days', 'sd-ai-agent' ),
+							label: __( 'Last 90 days', 'superdav-ai-agent' ),
 							value: '90d',
 						},
 						{
-							label: __( 'All time', 'sd-ai-agent' ),
+							label: __( 'All time', 'superdav-ai-agent' ),
 							value: 'all',
 						},
 					] }
@@ -110,7 +112,7 @@ export default function UsageDashboard() {
 			<div className="sdaa-usage-cards">
 				<div className="sdaa-usage-card">
 					<div className="sdaa-usage-card-label">
-						{ __( 'Total Cost', 'sd-ai-agent' ) }
+						{ __( 'Total Cost', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-usage-card-value">
 						{ formatCost( totals.cost_usd ) }
@@ -118,7 +120,7 @@ export default function UsageDashboard() {
 				</div>
 				<div className="sdaa-usage-card">
 					<div className="sdaa-usage-card-label">
-						{ __( 'Requests', 'sd-ai-agent' ) }
+						{ __( 'Requests', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-usage-card-value">
 						{ totals.request_count || 0 }
@@ -126,7 +128,7 @@ export default function UsageDashboard() {
 				</div>
 				<div className="sdaa-usage-card">
 					<div className="sdaa-usage-card-label">
-						{ __( 'Input Tokens', 'sd-ai-agent' ) }
+						{ __( 'Input Tokens', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-usage-card-value">
 						{ formatTokens( totals.prompt_tokens ) }
@@ -134,7 +136,7 @@ export default function UsageDashboard() {
 				</div>
 				<div className="sdaa-usage-card">
 					<div className="sdaa-usage-card-label">
-						{ __( 'Output Tokens', 'sd-ai-agent' ) }
+						{ __( 'Output Tokens', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-usage-card-value">
 						{ formatTokens( totals.completion_tokens ) }
@@ -144,17 +146,27 @@ export default function UsageDashboard() {
 
 			{ byModel.length > 0 && (
 				<div className="sdaa-usage-breakdown">
-					<h4>{ __( 'By Model', 'sd-ai-agent' ) }</h4>
+					<h4>{ __( 'By Model', 'superdav-ai-agent' ) }</h4>
 					<table className="sdaa-usage-table">
 						<thead>
 							<tr>
-								<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Requests', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Input Tokens', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Model', 'superdav-ai-agent' ) }</th>
 								<th>
-									{ __( 'Output Tokens', 'sd-ai-agent' ) }
+									{ __( 'Requests', 'superdav-ai-agent' ) }
 								</th>
-								<th>{ __( 'Cost', 'sd-ai-agent' ) }</th>
+								<th>
+									{ __(
+										'Input Tokens',
+										'superdav-ai-agent'
+									) }
+								</th>
+								<th>
+									{ __(
+										'Output Tokens',
+										'superdav-ai-agent'
+									) }
+								</th>
+								<th>{ __( 'Cost', 'superdav-ai-agent' ) }</th>
 								<th></th>
 							</tr>
 						</thead>

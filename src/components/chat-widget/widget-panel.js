@@ -254,7 +254,7 @@ export default function WidgetPanel( {
 								'change this session',
 								'changes this session',
 								changesCount,
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 						</span>
 						<button
@@ -264,8 +264,8 @@ export default function WidgetPanel( {
 							aria-expanded={ showChanges }
 						>
 							{ showChanges
-								? __( 'Hide', 'sd-ai-agent' )
-								: __( 'View', 'sd-ai-agent' ) }
+								? __( 'Hide', 'superdav-ai-agent' )
+								: __( 'View', 'superdav-ai-agent' ) }
 							<span aria-hidden="true">
 								{ showChanges ? ' ↑' : ' →' }
 							</span>
@@ -276,7 +276,7 @@ export default function WidgetPanel( {
 				{ ! isMinimized && (
 					<div className="sdaa-w-body-wrap">
 						<ErrorBoundary
-							label={ __( 'Message list', 'sd-ai-agent' ) }
+							label={ __( 'Message list', 'superdav-ai-agent' ) }
 						>
 							{ showEmpty ? (
 								<WidgetEmpty />
@@ -300,7 +300,7 @@ export default function WidgetPanel( {
 
 				{ ! isMinimized && (
 					<ErrorBoundary
-						label={ __( 'Message input', 'sd-ai-agent' ) }
+						label={ __( 'Message input', 'superdav-ai-agent' ) }
 					>
 						<WidgetInput
 							isSimpleMode={ isSimpleMode }

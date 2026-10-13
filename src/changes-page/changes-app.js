@@ -59,7 +59,7 @@ function DiffViewer( { before, after } ) {
 		<div className="sd-changes-diff">
 			<div className="sd-changes-diff__pane sd-changes-diff__pane--before">
 				<div className="sd-changes-diff__label">
-					{ __( 'Before', 'sd-ai-agent' ) }
+					{ __( 'Before', 'superdav-ai-agent' ) }
 				</div>
 				<pre className="sd-changes-diff__code">
 					{ beforeLines.map( ( line, i ) => {
@@ -82,7 +82,7 @@ function DiffViewer( { before, after } ) {
 			</div>
 			<div className="sd-changes-diff__pane sd-changes-diff__pane--after">
 				<div className="sd-changes-diff__label">
-					{ __( 'After', 'sd-ai-agent' ) }
+					{ __( 'After', 'superdav-ai-agent' ) }
 				</div>
 				<pre className="sd-changes-diff__code">
 					{ afterLines.map( ( line, i ) => {
@@ -149,7 +149,7 @@ export default function ChangesApp() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to load changes.', 'sd-ai-agent' ),
+					__( 'Failed to load changes.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setLoading( false );
@@ -191,7 +191,8 @@ export default function ChangesApp() {
 				change,
 				diff: null,
 				error:
-					err?.message || __( 'Failed to load diff.', 'sd-ai-agent' ),
+					err?.message ||
+					__( 'Failed to load diff.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setDiffLoading( false );
@@ -204,7 +205,7 @@ export default function ChangesApp() {
 			const confirmed = window.confirm(
 				__(
 					'Revert this change? The original value will be restored.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				)
 			); // eslint-disable-line no-alert
 			if ( ! confirmed ) {
@@ -219,7 +220,7 @@ export default function ChangesApp() {
 				} );
 				setNotice( {
 					status: 'success',
-					message: __( 'Change reverted.', 'sd-ai-agent' ),
+					message: __( 'Change reverted.', 'superdav-ai-agent' ),
 				} );
 				fetchChanges();
 			} catch ( err ) {
@@ -227,7 +228,7 @@ export default function ChangesApp() {
 					status: 'error',
 					message:
 						err?.message ||
-						__( 'Failed to revert change.', 'sd-ai-agent' ),
+						__( 'Failed to revert change.', 'superdav-ai-agent' ),
 				} );
 			} finally {
 				setReverting( null );
@@ -242,7 +243,7 @@ export default function ChangesApp() {
 				status: 'warning',
 				message: __(
 					'Select at least one change to export.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 			return;
@@ -270,7 +271,7 @@ export default function ChangesApp() {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to export changes.', 'sd-ai-agent' ),
+					__( 'Failed to export changes.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setExporting( false );
@@ -299,51 +300,51 @@ export default function ChangesApp() {
 			<div className="sd-changes-filters">
 				<SelectControl
 					__next40pxDefaultSize
-					label={ __( 'Object Type', 'sd-ai-agent' ) }
+					label={ __( 'Object Type', 'superdav-ai-agent' ) }
 					value={ filterType }
 					options={ [
 						{
-							label: __( 'All Types', 'sd-ai-agent' ),
+							label: __( 'All Types', 'superdav-ai-agent' ),
 							value: '',
 						},
 						{
-							label: __( 'Post', 'sd-ai-agent' ),
+							label: __( 'Post', 'superdav-ai-agent' ),
 							value: 'post',
 						},
 						{
-							label: __( 'Page', 'sd-ai-agent' ),
+							label: __( 'Page', 'superdav-ai-agent' ),
 							value: 'page',
 						},
 						{
-							label: __( 'Post Meta', 'sd-ai-agent' ),
+							label: __( 'Post Meta', 'superdav-ai-agent' ),
 							value: 'post_meta',
 						},
 						{
-							label: __( 'Option', 'sd-ai-agent' ),
+							label: __( 'Option', 'superdav-ai-agent' ),
 							value: 'option',
 						},
 						{
-							label: __( 'Term', 'sd-ai-agent' ),
+							label: __( 'Term', 'superdav-ai-agent' ),
 							value: 'term',
 						},
 						{
-							label: __( 'User', 'sd-ai-agent' ),
+							label: __( 'User', 'superdav-ai-agent' ),
 							value: 'user',
 						},
 						{
-							label: __( 'Nav Menu', 'sd-ai-agent' ),
+							label: __( 'Nav Menu', 'superdav-ai-agent' ),
 							value: 'nav_menu',
 						},
 						{
-							label: __( 'File', 'sd-ai-agent' ),
+							label: __( 'File', 'superdav-ai-agent' ),
 							value: 'file',
 						},
 						{
-							label: __( 'Media', 'sd-ai-agent' ),
+							label: __( 'Media', 'superdav-ai-agent' ),
 							value: 'media',
 						},
 						{
-							label: __( 'WP-CLI', 'sd-ai-agent' ),
+							label: __( 'WP-CLI', 'superdav-ai-agent' ),
 							value: 'wp_cli',
 						},
 					] }
@@ -354,16 +355,16 @@ export default function ChangesApp() {
 				/>
 				<SelectControl
 					__next40pxDefaultSize
-					label={ __( 'Status', 'sd-ai-agent' ) }
+					label={ __( 'Status', 'superdav-ai-agent' ) }
 					value={ filterReverted }
 					options={ [
-						{ label: __( 'All', 'sd-ai-agent' ), value: '' },
+						{ label: __( 'All', 'superdav-ai-agent' ), value: '' },
 						{
-							label: __( 'Active', 'sd-ai-agent' ),
+							label: __( 'Active', 'superdav-ai-agent' ),
 							value: 'false',
 						},
 						{
-							label: __( 'Reverted', 'sd-ai-agent' ),
+							label: __( 'Reverted', 'superdav-ai-agent' ),
 							value: 'true',
 						},
 					] }
@@ -379,7 +380,7 @@ export default function ChangesApp() {
 						disabled={ exporting || selectedIds.length === 0 }
 						isBusy={ exporting }
 					>
-						{ __( 'Export Patch', 'sd-ai-agent' ) }
+						{ __( 'Export Patch', 'superdav-ai-agent' ) }
 						{ selectedIds.length > 0 &&
 							` (${ selectedIds.length })` }
 					</Button>
@@ -390,7 +391,9 @@ export default function ChangesApp() {
 			{ loading ? (
 				<div className="sd-changes-loading">
 					<Spinner />
-					<span>{ __( 'Loading changes…', 'sd-ai-agent' ) }</span>
+					<span>
+						{ __( 'Loading changes…', 'superdav-ai-agent' ) }
+					</span>
 				</div>
 			) : (
 				<>
@@ -404,18 +407,22 @@ export default function ChangesApp() {
 										label=""
 										aria-label={ __(
 											'Select all',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									/>
 								</th>
-								<th>{ __( 'Object', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Field', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Ability', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Before', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'After', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Date', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Status', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Actions', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Object', 'superdav-ai-agent' ) }</th>
+								<th>{ __( 'Field', 'superdav-ai-agent' ) }</th>
+								<th>
+									{ __( 'Ability', 'superdav-ai-agent' ) }
+								</th>
+								<th>{ __( 'Before', 'superdav-ai-agent' ) }</th>
+								<th>{ __( 'After', 'superdav-ai-agent' ) }</th>
+								<th>{ __( 'Date', 'superdav-ai-agent' ) }</th>
+								<th>{ __( 'Status', 'superdav-ai-agent' ) }</th>
+								<th>
+									{ __( 'Actions', 'superdav-ai-agent' ) }
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -427,7 +434,7 @@ export default function ChangesApp() {
 									>
 										{ __(
 											'No changes recorded yet. Changes made by the AI agent will appear here.',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</td>
 								</tr>
@@ -448,7 +455,7 @@ export default function ChangesApp() {
 												label=""
 												aria-label={ __(
 													'Select',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											/>
 										</td>
@@ -479,7 +486,7 @@ export default function ChangesApp() {
 												<em>
 													{ __(
 														'(empty)',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</em>
 											) }
@@ -491,7 +498,7 @@ export default function ChangesApp() {
 												<em>
 													{ __(
 														'(empty)',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</em>
 											) }
@@ -505,21 +512,21 @@ export default function ChangesApp() {
 												<span className="sd-changes-badge sd-changes-badge--reverted">
 													{ __(
 														'Reverted',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</span>
 											) : change.revertable === false ? (
 												<span className="sd-changes-badge sd-changes-badge--unrevertable">
 													{ __(
 														'Cannot undo',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</span>
 											) : (
 												<span className="sd-changes-badge sd-changes-badge--active">
 													{ __(
 														'Active',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</span>
 											) }
@@ -535,7 +542,7 @@ export default function ChangesApp() {
 												>
 													{ __(
 														'Diff',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</Button>
 												{ ! change.reverted &&
@@ -560,7 +567,7 @@ export default function ChangesApp() {
 														>
 															{ __(
 																'Revert',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</Button>
 													) }
@@ -580,7 +587,7 @@ export default function ChangesApp() {
 								disabled={ page <= 1 }
 								onClick={ () => setPage( ( p ) => p - 1 ) }
 							>
-								{ __( '← Previous', 'sd-ai-agent' ) }
+								{ __( '← Previous', 'superdav-ai-agent' ) }
 							</Button>
 							<span>
 								{ page } / { totalPages }
@@ -590,7 +597,7 @@ export default function ChangesApp() {
 								disabled={ page >= totalPages }
 								onClick={ () => setPage( ( p ) => p + 1 ) }
 							>
-								{ __( 'Next →', 'sd-ai-agent' ) }
+								{ __( 'Next →', 'superdav-ai-agent' ) }
 							</Button>
 						</div>
 					) }
@@ -602,7 +609,7 @@ export default function ChangesApp() {
 				<Modal
 					title={ sprintf(
 						/* translators: %s: object title */
-						__( 'Diff — %s', 'sd-ai-agent' ),
+						__( 'Diff — %s', 'superdav-ai-agent' ),
 						diffModal.change.object_title ||
 							`${ diffModal.change.object_type } #${ diffModal.change.object_id }`
 					) }
@@ -623,14 +630,17 @@ export default function ChangesApp() {
 						<>
 							<p>
 								<strong>
-									{ __( 'Field:', 'sd-ai-agent' ) }
+									{ __( 'Field:', 'superdav-ai-agent' ) }
 								</strong>{ ' ' }
 								<code>{ diffModal.change.field_name }</code>
 								{ diffModal.change.ability_name && (
 									<>
 										{ ' ' }
 										<strong>
-											{ __( 'Ability:', 'sd-ai-agent' ) }
+											{ __(
+												'Ability:',
+												'superdav-ai-agent'
+											) }
 										</strong>{ ' ' }
 										{ diffModal.change.ability_name }
 									</>
@@ -661,7 +671,7 @@ export default function ChangesApp() {
 										>
 											{ __(
 												'Revert This Change',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</Button>
 									</div>
@@ -669,11 +679,14 @@ export default function ChangesApp() {
 							{ diffModal.change.revertable === false && (
 								<div className="sd-changes-diff-modal__notice">
 									<span className="sd-changes-badge sd-changes-badge--unrevertable">
-										{ __( 'Cannot undo', 'sd-ai-agent' ) }
+										{ __(
+											'Cannot undo',
+											'superdav-ai-agent'
+										) }
 									</span>{ ' ' }
 									{ __(
 										'This change was made outside of WordPress core (filesystem, WP-CLI, media deletion) and cannot be automatically reversed.',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 									) }
 								</div>
 							) }

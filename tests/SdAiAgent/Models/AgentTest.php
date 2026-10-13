@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Models;
 
 use SdAiAgent\Models\Agent;
+use SdAiAgent\Models\DTO\AgentRow;
 use WP_UnitTestCase;
 
 /**
@@ -559,6 +560,59 @@ class AgentTest extends WP_UnitTestCase {
 
 		$this->assertNull( $arr['temperature'] );
 		$this->assertNull( $arr['max_iterations'] );
+	}
+
+	/**
+	 * Factory greetings follow the user locale without changing authored copy.
+	 */
+	public function test_factory_greeting_uses_user_locale_and_restores_request_locale(): void {
+		global $wp_locale_switcher;
+		$available = new \ReflectionProperty( $wp_locale_switcher, 'available_languages' );
+		$available->setAccessible( true );
+		$languages = $available->getValue( $wp_locale_switcher );
+		$available->setValue( $wp_locale_switcher, array_merge( $languages, array( 'it_IT' ) ) );
+		$user_id = self::factory()->user->create( array( 'locale' => 'it_IT' ) );
+		wp_set_current_user( $user_id );
+		$original_locale = get_locale();
+		$translate       = static function ( string $translation, string $text, string $domain ): string {
+			return 'superdav-ai-agent' === $domain && 'it_IT' === get_locale() && 'What can I help you with?' === $text
+				? 'Come posso aiutarti?'
+				: $translation;
+		};
+		add_filter( 'gettext', $translate, 10, 3 );
+		try {
+			$row = (object) array(
+				'id'         => 1,
+				'slug'       => Agent::DEFAULT_AGENT_SLUG,
+				'is_builtin' => 1,
+				'greeting'   => 'What can I help you with?',
+			);
+			$agent = AgentRow::from_row( $row );
+			$this->assertSame( 'Come posso aiutarti?', Agent::to_array( $agent )['greeting'] );
+			$this->assertSame( 'What can I help you with?', Agent::to_array( $agent )['stored_greeting'] );
+			$this->assertSame( $original_locale, get_locale() );
+			$this->assertSame( 'What can I help you with?', $agent->greeting );
+
+			$id = Agent::create( array( 'slug' => 'locale-editor-roundtrip', 'name' => 'Locale Editor', 'greeting' => $row->greeting ) );
+			$this->created_ids[] = $id;
+			Agent::update( $id, array( 'greeting' => Agent::to_array( $agent )['stored_greeting'] ) );
+			$this->assertSame( $row->greeting, Agent::get( $id )->greeting );
+
+			$row->greeting = '';
+			$this->assertSame( '', Agent::to_array( AgentRow::from_row( $row ) )['stored_greeting'] );
+			$row->greeting = 'My custom greeting';
+			$this->assertSame( 'My custom greeting', Agent::get_localized_greeting( AgentRow::from_row( $row ) ) );
+			$row->greeting   = 'What can I help you with?';
+			$row->is_builtin = 0;
+			$this->assertSame( $row->greeting, Agent::get_localized_greeting( AgentRow::from_row( $row ) ) );
+			wp_set_current_user( 0 );
+			$row->is_builtin = 1;
+			$this->assertSame( $row->greeting, Agent::get_localized_greeting( AgentRow::from_row( $row ) ) );
+		} finally {
+			remove_filter( 'gettext', $translate, 10 );
+			$available->setValue( $wp_locale_switcher, $languages );
+			wp_set_current_user( 0 );
+		}
 	}
 
 	// ─── built-in definitions ───────────────────────────────────────────────

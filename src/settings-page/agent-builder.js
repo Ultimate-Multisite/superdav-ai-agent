@@ -241,7 +241,7 @@ export default function AgentBuilder() {
 				null !== agent.max_iterations
 					? String( agent.max_iterations )
 					: '',
-			greeting: agent.greeting || '',
+			greeting: agent.stored_greeting ?? agent.greeting ?? '',
 			avatar_icon: agent.avatar_icon || '',
 			tier_1_tools: agent.tier_1_tools || [],
 		} );
@@ -258,7 +258,11 @@ export default function AgentBuilder() {
 				...prev,
 				system_prompt: full.system_prompt || prev.system_prompt || '',
 				tier_1_tools: full.tier_1_tools || prev.tier_1_tools || [],
-				greeting: full.greeting || prev.greeting || '',
+				greeting:
+					full.stored_greeting ??
+					full.greeting ??
+					prev.greeting ??
+					'',
 			} ) );
 		} catch {
 			// Network error — keep whatever the list already gave us.

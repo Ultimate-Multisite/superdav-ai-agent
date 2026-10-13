@@ -499,7 +499,7 @@ export default function McpIntegrationsManager() {
 
 			<div className="sd-ai-agent-mcp-integrations__header">
 				<div>
-					<h3>{ __( 'MCP servers', 'superdav-ai-agent' ) }</h3>
+					{ /* The settings page supplies the "MCP servers" section title. */ }
 					<p className="description">
 						{ __(
 							'Connect remote tools using a server URL. Connecting discovers tools but does not change their confirmation policy.',

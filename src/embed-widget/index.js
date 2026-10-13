@@ -1116,23 +1116,28 @@ export function mountEmbed( config ) {
 		);
 	};
 
-	client
-		.config()
-		.then( ( serverConfig ) => {
-			if ( ! serverConfig?.enabled ) {
-				setUnavailable();
-				return;
-			}
+	// Defer network requests until the visitor opens the chat. This avoids
+	// creating anonymous sessions for crawlers and visitors who never use it.
+	const initialize = () => {
+		client
+			.config()
+			.then( ( serverConfig ) => {
+				if ( ! serverConfig?.enabled ) {
+					setUnavailable();
+					return;
+				}
 
-			pendingSpeechConfig = serverConfig?.speech || null;
-			if ( serverConfig?.recording?.enabled ) {
-				addRecordingChoice( serverConfig.recording );
-				return;
-			}
+				pendingSpeechConfig = serverConfig?.speech || null;
+				if ( serverConfig?.recording?.enabled ) {
+					addRecordingChoice( serverConfig.recording );
+					return;
+				}
 
-			return startSession( false );
-		} )
-		.catch( () => setUnavailable() );
+				return startSession( false );
+			} )
+			.catch( () => setUnavailable() );
+	};
+	launcher.addEventListener( 'click', initialize, { once: true } );
 
 	launcher.addEventListener( 'click', () => {
 		const expanded = panel.hidden;

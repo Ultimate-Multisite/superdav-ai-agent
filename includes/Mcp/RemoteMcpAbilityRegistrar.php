@@ -40,7 +40,12 @@ final class RemoteMcpAbilityRegistrar {
 				wp_register_ability(
 					$ability_name,
 					array(
-						'label'               => (string) ( $connection['name'] ?? __( 'Remote MCP', 'superdav-ai-agent' ) ) . ': ' . (string) $tool['name'],
+						'label'               => sprintf(
+							/* translators: 1: remote MCP tool name, 2: remote MCP connection name. */
+							__( '%1$s (%2$s)', 'superdav-ai-agent' ),
+							(string) $tool['name'],
+							(string) ( $connection['name'] ?? __( 'Remote MCP', 'superdav-ai-agent' ) )
+						),
 						'description'         => (string) ( $tool['description'] ?? __( 'Remote MCP tool.', 'superdav-ai-agent' ) ),
 						'category'            => 'sd-ai-agent',
 						'input_schema'        => $schema,

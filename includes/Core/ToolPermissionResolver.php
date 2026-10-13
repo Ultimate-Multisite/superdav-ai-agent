@@ -113,13 +113,23 @@ class ToolPermissionResolver {
 			}
 
 			if ( $requires_clarification || self::ability_needs_confirmation( $confirmation_ability_id, $ability, $this->tool_permissions ) ) {
-				$confirm[] = array(
+				$pending_tool = array(
 					'id'      => $call->getId(),
 					'name'    => $fn_name,
 					'ability' => $confirmation_ability_id,
 					'args'    => $call->getArgs(),
 					'reason'  => $requires_clarification ? 'underspecified_request' : 'tool_permission',
 				);
+
+				$display_ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( $confirmation_ability_id ) : $ability;
+				if ( $display_ability instanceof \WP_Ability ) {
+					$label = $display_ability->get_label();
+					if ( is_string( $label ) && '' !== $label ) {
+						$pending_tool['label'] = $label;
+					}
+				}
+
+				$confirm[] = $pending_tool;
 			}
 		}
 

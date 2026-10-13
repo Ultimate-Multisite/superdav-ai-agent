@@ -74,28 +74,36 @@ describe( 'AccountActionMessage', () => {
 			)
 		).not.toBeNull();
 		expect( container.textContent ).toContain(
-			'Purchase more credits in your account settings'
+			'Good news—as an early adopter, use coupon code EARLY'
 		);
+		expect( container.textContent ).toContain( '$200 in AI usage credits' );
 		expect( container.textContent ).not.toMatch(
 			/\b(error|rejected|insufficient)\b/i
 		);
 
-		const action = container.querySelector(
+		const actions = container.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( action ).not.toBeNull();
-		expect( action.getAttribute( 'href' ) ).toBe(
+		expect( actions ).toHaveLength( 2 );
+		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
 		);
-		expect( action.getAttribute( 'target' ) ).toBe( '_blank' );
-		expect( action.getAttribute( 'rel' ) ).toBe( 'noopener noreferrer' );
-		expect( action.textContent ).toBe( 'Purchase credits' );
+		expect( actions[ 0 ].getAttribute( 'target' ) ).toBe( '_blank' );
+		expect( actions[ 0 ].getAttribute( 'rel' ) ).toBe(
+			'noopener noreferrer'
+		);
+		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
+		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
+		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
+			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
+		);
 
-		const inlineAction = container.querySelector(
+		const inlineActions = container.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-inline-action'
 		);
-		expect( inlineAction.textContent ).toBe( 'account settings' );
-		expect( inlineAction.getAttribute( 'href' ) ).toBe(
+		expect( inlineActions ).toHaveLength( 1 );
+		expect( inlineActions[ 0 ].textContent ).toBe( 'account settings' );
+		expect( inlineActions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
 		);
 
@@ -114,10 +122,16 @@ describe( 'AccountActionMessage', () => {
 		} );
 
 		expect( container.textContent ).toContain(
-			'Purchase more credits in your account settings'
+			'Good news—as an early adopter, use coupon code EARLY'
 		);
-		expect( container.textContent ).not.toContain( '<link>' );
-		expect( container.querySelector( 'a' ) ).toBeNull();
+		expect( container.textContent ).not.toContain( '<settingsLink>' );
+		expect(
+			container.querySelectorAll( '.sd-ai-agent-cr-msg-system-action' )
+		).toHaveLength( 1 );
+		expect( container.querySelectorAll( 'a' ) ).toHaveLength( 1 );
+		expect( container.querySelector( 'a' ).textContent ).toBe(
+			'Leave a review'
+		);
 
 		await act( async () => {
 			root.unmount();

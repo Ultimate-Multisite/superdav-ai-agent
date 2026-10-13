@@ -141,6 +141,27 @@ class InstallPluginAbility extends AbstractAbility {
 
 		$plugin_file = $upgrader->plugin_info();
 
+		// Some plugin packages do not populate the upgrader's plugin info. Refresh
+		// the plugin cache and resolve the installed main file from the requested slug.
+		if ( ! is_string( $plugin_file ) || '' === $plugin_file ) {
+			wp_clean_plugins_cache();
+
+			foreach ( get_plugins() as $installed_plugin_file => $_plugin_data ) {
+				if ( strpos( $installed_plugin_file, $slug . '/' ) === 0 || $installed_plugin_file === $slug . '.php' ) {
+					$plugin_file = $installed_plugin_file;
+					break;
+				}
+			}
+		}
+
+		if ( ! is_string( $plugin_file ) || '' === $plugin_file ) {
+			return new WP_Error(
+				'sd_ai_agent_plugin_file_not_resolved',
+				/* translators: %s: plugin slug */
+				sprintf( __( 'Plugin "%s" was installed but its main file could not be resolved. Refresh the Plugins page and try again.', 'superdav-ai-agent' ), $slug )
+			);
+		}
+
 		if ( $activate && $plugin_file ) {
 			$activate_result = activate_plugin( $plugin_file );
 			if ( is_wp_error( $activate_result ) ) {

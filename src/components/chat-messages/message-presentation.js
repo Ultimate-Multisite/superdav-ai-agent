@@ -160,13 +160,13 @@ export function getVisibleMessages( messages ) {
 }
 
 /**
- * Normalize a system message into one shared presentation model.
+ * Normalize a credit diagnostic or system message into one shared presentation model.
  *
- * Structured notices are authoritative. Text matching remains only as a
- * centralized compatibility path for messages created before diagnostics
- * carried a semantic credit-exhaustion reason.
+ * Structured notices and persisted diagnostics are authoritative. Text
+ * matching remains only as a centralized compatibility path for messages
+ * created before diagnostics carried a semantic credit-exhaustion reason.
  *
- * @param {Object} msg       System message.
+ * @param {Object} msg       Chat message.
  * @param {Array}  providers Provider records used to resolve account URLs.
  * @return {{type: 'account_action', notice: Object}|{type: 'system', text: string}}
  *   System-message presentation.
@@ -174,6 +174,13 @@ export function getVisibleMessages( messages ) {
 export function resolveSystemMessagePresentation( msg, providers ) {
 	if ( msg?.notice?.type === 'account_action' ) {
 		return { type: 'account_action', notice: msg.notice };
+	}
+
+	if ( msg?.diagnostic?.reason === 'credit_exhausted' ) {
+		return {
+			type: 'account_action',
+			notice: buildSuperdavCreditNoticeMessage( providers ).notice,
+		};
 	}
 
 	const text = extractText( msg );

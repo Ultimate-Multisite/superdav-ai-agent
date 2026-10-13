@@ -4,28 +4,31 @@ Tags: ai, chatbot, assistant, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.23.0
+Stable tag: 1.24.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A native AI agent for WordPress. Fix, publish, optimise, and run your site from WordPress admin — with the AI provider you choose.
+A native AI agent to build and edit WordPress sites, improve content, manage site work, and automate tasks with your chosen provider.
 
 == Description ==
 
-SD AI Agent is a native AI agent for the WordPress site you already run. Ask it to improve a page, draft content, review SEO opportunities, prepare media, answer questions with site context, or run routine admin work from inside WordPress using natural language.
+SD AI Agent is a native AI agent for building, improving, and operating the WordPress site you already run. Ask it to create or edit pages, draft content, review SEO opportunities, prepare media, answer questions with site context, or run routine admin work using natural language.
 
 Try it at [sdaiagent.com](https://sdaiagent.com), an AI site builder demo site.
 
-You stay in control: choose the included SD AI-managed service or your own compatible WordPress AI provider, decide which tools the agent can use, and require confirmation before consequential actions run.
+You stay in control: choose the included SD AI managed service or your own compatible WordPress AI provider, decide which tools the agent can use, and require confirmation before consequential actions run.
 
-= What it helps you do =
+= Build, improve, and run your WordPress site =
 
+* **Build and edit your site** — create complete pages or individual sections with native Gutenberg blocks, make targeted content changes, prepare media, and apply Global Styles.
 * **Improve content faster** — review pages and posts, find SEO opportunities, draft updates, organise categories and tags, and prepare changes for your approval.
 * **Use your site context** — save preferences and site facts as memory, then search posts, pages, documents, and other indexed knowledge during a conversation.
 * **Publish with fewer handoffs** — work with copy, media, products, comments, settings, and supported plugin tools without jumping between admin screens.
 * **Automate routine work** — schedule prompts or respond to WordPress and WooCommerce events for reports, moderation, reminders, follow-up, and maintenance checks.
 * **Review work before it changes your site** — use read-only or scoped tool profiles, disable tools you do not want available, and approve sensitive actions before they run.
 * **Understand usage** — review conversation history, tool activity, exports, token usage, and estimated provider costs.
+
+Generated pages remain ordinary, editable WordPress content. Block changes use native Gutenberg markup and WordPress revisions instead of introducing a proprietary page format.
 
 = Work where you already work =
 
@@ -130,7 +133,7 @@ Stock-image services run only when requested. They receive the search keyword an
 
 = Which AI providers are supported? =
 
-The included SD AI-managed provider is supported. For local models or other compatible provider endpoints, install [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/) and configure the endpoint in **Settings > Connectors**. Available providers and models depend on the endpoint you configure.
+The included SD AI managed provider is supported. For local models or other compatible provider endpoints, install [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/) and configure the endpoint in **Settings > Connectors**. Available providers and models depend on the endpoint you configure.
 
 = How much does it cost to use? =
 
@@ -162,11 +165,18 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 
 == Screenshots ==
 
-1. Full-page workspace for conversations, session history, folders, search, and exports.
-2. Tools settings for configuring custom tools and controlling agent access.
-3. Provider and safety settings, including confirmation controls for consequential actions.
+1. Full-page chat workspace with session history and transparent ability-call arguments and results.
+2. Custom Tools settings for enabling and configuring HTTP and WordPress action tools.
+3. Model and chat behaviour settings, including provider, model, iteration, and greeting controls.
 
 == Changelog ==
+
+= 1.24.0 =
+Version 1.24.0 - Released on 2026-10-07
+- New: Use native SD Responses tool search, outbound MCP tools, Elementor workflow detection, and saved agent configuration when initializing cloned sites.
+- New: Change page publication status explicitly and apply approved CSV category assignments during commerce content updates.
+- Improved: Elementor editing, provider retries, session titles, managed schema handling, browser tool calls, and long-running job recovery are more reliable.
+- Fix: Recover final agent responses, preserve originating chats during multisite navigation, and reduce false tool-call and diagnostic reports.
 
 = 1.23.0 =
 Version 1.23.0 - Released on 2026-09-06

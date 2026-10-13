@@ -3,7 +3,7 @@ Contributors: superdav42
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.23.0
+Stable tag: 1.24.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,6 +16,11 @@ SD AI Agent Advanced contains the self-hosted administration and developer tools
 Install and activate SD AI Agent first, then install and activate this companion plugin to add advanced abilities such as filesystem mutation, raw database diagnostics, WP-CLI/REST dispatchers, plugin builder workflows, git snapshots, user-management mutations, and benchmark tooling.
 
 == Changelog ==
+
+= 1.24.0 =
+Version 1.24.0 - Released on 2026-10-07
+- New: Use outbound MCP, Elementor workflow, plugin-builder, and approved category-assignment capabilities from the Advanced companion tools.
+- Improved: Filesystem, WP-CLI, REST dispatcher, generated-plugin, browser, and database workflows recover more reliably from long-running or ambiguous jobs.
 
 = 1.23.0 =
 Version 1.23.0 - Released on 2026-09-06

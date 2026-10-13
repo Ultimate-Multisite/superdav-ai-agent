@@ -43,10 +43,10 @@ export default function WidgetLauncher( { onActivate, label: labelOverride } ) {
 		( branding.agentName
 			? sprintf(
 					/* translators: %s: agent display name */
-					__( 'Open %s', 'sd-ai-agent' ),
+					__( 'Open %s', 'superdav-ai-agent' ),
 					branding.agentName
 			  )
-			: __( 'Open AI Agent', 'sd-ai-agent' ) );
+			: __( 'Open AI Agent', 'superdav-ai-agent' ) );
 
 	const { position, moved, handleMouseDown } = useDrag( {
 		storageKey: LAUNCHER_POSITION_STORAGE_KEY,
@@ -109,7 +109,7 @@ export default function WidgetLauncher( { onActivate, label: labelOverride } ) {
 					className={ `${ LAUNCHER_CLASS_NAME }-badge` }
 					aria-label={ sprintf(
 						/* translators: %d: number of alerts */
-						__( '%d alert(s)', 'sd-ai-agent' ),
+						__( '%d alert(s)', 'superdav-ai-agent' ),
 						alertCount
 					) }
 				>

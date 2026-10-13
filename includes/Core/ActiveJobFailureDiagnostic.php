@@ -271,7 +271,7 @@ final class ActiveJobFailureDiagnostic {
 			self::REASON_PROVIDER_TIMEOUT => __( 'The AI provider timed out before finishing. Retry the request shortly.', 'superdav-ai-agent' ),
 			self::REASON_PROVIDER_UNAVAILABLE => __( 'The AI provider is temporarily unavailable. Retry the request shortly. If the problem continues, contact support with the correlation ID.', 'superdav-ai-agent' ),
 			self::REASON_GATEWAY_REJECTION => __( 'The AI request was rejected by an upstream security gateway. Verify that the provider endpoint is allowed by your hosting or network policy, then retry. If it continues, contact support with the correlation ID.', 'superdav-ai-agent' ),
-			self::REASON_CREDIT_EXHAUSTED => __( 'Your Superdav account needs more credits to continue. Purchase credits in your account settings.', 'superdav-ai-agent' ),
+			self::REASON_CREDIT_EXHAUSTED => __( 'Good news—as an early adopter, you can use coupon code EARLY in your account settings to claim $200 in AI usage credits. We only ask that you please leave a review.', 'superdav-ai-agent' ),
 			self::REASON_WORKER_TERMINATED => __( 'The background worker stopped before the job could finish. Retry the job or start a continuation from the saved conversation.', 'superdav-ai-agent' ),
 			self::REASON_APPROVAL_WAIT => __( 'This job is waiting for approval before it can continue.', 'superdav-ai-agent' ),
 			self::REASON_APPROVAL_EXPIRED => __( 'The pending approval expired before it could be completed. Review the conversation and start a continuation.', 'superdav-ai-agent' ),

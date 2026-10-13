@@ -8,6 +8,7 @@
  * Annotated readonly: true because it does not mutate site data.
  */
 
+import apiFetch from '@wordpress/api-fetch';
 import { registerClientAbility } from './registry';
 
 /**
@@ -17,18 +18,38 @@ import { registerClientAbility } from './registry';
  * @param {string} args.path wp-admin-relative path (e.g. "plugins.php").
  * @return {{ navigated: boolean, path: string }} Navigation result.
  */
-function executeNavigateTo( args ) {
+async function executeNavigateTo( args ) {
+	// A refused navigation or link must not reuse an earlier deferred target.
+	delete window._sdAiAgentPendingNavigation;
 	const path = args?.path || '';
 	const url = args?.url || '';
 	if ( ! path && ! url ) {
 		return { navigated: false, path: '' };
 	}
 
-	const target = new URL(
-		url || '/wp-admin/' + path.replace( /^\//, '' ),
-		location.origin
-	);
-	if ( target.origin !== location.origin ) {
+	const validated = await apiFetch( {
+		path: '/wp-abilities/v1/abilities/sd-ai-agent/navigate/run',
+		method: 'POST',
+		data: {
+			input: {
+				...( url ? { url } : { path } ),
+				...( args?.blog_id ? { blog_id: args.blog_id } : {} ),
+			},
+		},
+	} );
+	if ( validated.action === 'link' ) {
+		return {
+			navigated: false,
+			path,
+			url: validated.url,
+			message: validated.message,
+		};
+	}
+	const target = new URL( validated.url );
+	if (
+		validated.action !== 'navigate' ||
+		target.origin !== location.origin
+	) {
 		throw new Error( 'Invalid URL.' );
 	}
 
@@ -60,7 +81,8 @@ export async function registerNavigationAbility() {
 	await registerClientAbility( {
 		name: 'sd-ai-agent-js/navigate-to',
 		label: 'Navigate',
-		description: 'Navigate in the browser.',
+		description:
+			'Navigate within the current site. Other blogs return a validated link for the user to open in a new tab, preserving this chat.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -72,6 +94,11 @@ export async function registerNavigationAbility() {
 				url: {
 					type: 'string',
 				},
+				blog_id: {
+					type: 'integer',
+					description:
+						'Known target blog ID, used with an admin-relative path.',
+				},
 			},
 			anyOf: [ { required: [ 'path' ] }, { required: [ 'url' ] } ],
 		},
@@ -80,6 +107,8 @@ export async function registerNavigationAbility() {
 			properties: {
 				navigated: { type: 'boolean' },
 				path: { type: 'string' },
+				url: { type: 'string' },
+				message: { type: 'string' },
 			},
 		},
 		annotations: { readonly: true },

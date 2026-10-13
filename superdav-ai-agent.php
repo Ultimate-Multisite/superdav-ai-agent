@@ -3,7 +3,7 @@
  * Plugin Name: SD AI Agent
  * Plugin URI:  https://sdaiagent.com
  * Description: Agentic AI loop for WordPress — chat with an AI that can call WordPress abilities (tools) autonomously.
- * Version:     1.23.0
+ * Version:     1.24.0
  * Author:      superdav42
  * Author URI:  https://github.com/superdav42
  * License:     GPL-2.0-or-later
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SD_AI_AGENT_VERSION', '1.23.0' );
+define( 'SD_AI_AGENT_VERSION', '1.24.0' );
 define( 'SD_AI_AGENT_DIR', __DIR__ );
 
 // Allow the plugin to load from a symlinked path. Without this, WordPress

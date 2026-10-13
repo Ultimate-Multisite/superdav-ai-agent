@@ -84,12 +84,12 @@ function RoleRow( { roleSlug, roleLabel, config, abilities, onChange } ) {
 			<div className="sdaa-role-header">
 				<h3 className="sdaa-role-name">{ roleLabel }</h3>
 				<ToggleControl
-					label={ __( 'Chat Access', 'sd-ai-agent' ) }
+					label={ __( 'Chat Access', 'superdav-ai-agent' ) }
 					checked={ chatAccess }
 					onChange={ handleChatToggle }
 					help={ __(
 						'Allow this role to use the AI chat.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 					__nextHasNoMarginBottom
 				/>
@@ -100,13 +100,13 @@ function RoleRow( { roleSlug, roleLabel, config, abilities, onChange } ) {
 					<ToggleControl
 						label={ __(
 							'All abilities (unrestricted)',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						checked={ allAllowed }
 						onChange={ handleAllAbilitiesToggle }
 						help={ __(
 							'When enabled, this role can use all available abilities. Disable to select specific abilities.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
@@ -116,7 +116,7 @@ function RoleRow( { roleSlug, roleLabel, config, abilities, onChange } ) {
 							<p className="description">
 								{ __(
 									'Select which abilities this role can use:',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 								) }
 							</p>
 							{ abilities.map( ( ability ) => (
@@ -175,7 +175,7 @@ export default function RolePermissionsManager() {
 					status: 'error',
 					message: __(
 						'Failed to load role permissions.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					),
 				} );
 			} )
@@ -198,14 +198,14 @@ export default function RolePermissionsManager() {
 			setPermissions( result.permissions || {} );
 			setNotice( {
 				status: 'success',
-				message: __( 'Role permissions saved.', 'sd-ai-agent' ),
+				message: __( 'Role permissions saved.', 'superdav-ai-agent' ),
 			} );
 		} catch {
 			setNotice( {
 				status: 'error',
 				message: __(
 					'Failed to save role permissions.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		}
@@ -235,7 +235,7 @@ export default function RolePermissionsManager() {
 			<p className="description">
 				{ __(
 					'Configure which WordPress user roles can access the AI chat and which abilities are available per role. Administrators always have full access.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }
 			</p>
 
@@ -244,7 +244,7 @@ export default function RolePermissionsManager() {
 					<em>
 						{ __(
 							'Always allowed (cannot be restricted):',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }{ ' ' }
 						{ alwaysAllowed.join( ', ' ) }
 					</em>
@@ -273,7 +273,7 @@ export default function RolePermissionsManager() {
 					isBusy={ saving }
 					disabled={ saving }
 				>
-					{ __( 'Save Permissions', 'sd-ai-agent' ) }
+					{ __( 'Save Permissions', 'superdav-ai-agent' ) }
 				</Button>
 			</div>
 		</div>

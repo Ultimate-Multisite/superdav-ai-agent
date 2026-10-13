@@ -123,12 +123,12 @@ export default function SessionChangesBar() {
 			revertedCount === 1
 				? sprintf(
 						/* translators: %d: number of changes reverted */
-						__( '%d change reverted.', 'sd-ai-agent' ),
+						__( '%d change reverted.', 'superdav-ai-agent' ),
 						revertedCount
 				  )
 				: sprintf(
 						/* translators: %d: number of changes reverted */
-						__( '%d changes reverted.', 'sd-ai-agent' ),
+						__( '%d changes reverted.', 'superdav-ai-agent' ),
 						revertedCount
 				  );
 
@@ -143,7 +143,7 @@ export default function SessionChangesBar() {
 					onClick={ () => setDismissed( true ) }
 					size="small"
 				>
-					{ __( 'Dismiss', 'sd-ai-agent' ) }
+					{ __( 'Dismiss', 'superdav-ai-agent' ) }
 				</Button>
 			</div>
 		);
@@ -156,24 +156,24 @@ export default function SessionChangesBar() {
 		changes.length === 1
 			? sprintf(
 					/* translators: %d: number of AI-made changes in this session */
-					__( '%d change made', 'sd-ai-agent' ),
+					__( '%d change made', 'superdav-ai-agent' ),
 					changes.length
 			  )
 			: sprintf(
 					/* translators: %d: number of AI-made changes in this session */
-					__( '%d changes made', 'sd-ai-agent' ),
+					__( '%d changes made', 'superdav-ai-agent' ),
 					changes.length
 			  );
 
 	let revertButtonLabel;
 	if ( reverting ) {
-		revertButtonLabel = __( 'Reverting\u2026', 'sd-ai-agent' );
+		revertButtonLabel = __( 'Reverting\u2026', 'superdav-ai-agent' );
 	} else if ( changes.length === 1 ) {
-		revertButtonLabel = __( 'Revert', 'sd-ai-agent' );
+		revertButtonLabel = __( 'Revert', 'superdav-ai-agent' );
 	} else {
 		revertButtonLabel = sprintf(
 			/* translators: %d: number of changes to revert */
-			__( 'Revert all (%d)', 'sd-ai-agent' ),
+			__( 'Revert all (%d)', 'superdav-ai-agent' ),
 			changes.length
 		);
 	}
@@ -198,7 +198,7 @@ export default function SessionChangesBar() {
 					className="sdaa-changes-bar__view-link"
 					size="small"
 				>
-					{ __( 'View changes \u2197', 'sd-ai-agent' ) }
+					{ __( 'View changes \u2197', 'superdav-ai-agent' ) }
 				</Button>
 			</div>
 		</div>

@@ -56,6 +56,7 @@ export default function MessageList( { voiceConversation } ) {
 			liveToolCalls: store.getLiveToolCalls(),
 			sessionJobs: store.getSessionJobs(),
 			greeting:
+				store.getSelectedAgent()?.greeting ||
 				settings?.greeting_message ||
 				__(
 					'Ask the agent to make a change, write a post, or audit your site.',

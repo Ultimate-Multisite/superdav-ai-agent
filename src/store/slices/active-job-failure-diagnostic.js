@@ -156,7 +156,7 @@ export function getActiveJobFailureMessage( diagnostic ) {
 			);
 		case 'credit_exhausted':
 			return __(
-				'Your Superdav account needs more credits to continue. Purchase credits in your account settings.',
+				'Good news—as an early adopter, you can use coupon code EARLY in your account settings to claim $200 in AI usage credits. We only ask that you please leave a review.',
 				'superdav-ai-agent'
 			);
 		case 'worker_terminated':

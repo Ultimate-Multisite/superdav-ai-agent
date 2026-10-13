@@ -2,6 +2,12 @@
 
 The design language for this plugin is **modern WordPress Admin** — clean, minimal, and immediately familiar to anyone who uses wp-admin daily. Every decision should reduce visual noise, guide the user's eye to what matters, and feel like a natural extension of WordPress rather than a foreign product dropped inside it.
 
+### Initial greeting language
+
+- Built-in factory greetings are translated when requested, using the WordPress user's language and falling back to the site language. PHP language packs must be installed for the selected locale; unavailable translations retain WordPress's source-language fallback.
+- The main chat and compact widget prefer the selected agent's greeting. Custom agent and branding greetings remain authored content and are not automatically rewritten.
+- AI-generated onboarding introductions and suggestion chips use the same user/site language preference, unless the user asks for another language. This does not change the site's content language.
+
 ---
 
 ## 1. Visual Theme & Atmosphere

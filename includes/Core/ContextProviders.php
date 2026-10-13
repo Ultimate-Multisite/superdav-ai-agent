@@ -291,6 +291,7 @@ class ContextProviders {
 			} else {
 				$data['New Subsite Convention'] = 'Use a subdirectory like "/<slug>/". For multisite-ultimate/site-create-item, pass `path: "/<slug>/"`.';
 			}
+			$data['Target Site Admin Links'] = 'After site creation, use the returned blog ID with sd-ai-agent/navigate {blog_id, path: "plugins.php"} to obtain the authoritative target admin link. Never append a subsite path to the current wp-admin URL. Cross-blog links must be user-operated in a new tab; keep this chat on its originating site. If the response does not identify the created blog, explain that instead of guessing a URL.';
 		}
 
 		return $data;

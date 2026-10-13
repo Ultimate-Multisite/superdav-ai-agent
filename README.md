@@ -15,6 +15,35 @@ SD AI Agent is your AI teammate for the WordPress site you already run. Ask one 
 
 Try it at [sdaiagent.com](https://sdaiagent.com), an AI site builder demo site.
 
+## Build and edit WordPress sites with AI
+
+SD AI Agent covers the familiar AI website-builder workflow, then stays useful after the first draft. Describe the result you want in chat and the agent can:
+
+- Generate complete pages or individual sections as native Gutenberg blocks
+- Rewrite a heading, button, paragraph, or larger section without replacing the rest of the page
+- Create layouts with groups, columns, covers, buttons, patterns, and registered third-party blocks
+- Find stock images or generate new images, add them to the media library, and place them in content
+- Apply site-wide colours, typography, spacing, and element styles through WordPress Global Styles
+- Build and validate complete block themes with SD AI Agent Advanced
+
+The result remains ordinary WordPress content. Pages use editable blocks, changes use WordPress revisions, and generated themes use standard `theme.json`, templates, parts, patterns, and style variations. You do not need to keep an AI service connected to edit the result.
+
+### More than a website builder
+
+AI website building is one part of the agent, not a separate workflow you discard after launch. SD AI Agent can continue working across the site you already have:
+
+| Need | SD AI Agent approach |
+|------|----------------------|
+| **AI page building** | Generate pages and sections, make targeted block edits, manage Global Styles, and validate block markup before it is saved |
+| **Existing-site work** | Improve content, manage media and navigation, review SEO, prepare products, inspect site health, and work with installed plugins |
+| **Model choice** | Use the managed Superdav AI service, bring your own provider key, connect an OpenAI-compatible endpoint, or run a local model |
+| **Extensibility** | Discover tools registered through the WordPress Abilities API instead of relying on a fixed list of supported integrations |
+| **Ongoing assistance** | Keep reusable skills, site memory, searchable knowledge, custom agents, and conversation history |
+| **Automation** | Run scheduled and event-driven agent tasks with execution logs and usage tracking |
+| **Change safety** | Require confirmation for destructive tools, preserve WordPress capability checks, preview supported edits, and reject invalid or stale block changes |
+
+This makes SD AI Agent useful as both an AI site builder and an ongoing WordPress operator. It works with native WordPress data and APIs rather than introducing a proprietary page format.
+
 ## How it works
 
 WordPress 7.0 introduced two core APIs that make this possible:

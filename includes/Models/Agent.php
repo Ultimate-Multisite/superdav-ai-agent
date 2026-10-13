@@ -656,7 +656,8 @@ class Agent {
 			'tool_profile'             => $agent->tool_profile,
 			'temperature'              => $agent->temperature,
 			'max_iterations'           => $agent->max_iterations,
-			'greeting'                 => $agent->greeting,
+			'greeting'                 => self::get_localized_greeting( $agent ),
+			'stored_greeting'          => $agent->greeting,
 			'avatar_icon'              => $agent->avatar_icon,
 			'tier_1_tools'             => $agent->tier_1_tools,
 			'suggestions'              => $agent->suggestions,
@@ -667,6 +668,58 @@ class Agent {
 			'created_at'               => $agent->created_at,
 			'updated_at'               => $agent->updated_at,
 		];
+	}
+
+	/**
+	 * Translate factory greetings at request time, without rewriting custom copy.
+	 *
+	 * Older installs persisted the greeting in the installation locale. Match
+	 * English, site-language and user-language defaults before translating it.
+	 * Custom greetings (including managed customer profiles) remain unchanged.
+	 *
+	 * @param AgentRow $agent Agent whose greeting is being displayed.
+	 * @return string
+	 */
+	public static function get_localized_greeting( AgentRow $agent ): string {
+		if ( ! $agent->is_builtin || self::is_managed_customer_profile( $agent ) ) {
+			return $agent->greeting;
+		}
+
+		$source = self::get_factory_greeting( $agent->slug, 'en_US' );
+		if ( null === $source ) {
+			return $agent->greeting;
+		}
+
+		$localized = self::get_factory_greeting( $agent->slug, get_user_locale() );
+		$site      = self::get_factory_greeting( $agent->slug, get_locale() );
+		if ( in_array( $agent->greeting, array( $source, $localized, $site ), true ) ) {
+			return $localized ?? $agent->greeting;
+		}
+
+		return $agent->greeting;
+	}
+
+	/**
+	 * Look up a factory greeting in a locale and restore the caller's locale.
+	 *
+	 * @param string $slug   Built-in agent slug.
+	 * @param string $locale WordPress locale.
+	 * @return string|null
+	 */
+	private static function get_factory_greeting( string $slug, string $locale ): ?string {
+		$switched = switch_to_locale( $locale );
+		try {
+			foreach ( self::get_builtin_definitions() as $definition ) {
+				if ( $slug === $definition['slug'] ) {
+					return (string) $definition['greeting'];
+				}
+			}
+			return null;
+		} finally {
+			if ( $switched ) {
+				restore_previous_locale();
+			}
+		}
 	}
 
 	// ─── Seeding ──────────────────────────────────────────────────────────

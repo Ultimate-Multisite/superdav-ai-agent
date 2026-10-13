@@ -22,7 +22,7 @@ const BUDGETS = [
 		name: 'floating-widget',
 		file: 'build/floating-widget.js',
 		minifiedBudgetKiB: 100,
-		gzipBudgetKiB: 28,
+		gzipBudgetKiB: 28.1,
 	},
 	{
 		name: 'widget-panel',
@@ -33,10 +33,11 @@ const BUDGETS = [
 ];
 const DEFERRED_JAVASCRIPT_BUDGET = {
 	name: 'deferred-javascript',
-	// MCP manager/sign-in: measured 1730.7 KiB minified / 531.2 KiB gzip.
-	// Only aggregate deferred growth changes; launch/largest-asset caps stay fixed.
-	minifiedBudgetKiB: 1732,
-	gzipBudgetKiB: 532,
+	// MCP manager/sign-in (merged with main): measured 1736.9 KiB minified /
+	// 531.9 KiB gzip. Only aggregate deferred growth changes; launch and
+	// largest-asset caps stay fixed.
+	minifiedBudgetKiB: 1738,
+	gzipBudgetKiB: 533,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,
 };

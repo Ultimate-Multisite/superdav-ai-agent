@@ -39,23 +39,29 @@ class JsAbilityCatalog {
 			array(
 				'name'          => 'sd-ai-agent-js/navigate-to',
 				'label'         => 'Navigate to Admin Page',
-				'description'   => 'Navigate to a WordPress admin page without a full page reload when inside the admin SPA.',
+				'description'   => 'Navigate within the current site after posting the tool result. Other blogs return a validated link for the user to open in a new tab, preserving this chat.',
 				'category'      => 'sd-ai-agent-js',
 				'input_schema'  => array(
 					'type'       => 'object',
 					'properties' => array(
-						'path' => array(
+						'path'    => array(
 							'type'        => 'string',
 							'description' => 'wp-admin-relative path, e.g. "plugins.php" or "edit.php?post_type=page".',
 						),
+						'url'     => array( 'type' => 'string' ),
+						'blog_id' => array(
+							'type'        => 'integer',
+							'description' => 'Known target blog ID, used with an admin-relative path.',
+						),
 					),
-					'required'   => array( 'path' ),
 				),
 				'output_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
 						'navigated' => array( 'type' => 'boolean' ),
 						'path'      => array( 'type' => 'string' ),
+						'url'       => array( 'type' => 'string' ),
+						'message'   => array( 'type' => 'string' ),
 					),
 				),
 				'annotations'   => array(

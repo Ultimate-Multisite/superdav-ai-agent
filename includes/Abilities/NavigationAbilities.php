@@ -33,7 +33,7 @@ class NavigationAbilities {
 			'sd-ai-agent/navigate',
 			[
 				'label'       => __( 'Navigate', 'superdav-ai-agent' ),
-				'description' => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'superdav-ai-agent' ),
+				'description' => __( 'Navigate within the current site. Use a known blog ID and an admin-relative path for target-site admin links. Other blogs return a link for the user to open in a new tab, preserving the current chat.', 'superdav-ai-agent' ),
 			]
 		);
 		// @phpstan-ignore-next-line
@@ -70,7 +70,7 @@ class NavigationAbilities {
 			'sd-ai-agent/navigate',
 			[
 				'label'         => __( 'Navigate', 'superdav-ai-agent' ),
-				'description'   => __( 'Navigate the user to a URL within the WordPress site. The URL must be within the current site. This will reload the page.', 'superdav-ai-agent' ),
+				'description'   => __( 'Navigate within the current site. Use a known blog ID and an admin-relative path for target-site admin links. Other blogs return a link for the user to open in a new tab, preserving the current chat.', 'superdav-ai-agent' ),
 				'ability_class' => NavigateAbility::class,
 			]
 		);

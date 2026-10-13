@@ -59,6 +59,12 @@ final class ThirdPartyAbilityNoticeHandler {
 			return;
 		}
 
+		// Legacy classification never returns private-unknown. Avoid initializing
+		// the entire ability registry (and its schemas) for an impossible notice.
+		if ( 'legacy' === Settings::get_third_party_mode() ) {
+			return;
+		}
+
 		$unclassified = self::get_unclassified_by_namespace();
 		if ( empty( $unclassified ) ) {
 			return;

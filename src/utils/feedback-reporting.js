@@ -101,6 +101,32 @@ export function toolCallsContainFailure( toolCalls ) {
 }
 
 /**
+ * Resolve a concrete reason suitable for an automatic feedback report.
+ *
+ * A normal completed job can have no exit reason. Do not turn an absent or
+ * indeterminate detector result into a feedback record, even when automatic
+ * reporting has been enabled.
+ *
+ * @param {Object} failure Detected failure metadata.
+ * @return {string} Concrete failure reason, or an empty string when unavailable.
+ */
+export function getAutomaticFeedbackFailureReason( failure ) {
+	const reasons = [ failure?.reason, failure?.exitReason ];
+	for ( const failureReason of reasons ) {
+		if ( typeof failureReason !== 'string' ) {
+			continue;
+		}
+
+		const reason = failureReason.trim();
+		if ( reason && 'unknown' !== reason.toLowerCase() ) {
+			return reason;
+		}
+	}
+
+	return '';
+}
+
+/**
  * Submit one sanitized automatic feedback report.
  *
  * Concurrent mounts can observe the same store event. Reuse the in-flight
@@ -111,7 +137,11 @@ export function toolCallsContainFailure( toolCalls ) {
  * @return {Promise<*>} Feedback endpoint response.
  */
 export function submitAutomaticFeedback( sessionId, failure ) {
-	const failureReason = failure?.reason || failure?.exitReason || 'job_error';
+	const failureReason = getAutomaticFeedbackFailureReason( failure );
+	if ( ! failureReason ) {
+		return Promise.resolve( null );
+	}
+
 	const eventKey = `${ sessionId }:${ failure?.eventId || failureReason }`;
 	if ( pendingReports.has( eventKey ) ) {
 		return pendingReports.get( eventKey );

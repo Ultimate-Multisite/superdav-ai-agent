@@ -9,7 +9,8 @@ declare(strict_types=1);
  * the familiar WP-CLI syntax without spawning a shell or external binary.
  *
  * Security layers:
- *   1. Top-level command blocklist (db, eval, shell, config, core, …)
+ *   1. Top-level command blocklist (db, eval, shell, config, core, …), with a
+ *      narrow read-only exception for native core checksum verification
  *   2. Sub-command blocklist (site delete, plugin install, …)
  *   3. Permission classification (read → manage_options, write → manage_options,
  *      destructive → manage_network)
@@ -55,6 +56,15 @@ class WpCliAbilities {
 		'eval-file',
 		'search-replace',
 		'scaffold',
+	);
+
+	/**
+	 * Exact native commands allowed within an otherwise blocked command group.
+	 *
+	 * @var string[]
+	 */
+	private const BLOCKED_COMMAND_EXCEPTIONS = array(
+		'core verify-checksums',
 	);
 
 	/**
@@ -114,6 +124,7 @@ class WpCliAbilities {
 		'pluck',
 		'supports',
 		'verify',
+		'verify-checksums',
 		'info',
 		'describe',
 		'diff',
@@ -215,6 +226,7 @@ class WpCliAbilities {
 				'  plugin list --status=active --format=json',
 				'  user list --role=administrator --format=json',
 				'  site list --format=json',
+				'  core verify-checksums --include-root',
 				'  post create --post_title="Hello World" --post_status=publish',
 				'  option update blogdescription "My new tagline"',
 				'',
@@ -222,7 +234,7 @@ class WpCliAbilities {
 				'- Use --format=json for structured data when the command supports it.',
 				'- For multisite, add --url=<site-url> to target a specific site.',
 				'- Commands that modify data require write permissions.',
-				'- Implemented command paths: post list/create, option get/list/update, plugin list, user list, site list.',
+				'- Implemented command paths: post list/create, option get/list/update, plugin list, user list, site list, core verify-checksums.',
 				'- Dangerous or unsupported commands are blocked or return unsupported_command; no shell, eval, raw SQL mutation, or external wp binary is used.',
 			)
 		);
@@ -473,7 +485,10 @@ class WpCliAbilities {
 		 */
 		$blocklist = (array) apply_filters( 'sd_ai_agent_wp_cli_blocklist', self::BLOCKED_COMMANDS );
 
-		if ( in_array( $top_level, $blocklist, true ) ) {
+		if (
+			in_array( $top_level, $blocklist, true )
+			&& ! in_array( $command_path, self::BLOCKED_COMMAND_EXCEPTIONS, true )
+		) {
 			return true;
 		}
 
@@ -518,10 +533,9 @@ class WpCliAbilities {
 	 * Check if the current user has the strictest cap set required to
 	 * use the wp-cli/execute dispatcher.
 	 *
-	 * The dispatcher shells out to the `wp` binary via PHP `exec()` and
-	 * can run arbitrary WP-CLI subcommands (subject to the
-	 * BLOCKED_COMMANDS / BLOCKED_SUBCOMMANDS allowlist). We therefore
-	 * enforce the same cap set as `sd-ai-agent/run-php`:
+	 * The dispatcher exposes a broad set of WordPress operations through native
+	 * handlers (subject to the BLOCKED_COMMANDS / BLOCKED_SUBCOMMANDS policy).
+	 * We therefore enforce the same cap set as `sd-ai-agent/run-php`:
 	 * `manage_options` AND `update_core` AND `unfiltered_html`. These
 	 * three caps are individually revocable via role-management
 	 * plugins, and an administrator who loses any one of them
@@ -619,6 +633,8 @@ class WpCliAbilities {
 				return self::handle_user_list( $tokens, $positionals );
 			case 'site list':
 				return self::handle_site_list( $tokens, $positionals );
+			case 'core verify-checksums':
+				return self::handle_core_verify_checksums( $tokens, $positionals );
 		}
 
 		return self::unsupported_command_error( $command_path );
@@ -631,14 +647,15 @@ class WpCliAbilities {
 	 */
 	private static function native_command_registry(): array {
 		return array(
-			'post list'     => 'handle_post_list',
-			'post create'   => 'handle_post_create',
-			'option get'    => 'handle_option_get',
-			'option list'   => 'handle_option_list',
-			'option update' => 'handle_option_update',
-			'plugin list'   => 'handle_plugin_list',
-			'user list'     => 'handle_user_list',
-			'site list'     => 'handle_site_list',
+			'post list'             => 'handle_post_list',
+			'post create'           => 'handle_post_create',
+			'option get'            => 'handle_option_get',
+			'option list'           => 'handle_option_list',
+			'option update'         => 'handle_option_update',
+			'plugin list'           => 'handle_plugin_list',
+			'user list'             => 'handle_user_list',
+			'site list'             => 'handle_site_list',
+			'core verify-checksums' => 'handle_core_verify_checksums',
 		);
 	}
 
@@ -728,6 +745,24 @@ class WpCliAbilities {
 				'implemented_command_set' => array_keys( self::native_command_registry() ),
 			)
 		);
+	}
+
+	/**
+	 * Handle the narrow read-only `wp core verify-checksums` exception.
+	 *
+	 * @param string[] $tokens      Tokenized command arguments.
+	 * @param string[] $positionals Positional command arguments.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function handle_core_verify_checksums( array $tokens, array $positionals ) {
+		if ( 2 !== count( $positionals ) ) {
+			return self::usage_error(
+				'core verify-checksums',
+				'core verify-checksums [--include-root] [--version=<version>] [--locale=<locale>] [--exclude=<files>]'
+			);
+		}
+
+		return CoreChecksumVerifier::verify( self::assoc_args( $tokens ) );
 	}
 
 	/**

@@ -15,7 +15,7 @@ const container = document.getElementById( 'sdaa-settings-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render(
-		<ErrorBoundary label={ __( 'Settings', 'sd-ai-agent' ) }>
+		<ErrorBoundary label={ __( 'Settings', 'superdav-ai-agent' ) }>
 			<SettingsApp />
 		</ErrorBoundary>
 	);

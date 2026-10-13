@@ -248,6 +248,14 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$params['max_output_tokens'] = $max_tokens;
 		}
 
+		if ( 'application/json' === $config->getOutputMimeType() ) {
+			$schema         = $config->getOutputSchema();
+			$format         = null === $schema
+				? array( 'type' => 'json_object' )
+				: array_merge( array( 'type' => 'json_schema' ), SuperdavAiProvider::output_schema_envelope( $schema ) );
+			$params['text'] = array( 'format' => $format );
+		}
+
 		$temperature = $config->getTemperature();
 		if ( null !== $temperature ) {
 			$params['temperature'] = $temperature;

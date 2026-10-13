@@ -207,6 +207,10 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 			ActiveJobFailureDiagnostic::REASON_UNKNOWN,
 			ActiveJobFailureDiagnostic::reason_from_error( $error, 'other-provider' )
 		);
+
+		$message = ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_CREDIT_EXHAUSTED );
+		$this->assertStringContainsString( 'EARLY', $message );
+		$this->assertStringContainsString( '$200', $message );
 	}
 
 	public function test_retry_exhaustion_uses_underlying_safe_error_code_without_assuming_timeout(): void {

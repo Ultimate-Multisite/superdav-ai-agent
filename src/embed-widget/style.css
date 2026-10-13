@@ -276,11 +276,27 @@
 	text-underline-offset: 2px;
 }
 
+.sd-ai-agent-embed-credit-code {
+	padding: 1px 5px;
+	border: 1px solid var(--sdaa-embed-border);
+	border-radius: 4px;
+	background: var(--sdaa-embed-surface);
+	color: var(--sdaa-embed-primary);
+	font-weight: 700;
+}
+
+.sd-ai-agent-embed-credit-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
 .sd-ai-agent-embed-credit-action {
 	display: block;
 	width: fit-content;
-	margin-top: 10px;
 	padding: 6px 12px;
+	border: 1px solid var(--sdaa-embed-primary);
 	border-radius: 999px;
 	background: var(--sdaa-embed-primary);
 	color: #fff;
@@ -292,6 +308,16 @@
 .sd-ai-agent-embed-credit-action:focus {
 	color: #fff;
 	text-decoration: none;
+}
+
+.sd-ai-agent-embed-credit-action--secondary {
+	background: var(--sdaa-embed-surface);
+	color: var(--sdaa-embed-primary);
+}
+
+.sd-ai-agent-embed-credit-action--secondary:hover,
+.sd-ai-agent-embed-credit-action--secondary:focus {
+	color: var(--sdaa-embed-primary);
 }
 
 .sdaa-embed__input {

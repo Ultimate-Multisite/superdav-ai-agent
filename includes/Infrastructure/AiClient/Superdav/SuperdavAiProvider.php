@@ -134,6 +134,27 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 	}
 
 	/**
+	 * Wrap an SDK-owned raw schema without changing its validation contract.
+	 *
+	 * Both managed endpoints require a name/schema/strict envelope. Preserve
+	 * callers' already-wrapped envelopes, including an explicit strict=false.
+	 * The caller owns schema validity (including additionalProperties), not us.
+	 *
+	 * @param array<string, mixed> $schema Raw schema or an API envelope.
+	 * @return array<string, mixed>
+	 */
+	public static function output_schema_envelope( array $schema ): array {
+		if ( isset( $schema['name'], $schema['schema'] ) && is_string( $schema['name'] ) && is_array( $schema['schema'] ) ) {
+			return $schema;
+		}
+		return array(
+			'name'   => 'sd_ai_output',
+			'schema' => $schema,
+			'strict' => true,
+		);
+	}
+
+	/**
 	 * Create a model instance for the provider.
 	 *
 	 * @param ModelMetadata    $model_metadata    Model metadata.

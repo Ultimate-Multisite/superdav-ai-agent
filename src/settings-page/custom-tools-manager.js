@@ -15,9 +15,9 @@ import { trash, pencil, plus, seen } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 
 const TOOL_TYPES = [
-	{ label: __( 'HTTP Request', 'sd-ai-agent' ), value: 'http' },
-	{ label: __( 'WordPress Action', 'sd-ai-agent' ), value: 'action' },
-	{ label: __( 'WP-CLI Command', 'sd-ai-agent' ), value: 'cli' },
+	{ label: __( 'HTTP Request', 'superdav-ai-agent' ), value: 'http' },
+	{ label: __( 'WordPress Action', 'superdav-ai-agent' ), value: 'action' },
+	{ label: __( 'WP-CLI Command', 'superdav-ai-agent' ), value: 'cli' },
 ];
 
 const HTTP_METHODS = [
@@ -123,13 +123,14 @@ export default function CustomToolsManager() {
 			fetchTools();
 			setNotice( {
 				status: 'success',
-				message: __( 'Tool saved.', 'sd-ai-agent' ),
+				message: __( 'Tool saved.', 'superdav-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
 				message:
-					err.message || __( 'Failed to save tool.', 'sd-ai-agent' ),
+					err.message ||
+					__( 'Failed to save tool.', 'superdav-ai-agent' ),
 			} );
 		}
 	}, [ form, editId, resetForm, fetchTools ] );
@@ -154,7 +155,7 @@ export default function CustomToolsManager() {
 			if (
 				// eslint-disable-next-line no-alert
 				window.confirm(
-					__( 'Delete this custom tool?', 'sd-ai-agent' )
+					__( 'Delete this custom tool?', 'superdav-ai-agent' )
 				)
 			) {
 				await apiFetch( {
@@ -204,24 +205,27 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<SelectControl
-							label={ __( 'HTTP Method', 'sd-ai-agent' ) }
+							label={ __( 'HTTP Method', 'superdav-ai-agent' ) }
 							value={ cfg.method || 'GET' }
 							options={ HTTP_METHODS }
 							onChange={ ( v ) => updateConfig( 'method', v ) }
 							__nextHasNoMarginBottom
 						/>
 						<TextControl
-							label={ __( 'URL', 'sd-ai-agent' ) }
+							label={ __( 'URL', 'superdav-ai-agent' ) }
 							value={ cfg.url || '' }
 							onChange={ ( v ) => updateConfig( 'url', v ) }
 							help={ __(
 								'Use {{param}} placeholders for dynamic values.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 						<TextareaControl
-							label={ __( 'Headers (JSON)', 'sd-ai-agent' ) }
+							label={ __(
+								'Headers (JSON)',
+								'superdav-ai-agent'
+							) }
 							value={
 								typeof cfg.headers === 'object'
 									? JSON.stringify( cfg.headers, null, 2 )
@@ -231,13 +235,13 @@ export default function CustomToolsManager() {
 							rows={ 3 }
 						/>
 						<TextareaControl
-							label={ __( 'Body Template', 'sd-ai-agent' ) }
+							label={ __( 'Body Template', 'superdav-ai-agent' ) }
 							value={ cfg.body || '' }
 							onChange={ ( v ) => updateConfig( 'body', v ) }
 							rows={ 3 }
 							help={ __(
 								'Use {{param}} placeholders. Leave empty for GET requests.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 						/>
 					</>
@@ -247,13 +251,13 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<TextControl
-							label={ __( 'Hook Name', 'sd-ai-agent' ) }
+							label={ __( 'Hook Name', 'superdav-ai-agent' ) }
 							value={ cfg.hook_name || '' }
 							onChange={ ( v ) => updateConfig( 'hook_name', v ) }
 							placeholder="my_custom_action"
 							help={ __(
 								'The WordPress action hook to call via do_action().',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
@@ -264,13 +268,16 @@ export default function CustomToolsManager() {
 				return (
 					<>
 						<TextControl
-							label={ __( 'WP-CLI Command', 'sd-ai-agent' ) }
+							label={ __(
+								'WP-CLI Command',
+								'superdav-ai-agent'
+							) }
 							value={ cfg.command || '' }
 							onChange={ ( v ) => updateConfig( 'command', v ) }
 							placeholder="cache flush"
 							help={ __(
 								'Command to run (without the "wp" prefix). Use {{param}} placeholders.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
@@ -286,11 +293,11 @@ export default function CustomToolsManager() {
 		<div className="sdaa-custom-tools-manager">
 			<div className="sdaa-skill-header">
 				<div>
-					<h3>{ __( 'Custom Tools', 'sd-ai-agent' ) }</h3>
+					<h3>{ __( 'Custom Tools', 'superdav-ai-agent' ) }</h3>
 					<p className="description">
 						{ __(
 							'Create custom tools that the AI can use — HTTP APIs, WordPress actions, or WP-CLI commands.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</p>
 				</div>
@@ -301,7 +308,7 @@ export default function CustomToolsManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Tool', 'sd-ai-agent' ) }
+						{ __( 'Add Tool', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -320,34 +327,34 @@ export default function CustomToolsManager() {
 				<div className="sdaa-skill-form">
 					{ ! editId && (
 						<TextControl
-							label={ __( 'Slug', 'sd-ai-agent' ) }
+							label={ __( 'Slug', 'superdav-ai-agent' ) }
 							value={ form.slug }
 							onChange={ ( v ) => updateForm( 'slug', v ) }
 							help={ __(
 								'Unique identifier (lowercase, hyphens).',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							) }
 							__nextHasNoMarginBottom
 						/>
 					) }
 					<TextControl
-						label={ __( 'Name', 'sd-ai-agent' ) }
+						label={ __( 'Name', 'superdav-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => updateForm( 'name', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'sd-ai-agent' ) }
+						label={ __( 'Description', 'superdav-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) => updateForm( 'description', v ) }
 						help={ __(
 							'Explains to the AI when this tool should be used.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Type', 'sd-ai-agent' ) }
+						label={ __( 'Type', 'superdav-ai-agent' ) }
 						value={ form.type }
 						options={ TOOL_TYPES }
 						onChange={ ( v ) => {
@@ -372,13 +379,16 @@ export default function CustomToolsManager() {
 					{ renderConfigFields() }
 
 					<TextareaControl
-						label={ __( 'Input Schema (JSON)', 'sd-ai-agent' ) }
+						label={ __(
+							'Input Schema (JSON)',
+							'superdav-ai-agent'
+						) }
 						value={ form.input_schema }
 						onChange={ ( v ) => updateForm( 'input_schema', v ) }
 						rows={ 4 }
 						help={ __(
 							'JSON Schema describing the parameters the AI should provide.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 
@@ -393,8 +403,8 @@ export default function CustomToolsManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'sd-ai-agent' )
-								: __( 'Create', 'sd-ai-agent' ) }
+								? __( 'Update', 'superdav-ai-agent' )
+								: __( 'Create', 'superdav-ai-agent' ) }
 						</Button>
 						{ editId && (
 							<Button
@@ -403,7 +413,7 @@ export default function CustomToolsManager() {
 								onClick={ handleTest }
 								size="compact"
 							>
-								{ __( 'Test', 'sd-ai-agent' ) }
+								{ __( 'Test', 'superdav-ai-agent' ) }
 							</Button>
 						) }
 						<Button
@@ -411,7 +421,7 @@ export default function CustomToolsManager() {
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 
@@ -423,8 +433,8 @@ export default function CustomToolsManager() {
 						>
 							<strong>
 								{ testResult.success
-									? __( 'Success', 'sd-ai-agent' )
-									: __( 'Error', 'sd-ai-agent' ) }
+									? __( 'Success', 'superdav-ai-agent' )
+									: __( 'Error', 'superdav-ai-agent' ) }
 							</strong>
 							<pre>
 								{ typeof testResult.output === 'object'
@@ -442,7 +452,7 @@ export default function CustomToolsManager() {
 
 			{ ! loaded && (
 				<p className="description">
-					{ __( 'Loading…', 'sd-ai-agent' ) }
+					{ __( 'Loading…', 'superdav-ai-agent' ) }
 				</p>
 			) }
 
@@ -450,7 +460,7 @@ export default function CustomToolsManager() {
 				<p className="description">
 					{ __(
 						'No custom tools yet. Create one or deactivate/reactivate the plugin to seed examples.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -490,13 +500,19 @@ export default function CustomToolsManager() {
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __( 'Edit', 'sd-ai-agent' ) }
+										label={ __(
+											'Edit',
+											'superdav-ai-agent'
+										) }
 										onClick={ () => handleEdit( tool ) }
 									/>
 									<Button
 										icon={ trash }
 										size="small"
-										label={ __( 'Delete', 'sd-ai-agent' ) }
+										label={ __(
+											'Delete',
+											'superdav-ai-agent'
+										) }
 										isDestructive
 										onClick={ () =>
 											handleDelete( tool.id )

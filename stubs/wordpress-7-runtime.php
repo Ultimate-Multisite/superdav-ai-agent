@@ -540,6 +540,9 @@ namespace WordPress\AiClient\Providers\Models\DTO {
 		/** @param string $outputMimeType Output MIME type. */
 		public function setOutputMimeType( string $outputMimeType ): void {}
 
+		/** @return array<string, mixed>|null */
+		public function getOutputSchema(): ?array { return null; }
+
 		/** @return string|null */
 		public function getOutputSpeechVoice(): ?string { return null; }
 
@@ -972,6 +975,12 @@ namespace WordPress\AiClient\Providers\OpenAiCompatibleImplementation {
 		 * @return array<int, array<string, mixed>>
 		 */
 		protected function prepareMessagesParam( array $messages, ?string $system_instruction = null ): array { return array(); }
+
+		/**
+		 * @param array<string, mixed>|null $output_schema Output schema.
+		 * @return array<string, mixed>
+		 */
+		protected function prepareResponseFormatParam( ?array $output_schema ): array { return array(); }
 	}
 
 	abstract class AbstractOpenAiCompatibleImageGenerationModel implements \WordPress\AiClient\Providers\Models\Contracts\ModelInterface {

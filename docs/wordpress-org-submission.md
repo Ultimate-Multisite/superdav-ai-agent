@@ -414,9 +414,10 @@ bin/deploy-wporg.sh --version 1.3.0 --username YOUR_WP_USERNAME
 The script:
 1. Builds the core production ZIP via `bin/build.sh --target=wporg`
 2. Syncs the built files into `trunk/` using `rsync`
-3. Runs `svn add` on new files and `svn delete` on removed files
-4. Commits trunk with a standard message
-5. Creates the version tag via `svn copy`
+3. Syncs `.wordpress-org/assets/` banners, icons, and screenshots into `assets/`
+4. Runs `svn add` on new files and `svn delete` on removed files
+5. Commits trunk and listing assets with a standard message
+6. Creates the version tag via `svn copy`
 
 See `bin/deploy-wporg.sh --help` for all options.
 

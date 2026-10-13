@@ -75,32 +75,58 @@ describe( 'embed widget', () => {
 
 		const links = message.querySelectorAll( 'a' );
 		expect( message.textContent ).toContain(
-			'Purchase more credits in your account settings'
+			'Good news—as an early adopter, use coupon code EARLY'
 		);
-		expect( links ).toHaveLength( 2 );
+		expect( message.textContent ).toContain( '$200 in AI usage credits' );
+		expect( links ).toHaveLength( 3 );
 		expect( links[ 0 ].textContent ).toBe( 'account settings' );
-		expect( links[ 1 ].textContent ).toBe( 'Purchase credits' );
+		expect( links[ 1 ].textContent ).toBe( 'Redeem EARLY coupon' );
+		expect( links[ 2 ].textContent ).toBe( 'Leave a review' );
 		expect( links[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
 		);
 		expect( links[ 1 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
 		);
+		expect( links[ 2 ].getAttribute( 'href' ) ).toBe(
+			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
+		);
 	} );
 
-	test( 'mounts a launcher and panel in a plain DOM fixture', () => {
+	test( 'initializes once only after the visitor opens the launcher', async () => {
 		const root = module.mountEmbed( {
 			...module.resolveConfig( null, {} ),
 			apiBase: 'https://example.test/wp-json/sd-ai-agent/v1',
 			mount: '#mount',
 		} );
+		const launcher = root.querySelector( '.sdaa-embed__launcher' );
 
-		expect( root.querySelector( '.sdaa-embed__launcher' ) ).not.toBeNull();
+		expect( launcher ).not.toBeNull();
 		expect( root.querySelector( '.sdaa-embed__panel' ) ).not.toBeNull();
+		expect( global.fetch ).not.toHaveBeenCalled();
+
+		launcher.click();
+		await flushRequests();
+
 		expect( global.fetch ).toHaveBeenCalledWith(
 			'https://example.test/wp-json/sd-ai-agent/v1/public-chat/config',
 			expect.objectContaining( { credentials: 'omit' } )
 		);
+
+		launcher.click();
+		launcher.click();
+		await flushRequests();
+
+		expect(
+			global.fetch.mock.calls.filter( ( [ url ] ) =>
+				url.endsWith( '/public-chat/config' )
+			)
+		).toHaveLength( 1 );
+		expect(
+			global.fetch.mock.calls.filter( ( [ url ] ) =>
+				url.endsWith( '/public-chat/session' )
+			)
+		).toHaveLength( 1 );
 	} );
 
 	test( 'does not create a recorded session until a visitor explicitly chooses it', async () => {
@@ -131,6 +157,7 @@ describe( 'embed widget', () => {
 			apiBase: 'https://example.test/wp-json/sd-ai-agent/v1',
 			mount: '#mount',
 		} );
+		root.querySelector( '.sdaa-embed__launcher' ).click();
 		await flushRequests();
 
 		expect(
@@ -184,6 +211,7 @@ describe( 'embed widget', () => {
 			apiBase: 'https://example.test/wp-json/sd-ai-agent/v1',
 			mount: '#mount',
 		} );
+		root.querySelector( '.sdaa-embed__launcher' ).click();
 		await flushRequests();
 
 		root.querySelector( '[data-recording-consent="true"]' ).click();
@@ -294,6 +322,7 @@ describe( 'embed widget', () => {
 				'Read **Setup Wizard**. Source: https://example.test/docs/setup.',
 			mount: '#mount',
 		} );
+		root.querySelector( '.sdaa-embed__launcher' ).click();
 		await flushRequests();
 
 		const message = root.querySelector( '.sdaa-embed__message--assistant' );
@@ -434,6 +463,7 @@ describe( 'embed widget', () => {
 				apiBase: 'https://example.test/wp-json/sd-ai-agent/v1',
 				mount: '#mount',
 			} );
+			root.querySelector( '.sdaa-embed__launcher' ).click();
 			await flushRequests();
 
 			const disclosure = root.querySelector(

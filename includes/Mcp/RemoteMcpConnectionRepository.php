@@ -540,7 +540,6 @@ final class RemoteMcpConnectionRepository {
 	 */
 	private function public_connection( array $connection ): array {
 		unset( $connection['secret'], $connection['token'], $connection['authorization'] );
-		$connection['configured'] = ! empty( $this->secrets()[ (string) ( $connection['id'] ?? '' ) ] );
 		$secret                   = $this->get_secret( (string) ( $connection['id'] ?? '' ) );
 		$connection['configured'] = ! empty( $secret['value'] );
 		if ( 'oauth' === ( $connection['auth_type'] ?? '' ) ) {

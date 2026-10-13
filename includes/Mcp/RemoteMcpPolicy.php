@@ -66,8 +66,13 @@ final class RemoteMcpPolicy {
 	 */
 	public static function supported_schema( array $schema ): bool {
 		$types = (array) ( $schema['type'] ?? 'object' );
-		if ( ! self::bounded( $schema ) || array() === $types || array() !== array_diff( $types, array( 'object', 'array', 'string', 'integer', 'number', 'boolean', 'null' ) ) ) {
+		if ( ! self::bounded( $schema ) || array() === $types ) {
 			return false;
+		}
+		foreach ( $types as $type ) {
+			if ( ! is_string( $type ) || ! in_array( $type, array( 'object', 'array', 'string', 'integer', 'number', 'boolean', 'null' ), true ) ) {
+				return false;
+			}
 		}
 		// Deliberately use the WordPress REST schema dialect, not a bespoke engine.
 		$allowed = array( 'type', 'properties', 'required', 'additionalProperties', 'items', 'enum', 'description', 'title', 'default', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'uniqueItems', 'minProperties', 'maxProperties', 'format', 'pattern', 'patternProperties', 'examples', 'const', 'readOnly', 'anyOf', 'oneOf', '$schema' );

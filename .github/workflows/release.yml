@@ -276,6 +276,57 @@ jobs:
             --non-interactive \
             -m "Update trunk to Superdav AI Agent v${VERSION}"
 
+      - name: Deploy listing assets to WordPress.org SVN
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: superdav-ai-agent
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SVN_USERNAME}" ] || [ -z "${SVN_PASSWORD}" ]; then
+            echo "::error::SVN_USERNAME and SVN_PASSWORD secrets are required for WordPress.org asset deployment."
+            exit 1
+          fi
+
+          test -d .wordpress-org/assets
+
+          SVN_DIR="${HOME}/svn-${SLUG}"
+          svn update --set-depth=infinity "${SVN_DIR}/assets"
+
+          rsync -rc --delete ".wordpress-org/assets/" "${SVN_DIR}/assets/" \
+            --exclude='.svn' --exclude='*-source.svg'
+
+          cd "${SVN_DIR}"
+
+          svn status assets | awk '$1 == "?" {print $2}' > "${RUNNER_TEMP}/svn-new-assets.txt"
+          while IFS= read -r asset; do
+            [ -n "${asset}" ] && svn add --parents "${asset}"
+          done < "${RUNNER_TEMP}/svn-new-assets.txt"
+
+          svn status assets | awk '$1 == "!" {print $2}' > "${RUNNER_TEMP}/svn-deleted-assets.txt"
+          while IFS= read -r asset; do
+            [ -n "${asset}" ] && svn delete --force "${asset}"
+          done < "${RUNNER_TEMP}/svn-deleted-assets.txt"
+
+          svn status assets > "${RUNNER_TEMP}/svn-assets-status.txt"
+          sed -n '1,50p' "${RUNNER_TEMP}/svn-assets-status.txt"
+          CHANGES="$(wc -l < "${RUNNER_TEMP}/svn-assets-status.txt" | tr -d '[:space:]')"
+          echo "Total listing asset changes: ${CHANGES}"
+
+          if [ "${CHANGES}" -eq 0 ]; then
+            echo "No listing asset changes to commit."
+            exit 0
+          fi
+
+          svn commit assets \
+            --username "${SVN_USERNAME}" \
+            --password "${SVN_PASSWORD}" \
+            --no-auth-cache \
+            --non-interactive \
+            -m "Update listing assets for Superdav AI Agent v${VERSION}"
+
       - name: Tag release on WordPress.org SVN
         env:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
@@ -316,6 +367,7 @@ jobs:
             echo "## WordPress.org deployment"
             echo ""
             echo "- Core package: deployed to WordPress.org SVN trunk and tag ${VERSION}."
+            echo "- Listing assets: synchronized from .wordpress-org/assets to WordPress.org SVN assets."
             echo "- Advanced companion package: distributed as a free download through the SD AI WordPress update server, not WordPress.org SVN."
             echo "- WooCommerce Marketplace: not used."
           } >> "$GITHUB_STEP_SUMMARY"

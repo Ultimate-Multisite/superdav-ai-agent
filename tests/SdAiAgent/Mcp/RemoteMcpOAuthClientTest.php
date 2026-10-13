@@ -91,6 +91,18 @@ class RemoteMcpOAuthClientTest extends WP_UnitTestCase {
 		$this->assertFalse( $this->repository->get( $this->connection['id'] )['enabled'] );
 	}
 
+	public function test_http_oauth_callback_returns_a_client_error(): void {
+		force_ssl_admin( false );
+		update_option( 'siteurl', 'http://fixture.wp.test' );
+		update_option( 'home', 'http://fixture.wp.test' );
+
+		$result = $this->client->begin( $this->connection['id'] );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_remote_mcp_oauth_https_required', $result->get_error_code() );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+	}
+
 	public function test_refresh_rotates_and_invalid_grant_requires_sign_in(): void {
 		$query = $this->begin();
 		$this->assertSame( $this->connection['id'], $this->client->complete( array( 'state' => $query['state'], 'code' => 'fixture-code', 'iss' => 'https://fixture.mcp.test/auth' ) ) );

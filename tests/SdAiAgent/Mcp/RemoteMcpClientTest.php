@@ -200,6 +200,54 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		$this->assertNotSame( $first, $second );
 	}
 
+	/** Registered remote abilities identify both the remote tool and its connection. */
+	public function test_remote_ability_label_identifies_tool_and_connection(): void {
+		if ( ! function_exists( 'wp_register_ability' ) || ! function_exists( 'wp_get_ability' ) ) {
+			$this->markTestSkipped( 'WordPress Abilities API is not available.' );
+		}
+
+		$connection = $this->connections->save(
+			array(
+				'name'      => 'Local MCP demo',
+				'endpoint'  => 'https://fixture.mcp.test/mcp',
+				'auth_type' => 'none',
+				'enabled'   => true,
+			)
+		);
+		$this->assertIsArray( $connection );
+		$this->connections->replace_snapshot(
+			$connection['id'],
+			array(
+				array(
+					'name'         => 'demo_greet',
+					'enabled'      => true,
+					'input_schema' => array( 'type' => 'object', 'properties' => array() ),
+				),
+			),
+			'2025-06-18'
+		);
+
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress hook stack global.
+		global $wp_current_filter;
+		$wp_current_filter[] = 'wp_abilities_api_init';
+
+		try {
+			( new RemoteMcpAbilityRegistrar( $this->connections ) )->register_abilities();
+		} finally {
+			array_pop( $wp_current_filter );
+		}
+
+		$ability_name = RemoteMcpAbilityRegistrar::ability_name( $connection['id'], 'demo_greet' );
+		$ability      = wp_get_ability( $ability_name );
+
+		$this->assertNotNull( $ability );
+		$this->assertSame( 'demo_greet (Local MCP demo)', $ability->get_label() );
+
+		if ( function_exists( 'wp_unregister_ability' ) ) {
+			wp_unregister_ability( $ability_name );
+		}
+	}
+
 	/**
 	 * Return JSON-RPC fixture responses without network I/O.
 	 *

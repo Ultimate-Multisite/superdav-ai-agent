@@ -54,6 +54,32 @@ class CloneInitializationTest extends \WP_UnitTestCase {
 		}
 	}
 
+	public function test_clone_accepts_inherited_connector_credentials_after_removing_stored_copy(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Clone lifecycle requires a multisite fixture.' );
+		}
+		$target = self::factory()->blog->create();
+		switch_to_blog( $target );
+		$inherit_credential = static fn() => 'inherited-fixture-not-a-real-key';
+		add_filter( 'pre_option_connectors_ai_sd_ai_agent_cloud_api_key', $inherit_credential );
+		try {
+			Database::install();
+			update_option( 'connectors_ai_sd_ai_agent_cloud_api_key', 'copied-fixture-not-a-real-key' );
+			update_option( 'sd_ai_agent_site_installation_id', 'copied-identity' );
+
+			$result = CloneInitialization::initialize( array( 'site_id' => $target, 'from_site_id' => 1 ) );
+
+			$this->assertTrue( $result );
+			$this->assertSame( 'inherited-fixture-not-a-real-key', get_option( 'connectors_ai_sd_ai_agent_cloud_api_key' ) );
+			$this->assertFalse( get_option( 'sd_ai_agent_site_installation_id', false ) );
+			global $wpdb;
+			$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SELECT option_id FROM %i WHERE option_name = %s', $wpdb->options, 'connectors_ai_sd_ai_agent_cloud_api_key' ) ) );
+		} finally {
+			remove_filter( 'pre_option_connectors_ai_sd_ai_agent_cloud_api_key', $inherit_credential );
+			restore_current_blog();
+		}
+	}
+
 	public function test_checkout_context_is_applied_without_modifying_stored_prompt(): void {
 		$agent = Agent::get_by_slug( 'onboarding' );
 		$this->assertNotNull( $agent );

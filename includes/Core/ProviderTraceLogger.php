@@ -354,7 +354,13 @@ class ProviderTraceLogger {
 			&& $retry_baseline_bytes > 0
 			&& ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes );
 
-		if ( $has_context && $request_bytes > $byte_budget ) {
+		// A retry that fits the local budget is sent even when its reduction is
+		// small. The one exception is a baseline that already fit locally and was
+		// rejected upstream for size: resending nearly the same envelope would fail
+		// again, so a provider-rejected retry must still be materially smaller.
+		$provider_rejected_in_budget = $retry_not_materially_smaller && $retry_baseline_bytes <= $byte_budget;
+
+		if ( $has_context && ( $request_bytes > $byte_budget || $provider_rejected_in_budget ) ) {
 			$recovery_outcome                            = $retry_not_materially_smaller
 				? 'retry_not_materially_smaller'
 				: self::local_payload_recovery_outcome();

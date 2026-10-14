@@ -874,6 +874,26 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertTrue( $functions['wpab__sd-ai-agent__list-posts']['defer_loading'] );
 	}
 
+	/** Discovery bundles stay small and each namespace names its own functions. */
+	public function test_responses_namespaces_are_small_and_self_describing(): void {
+		$this->skip_if_sdk_unavailable();
+		$model = new SuperdavAiResponsesToolSearchTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$config = new ModelConfig();
+		$config->setFunctionDeclarations(
+			array_map( static fn( int $i ): FunctionDeclaration => new FunctionDeclaration( 'wpab__example-plugin__tool-' . $i, 'Tool.', array( 'type' => 'object' ) ), range( 1, 7 ) )
+		);
+		$model->setConfig( $config );
+		$method = new \ReflectionMethod( $model, 'prepare_tool_search_tools_param' );
+		$method->setAccessible( true );
+		$tools = $method->invoke( $model );
+		$this->assertCount( 5, $tools[0]['tools'] );
+		$this->assertCount( 2, $tools[1]['tools'] );
+		$this->assertSame( 'WordPress example plugin 2: tool-6, tool-7.', $tools[1]['description'] );
+	}
+
 	/** Managed Responses inference carries the active journey reservation. */
 	public function test_responses_tool_search_request_includes_managed_journey_attribution(): void {
 		$this->skip_if_sdk_unavailable();

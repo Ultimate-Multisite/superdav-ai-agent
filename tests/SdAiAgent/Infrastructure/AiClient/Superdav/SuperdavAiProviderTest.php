@@ -76,6 +76,7 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		remove_all_filters( 'sd_ai_agent_superdav_default_model' );
 		remove_all_filters( 'sd_ai_agent_superdav_reasoning_effort' );
 		remove_all_filters( 'sd_ai_agent_openai_tool_search_enabled' );
+		remove_all_filters( 'sd_ai_agent_superdav_prompt_cache_key_enabled' );
 		ProviderTraceLogger::clear_runtime_context();
 		parent::tear_down();
 	}
@@ -837,7 +838,13 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertSame( 'gpt-5.5', $params['model'] );
 		$this->assertSame( 512, $params['max_output_tokens'] );
 		$this->assertSame( 'You are a WordPress assistant.', $params['instructions'] );
-		$this->assertSame( hash( 'sha256', 'sd-ai-agent-session:42' ), $params['prompt_cache_key'] );
+		$this->assertArrayNotHasKey( 'prompt_cache_key', $params );
+		add_filter( 'sd_ai_agent_superdav_prompt_cache_key_enabled', '__return_true' );
+		$enabled = $prepare->invoke( $model, array( new UserMessage( array( new MessagePart( 'List my pages.' ) ) ) ) );
+		$this->assertSame( SuperdavAiProvider::prompt_cache_key( 42 ), $enabled['prompt_cache_key'] );
+		$this->assertSame( 64, strlen( $enabled['prompt_cache_key'] ) );
+		$this->assertNotSame( $enabled['prompt_cache_key'], SuperdavAiProvider::prompt_cache_key( 43 ) );
+		$this->assertSame( '', SuperdavAiProvider::prompt_cache_key( 0 ) );
 		$this->assertFalse( $params['parallel_tool_calls'] );
 		$this->assertSame( array( 'type' => 'tool_search' ), $params['tools'][2] );
 		$this->assertSame( 'namespace', $params['tools'][0]['type'] );

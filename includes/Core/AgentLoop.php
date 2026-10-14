@@ -698,7 +698,7 @@ PROMPT;
 
 			// Append the new user message to history. Messages before it belong to
 			// completed turns, whose tool payloads are compacted in provider requests.
-			$turn_context = $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$turn_context = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
 			$turn_message = $this->user_message;
 			if ( '' !== $turn_context ) {
 				$turn_message .= "\n\n" . $turn_context;
@@ -3120,7 +3120,7 @@ PROMPT;
 		// identical cacheable prefix.
 		if ( ! $this->system_instruction_locked && ! $this->system_instruction_initialized ) {
 			$ability_names                        = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction             = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+			$this->system_instruction             = $this->instruction_builder->build_for_session( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
 			$this->system_instruction_initialized = true;
 		}
 
@@ -3822,6 +3822,8 @@ PROMPT;
 				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
 					$model->set_continuation_session_id( $this->session_id );
 					$model->set_completed_turn_message_count( $this->completed_turn_message_count() );
+				} elseif ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel ) {
+					$model->set_prompt_cache_key( SuperdavAiProvider::prompt_cache_key( $this->session_id ) );
 				}
 				$builder->using_model( $model );
 			} else {

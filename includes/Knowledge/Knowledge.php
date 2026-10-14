@@ -689,6 +689,10 @@ class Knowledge {
 	 * @return string Formatted context string.
 	 */
 	public static function get_context_for_query( string $query, int $max_tokens = 2000, float $minimum_relevance = 2.0 ): string {
+		// Greetings are not knowledge queries, even if sample content matches them.
+		if ( preg_match( '/^\s*(?:hi|hello|hey|good\s+(?:morning|afternoon|evening)|thanks|thank\s+you)[\s.!?]*$/iu', $query ) ) {
+			return '';
+		}
 		$results = self::search( $query, [ 'limit' => 10 ] );
 
 		if ( empty( $results ) ) {

@@ -163,20 +163,8 @@ class SystemInstructionBuilder {
 				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
 		}
 
-		// Inject structured context from providers.
-		$context_data = ContextProviders::gather( $this->page_context );
-		if ( ! empty( $context_data ) ) {
-			$formatted_context = ContextProviders::format_for_prompt( $context_data );
-			if ( ! empty( $formatted_context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $formatted_context;
-			}
-		}
-
-		if ( ! empty( $this->page_context['is_frontend'] ) ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . self::build_frontend_live_preview_section();
-		}
+		// Static operating guidance remains valid when the user changes pages.
+		$base .= "\n\n" . self::build_frontend_live_preview_section();
 
 		// Native discovery already supplies the catalog through deferred schemas.
 		$base .= "\n\n" . self::build_tool_routing_section( $ability_names, $native_tool_search );
@@ -266,6 +254,24 @@ class SystemInstructionBuilder {
 	}
 
 	/**
+	 * Reuse the first instruction across independent requests for this session.
+	 *
+	 * @param array<string, mixed> $settings Plugin settings.
+	 * @param string[]             $ability_names Active ability names.
+	 * @param bool                 $native_tool_search Native search mode.
+	 * @param bool                 $native_full_catalog Full native catalog mode.
+	 * @return string Immutable session instruction.
+	 */
+	public function build_for_session( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true ): string {
+		$snapshot = \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id );
+		if ( null !== $snapshot ) {
+			return $snapshot;
+		}
+		$instruction = $this->build( $settings, $ability_names, $native_tool_search, $native_full_catalog );
+		return \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id, $instruction ) ?? $instruction;
+	}
+
+	/**
 	 * Build per-turn context that belongs with the user's current message.
 	 *
 	 * The Responses API caches the leading instructions prefix. User-message
@@ -282,6 +288,11 @@ class SystemInstructionBuilder {
 		}
 
 		$sections = array();
+		// Page, user and site state must stay fresh without rewriting instructions.
+		$current_context = ContextProviders::format_for_prompt( ContextProviders::gather( $this->page_context ) );
+		if ( '' !== $current_context ) {
+			$sections[] = $current_context;
+		}
 		if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
 			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
 			if ( ! empty( $auto_skill ) ) {

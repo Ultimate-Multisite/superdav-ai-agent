@@ -55,11 +55,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 	/** Return a bounded opaque key for provider-side prompt-cache reuse. */
 	private function prompt_cache_key(): string {
-		if ( 0 === $this->continuation_session_id ) {
-			return '';
-		}
-
-		return hash( 'sha256', 'sd-ai-agent-session:' . $this->continuation_session_id );
+		return SuperdavAiProvider::prompt_cache_key( $this->continuation_session_id );
 	}
 
 	/** @var int Leading prompt messages that belong to completed user turns. */

@@ -41,8 +41,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApiBasedModel implements TextGenerationModelInterface {
 
-	/** Keep namespaces small as recommended by the OpenAI tool-search guide. */
-	private const NAMESPACE_TOOL_LIMIT = 10;
+	/** Bound schema bundles returned by hosted namespace discovery. */
+	private const NAMESPACE_TOOL_LIMIT = 5;
 
 	/** @var int Session owning the encrypted native replay snapshot (zero disables persistence). */
 	private int $continuation_session_id = 0;
@@ -383,6 +383,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 		$immediate_function_names = $this->immediate_tool_function_names();
 		$groups                   = array();
+		$names                    = array();
 		$has_deferred_tools       = false;
 		foreach ( $declarations as $declaration ) {
 			if ( ! $declaration instanceof FunctionDeclaration ) {
@@ -393,19 +394,21 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$key              = $this->namespace_key_for_function( $function_name );
 			$deferred         = ! isset( $immediate_function_names[ $function_name ] );
 			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, $deferred );
+			$names[ $key ][]  = $function_name;
 
 			$has_deferred_tools = $has_deferred_tools || $deferred;
 		}
 
 		$tools = array();
 		foreach ( $groups as $namespace => $functions ) {
-			$chunks = array_chunk( $functions, self::NAMESPACE_TOOL_LIMIT );
+			$chunks      = array_chunk( $functions, self::NAMESPACE_TOOL_LIMIT );
+			$name_chunks = array_chunk( $names[ $namespace ], self::NAMESPACE_TOOL_LIMIT );
 			foreach ( $chunks as $index => $chunk ) {
 				$name    = 0 === $index ? $namespace : $namespace . '_' . ( $index + 1 );
 				$tools[] = array(
 					'type'        => 'namespace',
 					'name'        => $name,
-					'description' => $this->namespace_description( $name ),
+					'description' => $this->namespace_description( $name, $name_chunks[ $index ] ),
 					'tools'       => $chunk,
 				);
 			}
@@ -513,11 +516,20 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		return 'wp_abilities_' . ( '' !== $slug ? $slug : 'general' );
 	}
 
-	/** Return a concise namespace description for the model-visible search surface. */
-	private function namespace_description( string $namespace_name ): string {
+	/**
+	 * Describe the actual chunk, so numbered namespaces are not indistinguishable.
+	 *
+	 * @param string       $namespace_name Namespace identifier.
+	 * @param list<string> $function_names Function names in this namespace.
+	 */
+	private function namespace_description( string $namespace_name, array $function_names ): string { // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- list<string> is valid PHPStan but not a native PHP type.
 		$label = str_replace( '_', ' ', preg_replace( '/^wp_abilities_/', '', $namespace_name ) ?? $namespace_name );
+		$names = array_map(
+			static fn( string $function_name ): string => (string) preg_replace( '/^wpab__[^_]+__/', '', $function_name ),
+			$function_names
+		);
 
-		return sprintf( 'Searchable WordPress abilities for %s tasks on the current site.', $label );
+		return sprintf( 'WordPress %s: %s.', $label, implode( ', ', $names ) );
 	}
 
 	/** Parse a Responses API response into the SDK result DTO shape. */

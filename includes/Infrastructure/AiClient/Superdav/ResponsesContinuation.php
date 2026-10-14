@@ -52,7 +52,82 @@ final class ResponsesContinuation {
 			$this->clear();
 			return null;
 		}
-		return array( 'input' => array_merge( $native, array_values( array_slice( $input, $count ) ) ) );
+		return array( 'input' => self::prune_completed_discovery( array_merge( $native, array_values( array_slice( $input, $count ) ) ) ) );
+	}
+
+	/**
+	 * Keep current-turn discovery intact, but retire unused schemas from older turns.
+	 *
+	 * Native search outputs do not exist in SDK history, so ordinary history
+	 * trimming cannot see them. Preserve their protocol rows and every schema
+	 * referenced by a recorded function call; unused tools can be searched again.
+	 * Reasoning, refusals, call identities and function results remain unchanged.
+	 *
+	 * @param list<array<string, mixed>> $input Complete native replay input.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function prune_completed_discovery( array $input ): array {
+		$last_user = 0;
+		$called    = array();
+		foreach ( $input as $index => $item ) {
+			if ( 'user' === ( $item['role'] ?? '' ) ) {
+				$last_user = $index;
+			}
+			if ( 'function_call' === ( $item['type'] ?? '' ) && is_string( $item['name'] ?? null ) ) {
+				$called[ $item['name'] ] = true;
+			}
+		}
+		foreach ( $input as $index => &$item ) {
+			if ( $index >= $last_user || 'tool_search_output' !== ( $item['type'] ?? '' ) || ! is_array( $item['tools'] ?? null ) ) {
+				continue;
+			}
+			$tools = array();
+			foreach ( $item['tools'] as $tool ) {
+				if ( ! is_array( $tool ) ) {
+					// Unknown provider shapes must survive without lossy normalization.
+					$tools[] = $tool;
+					continue;
+				}
+				if ( 'namespace' === ( $tool['type'] ?? '' ) && is_array( $tool['tools'] ?? null ) ) {
+					$before        = count( $tool['tools'] );
+					$tool['tools'] = array_values( array_filter( $tool['tools'], static fn( mixed $declared ): bool => ! is_array( $declared ) || ! is_string( $declared['name'] ?? null ) || isset( $called[ $declared['name'] ] ) ) );
+					if ( ! empty( $tool['tools'] ) ) {
+						if ( count( $tool['tools'] ) < $before ) {
+							$tool = self::describe_retained_namespace( $tool );
+						}
+						$tools[] = $tool;
+					}
+				} elseif ( 'function' !== ( $tool['type'] ?? '' ) || ! is_string( $tool['name'] ?? null ) || isset( $called[ $tool['name'] ] ) ) {
+					$tools[] = $tool;
+				}
+			}
+			$item['tools'] = $tools;
+		}
+		unset( $item );
+		return $input;
+	}
+
+	/**
+	 * Rewrite a generated "Label: name, name." description to list only retained functions.
+	 *
+	 * Descriptions without the generated shape are left unchanged.
+	 *
+	 * @param array<string, mixed> $tool Pruned namespace row.
+	 * @return array<string, mixed>
+	 */
+	private static function describe_retained_namespace( array $tool ): array {
+		$description = $tool['description'] ?? null;
+		if ( ! is_string( $description ) || ! is_array( $tool['tools'] ) || ! str_contains( $description, ': ' ) ) {
+			return $tool;
+		}
+		$names = array();
+		foreach ( $tool['tools'] as $declared ) {
+			if ( is_array( $declared ) && is_string( $declared['name'] ?? null ) ) {
+				$names[] = (string) preg_replace( '/^wpab__[^_]+__/', '', $declared['name'] );
+			}
+		}
+		$tool['description'] = strstr( $description, ': ', true ) . ': ' . implode( ', ', $names ) . '.';
+		return $tool;
 	}
 
 	/**

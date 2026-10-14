@@ -129,7 +129,7 @@ class SystemInstructionBuilder {
 
 		// Use custom system prompt if set, otherwise the built-in default.
 		$custom = $settings['system_prompt'] ?? '';
-		$base   = is_string( $custom ) && '' !== $custom ? $custom : self::default_system_instruction();
+		$base   = is_string( $custom ) && '' !== $custom ? $custom : self::default_system_instruction( $native_tool_search );
 		if ( is_string( $custom ) && '' !== $custom ) {
 			$base .= "\n\n" . self::build_read_only_diagnostics_section();
 		}
@@ -258,7 +258,7 @@ class SystemInstructionBuilder {
 		// one recommendation with guidance is registered. Gated so the section is
 		// absent from prompts for sessions that never do page-content generation.
 		$plugin_recommendations_enabled = (bool) ( $settings['plugin_recommendations_enabled'] ?? true );
-		if ( $plugin_recommendations_enabled ) {
+		if ( $plugin_recommendations_enabled && ( ! $native_tool_search || preg_match( '/\b(form|forms|community|dating|members?|messaging|plugins?)\b/i', $this->user_message ) ) ) {
 			$plugin_rec_section = PluginRecommendations::build_system_prompt_section();
 			if ( '' !== $plugin_rec_section ) {
 				// @phpstan-ignore-next-line
@@ -270,7 +270,7 @@ class SystemInstructionBuilder {
 		// tool list includes content-generation or theme-modification abilities.
 		// Prevents gateway timeouts on large file writes and keeps the
 		// validate → screenshot → fix feedback loop intact.
-		if ( self::has_content_generation_ability( $ability_names ) ) {
+		if ( self::has_content_generation_ability( $ability_names ) && ( ! $native_tool_search || preg_match( '/\b(build|create|write|edit|update|modify|change|fix|design|theme|style|css|template|file|page|post|content|site|website|plugin)\b/i', $this->user_message ) ) ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . self::build_working_cadence_section();
 
@@ -568,9 +568,25 @@ class SystemInstructionBuilder {
 	 *
 	 * @return string
 	 */
-	public static function default_system_instruction(): string {
+	public static function default_system_instruction( bool $native_tool_search = false ): string {
 		$wp_path  = WordPressPaths::content_dir();
 		$site_url = get_site_url();
+
+		if ( $native_tool_search ) {
+			return "You are a WordPress assistant. Execute clear requests with tools and report verified results concisely.\n\n"
+				. "## WordPress Environment\nContent path: {$wp_path}\nSite URL: {$site_url}\n\n"
+				. "## Core Principles\n"
+				. "Ask one concise question when intent or target is missing. Never invent public changes. Confirm destructive operations. Diagnostic and capability questions are read-only; do not remediate without explicit approval.\n"
+				. "Use registered abilities, discover missing schemas, and load the matching skill before specialized work. Respect tool permissions and current-user context. Do not invent tool names, IDs, URLs, or successful results.\n"
+				. "After tool calls, always provide a text summary with links where available. Claim completion only for successful operations; report remaining blockers. After two similar failures, change approach.\n\n"
+				. self::build_read_only_diagnostics_section() . "\n\n"
+				. "## Content and site changes\n"
+				. "Use create-post/update-post for posts and pages, and native WooCommerce abilities for products. Write substantial real content. Articles use markdown; visual pages use editable Gutenberg blocks. Never mix markdown and block markup. Use draft/publish status deliberately.\n"
+				. "Check block_validation after writes; fix invalid innerHTML using expectedContent, never by inserting it into comment attributes. Load the Gutenberg/block-theme skill for layouts and theme work.\n"
+				. "Use returned attachment IDs for featured images. A failed screenshot/upload never justifies assigning an unrelated media ID. Prefer viewport or section screenshots; full-page capture needs a reason. Same-origin screenshot-url cannot capture another site's origin.\n"
+				. "Use update-option for allowed site settings: blogname for title; show_on_front=page and page_on_front=<real page ID> for a static homepage. Create menus, add real links, and assign a theme location. Verify settings before claiming success.\n"
+				. 'Before completion, inspect public output: valid links, headings, working forms, and no sample/vendor placeholders. Embed created forms, verify rendering, and test delivery when possible; use same-domain From and visitor Reply-To. Report mail or visual-verification limitations honestly.';
+		}
 
 		return "You are a WordPress assistant that ACTS — you execute tasks immediately using your tools.\n\n"
 			. "## WordPress Environment\n"

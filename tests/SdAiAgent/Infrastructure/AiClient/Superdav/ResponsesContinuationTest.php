@@ -59,6 +59,37 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'private fixture', wp_json_encode( $stored ) );
 	}
 
+	/** Completed-turn discovery keeps only called schemas; current-turn discovery is untouched. */
+	public function test_replay_prunes_unused_schemas_from_completed_turn_discovery(): void {
+		$schema = static fn( string $name ): array => array( 'type' => 'function', 'name' => $name, 'parameters' => array( 'type' => 'object' ) );
+		$search = static fn( array $names ): array => array(
+			'type'  => 'tool_search_output',
+			'tools' => array(
+				array(
+					'type'        => 'namespace',
+					'name'        => 'posts',
+					'description' => 'WordPress posts: ' . implode( ', ', $names ) . '.',
+					'tools'       => array_map( $schema, $names ),
+				),
+			),
+		);
+		$input = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			$search( array( 'used', 'unused_a', 'unused_b' ) ),
+			$search( array( 'unused_c' ) ),
+			array( 'type' => 'function_call', 'call_id' => 'call_1', 'name' => 'used', 'arguments' => '{}' ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			$search( array( 'current_a', 'current_b' ) ),
+		);
+		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
+		$this->assertSame( array( 'used' ), array_column( $pruned[1]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( 'WordPress posts: used.', $pruned[1]['tools'][0]['description'] );
+		$this->assertSame( array(), $pruned[2]['tools'] );
+		$this->assertSame( 'tool_search_output', $pruned[2]['type'] );
+		$this->assertSame( $input[3], $pruned[3] );
+		$this->assertSame( $input[5], $pruned[5] );
+	}
+
 	/** Ciphertext and public metadata cannot be tampered with or moved to another session. */
 	public function test_encrypted_snapshot_integrity_and_retention_bound(): void {
 		$before = array( array( 'role' => 'user', 'content' => 'private fixture' ) );

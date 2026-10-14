@@ -38,7 +38,7 @@ class CompileDesignTokensAbility extends AbstractAbility {
 		return [
 			'type'                 => 'object',
 			'properties'           => [
-				'contract' => DesignTokenContract::schema(),
+				'contract' => DesignTokenContract::tool_schema(),
 			],
 			'required'             => [ 'contract' ],
 			'additionalProperties' => false,

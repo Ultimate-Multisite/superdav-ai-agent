@@ -22,6 +22,8 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		$instruction = ( new SystemInstructionBuilder() )->build( array(), array( 'sd-ai-agent/list-posts' ), true );
 		$this->assertStringContainsString( 'use it to load the relevant deferred functions', $instruction );
 		$this->assertStringContainsString( 'then call those functions directly', $instruction );
+		$this->assertStringContainsString( 'search one specific namespace or task keyword at a time', $instruction );
+		$this->assertStringContainsString( 'Do not request several namespaces in one search', $instruction );
 		$this->assertStringContainsString( 'Call browser functions directly', $instruction );
 		$this->assertStringNotContainsString( 'Only call abilities that are present in the current direct tool list', $instruction );
 		$this->assertStringNotContainsString( 'The abilities listed below are NOT loaded as direct tools', $instruction );

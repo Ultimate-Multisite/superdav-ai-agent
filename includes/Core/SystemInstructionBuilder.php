@@ -340,7 +340,7 @@ class SystemInstructionBuilder {
 	public static function build_tool_routing_section( array $ability_names, bool $native_tool_search = false ): string {
 		if ( $native_tool_search ) {
 			return "## Tool routing\n\n"
-				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, use it to load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
+				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, search one specific namespace or task keyword at a time, inspect the result, then refine only if needed. Do not request several namespaces in one search. Load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
 				. 'A deferred function is available after discovery even if its ability name is absent from this prompt. Do not invent function names or claim a capability is unavailable before searching the declared tool namespaces. '
 				. 'When no native search tool is supplied, call the available functions directly. If native search cannot find a required function in the supplied catalog, use `sd-ai-agent/ability-search` and `sd-ai-agent/ability-call` as a compatibility path when those tools are available. '
 				. 'Call browser functions directly; server-side `sd-ai-agent/ability-call` cannot execute browser tools. Tool calls must use the actual tool interface, never textual `<tool_call>` markup.';

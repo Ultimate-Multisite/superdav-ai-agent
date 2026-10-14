@@ -18,6 +18,16 @@ use WP_UnitTestCase;
  */
 class DesignTokenContractTest extends WP_UnitTestCase {
 
+	/** The tool-facing schema is compact while normalize() retains the full contract. */
+	public function test_tool_schema_is_compact_and_preserves_the_required_contract_sections(): void {
+		$schema = DesignTokenContract::tool_schema();
+
+		$this->assertSame( [ 'version', 'governance', 'primitives', 'semantics', 'style_variation' ], $schema['required'] );
+		$this->assertSame( [ DesignTokenContract::VERSION ], $schema['properties']['version']['enum'] );
+		$this->assertFalse( $schema['additionalProperties'] );
+		$this->assertLessThan( 1024, strlen( (string) wp_json_encode( $schema ) ) );
+	}
+
 	/**
 	 * A complete contract resolves semantic aliases and derives governance provenance.
 	 */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Infrastructure\AiClient\Superdav;
 
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\ElementorCompletionGate;
@@ -110,6 +111,69 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 
 		$this->assertSame( array( $input[0], $completed_call, $completed_message ), array_slice( $pruned, 0, 3 ) );
 		$this->assertSame( array_slice( $input, 4 ), array_slice( $pruned, 3 ) );
+	}
+
+	/** A schema loaded by several completed searches is replayed once, at its earliest load. */
+	public function test_replay_keeps_one_copy_of_each_completed_schema(): void {
+		$search = static fn( array $names ): array => array(
+			'type'  => 'tool_search_output',
+			'tools' => array(
+				array(
+					'type'        => 'namespace',
+					'name'        => 'themes',
+					'description' => 'WordPress themes: ' . implode( ', ', $names ) . '.',
+					'tools'       => array_map( static fn( string $name ): array => array( 'type' => 'function', 'name' => $name ), $names ),
+				),
+			),
+		);
+		$call   = static fn( string $id, string $name ): array => array( 'type' => 'function_call', 'call_id' => $id, 'name' => $name, 'arguments' => '{}' );
+		$input  = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			$search( array( 'styles', 'json' ) ),
+			$call( 'call_1', 'styles' ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			$search( array( 'styles', 'json', 'parts' ) ),
+			$call( 'call_2', 'styles' ),
+			$call( 'call_3', 'parts' ),
+			array( 'role' => 'user', 'content' => 'third' ),
+			$search( array( 'styles' ) ),
+		);
+
+		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
+
+		$this->assertSame( array( 'styles' ), array_column( $pruned[1]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( array( 'parts' ), array_column( $pruned[4]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( 'WordPress themes: parts.', $pruned[4]['tools'][0]['description'] );
+		$this->assertSame( $input[8], $pruned[8], 'Active-turn discovery must stay byte-identical.' );
+	}
+
+	/** Completed-turn tool payloads are bounded by call ID; active-turn items are untouched. */
+	public function test_completed_tool_items_are_bounded_and_active_items_untouched(): void {
+		$large_output = wp_json_encode( array( 'styles' => str_repeat( 'x', 20000 ) ) );
+		$large_args   = wp_json_encode(
+			array(
+				'post_id' => 7,
+				'content' => str_repeat( 'y', 9000 ),
+			)
+		);
+		$input        = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			array( 'type' => 'function_call', 'call_id' => 'call_old', 'name' => 'update', 'arguments' => $large_args ),
+			array( 'type' => 'function_call_output', 'call_id' => 'call_old', 'output' => $large_output ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			array( 'type' => 'function_call', 'call_id' => 'call_new', 'name' => 'update', 'arguments' => $large_args ),
+			array( 'type' => 'function_call_output', 'call_id' => 'call_new', 'output' => $large_output ),
+		);
+
+		$compacted = ResponsesContinuation::compact_completed_tool_items( $input, array( 'call_old' => true ) );
+
+		$this->assertLessThan( 1500, strlen( $compacted[2]['output'] ) );
+		$this->assertStringStartsWith( CompletedTurnCompactor::MARKER, $compacted[2]['output'] );
+		$args = json_decode( $compacted[1]['arguments'], true );
+		$this->assertSame( 7, $args['post_id'] );
+		$this->assertStringContainsString( '9000 characters omitted', $args['content'] );
+		$this->assertSame( array_slice( $input, 3 ), array_slice( $compacted, 3 ) );
+		$this->assertSame( $compacted, ResponsesContinuation::compact_completed_tool_items( $compacted, array( 'call_old' => true ) ), 'Compaction must be idempotent.' );
 	}
 
 	/** Ciphertext and public metadata cannot be tampered with or moved to another session. */

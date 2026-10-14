@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
+use SdAiAgent\Core\CompletedTurnCompactor;
+
 /**
  * Stores encrypted, short-lived native conversation state for OAuth replay.
  *
@@ -75,6 +77,7 @@ final class ResponsesContinuation {
 	public static function prune_completed_discovery( array $input ): array {
 		$last_user = 0;
 		$called    = array();
+		$retained  = array();
 		foreach ( $input as $index => $item ) {
 			if ( 'user' === ( $item['role'] ?? '' ) ) {
 				$last_user = $index;
@@ -99,6 +102,17 @@ final class ResponsesContinuation {
 				continue;
 			}
 			$tools = array();
+			// Keep each called schema once: the earliest load precedes every later call.
+			$keep = static function ( mixed $declared ) use ( $called, &$retained ): bool {
+				if ( ! is_array( $declared ) || ! is_string( $declared['name'] ?? null ) ) {
+					return true;
+				}
+				if ( ! isset( $called[ $declared['name'] ] ) || isset( $retained[ $declared['name'] ] ) ) {
+					return false;
+				}
+				$retained[ $declared['name'] ] = true;
+				return true;
+			};
 			foreach ( $item['tools'] as $tool ) {
 				if ( ! is_array( $tool ) ) {
 					// Unknown provider shapes must survive without lossy normalization.
@@ -107,14 +121,14 @@ final class ResponsesContinuation {
 				}
 				if ( 'namespace' === ( $tool['type'] ?? '' ) && is_array( $tool['tools'] ?? null ) ) {
 					$before        = count( $tool['tools'] );
-					$tool['tools'] = array_values( array_filter( $tool['tools'], static fn( mixed $declared ): bool => ! is_array( $declared ) || ! is_string( $declared['name'] ?? null ) || isset( $called[ $declared['name'] ] ) ) );
+					$tool['tools'] = array_values( array_filter( $tool['tools'], $keep ) );
 					if ( ! empty( $tool['tools'] ) ) {
 						if ( count( $tool['tools'] ) < $before ) {
 							$tool = self::describe_retained_namespace( $tool );
 						}
 						$tools[] = $tool;
 					}
-				} elseif ( 'function' !== ( $tool['type'] ?? '' ) || ! is_string( $tool['name'] ?? null ) || isset( $called[ $tool['name'] ] ) ) {
+				} elseif ( 'function' !== ( $tool['type'] ?? '' ) || $keep( $tool ) ) {
 					$tools[] = $tool;
 				}
 			}
@@ -122,6 +136,36 @@ final class ResponsesContinuation {
 		}
 		unset( $item );
 		return array_values( $input );
+	}
+
+	/**
+	 * Bound tool payloads that belong to completed user turns.
+	 *
+	 * The caller identifies completed-turn calls from SDK history, so mid-turn
+	 * guidance messages never move the boundary into the active tool cycle.
+	 *
+	 * @param list<array<string, mixed>> $input    Native replay input.
+	 * @param array<string, true>        $call_ids Completed-turn call IDs.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function compact_completed_tool_items( array $input, array $call_ids ): array {
+		if ( empty( $call_ids ) ) {
+			return $input;
+		}
+		foreach ( $input as &$item ) {
+			$call_id = $item['call_id'] ?? null;
+			if ( ! is_string( $call_id ) || ! isset( $call_ids[ $call_id ] ) ) {
+				continue;
+			}
+			$type = $item['type'] ?? '';
+			if ( 'function_call_output' === $type && is_string( $item['output'] ?? null ) ) {
+				$item['output'] = CompletedTurnCompactor::compact_result_text( $item['output'] );
+			} elseif ( 'function_call' === $type && is_string( $item['arguments'] ?? null ) ) {
+				$item['arguments'] = CompletedTurnCompactor::compact_argument_text( $item['arguments'] );
+			}
+		}
+		unset( $item );
+		return $input;
 	}
 
 	/**

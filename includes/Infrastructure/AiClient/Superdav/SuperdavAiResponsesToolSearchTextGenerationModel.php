@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
+use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\ProviderTraceLogger;
 use WordPress\AiClient\Common\Exception\InvalidArgumentException;
@@ -50,6 +51,14 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	/** Bind continuation to the agent's server-owned session, not a user-supplied response ID. */
 	public function set_continuation_session_id( int $session_id ): void {
 		$this->continuation_session_id = max( 0, $session_id );
+	}
+
+	/** @var int Leading prompt messages that belong to completed user turns. */
+	private int $completed_turn_message_count = 0;
+
+	/** Bound tool payloads replayed from completed user turns. */
+	public function set_completed_turn_message_count( int $count ): void {
+		$this->completed_turn_message_count = max( 0, $count );
 	}
 
 	/**
@@ -103,6 +112,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				// A stored snapshot with a mismatched scope is unsafe to replay natively.
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
+			// Native replay and local-history replay after cursor loss both carry
+			// completed-turn tool payloads; bound them in the provider view only.
+			$params['input'] = ResponsesContinuation::compact_completed_tool_items(
+				$params['input'],
+				CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count )
+			);
+
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
 				'responses',
@@ -121,7 +137,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
 				$output       = $this->native_output_items( $data['output'] ?? null );
 				if ( null !== $output ) {
-					$native_input = ResponsesContinuation::prune_completed_discovery( array_merge( $continuation['input'] ?? $full_input, $output ) );
+					$native_input = ResponsesContinuation::prune_completed_discovery( array_merge( $params['input'], $output ) );
 					$cursor->acknowledge( $result->getId(), $acknowledged, $scope, $native_input );
 				} else {
 					$cursor->clear();
@@ -711,7 +727,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$fallback->setRequestOptions( $options );
 		}
 
-		return $fallback->generateTextResult( $prompt );
+		/** @var list<Message> $compacted */
+		$compacted = array_values( CompletedTurnCompactor::compact_history( $prompt, $this->completed_turn_message_count ) );
+
+		return $fallback->generateTextResult( $compacted );
 	}
 
 	/** JSON encode a value for OpenAI string fields. */

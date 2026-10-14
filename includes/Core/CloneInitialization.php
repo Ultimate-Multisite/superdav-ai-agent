@@ -102,7 +102,8 @@ final class CloneInitialization {
 		}
 		foreach ( array_merge( self::runtime_options(), $connector_options ) as $name ) {
 			delete_option( $name );
-			if ( false !== get_option( $name, false ) ) {
+			$stored_option = $wpdb->get_var( $wpdb->prepare( 'SELECT option_id FROM %i WHERE option_name = %s LIMIT 1', $wpdb->options, $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			if ( null !== $stored_option || self::has_database_error() ) {
 				return new \WP_Error( 'sd_ai_agent_clone_credentials', 'Could not remove copied SD AI identity or runtime state.' );
 			}
 		}

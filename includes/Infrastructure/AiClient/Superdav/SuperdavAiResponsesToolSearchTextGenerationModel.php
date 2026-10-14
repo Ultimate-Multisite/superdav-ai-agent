@@ -95,12 +95,12 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			if ( null === $scope ) {
 				$cursor->clear();
 			}
+			$has_snapshot = $cursor->has_snapshot();
 			$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
 			if ( null !== $continuation ) {
 				$params['input'] = $continuation['input'];
-			} elseif ( $this->has_tool_history( $full_input ) ) {
-				// An expired/edited snapshot cannot faithfully replay native namespaces or reasoning.
-				$cursor->clear();
+			} elseif ( $has_snapshot && $this->has_tool_history( $full_input ) ) {
+				// A stored snapshot with a mismatched scope is unsafe to replay natively.
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
 			$request = $this->createRequest(
@@ -203,6 +203,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				return true;
 			}
 		}
+
 		return false;
 	}
 

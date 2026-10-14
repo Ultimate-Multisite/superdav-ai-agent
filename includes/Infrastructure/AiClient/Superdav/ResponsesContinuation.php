@@ -23,6 +23,11 @@ final class ResponsesContinuation {
 			: '';
 	}
 
+	/** Return whether a native replay snapshot exists for this session. */
+	public function has_snapshot(): bool {
+		return '' !== $this->key && false !== get_transient( $this->key );
+	}
+
 	/**
 	 * Return complete native history followed by new local input when the prefix matches.
 	 *

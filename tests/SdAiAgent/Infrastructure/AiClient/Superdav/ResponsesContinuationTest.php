@@ -332,15 +332,17 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertSame( 'tool_search_call', $requests[1]->getData()['input'][1]['type'] );
 	}
 
-	/** Cache eviction must never send a standalone native function result. */
-	public function test_missing_cursor_falls_back_without_trying_responses(): void {
+	/** Cache eviction replays local tool history through Responses without provider item IDs. */
+	public function test_missing_cursor_replays_native_history_without_provider_item_ids(): void {
 		$requests = array();
 		$history  = $this->pending_history( $requests );
 		( new ResponsesContinuation( 123, $this->owner ) )->clear();
-		$this->model( array( $this->chat_response() ), $requests )->generateTextResult( $history );
+		$this->model( array( $this->text_response( 'resp_replayed' ) ), $requests )->generateTextResult( $history );
 		$this->assertCount( 2, $requests );
-		$this->assertStringEndsWith( '/chat/completions', $requests[1]->getUri() );
+		$this->assertStringEndsWith( '/responses', $requests[1]->getUri() );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[1]->getData() );
+		$this->assertSame( 'function_call', $requests[1]->getData()['input'][1]['type'] );
+		$this->assertArrayNotHasKey( 'id', $requests[1]->getData()['input'][1] );
 	}
 
 	/** Changing the account must not reference a response owned by the old account. */

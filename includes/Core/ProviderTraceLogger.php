@@ -349,7 +349,21 @@ class ProviderTraceLogger {
 
 		$fallback_attempted = $has_context && self::$runtimeContext['retry_baseline_request_bytes'] > 0;
 
-		if ( $has_context && $request_bytes > $byte_budget ) {
+		$retry_baseline_bytes         = self::$runtimeContext['retry_baseline_request_bytes'];
+		$retry_not_materially_smaller = $has_context
+			&& $retry_baseline_bytes > 0
+			&& ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes );
+
+		// A retry that fits the local budget is sent even when its reduction is
+		// small. The one exception is a baseline that already fit locally and was
+		// rejected upstream for size: resending nearly the same envelope would fail
+		// again, so a provider-rejected retry must still be materially smaller.
+		$provider_rejected_in_budget = $retry_not_materially_smaller && $retry_baseline_bytes <= $byte_budget;
+
+		if ( $has_context && ( $request_bytes > $byte_budget || $provider_rejected_in_budget ) ) {
+			$recovery_outcome                            = $retry_not_materially_smaller
+				? 'retry_not_materially_smaller'
+				: self::local_payload_recovery_outcome();
 			self::$runtimeContext['failure_status_code'] = 413;
 			self::$runtimeContext['failure_class']       = 'local_payload_guard';
 			self::$runtimeContext['failure_source']      = 'transport';
@@ -363,7 +377,7 @@ class ProviderTraceLogger {
 				true,
 				$fallback_attempted,
 				false,
-				self::local_payload_recovery_outcome()
+				$recovery_outcome
 			);
 
 			return new \WP_Error(
@@ -382,45 +396,7 @@ class ProviderTraceLogger {
 					'request_size_source'          => 'complete_envelope',
 					'local_rejection'              => true,
 					'fallback_attempted'           => $fallback_attempted,
-					'recovery_outcome'             => self::local_payload_recovery_outcome(),
-				)
-			);
-		}
-
-		$retry_baseline_bytes = self::$runtimeContext['retry_baseline_request_bytes'];
-		if ( $has_context && $retry_baseline_bytes > 0 && ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes ) ) {
-			self::$runtimeContext['failure_status_code'] = 413;
-			self::$runtimeContext['failure_class']       = 'local_payload_guard';
-			self::$runtimeContext['failure_source']      = 'transport';
-			self::record_payload_limit(
-				$provider_id,
-				$model_id,
-				413,
-				$request_bytes,
-				$request_tokens,
-				$byte_budget,
-				true,
-				true,
-				false,
-				'retry_not_materially_smaller'
-			);
-
-			return new \WP_Error(
-				'sd_ai_agent_provider_payload_budget_exceeded',
-				__( 'This request is too large to send safely. Compact the conversation or shorten the latest message and remove large attachments before retrying.', 'superdav-ai-agent' ),
-				array(
-					'status_code'                  => 413,
-					'provider_id'                  => $provider_id,
-					'model_id'                     => $model_id,
-					'request_bytes'                => $request_bytes,
-					'request_tokens_estimate'      => $request_tokens,
-					'request_provider_limit_bytes' => $provider_limit_bytes,
-					'request_budget_bytes'         => $byte_budget,
-					'request_safety_margin_bytes'  => $safety_margin_bytes,
-					'request_size_class'           => self::classify_request_size( $request_bytes ),
-					'request_size_source'          => 'complete_envelope',
-					'local_rejection'              => true,
-					'recovery_outcome'             => 'retry_not_materially_smaller',
+					'recovery_outcome'             => $recovery_outcome,
 				)
 			);
 		}

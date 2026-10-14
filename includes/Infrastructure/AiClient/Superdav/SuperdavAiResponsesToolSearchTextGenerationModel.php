@@ -118,6 +118,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$params['input'],
 				CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count )
 			);
+
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
 				'responses',

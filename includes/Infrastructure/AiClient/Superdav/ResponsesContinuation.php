@@ -56,12 +56,13 @@ final class ResponsesContinuation {
 	}
 
 	/**
-	 * Keep current-turn discovery intact, but retire unused schemas from older turns.
+	 * Keep current-turn state intact, but retire replay-only content from older turns.
 	 *
 	 * Native search outputs do not exist in SDK history, so ordinary history
 	 * trimming cannot see them. Preserve their protocol rows and every schema
 	 * referenced by a recorded function call; unused tools can be searched again.
-	 * Reasoning, refusals, call identities and function results remain unchanged.
+	 * Completed reasoning is not needed for replay. Remove its paired provider item
+	 * IDs so the retained function calls and assistant messages are client history.
 	 *
 	 * @param list<array<string, mixed>> $input Complete native replay input.
 	 * @return list<array<string, mixed>>
@@ -78,7 +79,18 @@ final class ResponsesContinuation {
 			}
 		}
 		foreach ( $input as $index => &$item ) {
-			if ( $index >= $last_user || 'tool_search_output' !== ( $item['type'] ?? '' ) || ! is_array( $item['tools'] ?? null ) ) {
+			if ( $index >= $last_user ) {
+				continue;
+			}
+			$type = $item['type'] ?? '';
+			if ( 'reasoning' === $type ) {
+				unset( $input[ $index ] );
+				continue;
+			}
+			if ( 'function_call' === $type || ( 'message' === $type && 'assistant' === ( $item['role'] ?? '' ) ) ) {
+				unset( $item['id'] );
+			}
+			if ( 'tool_search_output' !== $type || ! is_array( $item['tools'] ?? null ) ) {
 				continue;
 			}
 			$tools = array();
@@ -104,7 +116,7 @@ final class ResponsesContinuation {
 			$item['tools'] = $tools;
 		}
 		unset( $item );
-		return $input;
+		return array_values( $input );
 	}
 
 	/**

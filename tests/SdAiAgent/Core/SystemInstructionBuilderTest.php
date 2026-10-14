@@ -17,6 +17,21 @@ use WP_UnitTestCase;
  * Test SystemInstructionBuilder functionality.
  */
 class SystemInstructionBuilderTest extends WP_UnitTestCase {
+	/** Independent PHP requests keep the snapshot while user-turn context changes. */
+	public function test_session_instruction_survives_new_builders_and_site_changes(): void {
+		\SdAiAgent\Core\Database::install();
+		$session_id = (int) \SdAiAgent\Core\Database::create_session( array( 'user_id' => get_current_user_id() ) );
+		$first = new SystemInstructionBuilder( '', 'Hi', array( 'page_title' => 'First page' ), $session_id );
+		$instruction = $first->build_for_session( array(), array( 'sd-ai-agent/file-write' ), true );
+		$second = new SystemInstructionBuilder( '', 'Create a page', array( 'page_title' => 'Second page' ), $session_id );
+		$this->assertSame( $instruction, $second->build_for_session( array( 'system_prompt' => 'Changed setting' ), array(), true ) );
+		$this->assertStringNotContainsString( '## Current Context', $instruction );
+		$this->assertStringNotContainsString( '## Relevant Knowledge', $instruction );
+		$this->assertStringContainsString( 'Second page', $second->build_turn_context( array( 'knowledge_enabled' => false ) ) );
+		$this->assertObjectNotHasProperty( 'system_instruction', \SdAiAgent\Core\Database::get_session( $session_id ) );
+		\SdAiAgent\Core\Database::delete_session( $session_id );
+	}
+
 	/** Native discovery must not be contradicted by the compatibility manifest. */
 	public function test_native_routing_loads_deferred_functions_without_compatibility_manifest(): void {
 		$instruction = ( new SystemInstructionBuilder() )->build( array(), array( 'sd-ai-agent/list-posts' ), true );
@@ -30,14 +45,14 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 	}
 
 
-	/** Native edit requests keep the cadence safeguard against overwriting scaffolded files. */
-	public function test_native_edit_request_keeps_working_cadence_guidance(): void {
+	/** Native content guidance is stable even when the current user message changes. */
+	public function test_native_content_guidance_is_message_independent(): void {
 		$abilities = array( 'sd-ai-agent/file-edit', 'sd-ai-agent/file-write', 'sd-ai-agent/create-post' );
 		$edit      = ( new SystemInstructionBuilder( '', 'Edit style.css to add a neon header.' ) )->build( array(), $abilities, true );
 		$this->assertStringContainsString( '## Working cadence', $edit );
 		$this->assertStringContainsString( 'Never overwrite a freshly scaffolded `style.css`', $edit );
 		$greeting = ( new SystemInstructionBuilder( '', 'Hi there!' ) )->build( array(), $abilities, true );
-		$this->assertStringNotContainsString( '## Working cadence', $greeting );
+		$this->assertSame( $edit, $greeting );
 	}
 
 	/**

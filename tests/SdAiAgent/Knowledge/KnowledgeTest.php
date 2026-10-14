@@ -466,6 +466,55 @@ class KnowledgeTest extends WP_UnitTestCase {
 		$this->assertIsString( $result );
 	}
 
+	/** Low-scoring knowledge matches can be excluded from prompt context. */
+	public function test_get_context_for_query_respects_minimum_relevance(): void {
+		$collection_id = KnowledgeDatabase::create_collection( [
+			'name' => 'Prompt Context Test Collection',
+			'slug' => 'prompt-context-test-collection',
+		] );
+		$source_id     = KnowledgeDatabase::create_source( [
+			'collection_id' => $collection_id,
+			'source_type'   => 'text',
+			'source_id'     => 1,
+			'title'         => 'Prompt Context Test Source',
+		] );
+		KnowledgeDatabase::insert_chunks( $collection_id, $source_id, [
+			[ 'text' => 'Distinctive cacheable prompt context content.', 'index' => 0 ],
+		] );
+
+		$this->assertSame( '', Knowledge::get_context_for_query( 'Distinctive cacheable prompt context', 2000, PHP_FLOAT_MAX ) );
+	}
+
+	/** Public turn context cannot disclose excluded or unresolved collections. */
+	public function test_turn_context_respects_public_collection_scope(): void {
+		foreach ( array( 'public-context', 'private-context' ) as $slug ) {
+			$collection = KnowledgeDatabase::create_collection( array( 'name' => $slug, 'slug' => $slug ) );
+			$source = KnowledgeDatabase::create_source( array( 'collection_id' => $collection, 'source_type' => 'text', 'source_id' => 1, 'title' => $slug ) );
+			KnowledgeDatabase::insert_chunks( $collection, $source, array( array( 'text' => 'Hello cachefixture ' . $slug, 'index' => 0 ) ) );
+		}
+		$original_user = get_current_user_id();
+		$administrator = (int) $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$subscriber = (int) $this->factory->user->create( array( 'role' => 'subscriber' ) );
+		try {
+			wp_set_current_user( $administrator );
+			$this->assertStringContainsString( 'private-context', Knowledge::get_context_for_query( 'cachefixture', 2000, 0.0 ) );
+			wp_set_current_user( $subscriber );
+			$this->assertSame( '', Knowledge::get_context_for_query( 'cachefixture', 2000, 0.0 ) );
+			\SdAiAgent\Abilities\KnowledgeAbilities::set_public_collection_allowlist( array( 'public-context' ) );
+			$context = Knowledge::get_context_for_query( 'cachefixture', 2000, 0.0 );
+			$this->assertStringContainsString( 'public-context', $context );
+			$this->assertStringNotContainsString( 'private-context', $context );
+			$this->assertSame( '', Knowledge::get_context_for_query( 'Hello!', 2000, 0.0 ) );
+			\SdAiAgent\Abilities\KnowledgeAbilities::set_public_collection_allowlist( array() );
+			$this->assertSame( '', Knowledge::get_context_for_query( 'cachefixture', 2000, 0.0 ) );
+			\SdAiAgent\Abilities\KnowledgeAbilities::set_public_collection_allowlist( array( 'deleted-collection' ) );
+			$this->assertSame( '', Knowledge::get_context_for_query( 'cachefixture', 2000, 0.0 ) );
+		} finally {
+			\SdAiAgent\Abilities\KnowledgeAbilities::clear_public_collection_allowlist();
+			wp_set_current_user( $original_user );
+		}
+	}
+
 	// ── delete_source ─────────────────────────────────────────────────────
 
 	/**

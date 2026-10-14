@@ -100,13 +100,40 @@ class SessionRepository {
 		/** @var \wpdb $wpdb */
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
-		return $wpdb->get_row(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id = %d',
 				Database::table_name(),
 				$session_id
 			)
 		);
+		if ( is_object( $row ) ) {
+			// Internal prompt snapshots are not part of the session API/export.
+			unset( $row->system_instruction );
+		}
+		return $row;
+	}
+
+	/**
+	 * Read or atomically initialize the session's immutable instruction snapshot.
+	 *
+	 * @param int         $session_id Session ID.
+	 * @param string|null $candidate First instruction, or null for a read only.
+	 * @return string|null Snapshot, or null when the session has none.
+	 */
+	public static function system_instruction( int $session_id, ?string $candidate = null ): ?string {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		if ( $session_id <= 0 ) {
+			return $candidate;
+		}
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Session snapshot is initialized once and must survive independent PHP requests.
+		if ( null !== $candidate ) {
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET system_instruction = %s WHERE id = %d AND system_instruction IS NULL', Database::table_name(), $candidate, $session_id ) );
+		}
+		$snapshot = $wpdb->get_var( $wpdb->prepare( 'SELECT system_instruction FROM %i WHERE id = %d', Database::table_name(), $session_id ) );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return is_string( $snapshot ) ? $snapshot : $candidate;
 	}
 
 	/**

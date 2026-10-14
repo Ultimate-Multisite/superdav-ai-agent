@@ -37,7 +37,7 @@ use SdAiAgent\Tools\CustomTools;
 class Database {
 
 	const DB_VERSION_OPTION                         = 'sd_ai_agent_db_version';
-	const DB_VERSION                                = '19.16.0';
+	const DB_VERSION                                = '19.17.0';
 	const CUSTOMER_CONVERSATION_REVIEW_CLEANUP_HOOK = 'sd_ai_agent_customer_conversation_review_cleanup';
 
 	// ─── Table Name Registry ──────────────────────────────────────────────────
@@ -411,6 +411,7 @@ class Database {
 			pinned tinyint(1) NOT NULL DEFAULT 0,
 			folder varchar(100) NOT NULL DEFAULT '',
 			paused_state longtext DEFAULT NULL,
+			system_instruction longtext DEFAULT NULL,
 			trashed_at datetime DEFAULT NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,

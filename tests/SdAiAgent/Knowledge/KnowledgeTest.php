@@ -466,6 +466,25 @@ class KnowledgeTest extends WP_UnitTestCase {
 		$this->assertIsString( $result );
 	}
 
+	/** Low-scoring knowledge matches can be excluded from prompt context. */
+	public function test_get_context_for_query_respects_minimum_relevance(): void {
+		$collection_id = KnowledgeDatabase::create_collection( [
+			'name' => 'Prompt Context Test Collection',
+			'slug' => 'prompt-context-test-collection',
+		] );
+		$source_id     = KnowledgeDatabase::create_source( [
+			'collection_id' => $collection_id,
+			'source_type'   => 'text',
+			'source_id'     => 1,
+			'title'         => 'Prompt Context Test Source',
+		] );
+		KnowledgeDatabase::insert_chunks( $collection_id, $source_id, [
+			[ 'text' => 'Distinctive cacheable prompt context content.', 'index' => 0 ],
+		] );
+
+		$this->assertSame( '', Knowledge::get_context_for_query( 'Distinctive cacheable prompt context', 2000, PHP_FLOAT_MAX ) );
+	}
+
 	// ── delete_source ─────────────────────────────────────────────────────
 
 	/**

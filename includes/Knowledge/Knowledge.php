@@ -683,11 +683,12 @@ class Knowledge {
 	/**
 	 * Get formatted context for inclusion in a system prompt.
 	 *
-	 * @param string $query      The user's query.
-	 * @param int    $max_tokens Approximate token budget for the context.
+	 * @param string $query             The user's query.
+	 * @param int    $max_tokens        Approximate token budget for the context.
+	 * @param float  $minimum_relevance Minimum search score eligible for prompt context.
 	 * @return string Formatted context string.
 	 */
-	public static function get_context_for_query( string $query, int $max_tokens = 2000 ): string {
+	public static function get_context_for_query( string $query, int $max_tokens = 2000, float $minimum_relevance = 2.0 ): string {
 		$results = self::search( $query, [ 'limit' => 10 ] );
 
 		if ( empty( $results ) ) {
@@ -699,6 +700,9 @@ class Knowledge {
 		$chars     = 0;
 
 		foreach ( $results as $result ) {
+			if ( (float) ( $result['score'] ?? 0 ) < $minimum_relevance ) {
+				continue;
+			}
 			$source_label = $result['source_title'] ?? 'Unknown';
 			if ( ! empty( $result['source_url'] ) ) {
 				// @phpstan-ignore-next-line

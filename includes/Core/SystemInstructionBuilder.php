@@ -150,38 +150,6 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . $skill_index;
 		}
 
-		// Model-aware tiered skill injection (Phase 2 / t217):
-		//
-		// Strong models (GPT-4.1, Claude Sonnet/Opus): receive only the lean
-		// skill index above (~15 tok/skill) plus a targeted hint pointing at
-		// relevant skills. They reliably call skill-load on demand, so injecting
-		// 1 500-3 000 tokens of guide content unconditionally wastes context.
-		//
-		// Weak models (quantized open-weight, small-param models): auto-inject
-		// the best matching skill guide (max 1) directly into the prompt. They
-		// often fail to voluntarily call skill-load even when the index is
-		// present, so front-loading the content is the only reliable path.
-		//
-		// The model_id also passes through so injections are recorded to the
-		// skill_usage table for telemetry (Phase 1 / t215).
-		if ( ! empty( $this->user_message ) ) {
-			if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
-				// Weak model path: inject full skill content (max 1 guide).
-				$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
-				if ( ! empty( $auto_skill ) ) {
-					// @phpstan-ignore-next-line
-					$base .= "\n\n" . $auto_skill;
-				}
-			} else {
-				// Strong model path: add a targeted hint to guide skill-load calls.
-				$hint = SkillAutoInjector::get_index_description( $this->user_message );
-				if ( ! empty( $hint ) ) {
-					// @phpstan-ignore-next-line
-					$base .= "\n\n" . $hint;
-				}
-			}
-		}
-
 		// If auto-memory is enabled, tell the agent about memory abilities.
 		$auto_memory = $settings['auto_memory'] ?? true;
 		if ( $auto_memory ) {
@@ -193,20 +161,6 @@ class SystemInstructionBuilder {
 				. "- Use **sd-ai-agent/memory-delete** to remove outdated memories.\n"
 				. "- Use **sd-ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
 				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
-		}
-
-		// Inject knowledge context if enabled and user message is available.
-		$knowledge_enabled = $settings['knowledge_enabled'] ?? true;
-		if ( $knowledge_enabled && ! empty( $this->user_message ) ) {
-			$context = Knowledge::get_context_for_query( $this->user_message );
-			if ( ! empty( $context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n## Relevant Knowledge\n"
-					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
-					. $context
-					. "\n\nUse this information to provide accurate, contextual responses. "
-					. 'Cite the source when using specific facts from the knowledge base.';
-			}
 		}
 
 		// Inject structured context from providers.
@@ -254,11 +208,10 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . ModelHealthTracker::weak_model_prompt_nudge();
 		}
 
-		// Inject plugin recommendations when the setting is enabled and at least
-		// one recommendation with guidance is registered. Gated so the section is
-		// absent from prompts for sessions that never do page-content generation.
+		// Plugin recommendations are static for this session. Keeping this section
+		// independent of the user message preserves the provider prompt prefix.
 		$plugin_recommendations_enabled = (bool) ( $settings['plugin_recommendations_enabled'] ?? true );
-		if ( $plugin_recommendations_enabled && ( ! $native_tool_search || preg_match( '/\b(form|forms|community|dating|members?|messaging|plugins?)\b/i', $this->user_message ) ) ) {
+		if ( $plugin_recommendations_enabled ) {
 			$plugin_rec_section = PluginRecommendations::build_system_prompt_section();
 			if ( '' !== $plugin_rec_section ) {
 				// @phpstan-ignore-next-line
@@ -270,7 +223,7 @@ class SystemInstructionBuilder {
 		// tool list includes content-generation or theme-modification abilities.
 		// Prevents gateway timeouts on large file writes and keeps the
 		// validate → screenshot → fix feedback loop intact.
-		if ( self::has_content_generation_ability( $ability_names ) && ( ! $native_tool_search || preg_match( '/\b(build|create|write|edit|update|modify|change|fix|design|theme|style|css|template|file|page|post|content|site|website|plugin)\b/i', $this->user_message ) ) ) {
+		if ( self::has_content_generation_ability( $ability_names ) ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . self::build_working_cadence_section();
 
@@ -310,6 +263,54 @@ class SystemInstructionBuilder {
 
 		// @phpstan-ignore-next-line
 		return $base;
+	}
+
+	/**
+	 * Build per-turn context that belongs with the user's current message.
+	 *
+	 * The Responses API caches the leading instructions prefix. User-message
+	 * retrieval and skill routing therefore belong in the current input item,
+	 * where they are retained in conversation history without invalidating that
+	 * prefix on later turns.
+	 *
+	 * @param array<string, mixed> $settings Plugin settings.
+	 * @return string Context wrapped for appending to a user message, or empty.
+	 */
+	public function build_turn_context( array $settings ): string {
+		if ( '' === trim( $this->user_message ) ) {
+			return '';
+		}
+
+		$sections = array();
+		if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
+			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
+			if ( ! empty( $auto_skill ) ) {
+				$sections[] = $auto_skill;
+			}
+		} else {
+			$hint = SkillAutoInjector::get_index_description( $this->user_message );
+			if ( ! empty( $hint ) ) {
+				$sections[] = $hint;
+			}
+		}
+
+		$knowledge_enabled = $settings['knowledge_enabled'] ?? true;
+		if ( $knowledge_enabled ) {
+			$knowledge = Knowledge::get_context_for_query( $this->user_message );
+			if ( '' !== $knowledge ) {
+				$sections[] = "## Relevant Knowledge\n"
+					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
+					. $knowledge
+					. "\n\nUse this information to provide accurate, contextual responses. "
+					. 'Cite the source when using specific facts from the knowledge base.';
+			}
+		}
+
+		if ( empty( $sections ) ) {
+			return '';
+		}
+
+		return "<context>\n\n" . implode( "\n\n", $sections ) . "\n\n</context>";
 	}
 
 	/**

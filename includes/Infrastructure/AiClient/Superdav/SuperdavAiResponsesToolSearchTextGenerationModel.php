@@ -53,6 +53,15 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		$this->continuation_session_id = max( 0, $session_id );
 	}
 
+	/** Return a bounded opaque key for provider-side prompt-cache reuse. */
+	private function prompt_cache_key(): string {
+		if ( 0 === $this->continuation_session_id ) {
+			return '';
+		}
+
+		return hash( 'sha256', 'sd-ai-agent-session:' . $this->continuation_session_id );
+	}
+
 	/** @var int Leading prompt messages that belong to completed user turns. */
 	private int $completed_turn_message_count = 0;
 
@@ -258,6 +267,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		$system_instruction = $config->getSystemInstruction();
 		if ( is_string( $system_instruction ) && '' !== $system_instruction ) {
 			$params['instructions'] = $system_instruction;
+		}
+		$prompt_cache_key = $this->prompt_cache_key();
+		if ( '' !== $prompt_cache_key ) {
+			$params['prompt_cache_key'] = $prompt_cache_key;
 		}
 
 		$max_tokens = $config->getMaxTokens();
@@ -719,6 +732,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		unset( $options['previous_response_id'] );
 		$config->setCustomOptions( $options );
 		$fallback->setConfig( $config );
+		$fallback->set_prompt_cache_key( $this->prompt_cache_key() );
 		$fallback->setHttpTransporter( $this->getHttpTransporter() );
 		$fallback->setRequestAuthentication( $this->getRequestAuthentication() );
 

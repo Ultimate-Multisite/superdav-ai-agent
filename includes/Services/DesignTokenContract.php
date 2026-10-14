@@ -111,6 +111,34 @@ final class DesignTokenContract {
 	public const MAX_REFERENCE_DEPTH           = 16;
 
 	/**
+	 * Return the compact schema exposed to model tool discovery.
+	 *
+	 * The compiler still calls normalize() with the complete contract rules.
+	 * The detailed model-facing contract belongs in the wp-block-themes skill,
+	 * rather than in every deferred tool-search result.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function tool_schema(): array {
+		return [
+			'type'                 => 'object',
+			'description'          => 'Complete schema-v1 contract. Load the wp-block-themes skill for fields and examples; server validation remains strict.',
+			'properties'           => [
+				'version'         => [
+					'type' => 'integer',
+					'enum' => [ self::VERSION ],
+				],
+				'governance'      => [ 'type' => 'object' ],
+				'primitives'      => [ 'type' => 'object' ],
+				'semantics'       => [ 'type' => 'object' ],
+				'style_variation' => [ 'type' => 'object' ],
+			],
+			'required'             => [ 'version', 'governance', 'primitives', 'semantics', 'style_variation' ],
+			'additionalProperties' => false,
+		];
+	}
+
+	/**
 	 * Return the complete public JSON Schema for a version-1 contract.
 	 *
 	 * @return array<string,mixed>

@@ -18,6 +18,28 @@ use WP_UnitTestCase;
  */
 class DesignTokenContractTest extends WP_UnitTestCase {
 
+	/** The tool-facing schema is compact while normalize() retains the full contract. */
+	public function test_tool_schema_is_compact_and_preserves_the_required_contract_sections(): void {
+		$schema = DesignTokenContract::tool_schema();
+
+		$this->assertSame( [ 'version', 'governance', 'primitives', 'semantics', 'style_variation' ], $schema['required'] );
+		$this->assertSame( [ DesignTokenContract::VERSION ], $schema['properties']['version']['enum'] );
+		$this->assertFalse( $schema['additionalProperties'] );
+		$this->assertLessThan( 1024, strlen( (string) wp_json_encode( $schema ) ) );
+	}
+
+	/** The skill the compact tool schema points to documents a contract that actually validates. */
+	public function test_wp_block_themes_skill_example_contract_validates(): void {
+		$skill = (string) file_get_contents( dirname( __DIR__, 3 ) . '/includes/Models/skills/wp-block-themes.md' );
+		$this->assertStringContainsString( 'schema-v1 contract reference', $skill );
+		$this->assertSame( 1, preg_match( '/Minimal valid contract \(adapt identity, slugs, and values\): `(\{.+?\})`\./', $skill, $matches ) );
+
+		$contract = json_decode( $matches[1], true );
+		$this->assertIsArray( $contract );
+		$result = DesignTokenContract::normalize( $contract );
+		$this->assertIsArray( $result, is_wp_error( $result ) ? $result->get_error_message() : '' );
+	}
+
 	/**
 	 * A complete contract resolves semantic aliases and derives governance provenance.
 	 */

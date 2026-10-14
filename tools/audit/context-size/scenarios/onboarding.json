@@ -1,0 +1,12 @@
+[
+{"user":"Hi","steps":[{"text":"Hello! I can help you set up and run your site. What is it about?"}]},
+{"user":"My site is a satirical news blog called The Daily Spoon. Audience: adults who enjoy political humour. Tone: deadpan, short headlines. Publish 3 times a week.","steps":[{"call":"core/get-site-info"},{"text":"Thanks, I have noted your brief. Next I can review your existing posts."}]},
+{"user":"Please read my existing posts and tell me what is there.","steps":[{"call":"sd-ai-agent/list-posts","args":{"post_type":"post","per_page":20}},{"call":"sd-ai-agent/get-post","args":{"post_id":1}},{"text":"You have the default Hello World post and sample page. Nothing else yet."}]},
+{"user":"Remove the starter content.","steps":[{"call":"sd-ai-agent/list-posts","args":{"post_type":"page","per_page":20}},{"call":"sd-ai-agent/list-media","args":{}},{"text":"Starter content reviewed and removed."}]},
+{"user":"Write my first post about a city council voting to rename Monday.","steps":[{"call":"sd-ai-agent/list-block-patterns","args":{}},{"call":"sd-ai-agent/get-site-block-usage","args":{}},{"text":"Draft written: 'Council Votes To Rename Monday, Week Remains Unchanged'."}]},
+{"user":"Create a custom theme for my satire site.","steps":[{"call":"sd-ai-agent/get-themes","args":{}},{"call":"sd-ai-agent/get-global-styles","args":{}},{"call":"sd-ai-agent/get-theme-json","args":{}},{"call":"sd-ai-agent/list-style-variations","args":{}},{"call":"sd-ai-agent/list-template-parts","args":{}},{"call":"sd-ai-agent/list-block-templates","args":{}},{"text":"Here is a theme plan with a newspaper masthead and serif headlines."}]},
+{"user":"Make the header look like an old newspaper masthead.","steps":[{"call":"sd-ai-agent/get-global-styles","args":{}},{"call":"sd-ai-agent/list-template-parts","args":{}},{"text":"Masthead updated."}]},
+{"user":"Now add a category for politics and one for sport.","steps":[{"call":"sd-ai-agent/list-taxonomies","args":{}},{"call":"sd-ai-agent/list-terms","args":{"taxonomy":"category"}},{"text":"Categories added."}]},
+{"user":"What plugins should I install for newsletters?","steps":[{"call":"sd-ai-agent/get-plugins","args":{}},{"call":"sd-ai-agent/search-plugin-directory","args":{"search":"newsletter"}},{"text":"I recommend a newsletter plugin."}]},
+{"user":"Show me the homepage HTML structure.","steps":[{"call":"sd-ai-agent/get-page-html","args":{"url":"/"}},{"text":"The homepage uses a single query loop."}]}
+]

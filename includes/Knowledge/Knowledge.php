@@ -370,6 +370,9 @@ class Knowledge {
 			$col = KnowledgeDatabase::get_collection_by_slug( $options['collection'] );
 			if ( $col ) {
 				$collection_id = (int) $col->id;
+			} else {
+				// A stale public allowlist must never widen a search to all collections.
+				return [];
 			}
 		}
 
@@ -681,7 +684,7 @@ class Knowledge {
 	}
 
 	/**
-	 * Get formatted context for inclusion in a system prompt.
+	 * Get formatted context for inclusion in the current user turn.
 	 *
 	 * @param string $query             The user's query.
 	 * @param int    $max_tokens        Approximate token budget for the context.
@@ -693,7 +696,7 @@ class Knowledge {
 		if ( preg_match( '/^\s*(?:hi|hello|hey|good\s+(?:morning|afternoon|evening)|thanks|thank\s+you)[\s.!?]*$/iu', $query ) ) {
 			return '';
 		}
-		$results = self::search( $query, [ 'limit' => 10 ] );
+		$results = \SdAiAgent\Abilities\KnowledgeAbilities::search_for_context( $query );
 
 		if ( empty( $results ) ) {
 			return '';

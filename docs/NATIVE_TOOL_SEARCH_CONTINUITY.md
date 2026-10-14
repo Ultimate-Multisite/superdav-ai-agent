@@ -26,7 +26,10 @@ Knowledge retrieval, skill routing and live page/user/site context are appended
 once to the current user input inside `<context>`, then retained in ordinary
 history. Greetings do not retrieve knowledge; automatic context also excludes
 matches below the minimum relevance score (default `2.0`). Explicit knowledge
-search remains unchanged.
+search does not apply this automatic-injection threshold. Public/customer turn
+context uses the existing collection allowlist; empty or unresolved collections
+deny retrieval instead of widening it. Private skill guides/hints are not
+automatically copied into public turn history.
 
 Both managed transports support a SHA-256 site/session `prompt_cache_key` (64
 characters). It is **disabled by default** because the deployed strict gateway

@@ -187,6 +187,19 @@ class KnowledgeAbilities {
 	}
 
 	/**
+	 * Search automatic turn context through the same public collection boundary.
+	 *
+	 * @param string $query User query.
+	 * @return list<array<string, mixed>> Raw scored results eligible for context.
+	 */
+	public static function search_for_context( string $query ): array {
+		$options = array( 'limit' => 10 );
+		return self::is_public_collection_mode()
+			? self::search_public_collections( $query, $options )
+			: Knowledge::search( $query, $options );
+	}
+
+	/**
 	 * Search every allowlisted public collection and merge the highest scoring hits.
 	 *
 	 * @param string               $query   Search query.

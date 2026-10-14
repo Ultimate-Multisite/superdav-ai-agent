@@ -38,6 +38,7 @@ import SkillManager from './skill-manager';
 import KnowledgeManager from './knowledge-manager';
 import UsageDashboard from './usage-dashboard';
 import CustomToolsManager from './custom-tools-manager';
+import McpIntegrationsManager from './mcp-integrations-manager';
 import AutomationsManager from './automations-manager';
 import CalendarSmsManager from './calendar-sms-manager';
 import MessagingIntegrationsManager from './messaging-integrations-manager';
@@ -165,7 +166,12 @@ export default function SettingsApp() {
 	const [ local, setLocal ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ abilities, setAbilities ] = useState( [] );
-	const [ activeTab, setActiveTab ] = useState( 'general' );
+	const initialTab = new URL( window.location.href ).searchParams.has(
+		'mcp_oauth'
+	)
+		? 'tools'
+		: 'general';
+	const [ activeTab, setActiveTab ] = useState( initialTab );
 
 	// Scroll affordance: ref to the wrapper div, state for fade indicators.
 	const tabsWrapperRef = useRef( null );
@@ -250,7 +256,7 @@ export default function SettingsApp() {
 				status: 'success',
 				message: __(
 					'Google Analytics credentials saved.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		} catch ( err ) {
@@ -260,7 +266,7 @@ export default function SettingsApp() {
 					err?.message ||
 					__(
 						'Failed to save Google Analytics credentials.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					),
 			} );
 		}
@@ -287,7 +293,7 @@ export default function SettingsApp() {
 				status: 'success',
 				message: __(
 					'Google Analytics credentials cleared.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		} catch {
@@ -295,7 +301,7 @@ export default function SettingsApp() {
 				status: 'error',
 				message: __(
 					'Failed to clear Google Analytics credentials.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		}
@@ -315,14 +321,20 @@ export default function SettingsApp() {
 			setBraveApiKey( '' ); // Clear the field after saving.
 			setBraveNotice( {
 				status: 'success',
-				message: __( 'Brave Search API key saved.', 'sd-ai-agent' ),
+				message: __(
+					'Brave Search API key saved.',
+					'superdav-ai-agent'
+				),
 			} );
 		} catch ( err ) {
 			setBraveNotice( {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save Brave Search API key.', 'sd-ai-agent' ),
+					__(
+						'Failed to save Brave Search API key.',
+						'superdav-ai-agent'
+					),
 			} );
 		}
 		setBraveSaving( false );
@@ -339,14 +351,17 @@ export default function SettingsApp() {
 			setBraveConfigured( false );
 			setBraveNotice( {
 				status: 'success',
-				message: __( 'Brave Search API key removed.', 'sd-ai-agent' ),
+				message: __(
+					'Brave Search API key removed.',
+					'superdav-ai-agent'
+				),
 			} );
 		} catch {
 			setBraveNotice( {
 				status: 'error',
 				message: __(
 					'Failed to remove Brave Search API key.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		}
@@ -366,14 +381,14 @@ export default function SettingsApp() {
 			setTavilyApiKey( '' ); // Clear the field after saving.
 			setTavilyNotice( {
 				status: 'success',
-				message: __( 'Tavily API key saved.', 'sd-ai-agent' ),
+				message: __( 'Tavily API key saved.', 'superdav-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setTavilyNotice( {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save Tavily API key.', 'sd-ai-agent' ),
+					__( 'Failed to save Tavily API key.', 'superdav-ai-agent' ),
 			} );
 		}
 		setTavilySaving( false );
@@ -390,14 +405,14 @@ export default function SettingsApp() {
 			setTavilyConfigured( false );
 			setTavilyNotice( {
 				status: 'success',
-				message: __( 'Tavily API key removed.', 'sd-ai-agent' ),
+				message: __( 'Tavily API key removed.', 'superdav-ai-agent' ),
 			} );
 		} catch {
 			setTavilyNotice( {
 				status: 'error',
 				message: __(
 					'Failed to remove Tavily API key.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		}
@@ -529,15 +544,19 @@ export default function SettingsApp() {
 		setSaving( true );
 		try {
 			await saveSettings( local );
-			createNotice( 'success', __( 'Settings saved.', 'sd-ai-agent' ), {
-				type: 'snackbar',
-				isDismissible: true,
-				id: 'sdaa-settings-save',
-			} );
+			createNotice(
+				'success',
+				__( 'Settings saved.', 'superdav-ai-agent' ),
+				{
+					type: 'snackbar',
+					isDismissible: true,
+					id: 'sdaa-settings-save',
+				}
+			);
 		} catch {
 			createNotice(
 				'error',
-				__( 'Failed to save settings.', 'sd-ai-agent' ),
+				__( 'Failed to save settings.', 'superdav-ai-agent' ),
 				{
 					type: 'snackbar',
 					isDismissible: true,
@@ -568,7 +587,7 @@ export default function SettingsApp() {
 
 	// Build provider/model options.
 	const providerOptions = [
-		{ label: __( '(default)', 'sd-ai-agent' ), value: '' },
+		{ label: __( '(default)', 'superdav-ai-agent' ), value: '' },
 		...providers.map( ( p ) => ( { label: p.name, value: p.id } ) ),
 	];
 
@@ -600,44 +619,44 @@ export default function SettingsApp() {
 		},
 		{
 			name: 'general',
-			title: __( 'General', 'sd-ai-agent' ),
+			title: __( 'General', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'memory-knowledge',
-			title: __( 'Memory & Knowledge', 'sd-ai-agent' ),
+			title: __( 'Memory & Knowledge', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'skills',
-			title: __( 'Skills', 'sd-ai-agent' ),
+			title: __( 'Skills', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'tools',
-			title: __( 'Tools', 'sd-ai-agent' ),
+			title: __( 'Tools', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'automations',
-			title: __( 'Automations', 'sd-ai-agent' ),
+			title: __( 'Automations', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'agents',
-			title: __( 'Agents', 'sd-ai-agent' ),
+			title: __( 'Agents', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		{
 			name: 'access-branding',
-			title: __( 'Access & Branding', 'sd-ai-agent' ),
+			title: __( 'Access & Branding', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 			// Hide when both constituent features are disabled.
 			hidden: ! features.access_control && ! features.branding,
 		},
 		{
 			name: 'usage',
-			title: __( 'Usage', 'sd-ai-agent' ),
+			title: __( 'Usage', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 		// Only visible when WP_DEBUG is active.
@@ -645,14 +664,14 @@ export default function SettingsApp() {
 			? [
 					{
 						name: 'provider-trace',
-						title: __( 'Provider Trace', 'sd-ai-agent' ),
+						title: __( 'Provider Trace', 'superdav-ai-agent' ),
 						className: 'sdaa-settings-tab',
 					},
 			  ]
 			: [] ),
 		{
 			name: 'advanced',
-			title: __( 'Advanced', 'sd-ai-agent' ),
+			title: __( 'Advanced', 'superdav-ai-agent' ),
 			className: 'sdaa-settings-tab',
 		},
 	];
@@ -676,7 +695,7 @@ export default function SettingsApp() {
 			>
 				{ __(
 					'Provider API keys are configured on the Connectors page.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				) }{ ' ' }
 				<a
 					href={
@@ -684,11 +703,15 @@ export default function SettingsApp() {
 						'options-general.php?page=options-connectors-wp-admin'
 					}
 				>
-					{ __( 'Open Connectors →', 'sd-ai-agent' ) }
+					{ __( 'Open Connectors →', 'superdav-ai-agent' ) }
 				</a>
 			</Notice>
 			<div ref={ tabsWrapperRef } className={ scrollWrapperClasses }>
-				<TabPanel tabs={ tabs } onSelect={ setActiveTab }>
+				<TabPanel
+					tabs={ tabs }
+					initialTabName={ initialTab }
+					onSelect={ setActiveTab }
+				>
 					{ ( tab ) => {
 						switch ( tab.name ) {
 							case 'superdav-account':
@@ -709,7 +732,10 @@ export default function SettingsApp() {
 								return (
 									<div className="sdaa-settings-section">
 										<h3 className="sdaa-settings-section-title">
-											{ __( 'Model', 'sd-ai-agent' ) }
+											{ __(
+												'Model',
+												'superdav-ai-agent'
+											) }
 										</h3>
 										<table className="form-table sdaa-form-table">
 											<tbody>
@@ -718,7 +744,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-default-provider">
 															{ __(
 																'Default Provider',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -846,7 +872,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-default-model">
 															{ __(
 																'Default Model',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -878,7 +904,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-max-iterations">
 															{ __(
 																'Max Iterations',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -902,7 +928,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Maximum tool-call iterations per request.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -914,7 +940,7 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Chat Behaviour',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<table className="form-table sdaa-form-table">
@@ -924,7 +950,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-greeting-message">
 															{ __(
 																'Greeting Message',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -948,7 +974,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Shown in the chat before the first message. Leave empty for the default.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															rows={ 2 }
 														/>
@@ -959,7 +985,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-keyboard-shortcut">
 															{ __(
 																'Keyboard Shortcut',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -978,7 +1004,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Shortcut to open/close the floating chat widget. Use modifier keys joined by "+", e.g. "alt+a" or "ctrl+shift+k". Leave empty to disable.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															placeholder="alt+a"
 															__nextHasNoMarginBottom
@@ -989,7 +1015,7 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'YOLO Mode',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
@@ -997,7 +1023,7 @@ export default function SettingsApp() {
 															<ToggleControl
 																label={ __(
 																	'Skip all confirmation dialogs',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																checked={
 																	!! local.yolo_mode
@@ -1012,7 +1038,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'Destructive actions will run without prompting. Use with caution.',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1020,7 +1046,7 @@ export default function SettingsApp() {
 																<div className="sdaa-yolo-warning">
 																	{ __(
 																		'Warning: YOLO mode is active. All tool confirmations are skipped automatically. Destructive operations will execute without asking.',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	) }
 																</div>
 															) }
@@ -1031,14 +1057,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Frontend Widget',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Show on public-facing pages',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															checked={
 																!! local.show_on_frontend
@@ -1051,7 +1077,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Display the floating chat widget on public-facing pages for logged-in administrators.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1061,14 +1087,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Token Costs',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Show token count and estimated cost',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															checked={
 																local.show_token_costs !==
@@ -1082,7 +1108,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Display token count and estimated cost below the chat input and after each AI response.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1124,13 +1150,13 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'AI Image Generation',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Settings for the Generate AI Image ability (DALL-E 3). Requires an OpenAI API key configured in the Providers tab.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 										<table className="form-table sdaa-form-table">
@@ -1140,7 +1166,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-image-size">
 															{ __(
 																'Default Image Size',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1155,21 +1181,21 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Square (1024×1024)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: '1024x1024',
 																},
 																{
 																	label: __(
 																		'Landscape (1792×1024)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: '1792x1024',
 																},
 																{
 																	label: __(
 																		'Portrait (1024×1792)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: '1024x1792',
 																},
@@ -1182,7 +1208,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Default dimensions for generated images. Can be overridden per request.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1193,7 +1219,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-image-quality">
 															{ __(
 																'Default Image Quality',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1208,14 +1234,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Standard',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'standard',
 																},
 																{
 																	label: __(
 																		'HD (higher detail, higher cost)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'hd',
 																},
@@ -1228,7 +1254,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'HD produces finer details and greater consistency but costs more per image.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1239,7 +1265,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-image-style">
 															{ __(
 																'Default Image Style',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1254,14 +1280,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Vivid (hyper-real, dramatic)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'vivid',
 																},
 																{
 																	label: __(
 																		'Natural (subdued, realistic)',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'natural',
 																},
@@ -1274,7 +1300,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Vivid is hyper-real and dramatic; Natural is more subdued and realistic.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1286,13 +1312,13 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Spending Limits',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Set daily and monthly budget caps to prevent runaway API costs. Spend is estimated from the usage log.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 										<table className="form-table sdaa-form-table">
@@ -1302,7 +1328,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-budget-daily">
 															{ __(
 																'Daily Budget Cap (USD)',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1329,7 +1355,7 @@ export default function SettingsApp() {
 															placeholder="0.00"
 															help={ __(
 																'Maximum estimated spend per day in USD. Set to 0 for unlimited.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1340,7 +1366,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-budget-monthly">
 															{ __(
 																'Monthly Budget Cap (USD)',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1367,7 +1393,7 @@ export default function SettingsApp() {
 															placeholder="0.00"
 															help={ __(
 																'Maximum estimated spend per month in USD. Set to 0 for unlimited.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1378,7 +1404,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-budget-warning-threshold">
 															{ __(
 																'Warning Threshold (%)',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1387,7 +1413,7 @@ export default function SettingsApp() {
 															id="sd-budget-warning-threshold"
 															label={ __(
 																'Warning Threshold (%)',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															value={
 																local.budget_warning_threshold ??
@@ -1404,7 +1430,7 @@ export default function SettingsApp() {
 															step={ 1 }
 															help={ __(
 																'Show a warning banner when spend reaches this percentage of the cap.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														/>
 													</td>
@@ -1414,7 +1440,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-budget-exceeded-action">
 															{ __(
 																'Action When Budget Exceeded',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -1429,14 +1455,14 @@ export default function SettingsApp() {
 																{
 																	label: __(
 																		'Pause — block new requests',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'pause',
 																},
 																{
 																	label: __(
 																		'Warn — show warning but allow',
-																		'sd-ai-agent'
+																		'superdav-ai-agent'
 																	),
 																	value: 'warn',
 																},
@@ -1449,7 +1475,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'"Pause" stops all new AI requests until the period resets. "Warn" shows a banner but still allows requests.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1498,7 +1524,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'Use the speaker button in the chat header to toggle on the fly.',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1648,14 +1674,14 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Sound Notifications',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										{ ! isSoundSupported && (
 											<p className="description">
 												{ __(
 													'Sound notifications are not supported in this browser.',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</p>
 										) }
@@ -1666,14 +1692,14 @@ export default function SettingsApp() {
 														<th scope="row">
 															{ __(
 																'Success Sound',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a "ding" when the agent finishes successfully',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																checked={
 																	soundSuccessEnabled
@@ -1683,7 +1709,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A short ascending tone plays when the AI completes a request without error.',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1693,14 +1719,14 @@ export default function SettingsApp() {
 														<th scope="row">
 															{ __(
 																'Error Sound',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a "dong" when the agent encounters an error',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																checked={
 																	soundErrorEnabled
@@ -1710,7 +1736,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A descending tone plays when the AI returns an error response.',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1720,14 +1746,14 @@ export default function SettingsApp() {
 														<th scope="row">
 															{ __(
 																'Thinking Sound',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</th>
 														<td>
 															<ToggleControl
 																label={ __(
 																	'Play a tick when a tool action completes',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																checked={
 																	soundThinkingEnabled
@@ -1737,7 +1763,7 @@ export default function SettingsApp() {
 																}
 																help={ __(
 																	'A subtle tick plays each time the agent completes a tool action during processing.',
-																	'sd-ai-agent'
+																	'superdav-ai-agent'
 																) }
 																__nextHasNoMarginBottom
 															/>
@@ -1753,7 +1779,10 @@ export default function SettingsApp() {
 								return (
 									<div className="sdaa-settings-section">
 										<h3 className="sdaa-settings-section-title">
-											{ __( 'Memory', 'sd-ai-agent' ) }
+											{ __(
+												'Memory',
+												'superdav-ai-agent'
+											) }
 										</h3>
 										<table className="form-table sdaa-form-table">
 											<tbody>
@@ -1761,14 +1790,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Auto-Memory',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Proactively save and recall memories',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															checked={
 																local.auto_memory
@@ -1781,7 +1810,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'When enabled, the AI can proactively save and recall memories.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1792,7 +1821,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Memory manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<MemoryManager />
@@ -1801,7 +1830,7 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Knowledge Base',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<table className="form-table sdaa-form-table">
@@ -1810,14 +1839,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Knowledge Base',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Enable knowledge base search',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															checked={
 																local.knowledge_enabled
@@ -1830,7 +1859,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'When enabled, the AI can search indexed documents and posts for relevant context.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1840,14 +1869,14 @@ export default function SettingsApp() {
 													<th scope="row">
 														{ __(
 															'Auto-Index',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</th>
 													<td>
 														<ToggleControl
 															label={ __(
 																'Index posts on publish or update',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															checked={
 																local.knowledge_auto_index
@@ -1860,7 +1889,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Automatically index posts when they are published or updated.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -1871,7 +1900,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Knowledge manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<KnowledgeManager />
@@ -1883,24 +1912,30 @@ export default function SettingsApp() {
 								return (
 									<div className="sdaa-settings-section">
 										<h3 className="sdaa-settings-section-title">
-											{ __( 'Skills', 'sd-ai-agent' ) }
+											{ __(
+												'Skills',
+												'superdav-ai-agent'
+											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Skill manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<SkillManager />
 										</ErrorBoundary>
 
 										<h3 className="sdaa-settings-section-title">
-											{ __( 'Abilities', 'sd-ai-agent' ) }
+											{ __(
+												'Abilities',
+												'superdav-ai-agent'
+											) }
 										</h3>
 										<p className="description">
 											{ __(
 												'Control how each tool behaves. "Auto" runs without asking, "Confirm" pauses to ask before running, "Disabled" prevents the tool from being used.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 										<AbilitiesManager
@@ -1933,16 +1968,31 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Custom Tools',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Custom tools manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<CustomToolsManager />
+										</ErrorBoundary>
+
+										<h3 className="sdaa-settings-section-title">
+											{ __(
+												'MCP servers',
+												'superdav-ai-agent'
+											) }
+										</h3>
+										<ErrorBoundary
+											label={ __(
+												'MCP integrations manager',
+												'superdav-ai-agent'
+											) }
+										>
+											<McpIntegrationsManager />
 										</ErrorBoundary>
 									</div>
 								);
@@ -1968,13 +2018,13 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Calendar SMS Reminders',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Calendar SMS reminders manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<CalendarSmsManager />
@@ -1983,25 +2033,28 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Automations',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Automations manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<AutomationsManager />
 										</ErrorBoundary>
 
 										<h3 className="sdaa-settings-section-title">
-											{ __( 'Events', 'sd-ai-agent' ) }
+											{ __(
+												'Events',
+												'superdav-ai-agent'
+											) }
 										</h3>
 										<ErrorBoundary
 											label={ __(
 												'Events manager',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<EventsManager />
@@ -2015,7 +2068,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Agent builder',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<AgentBuilder />
@@ -2031,13 +2084,13 @@ export default function SettingsApp() {
 												<h3 className="sdaa-settings-section-title">
 													{ __(
 														'Role Permissions',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</h3>
 												<ErrorBoundary
 													label={ __(
 														'Role permissions manager',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												>
 													<RolePermissionsManager />
@@ -2050,7 +2103,7 @@ export default function SettingsApp() {
 												<h3 className="sdaa-settings-section-title">
 													{ __(
 														'Branding',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</h3>
 												<BrandingManager
@@ -2068,7 +2121,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Usage dashboard',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<UsageDashboard />
@@ -2082,7 +2135,7 @@ export default function SettingsApp() {
 										<ErrorBoundary
 											label={ __(
 												'Provider trace viewer',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											<ProviderTraceViewer />
@@ -2096,7 +2149,7 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Model Parameters',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<table className="form-table sdaa-form-table">
@@ -2106,7 +2159,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-temperature">
 															{ __(
 																'Temperature',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2127,7 +2180,7 @@ export default function SettingsApp() {
 															step={ 0.1 }
 															help={ __(
 																'Higher = more creative, lower = more deterministic.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														/>
 													</td>
@@ -2137,7 +2190,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-max-output-tokens">
 															{ __(
 																'Max Output Tokens',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2171,7 +2224,7 @@ export default function SettingsApp() {
 															} }
 															help={ __(
 																'0 = auto (resolve per model — e.g. 32K for Claude 4.x, 16K for GPT-4o, 8K for Gemini Flash). Set explicitly only if you need to cap or extend a specific model.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2182,7 +2235,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-context-window">
 															{ __(
 																'Default Context Window',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2206,7 +2259,7 @@ export default function SettingsApp() {
 															}
 															help={ __(
 																'Used as fallback when model context size is unknown.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2218,19 +2271,19 @@ export default function SettingsApp() {
 										<h3 className="sdaa-settings-section-title">
 											{ __(
 												'Integrations',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h3>
 										<h4 className="sdaa-settings-subsection-title">
 											{ __(
 												'Google Analytics 4',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h4>
 										<p className="description">
 											{ __(
 												'Connect to Google Analytics 4 to enable traffic analysis in the AI chat. You need a GA4 property ID and a Google service account JSON key with the "Viewer" role on your GA4 property.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 										{ gaStatus?.has_credentials && (
@@ -2240,13 +2293,13 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Google Analytics is connected.',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }{ ' ' }
 												{ gaStatus.property_id && (
 													<strong>
 														{ __(
 															'Property ID:',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }{ ' ' }
 														{ gaStatus.property_id }
 													</strong>
@@ -2271,7 +2324,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-ga-property-id">
 															{ __(
 																'GA4 Property ID',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2287,7 +2340,7 @@ export default function SettingsApp() {
 															placeholder="123456789"
 															help={ __(
 																'Your numeric GA4 property ID. Found in Google Analytics > Admin > Property Settings.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2298,7 +2351,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-ga-service-json">
 															{ __(
 																'Service Account JSON Key',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2313,11 +2366,11 @@ export default function SettingsApp() {
 															}
 															placeholder={ __(
 																'Paste the contents of your service account JSON key file here.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															help={ __(
 																'Download from Google Cloud Console > IAM & Admin > Service Accounts > Keys. Grant the service account "Viewer" access in GA4 Admin > Property Access Management.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															rows={ 6 }
 														/>
@@ -2338,7 +2391,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Save GA Credentials',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</Button>
 											{ gaStatus?.has_credentials && (
@@ -2350,7 +2403,7 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Disconnect',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</Button>
 											) }
@@ -2359,13 +2412,13 @@ export default function SettingsApp() {
 										<h4 className="sdaa-settings-subsection-title">
 											{ __(
 												'Internet Search',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</h4>
 										<p className="description">
 											{ __(
 												'The agent searches the internet to research topics and answer questions about current events. Configure one or more search providers below. Provider priority: Tavily > Brave > DuckDuckGo (free fallback). You can also paste an API key into the chat and ask the agent to save it.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 										{ /* Active provider indicator */ }
@@ -2377,31 +2430,34 @@ export default function SettingsApp() {
 												if ( tavilyConfigured ) {
 													return __(
 														'Active provider: Tavily (best for AI agents).',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													);
 												}
 												if ( braveConfigured ) {
 													return __(
 														'Active provider: Brave Search.',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													);
 												}
 												return __(
 													'Active provider: DuckDuckGo (free fallback — limited to instant answers). Configure Tavily or Brave for full web search.',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												);
 											} )() }
 										</Notice>
 
 										{ /* ── Tavily ── */ }
 										<h5 className="sdaa-settings-subsection-title">
-											{ __( 'Tavily', 'sd-ai-agent' ) }
+											{ __(
+												'Tavily',
+												'superdav-ai-agent'
+											) }
 											{ tavilyConfigured && ' \u2713' }
 										</h5>
 										<p className="description">
 											{ __(
 												'Purpose-built search API for AI agents. Free tier includes 1,000 searches/month. Get an API key at',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }{ ' ' }
 											<a
 												href="https://app.tavily.com/"
@@ -2429,7 +2485,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-tavily-api-key">
 															{ __(
 																'Tavily API Key',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2447,13 +2503,13 @@ export default function SettingsApp() {
 																tavilyConfigured
 																	? __(
 																			'Key saved — enter a new key to replace it',
-																			'sd-ai-agent'
+																			'superdav-ai-agent'
 																	  )
 																	: 'tvly-...'
 															}
 															help={ __(
 																'Get a free API key at app.tavily.com — the free tier includes 1,000 searches/month.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2473,7 +2529,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Save Tavily API Key',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</Button>
 											{ tavilyConfigured && (
@@ -2487,7 +2543,7 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Remove Key',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</Button>
 											) }
@@ -2497,14 +2553,14 @@ export default function SettingsApp() {
 										<h5 className="sdaa-settings-subsection-title">
 											{ __(
 												'Brave Search',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 											{ braveConfigured && ' \u2713' }
 										</h5>
 										<p className="description">
 											{ __(
 												'Rich web search results with snippets, news, and videos. Free tier includes 2,000 queries/month. Get an API key at',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }{ ' ' }
 											<a
 												href="https://brave.com/search/api/"
@@ -2532,7 +2588,7 @@ export default function SettingsApp() {
 														<label htmlFor="sd-brave-api-key">
 															{ __(
 																'Brave Search API Key',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 														</label>
 													</th>
@@ -2550,13 +2606,13 @@ export default function SettingsApp() {
 																braveConfigured
 																	? __(
 																			'Key saved — enter a new key to replace it',
-																			'sd-ai-agent'
+																			'superdav-ai-agent'
 																	  )
 																	: 'BSA...'
 															}
 															help={ __(
 																'Get a free API key at brave.com/search/api/ — the free tier includes 2,000 queries/month.',
-																'sd-ai-agent'
+																'superdav-ai-agent'
 															) }
 															__nextHasNoMarginBottom
 														/>
@@ -2575,7 +2631,7 @@ export default function SettingsApp() {
 											>
 												{ __(
 													'Save Brave API Key',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</Button>
 											{ braveConfigured && (
@@ -2587,7 +2643,7 @@ export default function SettingsApp() {
 												>
 													{ __(
 														'Remove Key',
-														'sd-ai-agent'
+														'superdav-ai-agent'
 													) }
 												</Button>
 											) }
@@ -2667,7 +2723,7 @@ export default function SettingsApp() {
 						isBusy={ saving }
 						disabled={ saving }
 					>
-						{ __( 'Save Settings', 'sd-ai-agent' ) }
+						{ __( 'Save Settings', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 			) }

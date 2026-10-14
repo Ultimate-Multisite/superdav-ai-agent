@@ -2,6 +2,12 @@
 
 The design language for this plugin is **modern WordPress Admin** — clean, minimal, and immediately familiar to anyone who uses wp-admin daily. Every decision should reduce visual noise, guide the user's eye to what matters, and feel like a natural extension of WordPress rather than a foreign product dropped inside it.
 
+### Initial greeting language
+
+- Built-in factory greetings are translated when requested, using the WordPress user's language and falling back to the site language. PHP language packs must be installed for the selected locale; unavailable translations retain WordPress's source-language fallback.
+- The main chat and compact widget prefer the selected agent's greeting. Custom agent and branding greetings remain authored content and are not automatically rewritten.
+- AI-generated onboarding introductions and suggestion chips use the same user/site language preference, unless the user asks for another language. This does not change the site's content language.
+
 ---
 
 ## 1. Visual Theme & Atmosphere
@@ -246,6 +252,16 @@ System notices:
 ### Tooltips
 
 Use `<Tooltip>` from `@wordpress/components` (or `showTooltip + label` on `<Button>`) for every icon-only button. Do not rely on the native `title` attribute — it has poor accessibility and inconsistent browser styling.
+
+### MCP connections
+
+- Keep the primary setup flow to a server URL, optional display name, and the relevant authentication field. Transport and protocol negotiation are automatic.
+- New and imported servers stay disabled until a successful discovery and an explicit administrator action. Connecting discovers available tools; it never changes a tool's existing confirmation policy.
+- Show connection status and tool count in the normal card. Put protocol versions, timestamps, and safe error codes in an expandable Details section.
+- Keep import/export, edit, refresh, and removal secondary. Do not render credentials in cards, details, exports, or recovered form state.
+- OAuth is a Sign in redirect and return to the Tools tab, not a token-copying wizard. Keep registered client details under Advanced; provide the exact redirect URI there when pre-registration is needed.
+- Error notices explain the next action without showing raw remote errors. Duplicate submissions are disabled, and a failed setup preserves safe fields but clears credentials.
+- At widths below 600px, stack connection actions as full-width buttons with a minimum 44px touch target; server URLs wrap without horizontal overflow.
 
 ---
 

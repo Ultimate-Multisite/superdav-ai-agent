@@ -72,7 +72,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must be a JSON object.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			};
 		}
@@ -81,7 +81,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must include a "type" field (e.g. "bar", "line", "pie").',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			};
 		}
@@ -90,7 +90,7 @@ function parseChartConfig( raw ) {
 				config: null,
 				error: __(
 					'Chart config must include a "data" field.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			};
 		}
@@ -155,7 +155,7 @@ function ChartCanvas( { config } ) {
 	if ( runtimeError ) {
 		return (
 			<p className="sdaa-chart-error-msg">
-				{ __( 'Chart render error:', 'sd-ai-agent' ) }
+				{ __( 'Chart render error:', 'superdav-ai-agent' ) }
 				<code>{ runtimeError }</code>
 			</p>
 		);
@@ -180,7 +180,7 @@ export default function ChartBlock( { children } ) {
 		return (
 			<div className="sdaa-chart-error">
 				<p className="sdaa-chart-error-msg">
-					{ __( 'Chart render error:', 'sd-ai-agent' ) }
+					{ __( 'Chart render error:', 'superdav-ai-agent' ) }
 					<code>{ error }</code>
 				</p>
 				<CodeBlock language="json">{ raw }</CodeBlock>

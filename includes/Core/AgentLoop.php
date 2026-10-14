@@ -177,6 +177,9 @@ PROMPT;
 	/** @var bool When true the constructor was given an explicit system_instruction override and we should NOT rebuild it per turn. */
 	private bool $system_instruction_locked = false;
 
+	/** @var bool Whether the session instruction has been built from its static session configuration. */
+	private bool $system_instruction_initialized = false;
+
 	/** @var int */
 	private $max_iterations;
 
@@ -333,6 +336,16 @@ PROMPT;
 	private bool $native_full_catalog = true;
 
 	/**
+	 * User message that opened this run; earlier history belongs to completed turns.
+	 *
+	 * Null for resumed runs, where the turn boundary is not known and completed-turn
+	 * compaction is skipped.
+	 *
+	 * @var Message|null
+	 */
+	private ?Message $current_turn_message = null;
+
+	/**
 	 * Optional callback invoked after each tool call/response pair.
 	 *
 	 * Signature: function( list<array<string, mixed>> $tool_call_log, list<array<string, mixed>> $message_log ): void
@@ -467,9 +480,8 @@ PROMPT;
 			$settings['system_prompt'] = $options['agent_system_prompt'];
 		}
 
-		// Store settings so send_prompt() can rebuild the system instruction
-		// before each model call — this lets the recently_fetched_section
-		// (and any other dynamic blocks) reach the model on subsequent turns.
+		// Keep settings for the single session-scoped instruction build and the
+		// current user-turn context appended to history below.
 		// @phpstan-ignore-next-line
 		$this->settings_for_prompt = $settings;
 
@@ -569,8 +581,8 @@ PROMPT;
 
 		// ── Initialise focused service objects ───────────────────────────
 
-		// SystemInstructionBuilder needs the model_id for weak-model nudges
-		// and user_message for knowledge RAG, both resolved above.
+		// SystemInstructionBuilder needs the model ID for weak-model nudges and
+		// the user message for context appended to the current history item.
 		// session_id is passed so skill injection events are recorded to the
 		// skill_usage telemetry table (Phase 1 / t215).
 		$this->instruction_builder = new SystemInstructionBuilder(
@@ -635,8 +647,6 @@ PROMPT;
 			// @phpstan-ignore-next-line
 			$this->system_instruction        = $options['system_instruction'];
 			$this->system_instruction_locked = true;
-		} else {
-			$this->system_instruction = $this->instruction_builder->build( $settings );
 		}
 	}
 
@@ -686,8 +696,15 @@ PROMPT;
 				register_shutdown_function( array( $this, 'handle_active_job_shutdown' ) );
 			}
 
-			// Append the new user message to history.
-			$this->history[] = new UserMessage( array( new MessagePart( $this->user_message ) ) );
+			// Append the new user message to history. Messages before it belong to
+			// completed turns, whose tool payloads are compacted in provider requests.
+			$turn_context = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$turn_message = $this->user_message;
+			if ( '' !== $turn_context ) {
+				$turn_message .= "\n\n" . $turn_context;
+			}
+			$this->current_turn_message = new UserMessage( array( new MessagePart( $turn_message ) ) );
+			$this->history[]            = $this->current_turn_message;
 
 			$result = $this->run_loop( $this->max_iterations );
 
@@ -2660,8 +2677,8 @@ PROMPT;
 			'reduced_retry_attempted'
 		);
 
-		// Only a measured, complete request envelope can prove that the one
-		// reduced retry is materially smaller. This includes local transport
+		// Only a measured, complete request envelope can safely bound the one
+		// reduced retry. This includes local transport
 		// preflight rejections: history can fit its standalone budget while the
 		// complete system-instruction and tool envelope still exceeds the limit.
 		// Do not retry 413s from SDK layers that did not measure the full request.
@@ -2670,10 +2687,11 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, false );
 		}
 
-		// Reserve measured system/tool overhead, and require a ten-percent smaller
-		// complete envelope rather than budgeting the conversation alone.
+		// Reserve measured system/tool overhead and five-percent envelope headroom
+		// so the reduced request lands comfortably inside the local budget.
 		$envelope_overhead = max( 0, $complete_envelope_bytes - $before_bytes );
-		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $byte_budget - $envelope_overhead, (int) floor( $complete_envelope_bytes * 0.9 ) - $envelope_overhead ) );
+		$retry_budget      = max( 1, (int) floor( $byte_budget * 0.95 ) );
+		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $retry_budget - $envelope_overhead ) );
 		$target_tokens     = max( 1, (int) floor( $before_tokens * 0.6 ) );
 		$reduced           = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
 		$after_bytes       = ConversationTrimmer::estimate_total_bytes( $reduced );
@@ -3097,14 +3115,13 @@ PROMPT;
 		// names so it does not re-inline every searchable tool in prose.
 		$abilities = $this->resolve_abilities();
 
-		// Rebuild the system instruction unless the caller pinned a static
-		// override. This lets the manifest's "recently fetched ability
-		// schemas" block reach the model on subsequent turns.
-		// Pass active ability names so the cadence section is injected
-		// when content-generation or theme-modification tools are in scope.
-		if ( ! $this->system_instruction_locked ) {
-			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+		// Build instructions once per session. Per-turn retrieval belongs in the
+		// user history item, so provider retries and follow-up calls retain an
+		// identical cacheable prefix.
+		if ( ! $this->system_instruction_locked && ! $this->system_instruction_initialized ) {
+			$ability_names                        = $this->system_prompt_ability_names( $abilities );
+			$this->system_instruction             = $this->instruction_builder->build_for_session( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+			$this->system_instruction_initialized = true;
 		}
 
 		$started_at               = microtime( true );
@@ -3241,9 +3258,36 @@ PROMPT;
 			$builder->using_abilities( ...$abilities );
 		}
 		if ( ! empty( $this->history ) ) {
-			$builder->with_history( ...$this->history );
+			$builder->with_history( ...$this->provider_history() );
 		}
 		return $builder;
+	}
+
+	/**
+	 * Return the provider view of history with completed-turn tool payloads bounded.
+	 *
+	 * Native Responses replay matches the exact SDK history prefix, so the native
+	 * model compacts its own replay using the same boundary instead.
+	 *
+	 * @return Message[]
+	 */
+	private function provider_history(): array {
+		if ( $this->should_use_native_tool_search() ) {
+			return $this->history;
+		}
+
+		return CompletedTurnCompactor::compact_history( $this->history, $this->completed_turn_message_count() );
+	}
+
+	/** Number of leading history messages that belong to completed user turns. */
+	private function completed_turn_message_count(): int {
+		if ( null === $this->current_turn_message ) {
+			return 0;
+		}
+
+		$position = array_search( $this->current_turn_message, array_values( $this->history ), true );
+
+		return false === $position ? 0 : (int) $position;
 	}
 
 	/** Return the bounded provider invocation phase stored in terminal traces. */
@@ -3777,6 +3821,9 @@ PROMPT;
 				$model = $registry->getProviderModel( $provider_id, $model_id );
 				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
 					$model->set_continuation_session_id( $this->session_id );
+					$model->set_completed_turn_message_count( $this->completed_turn_message_count() );
+				} elseif ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel ) {
+					$model->set_prompt_cache_key( SuperdavAiProvider::prompt_cache_key( $this->session_id ) );
 				}
 				$builder->using_model( $model );
 			} else {
@@ -4540,6 +4587,12 @@ PROMPT;
 			$fn_name = \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name(
 				$ability->get_name()
 			);
+			$meta    = $ability->get_meta();
+			if ( ! empty( $meta['remote_mcp'] ) && strlen( $fn_name ) > 64 ) {
+				// Preserve canonical IDs; search/call can invoke long MCP names without
+				// invalidating the provider's function-name limit for the entire catalog.
+				continue;
+			}
 
 			// Normalise to the lowest-common-denominator form so that providers
 			// which treat hyphens and underscores as equivalent (or which strip the

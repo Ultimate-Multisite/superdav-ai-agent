@@ -247,8 +247,8 @@ export default function CodeBlock( { language, children } ) {
 					) }
 				>
 					{ copied
-						? __( 'Copied!', 'sd-ai-agent' )
-						: __( 'Copy', 'sd-ai-agent' ) }
+						? __( 'Copied!', 'superdav-ai-agent' )
+						: __( 'Copy', 'superdav-ai-agent' ) }
 				</button>
 			</div>
 			{ /* CodeMirror mounts into this div */ }

@@ -106,14 +106,14 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 						disabled={ sending }
 						size="small"
 					>
-						{ __( 'Send', 'sd-ai-agent' ) }
+						{ __( 'Send', 'superdav-ai-agent' ) }
 					</Button>
 					<Button
 						variant="tertiary"
 						onClick={ () => setEditing( false ) }
 						size="small"
 					>
-						{ __( 'Cancel', 'sd-ai-agent' ) }
+						{ __( 'Cancel', 'superdav-ai-agent' ) }
 					</Button>
 				</div>
 			</div>
@@ -130,8 +130,8 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 				onClick={ handleCopy }
 				label={
 					copied
-						? __( 'Copied!', 'sd-ai-agent' )
-						: __( 'Copy', 'sd-ai-agent' )
+						? __( 'Copied!', 'superdav-ai-agent' )
+						: __( 'Copy', 'superdav-ai-agent' )
 				}
 				showTooltip
 				icon={ <Icon icon={ copied ? check : copy } size={ 14 } /> }
@@ -142,7 +142,7 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 					className="sdaa-action-btn"
 					onClick={ handleEdit }
 					disabled={ sending }
-					label={ __( 'Edit message', 'sd-ai-agent' ) }
+					label={ __( 'Edit message', 'superdav-ai-agent' ) }
 					showTooltip
 					icon={ <Icon icon={ pencil } size={ 14 } /> }
 					size="small"
@@ -153,7 +153,7 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 					className="sdaa-action-btn"
 					onClick={ () => regenerateMessage( index ) }
 					disabled={ sending }
-					label={ __( 'Regenerate', 'sd-ai-agent' ) }
+					label={ __( 'Regenerate', 'superdav-ai-agent' ) }
 					showTooltip
 					icon={ <Icon icon={ redo } size={ 14 } /> }
 					size="small"
@@ -166,7 +166,7 @@ export default function MessageActions( { message, index, onThumbsDown } ) {
 					disabled={ sending }
 					label={ __(
 						'Report an issue with this response',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 					showTooltip
 					icon={ <Icon icon={ thumbsDown } size={ 14 } /> }

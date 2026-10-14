@@ -358,15 +358,16 @@ final class AgentController {
 		$list   = array_map(
 			static function ( AgentRow $agent ): array {
 				return array(
-					'id'          => $agent->id,
-					'slug'        => $agent->slug,
-					'name'        => $agent->name,
-					'description' => $agent->description,
-					'avatar_icon' => $agent->avatar_icon,
-					'greeting'    => $agent->greeting,
-					'suggestions' => $agent->suggestions,
-					'is_builtin'  => $agent->is_builtin,
-					'enabled'     => $agent->enabled,
+					'id'              => $agent->id,
+					'slug'            => $agent->slug,
+					'name'            => $agent->name,
+					'description'     => $agent->description,
+					'avatar_icon'     => $agent->avatar_icon,
+					'greeting'        => Agent::get_localized_greeting( $agent ),
+					'stored_greeting' => $agent->greeting,
+					'suggestions'     => $agent->suggestions,
+					'is_builtin'      => $agent->is_builtin,
+					'enabled'         => $agent->enabled,
 				);
 			},
 			$agents

@@ -19,7 +19,7 @@
 #   1. Builds production assets and ZIP via bin/build.sh
 #   2. Syncs built files into SVN trunk/
 #   3. Stages new/deleted files with svn add / svn delete
-#   4. Commits trunk
+#   4. Commits trunk and WordPress.org listing assets
 #   5. Creates a version tag via svn copy
 #
 # See docs/wordpress-org-submission.md for the full submission workflow.
@@ -256,7 +256,7 @@ fi
 echo "    SVN status:"
 svn status
 
-# ── Commit trunk ─────────────────────────────────────────────────────────────
+# ── Commit trunk and listing assets ──────────────────────────────────────────
 if [ "$DRY_RUN" = true ]; then
 	echo ""
 	echo "==> DRY RUN — skipping commit and tag."
@@ -265,12 +265,12 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo ""
-echo "==> Committing trunk (you will be prompted for your WP.org password)..."
-svn commit trunk/ \
+echo "==> Committing trunk and listing assets (you will be prompted for your WP.org password)..."
+svn commit trunk/ assets/ \
 	-m "Update trunk to Superdav AI Agent v${VERSION}" \
 	--username "$WP_USERNAME"
 
-echo "    Trunk committed."
+echo "    Trunk and listing assets committed."
 
 # ── Tag the release ───────────────────────────────────────────────────────────
 echo "==> Creating tag ${VERSION}..."

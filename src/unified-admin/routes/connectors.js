@@ -132,7 +132,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'success',
 				message: __(
 					'Plugin installed. Click Activate to enable it.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 			onRefresh();
@@ -140,7 +140,8 @@ function ProviderCard( { provider, onRefresh } ) {
 			setCardNotice( {
 				status: 'error',
 				message:
-					err?.message || __( 'Installation failed.', 'sd-ai-agent' ),
+					err?.message ||
+					__( 'Installation failed.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setInstalling( false );
@@ -158,14 +159,15 @@ function ProviderCard( { provider, onRefresh } ) {
 			} );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'Plugin activated.', 'sd-ai-agent' ),
+				message: __( 'Plugin activated.', 'superdav-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
 			setCardNotice( {
 				status: 'error',
 				message:
-					err?.message || __( 'Activation failed.', 'sd-ai-agent' ),
+					err?.message ||
+					__( 'Activation failed.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setActivating( false );
@@ -187,7 +189,7 @@ function ProviderCard( { provider, onRefresh } ) {
 			setApiKey( '' );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'API key saved.', 'sd-ai-agent' ),
+				message: __( 'API key saved.', 'superdav-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
@@ -195,7 +197,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to save API key.', 'sd-ai-agent' ),
+					__( 'Failed to save API key.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setSaving( false );
@@ -212,7 +214,7 @@ function ProviderCard( { provider, onRefresh } ) {
 			} );
 			setCardNotice( {
 				status: 'success',
-				message: __( 'SD AI connected.', 'sd-ai-agent' ),
+				message: __( 'SD AI connected.', 'superdav-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
@@ -220,7 +222,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to connect SD AI.', 'sd-ai-agent' ),
+					__( 'Failed to connect SD AI.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setConnecting( false );
@@ -231,10 +233,10 @@ function ProviderCard( { provider, onRefresh } ) {
 		/* eslint-disable no-alert */
 		const confirmed = window.confirm(
 			provider.managed
-				? __( 'Disconnect SD AI for this site?', 'sd-ai-agent' )
+				? __( 'Disconnect SD AI for this site?', 'superdav-ai-agent' )
 				: __(
 						'Clear the saved API key for this provider?',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 				  )
 		);
 		/* eslint-enable no-alert */
@@ -251,8 +253,8 @@ function ProviderCard( { provider, onRefresh } ) {
 			setCardNotice( {
 				status: 'success',
 				message: provider.managed
-					? __( 'SD AI disconnected.', 'sd-ai-agent' )
-					: __( 'API key cleared.', 'sd-ai-agent' ),
+					? __( 'SD AI disconnected.', 'superdav-ai-agent' )
+					: __( 'API key cleared.', 'superdav-ai-agent' ),
 			} );
 			onRefresh();
 		} catch ( err ) {
@@ -260,7 +262,7 @@ function ProviderCard( { provider, onRefresh } ) {
 				status: 'error',
 				message:
 					err?.message ||
-					__( 'Failed to clear API key.', 'sd-ai-agent' ),
+					__( 'Failed to clear API key.', 'superdav-ai-agent' ),
 			} );
 		} finally {
 			setClearing( false );
@@ -271,34 +273,34 @@ function ProviderCard( { provider, onRefresh } ) {
 		if ( provider.managed && provider.configured ) {
 			return (
 				<span className="sd-ai-connectors__status sd-ai-connectors__status--active">
-					{ __( 'Connected', 'sd-ai-agent' ) }
+					{ __( 'Connected', 'superdav-ai-agent' ) }
 				</span>
 			);
 		}
 		if ( provider.managed ) {
 			return (
 				<span className="sd-ai-connectors__status sd-ai-connectors__status--inactive">
-					{ __( 'Available', 'sd-ai-agent' ) }
+					{ __( 'Available', 'superdav-ai-agent' ) }
 				</span>
 			);
 		}
 		if ( provider.active ) {
 			return (
 				<span className="sd-ai-connectors__status sd-ai-connectors__status--active">
-					{ __( 'Active', 'sd-ai-agent' ) }
+					{ __( 'Active', 'superdav-ai-agent' ) }
 				</span>
 			);
 		}
 		if ( provider.installed ) {
 			return (
 				<span className="sd-ai-connectors__status sd-ai-connectors__status--inactive">
-					{ __( 'Inactive', 'sd-ai-agent' ) }
+					{ __( 'Inactive', 'superdav-ai-agent' ) }
 				</span>
 			);
 		}
 		return (
 			<span className="sd-ai-connectors__status sd-ai-connectors__status--not-installed">
-				{ __( 'Not Installed', 'sd-ai-agent' ) }
+				{ __( 'Not Installed', 'superdav-ai-agent' ) }
 			</span>
 		);
 	};
@@ -320,8 +322,8 @@ function ProviderCard( { provider, onRefresh } ) {
 								disabled={ installing }
 							>
 								{ installing
-									? __( 'Installing…', 'sd-ai-agent' )
-									: __( 'Install', 'sd-ai-agent' ) }
+									? __( 'Installing…', 'superdav-ai-agent' )
+									: __( 'Install', 'superdav-ai-agent' ) }
 							</Button>
 						) }
 						{ ! provider.managed &&
@@ -334,8 +336,14 @@ function ProviderCard( { provider, onRefresh } ) {
 									disabled={ activating }
 								>
 									{ activating
-										? __( 'Activating…', 'sd-ai-agent' )
-										: __( 'Activate', 'sd-ai-agent' ) }
+										? __(
+												'Activating…',
+												'superdav-ai-agent'
+										  )
+										: __(
+												'Activate',
+												'superdav-ai-agent'
+										  ) }
 								</Button>
 							) }
 					</div>
@@ -363,11 +371,11 @@ function ProviderCard( { provider, onRefresh } ) {
 							{ provider.configured
 								? __(
 										'This site is connected with a service-managed site token. The token is stored securely and is never displayed.',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 								  )
 								: __(
 										'Connect this site to SD AI without pasting API keys or installing a separate provider plugin.',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 								  ) }
 						</p>
 						<div className="sd-ai-connectors__managed-actions">
@@ -380,8 +388,14 @@ function ProviderCard( { provider, onRefresh } ) {
 									disabled={ clearing }
 								>
 									{ clearing
-										? __( 'Disconnecting…', 'sd-ai-agent' )
-										: __( 'Disconnect', 'sd-ai-agent' ) }
+										? __(
+												'Disconnecting…',
+												'superdav-ai-agent'
+										  )
+										: __(
+												'Disconnect',
+												'superdav-ai-agent'
+										  ) }
 								</Button>
 							) : (
 								<Button
@@ -391,8 +405,14 @@ function ProviderCard( { provider, onRefresh } ) {
 									disabled={ connecting }
 								>
 									{ connecting
-										? __( 'Connecting…', 'sd-ai-agent' )
-										: __( 'Connect SD AI', 'sd-ai-agent' ) }
+										? __(
+												'Connecting…',
+												'superdav-ai-agent'
+										  )
+										: __(
+												'Connect SD AI',
+												'superdav-ai-agent'
+										  ) }
 								</Button>
 							) }
 							{ provider.status?.account_connect_url && (
@@ -400,7 +420,10 @@ function ProviderCard( { provider, onRefresh } ) {
 									variant="link"
 									href={ provider.status.account_connect_url }
 								>
-									{ __( 'Connect account', 'sd-ai-agent' ) }
+									{ __(
+										'Connect account',
+										'superdav-ai-agent'
+									) }
 								</Button>
 							) }
 						</div>
@@ -408,15 +431,17 @@ function ProviderCard( { provider, onRefresh } ) {
 				) : (
 					<div className="sd-ai-connectors__api-key-section">
 						<div className="sd-ai-connectors__api-key-label">
-							<strong>{ __( 'API Key', 'sd-ai-agent' ) }</strong>
+							<strong>
+								{ __( 'API Key', 'superdav-ai-agent' ) }
+							</strong>
 							{ provider.configured && provider.masked_key && (
 								<span className="sd-ai-connectors__api-key-configured">
-									{ __( 'Configured:', 'sd-ai-agent' ) }{ ' ' }
+									{ __( 'Configured:', 'superdav-ai-agent' ) }{ ' ' }
 									<code>{ provider.masked_key }</code>
 									<Tooltip
 										text={ __(
 											'Clear this API key',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									>
 										<Button
@@ -427,7 +452,10 @@ function ProviderCard( { provider, onRefresh } ) {
 											disabled={ clearing }
 											className="sd-ai-connectors__clear-key-btn"
 										>
-											{ __( 'Clear', 'sd-ai-agent' ) }
+											{ __(
+												'Clear',
+												'superdav-ai-agent'
+											) }
 										</Button>
 									</Tooltip>
 								</span>
@@ -435,7 +463,10 @@ function ProviderCard( { provider, onRefresh } ) {
 						</div>
 						<div className="sd-ai-connectors__api-key-input">
 							<TextControl
-								label={ __( 'Enter API Key', 'sd-ai-agent' ) }
+								label={ __(
+									'Enter API Key',
+									'superdav-ai-agent'
+								) }
 								hideLabelFromVision
 								value={ apiKey }
 								onChange={ setApiKey }
@@ -444,11 +475,11 @@ function ProviderCard( { provider, onRefresh } ) {
 									provider.configured
 										? __(
 												'Enter new key to replace the existing one',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 										  )
 										: __(
 												'Paste your API key here',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 										  )
 								}
 								disabled={ saving }
@@ -460,8 +491,8 @@ function ProviderCard( { provider, onRefresh } ) {
 								disabled={ saving || ! apiKey.trim() }
 							>
 								{ saving
-									? __( 'Saving…', 'sd-ai-agent' )
-									: __( 'Save Key', 'sd-ai-agent' ) }
+									? __( 'Saving…', 'superdav-ai-agent' )
+									: __( 'Save Key', 'superdav-ai-agent' ) }
 							</Button>
 						</div>
 					</div>
@@ -501,7 +532,7 @@ export default function ConnectorsRoute() {
 				type: 'FETCH_ERROR',
 				error:
 					err?.message ||
-					__( 'Failed to load connectors.', 'sd-ai-agent' ),
+					__( 'Failed to load connectors.', 'superdav-ai-agent' ),
 			} );
 		}
 	}, [] );
@@ -519,7 +550,9 @@ export default function ConnectorsRoute() {
 			<div className="sdaa-route sdaa-route-connectors">
 				<div className="sd-ai-connectors__loading">
 					<Spinner />
-					<span>{ __( 'Loading connectors…', 'sd-ai-agent' ) }</span>
+					<span>
+						{ __( 'Loading connectors…', 'superdav-ai-agent' ) }
+					</span>
 				</div>
 			</div>
 		);
@@ -538,26 +571,29 @@ export default function ConnectorsRoute() {
 	return (
 		<div className="sdaa-route sdaa-route-connectors">
 			<div className="sd-ai-connectors__header">
-				<h2>{ __( 'Connectors', 'sd-ai-agent' ) }</h2>
+				<h2>{ __( 'Connectors', 'superdav-ai-agent' ) }</h2>
 				<p className="sd-ai-connectors__intro">
 					{ state.hasNative
 						? __(
 								'Connect the bundled SD AI managed provider here, or use the WordPress Connectors page for third-party provider API keys.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  )
 						: __(
 								'Connect the bundled SD AI managed provider, or install and configure third-party provider plugins with their own API keys.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ) }
 				</p>
 				{ state.hasNative && (
 					<Notice status="info" isDismissible={ false }>
 						{ __(
 							'SD AI does not require pasting a raw key. Third-party provider keys remain available on the WordPress Connectors page.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }{ ' ' }
 						<Button variant="link" href={ connectorsUrl }>
-							{ __( 'Open WordPress Connectors', 'sd-ai-agent' ) }
+							{ __(
+								'Open WordPress Connectors',
+								'superdav-ai-agent'
+							) }
 						</Button>
 					</Notice>
 				) }

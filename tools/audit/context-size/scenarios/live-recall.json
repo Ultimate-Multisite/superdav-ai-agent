@@ -1,0 +1,1 @@
+[{"user":"Call sd-ai-agent/get-theme-json with no arguments and tell me how many colour palette entries the theme defines.","steps":[]},{"user":"Call sd-ai-agent/list-block-patterns and tell me how many patterns there are.","steps":[]},{"user":"Without calling any tools: how many palette colours and how many patterns did you report?","steps":[]}]

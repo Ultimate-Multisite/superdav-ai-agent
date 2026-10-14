@@ -44,6 +44,18 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	public function test_remote_tool_names_map_to_valid_collision_resistant_ability_ids(): void {
+		$first = RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo_greet' );
+		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', $first );
+		$this->assertNotSame( $first, RemoteMcpAbilityRegistrar::ability_name( 'fixture123', 'demo-greet' ) );
+		$this->assertNotSame( $first, RemoteMcpAbilityRegistrar::ability_name( 'other-connection', 'demo_greet' ) );
+		$this->assertMatchesRegularExpression( '#^[a-z0-9-]+/[a-z0-9-]+$#', RemoteMcpAbilityRegistrar::ability_name( 'fixture123', '工具' ) );
+		foreach ( array( 'demo_greet', str_repeat( 'long-tool-name-', 20 ), '工具' ) as $remote_name ) {
+			$id = RemoteMcpAbilityRegistrar::ability_name( str_repeat( 'a', 32 ), $remote_name );
+			$this->assertLessThanOrEqual( 64, strlen( \WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $id ) ) );
+		}
+	}
+
 	public function test_connection_metadata_never_includes_secret(): void {
 		$connection = $this->connections->save(
 			array(
@@ -109,7 +121,7 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->connections->authorization_headers( $connection['id'] ) );
 	}
 
-	public function test_credentialed_http_endpoint_is_rejected_by_transport(): void {
+	public function test_credentialed_http_endpoint_is_rejected_before_persistence(): void {
 		$connection = $this->connections->save(
 			array(
 				'name'      => 'HTTP fixture',
@@ -118,12 +130,9 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 			),
 			array( 'value' => 'test-secret-value' )
 		);
-		$this->assertIsArray( $connection );
-
-		$result = ( new RemoteMcpHttpTransport( $this->connections ) )->request( $connection, array( 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize' ) );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'sd_ai_agent_remote_mcp_insecure_credentials', $result->get_error_code() );
+		$this->assertWPError( $connection );
+		$this->assertSame( 'sd_ai_agent_remote_mcp_invalid_connection', $connection->get_error_code() );
+		$this->assertSame( array(), $this->connections->list() );
 	}
 
 	public function test_discovery_does_not_replace_snapshot_when_tool_limit_is_reached(): void {
@@ -189,6 +198,55 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 
 		$this->assertStringStartsWith( 'sd-ai-agent/', $first );
 		$this->assertNotSame( $first, $second );
+	}
+
+	/** Registered remote abilities identify both the remote tool and its connection. */
+	public function test_remote_ability_label_identifies_tool_and_connection(): void {
+		if ( ! function_exists( 'wp_register_ability' ) || ! function_exists( 'wp_get_ability' ) ) {
+			$this->markTestSkipped( 'WordPress Abilities API is not available.' );
+		}
+
+		$connection = $this->connections->save(
+			array(
+				'name'      => 'Local MCP demo',
+				'endpoint'  => 'https://fixture.mcp.test/mcp',
+				'auth_type' => 'none',
+				'enabled'   => true,
+			)
+		);
+		$this->assertIsArray( $connection );
+		$this->connections->replace_snapshot(
+			$connection['id'],
+			array(
+				array(
+					'name'         => 'demo_greet',
+					'enabled'      => true,
+					'input_schema' => array( 'type' => 'object', 'properties' => array() ),
+				),
+			),
+			'2025-06-18'
+		);
+		$this->assertTrue( $this->connections->set_enabled( $connection['id'], true ) );
+
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress hook stack global.
+		global $wp_current_filter;
+		$wp_current_filter[] = 'wp_abilities_api_init';
+
+		try {
+			( new RemoteMcpAbilityRegistrar( $this->connections ) )->register_abilities();
+		} finally {
+			array_pop( $wp_current_filter );
+		}
+
+		$ability_name = RemoteMcpAbilityRegistrar::ability_name( $connection['id'], 'demo_greet' );
+		$ability      = wp_get_ability( $ability_name );
+
+		$this->assertNotNull( $ability );
+		$this->assertSame( 'demo_greet (Local MCP demo)', $ability->get_label() );
+
+		if ( function_exists( 'wp_unregister_ability' ) ) {
+			wp_unregister_ability( $ability_name );
+		}
 	}
 
 	/**

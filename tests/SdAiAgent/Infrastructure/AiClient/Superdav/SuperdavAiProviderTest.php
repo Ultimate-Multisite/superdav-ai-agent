@@ -77,6 +77,7 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		remove_all_filters( 'sd_ai_agent_superdav_default_model' );
 		remove_all_filters( 'sd_ai_agent_superdav_reasoning_effort' );
 		remove_all_filters( 'sd_ai_agent_openai_tool_search_enabled' );
+		remove_all_filters( 'sd_ai_agent_superdav_prompt_cache_key_enabled' );
 		ProviderTraceLogger::clear_runtime_context();
 		parent::tear_down();
 	}
@@ -836,6 +837,7 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 			)
 		);
 		$model->setConfig( $config );
+		$model->set_continuation_session_id( 42 );
 
 		$prepare = new \ReflectionMethod( $model, 'prepare_responses_params' );
 		$prepare->setAccessible( true );
@@ -844,6 +846,13 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertSame( 'gpt-5.5', $params['model'] );
 		$this->assertSame( 512, $params['max_output_tokens'] );
 		$this->assertSame( 'You are a WordPress assistant.', $params['instructions'] );
+		$this->assertArrayNotHasKey( 'prompt_cache_key', $params );
+		add_filter( 'sd_ai_agent_superdav_prompt_cache_key_enabled', '__return_true' );
+		$enabled = $prepare->invoke( $model, array( new UserMessage( array( new MessagePart( 'List my pages.' ) ) ) ) );
+		$this->assertSame( SuperdavAiProvider::prompt_cache_key( 42 ), $enabled['prompt_cache_key'] );
+		$this->assertSame( 64, strlen( $enabled['prompt_cache_key'] ) );
+		$this->assertNotSame( $enabled['prompt_cache_key'], SuperdavAiProvider::prompt_cache_key( 43 ) );
+		$this->assertSame( '', SuperdavAiProvider::prompt_cache_key( 0 ) );
 		$this->assertFalse( $params['parallel_tool_calls'] );
 		$this->assertSame( array( 'type' => 'tool_search' ), $params['tools'][2] );
 		$this->assertSame( 'namespace', $params['tools'][0]['type'] );
@@ -854,6 +863,67 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 		$this->assertSame( 'namespace', $params['tools'][1]['type'] );
 		$this->assertSame( 'wp_abilities_example_plugin', $params['tools'][1]['name'] );
 		$this->assertTrue( $params['tools'][1]['tools'][0]['defer_loading'] );
+	}
+
+	/** Chat Completions fallback forwards the opaque session cache key. */
+	public function test_chat_completions_request_includes_prompt_cache_key(): void {
+		$this->skip_if_sdk_unavailable();
+		$model = new SuperdavAiTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$model->set_prompt_cache_key( str_repeat( 'a', 80 ) );
+		$method = new \ReflectionMethod( $model, 'createRequest' );
+		$method->setAccessible( true );
+		$request = $method->invoke( $model, HttpMethodEnum::POST(), 'chat/completions', array(), array( 'model' => 'gpt-5.5' ) );
+
+		$this->assertSame( str_repeat( 'a', 64 ), $request->getData()['prompt_cache_key'] );
+	}
+
+	/** Compatibility discovery and dispatch must not themselves require discovery. */
+	public function test_responses_discovery_bridge_is_immediately_callable(): void {
+		$this->skip_if_sdk_unavailable();
+		$model = new SuperdavAiResponsesToolSearchTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$config = new ModelConfig();
+		$names  = array( 'ability-search', 'ability-call', 'list-posts' );
+		$config->setFunctionDeclarations(
+			array_map( static fn( string $name ): FunctionDeclaration => new FunctionDeclaration( 'wpab__sd-ai-agent__' . $name, $name, array( 'type' => 'object' ) ), $names )
+		);
+		$model->setConfig( $config );
+		$method = new \ReflectionMethod( $model, 'prepare_tool_search_tools_param' );
+		$method->setAccessible( true );
+		$functions = array();
+		foreach ( $method->invoke( $model ) as $tool ) {
+			foreach ( $tool['tools'] ?? array() as $function ) {
+				$functions[ $function['name'] ] = $function;
+			}
+		}
+		$this->assertArrayNotHasKey( 'defer_loading', $functions['wpab__sd-ai-agent__ability-search'] );
+		$this->assertArrayNotHasKey( 'defer_loading', $functions['wpab__sd-ai-agent__ability-call'] );
+		$this->assertTrue( $functions['wpab__sd-ai-agent__list-posts']['defer_loading'] );
+	}
+
+	/** Discovery bundles stay small and each namespace names its own functions. */
+	public function test_responses_namespaces_are_small_and_self_describing(): void {
+		$this->skip_if_sdk_unavailable();
+		$model = new SuperdavAiResponsesToolSearchTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$config = new ModelConfig();
+		$config->setFunctionDeclarations(
+			array_map( static fn( int $i ): FunctionDeclaration => new FunctionDeclaration( 'wpab__example-plugin__tool-' . $i, 'Tool.', array( 'type' => 'object' ) ), range( 1, 7 ) )
+		);
+		$model->setConfig( $config );
+		$method = new \ReflectionMethod( $model, 'prepare_tool_search_tools_param' );
+		$method->setAccessible( true );
+		$tools = $method->invoke( $model );
+		$this->assertCount( 5, $tools[0]['tools'] );
+		$this->assertCount( 2, $tools[1]['tools'] );
+		$this->assertSame( 'WordPress example plugin 2: tool-6, tool-7.', $tools[1]['description'] );
 	}
 
 	/** Managed Responses inference carries the active journey reservation. */

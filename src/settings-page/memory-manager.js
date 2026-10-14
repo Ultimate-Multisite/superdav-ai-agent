@@ -13,18 +13,18 @@ import { trash, pencil, plus } from '@wordpress/icons';
 import STORE_NAME from '../store';
 
 const CATEGORIES = [
-	{ label: __( 'General', 'sd-ai-agent' ), value: 'general' },
-	{ label: __( 'Site Info', 'sd-ai-agent' ), value: 'site_info' },
-	{ label: __( 'Site Brief', 'sd-ai-agent' ), value: 'site_brief' },
+	{ label: __( 'General', 'superdav-ai-agent' ), value: 'general' },
+	{ label: __( 'Site Info', 'superdav-ai-agent' ), value: 'site_info' },
+	{ label: __( 'Site Brief', 'superdav-ai-agent' ), value: 'site_brief' },
 	{
-		label: __( 'User Preferences', 'sd-ai-agent' ),
+		label: __( 'User Preferences', 'superdav-ai-agent' ),
 		value: 'user_preferences',
 	},
 	{
-		label: __( 'Technical Notes', 'sd-ai-agent' ),
+		label: __( 'Technical Notes', 'superdav-ai-agent' ),
 		value: 'technical_notes',
 	},
-	{ label: __( 'Workflows', 'sd-ai-agent' ), value: 'workflows' },
+	{ label: __( 'Workflows', 'superdav-ai-agent' ), value: 'workflows' },
 ];
 
 /**
@@ -81,7 +81,9 @@ export default function MemoryManager() {
 		async ( id ) => {
 			if (
 				// eslint-disable-next-line no-alert
-				window.confirm( __( 'Delete this memory?', 'sd-ai-agent' ) )
+				window.confirm(
+					__( 'Delete this memory?', 'superdav-ai-agent' )
+				)
 			) {
 				await deleteMemory( id );
 			}
@@ -99,7 +101,7 @@ export default function MemoryManager() {
 	return (
 		<div className="sdaa-memory-manager">
 			<div className="sdaa-memory-header">
-				<h3>{ __( 'Stored Memories', 'sd-ai-agent' ) }</h3>
+				<h3>{ __( 'Stored Memories', 'superdav-ai-agent' ) }</h3>
 				{ ! showForm && (
 					<Button
 						variant="secondary"
@@ -107,7 +109,7 @@ export default function MemoryManager() {
 						onClick={ () => setShowForm( true ) }
 						size="compact"
 					>
-						{ __( 'Add Memory', 'sd-ai-agent' ) }
+						{ __( 'Add Memory', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -115,14 +117,14 @@ export default function MemoryManager() {
 			{ showForm && (
 				<div className="sdaa-memory-form">
 					<SelectControl
-						label={ __( 'Category', 'sd-ai-agent' ) }
+						label={ __( 'Category', 'superdav-ai-agent' ) }
 						value={ formCategory }
 						options={ CATEGORIES }
 						onChange={ setFormCategory }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Content', 'sd-ai-agent' ) }
+						label={ __( 'Content', 'superdav-ai-agent' ) }
 						value={ formContent }
 						onChange={ setFormContent }
 						rows={ 3 }
@@ -135,15 +137,15 @@ export default function MemoryManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'sd-ai-agent' )
-								: __( 'Save', 'sd-ai-agent' ) }
+								? __( 'Update', 'superdav-ai-agent' )
+								: __( 'Save', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ handleCancel }
 							size="compact"
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -151,7 +153,7 @@ export default function MemoryManager() {
 
 			{ ! memoriesLoaded && (
 				<p className="description">
-					{ __( 'Loading…', 'sd-ai-agent' ) }
+					{ __( 'Loading…', 'superdav-ai-agent' ) }
 				</p>
 			) }
 
@@ -159,7 +161,7 @@ export default function MemoryManager() {
 				<p className="description">
 					{ __(
 						'No memories stored yet. The AI will save memories as you interact, or you can add them manually.',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 				</p>
 			) }
@@ -168,9 +170,9 @@ export default function MemoryManager() {
 				<table className="sdaa-memory-table widefat striped">
 					<thead>
 						<tr>
-							<th>{ __( 'Category', 'sd-ai-agent' ) }</th>
-							<th>{ __( 'Content', 'sd-ai-agent' ) }</th>
-							<th>{ __( 'Actions', 'sd-ai-agent' ) }</th>
+							<th>{ __( 'Category', 'superdav-ai-agent' ) }</th>
+							<th>{ __( 'Content', 'superdav-ai-agent' ) }</th>
+							<th>{ __( 'Actions', 'superdav-ai-agent' ) }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -189,7 +191,7 @@ export default function MemoryManager() {
 											size="small"
 											label={ __(
 												'Edit',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 											onClick={ () =>
 												handleEdit( memory )
@@ -200,7 +202,7 @@ export default function MemoryManager() {
 											size="small"
 											label={ __(
 												'Delete',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 											isDestructive
 											onClick={ () =>

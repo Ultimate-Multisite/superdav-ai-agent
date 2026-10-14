@@ -60,6 +60,7 @@ function buildSelectors( {
 		getLiveToolCalls: () => [],
 		getSessionJobs: () => ( {} ),
 		getSettings: () => null,
+		getSelectedAgent: () => null,
 		isTtsEnabled: () => false,
 		getTtsVoiceURI: () => '',
 		getTtsRate: () => 1,
@@ -111,6 +112,21 @@ describe( 'MessageList stream error banner', () => {
 		container = undefined;
 		root = undefined;
 		jest.clearAllMocks();
+	} );
+
+	test( 'displays the selected agent greeting in the user language', async () => {
+		const selectors = buildSelectors( { hasStreamError: false } );
+		selectors.getSelectedAgent = () => ( {
+			greeting: 'Come posso aiutarti?',
+		} );
+		( { container, root } = await renderMessageList( {
+			selectors,
+			dispatchMap: { sendMessage: jest.fn(), retryLastMessage },
+		} ) );
+
+		expect( container.querySelector( '.sdaa-cr-empty' ).textContent ).toBe(
+			'Come posso aiutarti?'
+		);
 	} );
 
 	test( 'shows retry banner for the active failed session', async () => {

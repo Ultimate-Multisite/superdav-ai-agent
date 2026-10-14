@@ -129,7 +129,7 @@ class SystemInstructionBuilder {
 
 		// Use custom system prompt if set, otherwise the built-in default.
 		$custom = $settings['system_prompt'] ?? '';
-		$base   = is_string( $custom ) && '' !== $custom ? $custom : self::default_system_instruction();
+		$base   = is_string( $custom ) && '' !== $custom ? $custom : self::default_system_instruction( $native_tool_search );
 		if ( is_string( $custom ) && '' !== $custom ) {
 			$base .= "\n\n" . self::build_read_only_diagnostics_section();
 		}
@@ -150,38 +150,6 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . $skill_index;
 		}
 
-		// Model-aware tiered skill injection (Phase 2 / t217):
-		//
-		// Strong models (GPT-4.1, Claude Sonnet/Opus): receive only the lean
-		// skill index above (~15 tok/skill) plus a targeted hint pointing at
-		// relevant skills. They reliably call skill-load on demand, so injecting
-		// 1 500-3 000 tokens of guide content unconditionally wastes context.
-		//
-		// Weak models (quantized open-weight, small-param models): auto-inject
-		// the best matching skill guide (max 1) directly into the prompt. They
-		// often fail to voluntarily call skill-load even when the index is
-		// present, so front-loading the content is the only reliable path.
-		//
-		// The model_id also passes through so injections are recorded to the
-		// skill_usage table for telemetry (Phase 1 / t215).
-		if ( ! empty( $this->user_message ) ) {
-			if ( ModelHealthTracker::is_weak( $this->model_id ) ) {
-				// Weak model path: inject full skill content (max 1 guide).
-				$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
-				if ( ! empty( $auto_skill ) ) {
-					// @phpstan-ignore-next-line
-					$base .= "\n\n" . $auto_skill;
-				}
-			} else {
-				// Strong model path: add a targeted hint to guide skill-load calls.
-				$hint = SkillAutoInjector::get_index_description( $this->user_message );
-				if ( ! empty( $hint ) ) {
-					// @phpstan-ignore-next-line
-					$base .= "\n\n" . $hint;
-				}
-			}
-		}
-
 		// If auto-memory is enabled, tell the agent about memory abilities.
 		$auto_memory = $settings['auto_memory'] ?? true;
 		if ( $auto_memory ) {
@@ -195,34 +163,8 @@ class SystemInstructionBuilder {
 				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
 		}
 
-		// Inject knowledge context if enabled and user message is available.
-		$knowledge_enabled = $settings['knowledge_enabled'] ?? true;
-		if ( $knowledge_enabled && ! empty( $this->user_message ) ) {
-			$context = Knowledge::get_context_for_query( $this->user_message );
-			if ( ! empty( $context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n## Relevant Knowledge\n"
-					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
-					. $context
-					. "\n\nUse this information to provide accurate, contextual responses. "
-					. 'Cite the source when using specific facts from the knowledge base.';
-			}
-		}
-
-		// Inject structured context from providers.
-		$context_data = ContextProviders::gather( $this->page_context );
-		if ( ! empty( $context_data ) ) {
-			$formatted_context = ContextProviders::format_for_prompt( $context_data );
-			if ( ! empty( $formatted_context ) ) {
-				// @phpstan-ignore-next-line
-				$base .= "\n\n" . $formatted_context;
-			}
-		}
-
-		if ( ! empty( $this->page_context['is_frontend'] ) ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n" . self::build_frontend_live_preview_section();
-		}
+		// Static operating guidance remains valid when the user changes pages.
+		$base .= "\n\n" . self::build_frontend_live_preview_section();
 
 		// Native discovery already supplies the catalog through deferred schemas.
 		$base .= "\n\n" . self::build_tool_routing_section( $ability_names, $native_tool_search );
@@ -254,9 +196,8 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . ModelHealthTracker::weak_model_prompt_nudge();
 		}
 
-		// Inject plugin recommendations when the setting is enabled and at least
-		// one recommendation with guidance is registered. Gated so the section is
-		// absent from prompts for sessions that never do page-content generation.
+		// Plugin recommendations are static for this session. Keeping this section
+		// independent of the user message preserves the provider prompt prefix.
 		$plugin_recommendations_enabled = (bool) ( $settings['plugin_recommendations_enabled'] ?? true );
 		if ( $plugin_recommendations_enabled ) {
 			$plugin_rec_section = PluginRecommendations::build_system_prompt_section();
@@ -300,8 +241,89 @@ class SystemInstructionBuilder {
 				);
 		}
 
+		$language = ( new SpeechLocaleResolver() )->resolve()['initial_locale'];
+		if ( '' !== $language ) {
+			$base .= "\n\n## Conversation language\n"
+				. sprintf( 'The initial user language is %s, resolved from the WordPress user preference with site language as fallback. ', $language )
+				. 'Use that language for your initial greeting, onboarding introduction and follow-up suggestions, even when the setup prompt or examples are in English. '
+				. 'If the user explicitly requests another language, follow that request. This preference does not authorize changing the site language or translating existing content.';
+		}
+
 		// @phpstan-ignore-next-line
 		return $base;
+	}
+
+	/**
+	 * Reuse the first instruction across independent requests for this session.
+	 *
+	 * @param array<string, mixed> $settings Plugin settings.
+	 * @param string[]             $ability_names Active ability names.
+	 * @param bool                 $native_tool_search Native search mode.
+	 * @param bool                 $native_full_catalog Full native catalog mode.
+	 * @return string Immutable session instruction.
+	 */
+	public function build_for_session( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true ): string {
+		$snapshot = \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id );
+		if ( null !== $snapshot ) {
+			return $snapshot;
+		}
+		$instruction = $this->build( $settings, $ability_names, $native_tool_search, $native_full_catalog );
+		return \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id, $instruction ) ?? $instruction;
+	}
+
+	/**
+	 * Build per-turn context that belongs with the user's current message.
+	 *
+	 * The Responses API caches the leading instructions prefix. User-message
+	 * retrieval and skill routing therefore belong in the current input item,
+	 * where they are retained in conversation history without invalidating that
+	 * prefix on later turns.
+	 *
+	 * @param array<string, mixed> $settings Plugin settings.
+	 * @return string Context wrapped for appending to a user message, or empty.
+	 */
+	public function build_turn_context( array $settings ): string {
+		if ( '' === trim( $this->user_message ) ) {
+			return '';
+		}
+
+		$sections = array();
+		// Page, user and site state must stay fresh without rewriting instructions.
+		$current_context = ContextProviders::format_for_prompt( ContextProviders::gather( $this->page_context ) );
+		if ( '' !== $current_context ) {
+			$sections[] = $current_context;
+		}
+		$can_load_skills = ! \SdAiAgent\Abilities\KnowledgeAbilities::is_public_collection_mode()
+			&& \SdAiAgent\Abilities\ToolCapabilities::current_user_can( 'sd-ai-agent/skill-load' );
+		if ( $can_load_skills && ModelHealthTracker::is_weak( $this->model_id ) ) {
+			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
+			if ( ! empty( $auto_skill ) ) {
+				$sections[] = $auto_skill;
+			}
+		} elseif ( $can_load_skills ) {
+			$hint = SkillAutoInjector::get_index_description( $this->user_message );
+			if ( ! empty( $hint ) ) {
+				$sections[] = $hint;
+			}
+		}
+
+		$knowledge_enabled = $settings['knowledge_enabled'] ?? true;
+		if ( $knowledge_enabled ) {
+			$knowledge = Knowledge::get_context_for_query( $this->user_message );
+			if ( '' !== $knowledge ) {
+				$sections[] = "## Relevant Knowledge\n"
+					. "The following information was retrieved from the knowledge base and may be relevant:\n\n"
+					. $knowledge
+					. "\n\nUse this information to provide accurate, contextual responses. "
+					. 'Cite the source when using specific facts from the knowledge base.';
+			}
+		}
+
+		if ( empty( $sections ) ) {
+			return '';
+		}
+
+		return "<context>\n\n" . implode( "\n\n", $sections ) . "\n\n</context>";
 	}
 
 	/**
@@ -332,7 +354,7 @@ class SystemInstructionBuilder {
 	public static function build_tool_routing_section( array $ability_names, bool $native_tool_search = false ): string {
 		if ( $native_tool_search ) {
 			return "## Tool routing\n\n"
-				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, use it to load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
+				. 'Use the functions and schemas supplied by the provider. When `tool_search` is available, search one specific namespace or task keyword at a time, inspect the result, then refine only if needed. Do not request several namespaces in one search. Load the relevant deferred functions, then call those functions directly with their declared names and arguments. '
 				. 'A deferred function is available after discovery even if its ability name is absent from this prompt. Do not invent function names or claim a capability is unavailable before searching the declared tool namespaces. '
 				. 'When no native search tool is supplied, call the available functions directly. If native search cannot find a required function in the supplied catalog, use `sd-ai-agent/ability-search` and `sd-ai-agent/ability-call` as a compatibility path when those tools are available. '
 				. 'Call browser functions directly; server-side `sd-ai-agent/ability-call` cannot execute browser tools. Tool calls must use the actual tool interface, never textual `<tool_call>` markup.';
@@ -560,9 +582,25 @@ class SystemInstructionBuilder {
 	 *
 	 * @return string
 	 */
-	public static function default_system_instruction(): string {
+	public static function default_system_instruction( bool $native_tool_search = false ): string {
 		$wp_path  = WordPressPaths::content_dir();
 		$site_url = get_site_url();
+
+		if ( $native_tool_search ) {
+			return "You are a WordPress assistant. Execute clear requests with tools and report verified results concisely.\n\n"
+				. "## WordPress Environment\nContent path: {$wp_path}\nSite URL: {$site_url}\n\n"
+				. "## Core Principles\n"
+				. "Ask one concise question when intent or target is missing. Never invent public changes. Confirm destructive operations. Diagnostic and capability questions are read-only; do not remediate without explicit approval.\n"
+				. "Use registered abilities, discover missing schemas, and load the matching skill before specialized work. Respect tool permissions and current-user context. Do not invent tool names, IDs, URLs, or successful results.\n"
+				. "After tool calls, always provide a text summary with links where available. Claim completion only for successful operations; report remaining blockers. After two similar failures, change approach.\n\n"
+				. self::build_read_only_diagnostics_section() . "\n\n"
+				. "## Content and site changes\n"
+				. "Use create-post/update-post for posts and pages, and native WooCommerce abilities for products. Write substantial real content. Articles use markdown; visual pages use editable Gutenberg blocks. Never mix markdown and block markup. Use draft/publish status deliberately.\n"
+				. "Check block_validation after writes; fix invalid innerHTML using expectedContent, never by inserting it into comment attributes. Load the Gutenberg/block-theme skill for layouts and theme work.\n"
+				. "Use returned attachment IDs for featured images. A failed screenshot/upload never justifies assigning an unrelated media ID. Prefer viewport or section screenshots; full-page capture needs a reason. Same-origin screenshot-url cannot capture another site's origin.\n"
+				. "Use update-option for allowed site settings: blogname for title; show_on_front=page and page_on_front=<real page ID> for a static homepage. Create menus, add real links, and assign a theme location. Verify settings before claiming success.\n"
+				. 'Before completion, inspect public output: valid links, headings, working forms, and no sample/vendor placeholders. Embed created forms, verify rendering, and test delivery when possible; use same-domain From and visitor Reply-To. Report mail or visual-verification limitations honestly.';
+		}
 
 		return "You are a WordPress assistant that ACTS — you execute tasks immediately using your tools.\n\n"
 			. "## WordPress Environment\n"

@@ -59,8 +59,8 @@ export default function ConvoHeader( {
 
 	const branding = getBranding();
 	const title = isSimpleMode
-		? branding.agentName || __( 'SD AI Agent', 'sd-ai-agent' )
-		: session?.title || __( 'New conversation', 'sd-ai-agent' );
+		? branding.agentName || __( 'SD AI Agent', 'superdav-ai-agent' )
+		: session?.title || __( 'New conversation', 'superdav-ai-agent' );
 	let readAloudLabel = ttsEnabled
 		? __( 'Disable read aloud', 'superdav-ai-agent' )
 		: __( 'Read responses aloud', 'superdav-ai-agent' );
@@ -93,7 +93,7 @@ export default function ConvoHeader( {
 					type="button"
 					className="sdaa-cr-icon-btn"
 					onClick={ onExpandSidebar }
-					aria-label={ __( 'Expand sidebar', 'sd-ai-agent' ) }
+					aria-label={ __( 'Expand sidebar', 'superdav-ai-agent' ) }
 				>
 					<Icon icon={ sidebarIcon } size={ 16 } />
 				</button>
@@ -131,12 +131,12 @@ export default function ConvoHeader( {
 					{ isRunning && (
 						<span
 							className="sdaa-cr-dot"
-							title={ __( 'Agent running', 'sd-ai-agent' ) }
+							title={ __( 'Agent running', 'superdav-ai-agent' ) }
 						/>
 					) }
 					{ session && ! isSimpleMode && (
 						<span className="sdaa-cr-convo-head-rename-hint">
-							{ __( 'Click to rename', 'sd-ai-agent' ) }
+							{ __( 'Click to rename', 'superdav-ai-agent' ) }
 						</span>
 					) }
 				</button>
@@ -154,19 +154,19 @@ export default function ConvoHeader( {
 						className="sdaa-cr-changes-pill"
 						title={ __(
 							'Changes made in this session',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					>
 						<span className="sdaa-cr-changes-pill-count">
 							{ changesCount }
 						</span>
-						<span>{ __( 'changes', 'sd-ai-agent' ) }</span>
+						<span>{ __( 'changes', 'superdav-ai-agent' ) }</span>
 						<button
 							type="button"
 							className="sdaa-cr-changes-pill-btn"
 							onClick={ onShowChanges }
 						>
-							{ __( 'View', 'sd-ai-agent' ) }
+							{ __( 'View', 'superdav-ai-agent' ) }
 						</button>
 					</span>
 				) }
@@ -215,7 +215,10 @@ export default function ConvoHeader( {
 						<button
 							type="button"
 							className="sdaa-cr-icon-btn"
-							aria-label={ __( 'More options', 'sd-ai-agent' ) }
+							aria-label={ __(
+								'More options',
+								'superdav-ai-agent'
+							) }
 							aria-haspopup="menu"
 							aria-expanded={ showMenu }
 							disabled={ ! session }

@@ -17,6 +17,19 @@ use WP_UnitTestCase;
  * Verifies the public compiler ability delegates to the strict pure compiler.
  */
 class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
+	private const SCHEMA_BYTE_BUDGET = 3072;
+
+	/**
+	 * First-party exceptions require an explicit owner and a schema-reduction reason.
+	 *
+	 * @var array<string,string>
+	 */
+	private const SCHEMA_BYTE_ALLOWLIST = [
+		// Nested block JSON is retained until its validation contract is split into a dedicated follow-up.
+		'sd-ai-agent/edit-block-tree' => 'Nested block-tree validation contract.',
+		// Query filters remain discoverable while their independently shared schema is reduced.
+		'sd-ai-agent/list-posts'      => 'Post-query filter contract.',
+	];
 
 	private function ability(): CompileDesignTokensAbility {
 		return new CompileDesignTokensAbility( 'sd-ai-agent/compile-design-tokens' );
@@ -35,7 +48,7 @@ class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
 		$this->assertSame( [ 'contract' ], $ability->get_input_schema()['required'] );
 	}
 
-	public function test_input_schema_documents_the_complete_bounded_contract(): void {
+	public function test_input_schema_keeps_the_complete_contract_out_of_tool_search_context(): void {
 		$schema   = $this->ability()->get_input_schema();
 		$contract = $schema['properties']['contract'];
 
@@ -43,14 +56,38 @@ class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
 		$this->assertFalse( $contract['additionalProperties'] );
 		$this->assertSame( [ 'version', 'governance', 'primitives', 'semantics', 'style_variation' ], $contract['required'] );
 		$this->assertSame( [ 1 ], $contract['properties']['version']['enum'] );
-		$this->assertSame( 64, $contract['properties']['primitives']['properties']['colors']['maxItems'] );
-		$this->assertFalse( $contract['properties']['primitives']['properties']['colors']['items']['additionalProperties'] );
-		$this->assertSame(
-			[ 'background', 'foreground', 'surface', 'primary', 'on-primary', 'accent', 'on-accent', 'border' ],
-			$contract['properties']['semantics']['properties']['colors']['required']
+		$this->assertStringContainsString( 'wp-block-themes skill', $contract['description'] );
+		$this->assertLessThanOrEqual(
+			self::SCHEMA_BYTE_BUDGET,
+			strlen( (string) wp_json_encode( $schema ) ),
+			'compile-design-tokens must fit the native tool-search schema budget.'
 		);
-		$this->assertSame( 64, $contract['properties']['semantics']['properties']['colors']['maxProperties'] );
-		$this->assertFalse( $contract['properties']['style_variation']['additionalProperties'] );
+	}
+
+	/** Every registered first-party schema reports its serialized size against the context budget. */
+	public function test_first_party_ability_schemas_fit_the_context_budget(): void {
+		$oversized = [];
+		$sizes     = [];
+
+		foreach ( wp_get_abilities() as $ability ) {
+			$name = $ability->get_name();
+			if ( ! str_starts_with( $name, 'sd-ai-agent/' ) ) {
+				continue;
+			}
+
+			$size          = strlen( (string) wp_json_encode( $ability->get_input_schema() ) );
+			$sizes[ $name ] = $size;
+			if ( $size > self::SCHEMA_BYTE_BUDGET && ! isset( self::SCHEMA_BYTE_ALLOWLIST[ $name ] ) ) {
+				$oversized[] = sprintf( '%s: %d bytes', $name, $size );
+			}
+		}
+
+		ksort( $sizes );
+		$this->assertSame(
+			[],
+			$oversized,
+			'First-party input-schema sizes (allowlist exceptions require a documented reason): ' . wp_json_encode( $sizes )
+		);
 	}
 
 	public function test_run_compiles_a_complete_contract_without_creating_global_styles_posts(): void {

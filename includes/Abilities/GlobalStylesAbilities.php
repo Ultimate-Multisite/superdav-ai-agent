@@ -34,14 +34,18 @@ class GlobalStylesAbilities {
 			'sd-ai-agent/get-global-styles',
 			[
 				'label'               => __( 'Get Global Styles', 'superdav-ai-agent' ),
-				'description'         => __( 'Read the current WordPress global styles (theme.json) including colors, typography, spacing, and layout settings. Returns the merged result of theme defaults and any user customizations.', 'superdav-ai-agent' ),
+				'description'         => __( 'Read the current WordPress global styles (theme.json) including colors, typography, spacing, and layout settings. The default response summarizes block styles and variation names to stay compact; pass section "blocks" with a block name to retrieve one block style in full.', 'superdav-ai-agent' ),
 				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
 						'section'  => [
 							'type'        => 'string',
-							'description' => 'Optional section to retrieve: "color", "typography", "spacing", "layout", "elements", "blocks", or "all" (default: "all").',
+							'description' => 'Optional section to retrieve: "color", "typography", "spacing", "layout", "elements", "blocks", or "all" (default: "all"). Use "blocks" with block to retrieve a full block style.',
+						],
+						'block'    => [
+							'type'        => 'string',
+							'description' => 'Optional block name such as "core/group". When provided, returns that block style in full, including its variations.',
 						],
 						'site_url' => [
 							'type'        => 'string',
@@ -55,6 +59,8 @@ class GlobalStylesAbilities {
 					'properties' => [
 						'styles'  => [ 'type' => 'object' ],
 						'section' => [ 'type' => 'string' ],
+						'block'   => [ 'type' => 'string' ],
+						'message' => [ 'type' => 'string' ],
 						'error'   => [ 'type' => 'string' ],
 					],
 				],
@@ -269,6 +275,7 @@ class GlobalStylesAbilities {
 	 */
 	public static function handle_get_global_styles( array $input ) {
 		$section  = $input['section'] ?? 'all';
+		$block    = isset( $input['block'] ) && is_string( $input['block'] ) ? $input['block'] : '';
 		$site_url = $input['site_url'] ?? '';
 
 		$switched = self::maybe_switch_blog( $site_url );
@@ -279,6 +286,26 @@ class GlobalStylesAbilities {
 		try {
 			$styles = ( new GlobalStylesService() )->get_resolved_styles();
 
+			if ( '' !== $block ) {
+				if ( isset( $styles['blocks'][ $block ] ) && is_array( $styles['blocks'][ $block ] ) ) {
+					return [
+						'styles'  => [ 'blocks' => [ $block => $styles['blocks'][ $block ] ] ],
+						'section' => 'blocks',
+						'block'   => $block,
+					];
+				}
+
+				return new \WP_Error( 'block_not_found', sprintf( 'No global styles found for block: %s', $block ) );
+			}
+
+			if ( 'blocks' === $section && isset( $styles['blocks'] ) && is_array( $styles['blocks'] ) ) {
+				return [
+					'styles'  => [ 'blocks' => self::summarize_block_styles( $styles['blocks'] ) ],
+					'section' => 'blocks',
+					'message' => __( 'Block styles are summarized by variation name. Pass block with section "blocks" to retrieve one block style in full.', 'superdav-ai-agent' ),
+				];
+			}
+
 			if ( $section !== 'all' && isset( $styles[ $section ] ) ) {
 				return [
 					'styles'  => [ $section => $styles[ $section ] ],
@@ -286,13 +313,44 @@ class GlobalStylesAbilities {
 				];
 			}
 
+			if ( isset( $styles['blocks'] ) && is_array( $styles['blocks'] ) ) {
+				$styles['blocks'] = self::summarize_block_styles( $styles['blocks'] );
+			}
+
 			return [
 				'styles'  => $styles,
 				'section' => 'all',
+				'message' => __( 'Block styles are summarized by variation name. Pass block with section "blocks" to retrieve one block style in full.', 'superdav-ai-agent' ),
 			];
 		} finally {
 			self::restore_switched_blog( $switched );
 		}
+	}
+
+	/**
+	 * Summarize block styles without repeating full variation maps.
+	 *
+	 * @param array<string, mixed> $blocks Resolved block styles keyed by block name.
+	 * @return array<string, array<string, string[]>> Block variation names keyed by block name.
+	 */
+	private static function summarize_block_styles( array $blocks ): array {
+		$summary = [];
+
+		foreach ( $blocks as $block_name => $block_styles ) {
+			if ( ! is_string( $block_name ) || ! is_array( $block_styles ) ) {
+				continue;
+			}
+
+			$variations = isset( $block_styles['variations'] ) && is_array( $block_styles['variations'] )
+				? array_keys( $block_styles['variations'] )
+				: [];
+
+			$summary[ $block_name ] = [
+				'variations' => array_values( array_filter( $variations, 'is_string' ) ),
+			];
+		}
+
+		return $summary;
 	}
 
 	/**

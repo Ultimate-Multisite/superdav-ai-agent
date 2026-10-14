@@ -5561,8 +5561,8 @@ class AgentLoopTest extends WP_UnitTestCase {
 		if ( ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
-		if ( ! function_exists( 'wp_register_ability' ) ) {
-			$this->markTestSkipped( 'wp_register_ability() not available.' );
+		if ( ! function_exists( 'wp_register_ability' ) || ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
+			$this->markTestSkipped( 'WordPress Abilities API or function resolver not available.' );
 		}
 
 		delete_option( Settings::OPTION_NAME );
@@ -5628,6 +5628,37 @@ class AgentLoopTest extends WP_UnitTestCase {
 				wp_unregister_ability( $target );
 			}
 		}
+	}
+
+	/** Pending confirmation data exposes the registered ability label when available. */
+	public function test_confirmation_pending_tool_includes_ability_label(): void {
+		if ( ! function_exists( 'wp_has_ability' ) || ! function_exists( 'wp_get_ability' ) || ! class_exists( 'WP_AI_Client_Ability_Function_Resolver' ) ) {
+			$this->markTestSkipped( 'WordPress Abilities API or function resolver not available.' );
+		}
+
+		$target = 'sd-ai-agent/memory-save';
+		if ( ! wp_has_ability( $target ) ) {
+			$this->markTestSkipped( 'The memory-save ability is not available.' );
+		}
+		$ability = wp_get_ability( $target );
+		$this->assertNotNull( $ability );
+
+		$message = new ModelMessage(
+			[
+				new MessagePart(
+					new FunctionCall(
+						'call_confirmation_label',
+						\WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( $target ),
+						array( 'content' => 'A confirmation label fixture.' )
+					)
+				),
+			]
+		);
+
+		$pending = ( new ToolPermissionResolver( false, array( $target => 'confirm' ) ) )->get_tools_needing_confirmation( $message );
+
+		$this->assertCount( 1, $pending );
+		$this->assertSame( $ability->get_label(), $pending[0]['label'] ?? '' );
 	}
 
 	/** Elementor publication always needs per-request confirmation, including in YOLO mode. */

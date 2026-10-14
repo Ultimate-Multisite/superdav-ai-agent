@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
+use SdAiAgent\Core\CompletedTurnCompactor;
+
 /**
  * Stores encrypted, short-lived native conversation state for OAuth replay.
  *
@@ -21,6 +23,11 @@ final class ResponsesContinuation {
 		$this->key = $session_id > 0 && $user_id > 0
 			? 'sd_ai_agent_responses_' . get_current_blog_id() . '_' . $session_id . '_' . $user_id
 			: '';
+	}
+
+	/** Return whether a native replay snapshot exists for this session. */
+	public function has_snapshot(): bool {
+		return '' !== $this->key && false !== get_transient( $this->key );
 	}
 
 	/**
@@ -52,7 +59,136 @@ final class ResponsesContinuation {
 			$this->clear();
 			return null;
 		}
-		return array( 'input' => array_merge( $native, array_values( array_slice( $input, $count ) ) ) );
+		return array( 'input' => self::prune_completed_discovery( array_merge( $native, array_values( array_slice( $input, $count ) ) ) ) );
+	}
+
+	/**
+	 * Keep current-turn state intact, but retire replay-only content from older turns.
+	 *
+	 * Native search outputs do not exist in SDK history, so ordinary history
+	 * trimming cannot see them. Preserve their protocol rows and every schema
+	 * referenced by a recorded function call; unused tools can be searched again.
+	 * Completed reasoning is not needed for replay. Remove its paired provider item
+	 * IDs so the retained function calls and assistant messages are client history.
+	 *
+	 * @param list<array<string, mixed>> $input Complete native replay input.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function prune_completed_discovery( array $input ): array {
+		$last_user = 0;
+		$called    = array();
+		$retained  = array();
+		foreach ( $input as $index => $item ) {
+			if ( 'user' === ( $item['role'] ?? '' ) ) {
+				$last_user = $index;
+			}
+			if ( 'function_call' === ( $item['type'] ?? '' ) && is_string( $item['name'] ?? null ) ) {
+				$called[ $item['name'] ] = true;
+			}
+		}
+		foreach ( $input as $index => &$item ) {
+			if ( $index >= $last_user ) {
+				continue;
+			}
+			$type = $item['type'] ?? '';
+			if ( 'reasoning' === $type ) {
+				unset( $input[ $index ] );
+				continue;
+			}
+			if ( 'function_call' === $type || ( 'message' === $type && 'assistant' === ( $item['role'] ?? '' ) ) ) {
+				unset( $item['id'] );
+			}
+			if ( 'tool_search_output' !== $type || ! is_array( $item['tools'] ?? null ) ) {
+				continue;
+			}
+			$tools = array();
+			// Keep each called schema once: the earliest load precedes every later call.
+			$keep = static function ( mixed $declared ) use ( $called, &$retained ): bool {
+				if ( ! is_array( $declared ) || ! is_string( $declared['name'] ?? null ) ) {
+					return true;
+				}
+				if ( ! isset( $called[ $declared['name'] ] ) || isset( $retained[ $declared['name'] ] ) ) {
+					return false;
+				}
+				$retained[ $declared['name'] ] = true;
+				return true;
+			};
+			foreach ( $item['tools'] as $tool ) {
+				if ( ! is_array( $tool ) ) {
+					// Unknown provider shapes must survive without lossy normalization.
+					$tools[] = $tool;
+					continue;
+				}
+				if ( 'namespace' === ( $tool['type'] ?? '' ) && is_array( $tool['tools'] ?? null ) ) {
+					$before        = count( $tool['tools'] );
+					$tool['tools'] = array_values( array_filter( $tool['tools'], $keep ) );
+					if ( ! empty( $tool['tools'] ) ) {
+						if ( count( $tool['tools'] ) < $before ) {
+							$tool = self::describe_retained_namespace( $tool );
+						}
+						$tools[] = $tool;
+					}
+				} elseif ( 'function' !== ( $tool['type'] ?? '' ) || $keep( $tool ) ) {
+					$tools[] = $tool;
+				}
+			}
+			$item['tools'] = $tools;
+		}
+		unset( $item );
+		return array_values( $input );
+	}
+
+	/**
+	 * Bound tool payloads that belong to completed user turns.
+	 *
+	 * The caller identifies completed-turn calls from SDK history, so mid-turn
+	 * guidance messages never move the boundary into the active tool cycle.
+	 *
+	 * @param list<array<string, mixed>> $input    Native replay input.
+	 * @param array<string, true>        $call_ids Completed-turn call IDs.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function compact_completed_tool_items( array $input, array $call_ids ): array {
+		if ( empty( $call_ids ) ) {
+			return $input;
+		}
+		foreach ( $input as &$item ) {
+			$call_id = $item['call_id'] ?? null;
+			if ( ! is_string( $call_id ) || ! isset( $call_ids[ $call_id ] ) ) {
+				continue;
+			}
+			$type = $item['type'] ?? '';
+			if ( 'function_call_output' === $type && is_string( $item['output'] ?? null ) ) {
+				$item['output'] = CompletedTurnCompactor::compact_result_text( $item['output'] );
+			} elseif ( 'function_call' === $type && is_string( $item['arguments'] ?? null ) ) {
+				$item['arguments'] = CompletedTurnCompactor::compact_argument_text( $item['arguments'] );
+			}
+		}
+		unset( $item );
+		return $input;
+	}
+
+	/**
+	 * Rewrite a generated "Label: name, name." description to list only retained functions.
+	 *
+	 * Descriptions without the generated shape are left unchanged.
+	 *
+	 * @param array<string, mixed> $tool Pruned namespace row.
+	 * @return array<string, mixed>
+	 */
+	private static function describe_retained_namespace( array $tool ): array {
+		$description = $tool['description'] ?? null;
+		if ( ! is_string( $description ) || ! is_array( $tool['tools'] ) || ! str_contains( $description, ': ' ) ) {
+			return $tool;
+		}
+		$names = array();
+		foreach ( $tool['tools'] as $declared ) {
+			if ( is_array( $declared ) && is_string( $declared['name'] ?? null ) ) {
+				$names[] = (string) preg_replace( '/^wpab__[^_]+__/', '', $declared['name'] );
+			}
+		}
+		$tool['description'] = strstr( $description, ': ', true ) . ': ' . implode( ', ', $names ) . '.';
+		return $tool;
 	}
 
 	/**

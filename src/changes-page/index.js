@@ -15,7 +15,7 @@ const container = document.getElementById( 'sdaa-changes-root' );
 if ( container ) {
 	const root = createRoot( container );
 	root.render(
-		<ErrorBoundary label={ __( 'AI Changes', 'sd-ai-agent' ) }>
+		<ErrorBoundary label={ __( 'AI Changes', 'superdav-ai-agent' ) }>
 			<ChangesApp />
 		</ErrorBoundary>
 	);

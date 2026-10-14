@@ -16,11 +16,11 @@ import STORE_NAME from '../store';
  * Category labels for display.
  */
 const CATEGORY_LABELS = {
-	general: __( 'General', 'sd-ai-agent' ),
-	content: __( 'Content', 'sd-ai-agent' ),
-	writing: __( 'Writing', 'sd-ai-agent' ),
-	development: __( 'Development', 'sd-ai-agent' ),
-	seo: __( 'SEO', 'sd-ai-agent' ),
+	general: __( 'General', 'superdav-ai-agent' ),
+	content: __( 'Content', 'superdav-ai-agent' ),
+	writing: __( 'Writing', 'superdav-ai-agent' ),
+	development: __( 'Development', 'superdav-ai-agent' ),
+	seo: __( 'SEO', 'superdav-ai-agent' ),
 };
 
 /**
@@ -83,7 +83,7 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 
 	// Derive unique categories from loaded templates.
 	const categories = [
-		{ value: '', label: __( 'All', 'sd-ai-agent' ) },
+		{ value: '', label: __( 'All', 'superdav-ai-agent' ) },
 		...[ ...new Set( templates.map( ( t ) => t.category ) ) ]
 			.sort()
 			.map( ( cat ) => ( {
@@ -108,15 +108,15 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 		<div
 			className="sdaa-template-menu"
 			role="dialog"
-			aria-label={ __( 'Conversation templates', 'sd-ai-agent' ) }
+			aria-label={ __( 'Conversation templates', 'superdav-ai-agent' ) }
 		>
 			<div className="sdaa-template-menu__header">
 				<span className="sdaa-template-menu__title">
-					{ __( 'Templates', 'sd-ai-agent' ) }
+					{ __( 'Templates', 'superdav-ai-agent' ) }
 				</span>
 				<Button
 					icon={ <Icon icon={ close } /> }
-					label={ __( 'Close templates', 'sd-ai-agent' ) }
+					label={ __( 'Close templates', 'superdav-ai-agent' ) }
 					onClick={ onClose }
 					className="sdaa-template-menu__close"
 					isSmall
@@ -150,7 +150,7 @@ export default function ConversationTemplateMenu( { onSelect, onClose } ) {
 				) }
 				{ loaded && filtered.length === 0 && (
 					<p className="sdaa-template-menu__empty">
-						{ __( 'No templates found.', 'sd-ai-agent' ) }
+						{ __( 'No templates found.', 'superdav-ai-agent' ) }
 					</p>
 				) }
 				{ loaded &&

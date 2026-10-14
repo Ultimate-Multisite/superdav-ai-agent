@@ -602,7 +602,7 @@ export const actions = {
 							err?.message ||
 							__(
 								'Unable to connect to the AI Agent API.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							),
 						status,
 					} );
@@ -1301,7 +1301,7 @@ export const actions = {
 						{
 							text: __(
 								'Error: No job ID returned.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							),
 						},
 					],

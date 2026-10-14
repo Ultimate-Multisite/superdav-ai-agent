@@ -87,6 +87,26 @@ class ToolResultTruncatorTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test associative maps that remain large after generic recursion are capped.
+	 */
+	public function test_large_associative_result_is_hard_capped(): void {
+		$variations = [];
+		for ( $i = 0; $i < 100; $i++ ) {
+			$variations[ "section-{$i}" ] = [
+				'color'      => [ 'background' => '#ffffff', 'text' => '#111111' ],
+				'typography' => [ 'fontSize' => '1rem', 'lineHeight' => '1.5' ],
+			];
+		}
+
+		$result  = ToolResultTruncator::truncate( [ 'styles' => [ 'blocks' => [ 'core/group' => [ 'variations' => $variations ] ] ] ] );
+		$encoded = wp_json_encode( $result );
+
+		$this->assertIsString( $encoded );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( $encoded ) );
+		$this->assertStringContainsString( 'call with a narrower section', $encoded );
+	}
+
+	/**
 	 * Test truncated string ends with '... [truncated]'.
 	 */
 	public function test_truncated_string_has_suffix(): void {

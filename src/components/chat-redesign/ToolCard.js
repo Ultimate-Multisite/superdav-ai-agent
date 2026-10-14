@@ -287,7 +287,7 @@ export default function ToolCard( {
 					}` }
 				>
 					{ status === 'running' && (
-						<span>{ __( 'Running…', 'sd-ai-agent' ) }</span>
+						<span>{ __( 'Running…', 'superdav-ai-agent' ) }</span>
 					) }
 					<span className="sdaa-cr-tool-card-chevron">
 						<Icon icon={ chevronDown } size={ 16 } />
@@ -357,7 +357,7 @@ export default function ToolCard( {
 					{ args && args !== '{}' && args !== 'null' && (
 						<div>
 							<div className="sdaa-cr-tool-detail-label">
-								{ __( 'Arguments', 'sd-ai-agent' ) }
+								{ __( 'Arguments', 'superdav-ai-agent' ) }
 							</div>
 							<pre className="sdaa-cr-tool-detail-value">
 								{ args }
@@ -367,7 +367,7 @@ export default function ToolCard( {
 					{ result && (
 						<div>
 							<div className="sdaa-cr-tool-detail-label">
-								{ __( 'Result', 'sd-ai-agent' ) }
+								{ __( 'Result', 'superdav-ai-agent' ) }
 							</div>
 							<pre className="sdaa-cr-tool-detail-value">
 								{ result }
@@ -380,7 +380,7 @@ export default function ToolCard( {
 								<Icon icon={ caution } size={ 14 } />
 								{ __(
 									'This action modified your site.',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 								) }
 							</span>
 							{ onRevert && (
@@ -390,7 +390,7 @@ export default function ToolCard( {
 									onClick={ onRevert }
 								>
 									<Icon icon={ undo } size={ 12 } />
-									{ __( 'Revert this', 'sd-ai-agent' ) }
+									{ __( 'Revert this', 'superdav-ai-agent' ) }
 								</button>
 							) }
 						</div>

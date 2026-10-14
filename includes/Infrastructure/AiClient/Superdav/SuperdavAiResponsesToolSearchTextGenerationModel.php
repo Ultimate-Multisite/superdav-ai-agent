@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
+use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationTrimmer;
 use SdAiAgent\Core\ProviderTraceLogger;
 use WordPress\AiClient\Common\Exception\InvalidArgumentException;
@@ -41,8 +42,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApiBasedModel implements TextGenerationModelInterface {
 
-	/** Keep namespaces small as recommended by the OpenAI tool-search guide. */
-	private const NAMESPACE_TOOL_LIMIT = 10;
+	/** Bound schema bundles returned by hosted namespace discovery. */
+	private const NAMESPACE_TOOL_LIMIT = 5;
 
 	/** @var int Session owning the encrypted native replay snapshot (zero disables persistence). */
 	private int $continuation_session_id = 0;
@@ -50,6 +51,19 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	/** Bind continuation to the agent's server-owned session, not a user-supplied response ID. */
 	public function set_continuation_session_id( int $session_id ): void {
 		$this->continuation_session_id = max( 0, $session_id );
+	}
+
+	/** Return a bounded opaque key for provider-side prompt-cache reuse. */
+	private function prompt_cache_key(): string {
+		return SuperdavAiProvider::prompt_cache_key( $this->continuation_session_id );
+	}
+
+	/** @var int Leading prompt messages that belong to completed user turns. */
+	private int $completed_turn_message_count = 0;
+
+	/** Bound tool payloads replayed from completed user turns. */
+	public function set_completed_turn_message_count( int $count ): void {
+		$this->completed_turn_message_count = max( 0, $count );
 	}
 
 	/**
@@ -95,14 +109,21 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			if ( null === $scope ) {
 				$cursor->clear();
 			}
+			$has_snapshot = $cursor->has_snapshot();
 			$continuation = null !== $scope ? $cursor->resume( $full_input, $scope ) : null;
 			if ( null !== $continuation ) {
 				$params['input'] = $continuation['input'];
-			} elseif ( $this->has_tool_history( $full_input ) ) {
-				// An expired/edited snapshot cannot faithfully replay native namespaces or reasoning.
-				$cursor->clear();
+			} elseif ( $has_snapshot && $this->has_tool_history( $full_input ) ) {
+				// A stored snapshot with a mismatched scope is unsafe to replay natively.
 				return $this->generate_chat_completions_fallback( $prompt );
 			}
+			// Native replay and local-history replay after cursor loss both carry
+			// completed-turn tool payloads; bound them in the provider view only.
+			$params['input'] = ResponsesContinuation::compact_completed_tool_items(
+				$params['input'],
+				CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count )
+			);
+
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),
 				'responses',
@@ -121,7 +142,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
 				$output       = $this->native_output_items( $data['output'] ?? null );
 				if ( null !== $output ) {
-					$native_input = array_merge( $continuation['input'] ?? $full_input, $output );
+					$native_input = ResponsesContinuation::prune_completed_discovery( array_merge( $params['input'], $output ) );
 					$cursor->acknowledge( $result->getId(), $acknowledged, $scope, $native_input );
 				} else {
 					$cursor->clear();
@@ -203,6 +224,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -241,6 +263,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		$system_instruction = $config->getSystemInstruction();
 		if ( is_string( $system_instruction ) && '' !== $system_instruction ) {
 			$params['instructions'] = $system_instruction;
+		}
+		$prompt_cache_key = $this->prompt_cache_key();
+		if ( '' !== $prompt_cache_key ) {
+			$params['prompt_cache_key'] = $prompt_cache_key;
 		}
 
 		$max_tokens = $config->getMaxTokens();
@@ -383,6 +409,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 		$immediate_function_names = $this->immediate_tool_function_names();
 		$groups                   = array();
+		$names                    = array();
 		$has_deferred_tools       = false;
 		foreach ( $declarations as $declaration ) {
 			if ( ! $declaration instanceof FunctionDeclaration ) {
@@ -393,19 +420,21 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$key              = $this->namespace_key_for_function( $function_name );
 			$deferred         = ! isset( $immediate_function_names[ $function_name ] );
 			$groups[ $key ][] = $this->function_declaration_to_tool( $declaration, $deferred );
+			$names[ $key ][]  = $function_name;
 
 			$has_deferred_tools = $has_deferred_tools || $deferred;
 		}
 
 		$tools = array();
 		foreach ( $groups as $namespace => $functions ) {
-			$chunks = array_chunk( $functions, self::NAMESPACE_TOOL_LIMIT );
+			$chunks      = array_chunk( $functions, self::NAMESPACE_TOOL_LIMIT );
+			$name_chunks = array_chunk( $names[ $namespace ], self::NAMESPACE_TOOL_LIMIT );
 			foreach ( $chunks as $index => $chunk ) {
 				$name    = 0 === $index ? $namespace : $namespace . '_' . ( $index + 1 );
 				$tools[] = array(
 					'type'        => 'namespace',
 					'name'        => $name,
-					'description' => $this->namespace_description( $name ),
+					'description' => $this->namespace_description( $name, $name_chunks[ $index ] ),
 					'tools'       => $chunk,
 				);
 			}
@@ -451,6 +480,8 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		// needs only these small coordination tools immediately; replay retains
 		// tools already loaded through search without usage-based promotion.
 		$ability_names = array(
+			'sd-ai-agent/ability-search',
+			'sd-ai-agent/ability-call',
 			'sd-ai-agent/skill-load',
 			'sd-ai-agent/memory-save',
 			'sd-ai-agent/memory-list',
@@ -511,11 +542,20 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		return 'wp_abilities_' . ( '' !== $slug ? $slug : 'general' );
 	}
 
-	/** Return a concise namespace description for the model-visible search surface. */
-	private function namespace_description( string $namespace_name ): string {
+	/**
+	 * Describe the actual chunk, so numbered namespaces are not indistinguishable.
+	 *
+	 * @param string       $namespace_name Namespace identifier.
+	 * @param list<string> $function_names Function names in this namespace.
+	 */
+	private function namespace_description( string $namespace_name, array $function_names ): string { // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- list<string> is valid PHPStan but not a native PHP type.
 		$label = str_replace( '_', ' ', preg_replace( '/^wp_abilities_/', '', $namespace_name ) ?? $namespace_name );
+		$names = array_map(
+			static fn( string $function_name ): string => (string) preg_replace( '/^wpab__[^_]+__/', '', $function_name ),
+			$function_names
+		);
 
-		return sprintf( 'Searchable WordPress abilities for %s tasks on the current site.', $label );
+		return sprintf( 'WordPress %s: %s.', $label, implode( ', ', $names ) );
 	}
 
 	/** Parse a Responses API response into the SDK result DTO shape. */
@@ -688,6 +728,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		unset( $options['previous_response_id'] );
 		$config->setCustomOptions( $options );
 		$fallback->setConfig( $config );
+		$fallback->set_prompt_cache_key( $this->prompt_cache_key() );
 		$fallback->setHttpTransporter( $this->getHttpTransporter() );
 		$fallback->setRequestAuthentication( $this->getRequestAuthentication() );
 
@@ -696,7 +737,10 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			$fallback->setRequestOptions( $options );
 		}
 
-		return $fallback->generateTextResult( $prompt );
+		/** @var list<Message> $compacted */
+		$compacted = array_values( CompletedTurnCompactor::compact_history( $prompt, $this->completed_turn_message_count ) );
+
+		return $fallback->generateTextResult( $compacted );
 	}
 
 	/** JSON encode a value for OpenAI string fields. */

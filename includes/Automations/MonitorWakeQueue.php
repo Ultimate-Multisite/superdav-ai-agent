@@ -87,10 +87,23 @@ final class MonitorWakeQueue {
 	 * @return array<string, int>
 	 */
 	public static function get_enabled_source_hooks(): array {
+		// Read once for this registration pass, not once for each source. Keep
+		// capture() fresh and avoid a cache that could outlive a blog/consent change.
+		$enabled_sources = [];
+		foreach ( Automations::list( true ) as $automation ) {
+			if ( ! Automations::is_monitor_event_wakes_enabled( $automation ) ) {
+				continue;
+			}
+
+			foreach ( Automations::get_monitor_event_sources( $automation ) as $hook_name ) {
+				$enabled_sources[ $hook_name ] = true;
+			}
+		}
+
 		$hooks = [];
 		foreach ( EventTriggerRegistry::get_monitor_wake_sources() as $source ) {
 			$hook_name = (string) ( $source['hook_name'] ?? '' );
-			if ( '' === $hook_name || empty( Automations::list_monitor_wake_subscribers( $hook_name ) ) ) {
+			if ( '' === $hook_name || ! isset( $enabled_sources[ $hook_name ] ) ) {
 				continue;
 			}
 

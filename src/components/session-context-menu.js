@@ -99,7 +99,7 @@ export default function SessionContextMenu( {
 						} }
 					/>
 					<button type="button" onClick={ handleRename }>
-						{ __( 'Save', 'sd-ai-agent' ) }
+						{ __( 'Save', 'superdav-ai-agent' ) }
 					</button>
 				</div>
 			</div>
@@ -114,7 +114,7 @@ export default function SessionContextMenu( {
 					role="menuitem"
 					onClick={ () => setIsRenaming( true ) }
 				>
-					{ __( 'Rename', 'sd-ai-agent' ) }
+					{ __( 'Rename', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ ! isTrashed && (
@@ -127,8 +127,8 @@ export default function SessionContextMenu( {
 					} }
 				>
 					{ isPinned
-						? __( 'Unpin', 'sd-ai-agent' )
-						: __( 'Pin', 'sd-ai-agent' ) }
+						? __( 'Unpin', 'superdav-ai-agent' )
+						: __( 'Pin', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ ! isTrashed && (
@@ -140,7 +140,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Export', 'sd-ai-agent' ) }
+					{ __( 'Export', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && ! isShared && (
@@ -152,7 +152,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Share with Admins', 'sd-ai-agent' ) }
+					{ __( 'Share with Admins', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && isShared && (
@@ -164,7 +164,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Unshare', 'sd-ai-agent' ) }
+					{ __( 'Unshare', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isArchived && ! isTrashed && (
@@ -176,7 +176,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Archive', 'sd-ai-agent' ) }
+					{ __( 'Archive', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ( isArchived || isTrashed ) && (
@@ -188,7 +188,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Restore', 'sd-ai-agent' ) }
+					{ __( 'Restore', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && ! isTrashed && (
@@ -201,7 +201,7 @@ export default function SessionContextMenu( {
 						onClose();
 					} }
 				>
-					{ __( 'Move to Trash', 'sd-ai-agent' ) }
+					{ __( 'Move to Trash', 'superdav-ai-agent' ) }
 				</button>
 			) }
 			{ isOwner && isTrashed && (
@@ -214,7 +214,7 @@ export default function SessionContextMenu( {
 						const confirmed = window.confirm(
 							__(
 								'Permanently delete this conversation? This cannot be undone.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 							)
 						);
 						if ( confirmed ) {
@@ -223,7 +223,7 @@ export default function SessionContextMenu( {
 						}
 					} }
 				>
-					{ __( 'Delete Permanently', 'sd-ai-agent' ) }
+					{ __( 'Delete Permanently', 'superdav-ai-agent' ) }
 				</button>
 			) }
 		</div>

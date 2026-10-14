@@ -92,15 +92,15 @@ export default function ProviderTraceViewer() {
 			setNotice( {
 				status: 'success',
 				message: enabled
-					? __( 'Provider tracing enabled.', 'sd-ai-agent' )
-					: __( 'Provider tracing disabled.', 'sd-ai-agent' ),
+					? __( 'Provider tracing enabled.', 'superdav-ai-agent' )
+					: __( 'Provider tracing disabled.', 'superdav-ai-agent' ),
 			} );
 		} catch {
 			setNotice( {
 				status: 'error',
 				message: __(
 					'Failed to update trace settings.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		}
@@ -131,13 +131,19 @@ export default function ProviderTraceViewer() {
 			setTotal( 0 );
 			setNotice( {
 				status: 'success',
-				message: __( 'All trace records cleared.', 'sd-ai-agent' ),
+				message: __(
+					'All trace records cleared.',
+					'superdav-ai-agent'
+				),
 			} );
 			fetchSettings();
 		} catch {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to clear trace records.', 'sd-ai-agent' ),
+				message: __(
+					'Failed to clear trace records.',
+					'superdav-ai-agent'
+				),
 			} );
 		}
 	}, [ fetchSettings ] );
@@ -153,7 +159,10 @@ export default function ProviderTraceViewer() {
 		} catch {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to load trace details.', 'sd-ai-agent' ),
+				message: __(
+					'Failed to load trace details.',
+					'superdav-ai-agent'
+				),
 			} );
 		}
 		setDetailLoading( false );
@@ -170,13 +179,16 @@ export default function ProviderTraceViewer() {
 				status: 'success',
 				message: __(
 					'Curl command copied to clipboard.',
-					'sd-ai-agent'
+					'superdav-ai-agent'
 				),
 			} );
 		} catch {
 			setNotice( {
 				status: 'error',
-				message: __( 'Failed to copy curl command.', 'sd-ai-agent' ),
+				message: __(
+					'Failed to copy curl command.',
+					'superdav-ai-agent'
+				),
 			} );
 		}
 	}, [] );
@@ -237,7 +249,7 @@ export default function ProviderTraceViewer() {
 	return (
 		<div className="sdaa-provider-trace">
 			<h3 className="sdaa-settings-section-title">
-				{ __( 'Provider Trace', 'sd-ai-agent' ) }
+				{ __( 'Provider Trace', 'superdav-ai-agent' ) }
 			</h3>
 			<p className="description">
 				{ __(
@@ -261,7 +273,7 @@ export default function ProviderTraceViewer() {
 				<ToggleControl
 					label={ __(
 						'Enable provider trace logging',
-						'sd-ai-agent'
+						'superdav-ai-agent'
 					) }
 					checked={ traceSettings.enabled }
 					onChange={ handleToggle }
@@ -270,7 +282,7 @@ export default function ProviderTraceViewer() {
 							? traceSettings.warning
 							: __(
 									'When enabled, outbound HTTP requests to AI providers will be logged for debugging.',
-									'sd-ai-agent'
+									'superdav-ai-agent'
 							  )
 					}
 					__nextHasNoMarginBottom
@@ -280,14 +292,14 @@ export default function ProviderTraceViewer() {
 					<Notice status="warning" isDismissible={ false }>
 						{ __(
 							'Provider tracing is active. Logs may contain prompt content and should not be left enabled on shared or production environments.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</Notice>
 				) }
 
 				<div className="sdaa-trace-settings-row">
 					<TextControl
-						label={ __( 'Max stored rows', 'sd-ai-agent' ) }
+						label={ __( 'Max stored rows', 'superdav-ai-agent' ) }
 						type="number"
 						min={ 10 }
 						max={ 10000 }
@@ -295,12 +307,12 @@ export default function ProviderTraceViewer() {
 						onChange={ handleMaxRowsChange }
 						help={ __(
 							'Oldest rows are automatically deleted when this limit is reached.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						__nextHasNoMarginBottom
 					/>
 					<p className="description">
-						{ __( 'Currently stored:', 'sd-ai-agent' ) }{ ' ' }
+						{ __( 'Currently stored:', 'superdav-ai-agent' ) }{ ' ' }
 						<strong>{ traceSettings.count }</strong>
 					</p>
 				</div>
@@ -309,11 +321,11 @@ export default function ProviderTraceViewer() {
 			{ /* Filters */ }
 			<div className="sdaa-trace-filters">
 				<SelectControl
-					label={ __( 'Provider', 'sd-ai-agent' ) }
+					label={ __( 'Provider', 'superdav-ai-agent' ) }
 					value={ filters.provider }
 					options={ [
 						{
-							label: __( 'All providers', 'sd-ai-agent' ),
+							label: __( 'All providers', 'superdav-ai-agent' ),
 							value: '',
 						},
 						{ label: 'Anthropic', value: 'anthropic' },
@@ -360,7 +372,7 @@ export default function ProviderTraceViewer() {
 					__nextHasNoMarginBottom
 				/>
 				<ToggleControl
-					label={ __( 'Errors only', 'sd-ai-agent' ) }
+					label={ __( 'Errors only', 'superdav-ai-agent' ) }
 					checked={ filters.errors_only }
 					onChange={ ( v ) =>
 						setFilters( ( prev ) => ( {
@@ -372,7 +384,7 @@ export default function ProviderTraceViewer() {
 					__nextHasNoMarginBottom
 				/>
 				<Button variant="secondary" onClick={ fetchTraces }>
-					{ __( 'Refresh', 'sd-ai-agent' ) }
+					{ __( 'Refresh', 'superdav-ai-agent' ) }
 				</Button>
 				{ total > 0 && (
 					<Button
@@ -380,7 +392,7 @@ export default function ProviderTraceViewer() {
 						isDestructive
 						onClick={ handleClear }
 					>
-						{ __( 'Clear All', 'sd-ai-agent' ) }
+						{ __( 'Clear All', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -392,11 +404,11 @@ export default function ProviderTraceViewer() {
 					{ traceSettings.enabled
 						? __(
 								'No trace records yet. Make an AI request to start capturing traffic.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  )
 						: __(
 								'No trace records. Enable tracing above to start capturing provider traffic.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ) }
 				</p>
 			) }
@@ -405,23 +417,29 @@ export default function ProviderTraceViewer() {
 					<table className="widefat sdaa-trace-table">
 						<thead>
 							<tr>
-								<th>{ __( 'ID', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Time', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Provider', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Model', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'ID', 'superdav-ai-agent' ) }</th>
+								<th>{ __( 'Time', 'superdav-ai-agent' ) }</th>
+								<th>
+									{ __( 'Provider', 'superdav-ai-agent' ) }
+								</th>
+								<th>{ __( 'Model', 'superdav-ai-agent' ) }</th>
 								<th>{ __( 'Source', 'superdav-ai-agent' ) }</th>
-								<th>{ __( 'Status', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Duration', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Status', 'superdav-ai-agent' ) }</th>
+								<th>
+									{ __( 'Duration', 'superdav-ai-agent' ) }
+								</th>
 								<th
 									title={ __(
 										'Prompt cache read / write tokens reported by the provider.',
-										'sd-ai-agent'
+										'superdav-ai-agent'
 									) }
 								>
-									{ __( 'Cache R/W', 'sd-ai-agent' ) }
+									{ __( 'Cache R/W', 'superdav-ai-agent' ) }
 								</th>
-								<th>{ __( 'Error', 'sd-ai-agent' ) }</th>
-								<th>{ __( 'Actions', 'sd-ai-agent' ) }</th>
+								<th>{ __( 'Error', 'superdav-ai-agent' ) }</th>
+								<th>
+									{ __( 'Actions', 'superdav-ai-agent' ) }
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -456,7 +474,7 @@ export default function ProviderTraceViewer() {
 										className="sdaa-trace-cache-cell"
 										title={ __(
 											'Read tokens (cache hits) / Write tokens (cache creation)',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									>
 										{ ( trace.cache_read_tokens || 0 ) +
@@ -486,7 +504,10 @@ export default function ProviderTraceViewer() {
 												handleViewTrace( trace.id )
 											}
 										>
-											{ __( 'View', 'sd-ai-agent' ) }
+											{ __(
+												'View',
+												'superdav-ai-agent'
+											) }
 										</Button>
 										{ trace.source !== 'sdk' && (
 											<Button
@@ -497,7 +518,7 @@ export default function ProviderTraceViewer() {
 											>
 												{ __(
 													'Copy curl',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</Button>
 										) }
@@ -510,13 +531,13 @@ export default function ProviderTraceViewer() {
 					{ /* Pagination */ }
 					<div className="sdaa-trace-pagination">
 						<span>
-							{ __( 'Showing', 'sd-ai-agent' ) }{ ' ' }
+							{ __( 'Showing', 'superdav-ai-agent' ) }{ ' ' }
 							{ filters.offset + 1 }–
 							{ Math.min(
 								filters.offset + filters.limit,
 								total
 							) }{ ' ' }
-							{ __( 'of', 'sd-ai-agent' ) } { total }
+							{ __( 'of', 'superdav-ai-agent' ) } { total }
 						</span>
 						{ filters.offset > 0 && (
 							<Button
@@ -531,7 +552,7 @@ export default function ProviderTraceViewer() {
 									} ) )
 								}
 							>
-								{ __( 'Previous', 'sd-ai-agent' ) }
+								{ __( 'Previous', 'superdav-ai-agent' ) }
 							</Button>
 						) }
 						{ filters.offset + filters.limit < total && (
@@ -544,7 +565,7 @@ export default function ProviderTraceViewer() {
 									} ) )
 								}
 							>
-								{ __( 'Next', 'sd-ai-agent' ) }
+								{ __( 'Next', 'superdav-ai-agent' ) }
 							</Button>
 						) }
 					</div>
@@ -554,7 +575,7 @@ export default function ProviderTraceViewer() {
 			{ /* Detail Modal */ }
 			{ selectedTrace && (
 				<Modal
-					title={ `${ __( 'Trace', 'sd-ai-agent' ) } #${
+					title={ `${ __( 'Trace', 'superdav-ai-agent' ) } #${
 						selectedTrace.id
 					}` }
 					onRequestClose={ () => setSelectedTrace( null ) }
@@ -572,14 +593,17 @@ export default function ProviderTraceViewer() {
 											<th>
 												{ __(
 													'Provider',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</th>
 											<td>
 												{ selectedTrace.provider_id }
 											</td>
 											<th>
-												{ __( 'Model', 'sd-ai-agent' ) }
+												{ __(
+													'Model',
+													'superdav-ai-agent'
+												) }
 											</th>
 											<td>{ selectedTrace.model_id }</td>
 										</tr>
@@ -597,7 +621,10 @@ export default function ProviderTraceViewer() {
 										</tr>
 										<tr>
 											<th>
-												{ __( 'URL', 'sd-ai-agent' ) }
+												{ __(
+													'URL',
+													'superdav-ai-agent'
+												) }
 											</th>
 											<td colSpan="3">
 												<code>
@@ -610,7 +637,7 @@ export default function ProviderTraceViewer() {
 											<th>
 												{ __(
 													'Status',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</th>
 											<td>
@@ -623,7 +650,7 @@ export default function ProviderTraceViewer() {
 											<th>
 												{ __(
 													'Duration',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</th>
 											<td>
@@ -633,13 +660,19 @@ export default function ProviderTraceViewer() {
 										</tr>
 										<tr>
 											<th>
-												{ __( 'Time', 'sd-ai-agent' ) }
+												{ __(
+													'Time',
+													'superdav-ai-agent'
+												) }
 											</th>
 											<td>
 												{ selectedTrace.created_at }
 											</td>
 											<th>
-												{ __( 'Error', 'sd-ai-agent' ) }
+												{ __(
+													'Error',
+													'superdav-ai-agent'
+												) }
 											</th>
 											<td>
 												{ selectedTrace.error || '—' }
@@ -649,7 +682,7 @@ export default function ProviderTraceViewer() {
 											<th>
 												{ __(
 													'Cache read',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</th>
 											<td>
@@ -657,13 +690,13 @@ export default function ProviderTraceViewer() {
 													0 }{ ' ' }
 												{ __(
 													'tokens',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</td>
 											<th>
 												{ __(
 													'Cache write',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</th>
 											<td>
@@ -671,7 +704,7 @@ export default function ProviderTraceViewer() {
 													0 }{ ' ' }
 												{ __(
 													'tokens',
-													'sd-ai-agent'
+													'superdav-ai-agent'
 												) }
 											</td>
 										</tr>
@@ -684,7 +717,7 @@ export default function ProviderTraceViewer() {
 									<h4>
 										{ __(
 											'Request Headers',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</h4>
 									<pre className="sdaa-trace-json">
@@ -697,7 +730,7 @@ export default function ProviderTraceViewer() {
 									<h4>
 										{ __(
 											'Response Headers',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 									</h4>
 									<pre className="sdaa-trace-json">
@@ -711,7 +744,10 @@ export default function ProviderTraceViewer() {
 							<div className="sdaa-trace-detail-panels">
 								<div className="sdaa-trace-detail-panel">
 									<h4>
-										{ __( 'Request Body', 'sd-ai-agent' ) }
+										{ __(
+											'Request Body',
+											'superdav-ai-agent'
+										) }
 									</h4>
 									<pre className="sdaa-trace-json">
 										{ formatJson(
@@ -721,7 +757,10 @@ export default function ProviderTraceViewer() {
 								</div>
 								<div className="sdaa-trace-detail-panel">
 									<h4>
-										{ __( 'Response Body', 'sd-ai-agent' ) }
+										{ __(
+											'Response Body',
+											'superdav-ai-agent'
+										) }
 									</h4>
 									<pre className="sdaa-trace-json">
 										{ formatJson(
@@ -739,7 +778,10 @@ export default function ProviderTraceViewer() {
 											handleCopyCurl( selectedTrace.id )
 										}
 									>
-										{ __( 'Copy as curl', 'sd-ai-agent' ) }
+										{ __(
+											'Copy as curl',
+											'superdav-ai-agent'
+										) }
 									</Button>
 								</div>
 							) }

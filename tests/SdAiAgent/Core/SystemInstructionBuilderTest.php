@@ -10,22 +10,50 @@
 namespace SdAiAgent\Tests\Core;
 
 use SdAiAgent\Core\SystemInstructionBuilder;
+use SdAiAgent\Tools\ToolDiscovery;
 use WP_UnitTestCase;
 
 /**
  * Test SystemInstructionBuilder functionality.
  */
 class SystemInstructionBuilderTest extends WP_UnitTestCase {
+	/** Independent PHP requests keep the snapshot while user-turn context changes. */
+	public function test_session_instruction_survives_new_builders_and_site_changes(): void {
+		\SdAiAgent\Core\Database::install();
+		$session_id = (int) \SdAiAgent\Core\Database::create_session( array( 'user_id' => get_current_user_id() ) );
+		$first = new SystemInstructionBuilder( '', 'Hi', array( 'page_title' => 'First page' ), $session_id );
+		$instruction = $first->build_for_session( array(), array( 'sd-ai-agent/file-write' ), true );
+		$second = new SystemInstructionBuilder( '', 'Create a page', array( 'page_title' => 'Second page' ), $session_id );
+		$this->assertSame( $instruction, $second->build_for_session( array( 'system_prompt' => 'Changed setting' ), array(), true ) );
+		$this->assertStringNotContainsString( '## Current Context', $instruction );
+		$this->assertStringNotContainsString( '## Relevant Knowledge', $instruction );
+		$this->assertStringContainsString( 'Second page', $second->build_turn_context( array( 'knowledge_enabled' => false ) ) );
+		$this->assertObjectNotHasProperty( 'system_instruction', \SdAiAgent\Core\Database::get_session( $session_id ) );
+		\SdAiAgent\Core\Database::delete_session( $session_id );
+	}
+
 	/** Native discovery must not be contradicted by the compatibility manifest. */
 	public function test_native_routing_loads_deferred_functions_without_compatibility_manifest(): void {
 		$instruction = ( new SystemInstructionBuilder() )->build( array(), array( 'sd-ai-agent/list-posts' ), true );
-		$this->assertStringContainsString( 'use it to load the relevant deferred functions', $instruction );
+		$this->assertStringContainsString( 'Load the relevant deferred functions', $instruction );
 		$this->assertStringContainsString( 'then call those functions directly', $instruction );
+		$this->assertStringContainsString( 'search one specific namespace or task keyword at a time', $instruction );
+		$this->assertStringContainsString( 'Do not request several namespaces in one search', $instruction );
 		$this->assertStringContainsString( 'Call browser functions directly', $instruction );
 		$this->assertStringNotContainsString( 'Only call abilities that are present in the current direct tool list', $instruction );
 		$this->assertStringNotContainsString( 'The abilities listed below are NOT loaded as direct tools', $instruction );
 	}
 
+
+	/** Native content guidance is stable even when the current user message changes. */
+	public function test_native_content_guidance_is_message_independent(): void {
+		$abilities = array( 'sd-ai-agent/file-edit', 'sd-ai-agent/file-write', 'sd-ai-agent/create-post' );
+		$edit      = ( new SystemInstructionBuilder( '', 'Edit style.css to add a neon header.' ) )->build( array(), $abilities, true );
+		$this->assertStringContainsString( '## Working cadence', $edit );
+		$this->assertStringContainsString( 'Never overwrite a freshly scaffolded `style.css`', $edit );
+		$greeting = ( new SystemInstructionBuilder( '', 'Hi there!' ) )->build( array(), $abilities, true );
+		$this->assertSame( $edit, $greeting );
+	}
 
 	/**
 	 * A bounded native catalog retains bridge instructions without the full manifest.
@@ -130,6 +158,17 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 			$instruction,
 			'Built instruction should include WordPress Environment section'
 		);
+	}
+
+	/** Non-native first requests must stay comfortably below the payload guard. */
+	public function test_non_native_instruction_stays_within_first_request_budget(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build(
+			array(),
+			ToolDiscovery::tier_1_for_run(),
+			false
+		);
+
+		$this->assertLessThanOrEqual( 25000, strlen( $instruction ) );
 	}
 
 	/**

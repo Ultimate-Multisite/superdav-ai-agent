@@ -40,13 +40,22 @@ final class RemoteMcpAbilityRegistrar {
 				wp_register_ability(
 					$ability_name,
 					array(
-						'label'               => (string) ( $connection['name'] ?? __( 'Remote MCP', 'superdav-ai-agent' ) ) . ': ' . (string) $tool['name'],
+						'label'               => sprintf(
+							/* translators: 1: remote MCP tool name, 2: remote MCP connection name. */
+							__( '%1$s (%2$s)', 'superdav-ai-agent' ),
+							(string) $tool['name'],
+							(string) ( $connection['name'] ?? __( 'Remote MCP', 'superdav-ai-agent' ) )
+						),
 						'description'         => (string) ( $tool['description'] ?? __( 'Remote MCP tool.', 'superdav-ai-agent' ) ),
 						'category'            => 'sd-ai-agent',
 						'input_schema'        => $schema,
 						'meta'                => array(
 							'show_in_rest' => true,
 							'remote_mcp'   => true,
+							'annotations'  => array(
+								'readonly'    => false,
+								'destructive' => true,
+							), // Remote hints are not authority to bypass the normal approval policy.
 						),
 						'permission_callback' => static fn(): bool => ToolCapabilities::current_user_can( $ability_name ),
 						'execute_callback'    => function ( array $input ) use ( $connection, $tool ) {
@@ -66,8 +75,11 @@ final class RemoteMcpAbilityRegistrar {
 	 * Derive a collision-resistant local ID while retaining the exact remote name.
 	 */
 	public static function ability_name( string $connection_id, string $remote_name ): string {
-		$slug = sanitize_title( $remote_name );
-		$slug = '' !== $slug ? substr( $slug, 0, 48 ) : 'tool';
-		return 'sd-ai-agent/mcp-' . sanitize_key( $connection_id ) . '-' . $slug . '-' . substr( hash( 'sha256', $remote_name ), 0, 10 );
+		// WordPress ability IDs reject underscores and percent-encoded characters.
+		$slug = (string) preg_replace( '/[^a-z0-9-]/', '-', sanitize_title( $remote_name ) );
+		// The SDK adds wpab__sd-ai-agent__ (19 bytes); keep the full function <=64.
+		$slug = '' !== $slug ? substr( $slug, 0, 24 ) : 'tool';
+		$hash = substr( hash( 'sha256', $connection_id . "\0" . $remote_name ), 0, 16 );
+		return 'sd-ai-agent/mcp-' . $slug . '-' . $hash;
 	}
 }

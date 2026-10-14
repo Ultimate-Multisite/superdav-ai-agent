@@ -21,8 +21,8 @@ import apiFetch from '@wordpress/api-fetch';
 import MonitorManager from './monitor-manager';
 
 const CHANNEL_TYPE_OPTIONS = [
-	{ label: __( 'Slack', 'sd-ai-agent' ), value: 'slack' },
-	{ label: __( 'Discord', 'sd-ai-agent' ), value: 'discord' },
+	{ label: __( 'Slack', 'superdav-ai-agent' ), value: 'slack' },
+	{ label: __( 'Discord', 'superdav-ai-agent' ), value: 'discord' },
 	{ label: __( 'WhatsApp', 'superdav-ai-agent' ), value: 'whatsapp' },
 	{ label: __( 'Telegram', 'superdav-ai-agent' ), value: 'telegram' },
 ];
@@ -60,10 +60,10 @@ function getChannelPlaceholder( type ) {
 }
 
 const SCHEDULE_OPTIONS = [
-	{ label: __( 'Hourly', 'sd-ai-agent' ), value: 'hourly' },
-	{ label: __( 'Twice Daily', 'sd-ai-agent' ), value: 'twicedaily' },
-	{ label: __( 'Daily', 'sd-ai-agent' ), value: 'daily' },
-	{ label: __( 'Weekly', 'sd-ai-agent' ), value: 'weekly' },
+	{ label: __( 'Hourly', 'superdav-ai-agent' ), value: 'hourly' },
+	{ label: __( 'Twice Daily', 'superdav-ai-agent' ), value: 'twicedaily' },
+	{ label: __( 'Daily', 'superdav-ai-agent' ), value: 'daily' },
+	{ label: __( 'Weekly', 'superdav-ai-agent' ), value: 'weekly' },
 ];
 
 /**
@@ -150,12 +150,13 @@ export default function AutomationsManager() {
 			fetchAll();
 			setNotice( {
 				status: 'success',
-				message: __( 'Automation saved.', 'sd-ai-agent' ),
+				message: __( 'Automation saved.', 'superdav-ai-agent' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Failed to save.', 'sd-ai-agent' ),
+				message:
+					err.message || __( 'Failed to save.', 'superdav-ai-agent' ),
 			} );
 		}
 	}, [ form, editId, resetForm, fetchAll ] );
@@ -228,7 +229,9 @@ export default function AutomationsManager() {
 			} catch ( err ) {
 				setNotice( {
 					status: 'error',
-					message: err.message || __( 'Test failed.', 'sd-ai-agent' ),
+					message:
+						err.message ||
+						__( 'Test failed.', 'superdav-ai-agent' ),
 				} );
 			}
 			setTestingChannel( null );
@@ -240,7 +243,9 @@ export default function AutomationsManager() {
 		async ( id ) => {
 			if (
 				// eslint-disable-next-line no-alert
-				window.confirm( __( 'Delete this automation?', 'sd-ai-agent' ) )
+				window.confirm(
+					__( 'Delete this automation?', 'superdav-ai-agent' )
+				)
 			) {
 				await apiFetch( {
 					path: `/sd-ai-agent/v1/automations/${ id }`,
@@ -276,11 +281,14 @@ export default function AutomationsManager() {
 				setNotice( {
 					status: result.success ? 'success' : 'warning',
 					message: result.success
-						? __( 'Automation ran successfully.', 'sd-ai-agent' )
+						? __(
+								'Automation ran successfully.',
+								'superdav-ai-agent'
+						  )
 						: result.error ||
 						  __(
 								'Automation completed with errors.',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ),
 				} );
 				fetchAll();
@@ -354,7 +362,7 @@ export default function AutomationsManager() {
 						} }
 						size="compact"
 					>
-						{ __( 'Add Automation', 'sd-ai-agent' ) }
+						{ __( 'Add Automation', 'superdav-ai-agent' ) }
 					</Button>
 				) }
 			</div>
@@ -374,7 +382,10 @@ export default function AutomationsManager() {
 				scheduledTasks.length === 0 && (
 					<div style={ { marginBottom: '16px' } }>
 						<h4>
-							{ __( 'Quick Start Templates', 'sd-ai-agent' ) }
+							{ __(
+								'Quick Start Templates',
+								'superdav-ai-agent'
+							) }
 						</h4>
 						<div className="sdaa-skill-cards">
 							{ taskTemplates.map( ( tpl, idx ) => (
@@ -400,7 +411,7 @@ export default function AutomationsManager() {
 										>
 											{ __(
 												'Use Template',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</Button>
 									</div>
@@ -413,36 +424,36 @@ export default function AutomationsManager() {
 			{ showForm && (
 				<div className="sdaa-skill-form">
 					<TextControl
-						label={ __( 'Name', 'sd-ai-agent' ) }
+						label={ __( 'Name', 'superdav-ai-agent' ) }
 						value={ form.name }
 						onChange={ ( v ) => updateForm( 'name', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Description', 'sd-ai-agent' ) }
+						label={ __( 'Description', 'superdav-ai-agent' ) }
 						value={ form.description }
 						onChange={ ( v ) => updateForm( 'description', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Prompt', 'sd-ai-agent' ) }
+						label={ __( 'Prompt', 'superdav-ai-agent' ) }
 						value={ form.prompt }
 						onChange={ ( v ) => updateForm( 'prompt', v ) }
 						rows={ 6 }
 						help={ __(
 							'The instruction sent to the AI when this automation runs.',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					/>
 					<SelectControl
-						label={ __( 'Schedule', 'sd-ai-agent' ) }
+						label={ __( 'Schedule', 'superdav-ai-agent' ) }
 						value={ form.schedule }
 						options={ SCHEDULE_OPTIONS }
 						onChange={ ( v ) => updateForm( 'schedule', v ) }
 						__nextHasNoMarginBottom
 					/>
 					<TextControl
-						label={ __( 'Max Iterations', 'sd-ai-agent' ) }
+						label={ __( 'Max Iterations', 'superdav-ai-agent' ) }
 						type="number"
 						min={ 1 }
 						max={ 50 }
@@ -458,7 +469,10 @@ export default function AutomationsManager() {
 
 					<BaseControl
 						id="sdaa-notification-channels"
-						label={ __( 'Notification Channels', 'sd-ai-agent' ) }
+						label={ __(
+							'Notification Channels',
+							'superdav-ai-agent'
+						) }
 						help={ __(
 							'Send Slack, Discord, WhatsApp, or Telegram messages after each run.',
 							'superdav-ai-agent'
@@ -481,7 +495,10 @@ export default function AutomationsManager() {
 									<SelectControl
 										label={
 											idx === 0
-												? __( 'Type', 'sd-ai-agent' )
+												? __(
+														'Type',
+														'superdav-ai-agent'
+												  )
 												: undefined
 										}
 										value={ channel.type }
@@ -531,7 +548,10 @@ export default function AutomationsManager() {
 										__nextHasNoMarginBottom
 									/>
 									<ToggleControl
-										label={ __( 'On', 'sd-ai-agent' ) }
+										label={ __(
+											'On',
+											'superdav-ai-agent'
+										) }
 										checked={ channel.enabled }
 										onChange={ ( v ) =>
 											updateChannel( idx, 'enabled', v )
@@ -556,7 +576,7 @@ export default function AutomationsManager() {
 										{ testingChannel === idx ? (
 											<Spinner />
 										) : (
-											__( 'Test', 'sd-ai-agent' )
+											__( 'Test', 'superdav-ai-agent' )
 										) }
 									</Button>
 									<Button
@@ -565,7 +585,7 @@ export default function AutomationsManager() {
 										isDestructive
 										label={ __(
 											'Remove channel',
-											'sd-ai-agent'
+											'superdav-ai-agent'
 										) }
 										onClick={ () => removeChannel( idx ) }
 									/>
@@ -578,7 +598,7 @@ export default function AutomationsManager() {
 							size="compact"
 							onClick={ addChannel }
 						>
-							{ __( 'Add Channel', 'sd-ai-agent' ) }
+							{ __( 'Add Channel', 'superdav-ai-agent' ) }
 						</Button>
 					</BaseControl>
 
@@ -592,15 +612,15 @@ export default function AutomationsManager() {
 							size="compact"
 						>
 							{ editId
-								? __( 'Update', 'sd-ai-agent' )
-								: __( 'Create', 'sd-ai-agent' ) }
+								? __( 'Update', 'superdav-ai-agent' )
+								: __( 'Create', 'superdav-ai-agent' ) }
 						</Button>
 						<Button
 							variant="tertiary"
 							onClick={ resetForm }
 							size="compact"
 						>
-							{ __( 'Cancel', 'sd-ai-agent' ) }
+							{ __( 'Cancel', 'superdav-ai-agent' ) }
 						</Button>
 					</div>
 				</div>
@@ -608,7 +628,7 @@ export default function AutomationsManager() {
 
 			{ ! loaded && (
 				<p className="description">
-					{ __( 'Loading…', 'sd-ai-agent' ) }
+					{ __( 'Loading…', 'superdav-ai-agent' ) }
 				</p>
 			) }
 
@@ -644,7 +664,7 @@ export default function AutomationsManager() {
 											className="sdaa-skill-badge"
 											title={ __(
 												'Notifications configured',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										>
 											{
@@ -654,7 +674,7 @@ export default function AutomationsManager() {
 											}{ ' ' }
 											{ __(
 												'notification',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 											{ auto.notification_channels.filter(
 												( c ) => c.enabled
@@ -672,14 +692,14 @@ export default function AutomationsManager() {
 							<div className="sdaa-skill-card-footer">
 								<span className="sdaa-skill-word-count">
 									{ auto.run_count }{ ' ' }
-									{ __( 'runs', 'sd-ai-agent' ) }
+									{ __( 'runs', 'superdav-ai-agent' ) }
 									{ auto.last_run_at && (
 										<>
 											{ ' ' }
 											&middot;{ ' ' }
 											{ __(
 												'Last:',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }{ ' ' }
 											{ auto.last_run_at }
 										</>
@@ -695,7 +715,7 @@ export default function AutomationsManager() {
 										{ running === auto.id ? (
 											<Spinner />
 										) : (
-											__( 'Run Now', 'sd-ai-agent' )
+											__( 'Run Now', 'superdav-ai-agent' )
 										) }
 									</Button>
 									<Button
@@ -706,19 +726,31 @@ export default function AutomationsManager() {
 										}
 									>
 										{ viewLogsId === auto.id
-											? __( 'Hide Logs', 'sd-ai-agent' )
-											: __( 'Logs', 'sd-ai-agent' ) }
+											? __(
+													'Hide Logs',
+													'superdav-ai-agent'
+											  )
+											: __(
+													'Logs',
+													'superdav-ai-agent'
+											  ) }
 									</Button>
 									<Button
 										icon={ pencil }
 										size="small"
-										label={ __( 'Edit', 'sd-ai-agent' ) }
+										label={ __(
+											'Edit',
+											'superdav-ai-agent'
+										) }
 										onClick={ () => handleEdit( auto ) }
 									/>
 									<Button
 										icon={ trash }
 										size="small"
-										label={ __( 'Delete', 'sd-ai-agent' ) }
+										label={ __(
+											'Delete',
+											'superdav-ai-agent'
+										) }
 										isDestructive
 										onClick={ () =>
 											handleDelete( auto.id )
@@ -733,7 +765,7 @@ export default function AutomationsManager() {
 										<p className="description">
 											{ __(
 												'No logs yet.',
-												'sd-ai-agent'
+												'superdav-ai-agent'
 											) }
 										</p>
 									) }
@@ -770,7 +802,7 @@ export default function AutomationsManager() {
 													<summary>
 														{ __(
 															'Response',
-															'sd-ai-agent'
+															'superdav-ai-agent'
 														) }
 													</summary>
 													<pre className="sdaa-log-reply">

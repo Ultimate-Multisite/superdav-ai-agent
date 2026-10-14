@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Infrastructure\AiClient\Superdav;
 
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\ElementorCompletionGate;
@@ -57,6 +58,122 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$stored = get_transient( 'sd_ai_agent_responses_' . get_current_blog_id() . '_123_' . $this->owner );
 		$this->assertSame( array( 'response_id', 'count', 'hash', 'scope', 'native' ), array_keys( $stored ) );
 		$this->assertStringNotContainsString( 'private fixture', wp_json_encode( $stored ) );
+	}
+
+	/** Completed-turn discovery keeps only called schemas; current-turn discovery is untouched. */
+	public function test_replay_prunes_unused_schemas_from_completed_turn_discovery(): void {
+		$schema = static fn( string $name ): array => array( 'type' => 'function', 'name' => $name, 'parameters' => array( 'type' => 'object' ) );
+		$search = static fn( array $names ): array => array(
+			'type'  => 'tool_search_output',
+			'tools' => array(
+				array(
+					'type'        => 'namespace',
+					'name'        => 'posts',
+					'description' => 'WordPress posts: ' . implode( ', ', $names ) . '.',
+					'tools'       => array_map( $schema, $names ),
+				),
+			),
+		);
+		$input = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			$search( array( 'used', 'unused_a', 'unused_b' ) ),
+			$search( array( 'unused_c' ) ),
+			array( 'type' => 'function_call', 'call_id' => 'call_1', 'name' => 'used', 'arguments' => '{}' ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			$search( array( 'current_a', 'current_b' ) ),
+		);
+		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
+		$this->assertSame( array( 'used' ), array_column( $pruned[1]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( 'WordPress posts: used.', $pruned[1]['tools'][0]['description'] );
+		$this->assertSame( array(), $pruned[2]['tools'] );
+		$this->assertSame( 'tool_search_output', $pruned[2]['type'] );
+		$this->assertSame( $input[3], $pruned[3] );
+		$this->assertSame( $input[5], $pruned[5] );
+	}
+
+	/** Completed reasoning becomes client-supplied history while the active turn is byte-identical. */
+	public function test_replay_prunes_completed_reasoning_and_provider_item_ids(): void {
+		$input = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			array( 'type' => 'reasoning', 'id' => 'rs_completed', 'encrypted_content' => 'opaque-completed' ),
+			array( 'type' => 'function_call', 'id' => 'fc_completed', 'call_id' => 'call_completed', 'name' => 'lookup', 'arguments' => '{}' ),
+			array( 'type' => 'message', 'id' => 'msg_completed', 'role' => 'assistant', 'content' => array() ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			array( 'type' => 'reasoning', 'id' => 'rs_current', 'encrypted_content' => 'opaque-current' ),
+			array( 'type' => 'function_call', 'id' => 'fc_current', 'call_id' => 'call_current', 'name' => 'lookup', 'arguments' => '{}' ),
+			array( 'type' => 'message', 'id' => 'msg_current', 'role' => 'assistant', 'content' => array() ),
+		);
+		$completed_call    = $input[2];
+		$completed_message = $input[3];
+		unset( $completed_call['id'], $completed_message['id'] );
+
+		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
+
+		$this->assertSame( array( $input[0], $completed_call, $completed_message ), array_slice( $pruned, 0, 3 ) );
+		$this->assertSame( array_slice( $input, 4 ), array_slice( $pruned, 3 ) );
+	}
+
+	/** A schema loaded by several completed searches is replayed once, at its earliest load. */
+	public function test_replay_keeps_one_copy_of_each_completed_schema(): void {
+		$search = static fn( array $names ): array => array(
+			'type'  => 'tool_search_output',
+			'tools' => array(
+				array(
+					'type'        => 'namespace',
+					'name'        => 'themes',
+					'description' => 'WordPress themes: ' . implode( ', ', $names ) . '.',
+					'tools'       => array_map( static fn( string $name ): array => array( 'type' => 'function', 'name' => $name ), $names ),
+				),
+			),
+		);
+		$call   = static fn( string $id, string $name ): array => array( 'type' => 'function_call', 'call_id' => $id, 'name' => $name, 'arguments' => '{}' );
+		$input  = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			$search( array( 'styles', 'json' ) ),
+			$call( 'call_1', 'styles' ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			$search( array( 'styles', 'json', 'parts' ) ),
+			$call( 'call_2', 'styles' ),
+			$call( 'call_3', 'parts' ),
+			array( 'role' => 'user', 'content' => 'third' ),
+			$search( array( 'styles' ) ),
+		);
+
+		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
+
+		$this->assertSame( array( 'styles' ), array_column( $pruned[1]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( array( 'parts' ), array_column( $pruned[4]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( 'WordPress themes: parts.', $pruned[4]['tools'][0]['description'] );
+		$this->assertSame( $input[8], $pruned[8], 'Active-turn discovery must stay byte-identical.' );
+	}
+
+	/** Completed-turn tool payloads are bounded by call ID; active-turn items are untouched. */
+	public function test_completed_tool_items_are_bounded_and_active_items_untouched(): void {
+		$large_output = wp_json_encode( array( 'styles' => str_repeat( 'x', 20000 ) ) );
+		$large_args   = wp_json_encode(
+			array(
+				'post_id' => 7,
+				'content' => str_repeat( 'y', 9000 ),
+			)
+		);
+		$input        = array(
+			array( 'role' => 'user', 'content' => 'first' ),
+			array( 'type' => 'function_call', 'call_id' => 'call_old', 'name' => 'update', 'arguments' => $large_args ),
+			array( 'type' => 'function_call_output', 'call_id' => 'call_old', 'output' => $large_output ),
+			array( 'role' => 'user', 'content' => 'second' ),
+			array( 'type' => 'function_call', 'call_id' => 'call_new', 'name' => 'update', 'arguments' => $large_args ),
+			array( 'type' => 'function_call_output', 'call_id' => 'call_new', 'output' => $large_output ),
+		);
+
+		$compacted = ResponsesContinuation::compact_completed_tool_items( $input, array( 'call_old' => true ) );
+
+		$this->assertLessThan( 1500, strlen( $compacted[2]['output'] ) );
+		$this->assertStringStartsWith( CompletedTurnCompactor::MARKER, $compacted[2]['output'] );
+		$args = json_decode( $compacted[1]['arguments'], true );
+		$this->assertSame( 7, $args['post_id'] );
+		$this->assertStringContainsString( '9000 characters omitted', $args['content'] );
+		$this->assertSame( array_slice( $input, 3 ), array_slice( $compacted, 3 ) );
+		$this->assertSame( $compacted, ResponsesContinuation::compact_completed_tool_items( $compacted, array( 'call_old' => true ) ), 'Compaction must be idempotent.' );
 	}
 
 	/** Ciphertext and public metadata cannot be tampered with or moved to another session. */
@@ -146,9 +263,21 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$history[] = new UserMessage( array( new MessagePart( 'Explain the finding.' ) ) );
 		$this->model( array( $this->text_response( 'resp_third' ) ), $requests )->generateTextResult( $history );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[2]->getData() );
-		$this->assertCount( 8, $requests[2]->getData()['input'] );
-		$this->assertSame( $requests[1]->getData()['input'], array_slice( $requests[2]->getData()['input'], 0, 6 ) );
-		$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]->getData()['input'], -1 ) );
+		$completed_call    = $requests[1]->getData()['input'][4];
+		$completed_message = $this->text_response( 'resp_second' )->getData()['output'][0];
+		unset( $completed_call['id'], $completed_message['id'] );
+		$this->assertSame(
+			array(
+				$requests[1]->getData()['input'][0],
+				$requests[1]->getData()['input'][1],
+				$requests[1]->getData()['input'][2],
+				$completed_call,
+				$requests[1]->getData()['input'][5],
+				$completed_message,
+				array( 'role' => 'user', 'content' => 'Explain the finding.' ),
+			),
+			$requests[2]->getData()['input']
+		);
 	}
 
 	/** Browser persistence must preserve JSON text and empty schema objects. */
@@ -267,15 +396,17 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertSame( 'tool_search_call', $requests[1]->getData()['input'][1]['type'] );
 	}
 
-	/** Cache eviction must never send a standalone native function result. */
-	public function test_missing_cursor_falls_back_without_trying_responses(): void {
+	/** Cache eviction replays local tool history through Responses without provider item IDs. */
+	public function test_missing_cursor_replays_native_history_without_provider_item_ids(): void {
 		$requests = array();
 		$history  = $this->pending_history( $requests );
 		( new ResponsesContinuation( 123, $this->owner ) )->clear();
-		$this->model( array( $this->chat_response() ), $requests )->generateTextResult( $history );
+		$this->model( array( $this->text_response( 'resp_replayed' ) ), $requests )->generateTextResult( $history );
 		$this->assertCount( 2, $requests );
-		$this->assertStringEndsWith( '/chat/completions', $requests[1]->getUri() );
+		$this->assertStringEndsWith( '/responses', $requests[1]->getUri() );
 		$this->assertArrayNotHasKey( 'previous_response_id', $requests[1]->getData() );
+		$this->assertSame( 'function_call', $requests[1]->getData()['input'][1]['type'] );
+		$this->assertArrayNotHasKey( 'id', $requests[1]->getData()['input'][1] );
 	}
 
 	/** Changing the account must not reference a response owned by the old account. */
@@ -353,8 +484,20 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$second = ( new AgentLoop( 'Explain the finding.', array( 'sd-ai-agent/list-posts' ), $history, $options ) )->run();
 			$this->assertIsArray( $second );
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[2] );
-			$this->assertSame( $requests[1]['input'], array_slice( $requests[2]['input'], 0, count( $requests[1]['input'] ) ) );
-			$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]['input'], -1 ) );
+			$completed_turn = array_values( array_filter( $requests[1]['input'], static fn( array $item ): bool => 'reasoning' !== ( $item['type'] ?? '' ) ) );
+			unset( $completed_turn[3]['id'] );
+			$completed_message = $this->text_response( 'resp_second' )->getData()['output'][0];
+			unset( $completed_message['id'] );
+			$completed_turn[] = $completed_message;
+			$this->assertSame( $completed_turn, array_slice( $requests[2]['input'], 0, count( $completed_turn ) ) );
+			$new_turn = array_slice( $requests[2]['input'], -1 );
+			$this->assertCount( 1, $new_turn );
+			$this->assertSame( 'user', $new_turn[0]['role'] );
+			$this->assertStringStartsWith( "Explain the finding.\n\n<context>\n\n## Current Context", $new_turn[0]['content'] );
+			$this->assertStringEndsWith( '</context>', $new_turn[0]['content'] );
+			$this->assertSame( 1, substr_count( $new_turn[0]['content'], '<context>' ) );
+			$this->assertSame( $requests[0]['instructions'], $requests[1]['instructions'] );
+			$this->assertSame( $requests[0]['instructions'], $requests[2]['instructions'] );
 			$this->assertCount( 3, $requests );
 		} finally {
 			remove_filter( 'pre_http_request', $transport, 1 );
@@ -406,7 +549,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 				array( 'type' => 'tool_search_call', 'execution' => 'server', 'call_id' => null, 'arguments' => array( 'paths' => array( 'general' ) ) ),
 				array( 'type' => 'tool_search_output', 'execution' => 'server', 'tools' => array() ),
 				array( 'type' => 'reasoning', 'id' => 'rs_fixture', 'summary' => array(), 'encrypted_content' => 'opaque-reasoning-fixture' ),
-				array( 'type' => 'function_call', 'call_id' => 'call_1', 'name' => 'lookup', 'namespace' => 'general', 'arguments' => '{}' ),
+				array( 'type' => 'function_call', 'id' => 'fc_fixture', 'call_id' => 'call_1', 'name' => 'lookup', 'namespace' => 'general', 'arguments' => '{}' ),
 			),
 		) ) );
 	}
@@ -415,7 +558,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 	private function text_response( string $id ): Response {
 		return new Response( 200, array(), wp_json_encode( array(
 			'id' => $id, 'status' => 'completed', 'output' => array(
-				array( 'type' => 'message', 'content' => array( array( 'type' => 'output_text', 'text' => 'Found it.' ) ) ),
+				array( 'type' => 'message', 'id' => 'msg_' . $id, 'role' => 'assistant', 'content' => array( array( 'type' => 'output_text', 'text' => 'Found it.' ) ) ),
 			),
 		) ) );
 	}

@@ -62,7 +62,7 @@ function relativeTime( dateStr ) {
 	const now = new Date();
 	const diff = Math.floor( ( now - date ) / 1000 );
 	if ( diff < 60 ) {
-		return __( 'just now', 'sd-ai-agent' );
+		return __( 'just now', 'superdav-ai-agent' );
 	}
 	if ( diff < 3600 ) {
 		return Math.floor( diff / 60 ) + 'm ago';
@@ -108,7 +108,7 @@ function SessionRow( {
 		leadIcon = (
 			<span
 				className="sdaa-cr-dot"
-				title={ __( 'Agent running', 'sd-ai-agent' ) }
+				title={ __( 'Agent running', 'superdav-ai-agent' ) }
 			/>
 		);
 	} else if ( emoji ) {
@@ -127,14 +127,14 @@ function SessionRow( {
 	let metaIsRunning = false;
 	if ( isRunning ) {
 		metaLabel = changesCount
-			? `${ __( 'Running', 'sd-ai-agent' ) } · ${ changesCount } ${ __(
-					'changes',
-					'sd-ai-agent'
-			  ) }`
-			: __( 'Running…', 'sd-ai-agent' );
+			? `${ __(
+					'Running',
+					'superdav-ai-agent'
+			  ) } · ${ changesCount } ${ __( 'changes', 'superdav-ai-agent' ) }`
+			: __( 'Running…', 'superdav-ai-agent' );
 		metaIsRunning = true;
 	} else if ( isAwaiting ) {
-		metaLabel = __( 'Approval needed', 'sd-ai-agent' );
+		metaLabel = __( 'Approval needed', 'superdav-ai-agent' );
 		metaIsRunning = true;
 	} else {
 		metaLabel = relativeTime( session.updated_at );
@@ -168,7 +168,7 @@ function SessionRow( {
 				<span className="sdaa-cr-session-row-icon">{ leadIcon }</span>
 				<span className="sdaa-cr-session-row-body">
 					<span className="sdaa-cr-session-row-title">
-						{ title || __( 'Untitled', 'sd-ai-agent' ) }
+						{ title || __( 'Untitled', 'superdav-ai-agent' ) }
 					</span>
 					<span
 						className={ `sdaa-cr-session-row-meta${
@@ -205,9 +205,9 @@ function SessionRow( {
 }
 
 const FILTERS = [
-	{ key: 'active', label: __( 'Active', 'sd-ai-agent' ) },
-	{ key: 'archived', label: __( 'Archived', 'sd-ai-agent' ) },
-	{ key: 'trash', label: __( 'Trash', 'sd-ai-agent' ) },
+	{ key: 'active', label: __( 'Active', 'superdav-ai-agent' ) },
+	{ key: 'archived', label: __( 'Archived', 'superdav-ai-agent' ) },
+	{ key: 'trash', label: __( 'Trash', 'superdav-ai-agent' ) },
 ];
 
 /**
@@ -366,17 +366,17 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 	return (
 		<aside
 			className="sdaa-cr-sidebar"
-			aria-label={ __( 'Conversations', 'sd-ai-agent' ) }
+			aria-label={ __( 'Conversations', 'superdav-ai-agent' ) }
 		>
 			<div className="sdaa-cr-sidebar-brand">
 				<div className="sdaa-cr-sidebar-brand-text">
 					<div className="sdaa-cr-sidebar-brand-title">
-						{ __( 'SD AI Agent', 'sd-ai-agent' ) }
+						{ __( 'SD AI Agent', 'superdav-ai-agent' ) }
 					</div>
 					<div className="sdaa-cr-sidebar-brand-subtitle">
 						{ __(
 							'Your AI teammate for WordPress',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 					</div>
 				</div>
@@ -384,7 +384,7 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 					type="button"
 					className="sdaa-cr-icon-btn sdaa-cr-sidebar-brand-collapse"
 					onClick={ onToggleCollapse }
-					aria-label={ __( 'Hide sidebar', 'sd-ai-agent' ) }
+					aria-label={ __( 'Hide sidebar', 'superdav-ai-agent' ) }
 				>
 					<Icon icon={ sidebarIcon } size={ 16 } />
 				</button>
@@ -398,14 +398,14 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 					} }
 				>
 					<Icon icon={ plus } size={ 16 } />
-					<span>{ __( 'New chat', 'sd-ai-agent' ) }</span>
+					<span>{ __( 'New chat', 'superdav-ai-agent' ) }</span>
 				</button>
 			</div>
 
 			<div
 				className="sdaa-cr-sidebar-tabs"
 				role="tablist"
-				aria-label={ __( 'Session filter', 'sd-ai-agent' ) }
+				aria-label={ __( 'Session filter', 'superdav-ai-agent' ) }
 			>
 				{ FILTERS.map( ( f ) => {
 					const active = sessionFilter === f.key;
@@ -436,11 +436,11 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 						className="sdaa-cr-search-input"
 						placeholder={ __(
 							'Search conversations',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						aria-label={ __(
 							'Search conversations',
-							'sd-ai-agent'
+							'superdav-ai-agent'
 						) }
 						value={ localQuery }
 						onChange={ handleSearchChange }
@@ -501,11 +501,14 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 				{ total === 0 && (
 					<div className="sdaa-cr-session-empty">
 						{ sessionFilter === 'trash' &&
-							__( 'Trash is empty', 'sd-ai-agent' ) }
+							__( 'Trash is empty', 'superdav-ai-agent' ) }
 						{ sessionFilter === 'archived' &&
-							__( 'No archived conversations', 'sd-ai-agent' ) }
+							__(
+								'No archived conversations',
+								'superdav-ai-agent'
+							) }
 						{ sessionFilter === 'active' &&
-							__( 'No conversations yet', 'sd-ai-agent' ) }
+							__( 'No conversations yet', 'superdav-ai-agent' ) }
 					</div>
 				) }
 				{ sessions.map( ( s ) => (
@@ -525,10 +528,10 @@ export default function Sidebar( { collapsed, onToggleCollapse } ) {
 			<div className="sdaa-cr-sidebar-foot">
 				<span>
 					{ total === 1
-						? __( '1 conversation', 'sd-ai-agent' )
+						? __( '1 conversation', 'superdav-ai-agent' )
 						: `${ total } ${ __(
 								'conversations',
-								'sd-ai-agent'
+								'superdav-ai-agent'
 						  ) }` }
 				</span>
 			</div>

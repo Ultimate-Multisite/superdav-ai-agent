@@ -69,55 +69,12 @@ class ToolDiscovery {
 		'sd-ai-agent/memory-list',
 		'sd-ai-agent/skill-load',
 		'sd-ai-agent/knowledge-search',
-		// Read-only site discovery used by onboarding, health, and page-edit
-		// flows. Keeping these direct avoids fallback WP-CLI calls and preserves
-		// iterations for the actual user request.
-		'sd-ai-agent/list-options',
-		'sd-ai-agent/get-plugins',
-		'sd-ai-agent/get-themes',
+		// Keep only the narrow discovery and content primitives needed before the
+		// agent can search the catalog. Everything else is fetched on demand.
 		'sd-ai-agent/site-health-summary',
-		'sd-ai-agent/db-query',
 		'sd-ai-agent/detect-fresh-install',
-		'sd-ai-agent/file-list',
-		'sd-ai-agent/file-read',
-		// Setup Assistant / general-purpose cold-start operations. Kept in tier 1
-		// so the agent updates existing pages and applies theme styles without
-		// falling back to WP-CLI or PHP snippets on fresh installs.
 		'sd-ai-agent/list-posts',
 		'sd-ai-agent/get-post',
-		'sd-ai-agent/get-option',
-		'sd-ai-agent/update-post',
-		'sd-ai-agent/delete-post',
-		'sd-ai-agent/update-option',
-		'sd-ai-agent/update-global-styles',
-		'sd-ai-agent/append-post-content',
-		'sd-ai-agent/batch-create-posts',
-		'sd-ai-agent/create-contact-form',
-		'sd-ai-agent/stock-image',
-		'sd-ai-agent/generate-image',
-		'sd-ai-agent/upload-media',
-		'sd-ai-agent/internet-search',
-		'sd-ai-agent/install-plugin',
-		'sd-ai-agent/activate-plugin',
-		'sd-ai-agent/set-site-logo',
-		'sd-ai-agent/list-menus',
-		'sd-ai-agent/get-menu',
-		'sd-ai-agent/create-menu',
-		'sd-ai-agent/add-menu-item',
-		'sd-ai-agent/remove-menu-item',
-		'sd-ai-agent/assign-menu-location',
-		'sd-ai-agent/get-global-styles',
-		'sd-ai-agent/get-theme-json',
-		// Block-theme editing safety cluster. These stay together so homepage/template
-		// visual edits can inspect the current structure, mutate only the target
-		// block, and validate the result instead of replacing a whole template body
-		// through generic REST/WP-CLI fallbacks.
-		'sd-ai-agent/list-block-templates',
-		'sd-ai-agent/list-template-parts',
-		'sd-ai-agent/update-template-part',
-		'sd-ai-agent/get-page-blocks',
-		'sd-ai-agent/update-blocks',
-		'sd-ai-agent/validate-block-content',
 		// `create-post` is the single most common WordPress operation the
 		// agent is ever asked for. Keeping it in cold-start so smaller
 		// local models don't fall back to `run-php` + positional-arg
@@ -126,10 +83,10 @@ class ToolDiscovery {
 	);
 
 	/**
-	 * Hard cap on Tier 1 size (curated + tracked) excluding the two
-	 * meta-tools, which are always added on top.
+	 * Hard cap on Tier 1 size (curated + tracked), including the two
+	 * meta-tools that are always present outside anonymous mode.
 	 */
-	public const MAX_TIER_1 = 50;
+	public const MAX_TIER_1 = 16;
 
 	/**
 	 * The two meta-tools — always present in Tier 1.
@@ -476,8 +433,10 @@ class ToolDiscovery {
 
 	/**
 	 * Build the Tier-2 manifest section that is injected into the system
-	 * prompt every turn. Lists every visible ability that is NOT in Tier 1
-	 * by id + one-line description, grouped by category.
+	 * prompt every turn. The compact index names each visible Tier-2 category,
+	 * its ability count, and a few representative ids. Full descriptions,
+	 * required fields, and usage instructions are returned on demand by
+	 * ability-search instead of being repeated in every request.
 	 *
 	 * @param list<string> $direct_ability_names Direct abilities exposed this turn.
 	 * @return string An empty string when there are no Tier-2 abilities.
@@ -520,38 +479,7 @@ class ToolDiscovery {
 				$cat = 'uncategorized';
 			}
 
-			$desc = (string) $ability->get_description();
-			if ( strlen( $desc ) > 140 ) {
-				$desc = substr( $desc, 0, 137 ) . '...';
-			}
-
-			// Pull out the `required` field from the input schema so the
-			// model sees the minimum arg shape inline and stops guessing
-			// empty arguments. Cheap (~5 tokens per ability with required
-			// fields) but a major win for weaker models.
-			// @phpstan-ignore-next-line — get_input_schema() exists at runtime in WP 7.0.
-			$schema_required = array();
-			$schema          = $ability->get_input_schema();
-			if ( is_array( $schema ) && isset( $schema['required'] ) && is_array( $schema['required'] ) ) {
-				$schema_required = array_values(
-					array_filter(
-						$schema['required'],
-						static function ( $r ) {
-							return is_string( $r ) && '' !== $r;
-						}
-					)
-				);
-			}
-
-			// Extract per-ability usage_instructions from meta.ai.usage_instructions.
-			$usage_instructions = self::get_ability_usage_instructions( $ability );
-
-			$by_cat[ $cat ][] = array(
-				'name'               => $name,
-				'desc'               => $desc,
-				'required'           => $schema_required,
-				'usage_instructions' => $usage_instructions,
-			);
+			$by_cat[ $cat ][] = $name;
 		}
 
 		if ( empty( $by_cat ) ) {
@@ -560,46 +488,26 @@ class ToolDiscovery {
 
 		ksort( $by_cat );
 
-		$instructions  = self::usage_instructions();
 		$category_meta = self::category_metadata();
 
 		$lines   = array();
 		$lines[] = '## Available Abilities';
-		$lines[] = 'The abilities listed below are NOT loaded as direct tools — call `sd-ai-agent/ability-search` with a keyword query (or `select:id1,id2`) to retrieve their full schemas, then call `sd-ai-agent/ability-call` to invoke them.';
+		$lines[] = 'These categories are not loaded as direct tools. Call `sd-ai-agent/ability-search` with task keywords to retrieve matching schemas, then call `sd-ai-agent/ability-call` to invoke a server ability.';
 		$lines[] = '';
 
 		foreach ( $by_cat as $cat => $entries ) {
 			$heading = isset( $category_meta[ $cat ]['label'] )
 				? $category_meta[ $cat ]['label'] . " (`{$cat}`)"
 				: "`{$cat}`";
-			$lines[] = "### {$heading}";
-
-			if ( ! empty( $instructions[ $cat ] ) ) {
-				$lines[] = $instructions[ $cat ];
-			} elseif ( ! empty( $category_meta[ $cat ]['description'] ) ) {
-				$lines[] = $category_meta[ $cat ]['description'];
-			}
-
-			usort(
-				$entries,
-				static function ( $a, $b ) {
-					return strcmp( $a['name'], $b['name'] );
-				}
+			sort( $entries, SORT_STRING );
+			$examples = array_slice( $entries, 0, 3 );
+			$lines[]  = sprintf(
+				'- %s: %d %s (examples: %s).',
+				$heading,
+				count( $entries ),
+				1 === count( $entries ) ? 'ability' : 'abilities',
+				implode( ', ', array_map( static fn( string $name ): string => "`{$name}`", $examples ) )
 			);
-
-			foreach ( $entries as $e ) {
-				$line = "- `{$e['name']}` — {$e['desc']}";
-				if ( ! empty( $e['required'] ) ) {
-					$line .= ' Required: ' . implode( ', ', $e['required'] );
-				}
-				$lines[] = $line;
-
-				// Append per-ability usage_instructions on its own indented line.
-				if ( ! empty( $e['usage_instructions'] ) ) {
-					$lines[] = '  ' . $e['usage_instructions'];
-				}
-			}
-			$lines[] = '';
 		}
 
 		// Append any cached schemas the agent fetched on a previous turn so

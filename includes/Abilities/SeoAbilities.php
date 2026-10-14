@@ -210,7 +210,8 @@ class SeoAbilities {
 		$prev = libxml_use_internal_errors( true );
 		$doc  = new \DOMDocument();
 		try {
-			$doc->loadHTML( mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' ), LIBXML_NOERROR );
+			// Prefix the document so libxml parses UTF-8 without entity conversion.
+			$doc->loadHTML( '<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR );
 		} finally {
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev );

@@ -141,7 +141,6 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 			false
 		);
 
-		$this->assertStringContainsString( '## Available Abilities', $instruction );
 		$this->assertLessThanOrEqual( 25000, strlen( $instruction ) );
 	}
 

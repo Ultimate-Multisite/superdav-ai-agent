@@ -333,6 +333,16 @@ PROMPT;
 	private bool $native_full_catalog = true;
 
 	/**
+	 * User message that opened this run; earlier history belongs to completed turns.
+	 *
+	 * Null for resumed runs, where the turn boundary is not known and completed-turn
+	 * compaction is skipped.
+	 *
+	 * @var Message|null
+	 */
+	private ?Message $current_turn_message = null;
+
+	/**
 	 * Optional callback invoked after each tool call/response pair.
 	 *
 	 * Signature: function( list<array<string, mixed>> $tool_call_log, list<array<string, mixed>> $message_log ): void
@@ -686,8 +696,10 @@ PROMPT;
 				register_shutdown_function( array( $this, 'handle_active_job_shutdown' ) );
 			}
 
-			// Append the new user message to history.
-			$this->history[] = new UserMessage( array( new MessagePart( $this->user_message ) ) );
+			// Append the new user message to history. Messages before it belong to
+			// completed turns, whose tool payloads are compacted in provider requests.
+			$this->current_turn_message = new UserMessage( array( new MessagePart( $this->user_message ) ) );
+			$this->history[]            = $this->current_turn_message;
 
 			$result = $this->run_loop( $this->max_iterations );
 
@@ -3242,9 +3254,36 @@ PROMPT;
 			$builder->using_abilities( ...$abilities );
 		}
 		if ( ! empty( $this->history ) ) {
-			$builder->with_history( ...$this->history );
+			$builder->with_history( ...$this->provider_history() );
 		}
 		return $builder;
+	}
+
+	/**
+	 * Return the provider view of history with completed-turn tool payloads bounded.
+	 *
+	 * Native Responses replay matches the exact SDK history prefix, so the native
+	 * model compacts its own replay using the same boundary instead.
+	 *
+	 * @return Message[]
+	 */
+	private function provider_history(): array {
+		if ( $this->should_use_native_tool_search() ) {
+			return $this->history;
+		}
+
+		return CompletedTurnCompactor::compact_history( $this->history, $this->completed_turn_message_count() );
+	}
+
+	/** Number of leading history messages that belong to completed user turns. */
+	private function completed_turn_message_count(): int {
+		if ( null === $this->current_turn_message ) {
+			return 0;
+		}
+
+		$position = array_search( $this->current_turn_message, array_values( $this->history ), true );
+
+		return false === $position ? 0 : (int) $position;
 	}
 
 	/** Return the bounded provider invocation phase stored in terminal traces. */
@@ -3778,6 +3817,7 @@ PROMPT;
 				$model = $registry->getProviderModel( $provider_id, $model_id );
 				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
 					$model->set_continuation_session_id( $this->session_id );
+					$model->set_completed_turn_message_count( $this->completed_turn_message_count() );
 				}
 				$builder->using_model( $model );
 			} else {

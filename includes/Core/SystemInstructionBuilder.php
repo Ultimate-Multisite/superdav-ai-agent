@@ -270,7 +270,7 @@ class SystemInstructionBuilder {
 		// tool list includes content-generation or theme-modification abilities.
 		// Prevents gateway timeouts on large file writes and keeps the
 		// validate → screenshot → fix feedback loop intact.
-		if ( self::has_content_generation_ability( $ability_names ) && ( ! $native_tool_search || preg_match( '/\b(build|create|write|design|theme|page|post|content|site|website|plugin)\b/i', $this->user_message ) ) ) {
+		if ( self::has_content_generation_ability( $ability_names ) && ( ! $native_tool_search || preg_match( '/\b(build|create|write|edit|update|modify|change|fix|design|theme|style|css|template|file|page|post|content|site|website|plugin)\b/i', $this->user_message ) ) ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . self::build_working_cadence_section();
 

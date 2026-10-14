@@ -64,7 +64,14 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$schema = static fn( string $name ): array => array( 'type' => 'function', 'name' => $name, 'parameters' => array( 'type' => 'object' ) );
 		$search = static fn( array $names ): array => array(
 			'type'  => 'tool_search_output',
-			'tools' => array( array( 'type' => 'namespace', 'name' => 'posts', 'tools' => array_map( $schema, $names ) ) ),
+			'tools' => array(
+				array(
+					'type'        => 'namespace',
+					'name'        => 'posts',
+					'description' => 'WordPress posts: ' . implode( ', ', $names ) . '.',
+					'tools'       => array_map( $schema, $names ),
+				),
+			),
 		);
 		$input = array(
 			array( 'role' => 'user', 'content' => 'first' ),
@@ -76,6 +83,7 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		);
 		$pruned = ResponsesContinuation::prune_completed_discovery( $input );
 		$this->assertSame( array( 'used' ), array_column( $pruned[1]['tools'][0]['tools'], 'name' ) );
+		$this->assertSame( 'WordPress posts: used.', $pruned[1]['tools'][0]['description'] );
 		$this->assertSame( array(), $pruned[2]['tools'] );
 		$this->assertSame( 'tool_search_output', $pruned[2]['type'] );
 		$this->assertSame( $input[3], $pruned[3] );

@@ -89,8 +89,12 @@ final class ResponsesContinuation {
 					continue;
 				}
 				if ( 'namespace' === ( $tool['type'] ?? '' ) && is_array( $tool['tools'] ?? null ) ) {
+					$before        = count( $tool['tools'] );
 					$tool['tools'] = array_values( array_filter( $tool['tools'], static fn( mixed $declared ): bool => ! is_array( $declared ) || ! is_string( $declared['name'] ?? null ) || isset( $called[ $declared['name'] ] ) ) );
 					if ( ! empty( $tool['tools'] ) ) {
+						if ( count( $tool['tools'] ) < $before ) {
+							$tool = self::describe_retained_namespace( $tool );
+						}
 						$tools[] = $tool;
 					}
 				} elseif ( 'function' !== ( $tool['type'] ?? '' ) || ! is_string( $tool['name'] ?? null ) || isset( $called[ $tool['name'] ] ) ) {
@@ -101,6 +105,29 @@ final class ResponsesContinuation {
 		}
 		unset( $item );
 		return $input;
+	}
+
+	/**
+	 * Rewrite a generated "Label: name, name." description to list only retained functions.
+	 *
+	 * Descriptions without the generated shape are left unchanged.
+	 *
+	 * @param array<string, mixed> $tool Pruned namespace row.
+	 * @return array<string, mixed>
+	 */
+	private static function describe_retained_namespace( array $tool ): array {
+		$description = $tool['description'] ?? null;
+		if ( ! is_string( $description ) || ! is_array( $tool['tools'] ) || ! str_contains( $description, ': ' ) ) {
+			return $tool;
+		}
+		$names = array();
+		foreach ( $tool['tools'] as $declared ) {
+			if ( is_array( $declared ) && is_string( $declared['name'] ?? null ) ) {
+				$names[] = (string) preg_replace( '/^wpab__[^_]+__/', '', $declared['name'] );
+			}
+		}
+		$tool['description'] = strstr( $description, ': ', true ) . ': ' . implode( ', ', $names ) . '.';
+		return $tool;
 	}
 
 	/**

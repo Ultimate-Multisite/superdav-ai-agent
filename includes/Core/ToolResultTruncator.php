@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ToolResultTruncator {
 
 	/**
-	 * Maximum JSON-encoded size (in bytes) before truncation kicks in.
-	 * ~4KB is roughly 1000 tokens — a reasonable budget per tool result.
+	 * Maximum JSON-encoded size (in bytes) retained in conversation history.
+	 * ~4KB is roughly 1000 tokens — a reasonable hard budget per tool result.
 	 */
 	const MAX_RESULT_BYTES = 4096;
 
@@ -53,7 +53,7 @@ class ToolResultTruncator {
 		if ( is_string( $result ) && self::is_woocommerce_order_tool( $tool_name ) ) {
 			$decoded = json_decode( $result, true );
 			if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
-				$redacted = self::apply_tool_strategy( $decoded, $tool_name );
+				$redacted = self::enforce_byte_cap( self::apply_tool_strategy( $decoded, $tool_name ) );
 				$encoded  = wp_json_encode( $redacted );
 
 				return is_string( $encoded ) ? $encoded : $result;
@@ -65,7 +65,7 @@ class ToolResultTruncator {
 		}
 
 		if ( self::is_woocommerce_order_tool( $tool_name ) ) {
-			return self::apply_tool_strategy( $result, $tool_name );
+			return self::enforce_byte_cap( self::apply_tool_strategy( $result, $tool_name ) );
 		}
 
 		// Check if the result is small enough to pass through.
@@ -81,7 +81,129 @@ class ToolResultTruncator {
 		// Generic truncation: truncate arrays and long strings.
 		$result = self::truncate_recursive( $result, 0 );
 
-		return $result;
+		return is_array( $result ) ? self::enforce_byte_cap( $result ) : $result;
+	}
+
+	/**
+	 * Enforce the hard history budget after tool-specific and generic truncation.
+	 *
+	 * Associative maps can remain oversized when they contain many short values.
+	 * Collapse their deepest nested branches first, then retain only root entries
+	 * that fit if the result remains over budget.
+	 *
+	 * @param array<string|int, mixed> $result Truncated tool result.
+	 * @return array<string|int, mixed> Result that encodes within MAX_RESULT_BYTES.
+	 */
+	private static function enforce_byte_cap( array $result ): array {
+		for ( $attempt = 0; $attempt < 1000; $attempt++ ) {
+			$encoded = wp_json_encode( $result );
+			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+				return $result;
+			}
+
+			$largest_path  = [];
+			$largest_bytes = 0;
+			self::find_smallest_oversized_array( $result, [], $largest_path, $largest_bytes );
+
+			if ( [] === $largest_path ) {
+				break;
+			}
+
+			$result = self::replace_nested_array_with_omission( $result, $largest_path, $largest_bytes );
+		}
+
+		return self::summarize_to_byte_cap( $result );
+	}
+
+	/**
+	 * Find the smallest oversized nested array that can be collapsed to meet the byte cap.
+	 *
+	 * @param array<string|int, mixed> $value         Candidate result branch.
+	 * @param array<int, string|int>   $path          Current branch path.
+	 * @param array<int, string|int>   $largest_path  Smallest oversized nested-array path.
+	 * @param int                      $largest_bytes Smallest oversized nested-array size.
+	 */
+	private static function find_smallest_oversized_array( array $value, array $path, array &$largest_path, int &$largest_bytes ): void {
+		foreach ( $value as $key => $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$item_path = array_merge( $path, [ $key ] );
+			$encoded   = wp_json_encode( $item );
+			$bytes     = is_string( $encoded ) ? strlen( $encoded ) : 0;
+
+			if ( $bytes > self::MAX_RESULT_BYTES && ( 0 === $largest_bytes || $bytes < $largest_bytes ) ) {
+				$largest_path  = $item_path;
+				$largest_bytes = $bytes;
+			}
+
+			self::find_smallest_oversized_array( $item, $item_path, $largest_path, $largest_bytes );
+		}
+	}
+
+	/**
+	 * Replace a nested result branch with an actionable omission note.
+	 *
+	 * @param array<string|int, mixed> $value Candidate result branch.
+	 * @param array<int, string|int>   $path  Nested-array path to replace.
+	 * @param int                      $bytes Original encoded branch size.
+	 * @return array<string|int, mixed> Updated result branch.
+	 */
+	private static function replace_nested_array_with_omission( array $value, array $path, int $bytes ): array {
+		$key = array_shift( $path );
+		if ( null === $key || ! array_key_exists( $key, $value ) ) {
+			return $value;
+		}
+
+		if ( [] === $path ) {
+			$value[ $key ] = self::omission_note( $bytes );
+
+			return $value;
+		}
+
+		if ( is_array( $value[ $key ] ) ) {
+			$value[ $key ] = self::replace_nested_array_with_omission( $value[ $key ], $path, $bytes );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Keep only root entries that fit alongside the truncation note.
+	 *
+	 * @param array<string|int, mixed> $result Oversized result after branch collapsing.
+	 * @return array<string|int, mixed> Byte-capped result summary.
+	 */
+	private static function summarize_to_byte_cap( array $result ): array {
+		$encoded = wp_json_encode( $result );
+		$bytes   = is_string( $encoded ) ? strlen( $encoded ) : 0;
+		$summary = [
+			'_truncated' => true,
+			'_omitted'   => self::omission_note( $bytes ),
+		];
+
+		foreach ( $result as $key => $value ) {
+			$candidate         = $summary;
+			$candidate[ $key ] = $value;
+			$candidate_encoded = wp_json_encode( $candidate );
+
+			if ( is_string( $candidate_encoded ) && strlen( $candidate_encoded ) <= self::MAX_RESULT_BYTES ) {
+				$summary = $candidate;
+			}
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Build a concise instruction for retrieving a collapsed result branch.
+	 *
+	 * @param int $bytes Omitted JSON-encoded bytes.
+	 * @return string Omission note.
+	 */
+	private static function omission_note( int $bytes ): string {
+		return sprintf( '[%d-byte object omitted; call with a narrower section]', $bytes );
 	}
 
 	/**

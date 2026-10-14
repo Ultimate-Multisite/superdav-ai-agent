@@ -194,9 +194,13 @@ class KnowledgeAbilities {
 	 */
 	public static function search_for_context( string $query ): array {
 		$options = array( 'limit' => 10 );
-		return self::is_public_collection_mode()
-			? self::search_public_collections( $query, $options )
-			: Knowledge::search( $query, $options );
+		if ( self::is_public_collection_mode() ) {
+			return self::search_public_collections( $query, $options );
+		}
+		// Automatic context must not bypass the normal knowledge tool's dual gate.
+		return ToolCapabilities::current_user_can( 'sd-ai-agent/knowledge-search' )
+			? Knowledge::search( $query, $options )
+			: array();
 	}
 
 	/**

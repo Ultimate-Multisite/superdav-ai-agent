@@ -293,12 +293,14 @@ class SystemInstructionBuilder {
 		if ( '' !== $current_context ) {
 			$sections[] = $current_context;
 		}
-		if ( ! \SdAiAgent\Abilities\KnowledgeAbilities::is_public_collection_mode() && ModelHealthTracker::is_weak( $this->model_id ) ) {
+		$can_load_skills = ! \SdAiAgent\Abilities\KnowledgeAbilities::is_public_collection_mode()
+			&& \SdAiAgent\Abilities\ToolCapabilities::current_user_can( 'sd-ai-agent/skill-load' );
+		if ( $can_load_skills && ModelHealthTracker::is_weak( $this->model_id ) ) {
 			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
 			if ( ! empty( $auto_skill ) ) {
 				$sections[] = $auto_skill;
 			}
-		} elseif ( ! \SdAiAgent\Abilities\KnowledgeAbilities::is_public_collection_mode() ) {
+		} elseif ( $can_load_skills ) {
 			$hint = SkillAutoInjector::get_index_description( $this->user_message );
 			if ( ! empty( $hint ) ) {
 				$sections[] = $hint;

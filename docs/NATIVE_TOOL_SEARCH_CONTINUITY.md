@@ -30,6 +30,9 @@ search does not apply this automatic-injection threshold. Public/customer turn
 context uses the existing collection allowlist; empty or unresolved collections
 deny retrieval instead of widening it. Private skill guides/hints are not
 automatically copied into public turn history.
+Outside public mode, automatic knowledge and skill context must pass the same
+dual capability gates as `knowledge-search` and `skill-load`; authenticated
+low-privilege users do not gain private context merely by opening chat.
 
 Both managed transports support a SHA-256 site/session `prompt_cache_key` (64
 characters). It is **disabled by default** because the deployed strict gateway

@@ -13,6 +13,28 @@ PR #109. Production discovery was verified for `superdav-chat-fast`,
 Responses automatically. `sd_ai_agent_openai_tool_search_enabled` remains an
 opt-out switch. Other providers are unchanged.
 
+## Session prompt caching
+
+The first generated instruction is saved in the session row and reused across
+PHP requests, retries, confirmation and browser-tool continuations. Static
+guidance is selected at initialization, not by each user message. Changed prompt
+settings take effect in a new session; explicit caller instruction overrides
+remain authoritative. This internal instruction is omitted from ordinary session
+responses/exports and is removed with the session row.
+
+Knowledge retrieval, skill routing and live page/user/site context are appended
+once to the current user input inside `<context>`, then retained in ordinary
+history. Greetings do not retrieve knowledge; automatic context also excludes
+matches below the minimum relevance score (default `2.0`). Explicit knowledge
+search remains unchanged.
+
+Both managed transports support a SHA-256 site/session `prompt_cache_key` (64
+characters). It is **disabled by default** because the deployed strict gateway
+schema rejects it. Only after superdav-ai-service issue #115 is deployed, enable
+`sd_ai_agent_superdav_prompt_cache_key_enabled` for that site's gateway. Before
+claiming cache savings, verify a repeated live prefix reports `cached_tokens > 0`;
+stable instructions alone do not prove upstream cache hits or credential affinity.
+
 ## Complete native replay
 
 `AgentLoop::configure_model()` binds the authenticated session to the SD model.

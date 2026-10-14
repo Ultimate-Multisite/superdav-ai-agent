@@ -121,7 +121,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$acknowledged = array_merge( $full_input, $this->prepare_input_param( array( $result->toMessage() ) ) );
 				$output       = $this->native_output_items( $data['output'] ?? null );
 				if ( null !== $output ) {
-					$native_input = array_merge( $continuation['input'] ?? $full_input, $output );
+					$native_input = ResponsesContinuation::prune_completed_discovery( array_merge( $continuation['input'] ?? $full_input, $output ) );
 					$cursor->acknowledge( $result->getId(), $acknowledged, $scope, $native_input );
 				} else {
 					$cursor->clear();

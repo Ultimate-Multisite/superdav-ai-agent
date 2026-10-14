@@ -129,7 +129,8 @@ final class RemoteMcpConnectionRepository {
 			'endpoint'         => $endpoint,
 			'transport'        => 'streamable-http',
 			'auth_type'        => $auth,
-			'enabled'          => $changes_credential ? false : ( array_key_exists( 'enabled', $input ) ? (bool) $input['enabled'] : (bool) ( $existing['enabled'] ?? false ) ),
+			// Enabling requires the freshness-checked enable action; saves may only preserve or disable.
+			'enabled'          => $changes_credential || ( array_key_exists( 'enabled', $input ) && ! (bool) $input['enabled'] ) ? false : (bool) ( $existing['enabled'] ?? false ),
 			'tools'            => $changes_credential ? array() : ( is_array( $existing['tools'] ?? null ) ? $existing['tools'] : array() ),
 			'protocol_version' => (string) ( $existing['protocol_version'] ?? '' ),
 			'capabilities'     => is_array( $existing['capabilities'] ?? null ) ? $existing['capabilities'] : array(),

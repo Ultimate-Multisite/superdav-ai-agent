@@ -226,6 +226,7 @@ class RemoteMcpClientTest extends WP_UnitTestCase {
 			),
 			'2025-06-18'
 		);
+		$this->assertTrue( $this->connections->set_enabled( $connection['id'], true ) );
 
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Standard WordPress hook stack global.
 		global $wp_current_filter;

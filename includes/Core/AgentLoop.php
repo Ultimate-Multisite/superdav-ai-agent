@@ -2660,8 +2660,8 @@ PROMPT;
 			'reduced_retry_attempted'
 		);
 
-		// Only a measured, complete request envelope can prove that the one
-		// reduced retry is materially smaller. This includes local transport
+		// Only a measured, complete request envelope can safely bound the one
+		// reduced retry. This includes local transport
 		// preflight rejections: history can fit its standalone budget while the
 		// complete system-instruction and tool envelope still exceeds the limit.
 		// Do not retry 413s from SDK layers that did not measure the full request.

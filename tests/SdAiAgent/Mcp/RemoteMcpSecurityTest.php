@@ -162,6 +162,21 @@ class RemoteMcpSecurityTest extends WP_UnitTestCase {
 		$this->assertSame( 'fixture-static-credential', $this->repository->get_secret( $connection['id'] )['value'] );
 	}
 
+	public function test_save_cannot_enable_connections(): void {
+		$new = $this->repository->save(
+			array( 'name' => 'Unverified', 'endpoint' => 'https://fixture.mcp.test/unverified', 'auth_type' => 'none', 'enabled' => true )
+		);
+		$this->assertIsArray( $new );
+		$this->assertFalse( $new['enabled'] );
+
+		$this->assertTrue( $this->repository->set_enabled( $this->connection['id'], false ) );
+		$saved = $this->repository->save(
+			array( 'id' => $this->connection['id'], 'name' => 'Fixture', 'endpoint' => 'https://fixture.mcp.test/mcp', 'auth_type' => 'none', 'enabled' => true )
+		);
+		$this->assertIsArray( $saved );
+		$this->assertFalse( $saved['enabled'] );
+	}
+
 	public function test_schema_patterns_and_object_type_unions_are_supported(): void {
 		$this->assertTrue(
 			RemoteMcpPolicy::supported_schema(

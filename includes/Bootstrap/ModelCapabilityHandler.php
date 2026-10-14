@@ -246,13 +246,17 @@ final class ModelCapabilityHandler {
 			// Provider field names vary slightly between hosts; check the
 			// canonical OpenAI-compatible names first, then the Ollama
 			// fallbacks the connector also accepts upstream.
-			$max_output = self::pick_int(
+			$max_output                  = self::pick_int(
 				$entry,
 				array( 'max_output_length', 'max_output_tokens', 'max_completion_tokens' )
 			);
-			$context    = self::pick_int(
+			$context                     = self::pick_int(
 				$entry,
 				array( 'context_length', 'context_window', 'context_size' )
+			);
+			$input_token_bytes_per_token = self::pick_int(
+				$entry,
+				array( 'input_token_bytes_per_token' )
 			);
 
 			if ( $max_output <= 0 ) {
@@ -261,7 +265,7 @@ final class ModelCapabilityHandler {
 				continue;
 			}
 
-			if ( ModelCapabilityRegistry::set( $model_id, $max_output, $context, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, self::pick_name( $entry, $model_id ), self::pick_capability_flags( $entry ) ) ) {
+			if ( ModelCapabilityRegistry::set( $model_id, $max_output, $context, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, self::pick_name( $entry, $model_id ), self::pick_capability_flags( $entry ), $input_token_bytes_per_token ) ) {
 				++$written;
 			}
 		}

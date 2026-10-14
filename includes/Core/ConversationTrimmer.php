@@ -34,6 +34,12 @@ class ConversationTrimmer {
 	/** Default maximum estimated input tokens retained in conversation history. */
 	const DEFAULT_MAX_REQUEST_TOKENS = 100000;
 
+	/** Conservative managed-gateway fallback when model metadata is unavailable. */
+	private const MANAGED_INPUT_TOKEN_BYTES_PER_TOKEN_FALLBACK = 3;
+
+	/** Reserve retained below a managed model's context window before compaction. */
+	private const MANAGED_CONTEXT_TOKEN_RESERVE = 16000;
+
 	/** Maximum history size copied into a deterministically compacted session. */
 	const COMPACT_MAX_BYTES = 65536;
 
@@ -1647,19 +1653,33 @@ class ConversationTrimmer {
 		 */
 		$filtered = (int) apply_filters( 'sd_ai_agent_provider_request_max_bytes', $configured, $provider_id, $model_id );
 
-		// The managed gateway conservatively counts each UTF-8 message byte as
-		// one input token. Its context check also reserves the requested output
-		// tokens, so the generic 512 KiB HTTP budget can admit requests that the
-		// gateway will always reject with max_tokens_exceeded (HTTP 400).
+		// The managed gateway publishes its input-token byte ratio with model
+		// metadata. Mirror its context admission check while retaining the generic
+		// HTTP cap for the complete request envelope.
 		// Native deferred catalogs occupy HTTP bytes without all entering model
 		// context. Keep the configured body cap; the service checks native context.
-		if ( ! $native_responses && 'sd-ai-agent-cloud' === $provider_id && in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true ) ) {
+		if ( ! $native_responses && self::is_managed_superdav_chat_model( $provider_id, $model_id ) ) {
 			$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
 			$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
-			$filtered       = min( $filtered, $context_window - $output_limit );
+			$input_budget   = max( 1024, $context_window - $output_limit );
+			$filtered       = min( $filtered, $input_budget * self::get_managed_input_token_bytes_per_token( $model_id ) );
 		}
 
 		return max( 1024, $filtered );
+	}
+
+	/** Resolve the managed gateway input-token byte ratio for a model. */
+	private static function get_managed_input_token_bytes_per_token( string $model_id ): int {
+		$entry = ModelCapabilityRegistry::get( $model_id );
+		$ratio = (int) ( $entry['input_token_bytes_per_token'] ?? 0 );
+
+		return $ratio > 0 ? $ratio : self::MANAGED_INPUT_TOKEN_BYTES_PER_TOKEN_FALLBACK;
+	}
+
+	/** Whether the provider/model pair is a managed Superdav chat model. */
+	private static function is_managed_superdav_chat_model( string $provider_id, string $model_id ): bool {
+		return 'sd-ai-agent-cloud' === $provider_id
+			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true );
 	}
 
 	/**
@@ -1754,6 +1774,23 @@ class ConversationTrimmer {
 		$filtered = (int) apply_filters( 'sd_ai_agent_provider_request_max_tokens', $configured, $provider_id, $model_id );
 
 		return max( 256, $filtered );
+	}
+
+	/** Resolve the context threshold used to begin managed-provider compaction. */
+	public static function get_request_compaction_token_budget( string $provider_id = '', string $model_id = '' ): int {
+		if ( ! self::is_managed_superdav_chat_model( $provider_id, $model_id ) ) {
+			return self::get_request_token_budget( $provider_id, $model_id );
+		}
+
+		$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
+		$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
+
+		return max( 256, $context_window - max( $output_limit, self::MANAGED_CONTEXT_TOKEN_RESERVE ) );
+	}
+
+	/** Estimate a following request from a provider-measured context and new bytes. */
+	public static function estimate_next_request_tokens( int $last_input_tokens, int $new_bytes ): int {
+		return max( 0, $last_input_tokens ) + (int) ceil( max( 0, $new_bytes ) / 4 );
 	}
 
 	/**

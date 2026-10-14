@@ -349,13 +349,13 @@ class ProviderTraceLogger {
 
 		$fallback_attempted = $has_context && self::$runtimeContext['retry_baseline_request_bytes'] > 0;
 
-		$retry_baseline_bytes        = self::$runtimeContext['retry_baseline_request_bytes'];
+		$retry_baseline_bytes         = self::$runtimeContext['retry_baseline_request_bytes'];
 		$retry_not_materially_smaller = $has_context
 			&& $retry_baseline_bytes > 0
 			&& ! self::is_materially_smaller_envelope( $request_bytes, $retry_baseline_bytes );
 
 		if ( $has_context && $request_bytes > $byte_budget ) {
-			$recovery_outcome = $retry_not_materially_smaller
+			$recovery_outcome                            = $retry_not_materially_smaller
 				? 'retry_not_materially_smaller'
 				: self::local_payload_recovery_outcome();
 			self::$runtimeContext['failure_status_code'] = 413;

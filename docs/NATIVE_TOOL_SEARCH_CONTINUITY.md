@@ -33,6 +33,10 @@ automatically copied into public turn history.
 Outside public mode, automatic knowledge and skill context must pass the same
 dual capability gates as `knowledge-search` and `skill-load`; authenticated
 low-privilege users do not gain private context merely by opening chat.
+Live providers expose non-public post metadata only with `read_post`, server
+diagnostics only with `manage_options`, and private WooCommerce counters only
+with `manage_woocommerce`. Custom context providers must likewise check the
+current user's read permissions before returning data retained in turn history.
 
 Both managed transports support a SHA-256 site/session `prompt_cache_key` (64
 characters). It is **disabled by default** because the deployed strict gateway

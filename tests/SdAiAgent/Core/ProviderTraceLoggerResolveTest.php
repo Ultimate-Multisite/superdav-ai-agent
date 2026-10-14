@@ -299,8 +299,8 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( $private_tool_argument, (string) wp_json_encode( $data ) );
 	}
 
-	/** A reduced retry is blocked before dispatch unless its complete envelope is materially smaller. */
-	public function test_retry_preflight_rejects_envelope_that_is_not_materially_smaller(): void {
+	/** A reduced retry within the complete-envelope budget is sent even below the ten-percent reduction target. */
+	public function test_retry_preflight_allows_in_budget_envelope_that_is_not_materially_smaller(): void {
 		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 4096 );
 		add_filter( 'sd_ai_agent_provider_request_safety_margin_bytes', static fn(): int => 0 );
 
@@ -317,17 +317,11 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 			'https://provider.example/v1/responses'
 		);
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$data = $result->get_error_data();
-		$this->assertIsArray( $data );
-		$this->assertSame( 413, $data['status_code'] );
-		$this->assertSame( 'retry_not_materially_smaller', $data['recovery_outcome'] );
-		$this->assertTrue( $data['local_rejection'] );
-		$this->assertStringNotContainsString( $private_request_text, (string) wp_json_encode( $data ) );
+		$this->assertFalse( $result );
 	}
 
-	/** A locally blocked reduced retry retains its fallback attribution in safe telemetry. */
-	public function test_retry_preflight_marks_local_rejection_as_fallback_attempted(): void {
+	/** An over-budget reduced retry remains blocked when it is not materially smaller. */
+	public function test_retry_preflight_rejects_over_budget_envelope_that_is_not_materially_smaller(): void {
 		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 1024 );
 		add_filter( 'sd_ai_agent_provider_request_safety_margin_bytes', static fn(): int => 0 );
 
@@ -335,7 +329,9 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 			array( 'messages' => array( array( 'content' => str_repeat( 'reduced request ', 100 ) ) ) )
 		);
 
-		ProviderTraceLogger::set_runtime_context( 'openai', 'gpt-test', 73, strlen( $request_body ) + 1024 );
+		$baseline_bytes = (int) ceil( strlen( $request_body ) / 0.95 );
+
+		ProviderTraceLogger::set_runtime_context( 'openai', 'gpt-test', 73, $baseline_bytes );
 		$result = ProviderTraceLogger::on_pre_http_request(
 			false,
 			array( 'body' => $request_body ),
@@ -347,7 +343,7 @@ class ProviderTraceLoggerResolveTest extends WP_UnitTestCase {
 		$this->assertIsArray( $data );
 		$this->assertTrue( $data['local_rejection'] );
 		$this->assertTrue( $data['fallback_attempted'] );
-		$this->assertSame( 'compact_session_available', $data['recovery_outcome'] );
+		$this->assertSame( 'retry_not_materially_smaller', $data['recovery_outcome'] );
 	}
 
 	/** A traced provider context attributes 413 diagnostics without invoking trace filters when disabled. */

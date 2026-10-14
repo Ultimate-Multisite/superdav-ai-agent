@@ -2670,10 +2670,11 @@ PROMPT;
 			return $this->with_payload_recovery_metadata( $result, $before_bytes, $before_tokens, false, false );
 		}
 
-		// Reserve measured system/tool overhead, and require a ten-percent smaller
-		// complete envelope rather than budgeting the conversation alone.
+		// Reserve measured system/tool overhead and five-percent envelope headroom
+		// so the reduced request lands comfortably inside the local budget.
 		$envelope_overhead = max( 0, $complete_envelope_bytes - $before_bytes );
-		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $byte_budget - $envelope_overhead, (int) floor( $complete_envelope_bytes * 0.9 ) - $envelope_overhead ) );
+		$retry_budget      = max( 1, (int) floor( $byte_budget * 0.95 ) );
+		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $retry_budget - $envelope_overhead ) );
 		$target_tokens     = max( 1, (int) floor( $before_tokens * 0.6 ) );
 		$reduced           = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
 		$after_bytes       = ConversationTrimmer::estimate_total_bytes( $reduced );

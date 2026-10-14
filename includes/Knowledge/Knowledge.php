@@ -370,6 +370,9 @@ class Knowledge {
 			$col = KnowledgeDatabase::get_collection_by_slug( $options['collection'] );
 			if ( $col ) {
 				$collection_id = (int) $col->id;
+			} else {
+				// A stale public allowlist must never widen a search to all collections.
+				return [];
 			}
 		}
 
@@ -681,14 +684,19 @@ class Knowledge {
 	}
 
 	/**
-	 * Get formatted context for inclusion in a system prompt.
+	 * Get formatted context for inclusion in the current user turn.
 	 *
-	 * @param string $query      The user's query.
-	 * @param int    $max_tokens Approximate token budget for the context.
+	 * @param string $query             The user's query.
+	 * @param int    $max_tokens        Approximate token budget for the context.
+	 * @param float  $minimum_relevance Minimum search score eligible for prompt context.
 	 * @return string Formatted context string.
 	 */
-	public static function get_context_for_query( string $query, int $max_tokens = 2000 ): string {
-		$results = self::search( $query, [ 'limit' => 10 ] );
+	public static function get_context_for_query( string $query, int $max_tokens = 2000, float $minimum_relevance = 2.0 ): string {
+		// Greetings are not knowledge queries, even if sample content matches them.
+		if ( preg_match( '/^\s*(?:hi|hello|hey|good\s+(?:morning|afternoon|evening)|thanks|thank\s+you)[\s.!?]*$/iu', $query ) ) {
+			return '';
+		}
+		$results = \SdAiAgent\Abilities\KnowledgeAbilities::search_for_context( $query );
 
 		if ( empty( $results ) ) {
 			return '';
@@ -699,6 +707,9 @@ class Knowledge {
 		$chars     = 0;
 
 		foreach ( $results as $result ) {
+			if ( (float) ( $result['score'] ?? 0 ) < $minimum_relevance ) {
+				continue;
+			}
 			$source_label = $result['source_title'] ?? 'Unknown';
 			if ( ! empty( $result['source_url'] ) ) {
 				// @phpstan-ignore-next-line

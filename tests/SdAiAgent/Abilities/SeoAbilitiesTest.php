@@ -98,6 +98,40 @@ class SeoAbilitiesTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'issues', $result );
 	}
 
+	/**
+	 * Test handle_audit_url preserves UTF-8 metadata without entity conversion.
+	 */
+	public function test_handle_audit_url_preserves_utf8_metadata() {
+		$mock_html = '<!DOCTYPE html><html lang="en"><head>'
+			. '<title>Café 東京 SEO Audit Page Title Example</title>'
+			. '<meta name="description" content="Résumé of 東京 content with enough detail to verify UTF-8 metadata remains readable after DOM parsing.">'
+			. '<link rel="canonical" href="' . home_url( '/' ) . '">'
+			. '<meta property="og:title" content="Café 東京 SEO">'
+			. '</head><body><h1>Über 東京 heading</h1></body></html>';
+
+		add_filter(
+			'pre_http_request',
+			static function () use ( $mock_html ) {
+				return [
+					'headers'  => [ 'content-type' => 'text/html; charset=UTF-8' ],
+					'body'     => $mock_html,
+					'response' => [ 'code' => 200, 'message' => 'OK' ],
+					'cookies'  => [],
+					'filename' => '',
+				];
+			}
+		);
+
+		$result = SeoAbilities::handle_audit_url( [
+			'url' => home_url( '/' ),
+		] );
+
+		$this->assertSame( 'Café 東京 SEO Audit Page Title Example', $result['title'] );
+		$this->assertSame( 'Résumé of 東京 content with enough detail to verify UTF-8 metadata remains readable after DOM parsing.', $result['meta_description'] );
+		$this->assertSame( [ 'Über 東京 heading' ], $result['h1_texts'] );
+		$this->assertSame( 'Café 東京 SEO', $result['open_graph']['og:title'] );
+	}
+
 	// ─── seo-analyze-content ──────────────────────────────────────
 
 	/**

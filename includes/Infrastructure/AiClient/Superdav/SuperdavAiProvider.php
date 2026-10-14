@@ -54,6 +54,20 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 	);
 
 	/**
+	 * Return an opaque site/session cache key only after gateway support is enabled.
+	 *
+	 * @param int $session_id Server-owned session ID.
+	 * @return string Empty while the deployed strict gateway schema rejects the key.
+	 */
+	public static function prompt_cache_key( int $session_id ): string {
+		// Enable only after superdav-ai-service#115 is deployed for this site.
+		if ( $session_id <= 0 || ! apply_filters( 'sd_ai_agent_superdav_prompt_cache_key_enabled', false ) ) {
+			return '';
+		}
+		return hash( 'sha256', get_site_url() . ':' . get_current_blog_id() . ':sd-ai-agent-session:' . $session_id );
+	}
+
+	/**
 	 * Add non-secret local chat attribution to a managed inference request.
 	 *
 	 * The site-scoped service token remains the authorization boundary. The

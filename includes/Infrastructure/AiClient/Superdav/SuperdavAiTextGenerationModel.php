@@ -19,6 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGenerationModel {
 
+	/** @var string Hash identifying a conversation for provider prompt-cache reuse. */
+	private string $prompt_cache_key = '';
+
+	/** Set the provider cache key from the server-owned session identity. */
+	public function set_prompt_cache_key( string $prompt_cache_key ): void {
+		$this->prompt_cache_key = substr( $prompt_cache_key, 0, 64 );
+	}
+
 	/**
 	 * Prepare OpenAI-compatible chat messages for the Superdav managed edge.
 	 *
@@ -86,6 +94,10 @@ final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGe
 	 * @return Request
 	 */
 	protected function createRequest( HttpMethodEnum $method, string $path, array $headers = array(), mixed $data = null ): Request {
+		if ( 'chat/completions' === trim( $path, '/' ) && is_array( $data ) && '' !== $this->prompt_cache_key ) {
+			$data['prompt_cache_key'] = $this->prompt_cache_key;
+		}
+
 		if ( 'chat/completions' === trim( $path, '/' ) && is_array( $data ) && ! array_key_exists( 'reasoning_effort', $data ) ) {
 			$model_id = isset( $data['model'] ) && is_string( $data['model'] ) ? $data['model'] : '';
 			$effort   = SuperdavAiProvider::reasoning_effort_for_model( $model_id );

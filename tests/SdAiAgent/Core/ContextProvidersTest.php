@@ -398,4 +398,37 @@ class ContextProvidersTest extends WP_UnitTestCase {
 		$result = ContextProviders::provide_post_context( [ 'post_id' => 999999 ] );
 		$this->assertSame( [], $result );
 	}
+
+	/** Context copied into user history must not expose another user's private post. */
+	public function test_private_post_context_requires_read_permission(): void {
+		$original_user = get_current_user_id();
+		$administrator = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$subscriber = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$post_id = self::factory()->post->create( array( 'post_status' => 'private', 'post_author' => $administrator, 'post_title' => 'Private context fixture' ) );
+		try {
+			wp_set_current_user( 0 );
+			$this->assertSame( array(), ContextProviders::provide_post_context( array( 'post_id' => $post_id ) ) );
+			wp_set_current_user( $subscriber );
+			$this->assertSame( array(), ContextProviders::provide_post_context( array( 'post_id' => $post_id ) ) );
+			wp_set_current_user( $administrator );
+			$this->assertSame( 'Private context fixture', ContextProviders::provide_post_context( array( 'post_id' => $post_id ) )['Title'] );
+		} finally {
+			wp_set_current_user( $original_user );
+		}
+	}
+
+	/** Server diagnostics stay out of anonymous and low-privilege turn history. */
+	public function test_system_context_requires_site_administration(): void {
+		$original_user = get_current_user_id();
+		try {
+			wp_set_current_user( 0 );
+			$this->assertSame( array(), ContextProviders::provide_system_context( array() ) );
+			wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+			$this->assertSame( array(), ContextProviders::provide_system_context( array() ) );
+			wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+			$this->assertArrayHasKey( 'PHP Version', ContextProviders::provide_system_context( array() ) );
+		} finally {
+			wp_set_current_user( $original_user );
+		}
+	}
 }

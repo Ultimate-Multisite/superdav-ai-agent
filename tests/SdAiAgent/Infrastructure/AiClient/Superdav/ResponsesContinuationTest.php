@@ -490,7 +490,14 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			unset( $completed_message['id'] );
 			$completed_turn[] = $completed_message;
 			$this->assertSame( $completed_turn, array_slice( $requests[2]['input'], 0, count( $completed_turn ) ) );
-			$this->assertSame( array( array( 'role' => 'user', 'content' => 'Explain the finding.' ) ), array_slice( $requests[2]['input'], -1 ) );
+			$new_turn = array_slice( $requests[2]['input'], -1 );
+			$this->assertCount( 1, $new_turn );
+			$this->assertSame( 'user', $new_turn[0]['role'] );
+			$this->assertStringStartsWith( "Explain the finding.\n\n<context>\n\n## Current Context", $new_turn[0]['content'] );
+			$this->assertStringEndsWith( '</context>', $new_turn[0]['content'] );
+			$this->assertSame( 1, substr_count( $new_turn[0]['content'], '<context>' ) );
+			$this->assertSame( $requests[0]['instructions'], $requests[1]['instructions'] );
+			$this->assertSame( $requests[0]['instructions'], $requests[2]['instructions'] );
 			$this->assertCount( 3, $requests );
 		} finally {
 			remove_filter( 'pre_http_request', $transport, 1 );

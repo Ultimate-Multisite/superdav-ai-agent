@@ -13,6 +13,38 @@ PR #109. Production discovery was verified for `superdav-chat-fast`,
 Responses automatically. `sd_ai_agent_openai_tool_search_enabled` remains an
 opt-out switch. Other providers are unchanged.
 
+## Session prompt caching
+
+The first generated instruction is saved in the session row and reused across
+PHP requests, retries, confirmation and browser-tool continuations. Static
+guidance is selected at initialization, not by each user message. Changed prompt
+settings take effect in a new session; explicit caller instruction overrides
+remain authoritative. This internal instruction is omitted from ordinary session
+responses/exports and is removed with the session row.
+
+Knowledge retrieval, skill routing and live page/user/site context are appended
+once to the current user input inside `<context>`, then retained in ordinary
+history. Greetings do not retrieve knowledge; automatic context also excludes
+matches below the minimum relevance score (default `2.0`). Explicit knowledge
+search does not apply this automatic-injection threshold. Public/customer turn
+context uses the existing collection allowlist; empty or unresolved collections
+deny retrieval instead of widening it. Private skill guides/hints are not
+automatically copied into public turn history.
+Outside public mode, automatic knowledge and skill context must pass the same
+dual capability gates as `knowledge-search` and `skill-load`; authenticated
+low-privilege users do not gain private context merely by opening chat.
+Live providers expose non-public post metadata only with `read_post`, server
+diagnostics only with `manage_options`, and private WooCommerce counters only
+with `manage_woocommerce`. Custom context providers must likewise check the
+current user's read permissions before returning data retained in turn history.
+
+Both managed transports support a SHA-256 site/session `prompt_cache_key` (64
+characters). It is **disabled by default** because the deployed strict gateway
+schema rejects it. Only after superdav-ai-service issue #115 is deployed, enable
+`sd_ai_agent_superdav_prompt_cache_key_enabled` for that site's gateway. Before
+claiming cache savings, verify a repeated live prefix reports `cached_tokens > 0`;
+stable instructions alone do not prove upstream cache hits or credential affinity.
+
 ## Complete native replay
 
 `AgentLoop::configure_model()` binds the authenticated session to the SD model.

@@ -313,7 +313,7 @@ class ContextProviders {
 		// @phpstan-ignore-next-line
 		$post = get_post( (int) $post_id );
 
-		if ( ! $post ) {
+		if ( ! $post || ( ! is_post_publicly_viewable( $post ) && ! current_user_can( 'read_post', $post->ID ) ) ) {
 			return [];
 		}
 
@@ -446,6 +446,9 @@ class ContextProviders {
 	 * @return array<string, mixed>
 	 */
 	public static function provide_system_context( array $page_context ): array {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return [];
+		}
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
@@ -498,13 +501,13 @@ class ContextProviders {
 		if ( $product_counts ) {
 			$data['Published Products'] = (string) ( $product_counts->publish ?? 0 );
 			$draft_count                = (int) ( $product_counts->draft ?? 0 );
-			if ( $draft_count > 0 ) {
+			if ( $draft_count > 0 && current_user_can( 'manage_woocommerce' ) ) {
 				$data['Draft Products'] = (string) $draft_count;
 			}
 		}
 
 		// Order counts.
-		if ( function_exists( 'wc_orders_count' ) ) {
+		if ( current_user_can( 'manage_woocommerce' ) && function_exists( 'wc_orders_count' ) ) {
 			$processing = (int) wc_orders_count( 'processing' );
 			$pending    = (int) wc_orders_count( 'pending' );
 			if ( $processing > 0 ) {

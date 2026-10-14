@@ -569,18 +569,20 @@ class AgentTest extends WP_UnitTestCase {
 		global $wp_locale_switcher;
 		$available = new \ReflectionProperty( $wp_locale_switcher, 'available_languages' );
 		$available->setAccessible( true );
-		$languages = $available->getValue( $wp_locale_switcher );
-		$available->setValue( $wp_locale_switcher, array_merge( $languages, array( 'it_IT' ) ) );
-		$user_id = self::factory()->user->create( array( 'locale' => 'it_IT' ) );
-		wp_set_current_user( $user_id );
-		$original_locale = get_locale();
+		$languages        = $available->getValue( $wp_locale_switcher );
+		$original_user_id = get_current_user_id();
 		$translate       = static function ( string $translation, string $text, string $domain ): string {
 			return 'superdav-ai-agent' === $domain && 'it_IT' === get_locale() && 'What can I help you with?' === $text
 				? 'Come posso aiutarti?'
 				: $translation;
 		};
-		add_filter( 'gettext', $translate, 10, 3 );
 		try {
+			$available->setValue( $wp_locale_switcher, array_merge( $languages, array( 'it_IT' ) ) );
+			$user_id = self::factory()->user->create( array( 'locale' => 'it_IT' ) );
+			wp_set_current_user( $user_id );
+			$original_locale = get_locale();
+			add_filter( 'gettext', $translate, 10, 3 );
+
 			$row = (object) array(
 				'id'         => 1,
 				'slug'       => Agent::DEFAULT_AGENT_SLUG,
@@ -611,7 +613,7 @@ class AgentTest extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'gettext', $translate, 10 );
 			$available->setValue( $wp_locale_switcher, $languages );
-			wp_set_current_user( 0 );
+			wp_set_current_user( $original_user_id );
 		}
 	}
 

@@ -177,6 +177,9 @@ PROMPT;
 	/** @var bool When true the constructor was given an explicit system_instruction override and we should NOT rebuild it per turn. */
 	private bool $system_instruction_locked = false;
 
+	/** @var bool Whether the session instruction has been built from its static session configuration. */
+	private bool $system_instruction_initialized = false;
+
 	/** @var int */
 	private $max_iterations;
 
@@ -486,9 +489,8 @@ PROMPT;
 			$settings['system_prompt'] = $options['agent_system_prompt'];
 		}
 
-		// Store settings so send_prompt() can rebuild the system instruction
-		// before each model call — this lets the recently_fetched_section
-		// (and any other dynamic blocks) reach the model on subsequent turns.
+		// Keep settings for the single session-scoped instruction build and the
+		// current user-turn context appended to history below.
 		// @phpstan-ignore-next-line
 		$this->settings_for_prompt = $settings;
 
@@ -588,8 +590,8 @@ PROMPT;
 
 		// ── Initialise focused service objects ───────────────────────────
 
-		// SystemInstructionBuilder needs the model_id for weak-model nudges
-		// and user_message for knowledge RAG, both resolved above.
+		// SystemInstructionBuilder needs the model ID for weak-model nudges and
+		// the user message for context appended to the current history item.
 		// session_id is passed so skill injection events are recorded to the
 		// skill_usage telemetry table (Phase 1 / t215).
 		$this->instruction_builder = new SystemInstructionBuilder(
@@ -654,8 +656,6 @@ PROMPT;
 			// @phpstan-ignore-next-line
 			$this->system_instruction        = $options['system_instruction'];
 			$this->system_instruction_locked = true;
-		} else {
-			$this->system_instruction = $this->instruction_builder->build( $settings );
 		}
 	}
 
@@ -707,7 +707,12 @@ PROMPT;
 
 			// Append the new user message to history. Messages before it belong to
 			// completed turns, whose tool payloads are compacted in provider requests.
-			$this->current_turn_message = new UserMessage( array( new MessagePart( $this->user_message ) ) );
+			$turn_context = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$turn_message = $this->user_message;
+			if ( '' !== $turn_context ) {
+				$turn_message .= "\n\n" . $turn_context;
+			}
+			$this->current_turn_message = new UserMessage( array( new MessagePart( $turn_message ) ) );
 			$this->history[]            = $this->current_turn_message;
 
 			$result = $this->run_loop( $this->max_iterations );
@@ -3126,14 +3131,13 @@ PROMPT;
 		// names so it does not re-inline every searchable tool in prose.
 		$abilities = $this->resolve_abilities();
 
-		// Rebuild the system instruction unless the caller pinned a static
-		// override. This lets the manifest's "recently fetched ability
-		// schemas" block reach the model on subsequent turns.
-		// Pass active ability names so the cadence section is injected
-		// when content-generation or theme-modification tools are in scope.
-		if ( ! $this->system_instruction_locked ) {
-			$ability_names            = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction = $this->instruction_builder->build( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+		// Build instructions once per session. Per-turn retrieval belongs in the
+		// user history item, so provider retries and follow-up calls retain an
+		// identical cacheable prefix.
+		if ( ! $this->system_instruction_locked && ! $this->system_instruction_initialized ) {
+			$ability_names                        = $this->system_prompt_ability_names( $abilities );
+			$this->system_instruction             = $this->instruction_builder->build_for_session( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+			$this->system_instruction_initialized = true;
 		}
 
 		$started_at               = microtime( true );
@@ -3834,6 +3838,8 @@ PROMPT;
 				if ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel ) {
 					$model->set_continuation_session_id( $this->session_id );
 					$model->set_completed_turn_message_count( $this->completed_turn_message_count() );
+				} elseif ( $model instanceof \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel ) {
+					$model->set_prompt_cache_key( SuperdavAiProvider::prompt_cache_key( $this->session_id ) );
 				}
 				$builder->using_model( $model );
 			} else {

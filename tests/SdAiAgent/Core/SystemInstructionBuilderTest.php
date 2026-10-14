@@ -10,6 +10,7 @@
 namespace SdAiAgent\Tests\Core;
 
 use SdAiAgent\Core\SystemInstructionBuilder;
+use SdAiAgent\Tools\ToolDiscovery;
 use WP_UnitTestCase;
 
 /**
@@ -132,6 +133,17 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 			$instruction,
 			'Built instruction should include WordPress Environment section'
 		);
+	}
+
+	/** Non-native first requests must stay comfortably below the payload guard. */
+	public function test_non_native_instruction_stays_within_first_request_budget(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build(
+			array(),
+			ToolDiscovery::tier_1_for_run(),
+			false
+		);
+
+		$this->assertLessThanOrEqual( 25000, strlen( $instruction ) );
 	}
 
 	/**

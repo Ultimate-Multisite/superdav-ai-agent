@@ -238,52 +238,51 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertContains( 'sd-ai-agent/ability-call', $tier_1 );
 	}
 
-	public function test_tier_1_includes_cold_start_tools(): void {
+	public function test_tier_1_includes_compact_cold_start_tools(): void {
 		$tier_1 = ToolDiscovery::tier_1_for_run();
 
-		$this->assertContains( 'sd-ai-agent/list-options', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/get-plugins', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/get-themes', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/ability-search', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/ability-call', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/memory-save', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/memory-list', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/skill-load', $tier_1 );
+		$this->assertContains( 'sd-ai-agent/knowledge-search', $tier_1 );
 		$this->assertContains( 'sd-ai-agent/site-health-summary', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/db-query', $tier_1 );
 		$this->assertContains( 'sd-ai-agent/detect-fresh-install', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/file-list', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/file-read', $tier_1 );
 		$this->assertContains( 'sd-ai-agent/list-posts', $tier_1 );
 		$this->assertContains( 'sd-ai-agent/get-post', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/get-option', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/update-post', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/delete-post', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/update-option', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/update-global-styles', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/append-post-content', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/batch-create-posts', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/create-contact-form', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/stock-image', $tier_1 );
-		$registered = [];
-		if ( function_exists( 'wp_get_abilities' ) ) {
-			foreach ( wp_get_abilities() as $ability ) {
-				if ( $ability instanceof \WP_Ability ) {
-					$registered[ $ability->get_name() ] = true;
-				}
-			}
-		}
-		foreach ( [ 'sd-ai-agent/generate-image', 'sd-ai-agent/upload-media', 'sd-ai-agent/internet-search', 'sd-ai-agent/install-plugin', 'sd-ai-agent/activate-plugin', 'sd-ai-agent/set-site-logo', 'sd-ai-agent/list-menus', 'sd-ai-agent/get-menu', 'sd-ai-agent/create-menu', 'sd-ai-agent/add-menu-item', 'sd-ai-agent/remove-menu-item', 'sd-ai-agent/assign-menu-location', 'sd-ai-agent/get-global-styles', 'sd-ai-agent/get-theme-json' ] as $optional_tool ) {
-			if ( isset( $registered[ $optional_tool ] ) ) {
-				$this->assertContains( $optional_tool, $tier_1 );
-			}
-		}
+		$this->assertContains( 'sd-ai-agent/create-post', $tier_1 );
 	}
 
-	public function test_tier_1_includes_block_theme_safe_editing_cluster(): void {
+	public function test_fresh_tier_1_schema_payload_stays_within_budget(): void {
+		$tier_1 = ToolDiscovery::tier_1_for_run();
+		$payload = array();
+
+		foreach ( wp_get_abilities() as $ability ) {
+			if ( ! $ability instanceof \WP_Ability || ! in_array( $ability->get_name(), $tier_1, true ) ) {
+				continue;
+			}
+
+			// @phpstan-ignore-next-line — get_output_schema() exists at runtime in WP 7.0.
+			$payload[] = array(
+				'name'          => $ability->get_name(),
+				'label'         => $ability->get_label(),
+				'description'   => $ability->get_description(),
+				'input_schema'  => $ability->get_input_schema(),
+				'output_schema' => $ability->get_output_schema(),
+			);
+		}
+
+		$encoded = wp_json_encode( $payload );
+		$this->assertIsString( $encoded );
+		$this->assertLessThanOrEqual( 25000, strlen( $encoded ) );
+	}
+
+	public function test_tier_1_defers_large_editing_schemas_to_ability_search(): void {
 		$tier_1 = ToolDiscovery::tier_1_for_run();
 
-		$this->assertContains( 'sd-ai-agent/list-block-templates', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/list-template-parts', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/update-template-part', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/get-page-blocks', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/update-blocks', $tier_1 );
-		$this->assertContains( 'sd-ai-agent/validate-block-content', $tier_1 );
+		$this->assertNotContains( 'sd-ai-agent/update-template-part', $tier_1 );
+		$this->assertNotContains( 'sd-ai-agent/update-blocks', $tier_1 );
 	}
 
 	public function test_tier_1_omits_wp_cli_when_ability_is_not_registered(): void {
@@ -327,8 +326,7 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 	public function test_tier_1_size_is_capped(): void {
 		$tier_1 = ToolDiscovery::tier_1_for_run();
 
-		// Cap is MAX_TIER_1 plus the two meta-tools always added on top.
-		$this->assertLessThanOrEqual( ToolDiscovery::MAX_TIER_1 + 2, count( $tier_1 ) );
+		$this->assertLessThanOrEqual( ToolDiscovery::MAX_TIER_1, count( $tier_1 ) );
 	}
 
 	/** Empty customer/public allowlists must deny all tools instead of restoring defaults. */
@@ -904,7 +902,7 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_manifest_uses_usage_instructions_filter(): void {
+	public function test_manifest_omits_category_usage_instructions(): void {
 		add_filter(
 			'sd_ai_agent_ability_usage_instructions',
 			static function ( $blocks ) {
@@ -915,22 +913,10 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 
 		$manifest = ToolDiscovery::build_manifest_section();
 
-		$this->assertStringContainsString( 'CUSTOM-INSTRUCTION-MARKER', $manifest );
+		$this->assertStringNotContainsString( 'CUSTOM-INSTRUCTION-MARKER', $manifest );
 	}
 
-	public function test_manifest_inlines_required_fields_for_abilities(): void {
-		// memory-delete requires `id`. It's not in DEFAULT_TIER_1 so it
-		// appears in the manifest, and the line should include "Required: id".
-		$manifest = ToolDiscovery::build_manifest_section();
-
-		$this->assertMatchesRegularExpression(
-			'/`sd-ai-agent\/memory-delete`.*Required:.*id/',
-			$manifest,
-			'Manifest line for memory-delete should include "Required: id".'
-		);
-	}
-
-	public function test_manifest_includes_per_ability_usage_instructions(): void {
+	public function test_manifest_indexes_categories_without_per_ability_details(): void {
 		// Register a test ability with usage_instructions in meta.ai.
 		// WP 6.9 requires a namespaced id (`vendor/name`).
 		$this->register_test_ability(
@@ -955,8 +941,33 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 
 		$manifest = ToolDiscovery::build_manifest_section();
 
-		// The manifest should include the usage_instructions on an indented line.
-		$this->assertStringContainsString( 'Use when testing usage instructions.', $manifest );
+		$this->assertStringContainsString( 'Test Category test-category (`test-category`): 1 ability', $manifest );
+		$this->assertStringContainsString( '`test-plugin/ability-with-instructions`', $manifest );
+		$this->assertStringNotContainsString( 'Use when testing usage instructions.', $manifest );
+	}
+
+	public function test_manifest_stays_compact_for_large_third_party_catalog(): void {
+		for ( $index = 1; $index <= 50; $index++ ) {
+			$this->register_test_ability(
+				'multisite-ultimate/crud-' . $index,
+				[
+					'label'               => 'Third-party CRUD ability',
+					'description'         => str_repeat( 'A long description that must not be repeated in the category index. ', 5 ),
+					'category'            => 'multisite-ultimate',
+					'execute_callback'    => static function (): array {
+						return [];
+					},
+					'permission_callback' => static function (): bool {
+						return true;
+					},
+				]
+			);
+		}
+
+		$manifest = ToolDiscovery::build_manifest_section();
+
+		$this->assertStringContainsString( '50 abilities', $manifest );
+		$this->assertLessThanOrEqual( 6000, strlen( $manifest ) );
 	}
 
 	public function test_ability_search_includes_usage_instructions_in_results(): void {

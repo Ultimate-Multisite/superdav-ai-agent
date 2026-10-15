@@ -830,14 +830,24 @@ export function RunningMessage( {
 }
 
 /**
+ * Render a system row. Errors keep the alert style; success notices do not.
  *
  * @param {Object} root0
- * @param {*}      root0.text
+ * @param {*}      root0.text Message text.
+ * @param {string} root0.tone `error` (default) or `success`.
  */
-export function SystemMessage( { text } ) {
+export function SystemMessage( { text, tone = 'error' } ) {
+	const className =
+		'success' === tone
+			? 'sd-ai-agent-cr-msg-system sd-ai-agent-cr-msg-system--success'
+			: 'sd-ai-agent-cr-msg-system';
+
 	return (
 		<div className="sdaa-cr-msg-row">
-			<div className="sd-ai-agent-cr-msg-system">
+			<div
+				className={ className }
+				role={ 'success' === tone ? 'status' : undefined }
+			>
 				{ linkifyText( text ) }
 			</div>
 		</div>

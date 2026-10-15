@@ -71,6 +71,7 @@ export default function OnboardingBootstrap( {
 							appendMessage( {
 								role: 'system',
 								parts: [ { text: initialSystemNotice } ],
+								tone: 'success',
 								ts: new Date().toISOString(),
 							} );
 							onInitialSystemNoticeAppended();

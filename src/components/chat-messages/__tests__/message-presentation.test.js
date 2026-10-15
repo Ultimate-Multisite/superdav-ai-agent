@@ -80,6 +80,33 @@ describe( 'shared chat message presentation', () => {
 		} );
 	} );
 
+	test( 'keeps error styling by default and honours success notices', () => {
+		expect(
+			resolveSystemMessagePresentation(
+				{ role: 'system', parts: [ { text: 'Error: timed out.' } ] },
+				[]
+			)
+		).toEqual( {
+			type: 'system',
+			text: 'Error: timed out.',
+			tone: 'error',
+		} );
+		expect(
+			resolveSystemMessagePresentation(
+				{
+					role: 'system',
+					parts: [ { text: 'SD AI is connected.' } ],
+					tone: 'success',
+				},
+				[]
+			)
+		).toEqual( {
+			type: 'system',
+			text: 'SD AI is connected.',
+			tone: 'success',
+		} );
+	} );
+
 	test( 'normalizes legacy credit text without exposing provider details', () => {
 		const presentation = resolveSystemMessagePresentation(
 			{

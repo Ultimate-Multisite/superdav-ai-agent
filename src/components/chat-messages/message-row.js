@@ -61,7 +61,12 @@ export default function MessageRow( {
 		if ( presentation.type === 'account_action' ) {
 			return <AccountActionMessage notice={ presentation.notice } />;
 		}
-		return <SystemMessage text={ presentation.text } />;
+		return (
+			<SystemMessage
+				text={ presentation.text }
+				tone={ presentation.tone }
+			/>
+		);
 	}
 
 	return null;

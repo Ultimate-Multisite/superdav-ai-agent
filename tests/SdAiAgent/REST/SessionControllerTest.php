@@ -196,6 +196,21 @@ class SessionControllerTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** An owned session without a durable plan is a successful empty-plan response. */
+	public function test_durable_plan_status_returns_null_when_the_owned_session_has_no_plan(): void {
+		$session_id = $this->create_session();
+
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}/plan" );
+
+		$this->assert_status( 200, $response );
+		$this->assertSame( [ 'plan' => null ], $response->get_data() );
+
+		wp_set_current_user( $this->other_admin_id );
+		$forbidden = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}/plan" );
+
+		$this->assert_status( 403, $forbidden );
+	}
+
 	/** A plan remains outside session messages and a pending scope blocks continue. */
 	public function test_create_status_and_scope_approval_are_session_bound(): void {
 		$session_id = $this->create_session();

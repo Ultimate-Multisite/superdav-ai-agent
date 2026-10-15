@@ -87,15 +87,16 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			}
 		}
 		try {
-			$params            = $this->prepare_responses_params( $prompt );
-			$full_input        = $params['input'];
-			$params['store']   = false;
-			$params['include'] = array( 'reasoning.encrypted_content' );
+			$params             = $this->prepare_responses_params( $prompt );
+			$full_input         = $params['input'];
+			$params['store']    = false;
+			$params['include']  = array( 'reasoning.encrypted_content' );
+			$completed_call_ids = CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count );
 			// Reject an oversized catalog before inspecting a cursor for another
 			// catalog. AgentLoop can retry with Tier 1 without destroying the
 			// matching snapshot used by an earlier browser/confirmation request.
 			$catalog_params          = $params;
-			$catalog_params['input'] = array();
+			$catalog_params['input'] = empty( $completed_call_ids ) ? $params['input'] : array();
 			$catalog_body            = $this->json_encode_for_api( $catalog_params );
 			if ( strlen( $catalog_body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {
 				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $catalog_body ), SuperdavAiProvider::url( 'responses' ) );
@@ -123,7 +124,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			// completed-turn tool payloads; bound them in the provider view only.
 			$params['input'] = ResponsesContinuation::compact_completed_tool_items(
 				$params['input'],
-				CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count )
+				$completed_call_ids
 			);
 			$body            = $this->json_encode_for_api( $params );
 			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {

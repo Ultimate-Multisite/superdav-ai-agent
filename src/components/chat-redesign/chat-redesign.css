@@ -965,6 +965,12 @@ input[type="text"].sdaa-cr-search-input {
 	overflow-wrap: anywhere;
 }
 
+.sd-ai-agent-cr-msg-system--success {
+	background: color-mix(in srgb, var(--sdaa-success) 8%, transparent);
+	border-color: var(--sdaa-success);
+	color: var(--sdaa-text-primary);
+}
+
 .sd-ai-agent-cr-msg-system--account-action {
 	background: var(--sdaa-surface-active);
 	border-color: var(--sdaa-primary);

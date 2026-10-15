@@ -4519,16 +4519,16 @@ final class SessionController {
 	}
 
 	/**
-	 * Handle GET /sessions/{id}/plan and return only the current user's plan.
+	 * Handle GET /sessions/{id}/plan and return the current user's plan, when present.
 	 *
 	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
+	 * @return WP_REST_Response
 	 */
 	public function handle_durable_plan_status( WP_REST_Request $request ) {
 		$session_id = self::get_int_param( $request, 'id' );
 		$plan       = DurablePlanRepository::get_latest_for_session( $session_id, get_current_user_id() );
 		if ( null === $plan ) {
-			return new WP_Error( 'sd_ai_agent_plan_not_found', __( 'No durable plan was found for this session.', 'superdav-ai-agent' ), [ 'status' => 404 ] );
+			return new WP_REST_Response( [ 'plan' => null ], 200 );
 		}
 
 		return new WP_REST_Response( [ 'plan' => DurablePlanRepository::to_public( $plan ) ], 200 );

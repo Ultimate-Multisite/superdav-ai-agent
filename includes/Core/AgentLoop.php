@@ -355,6 +355,13 @@ PROMPT;
 	private ?Message $current_turn_message = null;
 
 	/**
+	 * Provider-only context for the current user turn (see TurnContext).
+	 *
+	 * @var string
+	 */
+	private string $turn_context = '';
+
+	/**
 	 * Optional callback invoked after each tool call/response pair.
 	 *
 	 * Signature: function( list<array<string, mixed>> $tool_call_log, list<array<string, mixed>> $message_log ): void
@@ -707,12 +714,10 @@ PROMPT;
 
 			// Append the new user message to history. Messages before it belong to
 			// completed turns, whose tool payloads are compacted in provider requests.
-			$turn_context = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
-			$turn_message = $this->user_message;
-			if ( '' !== $turn_context ) {
-				$turn_message .= "\n\n" . $turn_context;
-			}
-			$this->current_turn_message = new UserMessage( array( new MessagePart( $turn_message ) ) );
+			// Per-turn context is model input only: history (and therefore the saved
+			// transcript and chat UI) keeps exactly what the user typed.
+			$this->turn_context         = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$this->current_turn_message = new UserMessage( array( new MessagePart( $this->user_message ) ) );
 			$this->history[]            = $this->current_turn_message;
 
 			$result = $this->run_loop( $this->max_iterations );
@@ -3280,19 +3285,26 @@ PROMPT;
 	}
 
 	/**
-	 * Return the provider view of history with completed-turn tool payloads bounded.
+	 * Return the provider view of history.
 	 *
-	 * Native Responses replay matches the exact SDK history prefix, so the native
-	 * model compacts its own replay using the same boundary instead.
+	 * The current user turn carries the provider-only turn context; completed-turn
+	 * tool payloads are bounded. Native Responses replay matches the SDK history
+	 * prefix, so the native model compacts its own replay with the same boundary.
 	 *
 	 * @return Message[]
 	 */
 	private function provider_history(): array {
-		if ( $this->should_use_native_tool_search() ) {
-			return $this->history;
+		$history   = array_values( $this->history );
+		$completed = $this->completed_turn_message_count();
+		if ( '' !== $this->turn_context && null !== $this->current_turn_message && ( $history[ $completed ] ?? null ) === $this->current_turn_message ) {
+			$history[ $completed ] = new UserMessage( array( new MessagePart( TurnContext::append( $this->user_message, $this->turn_context ) ) ) );
 		}
 
-		return CompletedTurnCompactor::compact_history( $this->history, $this->completed_turn_message_count() );
+		if ( $this->should_use_native_tool_search() ) {
+			return $history;
+		}
+
+		return CompletedTurnCompactor::compact_history( $history, $completed );
 	}
 
 	/** Number of leading history messages that belong to completed user turns. */

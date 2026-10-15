@@ -40,6 +40,12 @@ class ConversationTrimmer {
 	/** Reserve retained below a managed model's context window before compaction. */
 	private const MANAGED_CONTEXT_TOKEN_RESERVE = 16000;
 
+	/** Typical UTF-8 bytes per provider-reported token (measured ~4.1 for o200k). */
+	private const ESTIMATED_BYTES_PER_REPORTED_TOKEN = 4;
+
+	/** Share of gateway admission capacity used before compacting, leaving room for the next turn. */
+	private const MANAGED_ADMISSION_COMPACTION_SHARE = 0.9;
+
 	/** Maximum history size copied into a deterministically compacted session. */
 	const COMPACT_MAX_BYTES = 65536;
 
@@ -1784,13 +1790,20 @@ class ConversationTrimmer {
 
 		$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
 		$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
+		$model_budget   = $context_window - max( $output_limit, self::MANAGED_CONTEXT_TOKEN_RESERVE );
 
-		return max( 256, $context_window - max( $output_limit, self::MANAGED_CONTEXT_TOKEN_RESERVE ) );
+		// The gateway admits by bytes (`bytes / ratio + output <= context`), which is
+		// stricter than the model's real-token window. Express that admission limit
+		// in provider-reported tokens so compaction runs before the gateway rejects.
+		$admission_bytes  = max( 1024, $context_window - $output_limit ) * self::get_managed_input_token_bytes_per_token( $model_id );
+		$admission_tokens = (int) floor( $admission_bytes / self::ESTIMATED_BYTES_PER_REPORTED_TOKEN * self::MANAGED_ADMISSION_COMPACTION_SHARE );
+
+		return max( 256, min( $model_budget, $admission_tokens ) );
 	}
 
 	/** Estimate a following request from a provider-measured context and new bytes. */
 	public static function estimate_next_request_tokens( int $last_input_tokens, int $new_bytes ): int {
-		return max( 0, $last_input_tokens ) + (int) ceil( max( 0, $new_bytes ) / 4 );
+		return max( 0, $last_input_tokens ) + (int) ceil( max( 0, $new_bytes ) / self::ESTIMATED_BYTES_PER_REPORTED_TOKEN );
 	}
 
 	/**

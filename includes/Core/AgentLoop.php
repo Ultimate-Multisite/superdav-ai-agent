@@ -6517,31 +6517,21 @@ PROMPT;
 	 */
 	private function accumulate_tokens( $result ): void {
 		try {
-			// @phpstan-ignore-next-line
-			if ( method_exists( $result, 'getUsage' ) ) {
-				/** @phpstan-ignore-next-line */
-				$usage = $result->getUsage();
-				if ( $usage ) {
-					if ( method_exists( $usage, 'getPromptTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$prompt_tokens                = max( 0, (int) $usage->getPromptTokens() );
-						$this->token_usage['prompt'] += $prompt_tokens;
-						if ( $prompt_tokens > 0 ) {
-							$this->last_provider_input_tokens  = $prompt_tokens;
-							$this->last_provider_request_bytes = $this->current_provider_request_bytes;
-							$this->message_log[]               = array(
-								'type'          => 'provider_context_usage',
-								'input_tokens'  => $prompt_tokens,
-								'request_bytes' => $this->current_provider_request_bytes,
-								'sequence'      => $this->next_activity_sequence(),
-							);
-						}
-					}
-					if ( method_exists( $usage, 'getCompletionTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$this->token_usage['completion'] += (int) $usage->getCompletionTokens();
-					}
-				}
+			// The WP AI Client SDK result exposes getTokenUsage(); an earlier getUsage()
+			// probe never matched it, so provider usage was silently dropped.
+			if ( ! $result instanceof GenerativeAiResult ) {
+				return;
+			}
+			$usage         = $result->getTokenUsage();
+			$prompt_tokens = max( 0, $usage->getPromptTokens() );
+
+			$this->token_usage['prompt']     += $prompt_tokens;
+			$this->token_usage['completion'] += max( 0, $usage->getCompletionTokens() );
+			// Internal compaction state only: message_log entries are shown as chat
+			// activity, so provider context usage is not logged there.
+			if ( $prompt_tokens > 0 ) {
+				$this->last_provider_input_tokens  = $prompt_tokens;
+				$this->last_provider_request_bytes = $this->current_provider_request_bytes;
 			}
 		} catch ( \Throwable $e ) {
 			// Token tracking is best-effort.

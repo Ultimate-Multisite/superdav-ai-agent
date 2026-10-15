@@ -1296,6 +1296,7 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertStatus( 202, $run_response );
 		$job_id = $run_response->get_data()['job_id'];
 
+		$this->assertTrue( ActiveJobRepository::claim_queued_job( $job_id ) );
 		delete_transient( RestController::JOB_PREFIX . $job_id );
 		ActiveJobRepository::mark_interrupted(
 			$job_id,
@@ -1416,7 +1417,7 @@ class RestControllerTest extends WP_UnitTestCase {
 
 		$row = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $row );
-		$this->assertSame( 'processing', $row->status );
+		$this->assertSame( 'queued', $row->status );
 		$this->assertSame( 1, $row->resume_attempts );
 		$checkpoint = json_decode( (string) $row->checkpoint, true );
 		$this->assertIsArray( $checkpoint );
@@ -1470,7 +1471,7 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertIsArray( get_transient( RestController::JOB_PREFIX . $job_id ) );
 		$row = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $row );
-		$this->assertSame( 'processing', $row->status );
+		$this->assertSame( 'queued', $row->status );
 		$this->assertSame( 1, $row->resume_attempts );
 
 		ActiveJobRepository::delete( $job_id );

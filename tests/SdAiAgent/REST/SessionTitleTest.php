@@ -58,11 +58,14 @@ class SessionTitleTest extends WP_UnitTestCase {
 		$response = $this->server->dispatch( $request );
 		$this->assertSame( 202, $response->get_status() );
 		$this->assertSame( 'Review installed plugins', $response->get_data()['title'] );
-		$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $response->get_data()['job_id'] )->status );
-		$this->assertCount( 1, $this->requests, 'Queuing a title must not synchronously call the model.' );
+		$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $response->get_data()['job_id'] )->status );
+		$this->assertCount( 2, $this->requests, 'Chat and title tasks each need a non-blocking kick, without synchronous model calls.' );
+		$this->assertSame( $response->get_data()['job_id'], $this->requests[0]['body']['job_id'] );
 		$this->assertFalse( $this->requests[0]['args']['blocking'] );
 		$this->assertStringContainsString( '/process', $this->requests[0]['url'] );
-		$job_id = $this->requests[0]['body']['job_id'];
+		$this->assertFalse( $this->requests[1]['args']['blocking'] );
+		$this->assertStringContainsString( '/process', $this->requests[1]['url'] );
+		$job_id = $this->requests[1]['body']['job_id'];
 		$this->assertTrue( get_transient( RestController::JOB_PREFIX . $job_id )['title_only'] );
 		$this->assertNull( ActiveJobRepository::get_by_job_id( $job_id ), 'Title tasks must not replace the active chat job.' );
 		$this->assertGreaterThanOrEqual( time() + 55, wp_next_scheduled( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ) ) );

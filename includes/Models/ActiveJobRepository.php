@@ -21,7 +21,7 @@ class ActiveJobRepository {
 	/**
 	 * Valid job status values.
 	 *
-	 * - queued                — durable phase is awaiting its one worker claim.
+	 * - queued                — job is awaiting its one worker claim.
 	 * - processing            — loop is actively running.
 	 * - awaiting_confirmation — paused waiting for user confirmation.
 	 * - awaiting_client_tools — paused waiting for browser to execute JS tools.
@@ -82,11 +82,11 @@ class ActiveJobRepository {
 	}
 
 	/**
-	 * Atomically claim a queued durable-plan job for one worker.
+	 * Atomically claim any queued chat job for one worker.
 	 *
 	 * A loopback request can be retried or delivered more than once. Only the
-	 * request that changes this row from queued to processing may execute the
-	 * phase, preventing duplicated site operations.
+	 * starter that changes this row from queued to processing may execute the
+	 * job, preventing duplicated site operations across loopback and queue workers.
 	 */
 	public static function claim_queued_job( string $job_id ): bool {
 		global $wpdb;
@@ -133,7 +133,7 @@ class ActiveJobRepository {
 	}
 
 	/**
-	 * Atomically return a durable confirmation pause to the queue for one new claim.
+	 * Atomically return a confirmation pause to the queue for one new claim.
 	 *
 	 * A stale confirmation must never overwrite a worker that has already
 	 * resumed or completed the job under a newer token.
@@ -348,13 +348,15 @@ class ActiveJobRepository {
 	 * @param string                    $job_id       The job UUID.
 	 * @param int                       $max_attempts Maximum permitted attempts.
 	 * @param array<string, mixed>|null $checkpoint Updated checkpoint to persist atomically with the claim.
+	 * @param bool                      $queued Queue for an asynchronous worker claim instead of processing inline.
 	 * @return bool True when an attempt was claimed.
 	 */
-	public static function claim_resume_attempt( string $job_id, int $max_attempts, ?array $checkpoint = null ): bool {
+	public static function claim_resume_attempt( string $job_id, int $max_attempts, ?array $checkpoint = null, bool $queued = false ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		$now = current_time( 'mysql', true );
+		$now    = current_time( 'mysql', true );
+		$status = $queued ? 'queued' : 'processing';
 		if ( null !== $checkpoint ) {
 			$encoded = wp_json_encode( $checkpoint );
 			if ( false === $encoded ) {
@@ -364,8 +366,9 @@ class ActiveJobRepository {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; claim and checkpoint snapshot must be atomic.
 			$result = $wpdb->query(
 				$wpdb->prepare(
-					"UPDATE %i SET status = 'processing', error = NULL, interrupted_at = NULL, checkpoint = %s, resume_attempts = resume_attempts + 1, updated_at = %s WHERE job_id = %s AND status IN ('interrupted', 'abandoned') AND resume_attempts < %d",
+					"UPDATE %i SET status = %s, error = NULL, interrupted_at = NULL, checkpoint = %s, resume_attempts = resume_attempts + 1, updated_at = %s WHERE job_id = %s AND status IN ('interrupted', 'abandoned') AND resume_attempts < %d",
 					self::table_name(),
+					$status,
 					$encoded,
 					$now,
 					$job_id,
@@ -379,8 +382,9 @@ class ActiveJobRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET status = 'processing', error = NULL, interrupted_at = NULL, resume_attempts = resume_attempts + 1, updated_at = %s WHERE job_id = %s AND status IN ('interrupted', 'abandoned') AND resume_attempts < %d",
+				"UPDATE %i SET status = %s, error = NULL, interrupted_at = NULL, resume_attempts = resume_attempts + 1, updated_at = %s WHERE job_id = %s AND status IN ('interrupted', 'abandoned') AND resume_attempts < %d",
 				self::table_name(),
+				$status,
 				$now,
 				$job_id,
 				$max_attempts

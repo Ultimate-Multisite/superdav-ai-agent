@@ -13,12 +13,16 @@ namespace SdAiAgent\Tests\REST;
 
 use SdAiAgent\Core\BackgroundJobDispatcher;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
+use SdAiAgent\Bootstrap\AutomationsHandler;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\DurablePlanRunner;
 use SdAiAgent\Core\ElementorCompletionGate;
+use SdAiAgent\Bootstrap\SuperdavAiProviderHandler;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\DurablePlanRepository;
 use SdAiAgent\REST\RestController;
+use SdAiAgent\REST\SessionController;
 use WP_REST_Request;
 use WP_REST_Server;
 use WP_UnitTestCase;
@@ -31,20 +35,20 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 	private int $other_admin_id;
 
-	/** Jobs are queued once on their own site so the worker can read that site's transient. */
+	/** Jobs retain one durable action and receive an immediate kick on their own site. */
 	public function test_background_dispatcher_queues_job_on_target_site_once(): void {
 		$originating_blog_id    = get_current_blog_id();
 		$tenant_id              = is_multisite() ? self::factory()->blog->create() : $originating_blog_id;
 		$job_id                 = '11111111-2222-3333-4444-555555555555';
 		$args                   = array( $tenant_id, $job_id );
-		$requests               = 0;
+		$requests               = array();
 		$has_action_scheduler   = function_exists( 'as_enqueue_async_action' ) && function_exists( 'as_has_scheduled_action' );
 		$switched_to_tenant     = false;
-		$intercept = static function ( $preempt ) use ( &$requests ) {
-			++$requests;
-			return $preempt;
+		$intercept = static function ( $preempt, $request, $url ) use ( &$requests ) {
+			$requests[] = array( 'url' => $url, 'request' => $request );
+			return new \WP_Error( 'http_request_failed', 'Loopbacks blocked for this test.' );
 		};
-		add_filter( 'pre_http_request', $intercept );
+		add_filter( 'pre_http_request', $intercept, 10, 3 );
 
 		try {
 			if ( is_multisite() ) {
@@ -54,6 +58,13 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
 			BackgroundJobDispatcher::dispatch( $job_id, 'test-token' );
+			$this->assertCount( 2, $requests, 'Each dispatch must kick immediately even when a durable action already exists.' );
+			foreach ( $requests as $request ) {
+				$this->assertSame( rest_url( RestController::NAMESPACE . '/process' ), $request['url'] );
+				$this->assertFalse( $request['request']['blocking'] );
+				$this->assertSame( 0.01, $request['request']['timeout'] );
+				$this->assertSame( array( 'job_id' => $job_id, 'token' => 'test-token' ), json_decode( $request['request']['body'], true ) );
+			}
 			$this->assertSame( $tenant_id, get_current_blog_id() );
 			$this->assertTrue(
 				( $has_action_scheduler && as_has_scheduled_action( BackgroundJobDispatcher::HOOK, $args, 'sd-ai-agent' ) )
@@ -71,7 +82,152 @@ class SessionControllerTest extends WP_UnitTestCase {
 		}
 
 		$this->assertSame( $originating_blog_id, get_current_blog_id() );
-		$this->assertSame( 0, $requests, 'An already queued event must not fall back to an HTTP loopback.' );
+	}
+
+	/** @return array<string, array{bool}> */
+	public static function background_job_starters(): array {
+		return array(
+			'immediate loopback wins' => array( false ),
+			'blocked loopback falls back to the queue' => array( true ),
+		);
+	}
+
+	/**
+	 * Both dispatch paths share one claim, including an overlapping queue delivery.
+	 *
+	 * @dataProvider background_job_starters
+	 */
+	public function test_background_job_runs_once_across_loopback_and_queue( bool $block_loopback ): void {
+		update_option( SuperdavAiProvider::CREDENTIAL_OPTION, 'test-key' );
+		( new SuperdavAiProviderHandler() )->register_provider();
+		$base_url = static fn () => 'http://fake-ai-proxy.test';
+		add_filter( 'sd_ai_agent_cloud_base_url', $base_url );
+		add_filter( 'sd_ai_agent_openai_tool_search_enabled', '__return_false' );
+		$provider_calls = 0;
+		$loopbacks      = 0;
+		$job_id         = '';
+		$process        = null;
+		$blog_id        = get_current_blog_id();
+		$controller     = new SessionController( new Database() );
+		$handler        = new AutomationsHandler();
+		$queue_callback = array( $handler, 'process_background_job' );
+		if ( ! has_action( BackgroundJobDispatcher::HOOK ) ) {
+			add_action( BackgroundJobDispatcher::HOOK, $queue_callback, 10, 2 );
+		}
+		$intercept = function ( $preempt, $args, $url ) use ( $block_loopback, $controller, $blog_id, &$provider_calls, &$loopbacks, &$job_id, &$process ) {
+			if ( rest_url( RestController::NAMESPACE . '/process' ) === $url ) {
+				++$loopbacks;
+				$body    = json_decode( $args['body'], true );
+				$job_id  = $body['job_id'];
+				$process = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/process' );
+				$process->set_body_params( $body );
+				$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $job_id )->status );
+				if ( $block_loopback ) {
+					return new \WP_Error( 'http_request_failed', 'Loopbacks blocked for this test.' );
+				}
+				$this->assertTrue( $controller->check_process_permission( $process ) );
+				$controller->handle_process( $process );
+			} elseif ( str_contains( $url, 'fake-ai-proxy.test' ) && str_ends_with( $url, '/models' ) ) {
+				return array(
+					'headers'  => array( 'content-type' => 'application/json' ),
+					'body'     => wp_json_encode( array( 'data' => array( array( 'id' => SuperdavAiProvider::FAST_MODEL_ID ) ) ) ),
+					'response' => array( 'code' => 200, 'message' => 'OK' ),
+					'cookies'  => array(),
+				);
+			} elseif ( str_contains( $url, 'fake-ai-proxy.test' ) && str_ends_with( $url, '/chat/completions' ) ) {
+				++$provider_calls;
+				$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $job_id )->status );
+				// Deliver the safety-net action while AgentLoop is still running.
+				do_action( BackgroundJobDispatcher::HOOK, $blog_id, $job_id );
+				$this->assertFalse( $controller->handle_process( $process )->get_data()['ok'] );
+				return array(
+					'headers'  => array( 'content-type' => 'application/json' ),
+					'body'     => wp_json_encode(
+						array(
+							'id'      => 'chatcmpl-background-job',
+							'object'  => 'chat.completion',
+							'choices' => array( array( 'index' => 0, 'message' => array( 'role' => 'assistant', 'content' => 'One completed turn.' ), 'finish_reason' => 'stop' ) ),
+							'usage'   => array( 'prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15 ),
+						)
+					),
+					'response' => array( 'code' => 200, 'message' => 'OK' ),
+					'cookies'  => array(),
+				);
+			}
+			return array( 'headers' => array(), 'body' => '', 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array() );
+		};
+		add_filter( 'pre_http_request', $intercept, 10, 3 );
+		try {
+			$run = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/run' );
+			$run->set_body_params( array( 'message' => 'Reply once.', 'provider_id' => SuperdavAiProvider::PROVIDER_ID, 'model_id' => SuperdavAiProvider::FAST_MODEL_ID, 'max_iterations' => 1 ) );
+			$response = $controller->handle_run( $run );
+			$this->assertInstanceOf( \WP_REST_Response::class, $response );
+			$this->assertSame( 202, $response->get_status() );
+			if ( $block_loopback ) {
+				$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $job_id )->status );
+				do_action( BackgroundJobDispatcher::HOOK, $blog_id, $job_id );
+			}
+			do_action( BackgroundJobDispatcher::HOOK, $blog_id, $job_id );
+			$this->assertFalse( $controller->handle_process( $process )->get_data()['ok'] );
+			$this->assertSame( 1, $loopbacks );
+			$this->assertSame( 1, $provider_calls, 'AgentLoop must make exactly one provider turn across all starters.' );
+			$this->assertSame( 'complete', ActiveJobRepository::get_by_job_id( $job_id )->status );
+		} finally {
+			remove_filter( 'pre_http_request', $intercept, 10 );
+			remove_action( BackgroundJobDispatcher::HOOK, $queue_callback, 10 );
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			ActiveJobRepository::delete( $job_id );
+			wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, array( $blog_id, $job_id ) );
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, array( $blog_id, $job_id ), 'sd-ai-agent' );
+			}
+			remove_filter( 'sd_ai_agent_cloud_base_url', $base_url );
+			remove_filter( 'sd_ai_agent_openai_tool_search_enabled', '__return_false' );
+			delete_option( SuperdavAiProvider::CREDENTIAL_OPTION );
+		}
+	}
+
+	/**
+	 * A failed required claim row must not return a permanently unstartable job.
+	 *
+	 * @dataProvider background_job_starters
+	 */
+	public function test_background_job_insert_failure_does_not_dispatch_or_lose_recovery( bool $recoverable ): void {
+		global $wpdb;
+		$session_id = $this->create_session();
+		$state      = array( 'history' => array( array( 'role' => 'user', 'parts' => array( array( 'text' => 'Retry this turn.' ) ) ) ) );
+		if ( $recoverable ) {
+			Database::save_paused_state( $session_id, $state );
+		}
+		$requests = 0;
+		$fail_insert = static function ( $query ) {
+			return str_starts_with( $query, 'INSERT INTO `' . ActiveJobRepository::table_name() . '`' )
+				? 'INSERT INTO sd_ai_agent_missing_test_table (id) VALUES (1)'
+				: $query;
+		};
+		$intercept = static function () use ( &$requests ) {
+			++$requests;
+			return new \WP_Error( 'unexpected_dispatch', 'No job should be dispatched.' );
+		};
+		$previous = $wpdb->suppress_errors( true );
+		add_filter( 'query', $fail_insert );
+		add_filter( 'pre_http_request', $intercept );
+		try {
+			$request = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/run' );
+			$request->set_body_params( array( 'id' => $session_id, 'session_id' => $session_id, 'message' => 'Retry this turn.' ) );
+			$controller = new SessionController( new Database() );
+			$response   = $recoverable ? $controller->handle_resume_recoverable_job( $request ) : $controller->handle_run( $request );
+			$this->assertWPError( $response );
+			$this->assertSame( 'sd_ai_agent_job_enqueue_failed', $response->get_error_code() );
+			$this->assertSame( 0, $requests );
+			if ( $recoverable ) {
+				$this->assertSame( $state, Database::load_and_clear_paused_state( $session_id ) );
+			}
+		} finally {
+			remove_filter( 'query', $fail_insert );
+			remove_filter( 'pre_http_request', $intercept );
+			$wpdb->suppress_errors( $previous );
+		}
 	}
 
 	public function set_up(): void {

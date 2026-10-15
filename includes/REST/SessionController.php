@@ -2010,9 +2010,9 @@ final class SessionController {
 			),
 		);
 
-		if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint ) ) {
+		if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint, true ) ) {
 			$current = ActiveJobRepository::get_by_job_id( $job_id );
-			if ( null !== $current && 'processing' === $current->status ) {
+			if ( null !== $current && in_array( $current->status, array( 'queued', 'processing' ), true ) ) {
 				return $this->checkpoint_resume_outcome( true, false, 'resumed', $metadata, $phase );
 			}
 
@@ -2679,7 +2679,10 @@ final class SessionController {
 		);
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-		ActiveJobRepository::create( 0, $job_id, 0 );
+		if ( false === ActiveJobRepository::create( 0, $job_id, 0, 'queued' ) ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $job_token );
 
@@ -3501,7 +3504,11 @@ final class SessionController {
 		);
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-		ActiveJobRepository::create( $session_id, $job_id, get_current_user_id() );
+		if ( false === ActiveJobRepository::create( $session_id, $job_id, get_current_user_id(), 'queued' ) ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			Database::save_paused_state( $session_id, $paused_state );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 
@@ -3588,16 +3595,12 @@ final class SessionController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private static function resume_job( string $job_id, array $job, string $action ): WP_REST_Response|WP_Error {
-		$token                 = wp_generate_password( 40, false );
-		$params                = is_array( $job['params'] ?? null ) ? $job['params'] : array();
-		$phase                 = is_array( $params['durable_plan_phase'] ?? null ) ? $params['durable_plan_phase'] : array();
-		$is_durable_plan_phase = '' !== (string) ( $phase['plan_id'] ?? '' )
-			&& (int) ( $phase['step_id'] ?? 0 ) > 0;
+		$token = wp_generate_password( 40, false );
 
-		if ( $is_durable_plan_phase && ! ActiveJobRepository::requeue_paused_job( $job_id ) ) {
+		if ( ! ActiveJobRepository::requeue_paused_job( $job_id ) ) {
 			return new WP_Error(
 				'sd_ai_agent_job_not_resumable',
-				__( 'This durable plan job is no longer waiting for confirmation.', 'superdav-ai-agent' ),
+				__( 'This job is no longer waiting for confirmation.', 'superdav-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}
@@ -3607,12 +3610,6 @@ final class SessionController {
 		$job['resume'] = $action;
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-
-		// Durable jobs are atomically queued above so exactly one loopback worker
-		// can claim them. Other jobs retain their established processing transition.
-		if ( ! $is_durable_plan_phase ) {
-			ActiveJobRepository::update_status( $job_id, 'processing' );
-		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 
@@ -3685,12 +3682,16 @@ final class SessionController {
 		// Persist to DB so the job survives transient expiry (source of truth).
 		// @phpstan-ignore-next-line
 		$db_session_id = $session_id;
-		ActiveJobRepository::create(
+		$created       = ActiveJobRepository::create(
 			$db_session_id,
 			$job_id,
 			(int) ( $job['user_id'] ?? 0 ),
-			$durable_plan_requested ? 'queued' : 'processing'
+			'queued'
 		);
+		if ( false === $created ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 		$session_title = SessionTitleGenerator::start(
@@ -3756,6 +3757,12 @@ final class SessionController {
 			return new WP_REST_Response( array( 'ok' => true ), 200 );
 		}
 
+		// The immediate loopback, Action Scheduler and WP-Cron all enter here.
+		// Only one may execute, even if another starter already read the transient.
+		if ( ! ActiveJobRepository::claim_queued_job( $job_id ) ) {
+			return new WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
 		// Restore the user context — the loopback request has no cookies,
 		// but the AI Client needs a user for provider auth binding.
 		if ( ! empty( $job['user_id'] ) ) {
@@ -3772,9 +3779,6 @@ final class SessionController {
 			&& '' !== (string) ( $durable_plan_phase['plan_id'] ?? '' )
 			&& (int) ( $durable_plan_phase['step_id'] ?? 0 ) > 0;
 		$is_durable_plan_request = ! $is_durable_plan_phase && ! empty( $params['durable_plan'] );
-		if ( ( $is_durable_plan_phase || $is_durable_plan_request ) && ! ActiveJobRepository::claim_queued_job( $job_id ) ) {
-			return new WP_REST_Response( array( 'ok' => false ), 200 );
-		}
 
 		// Durable plans deliberately start every provider turn with only the compact
 		// active-phase context. They must not grow provider context by reloading the

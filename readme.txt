@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.24.0
+Stable tag: 1.25.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,8 @@ Stock-image services run only when requested. They receive the search keyword an
 
 * **Custom HTTP tools and webhooks** — Administrators can create tools that call configured external URLs, including disabled examples for weather-style APIs and Zapier (`hooks.zapier.com`). Nothing is contacted unless the tool is enabled and run. Requests send the configured URL, method, headers, substituted inputs, and body. Terms and privacy depend on the configured service. Zapier Terms: https://zapier.com/tos Zapier Privacy: https://zapier.com/privacy
 
+* **Remote MCP servers** — Administrators can add and approve remote Model Context Protocol server URLs. Nothing is contacted unless an administrator configures and enables a connection. Connection setup, OAuth sign-in, tool discovery, and approved tool calls send the configured server URL, authorization metadata, requested scopes, tool inputs, and normal HTTP metadata to that server. Terms and privacy depend on the server you configure.
+
 * **User-requested URL fetch, site scrape, and media import URLs** — URL metadata, SEO audit, scrape, upload-from-URL, and generated-image import tools contact only the URL you provide or approve. The target may receive the requested path, query string, normal HTTP metadata, and a WordPress user-agent; media import tools download the remote file into WordPress. Review the target site's terms and privacy policy before running the tool.
 
 = Notifications (optional) =
@@ -170,6 +172,13 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 3. Changes review workspace showing the completed page-editing workflow and its recorded updates.
 
 == Changelog ==
+
+= 1.25.0 =
+Version 1.25.0 - Released on 2026-10-15
+- New: Connect approved remote MCP servers with OAuth sign-in, scoped tool discovery, and confirmation controls.
+- Improved: Start chat work sooner and handle long conversations more reliably by compacting completed tool activity, respecting provider context limits, and recovering native history.
+- Improved: Localize agent greetings and connection feedback, defer public-chat startup work, and publish refreshed WordPress.org listing assets.
+- Fix: Keep per-turn context out of saved transcripts, preserve UTF-8 SEO parsing, and prevent settings saves from enabling MCP connections unexpectedly.
 
 = 1.24.0 =
 Version 1.24.0 - Released on 2026-10-07

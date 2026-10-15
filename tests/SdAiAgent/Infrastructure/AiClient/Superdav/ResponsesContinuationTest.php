@@ -403,6 +403,26 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertSame( 'tool_search_call', $requests[1]->getData()['input'][1]['type'] );
 	}
 
+	/** Completed-turn compaction runs before the final Responses envelope guard. */
+	public function test_completed_turn_compaction_precedes_final_envelope_guard(): void {
+		$requests   = array();
+		$history    = $this->pending_history( $requests );
+		$history[2] = new UserMessage( array( new MessagePart( new FunctionResponse( 'call_1', 'lookup', array( 'content' => str_repeat( 'payload ', 6000 ) ) ) ) ) );
+		$model      = $this->model( array( $this->text_response( 'resp_compacted' ) ), $requests );
+		$model->set_completed_turn_message_count( 3 );
+		$limit = static fn(): int => 32768;
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'gpt-5.5', 123 );
+		try {
+			$model->generateTextResult( $history );
+			$this->assertCount( 2, $requests );
+			$this->assertStringContainsString( CompletedTurnCompactor::MARKER, wp_json_encode( $requests[1]->getData()['input'] ) );
+		} finally {
+			ProviderTraceLogger::clear_runtime_context();
+			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		}
+	}
+
 	/** Cache eviction replays local tool history through Responses without provider item IDs. */
 	public function test_missing_cursor_replays_native_history_without_provider_item_ids(): void {
 		$requests = array();

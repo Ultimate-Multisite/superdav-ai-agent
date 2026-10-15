@@ -94,9 +94,11 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			// Reject an oversized catalog before inspecting a cursor for another
 			// catalog. AgentLoop can retry with Tier 1 without destroying the
 			// matching snapshot used by an earlier browser/confirmation request.
-			$body = $this->json_encode_for_api( $params );
-			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {
-				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) );
+			$catalog_params          = $params;
+			$catalog_params['input'] = array();
+			$catalog_body            = $this->json_encode_for_api( $catalog_params );
+			if ( strlen( $catalog_body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {
+				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $catalog_body ), SuperdavAiProvider::url( 'responses' ) );
 				if ( is_wp_error( $rejection ) ) {
 					throw new \RuntimeException( $rejection->get_error_message() );
 				}
@@ -123,6 +125,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$params['input'],
 				CompletedTurnCompactor::completed_call_ids( $prompt, $this->completed_turn_message_count )
 			);
+			$body            = $this->json_encode_for_api( $params );
+			if ( strlen( $body ) > ConversationTrimmer::get_request_envelope_byte_budget( SuperdavAiProvider::PROVIDER_ID, $this->metadata()->getId(), true ) ) {
+				$rejection = ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) );
+				if ( is_wp_error( $rejection ) ) {
+					throw new \RuntimeException( $rejection->get_error_message() );
+				}
+			}
 
 			$request = $this->createRequest(
 				HttpMethodEnum::POST(),

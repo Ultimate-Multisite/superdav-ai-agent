@@ -25,8 +25,6 @@ class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
 	 * @var array<string,string>
 	 */
 	private const SCHEMA_BYTE_ALLOWLIST = [
-		// Nested block JSON is retained until its validation contract is split into a dedicated follow-up.
-		'sd-ai-agent/edit-block-tree' => 'Nested block-tree validation contract.',
 		// Query filters remain discoverable while their independently shared schema is reduced.
 		'sd-ai-agent/list-posts'      => 'Post-query filter contract.',
 	];
@@ -83,6 +81,13 @@ class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
 		}
 
 		ksort( $sizes );
+		foreach ( array_keys( self::SCHEMA_BYTE_ALLOWLIST ) as $allowed_name ) {
+			$this->assertGreaterThan(
+				self::SCHEMA_BYTE_BUDGET,
+				$sizes[ $allowed_name ] ?? 0,
+				sprintf( 'Remove stale allowlist entry %s: it is missing or within budget.', $allowed_name )
+			);
+		}
 		$this->assertSame(
 			[],
 			$oversized,

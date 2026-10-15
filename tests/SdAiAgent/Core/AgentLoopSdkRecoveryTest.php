@@ -123,8 +123,8 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		$this->assertCount( 1, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_retry' === $entry['type'] ) );
 	}
 
-	/** Newest tool output compacts against system overhead without losing durable evidence. */
-	public function test_sdk_complete_envelope_compacts_latest_turn_and_preserves_history(): void {
+	/** Completed tool output compacts in the native provider request without changing history. */
+	public function test_sdk_complete_envelope_compacts_completed_turn_and_preserves_history(): void {
 		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 12000 );
 		$evidence = str_repeat( 'Completed tool evidence. ', 300 );
 		$history  = array(
@@ -132,14 +132,16 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 			new ModelMessage( array( new MessagePart( new FunctionCall( 'call-evidence', 'test_evidence', array() ) ) ) ),
 			new UserMessage( array( new MessagePart( new FunctionResponse( 'call-evidence', 'test_evidence', array( 'content' => $evidence ) ) ) ) ),
 		);
-		$forwarded_sizes = array();
+		$forwarded_sizes  = array();
+		$forwarded_bodies = array();
 		add_filter(
 			'pre_http_request',
-			static function ( $preempt, $args, $url ) use ( &$forwarded_sizes ) {
+			static function ( $preempt, $args, $url ) use ( &$forwarded_sizes, &$forwarded_bodies ) {
 				if ( false !== $preempt || ( ! str_ends_with( $url, '/chat/completions' ) && ! str_ends_with( $url, '/responses' ) ) ) {
 					return $preempt;
 				}
 				$forwarded_sizes[] = strlen( $args['body'] );
+				$forwarded_bodies[] = $args['body'];
 				return self::completion( str_ends_with( $url, '/responses' ) );
 			},
 			20,
@@ -151,8 +153,10 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 		$this->assertSame( 'Recovered.', $result['reply'] );
 		$this->assertCount( 1, $forwarded_sizes );
 		$this->assertLessThanOrEqual( 12000, $forwarded_sizes[0] );
+		$this->assertStringContainsString( '[Earlier-turn tool result compacted', $forwarded_bodies[0] );
+		$this->assertStringNotContainsString( $evidence, $forwarded_bodies[0] );
 		$this->assertStringContainsString( $evidence, (string) wp_json_encode( $result['history'] ) );
-		$this->assertCount( 1, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_payload_recovery' === $entry['type'] ) );
+		$this->assertCount( 0, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_payload_recovery' === $entry['type'] ) );
 		$this->assertCount( 0, array_filter( $result['messages'], static fn( array $entry ): bool => 'provider_retry' === $entry['type'] ) );
 	}
 

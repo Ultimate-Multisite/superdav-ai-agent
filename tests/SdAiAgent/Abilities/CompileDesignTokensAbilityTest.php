@@ -83,6 +83,13 @@ class CompileDesignTokensAbilityTest extends WP_UnitTestCase {
 		}
 
 		ksort( $sizes );
+		foreach ( array_keys( self::SCHEMA_BYTE_ALLOWLIST ) as $allowed_name ) {
+			$this->assertGreaterThan(
+				self::SCHEMA_BYTE_BUDGET,
+				$sizes[ $allowed_name ] ?? 0,
+				sprintf( 'Remove stale allowlist entry %s: it is missing or within budget.', $allowed_name )
+			);
+		}
 		$this->assertSame(
 			[],
 			$oversized,

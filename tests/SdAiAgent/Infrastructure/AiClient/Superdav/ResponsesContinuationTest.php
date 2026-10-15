@@ -487,11 +487,16 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[1] );
 			$this->assertSame( $tool['output'], array_slice( $requests[1]['input'], 1, 4 ) );
 			$this->assertSame( array( 'function_call_output' ), array_column( array_slice( $requests[1]['input'], -1 ), 'type' ) );
+			// The provider saw the turn context; the saved transcript holds only what the user typed.
+			$this->assertStringStartsWith( "Find posts.\n\n<context>", $requests[0]['input'][0]['content'] );
+			$this->assertStringNotContainsString( '<context>', (string) wp_json_encode( $first['history'] ) );
 			$history = ConversationSerializer::deserialize( $first['history'] );
 			$second = ( new AgentLoop( 'Explain the finding.', array( 'sd-ai-agent/list-posts' ), $history, $options ) )->run();
 			$this->assertIsArray( $second );
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[2] );
 			$completed_turn = array_values( array_filter( $requests[1]['input'], static fn( array $item ): bool => 'reasoning' !== ( $item['type'] ?? '' ) ) );
+			// Completed turns replay without their stale provider context.
+			$completed_turn[0]['content'] = 'Find posts.';
 			unset( $completed_turn[3]['id'] );
 			$completed_message = $this->text_response( 'resp_second' )->getData()['output'][0];
 			unset( $completed_message['id'] );
@@ -503,6 +508,8 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$this->assertStringStartsWith( "Explain the finding.\n\n<context>\n\n## Current Context", $new_turn[0]['content'] );
 			$this->assertStringEndsWith( '</context>', $new_turn[0]['content'] );
 			$this->assertSame( 1, substr_count( $new_turn[0]['content'], '<context>' ) );
+			$this->assertSame( 1, substr_count( (string) wp_json_encode( $requests[2]['input'] ), '<context>' ), 'Only the newest turn carries context.' );
+			$this->assertStringNotContainsString( '<context>', (string) wp_json_encode( $second['history'] ) );
 			$this->assertSame( $requests[0]['instructions'], $requests[1]['instructions'] );
 			$this->assertSame( $requests[0]['instructions'], $requests[2]['instructions'] );
 			$this->assertCount( 3, $requests );

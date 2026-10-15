@@ -111,6 +111,48 @@ function sd_ai_agent_phpunit_read_config_database(string $tests_dir): array
 }
 
 /**
+ * Resolve the documented shared WordPress config for this checkout.
+ *
+ * A linked worktree stores a .git file that points into the canonical
+ * checkout's .git/worktrees directory. Its documented shared WordPress
+ * installation remains a sibling of that canonical checkout, not of the
+ * linked-worktree base directory.
+ *
+ * @param string|null $repository_dir Repository root (defaults to this checkout).
+ * @return array{0: string|null, 1: bool} Config path and whether an explicit live database is required when it is absent.
+ */
+function sd_ai_agent_phpunit_resolve_live_config(?string $repository_dir = null): array
+{
+	$repository_dir ??= dirname(__DIR__);
+	$worktree_config = dirname($repository_dir) . '/wordpress/wp-config.php';
+	$git_file = $repository_dir . '/.git';
+	if (! is_file($git_file)) {
+		return array($worktree_config, false);
+	}
+
+	$git_metadata = file_get_contents($git_file);
+	if (false === $git_metadata || 1 !== preg_match('/^gitdir:\s*(.+)\s*$/', $git_metadata, $matches)) {
+		return array(null, true);
+	}
+
+	$git_dir = $matches[1];
+	if ('/' !== ($git_dir[0] ?? '')) {
+		$git_dir = dirname($git_file) . '/' . $git_dir;
+	}
+	$git_dir = realpath($git_dir);
+	if (false === $git_dir || 'worktrees' !== basename(dirname($git_dir))) {
+		return array(null, true);
+	}
+
+	$common_git_dir = dirname($git_dir, 2);
+	if (! is_dir($common_git_dir)) {
+		return array(null, true);
+	}
+
+	return array(dirname($common_git_dir, 2) . '/wordpress/wp-config.php', true);
+}
+
+/**
  * Return the validation error for a test database name, if any.
  *
  * A test-like name makes destructive setup visibly distinct from a local site
@@ -119,9 +161,10 @@ function sd_ai_agent_phpunit_read_config_database(string $tests_dir): array
  *
  * @param string $database_name Database name selected for PHPUnit.
  * @param string|null $live_config Shared WordPress config path (defaults to ../wordpress).
+ * @param string|null $repository_dir Repository root for default config resolution.
  * @return string|null
  */
-function sd_ai_agent_phpunit_validate_database_name(string $database_name, ?string $live_config = null): ?string
+function sd_ai_agent_phpunit_validate_database_name(string $database_name, ?string $live_config = null, ?string $repository_dir = null): ?string
 {
 	if ('' === $database_name) {
 		return 'WordPress PHPUnit requires a dedicated test database. Set WP_TESTS_DB_NAME to a separate database name.';
@@ -132,8 +175,11 @@ function sd_ai_agent_phpunit_validate_database_name(string $database_name, ?stri
 	}
 
 	$live_database = getenv('WP_LIVE_DB_NAME');
-	$live_config ??= dirname(__DIR__, 2) . '/wordpress/wp-config.php';
-	if (is_file($live_config)) {
+	$requires_explicit_live_database = false;
+	if (null === $live_config) {
+		list($live_config, $requires_explicit_live_database) = sd_ai_agent_phpunit_resolve_live_config($repository_dir);
+	}
+	if (null !== $live_config && is_file($live_config)) {
 		$live = sd_ai_agent_phpunit_read_config_definitions($live_config);
 		if (! isset($live['DB_NAME']) && (false === $live_database || '' === $live_database)) {
 			return 'Cannot determine the shared WordPress database. Set WP_LIVE_DB_NAME before PHPUnit setup or execution.';
@@ -141,6 +187,8 @@ function sd_ai_agent_phpunit_validate_database_name(string $database_name, ?stri
 		if (($live['DB_NAME'] ?? null) === $database_name) {
 			return 'Refusing to use the shared WordPress database. Configure a separate test database.';
 		}
+	} elseif ($requires_explicit_live_database && (false === $live_database || '' === $live_database)) {
+		return 'Cannot determine the shared WordPress database. Set WP_LIVE_DB_NAME before PHPUnit setup or execution.';
 	}
 	if (false !== $live_database && '' !== $live_database && hash_equals($live_database, $database_name)) {
 		return 'Refusing to use the database declared by WP_LIVE_DB_NAME. Configure WP_TESTS_DB_NAME with a separate test database.';

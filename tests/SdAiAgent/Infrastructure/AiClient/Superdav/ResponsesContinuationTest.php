@@ -9,6 +9,7 @@ use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\ElementorCompletionGate;
+use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Infrastructure\AiClient\Superdav\ResponsesContinuation;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
@@ -360,11 +361,17 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-pro', 123 );
 		try {
 			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
+			// At the default three bytes per token, the ~196 KB chat body also fits admission.
+			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'chat/completions' ) ) );
+			// A published byte-as-token ratio still guards chat without affecting native deferred catalogs.
+			ModelCapabilityRegistry::set( 'superdav-chat-pro', 16384, 200000, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, '', array(), 1 );
 			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'chat/completions' ) ) );
+			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
 			add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
 			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
 		} finally {
 			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+			ModelCapabilityRegistry::forget( 'superdav-chat-pro' );
 			ProviderTraceLogger::clear_runtime_context();
 		}
 	}

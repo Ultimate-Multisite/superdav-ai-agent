@@ -254,6 +254,15 @@ PROMPT;
 	/** @var int Full-envelope bytes from an upstream 413 eligible for one reduced retry. */
 	private int $provider_retry_baseline_envelope_bytes = 0;
 
+	/** @var int Input tokens reported by the most recent provider response. */
+	private int $last_provider_input_tokens = 0;
+
+	/** @var int History bytes sent with the provider response tracked above. */
+	private int $last_provider_request_bytes = 0;
+
+	/** @var int History bytes for the provider request currently in flight. */
+	private int $current_provider_request_bytes = 0;
+
 	/** @var list<Message>|null Full history retained while the provider receives compact context. */
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
 	private ?array $providerPersistenceHistory = null;
@@ -2798,17 +2807,22 @@ PROMPT;
 			}
 		}
 
-		$provider_id      = $this->resolve_provider_id();
-		$model_id         = $this->resolve_effective_model_id( $provider_id );
-		$request_bytes    = ConversationTrimmer::estimate_total_bytes( $this->history );
-		$managed_pressure = 'sd-ai-agent-cloud' === $provider_id
+		$provider_id               = $this->resolve_provider_id();
+		$model_id                  = $this->resolve_effective_model_id( $provider_id );
+		$request_bytes             = ConversationTrimmer::estimate_total_bytes( $this->history );
+		$managed_pressure          = 'sd-ai-agent-cloud' === $provider_id
 			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true )
 			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
+		$reported_context_pressure = $this->last_provider_input_tokens > 0
+			&& ConversationTrimmer::estimate_next_request_tokens(
+				$this->last_provider_input_tokens,
+				max( 0, $request_bytes - $this->last_provider_request_bytes )
+			) > ConversationTrimmer::get_request_compaction_token_budget( $provider_id, $model_id );
 
 		// A newest tool-response cluster cannot always be dropped by turn-based
 		// trimming. Compact a provider-only copy before the managed gateway sees
 		// it; the full transcript is restored by the caller after this request.
-		if ( ! $compaction_active && ! $managed_pressure ) {
+		if ( ! $compaction_active && ! $managed_pressure && ! $reported_context_pressure ) {
 			return null;
 		}
 
@@ -3073,6 +3087,8 @@ PROMPT;
 				)
 			);
 		}
+
+		$this->current_provider_request_bytes = ConversationTrimmer::estimate_total_bytes( $this->history );
 
 		$journey_id      = '';
 		$idempotency_key = '';
@@ -6501,20 +6517,21 @@ PROMPT;
 	 */
 	private function accumulate_tokens( $result ): void {
 		try {
-			// @phpstan-ignore-next-line
-			if ( method_exists( $result, 'getUsage' ) ) {
-				/** @phpstan-ignore-next-line */
-				$usage = $result->getUsage();
-				if ( $usage ) {
-					if ( method_exists( $usage, 'getPromptTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$this->token_usage['prompt'] += (int) $usage->getPromptTokens();
-					}
-					if ( method_exists( $usage, 'getCompletionTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$this->token_usage['completion'] += (int) $usage->getCompletionTokens();
-					}
-				}
+			// The WP AI Client SDK result exposes getTokenUsage(); an earlier getUsage()
+			// probe never matched it, so provider usage was silently dropped.
+			if ( ! $result instanceof GenerativeAiResult ) {
+				return;
+			}
+			$usage         = $result->getTokenUsage();
+			$prompt_tokens = max( 0, $usage->getPromptTokens() );
+
+			$this->token_usage['prompt']     += $prompt_tokens;
+			$this->token_usage['completion'] += max( 0, $usage->getCompletionTokens() );
+			// Internal compaction state only: message_log entries are shown as chat
+			// activity, so provider context usage is not logged there.
+			if ( $prompt_tokens > 0 ) {
+				$this->last_provider_input_tokens  = $prompt_tokens;
+				$this->last_provider_request_bytes = $this->current_provider_request_bytes;
 			}
 		} catch ( \Throwable $e ) {
 			// Token tracking is best-effort.

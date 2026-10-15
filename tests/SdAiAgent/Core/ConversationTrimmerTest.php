@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Core;
 
 use SdAiAgent\Core\ConversationTrimmer;
+use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\Settings;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\UserMessage;
@@ -48,6 +49,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 		remove_all_filters( 'sd_ai_agent_provider_request_max_bytes' );
 		remove_all_filters( 'sd_ai_agent_provider_request_safety_margin_bytes' );
 		remove_all_filters( 'sd_ai_agent_provider_request_max_tokens' );
+		ModelCapabilityRegistry::forget( 'superdav-chat-pro' );
 		parent::tear_down();
 	}
 
@@ -130,6 +132,25 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 		$this->assertSame( 8192, ConversationTrimmer::get_request_byte_budget( 'openai', 'gpt-test' ) );
 		$this->assertSame( 2048, ConversationTrimmer::get_request_safety_margin_bytes( 'openai', 'gpt-test' ) );
 		$this->assertSame( 6144, ConversationTrimmer::get_request_envelope_byte_budget( 'openai', 'gpt-test' ) );
+	}
+
+	/** Managed models mirror the published input-token byte ratio, with a safe fallback. */
+	public function test_managed_request_budget_uses_published_input_token_byte_ratio(): void {
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 999999 );
+		add_filter( 'sd_ai_agent_provider_request_safety_margin_bytes', static fn(): int => 2048 );
+		ModelCapabilityRegistry::set( 'superdav-chat-pro', 16384, 200000, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, '', array(), 3 );
+
+		$context_budget = ( 200000 - Settings::get_max_output_tokens_for_model( 'superdav-chat-pro' ) ) * 3;
+		$this->assertSame( $context_budget, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( $context_budget - 2048, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+
+		ModelCapabilityRegistry::forget( 'superdav-chat-pro' );
+		$this->assertSame( $context_budget, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+	}
+
+	/** Provider-measured context adds only the new request bytes at four bytes per token. */
+	public function test_next_request_token_estimate_uses_reported_input_tokens(): void {
+		$this->assertSame( 21000, ConversationTrimmer::estimate_next_request_tokens( 20000, 4096 ) );
 	}
 
 	/**

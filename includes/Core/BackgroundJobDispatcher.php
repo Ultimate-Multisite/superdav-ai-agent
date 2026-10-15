@@ -28,16 +28,18 @@ final class BackgroundJobDispatcher {
 		$args           = array( $target_blog_id, $job_id );
 		$scheduled      = self::schedule_action( $args );
 		if ( ! $scheduled ) {
-			$scheduled = false !== wp_next_scheduled( self::HOOK, $args ) || wp_schedule_single_event( time(), self::HOOK, $args, true );
-		}
-		if ( true === $scheduled ) {
-			return;
+			if ( false === wp_next_scheduled( self::HOOK, $args ) ) {
+				wp_schedule_single_event( time(), self::HOOK, $args, true );
+			}
 		}
 
+		// Start immediately, even from REST requests that do not wake the queue.
+		// Keep the scheduled action as a safety net when loopbacks are blocked;
+		// every starter shares the worker's atomic queued-to-processing claim.
 		wp_remote_post(
 			rest_url( RestController::NAMESPACE . '/process' ),
 			array(
-				'timeout'  => 5.0,
+				'timeout'  => 0.01,
 				'blocking' => false,
 				'body'     => (string) wp_json_encode(
 					array(

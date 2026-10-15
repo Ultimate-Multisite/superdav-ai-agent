@@ -26,6 +26,11 @@ class ToolApprovalLifecycleTest extends WP_UnitTestCase {
 		do_action( 'rest_api_init' );
 		parent::set_up();
 		Database::install();
+		add_filter( 'pre_http_request', static function ( $preempt, $args, $url ) {
+			return rest_url( RestController::NAMESPACE . '/process' ) === $url
+				? new \WP_Error( 'http_request_failed', 'Loopbacks blocked for this test.' )
+				: $preempt;
+		}, 10, 3 );
 		$user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $user_id );
 		$this->session_id = (int) Database::create_session( [ 'user_id' => $user_id, 'title' => 'Approval diagnostic' ] );
@@ -56,7 +61,7 @@ class ToolApprovalLifecycleTest extends WP_UnitTestCase {
 		$this->assertSame( 404, $second->get_status() );
 		$this->assertSame( 'Job not found or not awaiting confirmation.', $second->get_data()['message'] );
 		$this->assertSame( 'processing', get_transient( RestController::JOB_PREFIX . $this->job_id )['status'] );
-		$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $this->job_id )->status );
+		$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $this->job_id )->status );
 		$this->assertNotFalse( wp_next_scheduled( BackgroundJobDispatcher::HOOK, [ get_current_blog_id(), $this->job_id ] ) );
 	}
 

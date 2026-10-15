@@ -49,7 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 )]
 final class AutomationsHandler {
 
-	/** Execute an agent job claimed by the out-of-process queue worker. */
+	/** Run the durable fallback through the same atomic claim as the immediate loopback. */
 	#[Action( tag: BackgroundJobDispatcher::HOOK, priority: 10 )]
 	public function process_background_job( int $blog_id, string $job_id ): void {
 		$switched = false;

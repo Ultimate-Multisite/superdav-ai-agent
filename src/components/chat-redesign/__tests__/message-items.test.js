@@ -50,15 +50,17 @@ jest.mock( '../ToolCard', () => ( {
 /**
  * Render an assistant message with mocked store selectors.
  *
- * @param {Object}  root0                Options.
- * @param {boolean} root0.hasStreamError Whether the active session has a send error.
- * @param {string}  root0.text           Assistant message text.
- * @param {Array}   root0.toolCalls      Logged tool calls for the message.
+ * @param {Object}   root0                    Options.
+ * @param {boolean}  root0.hasStreamError     Whether the active session has a send error.
+ * @param {Function} root0.onSuggestionSelect Suggestion chip callback.
+ * @param {string}   root0.text               Assistant message text.
+ * @param {Array}    root0.toolCalls          Logged tool calls for the message.
  * @return {Promise<{container: HTMLElement, root: import('react-dom/client').Root}>}
  *   Rendered container and root.
  */
 async function renderAssistantMessage( {
 	hasStreamError,
+	onSuggestionSelect = jest.fn(),
 	text = '',
 	toolCalls,
 } ) {
@@ -92,7 +94,7 @@ async function renderAssistantMessage( {
 					],
 				},
 				index: 0,
-				onSuggestionSelect: jest.fn(),
+				onSuggestionSelect,
 				onThumbsDown: jest.fn(),
 				isLastModel: true,
 			} )
@@ -101,6 +103,55 @@ async function renderAssistantMessage( {
 
 	return { container, root };
 }
+
+describe( 'AssistantMessage Advanced install suggestion', () => {
+	afterEach( () => {
+		document.body.innerHTML = '';
+		jest.clearAllMocks();
+	} );
+
+	test( 'opens the release page instead of messaging the model for the install chip', async () => {
+		const openSpy = jest.spyOn( window, 'open' ).mockReturnValue( null );
+		const onSuggestionSelect = jest.fn();
+		const { container, root } = await renderAssistantMessage( {
+			onSuggestionSelect,
+			text: 'Plugin generation requires SD AI Agent Advanced.\n\n[suggestion] Install SD AI Agent Advanced\n[suggestion] Create a staged plugin development plan',
+		} );
+
+		const buttons = container.querySelectorAll(
+			'button.sdaa-cr-suggestion-chip'
+		);
+		expect( buttons ).toHaveLength( 2 );
+
+		await act( async () => {
+			buttons[ 0 ].dispatchEvent(
+				new MouseEvent( 'click', { bubbles: true } )
+			);
+		} );
+		expect( openSpy ).toHaveBeenCalledWith(
+			'https://github.com/Ultimate-Multisite/superdav-ai-agent/releases/latest',
+			'_blank',
+			'noopener'
+		);
+		expect( onSuggestionSelect ).not.toHaveBeenCalled();
+
+		await act( async () => {
+			buttons[ 1 ].dispatchEvent(
+				new MouseEvent( 'click', { bubbles: true } )
+			);
+		} );
+		expect( openSpy ).toHaveBeenCalledTimes( 1 );
+		expect( onSuggestionSelect ).toHaveBeenCalledWith(
+			'Create a staged plugin development plan'
+		);
+
+		openSpy.mockRestore();
+
+		await act( async () => {
+			root.unmount();
+		} );
+	} );
+} );
 
 describe( 'AssistantMessage progress summary', () => {
 	afterEach( () => {

@@ -23,6 +23,7 @@ import {
 	getFriendlyToolLabel,
 	getRunningToolName,
 	getToolCallDisplayName,
+	isAdvancedInstallSuggestion,
 	pairToolCalls,
 	parseSuggestions,
 	sanitizeProgressText,
@@ -400,5 +401,23 @@ describe( 'parseSuggestions', () => {
 		const { cleanText, suggestions } = parseSuggestions( 'Just text.' );
 		expect( cleanText ).toBe( 'Just text.' );
 		expect( suggestions ).toEqual( [] );
+	} );
+} );
+
+describe( 'isAdvancedInstallSuggestion', () => {
+	test.each( [
+		'Install SD AI Agent Advanced',
+		'Download SD AI Agent Advanced',
+		'install superdav ai agent advanced',
+	] )( 'matches %s', ( label ) => {
+		expect( isAdvancedInstallSuggestion( label ) ).toBe( true );
+	} );
+
+	test.each( [
+		'Create a staged plugin development plan',
+		'Define the owner payout hold period',
+		'Install an advanced theme',
+	] )( 'ignores %s', ( label ) => {
+		expect( isAdvancedInstallSuggestion( label ) ).toBe( false );
 	} );
 } );

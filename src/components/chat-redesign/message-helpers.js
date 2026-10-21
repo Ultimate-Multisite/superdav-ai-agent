@@ -452,6 +452,26 @@ export function buildRunningItems( toolCalls ) {
 }
 
 /**
+ * Download page for the free SD AI Agent Advanced companion ZIP.
+ */
+export const ADVANCED_RELEASE_URL =
+	'https://github.com/Ultimate-Multisite/superdav-ai-agent/releases/latest';
+
+/**
+ * Whether a suggestion chip asks to install the Advanced companion plugin.
+ *
+ * Suggestion chips only send their text back to the model, and the model is
+ * not allowed to install plugins, so these chips must open the manual
+ * installation path instead of being sent as a chat message.
+ *
+ * @param {string} text Suggestion label.
+ * @return {boolean} True when the chip is an Advanced install request.
+ */
+export function isAdvancedInstallSuggestion( text ) {
+	return /(?:install|download).*agent advanced/i.test( text );
+}
+
+/**
  *
  * @param {string} text
  */

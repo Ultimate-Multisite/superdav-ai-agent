@@ -245,8 +245,9 @@ System notices:
 - Use **Link a different user** as a secondary action. Relinking must open the managed confirmation flow rather than accepting identity details in WordPress.
 - **Open account portal**, **Manage payment methods**, and **Add credits** are buttons that request a fresh one-time URL when clicked; do not render, inspect, or persist action tickets in the settings page.
 - Open account actions in a separate tab when the browser permits, clear `window.opener`, and show one neutral retry notice if URL minting fails.
-- Keep free Advanced installation inside the SD AI account surface rather than linking to a manual-download card elsewhere. Disable **Install and activate** only when WordPress does not permit the current administrator to change plugins.
-- After activation, replace the install action with concise version status and an **Automatic updates** toggle. Keep release publishing credentials out of browser state.
+- Advanced is installed manually: the account card shows status plus the instruction to download the ZIP from the latest SD AI Agent GitHub release and use Plugins > Add New Plugin > Upload Plugin. There is no one-click **Install and activate** action (removed with the unverified-download block).
+- Chat suggestion chips only send text to the model. An "Install SD AI Agent Advanced" chip must therefore render as a link to the latest release download page (opened in a new tab) rather than as a message-sending button; the reply text carries the Upload Plugin step.
+- After activation, Advanced updates through WordPress' normal plugin updater. Keep release publishing credentials out of browser state.
 - Keep the account tab and each account card padded on every viewport: use the 2xl spacing token on desktop, the xl token on compact screens, and never let card content touch the settings panel edge.
 
 ### Tooltips

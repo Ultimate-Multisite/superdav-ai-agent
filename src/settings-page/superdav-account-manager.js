@@ -407,8 +407,12 @@ export default function SuperdavAccountManager() {
 	const [ error, setError ] = useState( '' );
 	const [ hasLoadedAccount, setHasLoadedAccount ] = useState( false );
 
-	const loadAccount = useCallback( async () => {
-		setLoading( true );
+	const [ installRequested, setInstallRequested ] = useState( false );
+
+	const loadAccount = useCallback( async ( { silent = false } = {} ) => {
+		if ( ! silent ) {
+			setLoading( true );
+		}
 		setError( '' );
 
 		try {
@@ -561,6 +565,20 @@ export default function SuperdavAccountManager() {
 	useEffect( () => {
 		loadAccount();
 	}, [ loadAccount ] );
+
+	// After the administrator confirms the install on sdaiagent.com in another
+	// tab, refresh Advanced's status quietly whenever this tab regains focus.
+	const advancedActive = !! account?.advanced_plugin?.active;
+	useEffect( () => {
+		if ( ! installRequested || advancedActive ) {
+			return undefined;
+		}
+
+		const refresh = () => loadAccount( { silent: true } );
+		window.addEventListener( 'focus', refresh );
+
+		return () => window.removeEventListener( 'focus', refresh );
+	}, [ installRequested, advancedActive, loadAccount ] );
 
 	if ( loading ) {
 		return (
@@ -879,19 +897,48 @@ export default function SuperdavAccountManager() {
 									</p>
 								) }
 								{ ! advancedPlugin.bundled &&
+									! advancedPlugin.active && (
+										<>
+											<Button
+												variant="primary"
+												onClick={ () => {
+													setInstallRequested( true );
+													openAccountAction(
+														'install_advanced'
+													);
+												} }
+												isBusy={
+													openingAction ===
+													'install_advanced'
+												}
+												disabled={
+													!! openingAction ||
+													! advancedPlugin.can_install
+												}
+											>
+												{ advancedPlugin.installed
+													? __(
+															'Activate',
+															'superdav-ai-agent'
+													  )
+													: __(
+															'Install and activate',
+															'superdav-ai-agent'
+													  ) }
+											</Button>
+											<p className="description">
+												{ __(
+													'Opens sdaiagent.com in a new tab to confirm. SD AI then installs Advanced on this site; return here when it finishes.',
+													'superdav-ai-agent'
+												) }
+											</p>
+										</>
+									) }
+								{ ! advancedPlugin.bundled &&
 									! advancedPlugin.installed && (
 										<p className="description">
 											{ __(
-												'Download the Advanced ZIP from the latest SD AI Agent GitHub release, then install it from Plugins > Add New Plugin > Upload Plugin.',
-												'superdav-ai-agent'
-											) }
-										</p>
-									) }
-								{ advancedPlugin.installed &&
-									! advancedPlugin.active && (
-										<p className="description">
-											{ __(
-												'Activate Advanced from the Plugins screen. After activation, Advanced checks and verifies its own updates.',
+												'Prefer to install manually? Download the Advanced ZIP from the latest SD AI Agent GitHub release, then install it from Plugins > Add New Plugin > Upload Plugin.',
 												'superdav-ai-agent'
 											) }
 										</p>

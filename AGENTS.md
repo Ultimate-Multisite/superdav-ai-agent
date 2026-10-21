@@ -562,6 +562,17 @@ second must report zero failures for the four ability suites.
 - **User Context**: Always execute REST operations as the real current user (via
   `get_current_user_id()` and capability checks). Never bypass user context or
   execute operations as a privileged system user without explicit authorization.
+- **Signed service command exception**: `POST /sd-ai-agent/v1/service/install-advanced`
+  (`includes/REST/AdvancedInstallController.php`) is the only route in the namespace
+  that is not authorised by a WordPress capability, because its caller is the SD AI
+  service, not a browser. Its `permission_callback` must keep verifying the Ed25519
+  signature, installation ID, site URL, expiry, package SHA-256, and single permitted
+  package URL via `AdvancedInstallCommand::verify()` before any handler code runs, and
+  the nonce must stay single-use. Never add another unauthenticated route, never relax
+  those checks, and never make the dashboard download or install Advanced itself:
+  WordPress.org guideline 8 only permits the service-pushed flow. Verify with
+  `rg -n "AdvancedInstallCommand::verify|install_from_command" includes/` and
+  `pnpm run test:php -- --filter='AdvancedInstallCommandTest|AdvancedPluginManagerTest'`.
 - **Endpoint Visibility**: The `sd-ai-agent/v1` namespace is private to the plugin.
   Do not expose internal implementation details, debug endpoints, or experimental
   features in the public REST API. Use capability checks to gate all endpoints.

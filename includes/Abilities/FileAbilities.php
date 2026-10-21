@@ -38,7 +38,7 @@ class FileAbilities {
 			'sd_ai_agent_advanced_plugin_required',
 			sprintf(
 				/* translators: %s: ability name */
-				__( 'The %s ability is provided by the free SD AI Agent Advanced plugin. Download its ZIP from the latest SD AI Agent GitHub release, then install it from Plugins > Add New Plugin > Upload Plugin.', 'superdav-ai-agent' ),
+				__( 'The %s ability is provided by the free SD AI Agent Advanced plugin. Open SD AI Agent settings > SD AI account and choose Install and activate, or install its ZIP from the latest SD AI Agent GitHub release via Plugins > Add New Plugin > Upload Plugin.', 'superdav-ai-agent' ),
 				$ability_name
 			)
 		);

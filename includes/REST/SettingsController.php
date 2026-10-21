@@ -160,7 +160,7 @@ final class SettingsController {
 					'action' => array(
 						'required'          => true,
 						'type'              => 'string',
-						'validate_callback' => static fn( mixed $value ): bool => is_string( $value ) && in_array( $value, array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account' ), true ),
+						'validate_callback' => static fn( mixed $value ): bool => is_string( $value ) && in_array( $value, array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account', 'install_advanced' ), true ),
 					),
 				),
 			)

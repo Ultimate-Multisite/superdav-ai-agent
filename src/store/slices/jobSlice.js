@@ -22,6 +22,9 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 // duplicate pollers can execute one browser-tool batch twice and consume the
 // single-use paused state before the first poller receives its response.
 const activePollersByDispatch = new WeakMap();
+// A shared-session terminal response can be delivered more than once without
+// being consumed by this viewer. Reload it, but count its usage only once.
+const completedJobsByDispatch = new WeakMap();
 
 /**
  * Check whether a newer job owns the session.
@@ -453,6 +456,11 @@ export const actions = {
 				return;
 			}
 			activePollers.add( pollerKey );
+			let completedJobs = completedJobsByDispatch.get( dispatch );
+			if ( ! completedJobs ) {
+				completedJobs = new Set();
+				completedJobsByDispatch.set( dispatch, completedJobs );
+			}
 
 			let attempts = 0;
 			const maxAttempts = 200;
@@ -1188,8 +1196,10 @@ export const actions = {
 
 						if (
 							result.token_usage &&
+							! completedJobs.has( pollerKey ) &&
 							select.getCurrentSessionId() === sessionId
 						) {
+							completedJobs.add( pollerKey );
 							const current = select.getTokenUsage();
 							dispatch.setTokenUsage( {
 								prompt:

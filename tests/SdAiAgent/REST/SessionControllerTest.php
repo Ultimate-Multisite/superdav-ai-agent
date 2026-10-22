@@ -253,13 +253,14 @@ class SessionControllerTest extends WP_UnitTestCase {
 	/** A shortened 522-row result must not be sliced at the old 528-row count. */
 	public function test_shorter_completed_history_and_accounting_are_idempotent(): void {
 		global $wpdb;
+		$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_outer_completion_test' ) );
 		$session_id = $this->create_session();
 		$original   = array();
 		for ( $i = 0; $i < 528; ++$i ) {
 			$original[] = array( 'role' => 0 === $i % 2 ? 'user' : 'model', 'parts' => array( array( 'text' => "Saved row {$i}." ) ) );
 		}
-		$old_tool = array( 'type' => 'result', 'id' => 'saved-tool', 'name' => 'saved-tool', 'result' => array( 'done' => true ) );
-		$new_tool = array( 'type' => 'result', 'id' => 'followup-tool', 'name' => 'followup-tool', 'result' => array( 'done' => true ) );
+		$old_tool = array( 'type' => 'result', 'id' => 'saved-tool', 'sequence' => 1, 'name' => 'saved-tool', 'result' => array( 'done' => true ) );
+		$new_tool = array( 'type' => 'result', 'id' => 'followup-tool', 'sequence' => 2, 'name' => 'followup-tool', 'result' => array( 'done' => true ) );
 		Database::append_to_session( $session_id, $original, array( $old_tool ) );
 		$history   = array_slice( $original, 8 );
 		// A repeated chip may have the exact text of a previously saved prompt.
@@ -283,6 +284,9 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assertCount( 1, $usage );
 		$this->assertSame( 120, (int) $usage[0]['prompt_tokens'] );
 		$this->assertSame( 8, (int) $usage[0]['completion_tokens'] );
+		$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_outer_completion_test' ) );
+		$this->assertNull( Database::get_session( $session_id ), 'Completion must not commit caller-owned writes.' );
+		$this->assertNotFalse( $wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_outer_completion_test' ) );
 	}
 
 	/** Any failed transcript/counter/ledger write rolls back the entire receipt. */

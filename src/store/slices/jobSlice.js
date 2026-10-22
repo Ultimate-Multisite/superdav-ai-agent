@@ -505,7 +505,7 @@ export const actions = {
 				}
 				return ownershipLost;
 			};
-			const reloadSession = async () => {
+			const reloadSession = async ( completionJobId = null ) => {
 				const session = await apiFetch( {
 					path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				} );
@@ -514,6 +514,15 @@ export const actions = {
 					select.getCurrentSessionId() !== sessionId
 				) {
 					return false;
+				}
+				if (
+					completionJobId &&
+					! session.messages?.some(
+						( message ) =>
+							message.completion_job_id === completionJobId
+					)
+				) {
+					throw new Error( 'Missing saved completion receipt' );
 				}
 				dispatch.setCurrentSession(
 					session.id,
@@ -1131,7 +1140,7 @@ export const actions = {
 							select.getCurrentSessionId() === sessionId
 						) {
 							try {
-								await reloadSession();
+								await reloadSession( jobId );
 								if ( stopIfReplaced() ) {
 									return;
 								}
@@ -1139,7 +1148,8 @@ export const actions = {
 								if ( stopIfReplaced() ) {
 									return;
 								}
-								// Fallback: append locally if DB reload fails.
+								// Keep a returned answer visible, but do not advertise a
+								// saved success or attach usage to the previous answer.
 								if ( result.reply ) {
 									dispatch.appendMessage( {
 										role: 'model',
@@ -1147,6 +1157,23 @@ export const actions = {
 										toolCalls: resultToolCalls,
 									} );
 								}
+								dispatch.appendMessage( {
+									role: 'system',
+									parts: [
+										{
+											text: __(
+												'The response could not be confirmed in the saved conversation. Reload before continuing.',
+												'superdav-ai-agent'
+											),
+										},
+									],
+								} );
+								dispatch.setStreamError( true, sessionId );
+								dispatch.setFeedbackBanner?.( {
+									reason: 'turn_persistence_failed',
+									eventId: jobId,
+								} );
+								return finishJob();
 							}
 						} else if (
 							result.reply &&
@@ -1181,14 +1208,17 @@ export const actions = {
 								cost
 							);
 
-							// Record per-message metadata on the last model
-							// message so the MessageList action row can
-							// display model · duration · tokens · cost.
+							// Bind usage to this job's durable answer, never merely
+							// whichever old model message happens to be last.
 							const msgs =
 								select.getCurrentSessionMessages() || [];
 							let lastModelIdx = -1;
 							for ( let i = msgs.length - 1; i >= 0; i-- ) {
-								if ( msgs[ i ].role === 'model' ) {
+								if (
+									msgs[ i ].role === 'model' &&
+									( ! result.session_id ||
+										msgs[ i ].completion_job_id === jobId )
+								) {
 									lastModelIdx = i;
 									break;
 								}
@@ -1199,8 +1229,13 @@ export const actions = {
 									? ( Date.now() - sentAt ) / 1000
 									: null;
 								const providers = select.getProviders() || [];
-								const pid = select.getSelectedProviderId();
-								const mid = select.getSelectedModelId();
+								const pid =
+									msgs[ lastModelIdx ].provider_id ||
+									select.getSelectedProviderId();
+								const mid =
+									msgs[ lastModelIdx ].model_id ||
+									result.model_id ||
+									select.getSelectedModelId();
 								const provider = providers.find(
 									( p ) => p.id === pid
 								);

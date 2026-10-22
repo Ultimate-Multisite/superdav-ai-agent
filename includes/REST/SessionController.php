@@ -4271,71 +4271,25 @@ final class SessionController {
 			if ( $session_id ) {
 				$job['result']['session_id'] = $session_id;
 
-				// The full history from the loop includes existing + new messages.
-				// Slice off only the new ones to append.
-				$session        = $this->database->get_session( $session_id );
-				$existing_count = 0;
-				if ( $session ) {
-					$existing_messages = json_decode( $session->messages, true ) ?: array();
-					// @phpstan-ignore-next-line
-					$existing_count = count( $existing_messages );
-				}
-
-				$full_history = $result['history'] ?? array();
-				/** @var array<mixed> $full_history */
-				$appended = ( $is_durable_plan_phase || $is_durable_plan_request ) ? $full_history : array_slice( $full_history, $existing_count );
-				// Persist the resolved provider/model with each new display message.
-				// Session-level fields only describe the initial selection and cannot
-				// accurately label a conversation whose model changes between turns.
 				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
 				$model_id    = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
-				$appended    = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
-				/** @var list<array<string, mixed>> $tool_calls_result */
-				$tool_calls_result = $result['tool_calls'] ?? array();
-				$this->database->append_to_session( $session_id, array_values( $appended ), $tool_calls_result );
-
-				// Persist token usage.
-				$token_usage = $result['token_usage'] ?? array();
-				/** @var array<string, mixed> $token_usage */
-				if ( ! empty( $token_usage ) ) {
-					$this->database->update_session_tokens(
-						$session_id,
-						// @phpstan-ignore-next-line
-						(int) ( $token_usage['prompt'] ?? 0 ),
-						// @phpstan-ignore-next-line
-						(int) ( $token_usage['completion'] ?? 0 )
-					);
-				}
-
-				// Log to usage tracking table.
-				// Use resolved options (which include agent overrides) rather than raw params.
-				// @phpstan-ignore-next-line
-				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
-				// @phpstan-ignore-next-line
-				$model_id = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
-				// @phpstan-ignore-next-line
-				$prompt_t = (int) ( $token_usage['prompt'] ?? 0 );
-				// @phpstan-ignore-next-line
-				$completion_t = (int) ( $token_usage['completion'] ?? 0 );
-
-				if ( $prompt_t > 0 || $completion_t > 0 ) {
-					$cost = CostCalculator::calculate_cost( $model_id, $prompt_t, $completion_t );
-					$this->database->log_usage(
-						array(
-							'user_id'           => $job['user_id'] ?? 0,
-							'session_id'        => $session_id,
-							'provider_id'       => $provider_id,
-							'model_id'          => $model_id,
-							'prompt_tokens'     => $prompt_t,
-							'completion_tokens' => $completion_t,
-							'cost_usd'          => $cost,
-						)
-					);
+				$saved       = $this->persist_completed_turn(
+					$session_id,
+					$job_id,
+					$result,
+					$provider_id,
+					$model_id,
+					$is_durable_plan_phase || $is_durable_plan_request
+				);
+				if ( is_wp_error( $saved ) ) {
+					$this->persist_active_job_failure( $job_id, $job, ActiveJobFailureDiagnostic::REASON_UNKNOWN, array( 'last_safe_phase' => 'completion_persistence' ) );
+					$job['error'] = $saved->get_error_message();
+					unset( $job['result'] );
 				}
 			}
 
 			// Log webhook execution success.
-			if ( ! empty( $job['webhook_id'] ) ) {
+			if ( 'complete' === $job['status'] && ! empty( $job['webhook_id'] ) ) {
 				$token_usage = $result['token_usage'] ?? array(
 					'prompt'     => 0,
 					'completion' => 0,
@@ -4393,6 +4347,98 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * Save one completed turn and its cumulative usage exactly once.
+	 *
+	 * Pauses do not record usage. The resumed loop carries cumulative counters,
+	 * so the final transcript receipt, session increment and ledger row commit
+	 * together. A replay finds the durable receipt before doing any writes.
+	 *
+	 * @param int                  $session_id Session receiving the turn.
+	 * @param string               $job_id Stable server-owned job identity.
+	 * @param array<string, mixed> $result Completed loop result.
+	 * @param string               $provider_id Resolved provider.
+	 * @param string               $model_id Resolved model.
+	 * @param bool                 $history_is_delta Durable plans start with isolated context.
+	 * @return bool|WP_Error Whether the entire turn was committed.
+	 */
+	public function persist_completed_turn( int $session_id, string $job_id, array $result, string $provider_id, string $model_id, bool $history_is_delta = false ): bool|WP_Error {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		$history = $this->normalize_serialized_rows( $result['history'] ?? array() );
+		$receipt = '' !== $job_id ? $job_id : hash( 'sha256', (string) wp_json_encode( $result ) );
+		$error   = new WP_Error(
+			'sd_ai_agent_turn_persistence_failed',
+			__( 'The response could not be saved. Reload the conversation before continuing.', 'superdav-ai-agent' ),
+			array( 'status' => 500 )
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic transcript, counters and usage ledger transaction.
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			return $error;
+		}
+		$committed = false;
+		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialize completion receipts for this session across workers.
+			$locked  = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d FOR UPDATE', Database::table_name(), $session_id ) );
+			$session = $this->database->get_session( $session_id );
+			if ( ! $locked || ! $session ) {
+				return $error;
+			}
+			$existing = $this->normalize_serialized_rows( json_decode( $session->messages, true ) );
+			foreach ( $existing as $row ) {
+				if ( $receipt === ( $row['completion_job_id'] ?? null ) ) {
+					return true;
+				}
+			}
+
+			$offset   = $history_is_delta ? 0 : $this->get_history_append_offset( $history, $existing );
+			$appended = array_values( array_slice( $history, $offset ) );
+			if ( empty( $appended ) || '' === trim( (string) ( $result['reply'] ?? '' ) ) ) {
+				return $error;
+			}
+			$last = count( $appended ) - 1;
+			if ( ! in_array( $appended[ $last ]['role'] ?? '', array( 'model', 'assistant' ), true ) ) {
+				$appended[] = array(
+					'role'  => 'model',
+					'parts' => array( array( 'text' => (string) $result['reply'] ) ),
+				);
+				++$last;
+			}
+			$appended[ $last ]['completion_job_id'] = $receipt;
+			$appended                               = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
+			$tools                                  = $this->normalize_serialized_rows( $result['tool_calls'] ?? array() );
+			$usage                                  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
+			$prompt                                 = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
+			$output                                 = max( 0, (int) ( $usage['completion'] ?? 0 ) );
+			if ( ! $this->database->append_to_session( $session_id, $appended, $tools )
+				|| ! $this->database->update_session_tokens( $session_id, $prompt, $output ) ) {
+				return $error;
+			}
+			if ( ( $prompt > 0 || $output > 0 ) && false === $this->database->log_usage(
+				array(
+					'user_id'           => get_current_user_id(),
+					'session_id'        => $session_id,
+					'provider_id'       => $provider_id,
+					'model_id'          => $model_id,
+					'prompt_tokens'     => $prompt,
+					'completion_tokens' => $output,
+					'cost_usd'          => CostCalculator::calculate_cost( $model_id, $prompt, $output ),
+				)
+			) ) {
+				return $error;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Publish completion only after all durable writes succeed.
+			$committed = false !== $wpdb->query( 'COMMIT' );
+			return $committed ? true : $error;
+		} finally {
+			if ( ! $committed ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A failed save must not leave partial usage or a misleading completion receipt.
+				$wpdb->query( 'ROLLBACK' );
+			}
+		}
 	}
 
 	/** Read title progress independently of the agent's job state. */

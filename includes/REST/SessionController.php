@@ -4392,8 +4392,16 @@ final class SessionController {
 			array( 'status' => 500 )
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic transcript, counters and usage ledger transaction.
-		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+		// Respect a caller that disabled autocommit, including WordPress's
+		// integration-test transactions. Never commit its unrelated writes.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect connection-local transaction ownership.
+		$autocommit = $wpdb->get_var( 'SELECT @@SESSION.autocommit' );
+		if ( ! in_array( $autocommit, array( '0', '1' ), true ) ) {
+			return $error;
+		}
+		$owns_transaction = '1' === $autocommit;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Both alternatives are fixed transaction-control SQL without interpolated values.
+		if ( false === $wpdb->query( $owns_transaction ? 'START TRANSACTION' : 'SAVEPOINT sd_ai_agent_completed_turn' ) ) {
 			return $error;
 		}
 		$committed = false;
@@ -4426,13 +4434,11 @@ final class SessionController {
 			}
 			$appended[ $last ]['completion_job_id'] = $receipt;
 			$appended                               = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
-			$tools                                  = $this->get_unpersisted_recovery_rows(
-				$this->normalize_serialized_rows( $result['tool_calls'] ?? array() ),
-				$this->normalize_serialized_rows( json_decode( (string) $session->tool_calls, true ) )
-			);
-			$usage                                  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
-			$prompt                                 = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
-			$output                                 = max( 0, (int) ( $usage['completion'] ?? 0 ) );
+			// SessionRepository::append() deduplicates stable tool-event identities.
+			$tools  = $this->normalize_serialized_rows( $result['tool_calls'] ?? array() );
+			$usage  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
+			$prompt = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
+			$output = max( 0, (int) ( $usage['completion'] ?? 0 ) );
 			if ( ! $this->database->append_to_session( $session_id, array_values( $appended ), $tools )
 				|| ! $this->database->update_session_tokens( $session_id, $prompt, $output ) ) {
 				return $error;
@@ -4450,15 +4456,19 @@ final class SessionController {
 			) ) {
 				return $error;
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Publish completion only after all durable writes succeed.
-			$committed = false !== $wpdb->query( 'COMMIT' );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Fixed SQL commits our transaction or releases our savepoint after all writes succeed.
+			$committed = false !== $wpdb->query( $owns_transaction ? 'COMMIT' : 'RELEASE SAVEPOINT sd_ai_agent_completed_turn' );
 			return $committed ? true : $error;
 		} catch ( \Throwable $exception ) {
 			return $error;
 		} finally {
 			if ( ! $committed ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A failed save must not leave partial usage or a misleading completion receipt.
-				$wpdb->query( 'ROLLBACK' );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Both fixed SQL alternatives roll back this save without committing caller-owned data.
+				$wpdb->query( $owns_transaction ? 'ROLLBACK' : 'ROLLBACK TO SAVEPOINT sd_ai_agent_completed_turn' );
+				if ( ! $owns_transaction ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Release only our rolled-back savepoint, leaving the caller's transaction open.
+					$wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_completed_turn' );
+				}
 			}
 		}
 	}

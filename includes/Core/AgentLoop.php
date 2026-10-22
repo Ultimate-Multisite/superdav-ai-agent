@@ -1911,19 +1911,6 @@ PROMPT;
 			// the untrimmed session prefix so the failed user turn is not skipped.
 			$recovery_history = $this->history;
 
-			// Smart conversation trimming before each LLM call.
-			// @phpstan-ignore-next-line
-			$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
-			if ( $max_turns > 0 ) {
-				$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
-			}
-
-			// Safety net: validate tool_use/tool_result pairing even when
-			// trimming is disabled. Deserialization round-trips or history
-			// corruption from session storage could leave orphaned tool
-			// calls that cause API 400 errors.
-			$this->history = ConversationTrimmer::validate_tool_pairs( $this->history );
-
 			if ( $this->history_ends_with_model_message() ) {
 				$result = $this->with_error_recovery_data(
 					new WP_Error(
@@ -2576,10 +2563,19 @@ PROMPT;
 	private function send_prompt_with_payload_recovery(): GenerativeAiResult|WP_Error {
 		$durable_history                       = $this->history;
 		$previous_provider_persistence_history = $this->providerPersistenceHistory;
-		$compacted_request_history             = $this->continued_provider_compaction_history();
+		$this->providerPersistenceHistory      = $durable_history;
+		// All history reductions are provider-only, including ordinary turn and
+		// byte-budget trimming. Completion, pauses and recovery retain the exact
+		// durable prefix; its old count is never an offset into a shortened prompt.
+		// @phpstan-ignore-next-line
+		$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
+		if ( $max_turns > 0 ) {
+			$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
+		}
+		$this->history             = ConversationTrimmer::validate_tool_pairs( $this->history );
+		$compacted_request_history = $this->continued_provider_compaction_history();
 		if ( is_array( $compacted_request_history ) ) {
-			$this->history                    = $compacted_request_history;
-			$this->providerPersistenceHistory = $durable_history;
+			$this->history = $compacted_request_history;
 		}
 
 		try {
@@ -2588,10 +2584,8 @@ PROMPT;
 			// Automatic retry compaction is provider context, not the durable chat
 			// transcript. Keep the full history for checkpoints, UI persistence,
 			// and recovery while subsequent provider calls reuse bounded context.
-			if ( is_array( $compacted_request_history ) ) {
-				$this->history                    = $durable_history;
-				$this->providerPersistenceHistory = $previous_provider_persistence_history;
-			}
+			$this->history                    = $durable_history;
+			$this->providerPersistenceHistory = $previous_provider_persistence_history;
 		}
 	}
 

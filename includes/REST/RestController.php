@@ -861,36 +861,20 @@ User: %s',
 			);
 		}
 
-		// Update the job transient to 'complete' so the browser's next poll
-		// sees the finished state rather than the stale 'awaiting_client_tools'
-		// the background job left behind.  Must run before session persistence
-		// so the transient result carries the correct session_id when polled.
-		self::update_job_after_resume( $job_id, 'complete', $result, $session_id );
-
-		// Persist the completed conversation to the session.
-		$session = Database::get_session( $session_id );
-		if ( $session ) {
-			$existing_messages = json_decode( $session->messages, true ) ?: array();
-			$existing_count    = count( $existing_messages );
-			$full_history      = $result['history'] ?? array();
-			/** @var array<mixed> $full_history */
-			$appended = array_slice( $full_history, $existing_count );
-			/** @var list<array<string, mixed>> $tool_calls_stream */
-			$tool_calls_stream = $result['tool_calls'] ?? array();
-			Database::append_to_session( $session_id, array_values( $appended ), $tool_calls_stream );
-
-			$token_usage = $result['token_usage'] ?? array();
-			/** @var array<string, mixed> $token_usage */
-			if ( ! empty( $token_usage ) ) {
-				Database::update_session_tokens(
-					$session_id,
-					// @phpstan-ignore-next-line
-					(int) ( $token_usage['prompt'] ?? 0 ),
-					// @phpstan-ignore-next-line
-					(int) ( $token_usage['completion'] ?? 0 )
-				);
-			}
+		// Publish terminal success only after transcript and cumulative turn usage
+		// have committed. A poll must never race ahead and reload the old answer.
+		$saved = ( new SessionController( new Database() ) )->persist_completed_turn(
+			$session_id,
+			$job_id,
+			$result,
+			(string) ( $options['provider_id'] ?? '' ),
+			(string) ( $result['model_id'] ?? $options['model_id'] ?? '' )
+		);
+		if ( is_wp_error( $saved ) ) {
+			$saved->add_data( $result );
+			return self::accepted_tool_result_failure_response( $job_id, $session_id, $saved, array( 'last_safe_phase' => 'completion_persistence' ) );
 		}
+		self::update_job_after_resume( $job_id, 'complete', $result, $session_id );
 
 		$token_usage = $result['token_usage'] ?? array(
 			'prompt'     => 0,

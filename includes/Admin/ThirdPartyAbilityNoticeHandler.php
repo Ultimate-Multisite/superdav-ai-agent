@@ -41,6 +41,7 @@ final class ThirdPartyAbilityNoticeHandler {
 	 *
 	 * Called on the `admin_notices` hook. Only displays if:
 	 * - WordPress Abilities API is available
+	 * - The ability registry has already been initialized by a real consumer
 	 * - At least one ability is classified as `private-unknown`
 	 * - The notice has not been dismissed
 	 * - The current user can manage options
@@ -51,6 +52,13 @@ final class ThirdPartyAbilityNoticeHandler {
 		}
 
 		if ( ! function_exists( 'wp_get_abilities' ) ) {
+			return;
+		}
+
+		// A notice must not initialize every provider and schema on ordinary pages.
+		// Actual ability consumers (including discovery APIs) initialize on demand.
+		// Wait for registration to finish before inspecting the registry.
+		if ( ! did_action( 'wp_abilities_api_init' ) || doing_action( 'wp_abilities_api_init' ) ) {
 			return;
 		}
 

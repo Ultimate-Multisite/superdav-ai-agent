@@ -52,6 +52,67 @@ class ThirdPartyAbilityNoticeHandlerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A passive notice must leave a cold registry cold, even in auto mode.
+	 */
+	public function test_notice_does_not_initialize_ability_registry(): void {
+		global $wp_actions;
+
+		$previous_actions = $wp_actions;
+		$registry         = new \ReflectionProperty( \WP_Abilities_Registry::class, 'instance' );
+		$registry->setAccessible( true );
+		$previous_registry = $registry->getValue();
+		$option            = get_option( 'sd_ai_agent_settings', array() );
+		$option            = is_array( $option ) ? $option : array();
+		$option['third_party_mode'] = 'auto';
+		update_option( 'sd_ai_agent_settings', $option );
+
+		$register = static function (): void {
+			wp_register_ability(
+				'notice-test/unclassified',
+				array(
+					'label'               => 'Notice test',
+					'description'         => 'On-demand notice fixture.',
+					'category'            => 'sd-ai-agent',
+					'execute_callback'    => '__return_empty_array',
+					'permission_callback' => '__return_true',
+				)
+			);
+		};
+		add_action( 'wp_abilities_api_init', $register );
+
+		try {
+			unset( $wp_actions['wp_abilities_api_init'] );
+			$registry->setValue( null, null );
+
+			ob_start();
+			ThirdPartyAbilityNoticeHandler::maybe_display_notice();
+			$output = ob_get_clean();
+
+			$this->assertSame( '', $output );
+			$this->assertSame( 0, did_action( 'wp_abilities_api_init' ) );
+			$this->assertNull( $registry->getValue() );
+
+			// A real consumer still initializes providers and schemas on demand.
+			$abilities = wp_get_abilities();
+			$this->assertArrayHasKey( 'notice-test/unclassified', $abilities );
+			$this->assertSame( 1, did_action( 'wp_abilities_api_init' ) );
+
+			$option['third_party_mode'] = 'strict';
+			update_option( 'sd_ai_agent_settings', $option );
+			ob_start();
+			ThirdPartyAbilityNoticeHandler::maybe_display_notice();
+			$output = ob_get_clean();
+			$this->assertStringContainsString( 'sd-ai-agent-third-party-notice', $output );
+			$this->assertStringContainsString( 'abilities/third-party-review', $output );
+			$this->assertSame( 1, did_action( 'wp_abilities_api_init' ) );
+		} finally {
+			remove_action( 'wp_abilities_api_init', $register );
+			$registry->setValue( null, $previous_registry );
+			$wp_actions = $previous_actions;
+		}
+	}
+
+	/**
 	 * Test that notice is not displayed when Abilities API is unavailable.
 	 */
 	public function test_notice_not_displayed_when_abilities_api_unavailable(): void {

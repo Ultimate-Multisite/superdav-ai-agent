@@ -8,6 +8,11 @@ The design language for this plugin is **modern WordPress Admin** — clean, min
 - The main chat and compact widget prefer the selected agent's greeting. Custom agent and branding greetings remain authored content and are not automatically rewritten.
 - AI-generated onboarding introductions and suggestion chips use the same user/site language preference, unless the user asks for another language. This does not change the site's content language.
 
+### Passive ability notices
+
+- The third-party ability notice only inspects a registry already initialized by an actual consumer. Ordinary admin pages must not initialize providers or schemas just to decide whether to show it.
+- Ability discovery APIs remain demand-driven. Classification, capability checks, dismissal and the existing review link are unchanged; no polling or persistent notice cache is introduced.
+
 ---
 
 ## 1. Visual Theme & Atmosphere

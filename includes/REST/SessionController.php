@@ -4433,7 +4433,7 @@ final class SessionController {
 			$usage                                  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
 			$prompt                                 = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
 			$output                                 = max( 0, (int) ( $usage['completion'] ?? 0 ) );
-			if ( ! $this->database->append_to_session( $session_id, $appended, $tools )
+			if ( ! $this->database->append_to_session( $session_id, array_values( $appended ), $tools )
 				|| ! $this->database->update_session_tokens( $session_id, $prompt, $output ) ) {
 				return $error;
 			}

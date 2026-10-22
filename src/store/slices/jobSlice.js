@@ -21,10 +21,9 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 // surfaces can discover or resume the same durable job at nearly the same time;
 // duplicate pollers can execute one browser-tool batch twice and consume the
 // single-use paused state before the first poller receives its response.
-const activePollersByDispatch = new WeakMap();
 // A shared-session terminal response can be delivered more than once without
 // being consumed by this viewer. Reload it, but count its usage only once.
-const completedJobsByDispatch = new WeakMap();
+const jobsByDispatch = new WeakMap();
 
 /**
  * Check whether a newer job owns the session.
@@ -446,21 +445,17 @@ export const actions = {
 	 */
 	pollJob( jobId, sessionId ) {
 		return async ( { dispatch, select } ) => {
-			let activePollers = activePollersByDispatch.get( dispatch );
-			if ( ! activePollers ) {
-				activePollers = new Set();
-				activePollersByDispatch.set( dispatch, activePollers );
+			let jobs = jobsByDispatch.get( dispatch );
+			if ( ! jobs ) {
+				jobs = new Set();
+				jobsByDispatch.set( dispatch, jobs );
 			}
 			const pollerKey = `${ sessionId }:${ jobId }`;
-			if ( activePollers.has( pollerKey ) ) {
+			// Bare UUIDs track completed usage; session-prefixed keys track pollers.
+			if ( jobs.has( pollerKey ) ) {
 				return;
 			}
-			activePollers.add( pollerKey );
-			let completedJobs = completedJobsByDispatch.get( dispatch );
-			if ( ! completedJobs ) {
-				completedJobs = new Set();
-				completedJobsByDispatch.set( dispatch, completedJobs );
-			}
+			jobs.add( pollerKey );
 
 			let attempts = 0;
 			const maxAttempts = 200;
@@ -497,7 +492,7 @@ export const actions = {
 					return;
 				}
 				pollingStopped = true;
-				activePollers.delete( pollerKey );
+				jobs.delete( pollerKey );
 				unsubscribeVisibility();
 				if ( ! hasReplacementJob( select, sessionId, jobId ) ) {
 					clearActiveJob( sessionId );
@@ -525,12 +520,12 @@ export const actions = {
 				}
 				if (
 					completionJobId &&
-					! session.messages?.some(
+					! ( session.messages || [] ).some(
 						( message ) =>
 							message.completion_job_id === completionJobId
 					)
 				) {
-					throw new Error( 'Missing saved completion receipt' );
+					throw new Error();
 				}
 				dispatch.setCurrentSession(
 					session.id,
@@ -1170,17 +1165,13 @@ export const actions = {
 									parts: [
 										{
 											text: __(
-												'The response could not be confirmed in the saved conversation. Reload before continuing.',
+												'Response not confirmed. Reload before continuing.',
 												'superdav-ai-agent'
 											),
 										},
 									],
 								} );
 								dispatch.setStreamError( true, sessionId );
-								dispatch.setFeedbackBanner?.( {
-									reason: 'turn_persistence_failed',
-									eventId: jobId,
-								} );
 								return finishJob();
 							}
 						} else if (
@@ -1196,25 +1187,21 @@ export const actions = {
 
 						if (
 							result.token_usage &&
-							! completedJobs.has( pollerKey ) &&
+							! jobs.has( jobId ) &&
 							select.getCurrentSessionId() === sessionId
 						) {
-							completedJobs.add( pollerKey );
+							jobs.add( jobId );
+							const prompt = result.token_usage.prompt || 0;
+							const completion =
+								result.token_usage.completion || 0;
 							const current = select.getTokenUsage();
 							dispatch.setTokenUsage( {
-								prompt:
-									current.prompt +
-									( result.token_usage.prompt || 0 ),
-								completion:
-									current.completion +
-									( result.token_usage.completion || 0 ),
+								prompt: current.prompt + prompt,
+								completion: current.completion + completion,
 							} );
-							const tu = result.token_usage;
-							const totalTokens =
-								( tu.prompt || 0 ) + ( tu.completion || 0 );
 							const cost = result.cost_estimate || 0;
 							dispatch.accumulateSessionTokens(
-								totalTokens,
+								prompt + completion,
 								cost
 							);
 
@@ -1222,17 +1209,12 @@ export const actions = {
 							// whichever old model message happens to be last.
 							const msgs =
 								select.getCurrentSessionMessages() || [];
-							let lastModelIdx = -1;
-							for ( let i = msgs.length - 1; i >= 0; i-- ) {
-								if (
-									msgs[ i ].role === 'model' &&
+							const lastModelIdx = msgs.findLastIndex(
+								( message ) =>
+									message.role === 'model' &&
 									( ! result.session_id ||
-										msgs[ i ].completion_job_id === jobId )
-								) {
-									lastModelIdx = i;
-									break;
-								}
-							}
+										message.completion_job_id === jobId )
+							);
 							if ( lastModelIdx >= 0 ) {
 								const sentAt = select.getSendTimestamp() || 0;
 								const duration = sentAt
@@ -1253,8 +1235,8 @@ export const actions = {
 									( m ) => m.id === mid
 								);
 								dispatch.setMessageTokens( lastModelIdx, {
-									prompt: tu.prompt || 0,
-									completion: tu.completion || 0,
+									prompt,
+									completion,
 									cost,
 									duration,
 									modelId: model?.id || mid,

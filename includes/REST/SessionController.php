@@ -77,7 +77,7 @@ final class SessionController {
 	 *
 	 * @var list<string>
 	 */
-	private const RECOVERY_TRANSPORT_METADATA = array( 'provider_id', 'model_id' );
+	private const RECOVERY_TRANSPORT_METADATA = array( 'provider_id', 'model_id', 'completion_job_id' );
 
 	/** @var Database Injected database dependency. */
 	private Database $database;
@@ -3053,8 +3053,8 @@ final class SessionController {
 	 * Find the first recovery-history row not already persisted in the session.
 	 *
 	 * Recovery payloads can be full histories or best-effort suffixes. Prefer the
-	 * longest identity prefix; when the persisted session is not a prefix of the
-	 * payload, treat the payload as a suffix so a failed user turn is not dropped.
+	 * longest identity prefix; otherwise match a contiguous persisted suffix.
+	 * Global row membership would discard a new prompt identical to an old one.
 	 *
 	 * @param array $full_history      Serialized recovery history.
 	 * @param array $existing_messages Serialized messages already persisted.
@@ -3077,13 +3077,23 @@ final class SessionController {
 			return $common_prefix;
 		}
 
-		foreach ( $full_history as $index => $row ) {
-			if ( ! $this->recovery_row_exists( $row, $existing_messages ) ) {
-				return $index;
+		$existing_count = count( $existing_messages );
+		for ( $overlap = min( count( $full_history ), $existing_count ); $overlap > 0; --$overlap ) {
+			$start   = $existing_count - $overlap;
+			$matches = true;
+			for ( $index = 0; $index < $overlap; ++$index ) {
+				$persisted = $existing_messages[ $start + $index ] ?? null;
+				if ( ! is_array( $persisted ) || ! $this->recovery_rows_are_semantically_equal( $persisted, $full_history[ $index ] ) ) {
+					$matches = false;
+					break;
+				}
+			}
+			if ( $matches ) {
+				return $overlap;
 			}
 		}
 
-		return count( $full_history );
+		return 0;
 	}
 
 	/**
@@ -3133,7 +3143,7 @@ final class SessionController {
 	/**
 	 * Compare serialized recovery rows by conversation semantics.
 	 *
-	 * Only provider/model attribution is transport metadata. All other fields,
+	 * Only provider/model attribution and completion receipts are metadata. Other fields,
 	 * including role, ordered parts, function-call/result IDs, and payloads,
 	 * remain part of the canonical value.
 	 *
@@ -3154,6 +3164,15 @@ final class SessionController {
 	private function canonicalize_recovery_row( array $row ): array {
 		foreach ( self::RECOVERY_TRANSPORT_METADATA as $metadata_key ) {
 			unset( $row[ $metadata_key ] );
+		}
+		// SDK round-trips add default part type/channel fields. Compare those
+		// defaults consistently without dropping unknown message or tool fields.
+		if ( isset( $row['role'], $row['parts'] ) ) {
+			try {
+				$row = array_replace_recursive( $row, \WordPress\AiClient\Messages\DTO\Message::fromArray( $row )->toArray() );
+			} catch ( \Throwable $error ) {
+				// Malformed recovery rows retain their original strict identity.
+			}
 		}
 
 		/** @var array<string, mixed> $canonical */
@@ -3794,11 +3813,9 @@ final class SessionController {
 				$session_messages = array_values( array_filter( (array) $session_messages, 'is_array' ) );
 				if ( ! empty( $session_messages ) ) {
 					try {
+						// Pair validation belongs to the provider-only view. Retain the
+						// durable prefix even when an older interrupted turn was unpaired.
 						$history = ConversationSerializer::deserialize( $session_messages );
-						// Strip orphaned tool_use blocks (no matching tool_result) at
-						// load time. Prevents API 400 errors when a prior job was
-						// interrupted between recording a tool_use and its tool_result.
-						$history = ConversationTrimmer::validate_tool_pairs( $history );
 					} catch ( \Exception $e ) {
 						$history = array();
 					}
@@ -4272,7 +4289,7 @@ final class SessionController {
 				$job['result']['session_id'] = $session_id;
 
 				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
-				$model_id    = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
+				$model_id    = (string) ( $result['model_id'] ?? $options['model_id'] ?? $params['model_id'] ?? '' );
 				$saved       = $this->persist_completed_turn(
 					$session_id,
 					$job_id,
@@ -4409,7 +4426,10 @@ final class SessionController {
 			}
 			$appended[ $last ]['completion_job_id'] = $receipt;
 			$appended                               = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
-			$tools                                  = $this->normalize_serialized_rows( $result['tool_calls'] ?? array() );
+			$tools                                  = $this->get_unpersisted_recovery_rows(
+				$this->normalize_serialized_rows( $result['tool_calls'] ?? array() ),
+				$this->normalize_serialized_rows( json_decode( (string) $session->tool_calls, true ) )
+			);
 			$usage                                  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
 			$prompt                                 = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
 			$output                                 = max( 0, (int) ( $usage['completion'] ?? 0 ) );
@@ -4433,6 +4453,8 @@ final class SessionController {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Publish completion only after all durable writes succeed.
 			$committed = false !== $wpdb->query( 'COMMIT' );
 			return $committed ? true : $error;
+		} catch ( \Throwable $exception ) {
+			return $error;
 		} finally {
 			if ( ! $committed ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A failed save must not leave partial usage or a misleading completion receipt.

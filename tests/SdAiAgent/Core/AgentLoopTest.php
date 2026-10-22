@@ -2657,6 +2657,10 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertSame( 'Recovered after local envelope reduction.', $result['reply'] );
 		$this->assertCount( 2, $loop->requestSizes );
 		$this->assertLessThan( $loop->requestSizes[0], $loop->requestSizes[1] );
+		$this->assertCount( 4, $result['history'] );
+		$this->assertSame( ConversationSerializer::serialize( $history ), array_slice( $result['history'], 0, 2 ) );
+		$this->assertSame( 'Current request.', $result['history'][2]['parts'][0]['text'] );
+		$this->assertSame( 'Recovered after local envelope reduction.', $result['history'][3]['parts'][0]['text'] );
 		$recoveries = array_filter(
 			$result['messages'],
 			static fn( array $entry ): bool => 'provider_payload_recovery' === ( $entry['type'] ?? '' )
@@ -2714,6 +2718,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertTrue( $data['fallback_attempted'] );
 		$this->assertTrue( $data['payload_reduced'] );
 		$this->assertArrayNotHasKey( 'recovery', $data );
+		$this->assertCount( 3, $data['history'] );
+		$this->assertSame( ConversationSerializer::serialize( $history ), array_slice( $data['history'], 0, 2 ) );
+		$this->assertSame( 'Current request.', $data['history'][2]['parts'][0]['text'] );
 	}
 
 	// -------------------------------------------------------------------------

@@ -289,6 +289,48 @@ class SessionControllerTest extends WP_UnitTestCase {
 		$this->assertNotFalse( $wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_outer_completion_test' ) );
 	}
 
+	/** Explicit transactions keep autocommit enabled and still belong to the caller. */
+	public function test_completed_turn_preserves_explicit_caller_transaction(): void {
+		global $wpdb;
+		$original   = $wpdb;
+		$connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$connection->set_prefix( $original->prefix );
+		$wpdb       = $connection;
+		$session_id = 0;
+		try {
+			// A separate connection avoids committing WordPress's fixture transaction.
+			$this->assertNotFalse( $wpdb->query( 'SET autocommit = 1' ) );
+			$this->assertNotFalse( $wpdb->query( 'START TRANSACTION' ) );
+			$session_id = $this->create_session();
+			$result     = array(
+				'reply'       => 'Saved inside the caller transaction.',
+				'history'     => array(
+					array( 'role' => 'user', 'parts' => array( array( 'text' => 'Keep this transaction open.' ) ) ),
+					array( 'role' => 'model', 'parts' => array( array( 'text' => 'Saved inside the caller transaction.' ) ) ),
+				),
+				'token_usage' => array( 'prompt' => 8, 'completion' => 2 ),
+			);
+			$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'explicit-transaction-job', $result, 'test-provider', 'test-model' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK' ) );
+			$this->assertNull( Database::get_session( $session_id ), 'Completion must not commit an explicit caller transaction.' );
+			$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ) ) );
+			// Without a caller transaction, the helper must commit its own writes.
+			$session_id = $this->create_session();
+			$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'owned-transaction-job', $result, 'test-provider', 'test-model' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK' ) );
+			$this->assertNotNull( Database::get_session( $session_id ) );
+			$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ) ) );
+		} finally {
+			$connection->query( 'ROLLBACK' );
+			if ( $session_id > 0 ) {
+				$connection->delete( Database::usage_table_name(), array( 'session_id' => $session_id ), array( '%d' ) );
+				$connection->delete( Database::table_name(), array( 'id' => $session_id ), array( '%d' ) );
+			}
+			$wpdb = $original;
+			$connection->close();
+		}
+	}
+
 	/** Any failed transcript/counter/ledger write rolls back the entire receipt. */
 	public function test_completed_turn_usage_failure_does_not_publish_partial_success(): void {
 		global $wpdb;

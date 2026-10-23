@@ -4392,14 +4392,34 @@ final class SessionController {
 			array( 'status' => 500 )
 		);
 
-		// Respect a caller that disabled autocommit, including WordPress's
-		// integration-test transactions. Never commit its unrelated writes.
+		// Respect disabled autocommit and explicit caller transactions. A second
+		// START TRANSACTION would implicitly commit the caller's unrelated writes.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect connection-local transaction ownership.
 		$autocommit = $wpdb->get_var( 'SELECT @@SESSION.autocommit' );
 		if ( ! in_array( $autocommit, array( '0', '1' ), true ) ) {
 			return $error;
 		}
 		$owns_transaction = '1' === $autocommit;
+		if ( $owns_transaction ) {
+			// SAVEPOINT succeeds outside a transaction but its RELEASE fails with
+			// ER_SP_DOES_NOT_EXIST (1305). This probe works on MySQL and MariaDB;
+			// MariaDB's @@in_transaction is not portable to MySQL.
+			$previous_suppression = $wpdb->suppress_errors( true );
+			try {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Probe only this connection's transaction state without committing it.
+				$probe_created = false !== $wpdb->query( 'SAVEPOINT sd_ai_agent_completion_probe' );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A successful release confirms the caller already owns a transaction.
+				$has_outer_transaction = $probe_created && false !== $wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_completion_probe' );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect the server's portable numeric diagnostic, not localized error text.
+				$probe_error = $has_outer_transaction ? 0 : (int) $wpdb->get_var( 'SHOW ERRORS LIMIT 1', 1 );
+			} finally {
+				$wpdb->suppress_errors( $previous_suppression );
+			}
+			if ( ! $probe_created || ( ! $has_outer_transaction && 1305 !== $probe_error ) ) {
+				return $error;
+			}
+			$owns_transaction = ! $has_outer_transaction;
+		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Both alternatives are fixed transaction-control SQL without interpolated values.
 		if ( false === $wpdb->query( $owns_transaction ? 'START TRANSACTION' : 'SAVEPOINT sd_ai_agent_completed_turn' ) ) {
 			return $error;

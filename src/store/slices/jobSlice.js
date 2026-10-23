@@ -21,7 +21,9 @@ import { toolCallsContainFailure } from '../../utils/feedback-reporting';
 // surfaces can discover or resume the same durable job at nearly the same time;
 // duplicate pollers can execute one browser-tool batch twice and consume the
 // single-use paused state before the first poller receives its response.
-const activePollersByDispatch = new WeakMap();
+// A shared-session terminal response can be delivered more than once without
+// being consumed by this viewer. Reload it, but count its usage only once.
+const jobsByDispatch = new WeakMap();
 
 /**
  * Check whether a newer job owns the session.
@@ -443,16 +445,17 @@ export const actions = {
 	 */
 	pollJob( jobId, sessionId ) {
 		return async ( { dispatch, select } ) => {
-			let activePollers = activePollersByDispatch.get( dispatch );
-			if ( ! activePollers ) {
-				activePollers = new Set();
-				activePollersByDispatch.set( dispatch, activePollers );
+			let jobs = jobsByDispatch.get( dispatch );
+			if ( ! jobs ) {
+				jobs = new Set();
+				jobsByDispatch.set( dispatch, jobs );
 			}
 			const pollerKey = `${ sessionId }:${ jobId }`;
-			if ( activePollers.has( pollerKey ) ) {
+			// Bare UUIDs track completed usage; session-prefixed keys track pollers.
+			if ( jobs.has( pollerKey ) ) {
 				return;
 			}
-			activePollers.add( pollerKey );
+			jobs.add( pollerKey );
 
 			let attempts = 0;
 			const maxAttempts = 200;
@@ -489,7 +492,7 @@ export const actions = {
 					return;
 				}
 				pollingStopped = true;
-				activePollers.delete( pollerKey );
+				jobs.delete( pollerKey );
 				unsubscribeVisibility();
 				if ( ! hasReplacementJob( select, sessionId, jobId ) ) {
 					clearActiveJob( sessionId );
@@ -505,7 +508,7 @@ export const actions = {
 				}
 				return ownershipLost;
 			};
-			const reloadSession = async () => {
+			const reloadSession = async ( completionJobId = null ) => {
 				const session = await apiFetch( {
 					path: `/sd-ai-agent/v1/sessions/${ sessionId }`,
 				} );
@@ -514,6 +517,15 @@ export const actions = {
 					select.getCurrentSessionId() !== sessionId
 				) {
 					return false;
+				}
+				if (
+					completionJobId &&
+					! ( session.messages || [] ).some(
+						( message ) =>
+							message.completion_job_id === completionJobId
+					)
+				) {
+					throw new Error();
 				}
 				dispatch.setCurrentSession(
 					session.id,
@@ -1131,7 +1143,7 @@ export const actions = {
 							select.getCurrentSessionId() === sessionId
 						) {
 							try {
-								await reloadSession();
+								await reloadSession( jobId );
 								if ( stopIfReplaced() ) {
 									return;
 								}
@@ -1139,7 +1151,8 @@ export const actions = {
 								if ( stopIfReplaced() ) {
 									return;
 								}
-								// Fallback: append locally if DB reload fails.
+								// Keep a returned answer visible, but do not advertise a
+								// saved success or attach usage to the previous answer.
 								if ( result.reply ) {
 									dispatch.appendMessage( {
 										role: 'model',
@@ -1147,6 +1160,19 @@ export const actions = {
 										toolCalls: resultToolCalls,
 									} );
 								}
+								dispatch.appendMessage( {
+									role: 'system',
+									parts: [
+										{
+											text: __(
+												'Response not confirmed. Reload before continuing.',
+												'superdav-ai-agent'
+											),
+										},
+									],
+								} );
+								dispatch.setStreamError( true, sessionId );
+								return finishJob();
 							}
 						} else if (
 							result.reply &&
@@ -1161,46 +1187,47 @@ export const actions = {
 
 						if (
 							result.token_usage &&
+							! jobs.has( jobId ) &&
 							select.getCurrentSessionId() === sessionId
 						) {
+							jobs.add( jobId );
+							const prompt = result.token_usage.prompt || 0;
+							const completion =
+								result.token_usage.completion || 0;
 							const current = select.getTokenUsage();
 							dispatch.setTokenUsage( {
-								prompt:
-									current.prompt +
-									( result.token_usage.prompt || 0 ),
-								completion:
-									current.completion +
-									( result.token_usage.completion || 0 ),
+								prompt: current.prompt + prompt,
+								completion: current.completion + completion,
 							} );
-							const tu = result.token_usage;
-							const totalTokens =
-								( tu.prompt || 0 ) + ( tu.completion || 0 );
 							const cost = result.cost_estimate || 0;
 							dispatch.accumulateSessionTokens(
-								totalTokens,
+								prompt + completion,
 								cost
 							);
 
-							// Record per-message metadata on the last model
-							// message so the MessageList action row can
-							// display model · duration · tokens · cost.
+							// Bind usage to this job's durable answer, never merely
+							// whichever old model message happens to be last.
 							const msgs =
 								select.getCurrentSessionMessages() || [];
-							let lastModelIdx = -1;
-							for ( let i = msgs.length - 1; i >= 0; i-- ) {
-								if ( msgs[ i ].role === 'model' ) {
-									lastModelIdx = i;
-									break;
-								}
-							}
+							const lastModelIdx = msgs.findLastIndex(
+								( message ) =>
+									message.role === 'model' &&
+									( ! result.session_id ||
+										message.completion_job_id === jobId )
+							);
 							if ( lastModelIdx >= 0 ) {
 								const sentAt = select.getSendTimestamp() || 0;
 								const duration = sentAt
 									? ( Date.now() - sentAt ) / 1000
 									: null;
 								const providers = select.getProviders() || [];
-								const pid = select.getSelectedProviderId();
-								const mid = select.getSelectedModelId();
+								const pid =
+									msgs[ lastModelIdx ].provider_id ||
+									select.getSelectedProviderId();
+								const mid =
+									msgs[ lastModelIdx ].model_id ||
+									result.model_id ||
+									select.getSelectedModelId();
 								const provider = providers.find(
 									( p ) => p.id === pid
 								);
@@ -1208,8 +1235,8 @@ export const actions = {
 									( m ) => m.id === mid
 								);
 								dispatch.setMessageTokens( lastModelIdx, {
-									prompt: tu.prompt || 0,
-									completion: tu.completion || 0,
+									prompt,
+									completion,
 									cost,
 									duration,
 									modelId: model?.id || mid,

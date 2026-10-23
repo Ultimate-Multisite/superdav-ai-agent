@@ -149,7 +149,13 @@ async function interceptStream( page, options = {} ) {
 					title: 'Untitled',
 					status: 'active',
 					user_id: 1,
-					messages: [],
+					messages: [
+						{
+							role: 'model',
+							parts: [ { text: 'Hello from the AI!' } ],
+							completion_job_id: 'e2e-test-job-1',
+						},
+					],
 					tool_calls: [],
 				} ),
 			} );

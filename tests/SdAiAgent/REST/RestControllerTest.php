@@ -2879,6 +2879,92 @@ class RestControllerTest extends WP_UnitTestCase {
 
 	// ─── /chat/tool-result regression: 409 loop fix (sd-ai-9ip) ──────────────
 
+	/** Browser resumes save the whole new turn before polling and account once. */
+	public function test_trimmed_client_tool_resume_persists_paired_turn_and_cumulative_usage_once(): void {
+		global $wpdb;
+		wp_set_current_user( $this->admin_id );
+		$provider = \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::PROVIDER_ID;
+		$model    = \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::FAST_MODEL_ID;
+		update_option( \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::CREDENTIAL_OPTION, 'test-key' );
+		( new \SdAiAgent\Bootstrap\SuperdavAiProviderHandler() )->register_provider();
+		$base_url = static fn () => 'http://fake-resume.test';
+		add_filter( 'sd_ai_agent_cloud_base_url', $base_url );
+		add_filter( 'sd_ai_agent_openai_tool_search_enabled', '__return_false' );
+		$session_id = Database::create_session( array( 'user_id' => $this->admin_id, 'title' => 'Long browser resume' ) );
+		$original   = array();
+		for ( $i = 0; $i < 264; ++$i ) {
+			$original[] = array( 'role' => 'user', 'parts' => array( array( 'text' => "Old prompt {$i}." ) ) );
+			$original[] = array( 'role' => 'model', 'parts' => array( array( 'text' => "Old reply {$i}." ) ) );
+		}
+		Database::append_to_session( $session_id, $original );
+		$turn = \SdAiAgent\Core\ConversationSerializer::serialize( array(
+			new \WordPress\AiClient\Messages\DTO\UserMessage( array( new \WordPress\AiClient\Messages\DTO\MessagePart( 'Selected follow-up action.' ) ) ),
+			new \WordPress\AiClient\Messages\DTO\ModelMessage( array( new \WordPress\AiClient\Messages\DTO\MessagePart( new \WordPress\AiClient\Tools\DTO\FunctionCall( 'followup-client', 'wpab__sd-ai-agent-js__get-editor-selection', array() ) ) ) ),
+		) );
+		$pending = array( array( 'id' => 'followup-client', 'name' => 'sd-ai-agent-js/get-editor-selection', 'args' => array() ) );
+		Database::save_paused_state( $session_id, array(
+			'history' => array_merge( $original, $turn ),
+			'pending_client_tool_calls' => $pending,
+			'client_abilities' => array_values( array_filter( \SdAiAgent\Abilities\Js\JsAbilityCatalog::get_descriptors(), static fn ( $item ) => 'sd-ai-agent-js/get-editor-selection' === $item['name'] ) ),
+			'tool_call_log' => array( array( 'type' => 'call', 'id' => 'followup-client', 'name' => 'sd-ai-agent-js/get-editor-selection', 'args' => array(), 'sequence' => 1 ) ),
+			'token_usage' => array( 'prompt' => 100, 'completion' => 5 ),
+			'iterations_remaining' => 3,
+			'provider_id' => $provider,
+			'model_id' => $model,
+		) );
+		$job_id = wp_generate_uuid4();
+		ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'awaiting_client_tools' );
+		set_transient( RestController::JOB_PREFIX . $job_id, array( 'status' => 'awaiting_client_tools', 'user_id' => $this->admin_id, 'params' => array( 'session_id' => $session_id ), 'pending_client_tool_calls' => $pending ), RestController::JOB_TTL );
+		$calls = 0;
+		$intercept = function ( $preempt, $args, $url ) use ( $job_id, $session_id, &$calls ) {
+			if ( str_ends_with( $url, '/chat/completions' ) ) {
+				++$calls;
+				$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $job_id )->status );
+				$this->assertCount( 528, json_decode( Database::get_session( $session_id )->messages, true ) );
+				$this->assertLessThan( 528, count( json_decode( $args['body'], true )['messages'] ) );
+				$this->assertStringContainsString( 'Selected follow-up action.', $args['body'] );
+				return array( 'headers' => array( 'content-type' => 'application/json' ), 'body' => wp_json_encode( array(
+					'id' => 'chatcmpl-followup',
+					'choices' => array( array( 'index' => 0, 'message' => array( 'role' => 'assistant', 'content' => 'New follow-up answer.' ), 'finish_reason' => 'stop' ) ),
+					'usage' => array( 'prompt_tokens' => 10, 'completion_tokens' => 2, 'total_tokens' => 12 ),
+				) ), 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array() );
+			}
+			return array( 'headers' => array( 'content-type' => 'application/json' ), 'body' => wp_json_encode( array( 'data' => array( array( 'id' => \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::FAST_MODEL_ID ) ) ) ), 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array() );
+		};
+		add_filter( 'pre_http_request', $intercept, 10, 3 );
+		try {
+			$params = array( 'session_id' => $session_id, 'job_id' => $job_id, 'tool_results' => array( array( 'id' => 'followup-client', 'name' => 'sd-ai-agent-js/get-editor-selection', 'result' => array( 'selected' => true ) ) ) );
+			$response = $this->dispatch( 'POST', '/sd-ai-agent/v1/chat/tool-result', $params );
+			$this->assertStatus( 200, $response );
+			$this->assertSame( 'New follow-up answer.', $response->get_data()['reply'] );
+			$this->assertSame( 'complete', ActiveJobRepository::get_by_job_id( $job_id )->status );
+			$this->assertStatus( 409, $this->dispatch( 'POST', '/sd-ai-agent/v1/chat/tool-result', $params ) );
+			$this->assertSame( 'complete', $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" )->get_data()['status'] );
+			$this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
+			$session = Database::get_session( $session_id );
+			$saved   = json_decode( $session->messages, true );
+			$this->assertCount( 532, $saved );
+			$this->assertSame( $original, array_slice( $saved, 0, 528 ) );
+			$this->assertSame( 'Selected follow-up action.', $saved[528]['parts'][0]['text'] );
+			$this->assertSame( 'New follow-up answer.', $saved[531]['parts'][0]['text'] );
+			$this->assertSame( $job_id, $saved[531]['completion_job_id'] );
+			$this->assertSame( $model, $saved[531]['model_id'] );
+			$this->assertCount( 532, ConversationTrimmer::validate_tool_pairs( \SdAiAgent\Core\ConversationSerializer::deserialize( $saved ) ) );
+			$this->assertSame( 110, (int) $session->prompt_tokens );
+			$this->assertSame( 7, (int) $session->completion_tokens );
+			$usage = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ), ARRAY_A );
+			$this->assertCount( 1, $usage );
+			$this->assertSame( 110, (int) $usage[0]['prompt_tokens'] );
+			$this->assertSame( 7, (int) $usage[0]['completion_tokens'] );
+			$this->assertSame( 1, $calls );
+		} finally {
+			remove_filter( 'pre_http_request', $intercept, 10 );
+			remove_filter( 'sd_ai_agent_cloud_base_url', $base_url );
+			remove_filter( 'sd_ai_agent_openai_tool_search_enabled', '__return_false' );
+			delete_option( \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::CREDENTIAL_OPTION );
+		}
+	}
+
 	/**
 	 * A provider failure after browser results were accepted returns a bounded
 	 * acknowledgement and leaves the exact continuation available for resume.

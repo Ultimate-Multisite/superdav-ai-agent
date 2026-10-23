@@ -301,6 +301,8 @@ class SessionControllerTest extends WP_UnitTestCase {
 			// A separate connection avoids committing WordPress's fixture transaction.
 			$this->assertNotFalse( $wpdb->query( 'SET autocommit = 1' ) );
 			$this->assertNotFalse( $wpdb->query( 'START TRANSACTION' ) );
+			$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_completion_probe' ) );
+			$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_completed_turn' ) );
 			$session_id = $this->create_session();
 			$result     = array(
 				'reply'       => 'Saved inside the caller transaction.',
@@ -311,6 +313,8 @@ class SessionControllerTest extends WP_UnitTestCase {
 				'token_usage' => array( 'prompt' => 8, 'completion' => 2 ),
 			);
 			$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'explicit-transaction-job', $result, 'test-provider', 'test-model' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_completed_turn' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_completion_probe' ) );
 			$this->assertNotFalse( $wpdb->query( 'ROLLBACK' ) );
 			$this->assertNull( Database::get_session( $session_id ), 'Completion must not commit an explicit caller transaction.' );
 			$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ) ) );

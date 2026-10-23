@@ -4400,6 +4400,7 @@ final class SessionController {
 			return $error;
 		}
 		$owns_transaction = '1' === $autocommit;
+		$savepoint        = 'sd_ai_agent_completed_turn_' . str_replace( '-', '', wp_generate_uuid4() );
 		if ( $owns_transaction ) {
 			// SAVEPOINT succeeds outside a transaction but its RELEASE fails with
 			// ER_SP_DOES_NOT_EXIST (1305). This probe works on MySQL and MariaDB;
@@ -4407,9 +4408,9 @@ final class SessionController {
 			$previous_suppression = $wpdb->suppress_errors( true );
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Probe only this connection's transaction state without committing it.
-				$probe_created = false !== $wpdb->query( 'SAVEPOINT sd_ai_agent_completion_probe' );
+				$probe_created = false !== $wpdb->query( $wpdb->prepare( 'SAVEPOINT %i', $savepoint ) );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A successful release confirms the caller already owns a transaction.
-				$has_outer_transaction = $probe_created && false !== $wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_completion_probe' );
+				$has_outer_transaction = $probe_created && false !== $wpdb->query( $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect the server's portable numeric diagnostic, not localized error text.
 				$probe_error = $has_outer_transaction ? 0 : (int) $wpdb->get_var( 'SHOW ERRORS LIMIT 1', 1 );
 			} finally {
@@ -4420,8 +4421,8 @@ final class SessionController {
 			}
 			$owns_transaction = ! $has_outer_transaction;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Both alternatives are fixed transaction-control SQL without interpolated values.
-		if ( false === $wpdb->query( $owns_transaction ? 'START TRANSACTION' : 'SAVEPOINT sd_ai_agent_completed_turn' ) ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Each branch uses literal SQL or a prepared invocation-local savepoint identifier.
+		if ( false === $wpdb->query( $owns_transaction ? 'START TRANSACTION' : $wpdb->prepare( 'SAVEPOINT %i', $savepoint ) ) ) {
 			return $error;
 		}
 		$committed = false;
@@ -4476,18 +4477,18 @@ final class SessionController {
 			) ) {
 				return $error;
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Fixed SQL commits our transaction or releases our savepoint after all writes succeed.
-			$committed = false !== $wpdb->query( $owns_transaction ? 'COMMIT' : 'RELEASE SAVEPOINT sd_ai_agent_completed_turn' );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Literal SQL commits our transaction or a prepared identifier releases only our savepoint.
+			$committed = false !== $wpdb->query( $owns_transaction ? 'COMMIT' : $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
 			return $committed ? true : $error;
 		} catch ( \Throwable $exception ) {
 			return $error;
 		} finally {
 			if ( ! $committed ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Both fixed SQL alternatives roll back this save without committing caller-owned data.
-				$wpdb->query( $owns_transaction ? 'ROLLBACK' : 'ROLLBACK TO SAVEPOINT sd_ai_agent_completed_turn' );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Literal SQL or a prepared savepoint identifier rolls back only this save.
+				$wpdb->query( $owns_transaction ? 'ROLLBACK' : $wpdb->prepare( 'ROLLBACK TO SAVEPOINT %i', $savepoint ) );
 				if ( ! $owns_transaction ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Release only our rolled-back savepoint, leaving the caller's transaction open.
-					$wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_completed_turn' );
+					$wpdb->query( $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
 				}
 			}
 		}

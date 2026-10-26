@@ -179,11 +179,23 @@ export default function CustomerConversationsRoute() {
 
 	const purgeReviews = async () => {
 		try {
-			const response = await apiFetch( {
-				path: '/sd-ai-agent/v1/customer-conversations/purge',
-				method: 'POST',
-				data: { confirm: true, limit: 1000 },
-			} );
+			// The endpoint deletes at most `limit` rows per call, so repeat
+			// until a batch comes back short (bounded to avoid runaway loops).
+			const batchLimit = 1000;
+			let purged = 0;
+			for ( let batch = 0; batch < 100; batch++ ) {
+				const result = await apiFetch( {
+					path: '/sd-ai-agent/v1/customer-conversations/purge',
+					method: 'POST',
+					data: { confirm: true, limit: batchLimit },
+				} );
+				const count = Number( result?.purged ) || 0;
+				purged += count;
+				if ( count < batchLimit ) {
+					break;
+				}
+			}
+			const response = { purged };
 			setSelected( null );
 			setNotice( {
 				status: 'success',

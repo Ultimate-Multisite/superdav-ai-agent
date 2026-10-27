@@ -907,6 +907,21 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/settings' ) );
 	}
 
+	/** Shared sessions are for administrators and site owners, not every chat role. */
+	public function test_shared_session_is_not_open_to_every_chat_role(): void {
+		$session_id = Database::create_session( [ 'user_id' => $this->admin_id, 'title' => 'Shared setup' ] );
+		Database::share_session( (int) $session_id, $this->admin_id );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+
+		$filter = static fn() => 'edit_others_pages';
+		add_filter( 'sd_ai_agent_onboarding_capability', $filter );
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+		remove_filter( 'sd_ai_agent_onboarding_capability', $filter );
+	}
+
 	/** A network can let a site-owner role (with chat access) start onboarding. */
 	public function test_onboarding_capability_filter_admits_site_owner_role(): void {
 		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );

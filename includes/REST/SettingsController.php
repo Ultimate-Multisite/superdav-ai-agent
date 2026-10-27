@@ -1634,7 +1634,11 @@ final class SettingsController {
 
 				if ( SuperdavAiProvider::PROVIDER_ID === $provider_id ) {
 					$provider_response['default_model'] = SuperdavAiProvider::default_model_id();
-					$provider_response['status']        = ( new SuperdavSiteConnectionService() )->get_status();
+
+					// Wallet, usage and linked-account details are for administrators only.
+					if ( current_user_can( 'manage_options' ) ) {
+						$provider_response['status'] = ( new SuperdavSiteConnectionService() )->get_status();
+					}
 				}
 
 				$providers[] = $provider_response;

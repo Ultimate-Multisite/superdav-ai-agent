@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace SdAiAgent\REST;
 
+use SdAiAgent\Core\Database;
+use SdAiAgent\Core\RolePermissions;
 use SdAiAgent\Models\ChangesLog;
 use SdAiAgent\Services\ChangeRevertService;
 use WP_Error;
@@ -41,6 +43,57 @@ final class ChangesController {
 	use PermissionTrait;
 
 	/**
+	 * Permission check for listing changes.
+	 *
+	 * Administrators may list all changes. Other chat-access roles may only list
+	 * the changes made in one of their own chat sessions (the chat's undo drawer).
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public function check_list_changes_permission( WP_REST_Request $request ): bool {
+		if ( $this->check_permission() ) {
+			return true;
+		}
+
+		return RolePermissions::current_user_has_chat_access()
+			&& self::current_user_owns_session( self::get_int_param( $request, 'session_id' ) );
+	}
+
+	/**
+	 * Permission check for viewing, diffing or undoing one change.
+	 *
+	 * Non-administrators may only act on changes they made in their own chat session.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 */
+	public function check_own_change_permission( WP_REST_Request $request ): bool {
+		if ( $this->check_permission() ) {
+			return true;
+		}
+
+		if ( ! RolePermissions::current_user_has_chat_access() ) {
+			return false;
+		}
+
+		$change = ChangesLog::get( self::get_int_param( $request, 'id' ) );
+
+		return null !== $change
+			&& $change->user_id === get_current_user_id()
+			&& self::current_user_owns_session( $change->session_id );
+	}
+
+	/** Whether the given chat session exists and belongs to the current user. */
+	private static function current_user_owns_session( int $session_id ): bool {
+		if ( $session_id <= 0 ) {
+			return false;
+		}
+
+		$session = Database::get_session( $session_id );
+
+		return $session && (int) $session->user_id === get_current_user_id();
+	}
+
+	/**
 	 * Register REST routes.
 	 */
 	#[Action( tag: 'rest_api_init', priority: 10 )]
@@ -53,7 +106,7 @@ final class ChangesController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_list_changes' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_list_changes_permission' ),
 				'args'                => array(
 					'session_id'  => array(
 						'required'          => false,
@@ -94,7 +147,7 @@ final class ChangesController {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'handle_get_change' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_own_change_permission' ),
 					'args'                => array(
 						'id' => array(
 							'required'          => true,
@@ -124,7 +177,7 @@ final class ChangesController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_get_change_diff' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_own_change_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -141,7 +194,7 @@ final class ChangesController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_revert_change' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_own_change_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,

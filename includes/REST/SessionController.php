@@ -418,7 +418,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_job_status' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_job_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -469,7 +469,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_run' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_run_permission' ),
 				'args'                => array(
 					'message'            => array(
 						'required'          => true,
@@ -624,7 +624,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_confirm_tool' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id'           => array(
 						'required'          => true,
@@ -646,7 +647,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_reject_tool' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -664,7 +666,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_interrupt' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id'      => array(
 						'required'          => true,
@@ -1918,6 +1921,74 @@ final class SessionController {
 
 		$session_id = null !== $row ? (int) $row->session_id : $this->get_job_session_id( $job );
 		return $session_id > 0 && null !== Database::get_shared_session( $session_id );
+	}
+
+	/**
+	 * Permission check for starting a chat run.
+	 *
+	 * Chat-access roles may start runs; outside administrators, a supplied session
+	 * must be the user's own (or a shared session they are allowed to continue).
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool|WP_Error
+	 */
+	public function check_run_permission( WP_REST_Request $request ) {
+		$chat_permission = $this->check_chat_permission();
+		if ( true !== $chat_permission || $this->check_permission() ) {
+			return $chat_permission;
+		}
+
+		$session_id = self::get_int_param( $request, 'session_id' );
+		if ( $session_id <= 0 ) {
+			return true;
+		}
+
+		$session = Database::get_session( $session_id );
+		if ( $session && (int) $session->user_id === get_current_user_id() ) {
+			return true;
+		}
+
+		if ( $session && self::can_access_shared_sessions() && Database::get_shared_session( $session_id ) ) {
+			return true;
+		}
+
+		return self::job_access_error();
+	}
+
+	/**
+	 * Permission check for polling a job.
+	 *
+	 * Administrators keep their existing access; other chat-access roles may only
+	 * poll their own jobs (or jobs in shared sessions they are allowed to see).
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool|WP_Error
+	 */
+	public function check_job_permission( WP_REST_Request $request ) {
+		$chat_permission = $this->check_chat_permission();
+		if ( true !== $chat_permission || $this->check_permission() ) {
+			return $chat_permission;
+		}
+
+		$job_id = self::get_string_param( $request, 'id' );
+		$row    = ActiveJobRepository::get_by_job_id( $job_id );
+		$job    = get_transient( RestController::JOB_PREFIX . $job_id );
+		$job    = is_array( $job ) ? $job : array();
+
+		if ( null === $row && array() === $job ) {
+			// Let the handler return its normal "not found" response.
+			return true;
+		}
+
+		if ( self::can_current_user_view_private_job( $row, $job ) ) {
+			return true;
+		}
+
+		if ( self::can_access_shared_sessions() && $this->can_current_user_view_job( $row, $job ) ) {
+			return true;
+		}
+
+		return self::job_access_error();
 	}
 
 	/** Return the same opaque response for jobs outside the current user's session scope. */
@@ -3283,7 +3354,8 @@ final class SessionController {
 		// For sd-ai-agent/ability-call confirmations, `ability` is the nested
 		// target ability whose policy triggered the pause; `name` remains the
 		// executable meta-tool function name so the confirmed resume can run.
-		if ( $request->get_param( 'always_allow' ) && ! empty( $job['pending_tools'] ) ) {
+		// "Always allow" is a site-wide tool permission, so only administrators may persist it.
+		if ( $request->get_param( 'always_allow' ) && ! empty( $job['pending_tools'] ) && $this->check_permission() ) {
 			// @phpstan-ignore-next-line
 			foreach ( $job['pending_tools'] as $tool ) {
 				/** @var array<string, mixed> $tool */

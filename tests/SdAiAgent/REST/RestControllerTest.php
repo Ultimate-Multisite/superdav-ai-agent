@@ -937,6 +937,34 @@ class RestControllerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Chat roles can send messages: start a run in their own session and poll its job,
+	 * but not run in, or poll, another user's session.
+	 */
+	public function test_chat_role_can_run_and_poll_only_own_jobs(): void {
+		wp_set_current_user( $this->admin_id );
+		$admin_session = (int) Database::create_session( [ 'user_id' => $this->admin_id, 'title' => 'Admin' ] );
+		$admin_job     = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Admin run', 'session_id' => $admin_session ] );
+		$this->assertStatus( 202, $admin_job );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$own_session = (int) Database::create_session( [ 'user_id' => $editor, 'title' => 'Mine' ] );
+
+		$run = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Where do I write a newsletter?', 'session_id' => $own_session ] );
+		$this->assertStatus( 202, $run );
+		$this->assertStatus( 200, $this->dispatch( 'GET', '/sd-ai-agent/v1/job/' . $run->get_data()['job_id'] ) );
+
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Hi', 'session_id' => $admin_session ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/job/' . $admin_job->get_data()['job_id'] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes', [ 'session_id' => $admin_session ] ) );
+		$this->assertStatus( 200, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes', [ 'session_id' => $own_session ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes' ) );
+
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Hi' ] ) );
+	}
+
+	/**
 	 * Test GET /sessions/{id} for another user's session returns 403.
 	 */
 	public function test_get_session_other_user_forbidden(): void {

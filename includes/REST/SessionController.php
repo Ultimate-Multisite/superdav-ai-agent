@@ -113,7 +113,7 @@ final class SessionController {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'handle_list_sessions' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 					'args'                => array(
 						'status' => array(
 							'required'          => false,
@@ -140,7 +140,7 @@ final class SessionController {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'handle_create_session' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 					'args'                => array(
 						'title'       => array(
 							'required'          => false,
@@ -204,7 +204,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_list_folders' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -214,7 +214,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_bulk_sessions' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'ids'    => array(
 						'required' => true,
@@ -240,7 +240,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'handle_empty_trash' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -705,7 +705,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_list_active_jobs' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 

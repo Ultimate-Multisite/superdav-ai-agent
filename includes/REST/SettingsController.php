@@ -87,7 +87,7 @@ final class SettingsController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_providers' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -121,7 +121,7 @@ final class SettingsController {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'handle_get_settings' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -534,10 +534,36 @@ final class SettingsController {
 	}
 
 	/**
+	 * Settings the chat interface reads, for users with chat access who are not administrators.
+	 */
+	private const CHAT_SETTING_KEYS = array(
+		'keyboard_shortcut',
+		'greeting_message',
+		'show_on_frontend',
+		'show_tool_call_details',
+		'show_token_costs',
+		'context_window_default',
+		'yolo_mode',
+	);
+
+	/**
 	 * Handle GET /settings.
+	 *
+	 * Administrators get every setting. Other users with chat access (see
+	 * RolePermissions) get only what the chat interface needs to render.
 	 */
 	public function handle_get_settings(): WP_REST_Response {
 		$settings = $this->settings->get();
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$chat = array_intersect_key( (array) $settings, array_flip( self::CHAT_SETTING_KEYS ) );
+			// @phpstan-ignore-next-line
+			$chat['_defaults'] = array(
+				'greeting_message' => __( 'Send a message to start a conversation.', 'superdav-ai-agent' ),
+			);
+
+			return new WP_REST_Response( $chat, 200 );
+		}
 
 		// Include built-in defaults so the UI can show them as placeholders.
 		// @phpstan-ignore-next-line
@@ -1608,7 +1634,11 @@ final class SettingsController {
 
 				if ( SuperdavAiProvider::PROVIDER_ID === $provider_id ) {
 					$provider_response['default_model'] = SuperdavAiProvider::default_model_id();
-					$provider_response['status']        = ( new SuperdavSiteConnectionService() )->get_status();
+
+					// Wallet, usage and linked-account details are for administrators only.
+					if ( current_user_can( 'manage_options' ) ) {
+						$provider_response['status'] = ( new SuperdavSiteConnectionService() )->get_status();
+					}
 				}
 
 				$providers[] = $provider_response;

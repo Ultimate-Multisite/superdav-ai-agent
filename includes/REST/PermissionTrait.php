@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace SdAiAgent\REST;
 
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\OnboardingManager;
 use SdAiAgent\Core\RolePermissions;
 use WP_Error;
 use WP_REST_Request;
@@ -98,7 +99,7 @@ trait PermissionTrait {
 			return true;
 		}
 
-		if ( Database::get_shared_session( $session_id ) ) {
+		if ( self::can_access_shared_sessions() && Database::get_shared_session( $session_id ) ) {
 			return true;
 		}
 
@@ -148,9 +149,23 @@ trait PermissionTrait {
 			}
 		}
 
-		// Allow if the session is shared.
+		// Allow if the session is shared with the site's administrators and owners.
+		if ( ! self::can_access_shared_sessions() ) {
+			return false;
+		}
 		$shared = Database::get_shared_session( $session_id );
 		return $shared !== null;
+	}
+
+	/**
+	 * Whether the current user may open sessions other people shared.
+	 *
+	 * Shared sessions (including the onboarding session) are for the site's
+	 * administrators and, where a network names one, its site-owner role, not
+	 * for every role that has chat access.
+	 */
+	private static function can_access_shared_sessions(): bool {
+		return current_user_can( 'manage_options' ) || OnboardingManager::current_user_is_site_owner();
 	}
 
 	/**

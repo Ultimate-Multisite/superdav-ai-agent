@@ -874,6 +874,69 @@ class RestControllerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Roles with chat access (editors by default) can run the chat widget: list and
+	 * create their own sessions and read the chat settings, but not admin settings.
+	 */
+	public function test_chat_role_uses_own_sessions_and_chat_settings(): void {
+		$other_editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		Database::create_session( [ 'user_id' => $other_editor, 'title' => 'Not mine' ] );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+
+		$created = $this->dispatch( 'POST', '/sd-ai-agent/v1/sessions', [ 'title' => 'Mine' ] );
+		$this->assertStatus( 201, $created );
+
+		$listed = $this->dispatch( 'GET', '/sd-ai-agent/v1/sessions' );
+		$this->assertStatus( 200, $listed );
+		$this->assertSame( [ 'Mine' ], array_column( (array) $listed->get_data(), 'title' ) );
+
+		foreach ( [ '/sd-ai-agent/v1/sessions/folders', '/sd-ai-agent/v1/sessions/active-jobs', '/sd-ai-agent/v1/providers' ] as $route ) {
+			$this->assertStatus( 200, $this->dispatch( 'GET', $route ) );
+		}
+
+		$settings = $this->dispatch( 'GET', '/sd-ai-agent/v1/settings' );
+		$this->assertStatus( 200, $settings );
+		$this->assertArrayNotHasKey( 'system_prompt', $settings->get_data() );
+		$this->assertArrayNotHasKey( '_features', $settings->get_data() );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/settings', [ 'keyboard_shortcut' => 'alt+b' ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/onboarding/start' ) );
+
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/sessions' ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/settings' ) );
+	}
+
+	/** Shared sessions are for administrators and site owners, not every chat role. */
+	public function test_shared_session_is_not_open_to_every_chat_role(): void {
+		$session_id = Database::create_session( [ 'user_id' => $this->admin_id, 'title' => 'Shared setup' ] );
+		Database::share_session( (int) $session_id, $this->admin_id );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+
+		$filter = static fn() => 'edit_others_pages';
+		add_filter( 'sd_ai_agent_onboarding_capability', $filter );
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+		remove_filter( 'sd_ai_agent_onboarding_capability', $filter );
+	}
+
+	/** A network can let a site-owner role (with chat access) start onboarding. */
+	public function test_onboarding_capability_filter_admits_site_owner_role(): void {
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertFalse( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+
+		$filter = static fn() => 'edit_others_pages';
+		add_filter( 'sd_ai_agent_onboarding_capability', $filter );
+		$this->assertTrue( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertFalse( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+		remove_filter( 'sd_ai_agent_onboarding_capability', $filter );
+	}
+
+	/**
 	 * Test GET /sessions/{id} for another user's session returns 403.
 	 */
 	public function test_get_session_other_user_forbidden(): void {

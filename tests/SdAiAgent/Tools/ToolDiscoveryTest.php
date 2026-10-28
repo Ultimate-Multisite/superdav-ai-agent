@@ -210,8 +210,24 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		// As on a live site, the per-tool capabilities exist on the administrator role.
 		ToolCapabilities::register_capabilities( [ 'sd-ai-agent/update-post', 'sd-ai-agent/list-options' ] );
 
+		// The category manifest the agent sees follows the same gate.
+		$gated = 'test-plugin/manifest-capability-gate';
+		$this->register_test_ability(
+			$gated,
+			[
+				'label'               => 'Manifest Capability Gate',
+				'description'         => 'Test ability for manifest capability filtering.',
+				'category'            => 'manifest-capability-gate',
+				'execute_callback'    => static fn(): array => [],
+				'permission_callback' => static fn(): bool => true,
+			]
+		);
+		ToolCapabilities::register_capabilities( [ $gated ] );
+		$this->assertStringContainsString( 'manifest-capability-gate', ToolDiscovery::build_manifest_section(), 'administrators see the category' );
+
 		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
 		wp_set_current_user( $editor );
+		$this->assertStringNotContainsString( 'manifest-capability-gate', ToolDiscovery::build_manifest_section() );
 		$this->assertTrue( RolePermissions::current_user_has_chat_access() );
 		$this->assertTrue( ToolDiscovery::can_use_meta_tools() );
 

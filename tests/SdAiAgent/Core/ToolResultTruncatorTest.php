@@ -107,6 +107,78 @@ class ToolResultTruncatorTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A list that is still over budget after keeping 10 items loses items from the
+	 * end, not entirely: the agent must still receive usable IDs (e.g. list-posts
+	 * for 34 pages previously returned only "[5015-byte object omitted ...]").
+	 */
+	public function test_oversized_list_keeps_leading_items(): void {
+		$posts = [];
+		for ( $i = 1; $i <= 34; $i++ ) {
+			$posts[] = [
+				'id'       => $i,
+				'title'    => "Chapter page {$i} with a reasonably descriptive title",
+				'slug'     => "chapter-page-{$i}",
+				'status'   => 'publish',
+				'type'     => 'page',
+				'date'     => '2026-10-27 22:00:00',
+				'modified' => '2026-10-28 01:35:00',
+				'link'     => "https://example.org/chapter-page-{$i}/",
+				'excerpt'  => str_repeat( 'Short excerpt text. ', 12 ),
+			];
+		}
+
+		$result  = ToolResultTruncator::truncate( [ 'posts' => $posts, 'total' => 34, 'per_page' => 50 ], 'sd-ai-agent/list-posts' );
+		$encoded = wp_json_encode( $result );
+
+		$this->assertIsString( $encoded );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( $encoded ) );
+		$this->assertIsArray( $result['posts'] );
+		$this->assertSame( 1, $result['posts'][0]['id'] );
+		$kept = array_values( array_filter( $result['posts'], 'is_array' ) );
+		$this->assertGreaterThanOrEqual( 2, count( $kept ) );
+		$this->assertSame( sprintf( '... and %d more items omitted to fit the context limit; narrow the query to see them', 34 - count( $kept ) ), end( $result['posts'] ) );
+		$this->assertSame( 34, $result['total'] );
+	}
+
+	/**
+	 * A list that fits on its own but not beside its siblings keeps shrinking instead of
+	 * being dropped by the root summary.
+	 */
+	public function test_list_keeps_shrinking_until_whole_result_fits(): void {
+		$posts = [];
+		for ( $i = 1; $i <= 9; $i++ ) {
+			$posts[] = [ 'id' => $i, 'body' => str_repeat( 'b', 380 ) ];
+		}
+
+		// The list (~3.6 KB) fits on its own; with its siblings the result is ~4.6 KB.
+		$result  = ToolResultTruncator::truncate( [ 'posts' => $posts, 'notes' => str_repeat( 'n', 480 ), 'summary' => str_repeat( 's', 480 ), 'total' => 9 ] );
+		$encoded = wp_json_encode( $result );
+
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) $encoded ) );
+		$this->assertArrayNotHasKey( '_omitted', $result );
+		$this->assertIsArray( $result['posts'] );
+		$this->assertSame( 1, $result['posts'][0]['id'] );
+	}
+
+	/**
+	 * Database rows report how many rows remain, counting rows the db-query strategy sliced off.
+	 */
+	public function test_db_query_rows_keep_showing_in_step(): void {
+		$rows = [];
+		for ( $i = 1; $i <= 50; $i++ ) {
+			$rows[] = [ 'id' => $i, 'payload' => str_repeat( 'p', 480 ) ];
+		}
+
+		$result = ToolResultTruncator::truncate( [ 'rows' => $rows ], 'sd-ai-agent/db-query' );
+		$kept   = count( array_filter( $result['rows'], 'is_array' ) );
+
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $result ) ) );
+		$this->assertSame( 50, $result['total'] );
+		$this->assertSame( $kept, $result['showing'] );
+		$this->assertStringStartsWith( sprintf( '... and %d more items', 50 - $kept ), (string) end( $result['rows'] ) );
+	}
+
+	/**
 	 * Test truncated string ends with '... [truncated]'.
 	 */
 	public function test_truncated_string_has_suffix(): void {

@@ -960,6 +960,28 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertStatus( 200, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes', [ 'session_id' => $own_session ] ) );
 		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes' ) );
 
+		$change = static fn( int $user, int $session ): int => (int) \SdAiAgent\Models\ChangesLog::record(
+			[
+				'session_id'   => $session,
+				'user_id'      => $user,
+				'object_type'  => 'option',
+				'object_title' => 'blogdescription',
+				'field_name'   => 'blogdescription',
+				'before_value' => 'Before',
+				'after_value'  => 'After',
+			]
+		);
+		$own_change   = $change( $editor, $own_session );
+		$admin_change = $change( $this->admin_id, $admin_session );
+
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$own_change}" ) );
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$own_change}/diff" ) );
+		$this->assertNotSame( 403, $this->dispatch( 'POST', "/sd-ai-agent/v1/changes/{$own_change}/revert" )->get_status() );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$admin_change}" ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$admin_change}/diff" ) );
+		$this->assertStatus( 403, $this->dispatch( 'POST', "/sd-ai-agent/v1/changes/{$admin_change}/revert" ) );
+		$this->assertStatus( 403, $this->dispatch( 'DELETE', "/sd-ai-agent/v1/changes/{$own_change}" ) );
+
 		wp_set_current_user( $this->subscriber_id );
 		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Hi' ] ) );
 	}

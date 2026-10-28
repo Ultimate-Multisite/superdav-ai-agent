@@ -1932,7 +1932,7 @@ final class SessionController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return bool|WP_Error
 	 */
-	public function check_run_permission( WP_REST_Request $request ) {
+	public function check_run_permission( WP_REST_Request $request ): bool|WP_Error {
 		$chat_permission = $this->check_chat_permission();
 		if ( true !== $chat_permission || $this->check_permission() ) {
 			return $chat_permission;
@@ -1964,7 +1964,7 @@ final class SessionController {
 	 * @param WP_REST_Request $request The request object.
 	 * @return bool|WP_Error
 	 */
-	public function check_job_permission( WP_REST_Request $request ) {
+	public function check_job_permission( WP_REST_Request $request ): bool|WP_Error {
 		$chat_permission = $this->check_chat_permission();
 		if ( true !== $chat_permission || $this->check_permission() ) {
 			return $chat_permission;

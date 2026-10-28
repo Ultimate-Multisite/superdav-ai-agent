@@ -107,6 +107,40 @@ class ToolResultTruncatorTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A list that is still over budget after keeping 10 items loses items from the
+	 * end, not entirely: the agent must still receive usable IDs (e.g. list-posts
+	 * for 34 pages previously returned only "[5015-byte object omitted ...]").
+	 */
+	public function test_oversized_list_keeps_leading_items(): void {
+		$posts = [];
+		for ( $i = 1; $i <= 34; $i++ ) {
+			$posts[] = [
+				'id'       => $i,
+				'title'    => "Chapter page {$i} with a reasonably descriptive title",
+				'slug'     => "chapter-page-{$i}",
+				'status'   => 'publish',
+				'type'     => 'page',
+				'date'     => '2026-10-27 22:00:00',
+				'modified' => '2026-10-28 01:35:00',
+				'link'     => "https://example.org/chapter-page-{$i}/",
+				'excerpt'  => str_repeat( 'Short excerpt text. ', 12 ),
+			];
+		}
+
+		$result  = ToolResultTruncator::truncate( [ 'posts' => $posts, 'total' => 34, 'per_page' => 50 ], 'sd-ai-agent/list-posts' );
+		$encoded = wp_json_encode( $result );
+
+		$this->assertIsString( $encoded );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( $encoded ) );
+		$this->assertIsArray( $result['posts'] );
+		$this->assertSame( 1, $result['posts'][0]['id'] );
+		$kept = array_values( array_filter( $result['posts'], 'is_array' ) );
+		$this->assertGreaterThanOrEqual( 2, count( $kept ) );
+		$this->assertMatchesRegularExpression( '/^\.\.\. and \d+ more items; request fewer per page/', (string) end( $result['posts'] ) );
+		$this->assertSame( 34, $result['total'] );
+	}
+
+	/**
 	 * Test truncated string ends with '... [truncated]'.
 	 */
 	public function test_truncated_string_has_suffix(): void {

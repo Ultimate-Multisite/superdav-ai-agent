@@ -109,10 +109,85 @@ class ToolResultTruncator {
 				break;
 			}
 
+			// Lists (posts, pages, terms...) keep their first items so the agent still gets
+			// usable IDs; only branches that cannot shrink are replaced by an omission note.
+			$shrunk = self::shrink_list( self::value_at_path( $result, $largest_path ) );
+			if ( null !== $shrunk ) {
+				$result = self::replace_at_path( $result, $largest_path, $shrunk );
+				continue;
+			}
+
 			$result = self::replace_nested_array_with_omission( $result, $largest_path, $largest_bytes );
 		}
 
 		return self::summarize_to_byte_cap( $result );
+	}
+
+	/**
+	 * Drop the last item of a list, folding it into a trailing "more items" note.
+	 *
+	 * @param mixed $value Candidate branch.
+	 * @return array<int, mixed>|null Shorter list, or null when the branch is not a list of two or more items.
+	 */
+	private static function shrink_list( $value ): ?array {
+		if ( ! is_array( $value ) || ! array_is_list( $value ) ) {
+			return null;
+		}
+
+		$more = 0;
+		$last = end( $value );
+		if ( is_string( $last ) && 1 === preg_match( '/^\.\.\. and (\d+) more items/', $last, $match ) ) {
+			array_pop( $value );
+			$more = (int) $match[1];
+		}
+
+		if ( count( $value ) < 2 ) {
+			return null;
+		}
+
+		array_pop( $value );
+		$value[] = sprintf( '... and %d more items; request fewer per page or the next page to see them', $more + 1 );
+
+		return $value;
+	}
+
+	/**
+	 * Read a nested branch by path.
+	 *
+	 * @param array<string|int, mixed> $value Result.
+	 * @param array<int, string|int>   $path  Nested path.
+	 * @return mixed Branch value, or null when missing.
+	 */
+	private static function value_at_path( array $value, array $path ) {
+		foreach ( $path as $key ) {
+			if ( ! is_array( $value ) || ! array_key_exists( $key, $value ) ) {
+				return null;
+			}
+			$value = $value[ $key ];
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Replace a nested branch by path.
+	 *
+	 * @param array<string|int, mixed> $value       Result.
+	 * @param array<int, string|int>   $path        Nested path.
+	 * @param mixed                    $replacement New branch value.
+	 * @return array<string|int, mixed> Updated result.
+	 */
+	private static function replace_at_path( array $value, array $path, $replacement ): array {
+		$key = array_shift( $path );
+		if ( null === $key || ! array_key_exists( $key, $value ) ) {
+			return $value;
+		}
+
+		$value[ $key ] = [] === $path || ! is_array( $value[ $key ] )
+			? $replacement
+			: self::replace_at_path( $value[ $key ], $path, $replacement );
+
+		return $value;
 	}
 
 	/**

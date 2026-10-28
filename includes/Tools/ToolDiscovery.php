@@ -225,6 +225,33 @@ class ToolDiscovery {
 	}
 
 	/**
+	 * Permission for the ability-search and ability-call meta-tools.
+	 *
+	 * Any role with chat access may use them: search only lists abilities the
+	 * user can run, and ability-call re-checks the target ability's role and
+	 * capability gates before executing it.
+	 */
+	public static function can_use_meta_tools(): bool {
+		return current_user_can( 'manage_options' ) || RolePermissions::current_user_has_chat_access();
+	}
+
+	/**
+	 * Whether ability-search should offer this ability to the current user.
+	 *
+	 * Administrators keep the full catalog. Other chat roles only see abilities
+	 * that pass the same capability gate ability-call enforces.
+	 *
+	 * @param string $ability_id Ability ID.
+	 */
+	private static function current_user_can_run( string $ability_id ): bool {
+		if ( self::is_anonymous_ability_mode() || current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return null === ToolCapabilities::permission_denial_error( $ability_id );
+	}
+
+	/**
 	 * Register the ability-search and ability-call meta-tools.
 	 *
 	 * @return void
@@ -265,9 +292,8 @@ class ToolDiscovery {
 					),
 				),
 				'execute_callback'    => array( __CLASS__, 'handle_ability_search' ),
-				'permission_callback' => static function () {
-					return current_user_can( 'manage_options' );
-				},
+				// Chat roles may search; results only list abilities they can run.
+				'permission_callback' => array( __CLASS__, 'can_use_meta_tools' ),
 			)
 		);
 
@@ -302,9 +328,8 @@ class ToolDiscovery {
 					),
 				),
 				'execute_callback'    => array( __CLASS__, 'handle_ability_call' ),
-				'permission_callback' => static function () {
-					return current_user_can( 'manage_options' );
-				},
+				// Chat roles may dispatch; each target ability is checked again in handle_ability_call().
+				'permission_callback' => array( __CLASS__, 'can_use_meta_tools' ),
 			)
 		);
 
@@ -471,6 +496,10 @@ class ToolDiscovery {
 			}
 
 			if ( ! self::is_anonymous_ability_mode() && ! RolePermissions::current_user_can_use_ability( $name ) ) {
+				continue;
+			}
+
+			if ( ! self::current_user_can_run( $name ) ) {
 				continue;
 			}
 
@@ -1306,6 +1335,9 @@ class ToolDiscovery {
 				continue;
 			}
 			if ( ! self::is_anonymous_ability_mode() && ! RolePermissions::current_user_can_use_ability( $ability->get_name() ) ) {
+				continue;
+			}
+			if ( ! self::current_user_can_run( $ability->get_name() ) ) {
 				continue;
 			}
 			$out[] = $ability;

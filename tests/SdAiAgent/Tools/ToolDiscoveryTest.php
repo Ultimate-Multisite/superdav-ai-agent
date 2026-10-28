@@ -200,6 +200,64 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Chat roles can use the meta-tools, but search only offers abilities they can run.
+	 *
+	 * Without ability-search/ability-call a non-admin agent cannot reach
+	 * editing abilities outside its preloaded tool list.
+	 */
+	public function test_chat_role_meta_tools_list_only_runnable_abilities(): void {
+		// As on a live site, the per-tool capabilities exist on the administrator role.
+		ToolCapabilities::register_capabilities( [ 'sd-ai-agent/update-post', 'sd-ai-agent/list-options' ] );
+
+		// The category manifest the agent sees follows the same gate.
+		$gated = 'test-plugin/manifest-capability-gate';
+		$this->register_test_ability(
+			$gated,
+			[
+				'label'               => 'Manifest Capability Gate',
+				'description'         => 'Test ability for manifest capability filtering.',
+				'category'            => 'manifest-capability-gate',
+				'execute_callback'    => static fn(): array => [],
+				'permission_callback' => static fn(): bool => true,
+			]
+		);
+		ToolCapabilities::register_capabilities( [ $gated ] );
+		$this->assertStringContainsString( 'manifest-capability-gate', ToolDiscovery::build_manifest_section(), 'administrators see the category' );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertStringNotContainsString( 'manifest-capability-gate', ToolDiscovery::build_manifest_section() );
+		$this->assertTrue( RolePermissions::current_user_has_chat_access() );
+		$this->assertTrue( ToolDiscovery::can_use_meta_tools() );
+
+		// The per-tool layer is granted to administrators only, so editors see no sd-ai-agent tools.
+		$ids = array_column( ToolDiscovery::handle_ability_search( [ 'query' => 'select:sd-ai-agent/update-post,sd-ai-agent/list-options' ] )['results'] ?? [], 'id' );
+		$this->assertNotContains( 'sd-ai-agent/list-options', $ids );
+		$this->assertNotContains( 'sd-ai-agent/update-post', $ids );
+
+		// A host granting the per-tool layer exposes what the editor's own capabilities allow.
+		$grant = static function ( array $allcaps, array $caps ): array {
+			foreach ( $caps as $cap ) {
+				if ( str_starts_with( (string) $cap, 'sd_ai_agent_tool_' ) ) {
+					$allcaps[ $cap ] = true;
+				}
+			}
+			return $allcaps;
+		};
+		add_filter( 'user_has_cap', $grant, 10, 2 );
+		try {
+			$ids = array_column( ToolDiscovery::handle_ability_search( [ 'query' => 'select:sd-ai-agent/update-post,sd-ai-agent/list-options' ] )['results'] ?? [], 'id' );
+			$this->assertContains( 'sd-ai-agent/update-post', $ids );
+			$this->assertNotContains( 'sd-ai-agent/list-options', $ids, 'manage_options abilities stay hidden' );
+		} finally {
+			remove_filter( 'user_has_cap', $grant, 10 );
+		}
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'subscriber' ] ) );
+		$this->assertFalse( ToolDiscovery::can_use_meta_tools() );
+	}
+
 	/** Core-only catalogs must not manufacture a database executor. */
 	public function test_category_database_check_without_companion_is_unavailable(): void {
 		wp_unregister_ability( 'sd-ai-agent/db-query' );

@@ -13,6 +13,7 @@ namespace SdAiAgent\REST;
 
 use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\ActiveJobsCleanupService;
 use SdAiAgent\Core\AgentEventLog;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\BackgroundJobDispatcher;
@@ -1573,6 +1574,7 @@ final class SessionController {
 					return $this->job_status_from_db_row( $job_id, $expired_row );
 				}
 			}
+			$db_row = $this->reap_if_stalled( $db_row ) ?? $db_row;
 			return $this->job_status_from_db_row( $job_id, $db_row );
 		}
 
@@ -1593,6 +1595,14 @@ final class SessionController {
 		) {
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 			return $this->job_status_from_db_row( $job_id, $db_row );
+		}
+
+		// A worker that died mid-tool leaves the transient and row 'processing'
+		// forever. Reap it so the client sees a recoverable error, not "Working…".
+		$stalled_row = $this->reap_if_stalled( $db_row );
+		if ( null !== $stalled_row ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return $this->job_status_from_db_row( $job_id, $stalled_row );
 		}
 
 		$response = array( 'status' => $job['status'] );
@@ -1707,6 +1717,32 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Mark a queued/processing job abandoned when its row has not advanced within
+	 * the stall threshold.
+	 *
+	 * @param ActiveJobRow|null $row Persistent active-job row.
+	 * @return ActiveJobRow|null Refreshed row when this call reaped it, otherwise null.
+	 */
+	private function reap_if_stalled( ?ActiveJobRow $row ): ?ActiveJobRow {
+		if ( null === $row || ! in_array( $row->status, array( 'queued', 'processing' ), true ) ) {
+			return null;
+		}
+
+		$updated_at = strtotime( $row->updated_at . ' UTC' );
+		$threshold  = ActiveJobsCleanupService::stale_threshold_minutes();
+		if ( false === $updated_at || $updated_at > time() - $threshold * MINUTE_IN_SECONDS ) {
+			return null;
+		}
+
+		if ( ! ActiveJobRepository::reap_stale_job( $row->job_id, $threshold ) ) {
+			return null;
+		}
+
+		DurablePlanRunner::mark_phase_interrupted_by_job( $row->job_id );
+		return ActiveJobRepository::get_by_job_id( $row->job_id );
 	}
 
 	/**

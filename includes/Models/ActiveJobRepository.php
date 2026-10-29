@@ -479,6 +479,50 @@ class ActiveJobRepository {
 	}
 
 	/**
+	 * Reap one stale queued or processing job as 'abandoned'.
+	 *
+	 * Used by the polling endpoint so a stalled job is surfaced without waiting
+	 * for the hourly cron. The conditional UPDATE keeps a concurrent heartbeat or
+	 * completion from being overwritten.
+	 *
+	 * @param string $job_id            The job UUID.
+	 * @param int    $threshold_minutes Minutes of inactivity before the row is stale.
+	 * @return bool True when this call transitioned the row.
+	 */
+	public static function reap_stale_job( string $job_id, int $threshold_minutes ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$row = self::get_by_job_id( $job_id );
+		if ( null === $row || ! in_array( $row->status, array( 'queued', 'processing' ), true ) ) {
+			return false;
+		}
+
+		$diagnostic = self::build_failure_diagnostic(
+			$job_id,
+			ActiveJobFailureDiagnostic::REASON_WORKER_TERMINATED,
+			$row
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional custom-table state transition prevents stale candidate races.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET status = 'abandoned', error = %s, updated_at = UTC_TIMESTAMP() WHERE job_id = %s AND status IN ('queued', 'processing') AND updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d MINUTE)",
+				self::table_name(),
+				ActiveJobFailureDiagnostic::encode( $job_id, $diagnostic ),
+				$job_id,
+				max( 1, $threshold_minutes )
+			)
+		);
+
+		if ( false === $result || $result < 1 ) {
+			return false;
+		}
+
+		ActiveJobFailureDiagnostic::log( $diagnostic, $row->session_id );
+		return true;
+	}
+
+	/**
 	 * Reap stale queued or processing jobs and return only the rows this call won.
 	 *
 	 * Each candidate is conditionally transitioned so a concurrent heartbeat or

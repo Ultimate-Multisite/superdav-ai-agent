@@ -133,6 +133,32 @@ class ActiveJobRepository {
 	}
 
 	/**
+	 * Atomically hand a browser-tool pause to the background worker queue.
+	 *
+	 * The browser's result POST validates and stores the results, then the
+	 * long-running loop continuation runs in a worker rather than in the
+	 * browser-facing request, which PHP-FPM may terminate.
+	 */
+	public static function requeue_client_tool_job( string $job_id, int $session_id, int $user_id ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional status transition is the browser-result queue handoff.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET status = 'queued', pending_tools = '[]', updated_at = %s WHERE job_id = %s AND session_id = %d AND user_id = %d AND status = 'awaiting_client_tools'",
+				self::table_name(),
+				current_time( 'mysql', true ),
+				$job_id,
+				$session_id,
+				$user_id
+			)
+		);
+
+		return false !== $result && $result > 0;
+	}
+
+	/**
 	 * Atomically return a confirmation pause to the queue for one new claim.
 	 *
 	 * A stale confirmation must never overwrite a worker that has already

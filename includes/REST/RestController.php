@@ -30,6 +30,7 @@ namespace SdAiAgent\REST;
 
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\AgentEventLog;
+use SdAiAgent\Core\BackgroundJobDispatcher;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\ClientAbilityRouter;
 use SdAiAgent\Core\ConversationSerializer;
@@ -683,6 +684,21 @@ User: %s',
 			);
 		}
 
+		// Continue the loop in the background worker. The remaining turn can take
+		// minutes and PHP-FPM's request_terminate_timeout kills this browser
+		// request silently, leaving the job stuck in `processing`.
+		if ( '' !== $job_id && self::queue_client_tool_resume( $job_id, $session_id, $paused_state, $tool_results ) ) {
+			return new WP_REST_Response(
+				array(
+					'status'           => 'processing',
+					'results_accepted' => true,
+					'session_id'       => $session_id,
+					'job_id'           => $job_id,
+				),
+				202
+			);
+		}
+
 		if ( ! self::start_client_tool_resume( $job_id, $session_id ) ) {
 			$in_progress = self::client_tool_resume_in_progress_response( $job_id, $session_id );
 			if ( null !== $in_progress ) {
@@ -926,6 +942,47 @@ User: %s',
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Hand validated browser-tool results to the background worker.
+	 *
+	 * Restores the paused state (already consumed by the caller) so the worker
+	 * can reconstruct the loop, stores the results on the job, and dispatches.
+	 * Returns false without side effects visible to the caller when the job is
+	 * not in a state that can be queued, so the caller can fall back to inline
+	 * resume or its normal error handling.
+	 *
+	 * @param string                   $job_id       Job UUID.
+	 * @param int                      $session_id   Session ID.
+	 * @param array<string, mixed>     $paused_state Consumed paused loop state.
+	 * @param array<int|string, mixed> $tool_results Validated browser results.
+	 */
+	private static function queue_client_tool_resume( string $job_id, int $session_id, array $paused_state, array $tool_results ): bool {
+		$transient_key = self::JOB_PREFIX . $job_id;
+		$job           = get_transient( $transient_key );
+		if ( ! is_array( $job ) || empty( $job['params'] ) ) {
+			return false;
+		}
+
+		$user_id = get_current_user_id();
+		if ( ! ActiveJobRepository::requeue_client_tool_job( $job_id, $session_id, $user_id ) ) {
+			return false;
+		}
+
+		$token = wp_generate_password( 40, false );
+		unset( $job['pending_client_tool_calls'] );
+		$job['status']              = 'processing';
+		$job['token']               = $token;
+		$job['client_tool_resume']  = true;
+		$job['client_tool_results'] = array_values( $tool_results );
+
+		Database::save_paused_state( $session_id, $paused_state );
+		set_transient( $transient_key, $job, self::JOB_TTL );
+
+		BackgroundJobDispatcher::dispatch( $job_id, $token );
+
+		return true;
 	}
 
 	/** Claim a paused browser-tool job and make the in-flight state pollable. */

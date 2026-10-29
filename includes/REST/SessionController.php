@@ -2706,15 +2706,6 @@ final class SessionController {
 			return new WP_Error( 'sd_ai_agent_public_chat_message_too_long', __( 'Message is too long for public chat.', 'superdav-ai-agent' ), array( 'status' => 413 ) );
 		}
 
-		// Remember the agent on the session so reopening it restores the picker.
-		$run_agent_id = self::get_int_param( $request, 'agent_id' );
-		if ( $run_agent_id > 0 && $session_id > 0 ) {
-			$agent_session = $this->database->get_session( $session_id );
-			if ( $agent_session && (int) $agent_session->user_id === get_current_user_id() && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id ) {
-				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
-			}
-		}
-
 		$job_id = wp_generate_uuid4();
 
 		$job_token = wp_generate_password( 40, false );
@@ -3725,6 +3716,15 @@ final class SessionController {
 			}
 			if ( (int) $session->user_id !== get_current_user_id() ) {
 				return new WP_Error( 'sd_ai_agent_plan_forbidden', __( 'Only the session owner can create a durable plan.', 'superdav-ai-agent' ), [ 'status' => 403 ] );
+			}
+		}
+
+		// Remember the agent on the session so reopening it restores the picker.
+		$run_agent_id = self::get_int_param( $request, 'agent_id' );
+		if ( $run_agent_id > 0 && $session_id > 0 ) {
+			$agent_session = $this->database->get_session( $session_id );
+			if ( $agent_session && (int) $agent_session->user_id === get_current_user_id() && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id ) {
+				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
 			}
 		}
 

@@ -4045,12 +4045,62 @@ final class SessionController {
 		$is_checkpoint_resume = ! empty( $job['checkpoint_resume'] );
 		$is_recovery_resume   = ! empty( $job['recovery_resume'] );
 
+		$is_client_tool_resume = ! empty( $job['client_tool_resume'] );
+
 		// Wrap the entire loop execution in a try/catch so that uncaught
 		// exceptions (e.g. from ability schema validation) are captured
 		// and written to the job transient instead of silently killing
 		// the background worker.
 		try {
-			if ( $is_checkpoint_resume || $is_recovery_resume ) {
+			if ( $is_client_tool_resume ) {
+				// Browser-tool results were validated and stored by /chat/tool-result.
+				// Continue the loop here so it is not bound by the FPM request limit.
+				// Clear the markers so a later pause/resume cannot replay them.
+				$client_results = is_array( $job['client_tool_results'] ?? null ) ? $job['client_tool_results'] : array();
+				unset( $job['client_tool_resume'], $job['client_tool_results'] );
+
+				$state = Database::load_and_clear_paused_state( $session_id );
+				if ( ! is_array( $state ) ) {
+					throw new \RuntimeException( 'Paused state missing for browser-tool resume.' );
+				}
+
+				/** @var list<array<string, mixed>> $state_history */
+				$state_history  = is_array( $state['history'] ?? null ) ? $state['history'] : array();
+				$resume_history = ConversationSerializer::deserialize( array_values( $state_history ) );
+
+				$resume_options                            = $options;
+				$resume_options['tool_call_log']           = $state['tool_call_log'] ?? array();
+				$resume_options['message_log']             = $state['message_log'] ?? array();
+				$resume_options['token_usage']             = $state['token_usage'] ?? array(
+					'prompt'     => 0,
+					'completion' => 0,
+				);
+				$resume_options['client_abilities']        = $state['client_abilities'] ?? array();
+				$resume_options['page_context']            = $state['page_context'] ?? array();
+				$resume_options['mutation_policy_context'] = $state['mutation_policy_context'] ?? array();
+				if ( '' !== trim( (string) ( $state['provider_id'] ?? '' ) ) ) {
+					$resume_options['provider_id'] = trim( (string) $state['provider_id'] );
+				}
+				if ( '' !== trim( (string) ( $state['model_id'] ?? '' ) ) ) {
+					$resume_options['model_id'] = trim( (string) $state['model_id'] );
+				}
+				if ( (int) ( $state['max_output_tokens'] ?? 0 ) > 0 ) {
+					$resume_options['max_output_tokens'] = (int) $state['max_output_tokens'];
+				}
+
+				$agent_slug = sanitize_key( (string) ( $state['agent_slug'] ?? '' ) );
+				if ( '' !== $agent_slug ) {
+					$paused_agent = Agent::get_by_slug( $agent_slug );
+					if ( null !== $paused_agent ) {
+						$resume_options = array_merge( Agent::get_loop_options( $paused_agent->id ), $resume_options );
+					}
+				}
+
+				$loop = new AgentLoop( '', array(), $resume_history, $resume_options );
+				/** @var list<array{id: string, name: string, result?: mixed, error?: string}> $client_results_typed */
+				$client_results_typed = array_values( $client_results );
+				$result               = $loop->resume_after_client_tools( $client_results_typed, (int) ( $state['iterations_remaining'] ?? 100 ) );
+			} elseif ( $is_checkpoint_resume || $is_recovery_resume ) {
 				$state = $is_recovery_resume
 					? ( $job['recovery_state'] ?? array() )
 					: ( $job['checkpoint_state'] ?? array() );

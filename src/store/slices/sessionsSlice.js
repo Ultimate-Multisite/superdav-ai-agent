@@ -645,6 +645,10 @@ export const actions = {
 						}
 					}
 				}
+				// Restore the agent the session was started with.
+				if ( session.agent_id ) {
+					dispatch.setSelectedAgentId( session.agent_id );
+				}
 				if ( session.token_usage ) {
 					dispatch.setTokenUsage( session.token_usage );
 				}

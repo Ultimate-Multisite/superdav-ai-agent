@@ -275,6 +275,16 @@ describe( 'Tool approval recovery', () => {
 		}
 	);
 
+	it( 'openSession restores the agent stored on the session', async () => {
+		apiFetch
+			.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 7 } )
+			.mockRejectedValueOnce( new Error( 'no active job' ) );
+		const dispatch = makeDispatch();
+		dispatch.setSelectedAgentId = jest.fn();
+		await actions.openSession( 12 )( { dispatch, select } );
+		expect( dispatch.setSelectedAgentId ).toHaveBeenCalledWith( 7 );
+	} );
+
 	it( 'stops when session ownership changes during the polling delay', async () => {
 		apiFetch.mockResolvedValue( { status: 'processing', tool_calls: [] } );
 		await makeDispatch().pollJob( 'job-1', 12 );

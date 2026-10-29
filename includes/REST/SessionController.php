@@ -1106,6 +1106,7 @@ final class SessionController {
 				'title'         => $session->title,
 				'provider_id'   => $session->provider_id,
 				'model_id'      => $session->model_id,
+				'agent_id'      => (int) ( $session->agent_id ?? 0 ),
 				'messages'      => ConversationDisplaySanitizer::sanitize_messages( $messages ),
 				'title_pending' => SessionTitleGenerator::is_pending( $session_id ),
 				'tool_calls'    => json_decode( $session->tool_calls, true ) ?: array(),
@@ -1153,6 +1154,7 @@ final class SessionController {
 				'title'       => $request->get_param( 'title' ),
 				'provider_id' => $provider_id,
 				'model_id'    => $model_id,
+				'agent_id'    => $agent_id,
 			)
 		);
 
@@ -1176,6 +1178,7 @@ final class SessionController {
 				'title'       => $session->title,
 				'provider_id' => $session->provider_id,
 				'model_id'    => $session->model_id,
+				'agent_id'    => (int) ( $session->agent_id ?? 0 ),
 				'messages'    => array(),
 				'tool_calls'  => array(),
 				'created_at'  => $session->created_at,
@@ -2703,7 +2706,17 @@ final class SessionController {
 			return new WP_Error( 'sd_ai_agent_public_chat_message_too_long', __( 'Message is too long for public chat.', 'superdav-ai-agent' ), array( 'status' => 413 ) );
 		}
 
-		$job_id    = wp_generate_uuid4();
+		// Remember the agent on the session so reopening it restores the picker.
+		$run_agent_id = self::get_int_param( $request, 'agent_id' );
+		if ( $run_agent_id > 0 && $session_id > 0 ) {
+			$agent_session = $this->database->get_session( $session_id );
+			if ( $agent_session && (int) $agent_session->user_id === get_current_user_id() && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id ) {
+				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
+			}
+		}
+
+		$job_id = wp_generate_uuid4();
+
 		$job_token = wp_generate_password( 40, false );
 		$history   = isset( $session['history'] ) && is_array( $session['history'] ) ? $session['history'] : array();
 		$review_id = isset( $session['review_id'] ) && is_string( $session['review_id'] ) ? $session['review_id'] : '';

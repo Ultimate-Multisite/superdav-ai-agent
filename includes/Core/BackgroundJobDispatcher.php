@@ -33,6 +33,22 @@ final class BackgroundJobDispatcher {
 			}
 		}
 
+		// Hosts with a persistent queue worker (for example The Perfect WP Cron)
+		// run the queued action in a CLI subprocess with no PHP-FPM request
+		// time limit. A loopback would win the claim and run the whole loop
+		// inside an FPM request that request_terminate_timeout can kill, so
+		// such hosts return false from this filter to leave the job to the queue.
+		/**
+		 * Whether to also start the job immediately with a loopback request.
+		 *
+		 * @param bool   $use_loopback Default true.
+		 * @param string $job_id       Job ID.
+		 */
+		$use_loopback = (bool) apply_filters( 'sd_ai_agent_background_loopback', true, $job_id );
+		if ( ! $use_loopback && $scheduled ) {
+			return;
+		}
+
 		// Start immediately, even from REST requests that do not wake the queue.
 		// Keep the scheduled action as a safety net when loopbacks are blocked;
 		// every starter shares the worker's atomic queued-to-processing claim.

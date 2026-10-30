@@ -77,7 +77,7 @@ final class SessionController {
 	 *
 	 * @var list<string>
 	 */
-	private const RECOVERY_TRANSPORT_METADATA = array( 'provider_id', 'model_id' );
+	private const RECOVERY_TRANSPORT_METADATA = array( 'provider_id', 'model_id', 'completion_job_id' );
 
 	/** @var Database Injected database dependency. */
 	private Database $database;
@@ -3124,8 +3124,8 @@ final class SessionController {
 	 * Find the first recovery-history row not already persisted in the session.
 	 *
 	 * Recovery payloads can be full histories or best-effort suffixes. Prefer the
-	 * longest identity prefix; when the persisted session is not a prefix of the
-	 * payload, treat the payload as a suffix so a failed user turn is not dropped.
+	 * longest identity prefix; otherwise match a contiguous persisted suffix.
+	 * Global row membership would discard a new prompt identical to an old one.
 	 *
 	 * @param array $full_history      Serialized recovery history.
 	 * @param array $existing_messages Serialized messages already persisted.
@@ -3148,13 +3148,23 @@ final class SessionController {
 			return $common_prefix;
 		}
 
-		foreach ( $full_history as $index => $row ) {
-			if ( ! $this->recovery_row_exists( $row, $existing_messages ) ) {
-				return $index;
+		$existing_count = count( $existing_messages );
+		for ( $overlap = min( count( $full_history ), $existing_count ); $overlap > 0; --$overlap ) {
+			$start   = $existing_count - $overlap;
+			$matches = true;
+			for ( $index = 0; $index < $overlap; ++$index ) {
+				$persisted = $existing_messages[ $start + $index ] ?? null;
+				if ( ! is_array( $persisted ) || ! $this->recovery_rows_are_semantically_equal( $persisted, $full_history[ $index ] ) ) {
+					$matches = false;
+					break;
+				}
+			}
+			if ( $matches ) {
+				return $overlap;
 			}
 		}
 
-		return count( $full_history );
+		return 0;
 	}
 
 	/**
@@ -3204,7 +3214,7 @@ final class SessionController {
 	/**
 	 * Compare serialized recovery rows by conversation semantics.
 	 *
-	 * Only provider/model attribution is transport metadata. All other fields,
+	 * Only provider/model attribution and completion receipts are metadata. Other fields,
 	 * including role, ordered parts, function-call/result IDs, and payloads,
 	 * remain part of the canonical value.
 	 *
@@ -3225,6 +3235,15 @@ final class SessionController {
 	private function canonicalize_recovery_row( array $row ): array {
 		foreach ( self::RECOVERY_TRANSPORT_METADATA as $metadata_key ) {
 			unset( $row[ $metadata_key ] );
+		}
+		// SDK round-trips add default part type/channel fields. Compare those
+		// defaults consistently without dropping unknown message or tool fields.
+		if ( isset( $row['role'], $row['parts'] ) ) {
+			try {
+				$row = array_replace_recursive( $row, \WordPress\AiClient\Messages\DTO\Message::fromArray( $row )->toArray() );
+			} catch ( \Throwable $error ) {
+				// Malformed recovery rows retain their original strict identity.
+			}
 		}
 
 		/** @var array<string, mixed> $canonical */
@@ -3866,11 +3885,9 @@ final class SessionController {
 				$session_messages = array_values( array_filter( (array) $session_messages, 'is_array' ) );
 				if ( ! empty( $session_messages ) ) {
 					try {
+						// Pair validation belongs to the provider-only view. Retain the
+						// durable prefix even when an older interrupted turn was unpaired.
 						$history = ConversationSerializer::deserialize( $session_messages );
-						// Strip orphaned tool_use blocks (no matching tool_result) at
-						// load time. Prevents API 400 errors when a prior job was
-						// interrupted between recording a tool_use and its tool_result.
-						$history = ConversationTrimmer::validate_tool_pairs( $history );
 					} catch ( \Exception $e ) {
 						$history = array();
 					}
@@ -4393,71 +4410,25 @@ final class SessionController {
 			if ( $session_id ) {
 				$job['result']['session_id'] = $session_id;
 
-				// The full history from the loop includes existing + new messages.
-				// Slice off only the new ones to append.
-				$session        = $this->database->get_session( $session_id );
-				$existing_count = 0;
-				if ( $session ) {
-					$existing_messages = json_decode( $session->messages, true ) ?: array();
-					// @phpstan-ignore-next-line
-					$existing_count = count( $existing_messages );
-				}
-
-				$full_history = $result['history'] ?? array();
-				/** @var array<mixed> $full_history */
-				$appended = ( $is_durable_plan_phase || $is_durable_plan_request ) ? $full_history : array_slice( $full_history, $existing_count );
-				// Persist the resolved provider/model with each new display message.
-				// Session-level fields only describe the initial selection and cannot
-				// accurately label a conversation whose model changes between turns.
 				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
-				$model_id    = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
-				$appended    = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
-				/** @var list<array<string, mixed>> $tool_calls_result */
-				$tool_calls_result = $result['tool_calls'] ?? array();
-				$this->database->append_to_session( $session_id, array_values( $appended ), $tool_calls_result );
-
-				// Persist token usage.
-				$token_usage = $result['token_usage'] ?? array();
-				/** @var array<string, mixed> $token_usage */
-				if ( ! empty( $token_usage ) ) {
-					$this->database->update_session_tokens(
-						$session_id,
-						// @phpstan-ignore-next-line
-						(int) ( $token_usage['prompt'] ?? 0 ),
-						// @phpstan-ignore-next-line
-						(int) ( $token_usage['completion'] ?? 0 )
-					);
-				}
-
-				// Log to usage tracking table.
-				// Use resolved options (which include agent overrides) rather than raw params.
-				// @phpstan-ignore-next-line
-				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
-				// @phpstan-ignore-next-line
-				$model_id = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
-				// @phpstan-ignore-next-line
-				$prompt_t = (int) ( $token_usage['prompt'] ?? 0 );
-				// @phpstan-ignore-next-line
-				$completion_t = (int) ( $token_usage['completion'] ?? 0 );
-
-				if ( $prompt_t > 0 || $completion_t > 0 ) {
-					$cost = CostCalculator::calculate_cost( $model_id, $prompt_t, $completion_t );
-					$this->database->log_usage(
-						array(
-							'user_id'           => $job['user_id'] ?? 0,
-							'session_id'        => $session_id,
-							'provider_id'       => $provider_id,
-							'model_id'          => $model_id,
-							'prompt_tokens'     => $prompt_t,
-							'completion_tokens' => $completion_t,
-							'cost_usd'          => $cost,
-						)
-					);
+				$model_id    = (string) ( $result['model_id'] ?? $options['model_id'] ?? $params['model_id'] ?? '' );
+				$saved       = $this->persist_completed_turn(
+					$session_id,
+					$job_id,
+					$result,
+					$provider_id,
+					$model_id,
+					$is_durable_plan_phase || $is_durable_plan_request
+				);
+				if ( is_wp_error( $saved ) ) {
+					$this->persist_active_job_failure( $job_id, $job, ActiveJobFailureDiagnostic::REASON_UNKNOWN, array( 'last_safe_phase' => 'completion_persistence' ) );
+					$job['error'] = $saved->get_error_message();
+					unset( $job['result'] );
 				}
 			}
 
 			// Log webhook execution success.
-			if ( ! empty( $job['webhook_id'] ) ) {
+			if ( 'complete' === $job['status'] && ! empty( $job['webhook_id'] ) ) {
 				$token_usage = $result['token_usage'] ?? array(
 					'prompt'     => 0,
 					'completion' => 0,
@@ -4515,6 +4486,134 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * Save one completed turn and its cumulative usage exactly once.
+	 *
+	 * Pauses do not record usage. The resumed loop carries cumulative counters,
+	 * so the final transcript receipt, session increment and ledger row commit
+	 * together. A replay finds the durable receipt before doing any writes.
+	 *
+	 * @param int                  $session_id Session receiving the turn.
+	 * @param string               $job_id Stable server-owned job identity.
+	 * @param array<string, mixed> $result Completed loop result.
+	 * @param string               $provider_id Resolved provider.
+	 * @param string               $model_id Resolved model.
+	 * @param bool                 $history_is_delta Durable plans start with isolated context.
+	 * @return bool|WP_Error Whether the entire turn was committed.
+	 */
+	public function persist_completed_turn( int $session_id, string $job_id, array $result, string $provider_id, string $model_id, bool $history_is_delta = false ): bool|WP_Error {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+		$history = $this->normalize_serialized_rows( $result['history'] ?? array() );
+		$receipt = '' !== $job_id ? $job_id : hash( 'sha256', (string) wp_json_encode( $result ) );
+		$error   = new WP_Error(
+			'sd_ai_agent_turn_persistence_failed',
+			__( 'The response could not be saved. Reload the conversation before continuing.', 'superdav-ai-agent' ),
+			array( 'status' => 500 )
+		);
+
+		// Respect disabled autocommit and explicit caller transactions. A second
+		// START TRANSACTION would implicitly commit the caller's unrelated writes.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect connection-local transaction ownership.
+		$autocommit = $wpdb->get_var( 'SELECT @@SESSION.autocommit' );
+		if ( ! in_array( $autocommit, array( '0', '1' ), true ) ) {
+			return $error;
+		}
+		$owns_transaction = '1' === $autocommit;
+		$savepoint        = 'sd_ai_agent_completed_turn_' . str_replace( '-', '', wp_generate_uuid4() );
+		if ( $owns_transaction ) {
+			// SAVEPOINT succeeds outside a transaction but its RELEASE fails with
+			// ER_SP_DOES_NOT_EXIST (1305). This probe works on MySQL and MariaDB;
+			// MariaDB's @@in_transaction is not portable to MySQL.
+			$previous_suppression = $wpdb->suppress_errors( true );
+			try {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Probe only this connection's transaction state without committing it.
+				$probe_created = false !== $wpdb->query( $wpdb->prepare( 'SAVEPOINT %i', $savepoint ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A successful release confirms the caller already owns a transaction.
+				$has_outer_transaction = $probe_created && false !== $wpdb->query( $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect the server's portable numeric diagnostic, not localized error text.
+				$probe_error = $has_outer_transaction ? 0 : (int) $wpdb->get_var( 'SHOW ERRORS LIMIT 1', 1 );
+			} finally {
+				$wpdb->suppress_errors( $previous_suppression );
+			}
+			if ( ! $probe_created || ( ! $has_outer_transaction && 1305 !== $probe_error ) ) {
+				return $error;
+			}
+			$owns_transaction = ! $has_outer_transaction;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Each branch uses literal SQL or a prepared invocation-local savepoint identifier.
+		if ( false === $wpdb->query( $owns_transaction ? 'START TRANSACTION' : $wpdb->prepare( 'SAVEPOINT %i', $savepoint ) ) ) {
+			return $error;
+		}
+		$committed = false;
+		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialize completion receipts for this session across workers.
+			$locked  = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d FOR UPDATE', Database::table_name(), $session_id ) );
+			$session = $this->database->get_session( $session_id );
+			if ( ! $locked || ! $session ) {
+				return $error;
+			}
+			$existing = $this->normalize_serialized_rows( json_decode( $session->messages, true ) );
+			foreach ( $existing as $row ) {
+				if ( $receipt === ( $row['completion_job_id'] ?? null ) ) {
+					return true;
+				}
+			}
+
+			$offset   = $history_is_delta ? 0 : $this->get_history_append_offset( $history, $existing );
+			$appended = array_values( array_slice( $history, $offset ) );
+			if ( empty( $appended ) || '' === trim( (string) ( $result['reply'] ?? '' ) ) ) {
+				return $error;
+			}
+			$last = count( $appended ) - 1;
+			if ( ! in_array( $appended[ $last ]['role'] ?? '', array( 'model', 'assistant' ), true ) ) {
+				$appended[] = array(
+					'role'  => 'model',
+					'parts' => array( array( 'text' => (string) $result['reply'] ) ),
+				);
+				++$last;
+			}
+			$appended[ $last ]['completion_job_id'] = $receipt;
+			$appended                               = self::add_turn_model_metadata( $appended, $provider_id, $model_id );
+			// SessionRepository::append() deduplicates stable tool-event identities.
+			$tools  = $this->normalize_serialized_rows( $result['tool_calls'] ?? array() );
+			$usage  = is_array( $result['token_usage'] ?? null ) ? $result['token_usage'] : array();
+			$prompt = max( 0, (int) ( $usage['prompt'] ?? 0 ) );
+			$output = max( 0, (int) ( $usage['completion'] ?? 0 ) );
+			if ( ! $this->database->append_to_session( $session_id, array_values( $appended ), $tools )
+				|| ! $this->database->update_session_tokens( $session_id, $prompt, $output ) ) {
+				return $error;
+			}
+			if ( ( $prompt > 0 || $output > 0 ) && false === $this->database->log_usage(
+				array(
+					'user_id'           => get_current_user_id(),
+					'session_id'        => $session_id,
+					'provider_id'       => $provider_id,
+					'model_id'          => $model_id,
+					'prompt_tokens'     => $prompt,
+					'completion_tokens' => $output,
+					'cost_usd'          => CostCalculator::calculate_cost( $model_id, $prompt, $output ),
+				)
+			) ) {
+				return $error;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Literal SQL commits our transaction or a prepared identifier releases only our savepoint.
+			$committed = false !== $wpdb->query( $owns_transaction ? 'COMMIT' : $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
+			return $committed ? true : $error;
+		} catch ( \Throwable $exception ) {
+			return $error;
+		} finally {
+			if ( ! $committed ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Literal SQL or a prepared savepoint identifier rolls back only this save.
+				$wpdb->query( $owns_transaction ? 'ROLLBACK' : $wpdb->prepare( 'ROLLBACK TO SAVEPOINT %i', $savepoint ) );
+				if ( ! $owns_transaction ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Release only our rolled-back savepoint, leaving the caller's transaction open.
+					$wpdb->query( $wpdb->prepare( 'RELEASE SAVEPOINT %i', $savepoint ) );
+				}
+			}
+		}
 	}
 
 	/** Read title progress independently of the agent's job state. */

@@ -15,6 +15,7 @@ use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\ConversationTrimmer;
+use SdAiAgent\Core\CustomerAgentJobDispatcher;
 use SdAiAgent\Core\CustomerAgentPromptComposer;
 use SdAiAgent\Core\JobErrorSanitizer;
 use SdAiAgent\Knowledge\KnowledgeDatabase;
@@ -136,6 +137,7 @@ class CustomerAgentRuntimeService implements CustomerAgentRuntimeInterface {
 				'profile_health'           => true,
 				'structured_handoff'       => true,
 				'trusted_request_context'  => true,
+				'lifecycle_events'         => true,
 			),
 			'limits'           => array(
 				'max_message_length'  => self::MAX_MESSAGE_LENGTH,
@@ -709,8 +711,7 @@ class CustomerAgentRuntimeService implements CustomerAgentRuntimeInterface {
 		}
 
 		$this->emit_lifecycle_event( 'queued', $queued );
-		$scheduled = wp_schedule_single_event( time(), self::PROCESS_HOOK, array( $job_id ), true );
-		if ( false === $scheduled || is_wp_error( $scheduled ) ) {
+		if ( ! CustomerAgentJobDispatcher::dispatch( $job_id ) ) {
 			$this->fail_job(
 				$queued,
 				'sd_ai_agent_customer_agent_queue_unavailable',
@@ -721,10 +722,6 @@ class CustomerAgentRuntimeService implements CustomerAgentRuntimeInterface {
 				__( 'The customer-agent runtime could not schedule the request.', 'superdav-ai-agent' ),
 				array( 'status' => 503 )
 			);
-		}
-
-		if ( function_exists( 'spawn_cron' ) ) {
-			spawn_cron();
 		}
 
 		return $this->enqueue_response( $queued, true );

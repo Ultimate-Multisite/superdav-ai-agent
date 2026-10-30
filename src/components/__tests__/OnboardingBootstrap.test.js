@@ -140,6 +140,18 @@ describe( 'OnboardingBootstrap', () => {
 		expect( sendMessageMock ).toHaveBeenCalledWith( 'Hello from kickoff' );
 	} );
 
+	test( 'does not send kickoff when kickoff_required is false', async () => {
+		apiFetch.mockResolvedValue( {
+			session_id: 42,
+			agent_id: 7,
+			kickoff_required: false,
+			kickoff_message: 'Hello from kickoff',
+		} );
+		await renderBootstrap();
+		expect( openSessionMock ).toHaveBeenCalledWith( 42 );
+		expect( sendMessageMock ).not.toHaveBeenCalled();
+	} );
+
 	test( 'appends the initial system notice before kickoff', async () => {
 		const onInitialSystemNoticeAppended = jest.fn();
 		apiFetch.mockResolvedValue( {

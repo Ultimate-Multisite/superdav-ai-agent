@@ -334,6 +334,19 @@ class ActiveJobsCleanupTest extends WP_UnitTestCase {
 		$this->assertSame( ActiveJobFailureDiagnostic::REASON_WORKER_TERMINATED, $diagnostic['reason'] );
 	}
 
+	/** reap_stale_job() abandons one stalled row and leaves fresh rows alone. */
+	public function test_reap_stale_job_abandons_only_stalled_row(): void {
+		$this->insert_job( 'test-stalled-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 1800 ) );
+		$this->insert_job( 'test-fresh-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 60 ) );
+
+		$this->assertTrue( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-fresh-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ), 'Already-abandoned row is not reaped twice.' );
+
+		$this->assertSame( 'abandoned', $this->fetch_row( 'test-stalled-one' )->status );
+		$this->assertSame( 'processing', $this->fetch_row( 'test-fresh-one' )->status );
+	}
+
 	/** cleanup_stale() also reaps queued workers that never receive a loopback delivery. */
 	public function test_cleanup_stale_marks_old_queued_rows_as_abandoned(): void {
 		$stale_time = gmdate( 'Y-m-d H:i:s', time() - 1800 );

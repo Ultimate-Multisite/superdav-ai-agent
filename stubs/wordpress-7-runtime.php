@@ -1048,6 +1048,35 @@ namespace WordPress\AiClient\Providers\OpenAiCompatibleImplementation {
 	}
 }
 
+namespace WordPress\AiClientDependencies\Psr\SimpleCache {
+
+	/** WordPress-scoped PSR-16 cache contract bundled with the AI Client. */
+	interface CacheInterface {
+		/** @param string $key @param mixed $default @return mixed */
+		public function get( $key, $default = null );
+
+		/** @param string $key @param mixed $value @param null|int|\DateInterval $ttl */
+		public function set( $key, $value, $ttl = null ): bool;
+
+		/** @param string $key */
+		public function delete( $key ): bool;
+
+		public function clear(): bool;
+
+		/** @param iterable<string> $keys @param mixed $default @return iterable<string, mixed> */
+		public function getMultiple( $keys, $default = null ): iterable;
+
+		/** @param iterable<string, mixed> $values @param null|int|\DateInterval $ttl */
+		public function setMultiple( $values, $ttl = null ): bool;
+
+		/** @param iterable<string> $keys */
+		public function deleteMultiple( $keys ): bool;
+
+		/** @param string $key */
+		public function has( $key ): bool;
+	}
+}
+
 namespace WordPress\AiClient {
 
 	/**
@@ -1107,6 +1136,10 @@ namespace WordPress\AiClient {
 	class AiClient {
 		/** @return ModelRegistry */
 		public static function defaultRegistry(): ModelRegistry { return new ModelRegistry(); }
+
+		public static function getCache(): ?\WordPress\AiClientDependencies\Psr\SimpleCache\CacheInterface { return null; }
+
+		public static function setCache( ?\WordPress\AiClientDependencies\Psr\SimpleCache\CacheInterface $cache ): void {}
 	}
 }
 
@@ -1131,6 +1164,9 @@ namespace OpenAiCompatibleConnector {
 }
 
 namespace {
+
+	/** Core's request-local AI Client object-cache adapter (stub). */
+	abstract class WP_AI_Client_Cache implements \WordPress\AiClientDependencies\Psr\SimpleCache\CacheInterface {}
 
 	/** WP-CLI is active (stub constant — false at analysis time). */
 	const WP_CLI = false;

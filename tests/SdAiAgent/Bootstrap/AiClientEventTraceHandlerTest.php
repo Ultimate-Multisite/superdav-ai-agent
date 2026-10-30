@@ -411,9 +411,41 @@ class AiClientEventTraceHandlerTest extends WP_UnitTestCase {
 
 		$rows = ProviderTrace::list( [ 'limit' => 1 ] );
 		$this->assertCount( 1, $rows );
+		$this->assertSame( 'sdk', $rows[0]->source, 'Lightweight trace lists must preserve the source.' );
 		$full = ProviderTrace::get( $rows[0]->id );
 		$this->assertNotNull( $full );
 		$this->assertSame( 'sdk', $full->source, 'SDK traces should have source=sdk.' );
+	}
+
+	/** Source filters let the viewer show one HTTP row per real provider request. */
+	public function test_trace_list_and_count_filter_by_source(): void {
+		ProviderTrace::insert(
+			array(
+				'provider_id'     => 'openai',
+				'model_id'        => 'gpt-4o',
+				'url'             => 'https://api.openai.com/v1/responses',
+				'method'          => 'POST',
+				'status_code'     => 200,
+				'request_body'    => '{}',
+				'response_body'   => '{}',
+				'request_headers' => '{}',
+			)
+		);
+
+		$model    = $this->create_model( 'openai', 'gpt-4o' );
+		$messages = [ $this->create_user_message( 'Test' ) ];
+		$this->handler->on_before_generate_result( new BeforeGenerateResultEvent( $messages, $model, null ) );
+		$result = $this->create_result( 'result-source-filter', $model, 'Response' );
+		$this->handler->on_after_generate_result( new AfterGenerateResultEvent( $messages, $model, null, $result ) );
+
+		$http_rows = ProviderTrace::list( array( 'source' => 'http' ) );
+		$sdk_rows  = ProviderTrace::list( array( 'source' => 'sdk' ) );
+		$this->assertCount( 1, $http_rows );
+		$this->assertCount( 1, $sdk_rows );
+		$this->assertSame( 'http', $http_rows[0]->source );
+		$this->assertSame( 'sdk', $sdk_rows[0]->source );
+		$this->assertSame( 1, ProviderTrace::count( array( 'source' => 'http' ) ) );
+		$this->assertSame( 1, ProviderTrace::count( array( 'source' => 'sdk' ) ) );
 	}
 
 	public function test_nested_lifo_correlation_before_a_before_b_after_b_after_a(): void {

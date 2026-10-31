@@ -27,7 +27,9 @@ const BUDGETS = [
 	{
 		name: 'widget-panel',
 		file: 'build/widget-panel.js',
-		minifiedBudgetKiB: 100,
+		// Advanced-install chip handling (message-items.js) added ~0.2 KiB to a
+		// 99.9 KiB baseline; gzip stays at 26.8 KiB of its 28 KiB budget.
+		minifiedBudgetKiB: 100.5,
 		gzipBudgetKiB: 28,
 	},
 ];
@@ -35,8 +37,10 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	name: 'deferred-javascript',
 	// MCP manager/sign-in (merged with main): measured 1736.9 KiB minified /
 	// 531.9 KiB gzip. Only aggregate deferred growth changes; launch and
-	// largest-asset caps stay fixed.
-	minifiedBudgetKiB: 1738,
+	// largest-asset caps stay fixed. Advanced one-click install (account card
+	// button, focus refresh, settings tab deep link) measured 1738.0 KiB / 532.4
+	// KiB gzip.
+	minifiedBudgetKiB: 1739,
 	gzipBudgetKiB: 533,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,

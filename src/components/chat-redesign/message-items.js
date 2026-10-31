@@ -32,6 +32,8 @@ import {
 	buildToolProgressSummary,
 	extractText,
 	parseSuggestions,
+	isAdvancedInstallSuggestion,
+	ADVANCED_RELEASE_URL,
 } from './message-helpers';
 import { linkifyText } from '../../utils/linkify';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -709,7 +711,29 @@ export function AssistantMessage( {
 								type="button"
 								key={ i }
 								className="sdaa-cr-suggestion-chip"
-								onClick={ () => onSuggestionSelect( s ) }
+								// The model cannot install plugins, so sending an
+								// Advanced install chip as a message does nothing.
+								// Go to the account card's Install button, or to the
+								// release page when the user cannot install plugins.
+								onClick={ () => {
+									if ( ! isAdvancedInstallSuggestion( s ) ) {
+										onSuggestionSelect( s );
+									} else if (
+										window.sdAiAgentData?.advancedInstallUrl
+									) {
+										window.open(
+											window.sdAiAgentData
+												.advancedInstallUrl,
+											'_self'
+										);
+									} else {
+										window.open(
+											ADVANCED_RELEASE_URL,
+											'_blank',
+											'noopener'
+										);
+									}
+								} }
 							>
 								{ s }
 							</button>

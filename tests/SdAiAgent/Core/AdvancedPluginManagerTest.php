@@ -114,6 +114,50 @@ final class AdvancedPluginManagerTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Raw update failure details', (string) $diagnostic );
 	}
 
+	public function test_install_command_is_rejected_for_the_repository_bundled_copy(): void {
+		add_filter( 'sd_ai_agent_advanced_plugin_bundled_copy', '__return_true' );
+
+		$result = ( new AdvancedPluginManager() )->install_from_command( $this->command( 'bundled-nonce-0000000001' ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_advanced_bundled', $result->get_error_code() );
+	}
+
+	public function test_install_command_nonce_is_single_use(): void {
+		$nonce = 'replayed-nonce-0000000001';
+		set_transient( 'sd_ai_agent_adv_nonce_' . substr( hash( 'sha256', $nonce ), 0, 40 ), 1, 300 );
+
+		$result = ( new AdvancedPluginManager() )->install_from_command( $this->command( $nonce ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_install_command_replayed', $result->get_error_code() );
+	}
+
+	public function test_status_reports_whether_the_current_user_can_install(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'Single-site administrators can install plugins; multisite needs a super admin.' );
+		}
+
+		wp_set_current_user( 0 );
+		$this->assertFalse( ( new AdvancedPluginManager() )->get_status()['can_install'] );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->assertTrue( ( new AdvancedPluginManager() )->get_status()['can_install'] );
+	}
+
+	/**
+	 * @return array{version:string,download_url:string,package_sha256:string,nonce:string,expires_at:int}
+	 */
+	private function command( string $nonce ): array {
+		return array(
+			'version'        => '1.25.0',
+			'download_url'   => 'https://sdaiagent.com/?sdai_update_action=download&sdai_update_slug=superdav-ai-agent-advanced',
+			'package_sha256' => str_repeat( 'a', 64 ),
+			'nonce'          => $nonce,
+			'expires_at'     => time() + 300,
+		);
+	}
+
 	private function set_update_metadata( string $version ): void {
 		$updates           = new \stdClass();
 		$updates->last_checked = time();

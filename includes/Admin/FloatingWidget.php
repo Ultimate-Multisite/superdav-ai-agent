@@ -184,6 +184,7 @@ class FloatingWidget {
 				'onboarding_complete' => $onboarding_complete,
 				'changesPageUrl'      => admin_url( 'admin.php?page=sd-ai-agent#/changes' ),
 				'settingsPageUrl'     => current_user_can( 'manage_options' ) ? admin_url( 'admin.php?page=sd-ai-agent#/settings' ) : '',
+				'advancedInstallUrl'  => current_user_can( 'install_plugins' ) ? admin_url( 'admin.php?page=sd-ai-agent&tab=superdav-account#/settings' ) : '',
 				'viewedPostId'        => $viewed_post_id,
 				'viewedPostType'      => $viewed_post_type,
 				'viewedTitle'         => $viewed_title,

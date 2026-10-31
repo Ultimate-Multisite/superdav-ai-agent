@@ -166,11 +166,14 @@ export default function SettingsApp() {
 	const [ local, setLocal ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ abilities, setAbilities ] = useState( [] );
-	const initialTab = new URL( window.location.href ).searchParams.has(
-		'mcp_oauth'
-	)
-		? 'tools'
-		: 'general';
+	const initialParams = new URL( window.location.href ).searchParams;
+	let initialTab = 'general';
+	if ( initialParams.has( 'mcp_oauth' ) ) {
+		initialTab = 'tools';
+	} else if ( initialParams.get( 'tab' ) === 'superdav-account' ) {
+		// Deep link used by the chat "Install SD AI Agent Advanced" suggestion.
+		initialTab = 'superdav-account';
+	}
 	const [ activeTab, setActiveTab ] = useState( initialTab );
 
 	// Scroll affordance: ref to the wrapper div, state for fade indicators.

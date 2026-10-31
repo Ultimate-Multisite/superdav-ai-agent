@@ -687,6 +687,49 @@ class RestControllerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test GET /sessions/{id} returns the agent stored on the session.
+	 */
+	public function test_get_session_returns_agent_id(): void {
+		wp_set_current_user( $this->admin_id );
+
+		$session_id = Database::create_session( [
+			'user_id'  => $this->admin_id,
+			'title'    => 'Agent Session',
+			'agent_id' => 5,
+		] );
+
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertStatus( 200, $response );
+		$this->assertSame( 5, $response->get_data()['agent_id'] );
+
+		Database::update_session( $session_id, [ 'agent_id' => 9 ] );
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertSame( 9, $response->get_data()['agent_id'] );
+	}
+
+	/**
+	 * Test POST /run with agent_id stores the agent on the session.
+	 */
+	public function test_run_stores_agent_id_on_session(): void {
+		wp_set_current_user( $this->admin_id );
+
+		$session_id = Database::create_session( [
+			'user_id' => $this->admin_id,
+			'title'   => 'Run Agent Session',
+		] );
+
+		$run = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [
+			'message'    => 'Hello',
+			'session_id' => $session_id,
+			'agent_id'   => 4,
+		] );
+		$this->assertStatus( 202, $run );
+
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertSame( 4, $response->get_data()['agent_id'] );
+	}
+
+	/**
 	 * Test POST /sessions/{id}/compact creates a bounded server-side continuation.
 	 */
 	public function test_compact_session_creates_bounded_server_side_session(): void {

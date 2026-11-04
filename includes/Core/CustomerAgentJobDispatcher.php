@@ -99,42 +99,7 @@ final class CustomerAgentJobDispatcher {
 			'timestamp' => $timestamp,
 			'signature' => self::sign( $job_id, $timestamp ),
 		);
-		/** This filter is documented in wp-includes/cron.php */
-		$sslverify = (bool) apply_filters( 'https_local_ssl_verify', false );
-
-		$is_ssl = str_starts_with( $url, 'https://' );
-		if ( class_exists( '\WpOrg\Requests\Requests' ) && class_exists( '\WpOrg\Requests\Transport\Fsockopen' ) && \WpOrg\Requests\Transport\Fsockopen::test( array( 'ssl' => $is_ssl ) ) ) {
-			try {
-				\WpOrg\Requests\Requests::post(
-					$url,
-					array(),
-					$body,
-					array(
-						'transport'        => \WpOrg\Requests\Transport\Fsockopen::class,
-						'blocking'         => false,
-						'timeout'          => 1,
-						'connect_timeout'  => 1,
-						'verify'           => $sslverify,
-						'follow_redirects' => false,
-					)
-				);
-				return;
-			} catch ( \Exception $exception ) {
-				// Fall through to the WordPress HTTP API.
-				unset( $exception );
-			}
-		}
-
-		wp_remote_post(
-			$url,
-			array(
-				'timeout'     => 0.01,
-				'blocking'    => false,
-				'sslverify'   => $sslverify,
-				'redirection' => 0,
-				'body'        => $body,
-			)
-		);
+		LoopbackRequest::send( $url, $body );
 	}
 
 	/**

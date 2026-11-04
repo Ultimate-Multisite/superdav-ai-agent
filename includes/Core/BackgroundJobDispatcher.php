@@ -122,15 +122,7 @@ final class BackgroundJobDispatcher {
 	 * @param string $body JSON body with the job ID and token.
 	 */
 	private static function send_loopback( string $url, string $body ): void {
-		wp_remote_post(
-			$url,
-			array(
-				'timeout'  => 0.01,
-				'blocking' => false,
-				'body'     => $body,
-				'headers'  => array( 'Content-Type' => 'application/json' ),
-			)
-		);
+		LoopbackRequest::send( $url, $body, array( 'Content-Type' => 'application/json' ) );
 	}
 
 	/**

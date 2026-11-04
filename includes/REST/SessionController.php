@@ -2066,89 +2066,107 @@ final class SessionController {
 	 * @return array{dispatched:bool,terminal:bool,metadata:array{phase:string,reason:string,size_class:string}}
 	 */
 	private function maybe_dispatch_checkpoint_resume( string $job_id, ActiveJobRow $row ): array {
-		$checkpoint = $this->checkpoint_array( json_decode( (string) $row->checkpoint, true ) );
-		if ( null === $checkpoint ) {
-			// Legacy interrupted rows without a checkpoint retain the existing
-			// sanitized interruption response instead of pretending they resumed.
-			return $this->checkpoint_resume_outcome( false, false, 'unavailable', array(), $row->checkpoint_phase );
+		// Recovery decisions, generation changes and replacement state share the
+		// publication lock. No provider/tool execution or dispatch occurs here.
+		$lock = self::acquire_job_mutation_lock( $job_id, 1 );
+		if ( null === $lock ) {
+			// A publisher is finishing; keep polling rather than fail the job.
+			return $this->checkpoint_resume_outcome( true, false, 'resumed', array(), $row->checkpoint_phase );
 		}
+		try {
+			$current = ActiveJobRepository::get_by_job_id( $job_id );
+			if ( null === $current || ! in_array( $current->status, array( 'interrupted', 'abandoned' ), true ) ) {
+				// A publisher or another recovery won while this poll was waiting.
+				return $this->checkpoint_resume_outcome( true, false, 'resumed', array(), $row->checkpoint_phase );
+			}
+			$row        = $current;
+			$checkpoint = $this->checkpoint_array( json_decode( (string) $row->checkpoint, true ) );
+			if ( null === $checkpoint ) {
+				// Legacy interrupted rows without a checkpoint retain the existing
+				// sanitized interruption response instead of pretending they resumed.
+				return $this->checkpoint_resume_outcome( false, false, 'unavailable', array(), $row->checkpoint_phase );
+			}
 
-		$history = $this->checkpoint_resume_history( $checkpoint );
-		if ( null === $history ) {
-			return $this->checkpoint_resume_outcome( false, false, 'unavailable', array(), $row->checkpoint_phase );
-		}
+			$history = $this->checkpoint_resume_history( $checkpoint );
+			if ( null === $history ) {
+				return $this->checkpoint_resume_outcome( false, false, 'unavailable', array(), $row->checkpoint_phase );
+			}
 
-		$phase = (string) $row->checkpoint_phase;
-		if ( ! $this->is_auto_resumable_checkpoint_phase( $phase ) ) {
-			return $this->terminal_checkpoint_resume( $job_id, $row, 'unsafe_phase', array(), $phase );
-		}
+			$phase = (string) $row->checkpoint_phase;
+			if ( ! $this->is_auto_resumable_checkpoint_phase( $phase ) ) {
+				return $this->terminal_checkpoint_resume( $job_id, $row, 'unsafe_phase', array(), $phase );
+			}
 
-		if ( $row->resume_attempts >= self::JOB_AUTO_RESUME_MAX_ATTEMPTS ) {
-			return $this->terminal_checkpoint_resume( $job_id, $row, 'retry_budget_exhausted', array(), $phase );
-		}
+			if ( $row->resume_attempts >= self::JOB_AUTO_RESUME_MAX_ATTEMPTS ) {
+				return $this->terminal_checkpoint_resume( $job_id, $row, 'retry_budget_exhausted', array(), $phase );
+			}
 
-		$metadata = AgentLoop::describe_checkpoint_request(
+			$metadata = AgentLoop::describe_checkpoint_request(
 			$history,
 			$phase,
 			(string) ( $checkpoint['provider_id'] ?? '' ),
 			(string) ( $checkpoint['model_id'] ?? '' )
-		);
+			);
 
-		if ( $this->checkpoint_resume_requires_compaction( $metadata ) ) {
-			$compacted = $this->compact_checkpoint_resume_history( $checkpoint, $history, $metadata, $phase );
-			if ( null === $compacted ) {
-				return $this->terminal_checkpoint_resume( $job_id, $row, 'not_compactable', $metadata, $phase );
+			if ( $this->checkpoint_resume_requires_compaction( $metadata ) ) {
+				$compacted = $this->compact_checkpoint_resume_history( $checkpoint, $history, $metadata, $phase );
+				if ( null === $compacted ) {
+					return $this->terminal_checkpoint_resume( $job_id, $row, 'not_compactable', $metadata, $phase );
+				}
+
+				$checkpoint = $compacted['checkpoint'];
+				$metadata   = $compacted['metadata'];
 			}
 
-			$checkpoint = $compacted['checkpoint'];
-			$metadata   = $compacted['metadata'];
-		}
-
-		if ( $this->checkpoint_resume_is_unchanged( $metadata, $this->checkpoint_resume_last_attempt( $checkpoint ) ) ) {
-			return $this->terminal_checkpoint_resume( $job_id, $row, 'no_progress', $metadata, $phase );
-		}
-
-		$checkpoint['checkpoint_resume_metadata'] = $this->checkpoint_resume_metadata( $checkpoint, $metadata );
-
-		$token = wp_generate_password( 40, false );
-		$job   = array(
-			'status'            => 'processing',
-			'token'             => $token,
-			'user_id'           => $row->user_id,
-			'tool_calls'        => json_decode( $row->tool_calls, true ) ?: array(),
-			'messages'          => array(),
-			'checkpoint_resume' => true,
-			'checkpoint_state'  => $checkpoint,
-			'params'            => array(
-				'message'                       => '',
-				'history'                       => array(),
-				'abilities'                     => array(),
-				'system_instruction'            => '',
-				'bootstrap_prompt'              => '',
-				'max_iterations'                => $checkpoint['iterations_remaining'] ?? null,
-				'session_id'                    => $row->session_id,
-				'provider_id'                   => $checkpoint['provider_id'] ?? '',
-				'model_id'                      => $checkpoint['model_id'] ?? '',
-				'page_context'                  => $checkpoint['page_context'] ?? array(),
-				'agent_id'                      => self::resumed_agent_id( $checkpoint ),
-				'attachments'                   => array(),
-				'client_abilities'              => $this->checkpoint_client_abilities( $checkpoint ),
-				'anonymous_allowed_abilities'   => $checkpoint['anonymous_allowed_abilities'] ?? array(),
-				'anonymous_allowed_collections' => $checkpoint['anonymous_allowed_collections'] ?? array(),
-				'anonymous_policy_active'       => ! empty( $checkpoint['anonymous_policy_active'] ),
-			),
-		);
-
-		if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint, true ) ) {
-			$current = ActiveJobRepository::get_by_job_id( $job_id );
-			if ( null !== $current && in_array( $current->status, array( 'queued', 'processing' ), true ) ) {
-				return $this->checkpoint_resume_outcome( true, false, 'resumed', $metadata, $phase );
+			if ( $this->checkpoint_resume_is_unchanged( $metadata, $this->checkpoint_resume_last_attempt( $checkpoint ) ) ) {
+				return $this->terminal_checkpoint_resume( $job_id, $row, 'no_progress', $metadata, $phase );
 			}
 
-			return $this->terminal_checkpoint_resume( $job_id, $row, 'claim_failed', $metadata, $phase );
-		}
+			$checkpoint['checkpoint_resume_metadata'] = $this->checkpoint_resume_metadata( $checkpoint, $metadata );
 
-		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+			$token = wp_generate_password( 40, false );
+			$job   = array(
+				'status'            => 'processing',
+				'token'             => $token,
+				'user_id'           => $row->user_id,
+				'tool_calls'        => json_decode( $row->tool_calls, true ) ?: array(),
+				'messages'          => array(),
+				'checkpoint_resume' => true,
+				'checkpoint_state'  => $checkpoint,
+				'params'            => array(
+					'message'                       => '',
+					'history'                       => array(),
+					'abilities'                     => array(),
+					'system_instruction'            => '',
+					'bootstrap_prompt'              => '',
+					'max_iterations'                => $checkpoint['iterations_remaining'] ?? null,
+					'session_id'                    => $row->session_id,
+					'provider_id'                   => $checkpoint['provider_id'] ?? '',
+					'model_id'                      => $checkpoint['model_id'] ?? '',
+					'page_context'                  => $checkpoint['page_context'] ?? array(),
+					'agent_id'                      => self::resumed_agent_id( $checkpoint ),
+					'attachments'                   => array(),
+					'client_abilities'              => $this->checkpoint_client_abilities( $checkpoint ),
+					'anonymous_allowed_abilities'   => $checkpoint['anonymous_allowed_abilities'] ?? array(),
+					'anonymous_allowed_collections' => $checkpoint['anonymous_allowed_collections'] ?? array(),
+					'anonymous_policy_active'       => ! empty( $checkpoint['anonymous_policy_active'] ),
+				),
+			);
+
+			if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint, true ) ) {
+				$current = ActiveJobRepository::get_by_job_id( $job_id );
+				if ( null !== $current && in_array( $current->status, array( 'queued', 'processing' ), true ) ) {
+					return $this->checkpoint_resume_outcome( true, false, 'resumed', $metadata, $phase );
+				}
+
+				return $this->terminal_checkpoint_resume( $job_id, $row, 'claim_failed', $metadata, $phase );
+			}
+
+			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+		} finally {
+			self::release_job_mutation_lock( $lock );
+		}
+		// Dispatch only after the claimed state is visible and the lock is released.
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 
 		return $this->checkpoint_resume_outcome( true, false, 'resumed', $metadata, $phase );
@@ -4093,47 +4111,7 @@ final class SessionController {
 
 		// Progress callback: write live tool-call activity and channel messages
 		// to the job transient so the polling frontend can display them incrementally.
-		$progress_job_id              = $job_id;
-		$options['progress_callback'] = static function ( array $tool_call_log, array $message_log = array() ) use ( $progress_job_id, $worker_generation ) {
-			$lock = self::acquire_job_mutation_lock( $progress_job_id );
-			if ( null === $lock ) {
-				return;
-			}
-
-			try {
-				// A stale worker may report progress immediately after a long tool
-				// call, before its next heartbeat discovers the ownership change.
-				if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $progress_job_id, $worker_generation ) ) {
-					return;
-				}
-				$current = get_transient( RestController::JOB_PREFIX . $progress_job_id );
-				if ( is_array( $current ) && 'processing' === ( $current['status'] ?? '' ) ) {
-					$current['tool_calls'] = $tool_call_log;
-					$current['messages']   = $message_log;
-					// Refresh TTL on each update to prevent mid-execution expiration.
-					// Adding 60s buffer ensures the transient outlasts the execution
-					// limit even when the callback fires near the end of the job.
-					set_transient( RestController::JOB_PREFIX . $progress_job_id, $current, RestController::JOB_TTL + 60 );
-				} elseif ( false === $current ) {
-					// Transient expired mid-execution; re-create a minimal entry so
-					// the final job result can still be persisted after completion.
-					// Use the same buffered TTL (+60s) as the primary path to
-					// prevent the recreated transient from expiring again before
-					// the job finishes.
-					set_transient(
-						RestController::JOB_PREFIX . $progress_job_id,
-						array(
-							'status'     => 'processing',
-							'tool_calls' => $tool_call_log,
-							'messages'   => $message_log,
-						),
-						RestController::JOB_TTL + 60
-					);
-				}
-			} finally {
-				self::release_job_mutation_lock( $lock );
-			}
-		};
+		$options['progress_callback'] = self::build_job_progress_callback( $job_id, $worker_generation );
 
 		// Record start time for webhook duration tracking.
 		$start_ms = (int) round( microtime( true ) * 1000 );
@@ -4278,11 +4256,16 @@ final class SessionController {
 				$result = $loop->run();
 			}
 		} catch ( \Throwable $e ) {
-			if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
+			$lock = self::acquire_job_mutation_lock( $job_id, 1 );
+			if ( null === $lock ) {
 				return new WP_REST_Response( array( 'ok' => false ), 200 );
 			}
+			try {
+				if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
+					return new WP_REST_Response( array( 'ok' => false ), 200 );
+				}
 
-			$diagnostic = $this->persist_active_job_failure(
+				$diagnostic = $this->persist_active_job_failure(
 				$job_id,
 				$job,
 				ActiveJobFailureDiagnostic::REASON_LOOP_EXCEPTION,
@@ -4291,11 +4274,11 @@ final class SessionController {
 					'provider_id'     => (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' ),
 					'model_id'        => (string) ( $options['model_id'] ?? $params['model_id'] ?? '' ),
 				)
-			);
-			$this->record_public_chat_review_status( $job, 'failed', (string) $diagnostic['reason'] );
+				);
+				$this->record_public_chat_review_status( $job, 'failed', (string) $diagnostic['reason'] );
 
-			if ( $session_id && ! $is_durable_plan_phase ) {
-				$recovery_error = new WP_Error(
+				if ( $session_id && ! $is_durable_plan_phase ) {
+					$recovery_error = new WP_Error(
 					'sd_ai_agent_loop_exception',
 					ActiveJobFailureDiagnostic::message_for( (string) $diagnostic['reason'] ),
 					array(
@@ -4311,74 +4294,84 @@ final class SessionController {
 							'completion' => 0,
 						),
 					)
-				);
-				$this->persist_error_recovery_to_session(
-					$session_id,
-					$recovery_error,
-					(array) $recovery_error->get_error_data(),
-					$params,
-					$options,
-					$job
-				);
+					);
+					$this->persist_error_recovery_to_session(
+						$session_id,
+						$recovery_error,
+						(array) $recovery_error->get_error_data(),
+						$params,
+						$options,
+						$job
+					);
+				}
+
+				unset( $job['token'], $job['tool_calls'], $job['messages'] );
+				$this->finalize_durable_plan_phase( $job );
+				set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+
+				return new WP_REST_Response( array( 'ok' => false ), 200 );
+			} finally {
+				self::release_job_mutation_lock( $lock );
 			}
+		}
 
-			unset( $job['token'], $job['tool_calls'], $job['messages'] );
-			$this->finalize_durable_plan_phase( $job );
-			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-
+		// Provider/tool execution is over. Fence all final publication, including
+		// session/DB writes and paused results, against checkpoint recovery.
+		$lock = self::acquire_job_mutation_lock( $job_id, 1 );
+		if ( null === $lock ) {
 			return new WP_REST_Response( array( 'ok' => false ), 200 );
 		}
-
-		// A resume claim during a long tool/provider call fenced this worker out.
-		// Publishing now would overwrite the resumed run's transient, session and DB state.
-		if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
-			return new WP_REST_Response( array( 'ok' => false ), 200 );
-		}
-
-		if ( $is_durable_plan_request && is_array( $result ) ) {
-			$result = $this->attach_durable_plan_to_result( $job, $session_id, $result );
-		}
-
-		if ( is_wp_error( $result ) ) {
-			$error_data   = $result->get_error_data();
-			$error_data   = is_array( $error_data ) ? $error_data : array();
-			$failure_data = ActiveJobFailureDiagnostic::context_from_error_data( $error_data );
-
-			$failure_data['last_safe_phase'] = 'agent_loop';
-			if ( '' === $failure_data['provider_id'] ) {
-				$failure_data['provider_id'] = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
+		try {
+			// A resume claim during a long tool/provider call fenced this worker out.
+			// Publishing now would overwrite the resumed run's transient, session and DB state.
+			if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
+				return new WP_REST_Response( array( 'ok' => false ), 200 );
 			}
-			if ( '' === $failure_data['model_id'] ) {
-				$failure_data['model_id'] = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
+
+			if ( $is_durable_plan_request && is_array( $result ) ) {
+				$result = $this->attach_durable_plan_to_result( $job, $session_id, $result );
 			}
-			$diagnostic = $this->persist_active_job_failure(
+
+			if ( is_wp_error( $result ) ) {
+				$error_data   = $result->get_error_data();
+				$error_data   = is_array( $error_data ) ? $error_data : array();
+				$failure_data = ActiveJobFailureDiagnostic::context_from_error_data( $error_data );
+
+				$failure_data['last_safe_phase'] = 'agent_loop';
+				if ( '' === $failure_data['provider_id'] ) {
+					$failure_data['provider_id'] = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
+				}
+				if ( '' === $failure_data['model_id'] ) {
+					$failure_data['model_id'] = (string) ( $options['model_id'] ?? $params['model_id'] ?? '' );
+				}
+				$diagnostic = $this->persist_active_job_failure(
 				$job_id,
 				$job,
 				ActiveJobFailureDiagnostic::reason_from_error( $result, (string) $failure_data['provider_id'] ),
 				$failure_data
-			);
-			$this->record_public_chat_review_status( $job, 'failed', (string) $diagnostic['reason'] );
-			$job['tool_calls'] = $error_data['tool_calls'] ?? ( $job['tool_calls'] ?? array() );
-			$job['messages']   = $error_data['messages'] ?? ( $job['messages'] ?? array() );
-			$payload_recovery  = $this->normalize_payload_recovery( $error_data['recovery'] ?? null, $session_id );
-			if ( null !== $payload_recovery ) {
-				$job['payload_recovery'] = $payload_recovery;
-			}
-			if ( $session_id && ! $is_durable_plan_phase ) {
-				$this->persist_error_recovery_to_session(
+				);
+				$this->record_public_chat_review_status( $job, 'failed', (string) $diagnostic['reason'] );
+				$job['tool_calls'] = $error_data['tool_calls'] ?? ( $job['tool_calls'] ?? array() );
+				$job['messages']   = $error_data['messages'] ?? ( $job['messages'] ?? array() );
+				$payload_recovery  = $this->normalize_payload_recovery( $error_data['recovery'] ?? null, $session_id );
+				if ( null !== $payload_recovery ) {
+					$job['payload_recovery'] = $payload_recovery;
+				}
+				if ( $session_id && ! $is_durable_plan_phase ) {
+					$this->persist_error_recovery_to_session(
 					$session_id,
 					$result,
 					$error_data,
 					$params,
 					$options,
 					$job
-				);
-			}
+					);
+				}
 
-			// Log webhook execution failure.
-			if ( ! empty( $job['webhook_id'] ) ) {
-				$duration_ms = $start_ms > 0 ? (int) round( microtime( true ) * 1000 ) - $start_ms : 0;
-				WebhookDatabase::log_execution(
+				// Log webhook execution failure.
+				if ( ! empty( $job['webhook_id'] ) ) {
+					$duration_ms = $start_ms > 0 ? (int) round( microtime( true ) * 1000 ) - $start_ms : 0;
+					WebhookDatabase::log_execution(
 					// @phpstan-ignore-next-line
 					(int) $job['webhook_id'],
 					'error',
@@ -4388,147 +4381,147 @@ final class SessionController {
 					0,
 					$duration_ms,
 					ActiveJobFailureDiagnostic::message_for( (string) $diagnostic['reason'] )
+					);
+				}
+
+				unset( $job['tool_calls'], $job['messages'] );
+			} elseif ( is_array( $result ) && ! empty( $result['awaiting_confirmation'] ) ) {
+				/** @var array<string, mixed> $result */
+				$job['status']             = 'awaiting_confirmation';
+				$job['pending_tools']      = $result['pending_tools'] ?? array();
+				$job['messages']           = $result['message_log'] ?? array();
+				$job['confirmation_state'] = array(
+					'history'                     => $result['history'] ?? array(),
+					'tool_call_log'               => $result['tool_call_log'] ?? array(),
+					'message_log'                 => $result['message_log'] ?? array(),
+					'token_usage'                 => $result['token_usage'] ?? array(
+						'prompt'     => 0,
+						'completion' => 0,
+					),
+					'approved_once_abilities'     => $result['approved_once_abilities'] ?? array(),
+					'confirmation_message'        => $result['confirmation_message'] ?? array(),
+					'confirmation_history_before' => $result['confirmation_history_before'] ?? null,
+					'mutation_policy_context'     => $result['mutation_policy_context'] ?? array(),
+					'iterations_remaining'        => $result['iterations_remaining'] ?? 5,
 				);
-			}
+				// Keep token and params for the resume flow.
+				unset( $job['token'] );
+				set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 
-			unset( $job['tool_calls'], $job['messages'] );
-		} elseif ( is_array( $result ) && ! empty( $result['awaiting_confirmation'] ) ) {
-			/** @var array<string, mixed> $result */
-			$job['status']             = 'awaiting_confirmation';
-			$job['pending_tools']      = $result['pending_tools'] ?? array();
-			$job['messages']           = $result['message_log'] ?? array();
-			$job['confirmation_state'] = array(
-				'history'                     => $result['history'] ?? array(),
-				'tool_call_log'               => $result['tool_call_log'] ?? array(),
-				'message_log'                 => $result['message_log'] ?? array(),
-				'token_usage'                 => $result['token_usage'] ?? array(
-					'prompt'     => 0,
-					'completion' => 0,
-				),
-				'approved_once_abilities'     => $result['approved_once_abilities'] ?? array(),
-				'confirmation_message'        => $result['confirmation_message'] ?? array(),
-				'confirmation_history_before' => $result['confirmation_history_before'] ?? null,
-				'mutation_policy_context'     => $result['mutation_policy_context'] ?? array(),
-				'iterations_remaining'        => $result['iterations_remaining'] ?? 5,
-			);
-			// Keep token and params for the resume flow.
-			unset( $job['token'] );
-			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-
-			// Persist awaiting_confirmation to DB so status survives transient expiry.
-			/** @var list<array<string, mixed>> $pending_tools_for_db */
-			$pending_tools_for_db = (array) $job['pending_tools'];
-			/** @var list<array<string, mixed>> $tool_calls_for_db */
-			$tool_calls_for_db = (array) $job['tool_calls'];
-			ActiveJobRepository::update_status(
+				// Persist awaiting_confirmation to DB so status survives transient expiry.
+				/** @var list<array<string, mixed>> $pending_tools_for_db */
+				$pending_tools_for_db = (array) $job['pending_tools'];
+				/** @var list<array<string, mixed>> $tool_calls_for_db */
+				$tool_calls_for_db = (array) $job['tool_calls'];
+				ActiveJobRepository::update_status(
 				$job_id,
 				'awaiting_confirmation',
 				[
 					'pending_tools' => wp_json_encode( $pending_tools_for_db ),
 					'tool_calls'    => wp_json_encode( $tool_calls_for_db ),
 				]
-			);
+				);
 
-			return new WP_REST_Response( array( 'ok' => true ), 200 );
-		} elseif ( is_array( $result ) && ! empty( $result['pending_client_tool_calls'] ) ) {
-			// Agent loop paused — waiting for the browser to execute client-side
-			// (JS) tools and POST results back to /chat/tool-result.
-			// The AgentLoop already persisted the paused conversation state via
-			// Database::save_paused_state(), so /chat/tool-result can reconstruct
-			// the loop. We only need to surface the pending calls to the browser.
-			/** @var array<string, mixed> $result */
-			$job['status']                    = 'awaiting_client_tools';
-			$job['pending_client_tool_calls'] = $result['pending_client_tool_calls'];
-			// Preserve live tool-call progress so the UI stays current.
-			$job['tool_calls'] = $result['tool_call_log'] ?? array();
-			$job['messages']   = $result['message_log'] ?? array();
+				return new WP_REST_Response( array( 'ok' => true ), 200 );
+			} elseif ( is_array( $result ) && ! empty( $result['pending_client_tool_calls'] ) ) {
+				// Agent loop paused — waiting for the browser to execute client-side
+				// (JS) tools and POST results back to /chat/tool-result.
+				// The AgentLoop already persisted the paused conversation state via
+				// Database::save_paused_state(), so /chat/tool-result can reconstruct
+				// the loop. We only need to surface the pending calls to the browser.
+				/** @var array<string, mixed> $result */
+				$job['status']                    = 'awaiting_client_tools';
+				$job['pending_client_tool_calls'] = $result['pending_client_tool_calls'];
+				// Preserve live tool-call progress so the UI stays current.
+				$job['tool_calls'] = $result['tool_call_log'] ?? array();
+				$job['messages']   = $result['message_log'] ?? array();
 
-			unset( $job['token'] );
-			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+				unset( $job['token'] );
+				set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 
-			// Persist to DB so the pending calls survive transient expiry.
-			// We reuse the pending_tools column (JSON) since the schema is
-			// shared and the data shape is compatible.
-			/** @var list<array<string, mixed>> $pending_calls_for_db */
-			$pending_calls_for_db = (array) $job['pending_client_tool_calls'];
-			/** @var list<array<string, mixed>> $tool_calls_for_db */
-			$tool_calls_for_db = (array) $job['tool_calls'];
-			ActiveJobRepository::update_status(
+				// Persist to DB so the pending calls survive transient expiry.
+				// We reuse the pending_tools column (JSON) since the schema is
+				// shared and the data shape is compatible.
+				/** @var list<array<string, mixed>> $pending_calls_for_db */
+				$pending_calls_for_db = (array) $job['pending_client_tool_calls'];
+				/** @var list<array<string, mixed>> $tool_calls_for_db */
+				$tool_calls_for_db = (array) $job['tool_calls'];
+				ActiveJobRepository::update_status(
 				$job_id,
 				'awaiting_client_tools',
 				[
 					'pending_tools' => wp_json_encode( $pending_calls_for_db ),
 					'tool_calls'    => wp_json_encode( $tool_calls_for_db ),
 				]
-			);
+				);
 
-			return new WP_REST_Response( array( 'ok' => true ), 200 );
-		} else {
-			/** @var array<string, mixed> $result */
-			$job['status'] = 'complete';
-			$job['result'] = $result;
+				return new WP_REST_Response( array( 'ok' => true ), 200 );
+			} else {
+				/** @var array<string, mixed> $result */
+				$job['status'] = 'complete';
+				$job['result'] = $result;
 
-			if ( ! empty( $job['public_chat'] ) && ! empty( $job['public_session_uuid'] ) ) {
-				$public_history               = isset( $result['history'] ) && is_array( $result['history'] ) ? $result['history'] : array();
-				$public_session               = get_transient( $this->public_chat_session_key( (string) $job['public_session_uuid'] ) );
-				$public_session               = is_array( $public_session ) ? $public_session : array();
-				$public_session['history']    = $public_history;
-				$public_session['updated_at'] = time();
-				set_transient(
+				if ( ! empty( $job['public_chat'] ) && ! empty( $job['public_session_uuid'] ) ) {
+					$public_history               = isset( $result['history'] ) && is_array( $result['history'] ) ? $result['history'] : array();
+					$public_session               = get_transient( $this->public_chat_session_key( (string) $job['public_session_uuid'] ) );
+					$public_session               = is_array( $public_session ) ? $public_session : array();
+					$public_session['history']    = $public_history;
+					$public_session['updated_at'] = time();
+					set_transient(
 					$this->public_chat_session_key( (string) $job['public_session_uuid'] ),
 					$public_session,
 					PublicChatSecurity::SESSION_TTL
-				);
-				$token_usage = isset( $result['token_usage'] ) && is_array( $result['token_usage'] ) ? $result['token_usage'] : array();
-				$handoff     = isset( $result['handoff'] ) && is_array( $result['handoff'] ) ? $result['handoff'] : array();
-				$this->record_public_chat_review_turn(
-					$job,
-					'assistant',
-					(string) ( $result['reply'] ?? '' ),
-					'complete',
-					array(
-						'provider_id'       => (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' ),
-						'model_id'          => (string) ( $options['model_id'] ?? $params['model_id'] ?? '' ),
-						'iterations_used'   => (int) ( $result['iterations_used'] ?? 0 ),
-						'prompt_tokens'     => (int) ( $token_usage['prompt'] ?? 0 ),
-						'completion_tokens' => (int) ( $token_usage['completion'] ?? 0 ),
-						'handoff_intent'    => (string) ( $handoff['intent'] ?? '' ),
-					)
-				);
-			}
+					);
+					$token_usage = isset( $result['token_usage'] ) && is_array( $result['token_usage'] ) ? $result['token_usage'] : array();
+					$handoff     = isset( $result['handoff'] ) && is_array( $result['handoff'] ) ? $result['handoff'] : array();
+					$this->record_public_chat_review_turn(
+						$job,
+						'assistant',
+						(string) ( $result['reply'] ?? '' ),
+						'complete',
+						array(
+							'provider_id'       => (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' ),
+							'model_id'          => (string) ( $options['model_id'] ?? $params['model_id'] ?? '' ),
+							'iterations_used'   => (int) ( $result['iterations_used'] ?? 0 ),
+							'prompt_tokens'     => (int) ( $token_usage['prompt'] ?? 0 ),
+							'completion_tokens' => (int) ( $token_usage['completion'] ?? 0 ),
+							'handoff_intent'    => (string) ( $handoff['intent'] ?? '' ),
+						)
+					);
+				}
 
-			// Persist to session if session_id is provided.
-			if ( $session_id ) {
-				$job['result']['session_id'] = $session_id;
+				// Persist to session if session_id is provided.
+				if ( $session_id ) {
+					$job['result']['session_id'] = $session_id;
 
-				$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
-				$model_id    = (string) ( $result['model_id'] ?? $options['model_id'] ?? $params['model_id'] ?? '' );
-				$saved       = $this->persist_completed_turn(
+					$provider_id = (string) ( $options['provider_id'] ?? $params['provider_id'] ?? '' );
+					$model_id    = (string) ( $result['model_id'] ?? $options['model_id'] ?? $params['model_id'] ?? '' );
+					$saved       = $this->persist_completed_turn(
 					$session_id,
 					$job_id,
 					$result,
 					$provider_id,
 					$model_id,
 					$is_durable_plan_phase || $is_durable_plan_request
-				);
-				if ( is_wp_error( $saved ) ) {
-					$this->persist_active_job_failure( $job_id, $job, ActiveJobFailureDiagnostic::REASON_UNKNOWN, array( 'last_safe_phase' => 'completion_persistence' ) );
-					$job['error'] = $saved->get_error_message();
-					unset( $job['result'] );
+					);
+					if ( is_wp_error( $saved ) ) {
+						$this->persist_active_job_failure( $job_id, $job, ActiveJobFailureDiagnostic::REASON_UNKNOWN, array( 'last_safe_phase' => 'completion_persistence' ) );
+						$job['error'] = $saved->get_error_message();
+						unset( $job['result'] );
+					}
 				}
-			}
 
-			// Log webhook execution success.
-			if ( 'complete' === $job['status'] && ! empty( $job['webhook_id'] ) ) {
-				$token_usage = $result['token_usage'] ?? array(
-					'prompt'     => 0,
-					'completion' => 0,
-				);
-				/** @var array<string, mixed> $token_usage */
-				$duration_ms = $start_ms > 0 ? (int) round( microtime( true ) * 1000 ) - $start_ms : 0;
-				/** @var list<array<string, mixed>> $tool_calls_webhook */
-				$tool_calls_webhook = $result['tool_calls'] ?? array();
-				WebhookDatabase::log_execution(
+				// Log webhook execution success.
+				if ( 'complete' === $job['status'] && ! empty( $job['webhook_id'] ) ) {
+					$token_usage = $result['token_usage'] ?? array(
+						'prompt'     => 0,
+						'completion' => 0,
+					);
+					/** @var array<string, mixed> $token_usage */
+					$duration_ms = $start_ms > 0 ? (int) round( microtime( true ) * 1000 ) - $start_ms : 0;
+					/** @var list<array<string, mixed>> $tool_calls_webhook */
+					$tool_calls_webhook = $result['tool_calls'] ?? array();
+					WebhookDatabase::log_execution(
 					// @phpstan-ignore-next-line
 					(int) $job['webhook_id'],
 					'success',
@@ -4541,42 +4534,79 @@ final class SessionController {
 					(int) ( $token_usage['completion'] ?? 0 ),
 					$duration_ms,
 					''
-				);
+					);
+				}
 			}
-		}
 
-		$this->finalize_durable_plan_phase( $job );
+			$this->finalize_durable_plan_phase( $job );
 
-		// Clear the token — no longer needed.
-		unset( $job['token'] );
-		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
+			// Clear the token — no longer needed.
+			unset( $job['token'] );
+			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 
-		// Persist terminal status to DB so result survives transient expiry.
-		// The full reply/history are in the session messages column already.
-		// A DB-sourced poll response returns status + session_id for the
-		// frontend to reload the session when needed.
-		// @phpstan-ignore-next-line -- status is set above in all paths (error or complete).
-		$db_status = (string) $job['status'];
-		if ( 'error' === $db_status && empty( $job['diagnostic'] ) ) {
-			$this->persist_active_job_failure(
+			// Persist terminal status to DB so result survives transient expiry.
+			// The full reply/history are in the session messages column already.
+			// A DB-sourced poll response returns status + session_id for the
+			// frontend to reload the session when needed.
+			// @phpstan-ignore-next-line -- status is set above in all paths (error or complete).
+			$db_status = (string) $job['status'];
+			if ( 'error' === $db_status && empty( $job['diagnostic'] ) ) {
+				$this->persist_active_job_failure(
 				$job_id,
 				$job,
 				ActiveJobFailureDiagnostic::REASON_UNKNOWN,
 				array( 'last_safe_phase' => 'agent_loop' )
-			);
-		} elseif ( 'complete' === $db_status ) {
-			/** @var array<string, mixed> $complete_result */
-			$complete_result = $job['result'] ?? array();
-			/** @var list<array<string, mixed>> $complete_tool_calls */
-			$complete_tool_calls = $complete_result['tool_calls'] ?? array();
-			ActiveJobRepository::update_status(
+				);
+			} elseif ( 'complete' === $db_status ) {
+				/** @var array<string, mixed> $complete_result */
+				$complete_result = $job['result'] ?? array();
+				/** @var list<array<string, mixed>> $complete_tool_calls */
+				$complete_tool_calls = $complete_result['tool_calls'] ?? array();
+				ActiveJobRepository::update_status(
 				$job_id,
 				'complete',
 				[ 'tool_calls' => wp_json_encode( $complete_tool_calls ) ]
-			);
-		}
+				);
+			}
 
-		return new WP_REST_Response( array( 'ok' => true ), 200 );
+			return new WP_REST_Response( array( 'ok' => true ), 200 );
+		} finally {
+			self::release_job_mutation_lock( $lock );
+		}
+	}
+
+	/**
+	 * Build an ownership-fenced publisher for live tool activity and messages.
+	 *
+	 * @param string   $job_id Active job UUID.
+	 * @param int|null $worker_generation Generation captured by the worker.
+	 * @return \Closure(array, array=): void
+	 */
+	private static function build_job_progress_callback( string $job_id, ?int $worker_generation ): \Closure {
+		return static function ( array $tool_call_log, array $message_log = array() ) use ( $job_id, $worker_generation ): void {
+			$lock = self::acquire_job_mutation_lock( $job_id );
+			if ( null === $lock ) {
+				return;
+			}
+			try {
+				if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
+					return;
+				}
+				$current = get_transient( RestController::JOB_PREFIX . $job_id );
+				if ( false === $current ) {
+					$current = array( 'status' => 'processing' );
+				}
+				if ( is_array( $current ) && 'processing' === ( $current['status'] ?? '' ) ) {
+					$current['tool_calls'] = $tool_call_log;
+					$current['messages']   = $message_log;
+					// Keep progress alive beyond the execution limit, including when
+					// recreating an expired transient during a long-running tool call.
+					set_transient( RestController::JOB_PREFIX . $job_id, $current, RestController::JOB_TTL + 60 );
+				}
+			} finally {
+				self::release_job_mutation_lock( $lock );
+			}
+		};
 	}
 
 	/**

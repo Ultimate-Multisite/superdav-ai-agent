@@ -182,7 +182,8 @@ route (`includes/REST/AdvancedInstallController.php`). The route is authorised
 solely by an Ed25519 signature over the raw request body that is verified in
 `includes/Core/AdvancedInstallCommand.php`; the signed command pins the
 installation ID, site URL, package SHA-256, a single permitted sdaiagent.com
-package URL, a nonce, and a five-minute expiry. This is the management-service
+package URL, a single-use nonce, and an expiry at most ten minutes
+(`AdvancedInstallCommand::MAX_LIFETIME`, 600 s) after issue. This is the management-service
 pattern that guideline 8 allows ("provided the service handles the interaction
 on its own domain and not within the WordPress dashboard"). It has not been
 confirmed with plugins@wordpress.org; do that before the next submission and

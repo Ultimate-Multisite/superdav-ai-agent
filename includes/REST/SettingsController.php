@@ -668,6 +668,13 @@ final class SettingsController {
 			return new WP_Error( 'sd_ai_agent_account_action_invalid', __( 'That SD AI account action is invalid.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
 		}
 
+		// The signed install push runs without a WordPress user, so the plugin
+		// capability boundary must be enforced here, before the URL is minted.
+		// manage_options alone is not enough (e.g. multisite site administrators).
+		if ( 'install_advanced' === $action && ! AdvancedPluginManager::current_user_can_manage() ) {
+			return new WP_Error( 'sd_ai_agent_install_forbidden', __( 'You need permission to install and activate plugins on this site.', 'superdav-ai-agent' ), array( 'status' => 403 ) );
+		}
+
 		$result = ( new SuperdavSiteConnectionService() )->request_account_action( $action );
 		if ( $result instanceof WP_Error ) {
 			return $result;

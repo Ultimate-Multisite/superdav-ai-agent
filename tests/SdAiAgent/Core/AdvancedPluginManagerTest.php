@@ -125,12 +125,40 @@ final class AdvancedPluginManagerTest extends WP_UnitTestCase {
 
 	public function test_install_command_nonce_is_single_use(): void {
 		$nonce = 'replayed-nonce-0000000001';
-		set_transient( 'sd_ai_agent_adv_nonce_' . substr( hash( 'sha256', $nonce ), 0, 40 ), 1, 300 );
+		add_option( $this->nonce_claim( $nonce ), (string) ( time() + 300 ), '', false );
 
 		$result = ( new AdvancedPluginManager() )->install_from_command( $this->command( $nonce ) );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'sd_ai_agent_install_command_replayed', $result->get_error_code() );
+		$this->assertFalse( get_option( 'sd_ai_agent_advanced_install_lock' ), 'A rejected replay must release the install lock.' );
+	}
+
+	public function test_install_in_progress_does_not_consume_the_nonce(): void {
+		$nonce = 'locked-nonce-000000000001';
+		add_option( 'sd_ai_agent_advanced_install_lock', (string) ( time() + 300 ), '', false );
+
+		$result = ( new AdvancedPluginManager() )->install_from_command( $this->command( $nonce ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_install_in_progress', $result->get_error_code() );
+		$this->assertFalse( get_option( $this->nonce_claim( $nonce ) ), 'The nonce must remain usable after a busy rejection.' );
+	}
+
+	public function test_expired_install_lock_is_reclaimed(): void {
+		$nonce = 'expired-lock-nonce-000001';
+		add_option( 'sd_ai_agent_advanced_install_lock', (string) ( time() - 10 ), '', false );
+		add_option( $this->nonce_claim( $nonce ), (string) ( time() + 300 ), '', false );
+
+		$result = ( new AdvancedPluginManager() )->install_from_command( $this->command( $nonce ) );
+
+		// The stale lock is replaced, so the request proceeds to the nonce check.
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_install_command_replayed', $result->get_error_code() );
+	}
+
+	private function nonce_claim( string $nonce ): string {
+		return 'sd_ai_agent_adv_nonce_' . substr( hash( 'sha256', $nonce ), 0, 40 );
 	}
 
 	public function test_status_reports_whether_the_current_user_can_install(): void {

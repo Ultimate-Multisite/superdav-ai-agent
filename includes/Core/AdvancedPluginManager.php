@@ -30,9 +30,11 @@ final class AdvancedPluginManager {
 	public const PLUGIN_BASENAME   = 'superdav-ai-agent-advanced/superdav-ai-agent-advanced.php';
 	public const DIAGNOSTIC_OPTION = 'sd_ai_agent_advanced_update_diagnostic';
 
-	private const NONCE_TRANSIENT_PREFIX = 'sd_ai_agent_adv_nonce_';
-	private const INSTALL_LOCK_TRANSIENT = 'sd_ai_agent_advanced_install_lock';
-	private const INSTALL_LOCK_TTL       = 300;
+	// Single-use nonces and the install lock are atomic option-row claims (value =
+	// expiry timestamp); transients and add_option() are check-then-set races.
+	private const NONCE_CLAIM_PREFIX = 'sd_ai_agent_adv_nonce_';
+	private const INSTALL_LOCK_CLAIM = 'sd_ai_agent_advanced_install_lock';
+	private const INSTALL_LOCK_TTL   = 300;
 
 	private const STATUS_CURRENT              = 'current';
 	private const STATUS_UPDATE_AVAILABLE     = 'update_available';
@@ -123,16 +125,16 @@ final class AdvancedPluginManager {
 			return new WP_Error( 'sd_ai_agent_file_mods_disabled', __( 'Plugin installation is disabled by this site configuration.', 'superdav-ai-agent' ), array( 'status' => 409 ) );
 		}
 
-		$nonce_key = self::NONCE_TRANSIENT_PREFIX . substr( hash( 'sha256', $command['nonce'] ), 0, 40 );
-		if ( false !== get_transient( $nonce_key ) ) {
-			return new WP_Error( 'sd_ai_agent_install_command_replayed', __( 'This install command was already used.', 'superdav-ai-agent' ), array( 'status' => 409 ) );
-		}
-		set_transient( $nonce_key, 1, max( 60, $command['expires_at'] - time() + 60 ) );
-
-		if ( false !== get_transient( self::INSTALL_LOCK_TRANSIENT ) ) {
+		// Claim the lock first so a busy site does not burn a valid command's nonce.
+		if ( ! self::claim( self::INSTALL_LOCK_CLAIM, self::INSTALL_LOCK_TTL ) ) {
 			return new WP_Error( 'sd_ai_agent_install_in_progress', __( 'An Advanced installation is already in progress.', 'superdav-ai-agent' ), array( 'status' => 409 ) );
 		}
-		set_transient( self::INSTALL_LOCK_TRANSIENT, 1, self::INSTALL_LOCK_TTL );
+
+		$nonce_key = self::NONCE_CLAIM_PREFIX . substr( hash( 'sha256', $command['nonce'] ), 0, 40 );
+		if ( ! self::claim( $nonce_key, max( 60, $command['expires_at'] - time() + 60 ) ) ) {
+			self::release( self::INSTALL_LOCK_CLAIM );
+			return new WP_Error( 'sd_ai_agent_install_command_replayed', __( 'This install command was already used.', 'superdav-ai-agent' ), array( 'status' => 409 ) );
+		}
 
 		try {
 			if ( ! file_exists( $this->plugin_file() ) ) {
@@ -147,10 +149,63 @@ final class AdvancedPluginManager {
 				return $activated;
 			}
 		} finally {
-			delete_transient( self::INSTALL_LOCK_TRANSIENT );
+			self::release( self::INSTALL_LOCK_CLAIM );
 		}
 
 		return $this->get_status();
+	}
+
+	/**
+	 * Atomically claim a named, expiring option row.
+	 *
+	 * INSERT IGNORE affects exactly one row for the single winner of concurrent
+	 * callers. An expired claim is removed with a value-conditional DELETE so
+	 * only the observed stale row can be replaced, then re-claimed once.
+	 *
+	 * @param string $name Option name.
+	 * @param int    $ttl  Seconds until the claim expires.
+	 * @return bool True when this call owns the claim.
+	 */
+	private static function claim( string $name, int $ttl ): bool {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		$insert = static function () use ( $wpdb, $name, $ttl ): bool {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic insert-if-absent claim; the options API has no such primitive.
+			$inserted = $wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, $name, (string) ( time() + $ttl ), 'off' ) );
+			return 1 === $inserted;
+		};
+
+		if ( $insert() ) {
+			wp_cache_delete( 'notoptions', 'options' );
+			return true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the committed claim row, not a possibly stale cached option.
+		$expires_at = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, $name ) );
+		if ( ! is_string( $expires_at ) || (int) $expires_at >= time() ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Remove only the stale claim value that was observed.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND option_value = %s', $wpdb->options, $name, $expires_at ) );
+		wp_cache_delete( $name, 'options' );
+
+		return $insert();
+	}
+
+	/**
+	 * Release a claim created by {@see self::claim()}.
+	 *
+	 * @param string $name Option name.
+	 */
+	private static function release( string $name ): void {
+		global $wpdb;
+		/** @var \wpdb $wpdb */
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Paired with the direct claim insert.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $name ) );
+		wp_cache_delete( $name, 'options' );
 	}
 
 	/**

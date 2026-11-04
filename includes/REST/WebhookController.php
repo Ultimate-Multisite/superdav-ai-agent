@@ -31,6 +31,7 @@ namespace SdAiAgent\REST;
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\CostCalculator;
 use SdAiAgent\Core\Database;
+use SdAiAgent\Core\LoopbackRequest;
 use SdAiAgent\Core\ProviderCredentialLoader;
 use SdAiAgent\Core\Settings;
 use SdAiAgent\REST\WebhookDatabase;
@@ -712,21 +713,15 @@ final class WebhookController {
 
 		set_transient( self::JOB_PREFIX . $job_id, $job, self::JOB_TTL );
 
-		wp_remote_post(
+		LoopbackRequest::send(
 			rest_url( RestController::NAMESPACE . '/process' ),
-			[
-				'timeout'  => 0.01,
-				'blocking' => false,
-				'body'     => (string) wp_json_encode(
-					[
-						'job_id' => $job_id,
-						'token'  => $token,
-					]
-				),
-				'headers'  => [
-					'Content-Type' => 'application/json',
-				],
-			]
+			(string) wp_json_encode(
+				[
+					'job_id' => $job_id,
+					'token'  => $token,
+				]
+			),
+			[ 'Content-Type' => 'application/json' ]
 		);
 
 		return new WP_REST_Response(

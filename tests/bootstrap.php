@@ -92,6 +92,9 @@ tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 // intercept; tests drive process_job() directly instead.
 tests_add_filter('sd_ai_agent_customer_agent_loopback', '__return_false');
 
+// Keep loopbacks on wp_remote_post so tests can intercept them via pre_http_request.
+tests_add_filter('sd_ai_agent_fast_loopback', '__return_false');
+
 /**
  * Register the WordPress 7.2 default ability category in plugin tests.
  *

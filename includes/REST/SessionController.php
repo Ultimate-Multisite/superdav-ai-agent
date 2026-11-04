@@ -1599,7 +1599,9 @@ final class SessionController {
 
 		// A worker that died mid-tool leaves the transient and row 'processing'
 		// forever. Reap it so the client sees a recoverable error, not "Working…".
-		$stalled_row = $this->reap_if_stalled( $db_row );
+		// Never reap when the worker already stored a completed result: the row
+		// update may simply lag the transient, and the reply must be delivered.
+		$stalled_row = $has_completed_transient_result ? null : $this->reap_if_stalled( $db_row );
 		if ( null !== $stalled_row ) {
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 			return $this->job_status_from_db_row( $job_id, $stalled_row );

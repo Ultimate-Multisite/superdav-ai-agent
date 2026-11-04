@@ -645,6 +645,38 @@ export const actions = {
 						}
 					}
 				}
+				// Restore the agent the session last ran with. Sessions without a
+				// stored agent (agent_id 0, including pre-migration rows) and
+				// sessions whose agent was since deleted or disabled fall back to
+				// the default agent so a previous session's selection never leaks.
+				// selectDefaultAgent with no agents resolves to null.
+				const storedAgentId = Number( session.agent_id ) || 0;
+				const agents = select.getAgents();
+				const loaded = select.getAgentsLoaded();
+				const stored = agents.find(
+					( a ) => Number( a.id ) === storedAgentId
+				);
+				if (
+					storedAgentId &&
+					( ! loaded || ( stored && stored.enabled !== false ) )
+				) {
+					dispatch.setSelectedAgentId( stored?.id ?? storedAgentId );
+				} else {
+					dispatch.selectDefaultAgent( agents );
+					if ( storedAgentId ) {
+						dispatch.appendMessage( {
+							role: 'system',
+							parts: [
+								{
+									text: __(
+										'Agent unavailable; using the default agent.',
+										'superdav-ai-agent'
+									),
+								},
+							],
+						} );
+					}
+				}
 				if ( session.token_usage ) {
 					dispatch.setTokenUsage( session.token_usage );
 				}

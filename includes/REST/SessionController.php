@@ -1107,6 +1107,7 @@ final class SessionController {
 				'title'         => $session->title,
 				'provider_id'   => $session->provider_id,
 				'model_id'      => $session->model_id,
+				'agent_id'      => (int) ( $session->agent_id ?? 0 ),
 				'messages'      => ConversationDisplaySanitizer::sanitize_messages( $messages ),
 				'title_pending' => SessionTitleGenerator::is_pending( $session_id ),
 				'tool_calls'    => json_decode( $session->tool_calls, true ) ?: array(),
@@ -1154,6 +1155,7 @@ final class SessionController {
 				'title'       => $request->get_param( 'title' ),
 				'provider_id' => $provider_id,
 				'model_id'    => $model_id,
+				'agent_id'    => $agent_id,
 			)
 		);
 
@@ -1177,6 +1179,7 @@ final class SessionController {
 				'title'       => $session->title,
 				'provider_id' => $session->provider_id,
 				'model_id'    => $session->model_id,
+				'agent_id'    => (int) ( $session->agent_id ?? 0 ),
 				'messages'    => array(),
 				'tool_calls'  => array(),
 				'created_at'  => $session->created_at,
@@ -1994,6 +1997,23 @@ final class SessionController {
 	}
 
 	/**
+	 * Whether the current user may continue (and so update metadata on) a session.
+	 *
+	 * Mirrors check_run_permission(): administrators, the owner, and users allowed
+	 * to continue a shared session. Unshared sessions of other users are excluded.
+	 *
+	 * @param object $session Session row.
+	 * @return bool
+	 */
+	private function can_continue_session( object $session ): bool {
+		if ( (int) ( $session->user_id ?? 0 ) === get_current_user_id() || $this->check_permission() ) {
+			return true;
+		}
+
+		return self::can_access_shared_sessions() && (bool) Database::get_shared_session( (int) ( $session->id ?? 0 ) );
+	}
+
+	/**
 	 * Permission check for polling a job.
 	 *
 	 * Administrators keep their existing access; other chat-access roles may only
@@ -2741,7 +2761,8 @@ final class SessionController {
 			return new WP_Error( 'sd_ai_agent_public_chat_message_too_long', __( 'Message is too long for public chat.', 'superdav-ai-agent' ), array( 'status' => 413 ) );
 		}
 
-		$job_id    = wp_generate_uuid4();
+		$job_id = wp_generate_uuid4();
+
 		$job_token = wp_generate_password( 40, false );
 		$history   = isset( $session['history'] ) && is_array( $session['history'] ) ? $session['history'] : array();
 		$review_id = isset( $session['review_id'] ) && is_string( $session['review_id'] ) ? $session['review_id'] : '';
@@ -3750,6 +3771,16 @@ final class SessionController {
 			}
 			if ( (int) $session->user_id !== get_current_user_id() ) {
 				return new WP_Error( 'sd_ai_agent_plan_forbidden', __( 'Only the session owner can create a durable plan.', 'superdav-ai-agent' ), [ 'status' => 403 ] );
+			}
+		}
+
+		// Remember the agent this run uses (0 = no agent) so reopening the session
+		// restores the picker to what actually ran.
+		$run_agent_id = max( 0, self::get_int_param( $request, 'agent_id' ) );
+		if ( $session_id > 0 ) {
+			$agent_session = $this->database->get_session( $session_id );
+			if ( $agent_session && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id && $this->can_continue_session( $agent_session ) ) {
+				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
 			}
 		}
 

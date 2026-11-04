@@ -42,8 +42,9 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	// largest-asset caps stay fixed. Batched purge progress reporting
 	// (GH#2878): measured 1738.2 KiB minified. Advanced one-click install
 	// (account card button, focus refresh, settings tab deep link) on top:
-	// measured 1739.5 KiB minified / 532.8 KiB gzip.
-	minifiedBudgetKiB: 1740,
+	// measured 1739.5 KiB minified / 532.8 KiB gzip. Provider Trace source
+	// filter (provider-trace-cache) on top: 1740.2 KiB / 532.9 KiB gzip.
+	minifiedBudgetKiB: 1741,
 	gzipBudgetKiB: 533,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,

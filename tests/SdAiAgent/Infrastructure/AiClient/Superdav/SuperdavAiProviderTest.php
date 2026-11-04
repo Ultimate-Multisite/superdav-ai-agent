@@ -84,6 +84,12 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 	/**
 	 * Metadata uses the canonical provider identifiers.
 	 */
+	public function test_legacy_pro_selection_resolves_to_standard_only_for_managed_provider(): void {
+		$this->assertSame( 'superdav-chat-standard', SuperdavAiProvider::canonical_model_id( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-pro' ) );
+		$this->assertSame( 'superdav-chat-fast', SuperdavAiProvider::canonical_model_id( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-fast' ) );
+		$this->assertSame( 'superdav-chat-pro', SuperdavAiProvider::canonical_model_id( 'other', 'superdav-chat-pro' ) );
+	}
+
 	public function test_metadata_uses_canonical_provider_identifiers(): void {
 		$metadata = SuperdavAiProvider::metadata();
 

@@ -90,6 +90,7 @@ class Settings {
 		// Superdav managed models.
 		'superdav-chat-fast'            => 128000,
 		'superdav-chat-pro'             => 200000,
+		'superdav-chat-standard'        => 200000,
 		'superdav-chat-strong'          => 200000,
 		'superdav-image'                => 32000,
 		// Anthropic.
@@ -181,6 +182,7 @@ class Settings {
 		// ── Superdav managed models ───────────────────────────────────────
 		'superdav-chat-fast'          => 8192,
 		'superdav-chat-pro'           => 16384,
+		'superdav-chat-standard'      => 16384,
 		'superdav-chat-strong'        => 16384,
 		'superdav-image'              => 1,
 		// ── Anthropic ──────────────────────────────────────────────────

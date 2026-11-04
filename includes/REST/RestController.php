@@ -456,7 +456,7 @@ User: %s',
 			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
 			if ( ! empty( $effective_provider ) && $registry->hasProvider( $effective_provider ) ) {
 				if ( ! empty( $model_id ) ) {
-					$builder->using_model( $registry->getProviderModel( $effective_provider, $model_id ) );
+					$builder->using_model( $registry->getProviderModel( $effective_provider, \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::canonical_model_id( $effective_provider, $model_id ) ) );
 				} else {
 					$builder->using_provider( $effective_provider );
 				}

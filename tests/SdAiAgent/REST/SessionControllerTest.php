@@ -39,9 +39,15 @@ class SessionControllerTest extends WP_UnitTestCase {
 	/** Recovery cannot advance the generation between an ownership check and a progress write. */
 	public function test_checkpoint_recovery_serializes_with_progress_publication(): void {
 		global $wpdb;
-		$original   = $wpdb;
+		$test_connection = $wpdb;
+		$session_id      = $this->create_session();
+		// WP_UnitTestCase wraps its connection in a transaction. Use an
+		// autocommit worker connection so recovery can actually see the row.
+		$original = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$original->set_prefix( $test_connection->prefix );
 		$connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
 		$connection->set_prefix( $original->prefix );
+		$wpdb       = $original;
 		$controller = new SessionController( new Database() );
 		$job_id     = wp_generate_uuid4();
 		$key        = RestController::JOB_PREFIX . $job_id;
@@ -50,7 +56,7 @@ class SessionControllerTest extends WP_UnitTestCase {
 			'provider_id' => 'test-provider',
 			'model_id'    => 'test-model',
 		);
-		ActiveJobRepository::create( $this->create_session(), $job_id, $this->admin_id, 'processing' );
+		ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'processing' );
 		ActiveJobRepository::save_checkpoint( $job_id, AgentLoop::CHECKPOINT_BEFORE_PROVIDER_CALL, $checkpoint );
 		ActiveJobRepository::mark_interrupted( $job_id );
 		$row        = ActiveJobRepository::get_by_job_id( $job_id );
@@ -67,6 +73,9 @@ class SessionControllerTest extends WP_UnitTestCase {
 			// This hook runs after owns_job(), immediately before the old write.
 			$wpdb = $connection;
 			try {
+				$visible = ActiveJobRepository::get_by_job_id( $job_id );
+				$this->assertNotNull( $visible, 'Recovery must see the committed fixture, not an empty transaction snapshot.' );
+				$this->assertSame( 'interrupted', $visible->status );
 				$outcome = $resume->invoke( $controller, $job_id, $row );
 				$this->assertFalse( $outcome['terminal'] );
 				$this->assertNull( $acquire->invoke( null, $job_id ) );
@@ -111,14 +120,19 @@ class SessionControllerTest extends WP_UnitTestCase {
 			$this->assertSame( $resumed['checkpoint_state'], json_decode( ActiveJobRepository::get_by_job_id( $job_id )->checkpoint, true ) );
 		} finally {
 			$wpdb = $original;
-			remove_filter( 'pre_set_transient_' . $key, $overlap );
-			remove_filter( 'pre_http_request', $dispatch );
-			$connection->close();
-			delete_transient( $key );
-			ActiveJobRepository::delete( $job_id );
-			wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ) );
-			if ( function_exists( 'as_unschedule_all_actions' ) ) {
-				as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ), 'sd-ai-agent' );
+			try {
+				remove_filter( 'pre_set_transient_' . $key, $overlap );
+				remove_filter( 'pre_http_request', $dispatch );
+				delete_transient( $key );
+				ActiveJobRepository::delete( $job_id );
+				wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ) );
+				if ( function_exists( 'as_unschedule_all_actions' ) ) {
+					as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ), 'sd-ai-agent' );
+				}
+			} finally {
+				$connection->close();
+				$original->close();
+				$wpdb = $test_connection;
 			}
 		}
 	}

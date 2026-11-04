@@ -67,6 +67,11 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Verify committed runtime assets match source
+        run: |
+          git diff --exit-code -- build/
+          test -z "$(git ls-files --others --exclude-standard build/)"
+
       - name: Check for build artifacts
         run: |
           if [ ! -d "build" ] || [ -z "$(ls -A build/*.js 2>/dev/null)" ]; then

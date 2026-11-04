@@ -191,7 +191,12 @@ export function resolveSystemMessagePresentation( msg, providers ) {
 		};
 	}
 
-	return { type: 'system', text };
+	// System rows default to the error style; informational notices opt in.
+	return {
+		type: 'system',
+		text,
+		tone: 'success' === msg?.tone ? 'success' : 'error',
+	};
 }
 
 /**

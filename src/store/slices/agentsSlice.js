@@ -24,6 +24,10 @@ export const actions = {
 		return { type: 'SET_SELECTED_AGENT_ID', agentId };
 	},
 
+	selectDefaultAgent( agents ) {
+		return { type: 'AUTO_SELECT_DEFAULT_AGENT', agents };
+	},
+
 	fetchAgents() {
 		return async ( { dispatch, select } ) => {
 			try {

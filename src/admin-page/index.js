@@ -146,6 +146,7 @@ function AdminPageApp( { initialSessionId = null } ) {
 			appendMessage( {
 				role: 'system',
 				parts: [ { text: notice } ],
+				tone: 'success',
 				ts: new Date().toISOString(),
 			} );
 		},

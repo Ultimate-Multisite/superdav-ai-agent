@@ -21,6 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Implementations own only a bounded runtime history. The consuming plugin
  * remains the source of truth for its customer transcript and routing state.
+ *
+ * Lifecycle events (advertised by `features.lifecycle_events`): implementations
+ * fire the `sd_ai_agent_customer_agent_runtime_event` action as a job changes
+ * state, in the PHP process that changed it. Arguments:
+ *
+ * - string $event One of `conversation_created`, `queued`, `processing`,
+ *   `complete`, `failed`, or `cancelled`.
+ * - array  $data  Opaque, content-free metadata: `integration_hash`,
+ *   `conversation_id`, `job_id`, and `status`.
+ *
+ * `complete`, `failed`, and `cancelled` fire after the terminal state is stored,
+ * so a listener may call inspect_job() at once instead of waiting to poll.
+ * Payloads never contain customer or model text. Polling with inspect_job()
+ * stays supported for consumers that do not listen.
  */
 interface CustomerAgentRuntimeInterface {
 

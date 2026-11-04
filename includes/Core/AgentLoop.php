@@ -254,6 +254,15 @@ PROMPT;
 	/** @var int Full-envelope bytes from an upstream 413 eligible for one reduced retry. */
 	private int $provider_retry_baseline_envelope_bytes = 0;
 
+	/** @var int Input tokens reported by the most recent provider response. */
+	private int $last_provider_input_tokens = 0;
+
+	/** @var int History bytes sent with the provider response tracked above. */
+	private int $last_provider_request_bytes = 0;
+
+	/** @var int History bytes for the provider request currently in flight. */
+	private int $current_provider_request_bytes = 0;
+
 	/** @var list<Message>|null Full history retained while the provider receives compact context. */
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase -- Project property naming guidance requires camelCase.
 	private ?array $providerPersistenceHistory = null;
@@ -344,6 +353,13 @@ PROMPT;
 	 * @var Message|null
 	 */
 	private ?Message $current_turn_message = null;
+
+	/**
+	 * Provider-only context for the current user turn (see TurnContext).
+	 *
+	 * @var string
+	 */
+	private string $turn_context = '';
 
 	/**
 	 * Optional callback invoked after each tool call/response pair.
@@ -698,12 +714,10 @@ PROMPT;
 
 			// Append the new user message to history. Messages before it belong to
 			// completed turns, whose tool payloads are compacted in provider requests.
-			$turn_context = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
-			$turn_message = $this->user_message;
-			if ( '' !== $turn_context ) {
-				$turn_message .= "\n\n" . $turn_context;
-			}
-			$this->current_turn_message = new UserMessage( array( new MessagePart( $turn_message ) ) );
+			// Per-turn context is model input only: history (and therefore the saved
+			// transcript and chat UI) keeps exactly what the user typed.
+			$this->turn_context         = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$this->current_turn_message = new UserMessage( array( new MessagePart( $this->user_message ) ) );
 			$this->history[]            = $this->current_turn_message;
 
 			$result = $this->run_loop( $this->max_iterations );
@@ -2798,17 +2812,22 @@ PROMPT;
 			}
 		}
 
-		$provider_id      = $this->resolve_provider_id();
-		$model_id         = $this->resolve_effective_model_id( $provider_id );
-		$request_bytes    = ConversationTrimmer::estimate_total_bytes( $this->history );
-		$managed_pressure = 'sd-ai-agent-cloud' === $provider_id
+		$provider_id               = $this->resolve_provider_id();
+		$model_id                  = $this->resolve_effective_model_id( $provider_id );
+		$request_bytes             = ConversationTrimmer::estimate_total_bytes( $this->history );
+		$managed_pressure          = 'sd-ai-agent-cloud' === $provider_id
 			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true )
 			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
+		$reported_context_pressure = $this->last_provider_input_tokens > 0
+			&& ConversationTrimmer::estimate_next_request_tokens(
+				$this->last_provider_input_tokens,
+				max( 0, $request_bytes - $this->last_provider_request_bytes )
+			) > ConversationTrimmer::get_request_compaction_token_budget( $provider_id, $model_id );
 
 		// A newest tool-response cluster cannot always be dropped by turn-based
 		// trimming. Compact a provider-only copy before the managed gateway sees
 		// it; the full transcript is restored by the caller after this request.
-		if ( ! $compaction_active && ! $managed_pressure ) {
+		if ( ! $compaction_active && ! $managed_pressure && ! $reported_context_pressure ) {
 			return null;
 		}
 
@@ -3074,6 +3093,8 @@ PROMPT;
 			);
 		}
 
+		$this->current_provider_request_bytes = ConversationTrimmer::estimate_total_bytes( $this->history );
+
 		$journey_id      = '';
 		$idempotency_key = '';
 		if ( SuperdavAiProvider::PROVIDER_ID === $provider_id ) {
@@ -3264,19 +3285,26 @@ PROMPT;
 	}
 
 	/**
-	 * Return the provider view of history with completed-turn tool payloads bounded.
+	 * Return the provider view of history.
 	 *
-	 * Native Responses replay matches the exact SDK history prefix, so the native
-	 * model compacts its own replay using the same boundary instead.
+	 * The current user turn carries the provider-only turn context; completed-turn
+	 * tool payloads are bounded. Native Responses replay matches the SDK history
+	 * prefix, so the native model compacts its own replay with the same boundary.
 	 *
 	 * @return Message[]
 	 */
 	private function provider_history(): array {
-		if ( $this->should_use_native_tool_search() ) {
-			return $this->history;
+		$history   = array_values( $this->history );
+		$completed = $this->completed_turn_message_count();
+		if ( '' !== $this->turn_context && null !== $this->current_turn_message && ( $history[ $completed ] ?? null ) === $this->current_turn_message ) {
+			$history[ $completed ] = new UserMessage( array( new MessagePart( TurnContext::append( $this->user_message, $this->turn_context ) ) ) );
 		}
 
-		return CompletedTurnCompactor::compact_history( $this->history, $this->completed_turn_message_count() );
+		if ( $this->should_use_native_tool_search() ) {
+			return $history;
+		}
+
+		return CompletedTurnCompactor::compact_history( $history, $completed );
 	}
 
 	/** Number of leading history messages that belong to completed user turns. */
@@ -6501,20 +6529,21 @@ PROMPT;
 	 */
 	private function accumulate_tokens( $result ): void {
 		try {
-			// @phpstan-ignore-next-line
-			if ( method_exists( $result, 'getUsage' ) ) {
-				/** @phpstan-ignore-next-line */
-				$usage = $result->getUsage();
-				if ( $usage ) {
-					if ( method_exists( $usage, 'getPromptTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$this->token_usage['prompt'] += (int) $usage->getPromptTokens();
-					}
-					if ( method_exists( $usage, 'getCompletionTokens' ) ) {
-						/** @phpstan-ignore-next-line */
-						$this->token_usage['completion'] += (int) $usage->getCompletionTokens();
-					}
-				}
+			// The WP AI Client SDK result exposes getTokenUsage(); an earlier getUsage()
+			// probe never matched it, so provider usage was silently dropped.
+			if ( ! $result instanceof GenerativeAiResult ) {
+				return;
+			}
+			$usage         = $result->getTokenUsage();
+			$prompt_tokens = max( 0, $usage->getPromptTokens() );
+
+			$this->token_usage['prompt']     += $prompt_tokens;
+			$this->token_usage['completion'] += max( 0, $usage->getCompletionTokens() );
+			// Internal compaction state only: message_log entries are shown as chat
+			// activity, so provider context usage is not logged there.
+			if ( $prompt_tokens > 0 ) {
+				$this->last_provider_input_tokens  = $prompt_tokens;
+				$this->last_provider_request_bytes = $this->current_provider_request_bytes;
 			}
 		} catch ( \Throwable $e ) {
 			// Token tracking is best-effort.

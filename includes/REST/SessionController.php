@@ -13,6 +13,7 @@ namespace SdAiAgent\REST;
 
 use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\ActiveJobsCleanupService;
 use SdAiAgent\Core\AgentEventLog;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\BackgroundJobDispatcher;
@@ -113,7 +114,7 @@ final class SessionController {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'handle_list_sessions' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 					'args'                => array(
 						'status' => array(
 							'required'          => false,
@@ -140,7 +141,7 @@ final class SessionController {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'handle_create_session' ),
-					'permission_callback' => array( $this, 'check_permission' ),
+					'permission_callback' => array( $this, 'check_chat_permission' ),
 					'args'                => array(
 						'title'       => array(
 							'required'          => false,
@@ -204,7 +205,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_list_folders' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -214,7 +215,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_bulk_sessions' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'ids'    => array(
 						'required' => true,
@@ -240,7 +241,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'handle_empty_trash' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -418,7 +419,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_job_status' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_job_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -469,7 +470,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_run' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_run_permission' ),
 				'args'                => array(
 					'message'            => array(
 						'required'          => true,
@@ -624,7 +625,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_confirm_tool' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id'           => array(
 						'required'          => true,
@@ -646,7 +648,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_reject_tool' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -664,7 +667,8 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_interrupt' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				// The handler only acts on jobs owned by the current user.
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 				'args'                => array(
 					'id'      => array(
 						'required'          => true,
@@ -705,7 +709,7 @@ final class SessionController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'handle_list_active_jobs' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_chat_permission' ),
 			)
 		);
 
@@ -1103,6 +1107,7 @@ final class SessionController {
 				'title'         => $session->title,
 				'provider_id'   => $session->provider_id,
 				'model_id'      => $session->model_id,
+				'agent_id'      => (int) ( $session->agent_id ?? 0 ),
 				'messages'      => ConversationDisplaySanitizer::sanitize_messages( $messages ),
 				'title_pending' => SessionTitleGenerator::is_pending( $session_id ),
 				'tool_calls'    => json_decode( $session->tool_calls, true ) ?: array(),
@@ -1150,6 +1155,7 @@ final class SessionController {
 				'title'       => $request->get_param( 'title' ),
 				'provider_id' => $provider_id,
 				'model_id'    => $model_id,
+				'agent_id'    => $agent_id,
 			)
 		);
 
@@ -1173,6 +1179,7 @@ final class SessionController {
 				'title'       => $session->title,
 				'provider_id' => $session->provider_id,
 				'model_id'    => $session->model_id,
+				'agent_id'    => (int) ( $session->agent_id ?? 0 ),
 				'messages'    => array(),
 				'tool_calls'  => array(),
 				'created_at'  => $session->created_at,
@@ -1570,6 +1577,7 @@ final class SessionController {
 					return $this->job_status_from_db_row( $job_id, $expired_row );
 				}
 			}
+			$db_row = $this->reap_if_stalled( $db_row ) ?? $db_row;
 			return $this->job_status_from_db_row( $job_id, $db_row );
 		}
 
@@ -1590,6 +1598,16 @@ final class SessionController {
 		) {
 			delete_transient( RestController::JOB_PREFIX . $job_id );
 			return $this->job_status_from_db_row( $job_id, $db_row );
+		}
+
+		// A worker that died mid-tool leaves the transient and row 'processing'
+		// forever. Reap it so the client sees a recoverable error, not "Working…".
+		// Never reap when the worker already stored a completed result: the row
+		// update may simply lag the transient, and the reply must be delivered.
+		$stalled_row = $has_completed_transient_result ? null : $this->reap_if_stalled( $db_row );
+		if ( null !== $stalled_row ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return $this->job_status_from_db_row( $job_id, $stalled_row );
 		}
 
 		$response = array( 'status' => $job['status'] );
@@ -1704,6 +1722,32 @@ final class SessionController {
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Mark a queued/processing job abandoned when its row has not advanced within
+	 * the stall threshold.
+	 *
+	 * @param ActiveJobRow|null $row Persistent active-job row.
+	 * @return ActiveJobRow|null Refreshed row when this call reaped it, otherwise null.
+	 */
+	private function reap_if_stalled( ?ActiveJobRow $row ): ?ActiveJobRow {
+		if ( null === $row || ! in_array( $row->status, array( 'queued', 'processing' ), true ) ) {
+			return null;
+		}
+
+		$updated_at = strtotime( $row->updated_at . ' UTC' );
+		$threshold  = ActiveJobsCleanupService::stale_threshold_minutes();
+		if ( false === $updated_at || $updated_at > time() - $threshold * MINUTE_IN_SECONDS ) {
+			return null;
+		}
+
+		if ( ! ActiveJobRepository::reap_stale_job( $row->job_id, $threshold ) ) {
+			return null;
+		}
+
+		DurablePlanRunner::mark_phase_interrupted_by_job( $row->job_id );
+		return ActiveJobRepository::get_by_job_id( $row->job_id );
 	}
 
 	/**
@@ -1920,6 +1964,91 @@ final class SessionController {
 		return $session_id > 0 && null !== Database::get_shared_session( $session_id );
 	}
 
+	/**
+	 * Permission check for starting a chat run.
+	 *
+	 * Chat-access roles may start runs; outside administrators, a supplied session
+	 * must be the user's own (or a shared session they are allowed to continue).
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool|WP_Error
+	 */
+	public function check_run_permission( WP_REST_Request $request ): bool|WP_Error {
+		$chat_permission = $this->check_chat_permission();
+		if ( true !== $chat_permission || $this->check_permission() ) {
+			return $chat_permission;
+		}
+
+		$session_id = self::get_int_param( $request, 'session_id' );
+		if ( $session_id <= 0 ) {
+			return true;
+		}
+
+		$session = Database::get_session( $session_id );
+		if ( $session && (int) $session->user_id === get_current_user_id() ) {
+			return true;
+		}
+
+		if ( $session && self::can_access_shared_sessions() && Database::get_shared_session( $session_id ) ) {
+			return true;
+		}
+
+		return self::job_access_error();
+	}
+
+	/**
+	 * Whether the current user may continue (and so update metadata on) a session.
+	 *
+	 * Mirrors check_run_permission(): administrators, the owner, and users allowed
+	 * to continue a shared session. Unshared sessions of other users are excluded.
+	 *
+	 * @param object $session Session row.
+	 * @return bool
+	 */
+	private function can_continue_session( object $session ): bool {
+		if ( (int) ( $session->user_id ?? 0 ) === get_current_user_id() || $this->check_permission() ) {
+			return true;
+		}
+
+		return self::can_access_shared_sessions() && (bool) Database::get_shared_session( (int) ( $session->id ?? 0 ) );
+	}
+
+	/**
+	 * Permission check for polling a job.
+	 *
+	 * Administrators keep their existing access; other chat-access roles may only
+	 * poll their own jobs (or jobs in shared sessions they are allowed to see).
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool|WP_Error
+	 */
+	public function check_job_permission( WP_REST_Request $request ): bool|WP_Error {
+		$chat_permission = $this->check_chat_permission();
+		if ( true !== $chat_permission || $this->check_permission() ) {
+			return $chat_permission;
+		}
+
+		$job_id = self::get_string_param( $request, 'id' );
+		$row    = ActiveJobRepository::get_by_job_id( $job_id );
+		$job    = get_transient( RestController::JOB_PREFIX . $job_id );
+		$job    = is_array( $job ) ? $job : array();
+
+		if ( null === $row && array() === $job ) {
+			// Let the handler return its normal "not found" response.
+			return true;
+		}
+
+		if ( self::can_current_user_view_private_job( $row, $job ) ) {
+			return true;
+		}
+
+		if ( self::can_access_shared_sessions() && $this->can_current_user_view_job( $row, $job ) ) {
+			return true;
+		}
+
+		return self::job_access_error();
+	}
+
 	/** Return the same opaque response for jobs outside the current user's session scope. */
 	private static function job_access_error(): WP_Error {
 		return new WP_Error(
@@ -2010,9 +2139,9 @@ final class SessionController {
 			),
 		);
 
-		if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint ) ) {
+		if ( ! ActiveJobRepository::claim_resume_attempt( $job_id, self::JOB_AUTO_RESUME_MAX_ATTEMPTS, $checkpoint, true ) ) {
 			$current = ActiveJobRepository::get_by_job_id( $job_id );
-			if ( null !== $current && 'processing' === $current->status ) {
+			if ( null !== $current && in_array( $current->status, array( 'queued', 'processing' ), true ) ) {
 				return $this->checkpoint_resume_outcome( true, false, 'resumed', $metadata, $phase );
 			}
 
@@ -2632,7 +2761,8 @@ final class SessionController {
 			return new WP_Error( 'sd_ai_agent_public_chat_message_too_long', __( 'Message is too long for public chat.', 'superdav-ai-agent' ), array( 'status' => 413 ) );
 		}
 
-		$job_id    = wp_generate_uuid4();
+		$job_id = wp_generate_uuid4();
+
 		$job_token = wp_generate_password( 40, false );
 		$history   = isset( $session['history'] ) && is_array( $session['history'] ) ? $session['history'] : array();
 		$review_id = isset( $session['review_id'] ) && is_string( $session['review_id'] ) ? $session['review_id'] : '';
@@ -2679,7 +2809,10 @@ final class SessionController {
 		);
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-		ActiveJobRepository::create( 0, $job_id, 0 );
+		if ( false === ActiveJobRepository::create( 0, $job_id, 0, 'queued' ) ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $job_token );
 
@@ -3280,7 +3413,8 @@ final class SessionController {
 		// For sd-ai-agent/ability-call confirmations, `ability` is the nested
 		// target ability whose policy triggered the pause; `name` remains the
 		// executable meta-tool function name so the confirmed resume can run.
-		if ( $request->get_param( 'always_allow' ) && ! empty( $job['pending_tools'] ) ) {
+		// "Always allow" is a site-wide tool permission, so only administrators may persist it.
+		if ( $request->get_param( 'always_allow' ) && ! empty( $job['pending_tools'] ) && $this->check_permission() ) {
 			// @phpstan-ignore-next-line
 			foreach ( $job['pending_tools'] as $tool ) {
 				/** @var array<string, mixed> $tool */
@@ -3501,7 +3635,11 @@ final class SessionController {
 		);
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-		ActiveJobRepository::create( $session_id, $job_id, get_current_user_id() );
+		if ( false === ActiveJobRepository::create( $session_id, $job_id, get_current_user_id(), 'queued' ) ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			Database::save_paused_state( $session_id, $paused_state );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 
@@ -3588,16 +3726,12 @@ final class SessionController {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private static function resume_job( string $job_id, array $job, string $action ): WP_REST_Response|WP_Error {
-		$token                 = wp_generate_password( 40, false );
-		$params                = is_array( $job['params'] ?? null ) ? $job['params'] : array();
-		$phase                 = is_array( $params['durable_plan_phase'] ?? null ) ? $params['durable_plan_phase'] : array();
-		$is_durable_plan_phase = '' !== (string) ( $phase['plan_id'] ?? '' )
-			&& (int) ( $phase['step_id'] ?? 0 ) > 0;
+		$token = wp_generate_password( 40, false );
 
-		if ( $is_durable_plan_phase && ! ActiveJobRepository::requeue_paused_job( $job_id ) ) {
+		if ( ! ActiveJobRepository::requeue_paused_job( $job_id ) ) {
 			return new WP_Error(
 				'sd_ai_agent_job_not_resumable',
-				__( 'This durable plan job is no longer waiting for confirmation.', 'superdav-ai-agent' ),
+				__( 'This job is no longer waiting for confirmation.', 'superdav-ai-agent' ),
 				array( 'status' => 409 )
 			);
 		}
@@ -3607,12 +3741,6 @@ final class SessionController {
 		$job['resume'] = $action;
 
 		set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
-
-		// Durable jobs are atomically queued above so exactly one loopback worker
-		// can claim them. Other jobs retain their established processing transition.
-		if ( ! $is_durable_plan_phase ) {
-			ActiveJobRepository::update_status( $job_id, 'processing' );
-		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 
@@ -3643,6 +3771,16 @@ final class SessionController {
 			}
 			if ( (int) $session->user_id !== get_current_user_id() ) {
 				return new WP_Error( 'sd_ai_agent_plan_forbidden', __( 'Only the session owner can create a durable plan.', 'superdav-ai-agent' ), [ 'status' => 403 ] );
+			}
+		}
+
+		// Remember the agent this run uses (0 = no agent) so reopening the session
+		// restores the picker to what actually ran.
+		$run_agent_id = max( 0, self::get_int_param( $request, 'agent_id' ) );
+		if ( $session_id > 0 ) {
+			$agent_session = $this->database->get_session( $session_id );
+			if ( $agent_session && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id && $this->can_continue_session( $agent_session ) ) {
+				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
 			}
 		}
 
@@ -3685,12 +3823,16 @@ final class SessionController {
 		// Persist to DB so the job survives transient expiry (source of truth).
 		// @phpstan-ignore-next-line
 		$db_session_id = $session_id;
-		ActiveJobRepository::create(
+		$created       = ActiveJobRepository::create(
 			$db_session_id,
 			$job_id,
 			(int) ( $job['user_id'] ?? 0 ),
-			$durable_plan_requested ? 'queued' : 'processing'
+			'queued'
 		);
+		if ( false === $created ) {
+			delete_transient( RestController::JOB_PREFIX . $job_id );
+			return new WP_Error( 'sd_ai_agent_job_enqueue_failed', __( 'The background job could not be queued. Please try again.', 'superdav-ai-agent' ), array( 'status' => 500 ) );
+		}
 
 		BackgroundJobDispatcher::dispatch( $job_id, $token );
 		$session_title = SessionTitleGenerator::start(
@@ -3756,6 +3898,12 @@ final class SessionController {
 			return new WP_REST_Response( array( 'ok' => true ), 200 );
 		}
 
+		// The immediate loopback, Action Scheduler and WP-Cron all enter here.
+		// Only one may execute, even if another starter already read the transient.
+		if ( ! ActiveJobRepository::claim_queued_job( $job_id ) ) {
+			return new WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
 		// Restore the user context — the loopback request has no cookies,
 		// but the AI Client needs a user for provider auth binding.
 		if ( ! empty( $job['user_id'] ) ) {
@@ -3772,9 +3920,6 @@ final class SessionController {
 			&& '' !== (string) ( $durable_plan_phase['plan_id'] ?? '' )
 			&& (int) ( $durable_plan_phase['step_id'] ?? 0 ) > 0;
 		$is_durable_plan_request = ! $is_durable_plan_phase && ! empty( $params['durable_plan'] );
-		if ( ( $is_durable_plan_phase || $is_durable_plan_request ) && ! ActiveJobRepository::claim_queued_job( $job_id ) ) {
-			return new WP_REST_Response( array( 'ok' => false ), 200 );
-		}
 
 		// Durable plans deliberately start every provider turn with only the compact
 		// active-phase context. They must not grow provider context by reloading the
@@ -3969,12 +4114,62 @@ final class SessionController {
 		$is_checkpoint_resume = ! empty( $job['checkpoint_resume'] );
 		$is_recovery_resume   = ! empty( $job['recovery_resume'] );
 
+		$is_client_tool_resume = ! empty( $job['client_tool_resume'] );
+
 		// Wrap the entire loop execution in a try/catch so that uncaught
 		// exceptions (e.g. from ability schema validation) are captured
 		// and written to the job transient instead of silently killing
 		// the background worker.
 		try {
-			if ( $is_checkpoint_resume || $is_recovery_resume ) {
+			if ( $is_client_tool_resume ) {
+				// Browser-tool results were validated and stored by /chat/tool-result.
+				// Continue the loop here so it is not bound by the FPM request limit.
+				// Clear the markers so a later pause/resume cannot replay them.
+				$client_results = is_array( $job['client_tool_results'] ?? null ) ? $job['client_tool_results'] : array();
+				unset( $job['client_tool_resume'], $job['client_tool_results'] );
+
+				$state = Database::load_and_clear_paused_state( $session_id );
+				if ( ! is_array( $state ) ) {
+					throw new \RuntimeException( 'Paused state missing for browser-tool resume.' );
+				}
+
+				/** @var list<array<string, mixed>> $state_history */
+				$state_history  = is_array( $state['history'] ?? null ) ? $state['history'] : array();
+				$resume_history = ConversationSerializer::deserialize( array_values( $state_history ) );
+
+				$resume_options                            = $options;
+				$resume_options['tool_call_log']           = $state['tool_call_log'] ?? array();
+				$resume_options['message_log']             = $state['message_log'] ?? array();
+				$resume_options['token_usage']             = $state['token_usage'] ?? array(
+					'prompt'     => 0,
+					'completion' => 0,
+				);
+				$resume_options['client_abilities']        = $state['client_abilities'] ?? array();
+				$resume_options['page_context']            = $state['page_context'] ?? array();
+				$resume_options['mutation_policy_context'] = $state['mutation_policy_context'] ?? array();
+				if ( '' !== trim( (string) ( $state['provider_id'] ?? '' ) ) ) {
+					$resume_options['provider_id'] = trim( (string) $state['provider_id'] );
+				}
+				if ( '' !== trim( (string) ( $state['model_id'] ?? '' ) ) ) {
+					$resume_options['model_id'] = trim( (string) $state['model_id'] );
+				}
+				if ( (int) ( $state['max_output_tokens'] ?? 0 ) > 0 ) {
+					$resume_options['max_output_tokens'] = (int) $state['max_output_tokens'];
+				}
+
+				$agent_slug = sanitize_key( (string) ( $state['agent_slug'] ?? '' ) );
+				if ( '' !== $agent_slug ) {
+					$paused_agent = Agent::get_by_slug( $agent_slug );
+					if ( null !== $paused_agent ) {
+						$resume_options = array_merge( Agent::get_loop_options( $paused_agent->id ), $resume_options );
+					}
+				}
+
+				$loop = new AgentLoop( '', array(), $resume_history, $resume_options );
+				/** @var list<array{id: string, name: string, result?: mixed, error?: string}> $client_results_typed */
+				$client_results_typed = array_values( $client_results );
+				$result               = $loop->resume_after_client_tools( $client_results_typed, (int) ( $state['iterations_remaining'] ?? 100 ) );
+			} elseif ( $is_checkpoint_resume || $is_recovery_resume ) {
 				$state = $is_recovery_resume
 					? ( $job['recovery_state'] ?? array() )
 					: ( $job['checkpoint_state'] ?? array() );

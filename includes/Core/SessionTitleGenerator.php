@@ -65,20 +65,7 @@ final class SessionTitleGenerator {
 		// A delayed fallback must not put the title ahead of the main job in the
 		// same serial cron batch. The loopback launches a separate PHP worker now.
 		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ) );
-		wp_remote_post(
-			rest_url( RestController::NAMESPACE . '/process' ),
-			array(
-				'timeout'  => 0.01,
-				'blocking' => false,
-				'headers'  => array( 'Content-Type' => 'application/json' ),
-				'body'     => wp_json_encode(
-				array(
-					'job_id' => $job_id,
-					'token'  => $token,
-				)
-				),
-			)
-			);
+		BackgroundJobDispatcher::start_worker( $job_id, $token );
 
 		return $title;
 	}

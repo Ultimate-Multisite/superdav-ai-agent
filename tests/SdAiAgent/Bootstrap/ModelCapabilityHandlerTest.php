@@ -26,6 +26,7 @@ class ModelCapabilityHandlerTest extends WP_UnitTestCase {
 		'hf:zai-org/GLM-5.1',
 		'kimi-k2.6',
 		'gpt-5',
+		'superdav-chat-pro',
 		'should-not-be-cached',
 	);
 
@@ -59,12 +60,18 @@ class ModelCapabilityHandlerTest extends WP_UnitTestCase {
 					'max_output_length' => 65536,
 					'context_length'    => 128000,
 				),
+				array(
+					'id'                          => 'superdav-chat-pro',
+					'max_output_length'           => 16384,
+					'context_length'              => 200000,
+					'input_token_bytes_per_token' => 3,
+				),
 			),
 		);
 
 		$written = ModelCapabilityHandler::ingest_models_payload( $payload );
 
-		$this->assertSame( 2, $written );
+		$this->assertSame( 3, $written );
 
 		$kimi = ModelCapabilityRegistry::get( 'hf:moonshotai/Kimi-K2.6' );
 		$this->assertSame( 131072, $kimi['max_output_tokens'] );
@@ -76,6 +83,9 @@ class ModelCapabilityHandlerTest extends WP_UnitTestCase {
 		$glm = ModelCapabilityRegistry::get( 'hf:zai-org/GLM-5.1' );
 		$this->assertSame( 65536, $glm['max_output_tokens'] );
 		$this->assertSame( 128000, $glm['context_length'] );
+
+		$superdav = ModelCapabilityRegistry::get( 'superdav-chat-pro' );
+		$this->assertSame( 3, $superdav['input_token_bytes_per_token'] );
 	}
 
 	/**

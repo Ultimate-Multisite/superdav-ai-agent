@@ -333,6 +333,14 @@ the abort text itself as the task outcome:
 - **Pre-commit**: Husky + lint-staged runs lint fixes on staged files
 - **Dev environment**: `pnpm exec wp-env start` (WordPress 7.0 via `.wp-env.json`) — dev site at http://localhost:8890, test site at http://localhost:8893
 
+Commit production `build/` JS/CSS chunks and `*.asset.php` manifests alongside
+changes to their source or locked webpack dependencies. Use the pinned package
+manager via `corepack pnpm run build` (including the strict-types postbuild), then
+`corepack pnpm run check:bundle`. Source and Composer installs consume these
+artifacts without compiling on the host; CI rebuilds and rejects stale output.
+Subdirectories such as `build/di-cache` and `build/wporg-review` remain generated
+locally or during release packaging and are not committed.
+
 ## Worker Self-Verification Protocol
 
 **Applies to every headless dispatched worker** (auto-dispatch, pulse, manual `headless-runtime-helper.sh run`). Interactive maintainer sessions must also satisfy steps 1–5 before pushing.

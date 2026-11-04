@@ -680,6 +680,32 @@ class AgentTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The onboarding agent receives the site template's manifest in its prompt, so a
+	 * non-admin site owner's agent does not need option-reading tools to find it.
+	 */
+	public function test_onboarding_loop_options_include_template_manifest(): void {
+		Agent::seed_defaults();
+		$agent = Agent::get_by_slug( 'onboarding' );
+		$this->assertNotNull( $agent );
+
+		$this->assertStringNotContainsString( 'Template onboarding manifest', (string) ( Agent::get_loop_options( $agent->id )['agent_system_prompt'] ?? '' ) );
+
+		update_option( 'sd_ai_agent_template_onboarding_manifest', [ 'profile' => 'chapter-v1', 'fields' => [ 'chapter.name' => [ 'required' => true ] ] ], false );
+		try {
+			$prompt = (string) Agent::get_loop_options( $agent->id )['agent_system_prompt'];
+			$this->assertStringContainsString( '## Template onboarding manifest', $prompt );
+			$this->assertStringContainsString( 'chapter-v1', $prompt );
+
+			$general = Agent::get_by_slug( 'general' );
+			if ( $general ) {
+				$this->assertStringNotContainsString( 'chapter-v1', (string) ( Agent::get_loop_options( $general->id )['agent_system_prompt'] ?? '' ) );
+			}
+		} finally {
+			delete_option( 'sd_ai_agent_template_onboarding_manifest' );
+		}
+	}
+
+	/**
 	 * Existing built-in onboarding rows retain their original tool list across
 	 * upgrades, so the runtime must also exclude the retired direct dispatcher.
 	 */

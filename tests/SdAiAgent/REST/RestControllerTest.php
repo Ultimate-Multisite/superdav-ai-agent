@@ -687,6 +687,49 @@ class RestControllerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test GET /sessions/{id} returns the agent stored on the session.
+	 */
+	public function test_get_session_returns_agent_id(): void {
+		wp_set_current_user( $this->admin_id );
+
+		$session_id = Database::create_session( [
+			'user_id'  => $this->admin_id,
+			'title'    => 'Agent Session',
+			'agent_id' => 5,
+		] );
+
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertStatus( 200, $response );
+		$this->assertSame( 5, $response->get_data()['agent_id'] );
+
+		Database::update_session( $session_id, [ 'agent_id' => 9 ] );
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertSame( 9, $response->get_data()['agent_id'] );
+	}
+
+	/**
+	 * Test POST /run with agent_id stores the agent on the session.
+	 */
+	public function test_run_stores_agent_id_on_session(): void {
+		wp_set_current_user( $this->admin_id );
+
+		$session_id = Database::create_session( [
+			'user_id' => $this->admin_id,
+			'title'   => 'Run Agent Session',
+		] );
+
+		$run = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [
+			'message'    => 'Hello',
+			'session_id' => $session_id,
+			'agent_id'   => 4,
+		] );
+		$this->assertStatus( 202, $run );
+
+		$response = $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" );
+		$this->assertSame( 4, $response->get_data()['agent_id'] );
+	}
+
+	/**
 	 * Test POST /sessions/{id}/compact creates a bounded server-side continuation.
 	 */
 	public function test_compact_session_creates_bounded_server_side_session(): void {
@@ -871,6 +914,119 @@ class RestControllerTest extends WP_UnitTestCase {
 		$response = $this->dispatch( 'POST', "/sd-ai-agent/v1/sessions/{$session_id}/compact" );
 
 		$this->assertStatus( 403, $response );
+	}
+
+	/**
+	 * Roles with chat access (editors by default) can run the chat widget: list and
+	 * create their own sessions and read the chat settings, but not admin settings.
+	 */
+	public function test_chat_role_uses_own_sessions_and_chat_settings(): void {
+		$other_editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		Database::create_session( [ 'user_id' => $other_editor, 'title' => 'Not mine' ] );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+
+		$created = $this->dispatch( 'POST', '/sd-ai-agent/v1/sessions', [ 'title' => 'Mine' ] );
+		$this->assertStatus( 201, $created );
+
+		$listed = $this->dispatch( 'GET', '/sd-ai-agent/v1/sessions' );
+		$this->assertStatus( 200, $listed );
+		$this->assertSame( [ 'Mine' ], array_column( (array) $listed->get_data(), 'title' ) );
+
+		foreach ( [ '/sd-ai-agent/v1/sessions/folders', '/sd-ai-agent/v1/sessions/active-jobs', '/sd-ai-agent/v1/providers' ] as $route ) {
+			$this->assertStatus( 200, $this->dispatch( 'GET', $route ) );
+		}
+
+		$settings = $this->dispatch( 'GET', '/sd-ai-agent/v1/settings' );
+		$this->assertStatus( 200, $settings );
+		$this->assertArrayNotHasKey( 'system_prompt', $settings->get_data() );
+		$this->assertArrayNotHasKey( '_features', $settings->get_data() );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/settings', [ 'keyboard_shortcut' => 'alt+b' ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/onboarding/start' ) );
+
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/sessions' ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/settings' ) );
+	}
+
+	/** Shared sessions are for administrators and site owners, not every chat role. */
+	public function test_shared_session_is_not_open_to_every_chat_role(): void {
+		$session_id = Database::create_session( [ 'user_id' => $this->admin_id, 'title' => 'Shared setup' ] );
+		Database::share_session( (int) $session_id, $this->admin_id );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+
+		$filter = static fn() => 'edit_others_pages';
+		add_filter( 'sd_ai_agent_onboarding_capability', $filter );
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/sessions/{$session_id}" ) );
+		remove_filter( 'sd_ai_agent_onboarding_capability', $filter );
+	}
+
+	/** A network can let a site-owner role (with chat access) start onboarding. */
+	public function test_onboarding_capability_filter_admits_site_owner_role(): void {
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$this->assertFalse( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+
+		$filter = static fn() => 'edit_others_pages';
+		add_filter( 'sd_ai_agent_onboarding_capability', $filter );
+		$this->assertTrue( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertFalse( \SdAiAgent\Core\OnboardingManager::current_user_is_site_owner() );
+		remove_filter( 'sd_ai_agent_onboarding_capability', $filter );
+	}
+
+	/**
+	 * Chat roles can send messages: start a run in their own session and poll its job,
+	 * but not run in, or poll, another user's session.
+	 */
+	public function test_chat_role_can_run_and_poll_only_own_jobs(): void {
+		wp_set_current_user( $this->admin_id );
+		$admin_session = (int) Database::create_session( [ 'user_id' => $this->admin_id, 'title' => 'Admin' ] );
+		$admin_job     = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Admin run', 'session_id' => $admin_session ] );
+		$this->assertStatus( 202, $admin_job );
+
+		$editor = self::factory()->user->create( [ 'role' => 'editor' ] );
+		wp_set_current_user( $editor );
+		$own_session = (int) Database::create_session( [ 'user_id' => $editor, 'title' => 'Mine' ] );
+
+		$run = $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Where do I write a newsletter?', 'session_id' => $own_session ] );
+		$this->assertStatus( 202, $run );
+		$this->assertStatus( 200, $this->dispatch( 'GET', '/sd-ai-agent/v1/job/' . $run->get_data()['job_id'] ) );
+
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Hi', 'session_id' => $admin_session ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/job/' . $admin_job->get_data()['job_id'] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes', [ 'session_id' => $admin_session ] ) );
+		$this->assertStatus( 200, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes', [ 'session_id' => $own_session ] ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', '/sd-ai-agent/v1/changes' ) );
+
+		$change = static fn( int $user, int $session ): int => (int) \SdAiAgent\Models\ChangesLog::record(
+			[
+				'session_id'   => $session,
+				'user_id'      => $user,
+				'object_type'  => 'option',
+				'object_title' => 'blogdescription',
+				'field_name'   => 'blogdescription',
+				'before_value' => 'Before',
+				'after_value'  => 'After',
+			]
+		);
+		$own_change   = $change( $editor, $own_session );
+		$admin_change = $change( $this->admin_id, $admin_session );
+
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$own_change}" ) );
+		$this->assertStatus( 200, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$own_change}/diff" ) );
+		$this->assertNotSame( 403, $this->dispatch( 'POST', "/sd-ai-agent/v1/changes/{$own_change}/revert" )->get_status() );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$admin_change}" ) );
+		$this->assertStatus( 403, $this->dispatch( 'GET', "/sd-ai-agent/v1/changes/{$admin_change}/diff" ) );
+		$this->assertStatus( 403, $this->dispatch( 'POST', "/sd-ai-agent/v1/changes/{$admin_change}/revert" ) );
+		$this->assertStatus( 403, $this->dispatch( 'DELETE', "/sd-ai-agent/v1/changes/{$own_change}" ) );
+
+		wp_set_current_user( $this->subscriber_id );
+		$this->assertStatus( 403, $this->dispatch( 'POST', '/sd-ai-agent/v1/run', [ 'message' => 'Hi' ] ) );
 	}
 
 	/**
@@ -1296,6 +1452,7 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertStatus( 202, $run_response );
 		$job_id = $run_response->get_data()['job_id'];
 
+		$this->assertTrue( ActiveJobRepository::claim_queued_job( $job_id ) );
 		delete_transient( RestController::JOB_PREFIX . $job_id );
 		ActiveJobRepository::mark_interrupted(
 			$job_id,
@@ -1416,7 +1573,7 @@ class RestControllerTest extends WP_UnitTestCase {
 
 		$row = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $row );
-		$this->assertSame( 'processing', $row->status );
+		$this->assertSame( 'queued', $row->status );
 		$this->assertSame( 1, $row->resume_attempts );
 		$checkpoint = json_decode( (string) $row->checkpoint, true );
 		$this->assertIsArray( $checkpoint );
@@ -1470,7 +1627,7 @@ class RestControllerTest extends WP_UnitTestCase {
 		$this->assertIsArray( get_transient( RestController::JOB_PREFIX . $job_id ) );
 		$row = ActiveJobRepository::get_by_job_id( $job_id );
 		$this->assertNotNull( $row );
-		$this->assertSame( 'processing', $row->status );
+		$this->assertSame( 'queued', $row->status );
 		$this->assertSame( 1, $row->resume_attempts );
 
 		ActiveJobRepository::delete( $job_id );

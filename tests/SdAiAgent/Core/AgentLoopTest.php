@@ -2485,9 +2485,36 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( $current, (string) wp_json_encode( $data['history'] ) );
 	}
 
-	/** Large managed history is compacted for the request, not the saved conversation. */
-	public function test_managed_context_pressure_compacts_before_provider_call(): void {
+	/** History within the gateway's published admission ratio is sent without compaction. */
+	public function test_managed_history_within_gateway_admission_is_not_compacted(): void {
 		$original = str_repeat( 'Prior completed evidence. ', 11000 );
+		$history  = array(
+			new UserMessage( array( new MessagePart( 'Inspect the site.' ) ) ),
+			new ModelMessage( array( new MessagePart( new FunctionCall( 'call_big', 'wpab__sd-ai-agent__site-info', array() ) ) ) ),
+			new UserMessage( array( new MessagePart( new FunctionResponse( 'call_big', 'wpab__sd-ai-agent__site-info', array( 'content' => $original ) ) ) ) ),
+		);
+		$loop     = new ScriptedAgentLoop(
+			'Only reply OK.',
+			array(),
+			$history,
+			array(
+				'provider_id' => 'sd-ai-agent-cloud',
+				'model_id'    => 'superdav-chat-pro',
+			),
+			array( $this->create_scripted_result( 'OK' ) )
+		);
+
+		$result = $loop->run();
+
+		// ~286 KB is ~95k gateway tokens at three bytes per token: inside 200k - 16k.
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $loop->requestSizes );
+		$this->assertGreaterThan( ConversationTrimmer::COMPACT_MAX_BYTES, $loop->requestSizes[0] );
+	}
+
+	/** History beyond the gateway admission budget is compacted for the request, not the saved conversation. */
+	public function test_managed_context_pressure_compacts_before_provider_call(): void {
+		$original = str_repeat( 'Prior completed evidence. ', 22000 );
 		$history  = array(
 			new UserMessage( array( new MessagePart( 'Inspect the site.' ) ) ),
 			new ModelMessage( array( new MessagePart( new FunctionCall( 'call_big', 'wpab__sd-ai-agent__site-info', array() ) ) ) ),
@@ -2512,11 +2539,58 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( $original, (string) wp_json_encode( $result['history'] ) );
 	}
 
-	/** Managed chat respects the gateway's byte-as-token context check. */
+	/** Managed chat mirrors the gateway's published bytes-per-token admission check. */
 	public function test_managed_chat_budget_reserves_output_tokens_below_context_limit(): void {
-		$this->assertSame( 183616, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
-		$this->assertSame( 150848, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		// Fallback ratio 3: (200000 - 16384) * 3 = 550848, capped by the 512 KiB HTTP budget.
+		$this->assertSame( 524288, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame( 491520, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
 		$this->assertSame( 524288, ConversationTrimmer::get_request_byte_budget( 'openai', 'gpt-test' ) );
+
+		$raise = static fn(): int => 1048576;
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', $raise );
+		try {
+			$this->assertSame( 550848, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+
+			// A published ratio of 1 restores the strict byte-as-token check.
+			ModelCapabilityRegistry::set( 'superdav-chat-pro', 16384, 200000, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, '', array(), 1 );
+			$this->assertSame( 183616, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		} finally {
+			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $raise );
+			ModelCapabilityRegistry::forget( 'superdav-chat-pro' );
+		}
+	}
+
+	/** Reported-token compaction starts below the gateway admission limit, not the model window. */
+	public function test_managed_compaction_token_budget_stays_below_gateway_admission(): void {
+		// floor((200000 - 16384) * 3 / 4 * 0.9) = 123940 reported tokens, below 200000 - 16384.
+		$this->assertSame( 123940, ConversationTrimmer::get_request_compaction_token_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		$this->assertSame(
+			ConversationTrimmer::get_request_token_budget( 'openai', 'gpt-test' ),
+			ConversationTrimmer::get_request_compaction_token_budget( 'openai', 'gpt-test' )
+		);
+	}
+
+	/** Provider usage drives compaction state without adding chat-visible activity rows. */
+	public function test_reported_usage_is_tracked_without_activity_log_entries(): void {
+		$loop   = new ScriptedAgentLoop(
+			'Only reply OK.',
+			array(),
+			array(),
+			array(
+				'provider_id' => 'sd-ai-agent-cloud',
+				'model_id'    => 'superdav-chat-pro',
+			),
+			array( $this->create_scripted_result( 'OK' ) )
+		);
+		$result = $loop->run();
+
+		$this->assertIsArray( $result );
+		// GenerativeAiResult exposes getTokenUsage(); the scripted result reports 10 in / 5 out.
+		$this->assertSame( 10, $result['token_usage']['prompt'] ?? null );
+		$this->assertSame( 5, $result['token_usage']['completion'] ?? null );
+		foreach ( (array) ( $result['messages'] ?? $result['message_log'] ?? array() ) as $entry ) {
+			$this->assertNotSame( 'provider_context_usage', is_array( $entry ) ? ( $entry['type'] ?? '' ) : '' );
+		}
 	}
 
 	/** Compact a large discovery/list turn while retaining intent and product identities. */

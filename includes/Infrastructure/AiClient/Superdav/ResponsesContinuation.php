@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 
 use SdAiAgent\Core\CompletedTurnCompactor;
+use SdAiAgent\Core\TurnContext;
 
 /**
  * Stores encrypted, short-lived native conversation state for OAuth replay.
@@ -48,7 +49,7 @@ final class ResponsesContinuation {
 			|| ! self::valid_response_id( $state['response_id'] )
 			|| ( $state['scope'] ?? null ) !== $scope
 			|| ! is_string( $state['hash'] ?? null )
-			|| ! hash_equals( $state['hash'], self::fingerprint( array_slice( $input, 0, $count ) ) )
+			|| ! hash_equals( $state['hash'], self::input_fingerprint( array_slice( $input, 0, $count ) ) )
 		) {
 			$this->clear();
 			return null;
@@ -75,16 +76,24 @@ final class ResponsesContinuation {
 	 * @return list<array<string, mixed>>
 	 */
 	public static function prune_completed_discovery( array $input ): array {
-		$last_user = 0;
-		$called    = array();
-		$retained  = array();
+		$last_user    = 0;
+		$last_context = null;
+		$called       = array();
+		$retained     = array();
 		foreach ( $input as $index => $item ) {
 			if ( 'user' === ( $item['role'] ?? '' ) ) {
 				$last_user = $index;
+				if ( is_string( $item['content'] ?? null ) && TurnContext::strip( $item['content'] ) !== $item['content'] ) {
+					$last_context = $index;
+				}
 			}
 			if ( 'function_call' === ( $item['type'] ?? '' ) && is_string( $item['name'] ?? null ) ) {
 				$called[ $item['name'] ] = true;
 			}
+		}
+		// Only the newest turn keeps its provider-only context; older blocks are stale.
+		if ( null !== $last_context ) {
+			$input = TurnContext::strip_input_items( $input, $last_context );
 		}
 		foreach ( $input as $index => &$item ) {
 			if ( $index >= $last_user ) {
@@ -204,7 +213,7 @@ final class ResponsesContinuation {
 			$this->clear();
 			return;
 		}
-		$native = $this->encrypt_history( $native_input ?? $input, $scope . ':' . self::fingerprint( $input ) . ':' . count( $input ) );
+		$native = $this->encrypt_history( $native_input ?? $input, $scope . ':' . self::input_fingerprint( $input ) . ':' . count( $input ) );
 		if ( null === $native ) {
 			$this->clear();
 			return;
@@ -214,7 +223,7 @@ final class ResponsesContinuation {
 			array(
 				'response_id' => $response_id,
 				'count'       => count( $input ),
-				'hash'        => self::fingerprint( $input ),
+				'hash'        => self::input_fingerprint( $input ),
 				'scope'       => $scope,
 				'native'      => $native,
 			),
@@ -289,6 +298,18 @@ final class ResponsesContinuation {
 	 */
 	public static function fingerprint( array $data ): string {
 		return hash( 'sha256', (string) wp_json_encode( $data ) );
+	}
+
+	/**
+	 * Hash local input without provider-only turn context.
+	 *
+	 * Saved history never contains the context block, while the request that was
+	 * acknowledged did, so the replay prefix must match either form.
+	 *
+	 * @param list<array<string, mixed>> $input Local Responses input.
+	 */
+	private static function input_fingerprint( array $input ): string {
+		return self::fingerprint( TurnContext::strip_input_items( array_values( $input ) ) );
 	}
 
 	/** Reject malformed or unbounded opaque response IDs. */

@@ -119,6 +119,9 @@ final class SettingsControllerTest extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WordPress AI Client SDK is unavailable.' );
 		}
 
+		// Account status is included for administrators only.
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
 		$base_url         = 'https://service.example/v1';
 		$registration_url = $base_url . '/site/installations';
 		$models_url       = $base_url . '/models';

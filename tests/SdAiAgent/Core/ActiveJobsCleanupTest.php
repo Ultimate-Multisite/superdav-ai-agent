@@ -254,7 +254,23 @@ class ActiveJobsCleanupTest extends WP_UnitTestCase {
 		$this->assertSame( $checkpoint, json_decode( (string) $row->checkpoint, true ) );
 	}
 
-	/** A queued durable worker may be claimed exactly once. */
+	/** Asynchronous recovery queues one retry for one worker without consuming another attempt. */
+	public function test_claim_resume_attempt_queues_for_one_background_worker(): void {
+		$this->insert_job( 'test-queued-resume-1', 'interrupted' );
+		$checkpoint = array( 'history' => array(), 'provider_id' => 'openai_compat' );
+
+		$this->assertTrue( ActiveJobRepository::claim_resume_attempt( 'test-queued-resume-1', 2, $checkpoint, true ) );
+		$row = $this->fetch_row( 'test-queued-resume-1' );
+		$this->assertNotNull( $row );
+		$this->assertSame( 'queued', $row->status );
+		$this->assertSame( '1', (string) $row->resume_attempts );
+		$this->assertSame( $checkpoint, json_decode( (string) $row->checkpoint, true ) );
+		$this->assertFalse( ActiveJobRepository::claim_resume_attempt( 'test-queued-resume-1', 2, $checkpoint, true ) );
+		$this->assertTrue( ActiveJobRepository::claim_queued_job( 'test-queued-resume-1' ) );
+		$this->assertFalse( ActiveJobRepository::claim_queued_job( 'test-queued-resume-1' ) );
+	}
+
+	/** A queued chat worker may be claimed exactly once. */
 	public function test_claim_queued_job_has_one_winner(): void {
 		$this->insert_job( 'test-queued-claim-1', 'queued' );
 
@@ -316,6 +332,19 @@ class ActiveJobsCleanupTest extends WP_UnitTestCase {
 		$this->assertSame( 'abandoned', $row->status );
 		$diagnostic = ActiveJobFailureDiagnostic::from_stored( 'test-stale-1', $row->error );
 		$this->assertSame( ActiveJobFailureDiagnostic::REASON_WORKER_TERMINATED, $diagnostic['reason'] );
+	}
+
+	/** reap_stale_job() abandons one stalled row and leaves fresh rows alone. */
+	public function test_reap_stale_job_abandons_only_stalled_row(): void {
+		$this->insert_job( 'test-stalled-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 1800 ) );
+		$this->insert_job( 'test-fresh-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 60 ) );
+
+		$this->assertTrue( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-fresh-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ), 'Already-abandoned row is not reaped twice.' );
+
+		$this->assertSame( 'abandoned', $this->fetch_row( 'test-stalled-one' )->status );
+		$this->assertSame( 'processing', $this->fetch_row( 'test-fresh-one' )->status );
 	}
 
 	/** cleanup_stale() also reaps queued workers that never receive a loopback delivery. */

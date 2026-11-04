@@ -9,6 +9,7 @@ use SdAiAgent\Core\CompletedTurnCompactor;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\ElementorCompletionGate;
+use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Infrastructure\AiClient\Superdav\ResponsesContinuation;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
@@ -360,11 +361,17 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'superdav-chat-pro', 123 );
 		try {
 			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
+			// At the default three bytes per token, the ~196 KB chat body also fits admission.
+			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'chat/completions' ) ) );
+			// A published byte-as-token ratio still guards chat without affecting native deferred catalogs.
+			ModelCapabilityRegistry::set( 'superdav-chat-pro', 16384, 200000, ModelCapabilityRegistry::SOURCE_PROVIDER, 0, '', array(), 1 );
 			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'chat/completions' ) ) );
+			$this->assertFalse( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
 			add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
 			$this->assertWPError( ProviderTraceLogger::on_pre_http_request( false, array( 'body' => $body ), SuperdavAiProvider::url( 'responses' ) ) );
 		} finally {
 			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+			ModelCapabilityRegistry::forget( 'superdav-chat-pro' );
 			ProviderTraceLogger::clear_runtime_context();
 		}
 	}
@@ -394,6 +401,27 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertStringEndsWith( '/responses', $requests[1]->getUri() );
 		$this->assertSame( $requests[0]->getData()['input'][0], $requests[1]->getData()['input'][0] );
 		$this->assertSame( 'tool_search_call', $requests[1]->getData()['input'][1]['type'] );
+	}
+
+	/** Completed-turn compaction runs before the final Responses envelope guard. */
+	public function test_completed_turn_compaction_precedes_final_envelope_guard(): void {
+		$requests   = array();
+		$history    = $this->pending_history( $requests );
+		$history[2] = new UserMessage( array( new MessagePart( new FunctionResponse( 'call_1', 'lookup', array( 'content' => str_repeat( 'payload ', 9000 ) ) ) ) ) );
+		$model      = $this->model( array( $this->text_response( 'resp_compacted' ) ), $requests );
+		$model->set_completed_turn_message_count( 3 );
+		$limit = static fn(): int => 65536;
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		ProviderTraceLogger::set_runtime_context( SuperdavAiProvider::PROVIDER_ID, 'gpt-5.5', 123 );
+		try {
+			$this->assertGreaterThan( $limit(), strlen( wp_json_encode( $history ) ) );
+			$model->generateTextResult( $history );
+			$this->assertCount( 2, $requests );
+			$this->assertStringContainsString( CompletedTurnCompactor::MARKER, wp_json_encode( $requests[1]->getData()['input'] ) );
+		} finally {
+			ProviderTraceLogger::clear_runtime_context();
+			remove_filter( 'sd_ai_agent_provider_request_max_bytes', $limit );
+		}
 	}
 
 	/** Cache eviction replays local tool history through Responses without provider item IDs. */
@@ -480,11 +508,16 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[1] );
 			$this->assertSame( $tool['output'], array_slice( $requests[1]['input'], 1, 4 ) );
 			$this->assertSame( array( 'function_call_output' ), array_column( array_slice( $requests[1]['input'], -1 ), 'type' ) );
+			// The provider saw the turn context; the saved transcript holds only what the user typed.
+			$this->assertStringStartsWith( "Find posts.\n\n<context>", $requests[0]['input'][0]['content'] );
+			$this->assertStringNotContainsString( '<context>', (string) wp_json_encode( $first['history'] ) );
 			$history = ConversationSerializer::deserialize( $first['history'] );
 			$second = ( new AgentLoop( 'Explain the finding.', array( 'sd-ai-agent/list-posts' ), $history, $options ) )->run();
 			$this->assertIsArray( $second );
 			$this->assertArrayNotHasKey( 'previous_response_id', $requests[2] );
 			$completed_turn = array_values( array_filter( $requests[1]['input'], static fn( array $item ): bool => 'reasoning' !== ( $item['type'] ?? '' ) ) );
+			// Completed turns replay without their stale provider context.
+			$completed_turn[0]['content'] = 'Find posts.';
 			unset( $completed_turn[3]['id'] );
 			$completed_message = $this->text_response( 'resp_second' )->getData()['output'][0];
 			unset( $completed_message['id'] );
@@ -496,6 +529,8 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			$this->assertStringStartsWith( "Explain the finding.\n\n<context>\n\n## Current Context", $new_turn[0]['content'] );
 			$this->assertStringEndsWith( '</context>', $new_turn[0]['content'] );
 			$this->assertSame( 1, substr_count( $new_turn[0]['content'], '<context>' ) );
+			$this->assertSame( 1, substr_count( (string) wp_json_encode( $requests[2]['input'] ), '<context>' ), 'Only the newest turn carries context.' );
+			$this->assertStringNotContainsString( '<context>', (string) wp_json_encode( $second['history'] ) );
 			$this->assertSame( $requests[0]['instructions'], $requests[1]['instructions'] );
 			$this->assertSame( $requests[0]['instructions'], $requests[2]['instructions'] );
 			$this->assertCount( 3, $requests );

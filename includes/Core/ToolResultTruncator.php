@@ -95,10 +95,23 @@ class ToolResultTruncator {
 	 * @return array<string|int, mixed> Result that encodes within MAX_RESULT_BYTES.
 	 */
 	private static function enforce_byte_cap( array $result ): array {
+		$list_path = [];
+
 		for ( $attempt = 0; $attempt < 1000; $attempt++ ) {
 			$encoded = wp_json_encode( $result );
 			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
 				return $result;
+			}
+
+			// Keep shrinking the list chosen earlier until the whole result fits, even once
+			// the list itself is under the cap; otherwise the root summary could drop it.
+			if ( [] !== $list_path ) {
+				$shrunk = self::shrink_list_at_path( $result, $list_path );
+				if ( null !== $shrunk ) {
+					$result = $shrunk;
+					continue;
+				}
+				$list_path = [];
 			}
 
 			$largest_path  = [];
@@ -106,13 +119,147 @@ class ToolResultTruncator {
 			self::find_smallest_oversized_array( $result, [], $largest_path, $largest_bytes );
 
 			if ( [] === $largest_path ) {
+				// No single branch is over the cap; shrink the largest list before summarizing.
+				$list_path = self::find_largest_list( $result, [] )[0];
+				if ( [] !== $list_path ) {
+					continue;
+				}
 				break;
+			}
+
+			// Lists (posts, pages, rows...) keep their first items so the agent still gets
+			// usable IDs; only branches that cannot shrink are replaced by an omission note.
+			$shrunk = self::shrink_list_at_path( $result, $largest_path );
+			if ( null !== $shrunk ) {
+				$result    = $shrunk;
+				$list_path = $largest_path;
+				continue;
 			}
 
 			$result = self::replace_nested_array_with_omission( $result, $largest_path, $largest_bytes );
 		}
 
 		return self::summarize_to_byte_cap( $result );
+	}
+
+	/**
+	 * Find the largest list that can still shrink (two or more items besides a "more items" note).
+	 *
+	 * @param array<string|int, mixed> $value Candidate branch.
+	 * @param array<int, string|int>   $path  Current branch path.
+	 * @return array{0: array<int, string|int>, 1: int} Path ([] when none) and its encoded size.
+	 */
+	private static function find_largest_list( array $value, array $path ): array {
+		$best = [ [], 0 ];
+
+		foreach ( $value as $key => $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$item_path = array_merge( $path, [ $key ] );
+			if ( array_is_list( $item ) ) {
+				$items = count( $item );
+				$last  = end( $item );
+				if ( is_string( $last ) && 1 === preg_match( '/^\.\.\. and \d+ more items/', $last ) ) {
+					--$items;
+				}
+				$bytes = strlen( (string) wp_json_encode( $item ) );
+				if ( $items >= 2 && $bytes > $best[1] ) {
+					$best = [ $item_path, $bytes ];
+				}
+			}
+
+			$nested = self::find_largest_list( $item, $item_path );
+			if ( $nested[1] > $best[1] ) {
+				$best = $nested;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
+	 * Drop the last item of the list at $path, folding it into a trailing "more items" note.
+	 *
+	 * When the list's parent reports a numeric `total`, the note counts every item absent
+	 * from the result (including ones removed earlier by a tool strategy), and a sibling
+	 * `showing` count is kept in step.
+	 *
+	 * @param array<string|int, mixed> $result Whole result.
+	 * @param array<int, string|int>   $path   Path to the list.
+	 * @return array<string|int, mixed>|null Updated result, or null when the branch is not a list of two or more items.
+	 */
+	private static function shrink_list_at_path( array $result, array $path ): ?array {
+		$value = self::value_at_path( $result, $path );
+		if ( ! is_array( $value ) || ! array_is_list( $value ) ) {
+			return null;
+		}
+
+		$more = 0;
+		$last = end( $value );
+		if ( is_string( $last ) && 1 === preg_match( '/^\.\.\. and (\d+) more items/', $last, $match ) ) {
+			array_pop( $value );
+			$more = (int) $match[1];
+		}
+
+		if ( count( $value ) < 2 ) {
+			return null;
+		}
+
+		array_pop( $value );
+		$kept   = count( $value );
+		$parent = count( $path ) > 1 ? self::value_at_path( $result, array_slice( $path, 0, -1 ) ) : $result;
+		$total  = is_array( $parent ) && isset( $parent['total'] ) && is_numeric( $parent['total'] ) ? (int) $parent['total'] : 0;
+		$more   = $total > $kept ? $total - $kept : $more + 1;
+
+		$value[] = sprintf( '... and %d more items omitted to fit the context limit; narrow the query to see them', $more );
+		$result  = self::replace_at_path( $result, $path, $value );
+
+		if ( is_array( $parent ) && array_key_exists( 'showing', $parent ) ) {
+			$result = self::replace_at_path( $result, array_merge( array_slice( $path, 0, -1 ), [ 'showing' ] ), $kept );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Read a nested branch by path.
+	 *
+	 * @param array<string|int, mixed> $value Result.
+	 * @param array<int, string|int>   $path  Nested path.
+	 * @return mixed Branch value, or null when missing.
+	 */
+	private static function value_at_path( array $value, array $path ) {
+		foreach ( $path as $key ) {
+			if ( ! is_array( $value ) || ! array_key_exists( $key, $value ) ) {
+				return null;
+			}
+			$value = $value[ $key ];
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Replace a nested branch by path.
+	 *
+	 * @param array<string|int, mixed> $value       Result.
+	 * @param array<int, string|int>   $path        Nested path.
+	 * @param mixed                    $replacement New branch value.
+	 * @return array<string|int, mixed> Updated result.
+	 */
+	private static function replace_at_path( array $value, array $path, $replacement ): array {
+		$key = array_shift( $path );
+		if ( null === $key || ! array_key_exists( $key, $value ) ) {
+			return $value;
+		}
+
+		$value[ $key ] = [] === $path || ! is_array( $value[ $key ] )
+			? $replacement
+			: self::replace_at_path( $value[ $key ], $path, $replacement );
+
+		return $value;
 	}
 
 	/**

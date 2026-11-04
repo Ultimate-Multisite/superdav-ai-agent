@@ -114,7 +114,7 @@ class ModelCapabilityRegistry {
 	 * "is this a transient hit or a catalog entry".
 	 *
 	 * @param string $model_id Provider-advertised model identifier.
-	 * @return array{model_id: string, display_name: string, max_output_tokens: int, context_length: int, provider_capabilities: array<string, bool>, source: string, fetched_at: int}
+	 * @return array{model_id: string, display_name: string, max_output_tokens: int, context_length: int, input_token_bytes_per_token: int, provider_capabilities: array<string, bool>, source: string, fetched_at: int}
 	 */
 	public static function get( string $model_id ): array {
 		$model_id = trim( $model_id );
@@ -125,26 +125,28 @@ class ModelCapabilityRegistry {
 		$transient = get_transient( self::transient_key( $model_id ) );
 		if ( is_array( $transient ) && isset( $transient['max_output_tokens'] ) ) {
 			return array(
-				'model_id'              => $model_id,
-				'display_name'          => isset( $transient['display_name'] ) && is_string( $transient['display_name'] ) ? $transient['display_name'] : '',
-				'max_output_tokens'     => max( 0, (int) $transient['max_output_tokens'] ),
-				'context_length'        => max( 0, (int) ( $transient['context_length'] ?? 0 ) ),
-				'provider_capabilities' => self::normalise_capabilities( $transient['provider_capabilities'] ?? array() ),
-				'source'                => (string) ( $transient['source'] ?? self::SOURCE_PROVIDER ),
-				'fetched_at'            => max( 0, (int) ( $transient['fetched_at'] ?? 0 ) ),
+				'model_id'                    => $model_id,
+				'display_name'                => isset( $transient['display_name'] ) && is_string( $transient['display_name'] ) ? $transient['display_name'] : '',
+				'max_output_tokens'           => max( 0, (int) $transient['max_output_tokens'] ),
+				'context_length'              => max( 0, (int) ( $transient['context_length'] ?? 0 ) ),
+				'input_token_bytes_per_token' => max( 0, (int) ( $transient['input_token_bytes_per_token'] ?? 0 ) ),
+				'provider_capabilities'       => self::normalise_capabilities( $transient['provider_capabilities'] ?? array() ),
+				'source'                      => (string) ( $transient['source'] ?? self::SOURCE_PROVIDER ),
+				'fetched_at'                  => max( 0, (int) ( $transient['fetched_at'] ?? 0 ) ),
 			);
 		}
 
 		$catalog = Settings::resolve_max_output_tokens_from_catalog( $model_id );
 		if ( $catalog > 0 ) {
 			return array(
-				'model_id'              => $model_id,
-				'display_name'          => '',
-				'max_output_tokens'     => $catalog,
-				'context_length'        => 0,
-				'provider_capabilities' => array(),
-				'source'                => self::SOURCE_CATALOG,
-				'fetched_at'            => 0,
+				'model_id'                    => $model_id,
+				'display_name'                => '',
+				'max_output_tokens'           => $catalog,
+				'context_length'              => 0,
+				'input_token_bytes_per_token' => 0,
+				'provider_capabilities'       => array(),
+				'source'                      => self::SOURCE_CATALOG,
+				'fetched_at'                  => 0,
 			);
 		}
 
@@ -165,6 +167,7 @@ class ModelCapabilityRegistry {
 	 * @param int                 $ttl_seconds           Override TTL. Defaults to PROVIDER_TTL_SECONDS.
 	 * @param string              $display_name          Optional provider-advertised display name.
 	 * @param array<string, bool> $provider_capabilities Safe provider-advertised boolean capability flags.
+	 * @param int                 $input_token_bytes_per_token Provider-advertised input-token byte ratio. 0 if unknown.
 	 * @return bool True on successful write; false on bad inputs or transient failure.
 	 */
 	public static function set(
@@ -174,7 +177,8 @@ class ModelCapabilityRegistry {
 		string $source = self::SOURCE_PROVIDER,
 		int $ttl_seconds = 0,
 		string $display_name = '',
-		array $provider_capabilities = array()
+		array $provider_capabilities = array(),
+		int $input_token_bytes_per_token = 0
 	): bool {
 		$model_id = trim( $model_id );
 		if ( '' === $model_id || $max_output_tokens <= 0 ) {
@@ -185,13 +189,14 @@ class ModelCapabilityRegistry {
 		}
 
 		$entry = array(
-			'model_id'              => $model_id,
-			'display_name'          => trim( $display_name ),
-			'max_output_tokens'     => $max_output_tokens,
-			'context_length'        => max( 0, $context_length ),
-			'provider_capabilities' => self::normalise_capabilities( $provider_capabilities ),
-			'source'                => $source,
-			'fetched_at'            => time(),
+			'model_id'                    => $model_id,
+			'display_name'                => trim( $display_name ),
+			'max_output_tokens'           => $max_output_tokens,
+			'context_length'              => max( 0, $context_length ),
+			'input_token_bytes_per_token' => max( 0, $input_token_bytes_per_token ),
+			'provider_capabilities'       => self::normalise_capabilities( $provider_capabilities ),
+			'source'                      => $source,
+			'fetched_at'                  => time(),
 		);
 
 		return (bool) set_transient( self::transient_key( $model_id ), $entry, $ttl_seconds );
@@ -226,17 +231,18 @@ class ModelCapabilityRegistry {
 	 *
 	 * @param string $model_id Model id (echoed back for diagnostics).
 	 * @param string $source   Source marker.
-	 * @return array{model_id: string, display_name: string, max_output_tokens: int, context_length: int, provider_capabilities: array<string, bool>, source: string, fetched_at: int}
+	 * @return array{model_id: string, display_name: string, max_output_tokens: int, context_length: int, input_token_bytes_per_token: int, provider_capabilities: array<string, bool>, source: string, fetched_at: int}
 	 */
 	private static function empty_entry( string $model_id, string $source ): array {
 		return array(
-			'model_id'              => $model_id,
-			'display_name'          => '',
-			'max_output_tokens'     => 0,
-			'context_length'        => 0,
-			'provider_capabilities' => array(),
-			'source'                => $source,
-			'fetched_at'            => 0,
+			'model_id'                    => $model_id,
+			'display_name'                => '',
+			'max_output_tokens'           => 0,
+			'context_length'              => 0,
+			'input_token_bytes_per_token' => 0,
+			'provider_capabilities'       => array(),
+			'source'                      => $source,
+			'fetched_at'                  => 0,
 		);
 	}
 

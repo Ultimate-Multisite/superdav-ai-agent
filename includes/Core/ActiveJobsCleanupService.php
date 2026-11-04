@@ -89,6 +89,17 @@ class ActiveJobsCleanupService {
 	// ── Cron callback ────────────────────────────────────────────────────
 
 	/**
+	 * Minutes of inactivity before a queued or processing job is stalled.
+	 *
+	 * Filterable via `sd_ai_agent_stale_job_threshold_minutes`; minimum 1.
+	 *
+	 * @return int Threshold in minutes.
+	 */
+	public static function stale_threshold_minutes(): int {
+		return max( 1, (int) apply_filters( 'sd_ai_agent_stale_job_threshold_minutes', self::DEFAULT_THRESHOLD_MINUTES ) );
+	}
+
+	/**
 	 * Execute the stale-job reaper (called by WP-Cron).
 	 *
 	 * Marks rows as 'abandoned' when:

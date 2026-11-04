@@ -262,12 +262,36 @@ class OnboardingManager {
 	}
 
 	/**
-	 * Permission callback — require manage_options capability.
+	 * Whether the current user owns the site without being an Administrator.
+	 *
+	 * Networks whose site owners have a narrower role than Administrator can
+	 * name a capability of that role with `sd_ai_agent_onboarding_capability`
+	 * so those owners can run the setup assistant. The user must also have chat
+	 * access; every tool the assistant runs is still checked against the
+	 * user's own capabilities.
+	 *
+	 * @return bool
+	 */
+	public static function current_user_is_site_owner(): bool {
+		/**
+		 * Capability (besides manage_options) that may start and reset onboarding.
+		 *
+		 * @param string $capability Default 'manage_options' (administrators only).
+		 */
+		$capability = (string) apply_filters( 'sd_ai_agent_onboarding_capability', 'manage_options' );
+
+		return '' !== $capability
+			&& current_user_can( $capability )
+			&& RolePermissions::current_user_has_chat_access();
+	}
+
+	/**
+	 * Permission callback — administrators, or site owners (see current_user_is_site_owner()).
 	 *
 	 * @return bool|\WP_Error
 	 */
 	public static function rest_permission() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_options' ) && ! self::current_user_is_site_owner() ) {
 			return new \WP_Error(
 				'rest_forbidden',
 				__( 'You do not have permission to access this endpoint.', 'superdav-ai-agent' ),

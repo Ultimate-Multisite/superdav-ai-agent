@@ -106,6 +106,50 @@ class PhpunitDatabaseSafetyTest extends TestCase {
 		self::assertNull(sd_ai_agent_phpunit_validate_database_name('fixture_safe_tests', $this->fixtureDir . '/wp-tests-config.php'));
 	}
 
+	public function test_linked_worktree_uses_canonical_shared_config(): void {
+		putenv('WP_LIVE_DB_NAME');
+		$this->write_config("define('DB_NAME', 'fixture_dedicated_tests');\ndefine('SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED', true);");
+		$canonical_repository = $this->fixtureDir . '/canonical-repository';
+		$canonical_git_dir = $canonical_repository . '/.git';
+		$worktree_repository = $this->fixtureDir . '/worktrees/linked-repository';
+		$canonical_config_dir = $this->fixtureDir . '/wordpress';
+		mkdir($canonical_git_dir . '/worktrees/linked-repository', 0777, true);
+		mkdir($worktree_repository, 0777, true);
+		mkdir($canonical_config_dir, 0777, true);
+		file_put_contents($worktree_repository . '/.git', 'gitdir: ' . $canonical_git_dir . '/worktrees/linked-repository');
+		file_put_contents($canonical_config_dir . '/wp-config.php', "<?php\ndefine('DB_NAME', 'fixture_shared_tests');\n");
+
+		try {
+			self::assertSame(
+				$canonical_config_dir . '/wp-config.php',
+				sd_ai_agent_phpunit_resolve_live_config($worktree_repository)[0]
+			);
+			self::assertStringContainsString(
+				'shared WordPress database',
+				sd_ai_agent_phpunit_validate_database_name('fixture_shared_tests', null, $worktree_repository)
+			);
+			self::assertNull(sd_ai_agent_phpunit_validate_database_name('fixture_dedicated_tests', null, $worktree_repository));
+
+			unlink($canonical_config_dir . '/wp-config.php');
+			self::assertStringContainsString(
+				'Cannot determine',
+				sd_ai_agent_phpunit_validate_database_name('fixture_dedicated_tests', null, $worktree_repository)
+			);
+		} finally {
+			if (is_file($canonical_config_dir . '/wp-config.php')) {
+				unlink($canonical_config_dir . '/wp-config.php');
+			}
+			unlink($worktree_repository . '/.git');
+			rmdir($canonical_git_dir . '/worktrees/linked-repository');
+			rmdir($canonical_git_dir . '/worktrees');
+			rmdir($canonical_git_dir);
+			rmdir($canonical_repository);
+			rmdir($worktree_repository);
+			rmdir(dirname($worktree_repository));
+			rmdir($canonical_config_dir);
+		}
+	}
+
 	public function test_installer_rechecks_config_after_waiting_for_lock(): void {
 		$this->write_config("define('DB_NAME', 'fixture_safe_tests');\ndefine('SD_AI_AGENT_PHPUNIT_DATABASE_ISOLATED', true);");
 		$lock = $this->fixtureDir . '/.wordpress-phpunit-trunk.lock';

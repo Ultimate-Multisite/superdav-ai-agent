@@ -69,6 +69,41 @@ Use this skill when the user reports errors, performance issues, white screens, 
 4. Activate the plugin by canonical slug, then re-check debug.log for the first
    new fatal stack trace.
 
+### Frontend Layout Overlap or Corrupted Layout
+Use when controls, headings, or labels overlap, overflow, or are mis-sized on a
+public page (for example a WooCommerce product summary on a nonstandard theme).
+A successful tool call is not evidence the layout is correct.
+
+1. Reproduce with a scoped capture: a viewport or element screenshot at desktop
+   (about 1365px) and mobile (about 390px). Avoid tall `fullPage` captures for
+   local overlap problems; a successful 768x8603 image does not show whether the
+   affected controls are laid out correctly.
+2. If `capture-screenshot` returns `success:false` such as
+   `Element not found for selector: ...`, do not patch CSS for that selector or
+   for a wrapper class guessed from a plugin name. Treat the selector as
+   nonexistent on this theme. Inspect the real rendered DOM (page source, or
+   `screenshot-url` of the visible region plus markup of the affected sections),
+   identify the visible affected elements, and walk up their ancestors with the
+   classes and computed styles that apply (width/height, display, overflow,
+   position). If the DOM cannot be inspected, report an explicit verification
+   blocker instead of making another unverified change.
+3. Trace the responsible code before editing styles. Search for the injected
+   class names and inline styles in theme and plugin JS/CSS, and include
+   must-use plugins: list `wp-content/mu-plugins/` (and `wp plugin list
+   --status=must-use`). Deactivating normal plugins does not remove MU-plugin
+   frontend output, and a glob such as `plugins/*<vendor>*/*` will miss it.
+4. Look for scripts that locate an ancestor of the affected nodes (for example
+   walking up from social links until a node has three or more links) and apply
+   fixed-size normalization classes. A wrong ancestor, such as the whole
+   product-details column, forces fixed heights onto headings and labels.
+   Prefer fixing or excluding that script over layering overriding CSS on an
+   unrelated wrapper.
+5. Verify the changed elements, not just that a capture succeeded: re-capture the
+   same scoped region at desktop and mobile widths, and confirm no overlap or
+   horizontal overflow before claiming the layout is fixed. State what was
+   observed. Missing evidence or layout symptoms are not proof of an SDK or
+   provider failure.
+
 ### 500 Internal Server Error
 1. Check PHP error logs
 2. Verify .htaccess: `wp rewrite flush`

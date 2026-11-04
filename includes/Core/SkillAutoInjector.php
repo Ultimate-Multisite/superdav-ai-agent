@@ -90,7 +90,7 @@ class SkillAutoInjector {
 		'/\b(?:multisite|network|subsite|subsites|sub-site)\b/i'                                                                       => 'multisite-management',
 		'/\b(?:content\s*market|editorial|content\s*strateg|publish\s*schedule|content\s*audit)\b/i'                                    => 'content-marketing',
 		'/\b(?:analytic|report|metric|dashboard|performance\s*report|growth)\b/i'                                                      => 'analytics-reporting',
-		'/\b(?:debug|error|broken|fix|troubleshoot|white\s*screen|500|fatal|crash|slow)\b/i'                                           => 'site-troubleshooting',
+		'/\b(?:debug|error|broken|fix|troubleshoot|white\s*screen|500|fatal|crash|slow|overlap|overlaps|overlapping|overflow|overflowing)\b/i'                           => 'site-troubleshooting',
 	];
 
 	/**

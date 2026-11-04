@@ -3923,6 +3923,10 @@ final class SessionController {
 			return new WP_REST_Response( array( 'ok' => false ), 200 );
 		}
 
+		// Capture the generation this worker owns. A later resume claim bumps it,
+		// fencing this worker out of heartbeats, checkpoints and result publication.
+		$worker_generation = ActiveJobRepository::get_worker_generation( $job_id );
+
 		// Restore the user context — the loopback request has no cookies,
 		// but the AI Client needs a user for provider auth binding.
 		if ( ! empty( $job['user_id'] ) ) {
@@ -4081,7 +4085,10 @@ final class SessionController {
 		 * (b) register a shutdown handler that marks the row as 'interrupted'
 		 *     when the PHP process terminates before loop completion.
 		 */
-		$options['active_job_id']     = $job_id;
+		$options['active_job_id'] = $job_id;
+		if ( null !== $worker_generation ) {
+			$options['active_job_generation'] = $worker_generation;
+		}
 		$options['interrupt_checker'] = self::build_job_interrupt_checker( $job_id );
 
 		// Progress callback: write live tool-call activity and channel messages
@@ -4266,6 +4273,10 @@ final class SessionController {
 				$result = $loop->run();
 			}
 		} catch ( \Throwable $e ) {
+			if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
+				return new WP_REST_Response( array( 'ok' => false ), 200 );
+			}
+
 			$diagnostic = $this->persist_active_job_failure(
 				$job_id,
 				$job,
@@ -4310,6 +4321,12 @@ final class SessionController {
 			$this->finalize_durable_plan_phase( $job );
 			set_transient( RestController::JOB_PREFIX . $job_id, $job, RestController::JOB_TTL );
 
+			return new WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
+		// A resume claim during a long tool/provider call fenced this worker out.
+		// Publishing now would overwrite the resumed run's transient, session and DB state.
+		if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $job_id, $worker_generation ) ) {
 			return new WP_REST_Response( array( 'ok' => false ), 200 );
 		}
 

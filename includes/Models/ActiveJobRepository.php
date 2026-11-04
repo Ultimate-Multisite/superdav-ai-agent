@@ -269,9 +269,10 @@ class ActiveJobRepository {
 	 * @param string               $job_id The job UUID.
 	 * @param string               $status New status value.
 	 * @param array<string, mixed> $extra  Optional extra fields to update (pending_tools, tool_calls, error).
-	 * @return bool True on success, false on failure.
+	 * @param int|null             $worker_generation Worker generation fence; a stale worker updates nothing.
+	 * @return bool True on success, false on failure or lost ownership.
 	 */
-	public static function update_status( string $job_id, string $status, array $extra = [] ): bool {
+	public static function update_status( string $job_id, string $status, array $extra = [], ?int $worker_generation = null ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
@@ -295,17 +296,23 @@ class ActiveJobRepository {
 		$data['updated_at'] = current_time( 'mysql', true );
 
 		$formats = array_fill( 0, count( $data ), '%s' );
+		$where   = [ 'job_id' => $job_id ];
+		$where_f = [ '%s' ];
+		if ( null !== $worker_generation ) {
+			$where['resume_attempts'] = $worker_generation;
+			$where_f[]                = '%d';
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->update(
 			self::table_name(),
 			$data,
-			[ 'job_id' => $job_id ],
+			$where,
 			$formats,
-			[ '%s' ]
+			$where_f
 		);
 
-		return $result !== false;
+		return $result !== false && ( null === $worker_generation || (int) $result > 0 || self::owns_job( $job_id, $worker_generation ) );
 	}
 
 	/**
@@ -341,15 +348,23 @@ class ActiveJobRepository {
 	 * @param string               $job_id     The job UUID.
 	 * @param string               $phase      Last durable loop phase.
 	 * @param array<string, mixed> $checkpoint Serializable checkpoint payload.
-	 * @return bool True on success, false on failure.
+	 * @param int|null             $worker_generation Worker generation fence; a stale worker writes nothing.
+	 * @return bool True on success, false on failure or lost ownership.
 	 */
-	public static function save_checkpoint( string $job_id, string $phase, array $checkpoint ): bool {
+	public static function save_checkpoint( string $job_id, string $phase, array $checkpoint, ?int $worker_generation = null ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
 		$encoded = wp_json_encode( $checkpoint );
 		if ( false === $encoded ) {
 			return false;
+		}
+
+		$where   = [ 'job_id' => $job_id ];
+		$where_f = [ '%s' ];
+		if ( null !== $worker_generation ) {
+			$where['resume_attempts'] = $worker_generation;
+			$where_f[]                = '%d';
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
@@ -360,12 +375,12 @@ class ActiveJobRepository {
 				'checkpoint_phase' => $phase,
 				'updated_at'       => current_time( 'mysql', true ),
 			],
-			[ 'job_id' => $job_id ],
+			$where,
 			[ '%s', '%s', '%s' ],
-			[ '%s' ]
+			$where_f
 		);
 
-		return $result !== false;
+		return $result !== false && ( null === $worker_generation || (int) $result > 0 || self::owns_job( $job_id, $worker_generation ) );
 	}
 
 	/**
@@ -426,12 +441,29 @@ class ActiveJobRepository {
 	 * Called at the start of each AgentLoop iteration so the periodic reaper
 	 * can distinguish an actively-running job from a zombie.
 	 *
-	 * @param string $job_id The job UUID.
-	 * @return bool True on success, false on failure.
+	 * @param string   $job_id            The job UUID.
+	 * @param int|null $worker_generation Worker generation fence; when set, only the current
+	 *                                    generation of a queued/processing row is refreshed.
+	 * @return bool True when a row was refreshed.
 	 */
-	public static function heartbeat( string $job_id ): bool {
+	public static function heartbeat( string $job_id, ?int $worker_generation = null ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
+
+		if ( null !== $worker_generation ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional ownership fence.
+			$fenced = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE %i SET updated_at = %s WHERE job_id = %s AND resume_attempts = %d AND status IN ('queued', 'processing')",
+					self::table_name(),
+					current_time( 'mysql', true ),
+					$job_id,
+					$worker_generation
+				)
+			);
+
+			return false !== $fenced && (int) $fenced > 0;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->update(
@@ -446,6 +478,31 @@ class ActiveJobRepository {
 	}
 
 	/**
+	 * Current worker generation for a job (bumped by every resume claim).
+	 *
+	 * @param string $job_id The job UUID.
+	 * @return int|null Generation, or null when the row does not exist.
+	 */
+	public static function get_worker_generation( string $job_id ): ?int {
+		$row = self::get_by_job_id( $job_id );
+
+		return null !== $row ? $row->resume_attempts : null;
+	}
+
+	/**
+	 * Whether a worker holding $worker_generation still owns the job.
+	 *
+	 * A zero-row fenced write cannot distinguish lost ownership from a same-second
+	 * no-op, so workers use this to decide whether to stop.
+	 *
+	 * @param string $job_id            The job UUID.
+	 * @param int    $worker_generation Generation captured when the worker started.
+	 */
+	public static function owns_job( string $job_id, int $worker_generation ): bool {
+		return self::get_worker_generation( $job_id ) === $worker_generation;
+	}
+
+	/**
 	 * Mark a job as interrupted (PHP request terminated before loop completion).
 	 *
 	 * Called by the shutdown handler registered in handle_process(). Only
@@ -457,7 +514,7 @@ class ActiveJobRepository {
 	 * @param array<string, mixed> $context Safe diagnostic metadata.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function mark_interrupted( string $job_id, string $reason = '', array $context = array() ): bool {
+	public static function mark_interrupted( string $job_id, string $reason = '', array $context = array(), ?int $worker_generation = null ): bool {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
@@ -470,16 +527,19 @@ class ActiveJobRepository {
 		);
 		$session_id = null !== $row ? $row->session_id : 0;
 		$now        = current_time( 'mysql', true );
+		// A fenced-out worker's shutdown handler must not interrupt the resumed run.
+		$generation = null !== $worker_generation ? $worker_generation : ( null !== $row ? $row->resume_attempts : 0 );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query; caching not applicable.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET status = 'interrupted', error = %s, interrupted_at = %s, updated_at = %s WHERE job_id = %s AND status = 'processing'",
+				"UPDATE %i SET status = 'interrupted', error = %s, interrupted_at = %s, updated_at = %s WHERE job_id = %s AND status = 'processing' AND resume_attempts = %d",
 				self::table_name(),
 				ActiveJobFailureDiagnostic::encode( $job_id, $diagnostic ),
 				$now,
 				$now,
-				$job_id
+				$job_id,
+				$generation
 			)
 		);
 

@@ -25,11 +25,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class SuperdavAiProvider extends AbstractApiProvider {
 
-	public const PROVIDER_ID                = 'sd-ai-agent-cloud';
-	public const CREDENTIAL_OPTION          = 'connectors_ai_sd_ai_agent_cloud_api_key';
-	public const DEFAULT_BASE_URL           = 'https://api.sdaiagent.com/v1';
-	public const FAST_MODEL_ID              = 'superdav-chat-fast';
-	public const DEFAULT_MODEL_ID           = 'superdav-chat-pro';
+	public const PROVIDER_ID       = 'sd-ai-agent-cloud';
+	public const CREDENTIAL_OPTION = 'connectors_ai_sd_ai_agent_cloud_api_key';
+	public const DEFAULT_BASE_URL  = 'https://api.sdaiagent.com/v1';
+	public const FAST_MODEL_ID     = 'superdav-chat-fast';
+	public const DEFAULT_MODEL_ID  = 'superdav-chat-standard';
+	/** Retired request ID; no longer advertised. Saved selections resolve to Standard. */
+	public const LEGACY_PRO_MODEL_ID        = 'superdav-chat-pro';
 	public const STRONG_MODEL_ID            = 'superdav-chat-strong';
 	public const IMAGE_MODEL_ID             = 'superdav-image';
 	public const TEXT_TO_SPEECH_MODEL_ID    = 'superdav-tts';
@@ -194,6 +196,22 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 	}
 
 	/**
+	 * Resolve a saved managed model ID to the ID currently advertised by the service.
+	 *
+	 * Only the retired Pro ID is mapped (to Standard); every other ID is returned unchanged.
+	 *
+	 * @param string $provider_id AI Client provider ID.
+	 * @param string $model_id    Saved model ID.
+	 */
+	public static function canonical_model_id( string $provider_id, string $model_id ): string {
+		if ( self::PROVIDER_ID === $provider_id && self::LEGACY_PRO_MODEL_ID === $model_id ) {
+			return self::DEFAULT_MODEL_ID;
+		}
+
+		return $model_id;
+	}
+
+	/**
 	 * Whether native Responses tool search should handle a model.
 	 *
 	 * Tool search is an OpenAI Responses API feature (not Chat Completions) and
@@ -208,7 +226,7 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 
 		$supported = self::model_supports_responses_tool_search( $model_id ) || in_array(
 			$model_id,
-			array( self::FAST_MODEL_ID, self::DEFAULT_MODEL_ID, self::STRONG_MODEL_ID ),
+			array( self::FAST_MODEL_ID, self::DEFAULT_MODEL_ID, self::LEGACY_PRO_MODEL_ID, self::STRONG_MODEL_ID ),
 			true
 		);
 

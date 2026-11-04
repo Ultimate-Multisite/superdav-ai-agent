@@ -2875,7 +2875,7 @@ PROMPT;
 		$model_id                  = $this->resolve_effective_model_id( $provider_id );
 		$request_bytes             = ConversationTrimmer::estimate_total_bytes( $this->history );
 		$managed_pressure          = 'sd-ai-agent-cloud' === $provider_id
-			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true )
+			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-standard', 'superdav-chat-strong' ), true )
 			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
 		$reported_context_pressure = $this->last_provider_input_tokens > 0
 			&& ConversationTrimmer::estimate_next_request_tokens(
@@ -3913,6 +3913,11 @@ PROMPT;
 				$builder->using_provider( $provider_id );
 			}
 		} catch ( \Throwable $e ) {
+			if ( ! empty( $model_id ) ) {
+				// An explicit model lookup failure must not silently run another
+				// tier or retain a different model's output budget.
+				throw $e;
+			}
 			// Last resort: just set the provider and hope for the best.
 			try {
 				$builder->using_provider( $provider_id );
@@ -3933,7 +3938,7 @@ PROMPT;
 	private function resolve_effective_model_id( string $provider_id ): string {
 		$model_id = trim( (string) $this->model_id );
 		if ( '' !== $model_id ) {
-			return $model_id;
+			return \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::canonical_model_id( $provider_id, $model_id );
 		}
 
 		if ( ! function_exists( 'OpenAiCompatibleConnector\\get_default_model' ) ) {
@@ -5961,7 +5966,9 @@ PROMPT;
 		// sensible value. EXPLICIT (>0): retain the user's lower limit while
 		// clamping it to both the model's live/catalog capability and our ceiling.
 		$max_tokens  = $this->max_output_tokens;
-		$model_limit = Settings::get_max_output_tokens_for_model( $this->model_id );
+		$model_limit = Settings::get_max_output_tokens_for_model(
+			SuperdavAiProvider::canonical_model_id( $this->resolve_provider_id(), (string) $this->model_id )
+		);
 		if ( $max_tokens <= Settings::MAX_OUTPUT_TOKENS_AUTO ) {
 			return $model_limit;
 		}

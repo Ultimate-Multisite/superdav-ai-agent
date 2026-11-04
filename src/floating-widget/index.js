@@ -23,6 +23,7 @@ import './reflectors';
 import ErrorBoundary from '../components/error-boundary';
 import ChatWidget from '../components/chat-widget';
 import useKeyboardShortcut from './use-keyboard-shortcut';
+import { startAlertsPolling } from './alerts-polling';
 import { getActiveJobs } from '../utils/active-jobs-storage';
 import '../components/shared.css';
 
@@ -289,9 +290,10 @@ function FloatingWidget() {
 		if ( bootError ) {
 			return;
 		}
-		fetchAlerts();
-		const interval = setInterval( fetchAlerts, 5 * 60 * 1000 );
-		return () => clearInterval( interval );
+		return startAlertsPolling(
+			fetchAlerts,
+			!! window.sdAiAgentData?.canViewAlerts
+		);
 	}, [ fetchAlerts, bootError ] );
 
 	// Gather page context on mount.

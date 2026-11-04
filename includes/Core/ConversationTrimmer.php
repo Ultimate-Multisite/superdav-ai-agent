@@ -1685,7 +1685,7 @@ class ConversationTrimmer {
 	/** Whether the provider/model pair is a managed Superdav chat model. */
 	private static function is_managed_superdav_chat_model( string $provider_id, string $model_id ): bool {
 		return 'sd-ai-agent-cloud' === $provider_id
-			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-strong' ), true );
+			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-standard', 'superdav-chat-strong' ), true );
 	}
 
 	/**

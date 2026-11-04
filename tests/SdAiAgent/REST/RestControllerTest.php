@@ -32,6 +32,7 @@ use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\Memory;
 use SdAiAgent\Models\Skill;
 use SdAiAgent\REST\RestController;
+use SdAiAgent\REST\SessionController;
 use WP_REST_Request;
 use WP_REST_Server;
 use WP_UnitTestCase;
@@ -3070,9 +3071,42 @@ class RestControllerTest extends WP_UnitTestCase {
 		) );
 		$job_id = wp_generate_uuid4();
 		ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'awaiting_client_tools' );
-		set_transient( RestController::JOB_PREFIX . $job_id, array( 'status' => 'awaiting_client_tools', 'user_id' => $this->admin_id, 'params' => array( 'session_id' => $session_id ), 'pending_client_tool_calls' => $pending ), RestController::JOB_TTL );
-		$calls = 0;
-		$intercept = function ( $preempt, $args, $url ) use ( $job_id, $session_id, &$calls ) {
+		// Full job params as created by handle_run(); the background worker reads them.
+		$job_params = array(
+			'message'                       => '',
+			'history'                       => array(),
+			'abilities'                     => array(),
+			'system_instruction'            => '',
+			'bootstrap_prompt'              => '',
+			'max_iterations'                => null,
+			'session_id'                    => $session_id,
+			'provider_id'                   => $provider,
+			'model_id'                      => $model,
+			'page_context'                  => array(),
+			'agent_id'                      => 0,
+			'attachments'                   => array(),
+			'client_abilities'              => array(),
+			'anonymous_allowed_abilities'   => array(),
+			'anonymous_allowed_collections' => array(),
+			'anonymous_policy_active'       => false,
+			'durable_plan'                  => false,
+			'durable_plan_phase'            => '',
+		);
+		set_transient( RestController::JOB_PREFIX . $job_id, array( 'status' => 'awaiting_client_tools', 'user_id' => $this->admin_id, 'params' => $job_params, 'pending_client_tool_calls' => $pending ), RestController::JOB_TTL );
+		$calls      = 0;
+		$loopbacks  = 0;
+		$controller = new SessionController( new Database() );
+		$intercept  = function ( $preempt, $args, $url ) use ( $job_id, $session_id, $controller, &$calls, &$loopbacks ) {
+			// Browser-tool resume runs on the background worker (#2892); execute the
+			// worker's /process loopback synchronously so the turn completes here.
+			if ( rest_url( RestController::NAMESPACE . '/process' ) === $url ) {
+				++$loopbacks;
+				$process = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/process' );
+				$process->set_body_params( json_decode( $args['body'], true ) );
+				$this->assertTrue( $controller->check_process_permission( $process ) );
+				$controller->handle_process( $process );
+				return array( 'headers' => array(), 'body' => '{"ok":true}', 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array() );
+			}
 			if ( str_ends_with( $url, '/chat/completions' ) ) {
 				++$calls;
 				$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $job_id )->status );
@@ -3091,11 +3125,14 @@ class RestControllerTest extends WP_UnitTestCase {
 		try {
 			$params = array( 'session_id' => $session_id, 'job_id' => $job_id, 'tool_results' => array( array( 'id' => 'followup-client', 'name' => 'sd-ai-agent-js/get-editor-selection', 'result' => array( 'selected' => true ) ) ) );
 			$response = $this->dispatch( 'POST', '/sd-ai-agent/v1/chat/tool-result', $params );
-			$this->assertStatus( 200, $response );
-			$this->assertSame( 'New follow-up answer.', $response->get_data()['reply'] );
+			$this->assertStatus( 202, $response );
+			$this->assertTrue( $response->get_data()['results_accepted'] );
+			$this->assertSame( 1, $loopbacks );
 			$this->assertSame( 'complete', ActiveJobRepository::get_by_job_id( $job_id )->status );
 			$this->assertStatus( 409, $this->dispatch( 'POST', '/sd-ai-agent/v1/chat/tool-result', $params ) );
-			$this->assertSame( 'complete', $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" )->get_data()['status'] );
+			$poll = $this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" )->get_data();
+			$this->assertSame( 'complete', $poll['status'] );
+			$this->assertSame( 'New follow-up answer.', $poll['reply'] );
 			$this->dispatch( 'GET', "/sd-ai-agent/v1/job/{$job_id}" );
 			$session = Database::get_session( $session_id );
 			$saved   = json_decode( $session->messages, true );

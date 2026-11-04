@@ -178,33 +178,73 @@ export default function CustomerConversationsRoute() {
 	};
 
 	const purgeReviews = async () => {
+		// The endpoint deletes at most `limit` rows per call, so repeat until a
+		// batch comes back short (bounded to avoid runaway loops). Progress is
+		// kept outside the try so a later failure still reports earlier batches.
+		const batchLimit = 1000;
+		const maxBatches = 100;
+		let purged = 0;
+		let complete = false;
 		try {
-			const response = await apiFetch( {
-				path: '/sd-ai-agent/v1/customer-conversations/purge',
-				method: 'POST',
-				data: { confirm: true, limit: 1000 },
-			} );
-			setSelected( null );
-			setNotice( {
-				status: 'success',
-				message: sprintf(
-					/* translators: %d: number of deleted retained customer conversations. */
-					__(
-						'Deleted %d retained customer conversations.',
-						'superdav-ai-agent'
-					),
-					Number( response?.purged ) || 0
-				),
-			} );
-			loadReviews();
+			for ( let batch = 0; batch < maxBatches; batch++ ) {
+				const result = await apiFetch( {
+					path: '/sd-ai-agent/v1/customer-conversations/purge',
+					method: 'POST',
+					data: { confirm: true, limit: batchLimit },
+				} );
+				const count = Number( result?.purged ) || 0;
+				purged += count;
+				if ( count < batchLimit ) {
+					complete = true;
+					break;
+				}
+			}
+			setNotice(
+				complete
+					? {
+							status: 'success',
+							message: sprintf(
+								/* translators: %d: number of deleted retained customer conversations. */
+								__(
+									'Deleted %d retained customer conversations.',
+									'superdav-ai-agent'
+								),
+								purged
+							),
+					  }
+					: {
+							status: 'warning',
+							message: sprintf(
+								/* translators: %d: number of deleted retained customer conversations. */
+								__(
+									'Deleted %d retained customer conversations, but more may remain. Run the purge again to continue.',
+									'superdav-ai-agent'
+								),
+								purged
+							),
+					  }
+			);
 		} catch {
 			setNotice( {
 				status: 'error',
-				message: __(
-					'Unable to purge retained customer conversations.',
-					'superdav-ai-agent'
-				),
+				message: purged
+					? sprintf(
+							/* translators: %d: number of customer conversations deleted before the failure. */
+							__(
+								'Deleted %d retained customer conversations before an error stopped the purge. Some conversations remain.',
+								'superdav-ai-agent'
+							),
+							purged
+					  )
+					: __(
+							'Unable to purge retained customer conversations.',
+							'superdav-ai-agent'
+					  ),
 			} );
+		}
+		if ( purged || complete ) {
+			setSelected( null );
+			loadReviews();
 		}
 	};
 

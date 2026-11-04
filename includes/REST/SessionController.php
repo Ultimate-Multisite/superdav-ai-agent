@@ -4094,13 +4094,18 @@ final class SessionController {
 		// Progress callback: write live tool-call activity and channel messages
 		// to the job transient so the polling frontend can display them incrementally.
 		$progress_job_id              = $job_id;
-		$options['progress_callback'] = static function ( array $tool_call_log, array $message_log = array() ) use ( $progress_job_id ) {
+		$options['progress_callback'] = static function ( array $tool_call_log, array $message_log = array() ) use ( $progress_job_id, $worker_generation ) {
 			$lock = self::acquire_job_mutation_lock( $progress_job_id );
 			if ( null === $lock ) {
 				return;
 			}
 
 			try {
+				// A stale worker may report progress immediately after a long tool
+				// call, before its next heartbeat discovers the ownership change.
+				if ( null !== $worker_generation && ! ActiveJobRepository::owns_job( $progress_job_id, $worker_generation ) ) {
+					return;
+				}
 				$current = get_transient( RestController::JOB_PREFIX . $progress_job_id );
 				if ( is_array( $current ) && 'processing' === ( $current['status'] ?? '' ) ) {
 					$current['tool_calls'] = $tool_call_log;

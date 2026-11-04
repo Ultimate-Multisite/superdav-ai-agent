@@ -107,10 +107,43 @@ async function renderAssistantMessage( {
 describe( 'AssistantMessage Advanced install suggestion', () => {
 	afterEach( () => {
 		document.body.innerHTML = '';
+		delete window.sdAiAgentData;
 		jest.clearAllMocks();
 	} );
 
-	test( 'opens the release page instead of messaging the model for the install chip', async () => {
+	test( 'opens the account install card instead of messaging the model when the user can install plugins', async () => {
+		window.sdAiAgentData = {
+			advancedInstallUrl:
+				'https://example.test/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings',
+		};
+		const openSpy = jest.spyOn( window, 'open' ).mockReturnValue( null );
+		const onSuggestionSelect = jest.fn();
+		const { container, root } = await renderAssistantMessage( {
+			onSuggestionSelect,
+			text: 'Plugin generation requires SD AI Agent Advanced.\n\n[suggestion] Install SD AI Agent Advanced',
+		} );
+
+		await act( async () => {
+			container
+				.querySelector( 'button.sdaa-cr-suggestion-chip' )
+				.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		} );
+
+		expect( openSpy ).toHaveBeenCalledTimes( 1 );
+		expect( openSpy ).toHaveBeenCalledWith(
+			window.sdAiAgentData.advancedInstallUrl,
+			'_self'
+		);
+		expect( onSuggestionSelect ).not.toHaveBeenCalled();
+
+		openSpy.mockRestore();
+
+		await act( async () => {
+			root.unmount();
+		} );
+	} );
+
+	test( 'opens the release page instead of messaging the model when no install URL is available', async () => {
 		const openSpy = jest.spyOn( window, 'open' ).mockReturnValue( null );
 		const onSuggestionSelect = jest.fn();
 		const { container, root } = await renderAssistantMessage( {

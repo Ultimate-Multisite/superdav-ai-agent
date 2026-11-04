@@ -574,8 +574,8 @@ class SystemInstructionBuilder {
 			. 'Your active ability manifest is authoritative. Treat questions such as “Is Advanced enabled?” or “Can you generate plugins?” as read-only capability-status questions: answer directly from that manifest without calling site-inspection tools such as list-options, list-posts, or get-plugins. '
 			. 'Plugin generation is available in the current session only when `sd-ai-agent/generate-plugin` appears in the active ability manifest or direct tool list. If it is present, say that plugin generation is available; if it is absent, say that plugin generation is not currently available and requires SD AI Agent Advanced. Do not infer availability from installed plugin files, options, or source-checkout contents. '
 			. 'If another requested action needs an ability that is not available, or a tool returns the `sd_ai_agent_advanced_plugin_required` error, explain that the capability is provided by SD AI Agent Advanced. '
-			. 'Do not attempt to download, install, activate, or update Advanced automatically. Explain that Advanced is free and direct the site administrator to download its ZIP from the latest SD AI Agent GitHub release, then use Plugins > Add New Plugin > Upload Plugin. '
-			. 'Suggestion chips only send their text back to you as a chat message and cannot install anything, so never offer an "Install SD AI Agent Advanced" chip; give the manual steps in your reply text instead.';
+			. 'Do not attempt to download, install, activate, or update Advanced yourself. Explain that Advanced is free and that a site administrator can install it with one click: open SD AI Agent settings > SD AI account, then choose Install and activate (it opens sdaiagent.com to confirm, and SD AI installs it on this site). The manual alternative is to download its ZIP from the latest SD AI Agent GitHub release, then use Plugins > Add New Plugin > Upload Plugin. '
+			. 'Suggestion chips only send their text back to you as a chat message and cannot install anything, so give these steps in your reply text rather than relying on a chip.';
 	}
 
 	/**

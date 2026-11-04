@@ -40,8 +40,10 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	// MCP manager/sign-in (merged with main): measured 1736.9 KiB minified /
 	// 531.9 KiB gzip. Only aggregate deferred growth changes; launch and
 	// largest-asset caps stay fixed. Batched purge progress reporting
-	// (GH#2878): measured 1738.2 KiB minified.
-	minifiedBudgetKiB: 1739,
+	// (GH#2878): measured 1738.2 KiB minified. Advanced one-click install
+	// (account card button, focus refresh, settings tab deep link) on top:
+	// measured 1739.5 KiB minified / 532.8 KiB gzip.
+	minifiedBudgetKiB: 1740,
 	gzipBudgetKiB: 533,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,

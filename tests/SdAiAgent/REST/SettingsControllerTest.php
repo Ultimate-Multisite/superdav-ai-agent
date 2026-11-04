@@ -526,6 +526,32 @@ final class SettingsControllerTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( $token, wp_json_encode( $response->get_data() ) ?: '' );
 	}
 
+	/** install_advanced URLs are minted only for users who can install and activate plugins. */
+	public function test_install_advanced_action_requires_plugin_capabilities(): void {
+		$requests = 0;
+		update_option( SuperdavAiProvider::CREDENTIAL_OPTION, 'sdaist_install_cap_token', false );
+		add_filter(
+			'pre_http_request',
+			static function () use ( &$requests ) {
+				++$requests;
+				return new \WP_Error( 'unexpected_http', 'The service must not be called.' );
+			}
+		);
+		add_role( 'sd_options_only', 'Options only', array( 'read' => true, 'manage_options' => true ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'sd_options_only' ) ) );
+
+		$request = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/superdav-account/action' );
+		$request->set_param( 'action', 'install_advanced' );
+		$response = ( new SettingsController( new Settings(), new Database() ) )->handle_superdav_account_action( $request );
+
+		remove_role( 'sd_options_only' );
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertSame( 'sd_ai_agent_install_forbidden', $response->get_error_code() );
+		$this->assertSame( 0, $requests );
+	}
+
 	/** Account actions never send their bearer token to unsafe filtered endpoints. */
 	public function test_handle_superdav_account_action_rejects_unsafe_endpoint_overrides(): void {
 		$endpoints = array(

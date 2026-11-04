@@ -7,7 +7,7 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import Sidebar from '../Sidebar';
+import Sidebar, { relativeTime } from '../Sidebar';
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -122,5 +122,27 @@ describe( 'Sidebar Trash actions', () => {
 			[ 11, 12 ],
 			'restore'
 		);
+	} );
+} );
+
+describe( 'relativeTime', () => {
+	const ago = ( ms ) => new Date( Date.now() - ms );
+
+	test( 'parses MySQL UTC datetimes', () => {
+		const s = ago( 5000 ).toISOString().slice( 0, 19 ).replace( 'T', ' ' );
+		expect( relativeTime( s ) ).toBe( 'just now' );
+	} );
+
+	test( 'parses ISO strings with Z', () => {
+		expect( relativeTime( ago( 5000 ).toISOString() ) ).toBe( 'just now' );
+	} );
+
+	test( 'parses ISO strings with an offset', () => {
+		const s = ago( 120000 ).toISOString().replace( 'Z', '+00:00' );
+		expect( relativeTime( s ) ).toBe( '2m ago' );
+	} );
+
+	test( 'returns an empty string for garbage', () => {
+		expect( relativeTime( 'not a date' ) ).toBe( '' );
 	} );
 } );

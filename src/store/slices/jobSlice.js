@@ -1151,6 +1151,15 @@ export const actions = {
 								if ( stopIfReplaced() ) {
 									return;
 								}
+								// The user may have switched sessions while the reload
+								// was in flight; appendMessage targets the displayed
+								// session, so only flag the polled session's error.
+								if (
+									select.getCurrentSessionId() !== sessionId
+								) {
+									dispatch.setStreamError( true, sessionId );
+									return finishJob();
+								}
 								// Keep a returned answer visible, but do not advertise a
 								// saved success or attach usage to the previous answer.
 								if ( result.reply ) {

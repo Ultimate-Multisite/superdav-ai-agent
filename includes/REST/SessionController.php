@@ -4631,7 +4631,14 @@ final class SessionController {
 				}
 			}
 
-			$offset   = $history_is_delta ? 0 : $this->get_history_append_offset( $history, $existing );
+			$offset = $history_is_delta ? 0 : $this->get_history_append_offset( $history, $existing );
+			// A full (non-delta) history always shares a durable prefix or suffix
+			// with a non-empty session. No overlap means the result carries
+			// provider-only context (e.g. a resumed compacted checkpoint), which
+			// must never be written into the durable transcript.
+			if ( ! $history_is_delta && 0 === $offset && ! empty( $existing ) ) {
+				return $error;
+			}
 			$appended = array_values( array_slice( $history, $offset ) );
 			if ( empty( $appended ) || '' === trim( (string) ( $result['reply'] ?? '' ) ) ) {
 				return $error;

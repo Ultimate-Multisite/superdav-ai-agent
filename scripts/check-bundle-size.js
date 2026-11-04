@@ -23,7 +23,8 @@ const BUDGETS = [
 		file: 'build/floating-widget.js',
 		minifiedBudgetKiB: 100,
 		// Session agent restore/fallback (GH#2885): measured 28.12 KiB gzip.
-		gzipBudgetKiB: 28.2,
+		// Durable completion receipts + reload guards (GH#2873): 28.21 KiB.
+		gzipBudgetKiB: 28.3,
 	},
 	{
 		name: 'widget-panel',

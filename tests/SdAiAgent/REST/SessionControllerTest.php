@@ -98,6 +98,13 @@ class SessionControllerTest extends WP_UnitTestCase {
 	 * @dataProvider background_job_starters
 	 */
 	public function test_background_job_runs_once_across_loopback_and_queue( bool $block_loopback ): void {
+		$session_id = $this->create_session();
+		$original   = array();
+		for ( $i = 0; $i < 264; ++$i ) {
+			$original[] = array( 'role' => 'user', 'parts' => array( array( 'text' => "Saved prompt {$i}." ) ) );
+			$original[] = array( 'role' => 'model', 'parts' => array( array( 'text' => "Saved answer {$i}." ) ) );
+		}
+		Database::append_to_session( $session_id, $original );
 		update_option( SuperdavAiProvider::CREDENTIAL_OPTION, 'test-key' );
 		( new SuperdavAiProviderHandler() )->register_provider();
 		$base_url = static fn () => 'http://fake-ai-proxy.test';
@@ -136,6 +143,9 @@ class SessionControllerTest extends WP_UnitTestCase {
 				);
 			} elseif ( str_contains( $url, 'fake-ai-proxy.test' ) && str_ends_with( $url, '/chat/completions' ) ) {
 				++$provider_calls;
+				$envelope = json_decode( $args['body'], true );
+				$this->assertLessThan( 528, count( $envelope['messages'] ), 'Provider context must still be trimmed.' );
+				$this->assertStringContainsString( 'Reply once.', $args['body'] );
 				$this->assertSame( 'processing', ActiveJobRepository::get_by_job_id( $job_id )->status );
 				// Deliver the safety-net action while AgentLoop is still running.
 				do_action( BackgroundJobDispatcher::HOOK, $blog_id, $job_id );
@@ -159,7 +169,7 @@ class SessionControllerTest extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $intercept, 10, 3 );
 		try {
 			$run = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/run' );
-			$run->set_body_params( array( 'message' => 'Reply once.', 'provider_id' => SuperdavAiProvider::PROVIDER_ID, 'model_id' => SuperdavAiProvider::FAST_MODEL_ID, 'max_iterations' => 1 ) );
+			$run->set_body_params( array( 'session_id' => $session_id, 'message' => 'Reply once.', 'provider_id' => SuperdavAiProvider::PROVIDER_ID, 'model_id' => SuperdavAiProvider::FAST_MODEL_ID, 'max_iterations' => 1 ) );
 			$response = $controller->handle_run( $run );
 			$this->assertInstanceOf( \WP_REST_Response::class, $response );
 			$this->assertSame( 202, $response->get_status() );
@@ -172,6 +182,16 @@ class SessionControllerTest extends WP_UnitTestCase {
 			$this->assertSame( 1, $loopbacks );
 			$this->assertSame( 1, $provider_calls, 'AgentLoop must make exactly one provider turn across all starters.' );
 			$this->assertSame( 'complete', ActiveJobRepository::get_by_job_id( $job_id )->status );
+			$session = Database::get_session( $session_id );
+			$saved   = json_decode( $session->messages, true );
+			$this->assertCount( 530, $saved );
+			$this->assertSame( $original, array_slice( $saved, 0, 528 ) );
+			$this->assertSame( 'Reply once.', $saved[528]['parts'][0]['text'] );
+			$this->assertSame( 'One completed turn.', $saved[529]['parts'][0]['text'] );
+			$this->assertSame( $job_id, $saved[529]['completion_job_id'] );
+			$this->assertSame( SuperdavAiProvider::FAST_MODEL_ID, $saved[529]['model_id'] );
+			$this->assertSame( 10, (int) $session->prompt_tokens );
+			$this->assertSame( 5, (int) $session->completion_tokens );
 		} finally {
 			remove_filter( 'pre_http_request', $intercept, 10 );
 			remove_action( BackgroundJobDispatcher::HOOK, $queue_callback, 10 );
@@ -228,6 +248,124 @@ class SessionControllerTest extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $intercept );
 			$wpdb->suppress_errors( $previous );
 		}
+	}
+
+	/** A shortened 522-row result must not be sliced at the old 528-row count. */
+	public function test_shorter_completed_history_and_accounting_are_idempotent(): void {
+		global $wpdb;
+		$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_outer_completion_test' ) );
+		$session_id = $this->create_session();
+		$original   = array();
+		for ( $i = 0; $i < 528; ++$i ) {
+			$original[] = array( 'role' => 0 === $i % 2 ? 'user' : 'model', 'parts' => array( array( 'text' => "Saved row {$i}." ) ) );
+		}
+		$old_tool = array( 'type' => 'result', 'id' => 'saved-tool', 'sequence' => 1, 'name' => 'saved-tool', 'result' => array( 'done' => true ) );
+		$new_tool = array( 'type' => 'result', 'id' => 'followup-tool', 'sequence' => 2, 'name' => 'followup-tool', 'result' => array( 'done' => true ) );
+		Database::append_to_session( $session_id, $original, array( $old_tool ) );
+		$history   = array_slice( $original, 8 );
+		// A repeated chip may have the exact text of a previously saved prompt.
+		$history[] = $original[0];
+		$history[] = array( 'role' => 'model', 'parts' => array( array( 'text' => 'New answer and new suggestions.' ) ) );
+		$this->assertCount( 522, $history );
+		$result = array( 'reply' => 'New answer and new suggestions.', 'history' => $history, 'tool_calls' => array( $old_tool, $new_tool ), 'token_usage' => array( 'prompt' => 120, 'completion' => 8 ) );
+		$controller = new SessionController( new Database() );
+		$this->assertTrue( $controller->persist_completed_turn( $session_id, 'short-history-job', $result, 'test-provider', 'test-model' ) );
+		$this->assertTrue( $controller->persist_completed_turn( $session_id, 'short-history-job', $result, 'test-provider', 'test-model' ) );
+		$session = Database::get_session( $session_id );
+		$saved   = json_decode( $session->messages, true );
+		$this->assertCount( 530, $saved );
+		$this->assertSame( $original, array_slice( $saved, 0, 528 ) );
+		$this->assertSame( 'Saved row 0.', $saved[528]['parts'][0]['text'] );
+		$this->assertSame( 'New answer and new suggestions.', $saved[529]['parts'][0]['text'] );
+		$this->assertSame( array( $old_tool, $new_tool ), json_decode( $session->tool_calls, true ) );
+		$this->assertSame( 120, (int) $session->prompt_tokens );
+		$this->assertSame( 8, (int) $session->completion_tokens );
+		$usage = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ), ARRAY_A );
+		$this->assertCount( 1, $usage );
+		$this->assertSame( 120, (int) $usage[0]['prompt_tokens'] );
+		$this->assertSame( 8, (int) $usage[0]['completion_tokens'] );
+		$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_outer_completion_test' ) );
+		$this->assertNull( Database::get_session( $session_id ), 'Completion must not commit caller-owned writes.' );
+		$this->assertNotFalse( $wpdb->query( 'RELEASE SAVEPOINT sd_ai_agent_outer_completion_test' ) );
+	}
+
+	/** Explicit transactions keep autocommit enabled and still belong to the caller. */
+	public function test_completed_turn_preserves_explicit_caller_transaction(): void {
+		global $wpdb;
+		$original   = $wpdb;
+		$connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$connection->set_prefix( $original->prefix );
+		$wpdb       = $connection;
+		$session_id = 0;
+		try {
+			// A separate connection avoids committing WordPress's fixture transaction.
+			$this->assertNotFalse( $wpdb->query( 'SET autocommit = 1' ) );
+			$this->assertNotFalse( $wpdb->query( 'START TRANSACTION' ) );
+			$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_completion_probe' ) );
+			$this->assertNotFalse( $wpdb->query( 'SAVEPOINT sd_ai_agent_completed_turn' ) );
+			$session_id = $this->create_session();
+			$result     = array(
+				'reply'       => 'Saved inside the caller transaction.',
+				'history'     => array(
+					array( 'role' => 'user', 'parts' => array( array( 'text' => 'Keep this transaction open.' ) ) ),
+					array( 'role' => 'model', 'parts' => array( array( 'text' => 'Saved inside the caller transaction.' ) ) ),
+				),
+				'token_usage' => array( 'prompt' => 8, 'completion' => 2 ),
+			);
+			$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'explicit-transaction-job', $result, 'test-provider', 'test-model' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_completed_turn' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK TO SAVEPOINT sd_ai_agent_completion_probe' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK' ) );
+			$this->assertNull( Database::get_session( $session_id ), 'Completion must not commit an explicit caller transaction.' );
+			$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ) ) );
+			// Without a caller transaction, the helper must commit its own writes.
+			$session_id = $this->create_session();
+			$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'owned-transaction-job', $result, 'test-provider', 'test-model' ) );
+			$this->assertNotFalse( $wpdb->query( 'ROLLBACK' ) );
+			$this->assertNotNull( Database::get_session( $session_id ) );
+			$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE session_id = %d', Database::usage_table_name(), $session_id ) ) );
+		} finally {
+			$connection->query( 'ROLLBACK' );
+			if ( $session_id > 0 ) {
+				$connection->delete( Database::usage_table_name(), array( 'session_id' => $session_id ), array( '%d' ) );
+				$connection->delete( Database::table_name(), array( 'id' => $session_id ), array( '%d' ) );
+			}
+			$wpdb = $original;
+			$connection->close();
+		}
+	}
+
+	/** Any failed transcript/counter/ledger write rolls back the entire receipt. */
+	public function test_completed_turn_usage_failure_does_not_publish_partial_success(): void {
+		global $wpdb;
+		$session_id = $this->create_session();
+		$result     = array(
+			'reply' => 'New answer.',
+			'history' => array(
+				array( 'role' => 'user', 'parts' => array( array( 'text' => 'New prompt.' ) ) ),
+				array( 'role' => 'model', 'parts' => array( array( 'text' => 'New answer.' ) ) ),
+			),
+			'token_usage' => array( 'prompt' => 12, 'completion' => 3 ),
+		);
+		$fail_usage = static function ( $query ) {
+			return str_starts_with( $query, 'INSERT INTO `' . Database::usage_table_name() . '`' )
+				? 'INSERT INTO sd_ai_agent_missing_test_table (id) VALUES (1)' : $query;
+		};
+		$previous = $wpdb->suppress_errors( true );
+		add_filter( 'query', $fail_usage );
+		try {
+			$error = ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'failed-save-job', $result, 'test-provider', 'test-model' );
+			$this->assertWPError( $error );
+			$this->assertSame( 'sd_ai_agent_turn_persistence_failed', $error->get_error_code() );
+			$session = Database::get_session( $session_id );
+			$this->assertSame( array(), json_decode( $session->messages, true ) );
+			$this->assertSame( 0, (int) $session->prompt_tokens );
+			$this->assertSame( 0, (int) $session->completion_tokens );
+		} finally {
+			remove_filter( 'query', $fail_usage );
+			$wpdb->suppress_errors( $previous );
+		}
+		$this->assertTrue( ( new SessionController( new Database() ) )->persist_completed_turn( $session_id, 'failed-save-job', $result, 'test-provider', 'test-model' ) );
 	}
 
 	public function set_up(): void {

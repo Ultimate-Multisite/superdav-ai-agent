@@ -458,7 +458,7 @@ User: %s',
 				foreach ( $candidates as $candidate_model_id ) {
 					try {
 						$candidate_builder = wp_ai_client_prompt( $prompt_text );
-						$candidate_builder->using_model( $registry->getProviderModel( $effective_provider, $candidate_model_id ) );
+						$candidate_builder->using_model( $registry->getProviderModel( $effective_provider, \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::canonical_model_id( $effective_provider, $candidate_model_id ) ) );
 						$candidate_builder->using_max_tokens( 20 );
 						$candidate_result = $candidate_builder->generate_text_result();
 						if ( ! is_wp_error( $candidate_result ) ) {

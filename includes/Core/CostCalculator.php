@@ -19,6 +19,7 @@ class CostCalculator {
 		// Superdav managed models.
 		'superdav-chat-fast'                   => [ 1.75, 14.00 ],
 		'superdav-chat-pro'                    => [ 5.00, 30.00 ],
+		'superdav-chat-standard'               => [ 5.00, 30.00 ],
 		'superdav-chat-strong'                 => [ 5.00, 30.00 ],
 		// Claude models.
 		'claude-sonnet-4-6'                    => [ 3.00, 15.00 ],

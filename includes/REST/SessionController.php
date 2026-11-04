@@ -1959,6 +1959,23 @@ final class SessionController {
 	}
 
 	/**
+	 * Whether the current user may continue (and so update metadata on) a session.
+	 *
+	 * Mirrors check_run_permission(): administrators, the owner, and users allowed
+	 * to continue a shared session. Unshared sessions of other users are excluded.
+	 *
+	 * @param object $session Session row.
+	 * @return bool
+	 */
+	private function can_continue_session( object $session ): bool {
+		if ( (int) ( $session->user_id ?? 0 ) === get_current_user_id() || $this->check_permission() ) {
+			return true;
+		}
+
+		return self::can_access_shared_sessions() && (bool) Database::get_shared_session( (int) ( $session->id ?? 0 ) );
+	}
+
+	/**
 	 * Permission check for polling a job.
 	 *
 	 * Administrators keep their existing access; other chat-access roles may only
@@ -3719,11 +3736,12 @@ final class SessionController {
 			}
 		}
 
-		// Remember the agent on the session so reopening it restores the picker.
-		$run_agent_id = self::get_int_param( $request, 'agent_id' );
-		if ( $run_agent_id > 0 && $session_id > 0 ) {
+		// Remember the agent this run uses (0 = no agent) so reopening the session
+		// restores the picker to what actually ran.
+		$run_agent_id = max( 0, self::get_int_param( $request, 'agent_id' ) );
+		if ( $session_id > 0 ) {
 			$agent_session = $this->database->get_session( $session_id );
-			if ( $agent_session && (int) $agent_session->user_id === get_current_user_id() && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id ) {
+			if ( $agent_session && (int) ( $agent_session->agent_id ?? 0 ) !== $run_agent_id && $this->can_continue_session( $agent_session ) ) {
 				$this->database->update_session( $session_id, array( 'agent_id' => $run_agent_id ) );
 			}
 		}

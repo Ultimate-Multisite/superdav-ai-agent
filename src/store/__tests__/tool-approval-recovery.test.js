@@ -32,6 +32,8 @@ describe( 'Tool approval recovery', () => {
 		getCurrentJobId: jest.fn(),
 		getSessionJob: jest.fn(),
 		getSessionJobs: jest.fn(),
+		getAgents: jest.fn( () => [] ),
+		getAgentsLoaded: jest.fn( () => false ),
 	};
 	const makeDispatch = () => {
 		const dispatch = {
@@ -50,6 +52,8 @@ describe( 'Tool approval recovery', () => {
 			drainMessageQueue: jest.fn(),
 			resetSessionTokens: jest.fn(),
 			addOpenTab: jest.fn(),
+			setSelectedAgentId: jest.fn(),
+			selectDefaultAgent: jest.fn(),
 		};
 		dispatch.pollJob = jest.fn( ( jobId, sessionId ) =>
 			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
@@ -284,6 +288,46 @@ describe( 'Tool approval recovery', () => {
 		await actions.openSession( 12 )( { dispatch, select } );
 		expect( dispatch.setSelectedAgentId ).toHaveBeenCalledWith( 7 );
 	} );
+
+	it( 'openSession selects the default agent for a session without one', async () => {
+		const agents = [ { id: 3, slug: 'general', enabled: true } ];
+		select.getAgents.mockReturnValueOnce( agents );
+		select.getAgentsLoaded.mockReturnValueOnce( true );
+		apiFetch
+			.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 0 } )
+			.mockRejectedValueOnce( new Error( 'no active job' ) );
+		const dispatch = makeDispatch();
+		await actions.openSession( 12 )( { dispatch, select } );
+		expect( dispatch.selectDefaultAgent ).toHaveBeenCalledWith( agents );
+		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+	} );
+
+	it.each( [
+		[ 'disabled', [ { id: 7, slug: 'seo', enabled: false } ] ],
+		[ 'deleted', [] ],
+	] )(
+		'openSession falls back and notifies when the stored agent is %s',
+		async ( _label, extraAgents ) => {
+			const agents = [
+				{ id: 3, slug: 'general', enabled: true },
+				...extraAgents,
+			];
+			select.getAgents.mockReturnValueOnce( agents );
+			select.getAgentsLoaded.mockReturnValueOnce( true );
+			apiFetch
+				.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 7 } )
+				.mockRejectedValueOnce( new Error( 'no active job' ) );
+			const dispatch = makeDispatch();
+			await actions.openSession( 12 )( { dispatch, select } );
+			expect( dispatch.setSelectedAgentId ).not.toHaveBeenCalled();
+			expect( dispatch.selectDefaultAgent ).toHaveBeenCalledWith(
+				agents
+			);
+			expect( dispatch.appendMessage ).toHaveBeenCalledWith(
+				expect.objectContaining( { role: 'system' } )
+			);
+		}
+	);
 
 	it( 'stops when session ownership changes during the polling delay', async () => {
 		apiFetch.mockResolvedValue( { status: 'processing', tool_calls: [] } );

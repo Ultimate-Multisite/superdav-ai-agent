@@ -389,16 +389,38 @@ describe( 'SuperdavAccountManager', () => {
 		expect( findButton( 'Link a different user' ) ).toBeUndefined();
 	} );
 
-	test( 'shows manual installation guidance for the separate Advanced package', async () => {
-		apiFetch.mockResolvedValueOnce( {
-			configured: true,
-			linked_user: null,
-			advanced_plugin: {
-				installed: false,
-				active: false,
-				bundled: false,
-			},
-		} );
+	test( 'offers one-click Advanced install through the sdaiagent.com account action and keeps the manual path', async () => {
+		const portalWindow = {
+			location: { assign: jest.fn() },
+			close: jest.fn(),
+			opener: window,
+		};
+		window.open = jest.fn( () => portalWindow );
+		apiFetch
+			.mockResolvedValueOnce( {
+				configured: true,
+				linked_user: null,
+				advanced_plugin: {
+					installed: false,
+					active: false,
+					bundled: false,
+					can_install: true,
+				},
+			} )
+			.mockResolvedValueOnce( {
+				action: 'install_advanced',
+				url: 'https://account.example/confirm-install',
+			} )
+			.mockResolvedValueOnce( {
+				configured: true,
+				advanced_plugin: {
+					installed: true,
+					active: true,
+					bundled: false,
+					version: '1.25.0',
+					can_install: true,
+				},
+			} );
 
 		await act( async () => {
 			root.render( createElement( SuperdavAccountManager, {} ) );
@@ -410,11 +432,79 @@ describe( 'SuperdavAccountManager', () => {
 		expect( container.textContent ).toContain(
 			'Download the Advanced ZIP from the latest SD AI Agent GitHub release'
 		);
+		const install = findButton( 'Install and activate' );
+		expect( install ).toBeDefined();
+		expect( install.disabled ).toBe( false );
+
+		await act( async () => {
+			install.click();
+			await Promise.resolve();
+		} );
+
+		expect( apiFetch ).toHaveBeenLastCalledWith( {
+			path: '/sd-ai-agent/v1/superdav-account/action',
+			method: 'POST',
+			data: { action: 'install_advanced' },
+		} );
+		expect( portalWindow.opener ).toBeNull();
+		expect( portalWindow.location.assign ).toHaveBeenCalledWith(
+			'https://account.example/confirm-install'
+		);
+
+		// Returning from the portal refreshes the status without a spinner.
+		await act( async () => {
+			window.dispatchEvent( new Event( 'focus' ) );
+			await Promise.resolve();
+		} );
+		await act( async () => {
+			await Promise.resolve();
+		} );
+
+		expect( container.textContent ).toContain( 'Active — version 1.25.0' );
 		expect( findButton( 'Install and activate' ) ).toBeUndefined();
-		expect(
-			container.querySelector( 'input[type="checkbox"]' )
-		).toBeNull();
-		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	test( 'disables Advanced install when WordPress does not let this administrator change plugins', async () => {
+		apiFetch.mockResolvedValueOnce( {
+			configured: true,
+			advanced_plugin: {
+				installed: false,
+				active: false,
+				bundled: false,
+				can_install: false,
+			},
+		} );
+
+		await act( async () => {
+			root.render( createElement( SuperdavAccountManager, {} ) );
+		} );
+		await act( async () => {
+			await Promise.resolve();
+		} );
+
+		expect( findButton( 'Install and activate' ).disabled ).toBe( true );
+	} );
+
+	test( 'offers Activate when Advanced is installed but inactive', async () => {
+		apiFetch.mockResolvedValueOnce( {
+			configured: true,
+			advanced_plugin: {
+				installed: true,
+				active: false,
+				bundled: false,
+				can_install: true,
+			},
+		} );
+
+		await act( async () => {
+			root.render( createElement( SuperdavAccountManager, {} ) );
+		} );
+		await act( async () => {
+			await Promise.resolve();
+		} );
+
+		expect( findButton( 'Activate' ) ).toBeDefined();
+		expect( findButton( 'Install and activate' ) ).toBeUndefined();
 	} );
 
 	test( 'shows version drift with the WordPress-managed update action', async () => {

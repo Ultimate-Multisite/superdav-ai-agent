@@ -26,6 +26,20 @@ const {
 
 test.describe( 'Admin Page - Chat UI', () => {
 	test.beforeEach( async ( { page } ) => {
+		// Each test gets a fresh browser context, so the one-time "SD AI is
+		// connected" system notice (claimConnectionNotice in
+		// src/admin-page/superdav-autoconnect.js) would be appended as a chat
+		// message on every load once /providers responds quickly, hiding the
+		// empty state. Mark it as already shown; it is covered by unit tests.
+		await page.addInitScript( () => {
+			const getItem = Storage.prototype.getItem;
+			Storage.prototype.getItem = function ( key ) {
+				if ( String( key ).startsWith( 'sdAiAgentSuperdavConnectionNotice' ) ) {
+					return '1';
+				}
+				return getItem.call( this, key );
+			};
+		} );
 		await loginToWordPress( page );
 		await goToAgentPage( page );
 	} );

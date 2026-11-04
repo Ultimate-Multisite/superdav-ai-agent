@@ -85,6 +85,11 @@ final class TraceController extends XWP_REST_Controller {
 			$filters['status_code'] = (int) $status_code;
 		}
 
+		$source = $request->get_param( 'source' );
+		if ( is_string( $source ) && in_array( $source, array( 'http', 'sdk' ), true ) ) {
+			$filters['source'] = $source;
+		}
+
 		if ( $request->get_param( 'errors_only' ) ) {
 			$filters['errors_only'] = true;
 		}
@@ -266,6 +271,11 @@ final class TraceController extends XWP_REST_Controller {
 				'required'          => false,
 				'type'              => 'integer',
 				'sanitize_callback' => 'absint',
+			),
+			'source'      => array(
+				'required' => false,
+				'type'     => 'string',
+				'enum'     => array( 'http', 'sdk' ),
 			),
 			'errors_only' => array(
 				'required' => false,

@@ -247,7 +247,7 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 	 * The bundled provider defaults clean installs to the standard managed alias.
 	 */
 	public function test_default_model_is_managed_standard_alias(): void {
-		$this->assertSame( 'superdav-chat-pro', SuperdavAiProvider::default_model_id() );
+		$this->assertSame( 'superdav-chat-standard', SuperdavAiProvider::default_model_id() );
 	}
 
 	/**

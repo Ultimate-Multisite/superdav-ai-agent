@@ -57,7 +57,7 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 					return $preempt;
 				}
 				if ( str_ends_with( $url, '/models' ) ) {
-					return self::response( 200, array( 'data' => array( array( 'id' => 'superdav-chat-pro' ) ) ) );
+					return self::response( 200, array( 'data' => array( array( 'id' => SuperdavAiProvider::DEFAULT_MODEL_ID ) ) ) );
 				}
 				// Never allow a test request to escape to a real provider.
 				return new WP_Error( 'test_http_unmocked', 'Unmocked test HTTP request.' );

@@ -23,12 +23,15 @@ const BUDGETS = [
 		file: 'build/floating-widget.js',
 		minifiedBudgetKiB: 100,
 		// Session agent restore/fallback (GH#2885): measured 28.12 KiB gzip.
-		gzipBudgetKiB: 28.2,
+		// Durable completion receipts + reload guards (GH#2873): 28.21 KiB.
+		gzipBudgetKiB: 28.3,
 	},
 	{
 		name: 'widget-panel',
 		file: 'build/widget-panel.js',
-		minifiedBudgetKiB: 100,
+		// Advanced-install chip handling (message-items.js) added ~0.2 KiB to a
+		// 99.9 KiB baseline; gzip stays at 26.8 KiB of its 28 KiB budget.
+		minifiedBudgetKiB: 100.5,
 		gzipBudgetKiB: 28,
 	},
 ];
@@ -36,9 +39,12 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	name: 'deferred-javascript',
 	// MCP manager/sign-in (merged with main): measured 1736.9 KiB minified /
 	// 531.9 KiB gzip. Only aggregate deferred growth changes; launch and
-	// largest-asset caps stay fixed. Provider Trace source filter
-	// (provider-trace-cache): measured 1738.2 KiB minified.
-	minifiedBudgetKiB: 1739,
+	// largest-asset caps stay fixed. Batched purge progress reporting
+	// (GH#2878): measured 1738.2 KiB minified. Advanced one-click install
+	// (account card button, focus refresh, settings tab deep link) on top:
+	// measured 1739.5 KiB minified / 532.8 KiB gzip. Provider Trace source
+	// filter (provider-trace-cache) on top: 1740.2 KiB / 532.9 KiB gzip.
+	minifiedBudgetKiB: 1741,
 	gzipBudgetKiB: 533,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,

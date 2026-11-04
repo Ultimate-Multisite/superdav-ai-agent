@@ -811,6 +811,137 @@ describe( 'actions', () => {
 		expect( message ).not.toContain( 'PRIVATE_PROVIDER' );
 	} );
 
+	test.each( [ 'saved', 'stale', 'reload-error' ] )(
+		'pollJob binds terminal usage to the saved current answer (%s)',
+		async ( outcome ) => {
+			jest.useFakeTimers();
+			apiFetch.mockReset();
+			const oldAnswer = {
+				role: 'model',
+				parts: [
+					{ text: 'Previous answer with previous suggestions.' },
+				],
+				completion_job_id: 'previous-job',
+			};
+			const answer = {
+				role: 'model',
+				parts: [ { text: 'New answer with new suggestions.' } ],
+				completion_job_id: 'followup-job',
+				provider_id: 'resolved-provider',
+				model_id: 'resolved-model',
+			};
+			let messages = [ oldAnswer ];
+			apiFetch.mockImplementation( ( { path } ) => {
+				if ( path === '/sd-ai-agent/v1/job/followup-job' ) {
+					return Promise.resolve( {
+						status: 'complete',
+						session_id: 17,
+						reply: answer.parts[ 0 ].text,
+						token_usage: { prompt: 110, completion: 7 },
+						tool_calls: [],
+					} );
+				}
+				if ( outcome === 'reload-error' ) {
+					return Promise.reject( new Error( 'Connection lost' ) );
+				}
+				return Promise.resolve( {
+					id: 17,
+					messages:
+						outcome === 'saved'
+							? [ oldAnswer, answer ]
+							: [ oldAnswer ],
+					tool_calls: [],
+				} );
+			} );
+			const dispatch = {
+				setCurrentSession: jest.fn( ( id, saved ) => {
+					messages = saved;
+				} ),
+				appendMessage: jest.fn(),
+				setMessageTokens: jest.fn(),
+				setTokenUsage: jest.fn(),
+				accumulateSessionTokens: jest.fn(),
+				setStreamError: jest.fn(),
+				setFeedbackBanner: jest.fn(),
+				setSending: jest.fn(),
+				setCurrentJobId: jest.fn(),
+				setSessionJob: jest.fn(),
+				setLiveToolCalls: jest.fn(),
+				fetchSessions: jest.fn(),
+				drainMessageQueue: jest.fn(),
+			};
+			const select = {
+				getCurrentSessionId: () => 17,
+				getSessionJob: () => ( { jobId: 'followup-job' } ),
+				getCurrentSessionMessages: () => messages,
+				getTokenUsage: () => ( { prompt: 0, completion: 0 } ),
+				getSendTimestamp: () => 0,
+				getProviders: () => [],
+				getSelectedProviderId: () => 'changed-selection',
+				getSelectedModelId: () => 'changed-selection',
+			};
+			try {
+				actions.pollJob( 'followup-job', 17 )( { dispatch, select } );
+				await jest.advanceTimersByTimeAsync( 2000 );
+				if ( outcome === 'saved' ) {
+					expect( messages[ 1 ] ).toEqual( answer );
+					// A later poller can redeliver the same unconsumed shared
+					// terminal response without incrementing usage again.
+					actions.pollJob(
+						'followup-job',
+						17
+					)( { dispatch, select } );
+					await jest.advanceTimersByTimeAsync( 2000 );
+					expect(
+						dispatch.accumulateSessionTokens
+					).toHaveBeenCalledTimes( 1 );
+					expect( dispatch.setMessageTokens ).toHaveBeenCalledTimes(
+						1
+					);
+					expect( dispatch.setMessageTokens ).toHaveBeenCalledWith(
+						1,
+						expect.objectContaining( {
+							prompt: 110,
+							completion: 7,
+							providerId: 'resolved-provider',
+							modelId: 'resolved-model',
+						} )
+					);
+					expect( dispatch.setStreamError ).not.toHaveBeenCalled();
+				} else {
+					expect( dispatch.setCurrentSession ).not.toHaveBeenCalled();
+					expect( dispatch.setMessageTokens ).not.toHaveBeenCalled();
+					expect(
+						dispatch.accumulateSessionTokens
+					).not.toHaveBeenCalled();
+					expect( dispatch.setStreamError ).toHaveBeenCalledWith(
+						true,
+						17
+					);
+					expect( dispatch.appendMessage ).toHaveBeenCalledWith(
+						expect.objectContaining( {
+							role: 'system',
+							parts: [
+								{
+									text: expect.stringContaining(
+										'Reload before continuing'
+									),
+								},
+							],
+						} )
+					);
+					expect( dispatch.drainMessageQueue ).not.toHaveBeenCalled();
+				}
+				expect( apiFetch ).toHaveBeenCalledTimes(
+					outcome === 'saved' ? 4 : 2
+				);
+			} finally {
+				jest.clearAllTimers();
+				jest.useRealTimers();
+			}
+		}
+	);
+
 	test( 'pollJob starts only one poller for the same session and job', async () => {
 		jest.useFakeTimers();
 		apiFetch.mockReset();

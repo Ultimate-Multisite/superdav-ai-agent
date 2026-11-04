@@ -215,7 +215,7 @@ final class SuperdavSiteConnectionService {
 	 * @return array{action:string,url:string}|WP_Error Safe action response or service error.
 	 */
 	public function request_account_action( string $action ): array|WP_Error {
-		$allowed_actions = array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account' );
+		$allowed_actions = array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account', 'install_advanced' );
 
 		if ( ! in_array( $action, $allowed_actions, true ) ) {
 			return new WP_Error( 'sd_ai_agent_account_action_invalid', __( 'That SD AI account action is invalid.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
@@ -450,8 +450,10 @@ final class SuperdavSiteConnectionService {
 
 	/**
 	 * Return the durable site-installation identity.
+	 *
+	 * Public so service-pushed commands can be bound to this installation.
 	 */
-	private function get_installation_id(): string {
+	public function get_installation_id(): string {
 		$installation_id = get_option( self::INSTALLATION_ID_OPTION, '' );
 		if ( is_string( $installation_id ) && '' !== $installation_id ) {
 			return $installation_id;

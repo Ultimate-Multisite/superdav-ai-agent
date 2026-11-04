@@ -57,6 +57,7 @@ use SdAiAgent\Infrastructure\AiClient\RequestTimeoutFilter;
 use SdAiAgent\Infrastructure\WordPress\Abilities\AbilityCategoryRegistrar;
 use SdAiAgent\Infrastructure\WordPress\Abilities\AbilitySchemaFilter;
 use SdAiAgent\Infrastructure\WordPress\Abilities\UsageInstructionsFilter;
+use SdAiAgent\REST\AdvancedInstallController;
 use SdAiAgent\REST\AgentController;
 use SdAiAgent\REST\AutomationController;
 use SdAiAgent\REST\BannerController;
@@ -150,6 +151,7 @@ use XWP\DI\Decorators\Module;
 		ConnectorsController::class,
 		CustomerConversationController::class,
 		WebhookController::class,
+		AdvancedInstallController::class,
 	),
 	extendable: true,
 )]

@@ -425,7 +425,15 @@ describe( 'Tool approval recovery', () => {
 					data: { status: 404 },
 				} );
 			}
-			const messages = [ { role: 'model', parts: [ { text: 'Done' } ] } ];
+			// The server tags the persisted reply with its completion receipt;
+			// a completed job's reload requires it before showing saved work.
+			const messages = [
+				{
+					role: 'model',
+					parts: [ { text: 'Done' } ],
+					completion_job_id: 'job-1',
+				},
+			];
 			apiFetch.mockResolvedValueOnce( {
 				id: 12,
 				messages,

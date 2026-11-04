@@ -248,6 +248,24 @@ PROMPT;
 	 */
 	private string $active_job_id = '';
 
+	/**
+	 * Worker generation captured when this loop took ownership of the active job.
+	 *
+	 * Null when unfenced (no job, or the row does not exist). A resume claim bumps
+	 * the stored generation, so a reaped-but-still-running worker holding an older
+	 * value is fenced out of heartbeat, checkpoint and shutdown writes.
+	 *
+	 * @var int|null
+	 */
+	private ?int $active_job_generation = null;
+
+	/**
+	 * Set once a fenced write shows another worker took over the job.
+	 *
+	 * @var bool
+	 */
+	private bool $lost_job_ownership = false;
+
 	/** @var array<string, mixed> Resume metadata carried forward from a claimed checkpoint. */
 	private array $checkpoint_resume_metadata = array();
 
@@ -548,6 +566,11 @@ PROMPT;
 		// Empty string when the loop is not running under a background job.
 		// @phpstan-ignore-next-line
 		$this->active_job_id = (string) ( $options['active_job_id'] ?? '' );
+		if ( '' !== $this->active_job_id ) {
+			$this->active_job_generation = isset( $options['active_job_generation'] )
+				? (int) $options['active_job_generation']
+				: ActiveJobRepository::get_worker_generation( $this->active_job_id );
+		}
 
 		$this->checkpoint_resume_metadata = self::checkpoint_resume_metadata_from_candidate( $options['checkpoint_resume_metadata'] ?? array() );
 		$is_managed_provider              = SuperdavAiProvider::PROVIDER_ID === (string) $this->provider_id;
@@ -815,7 +838,32 @@ PROMPT;
 			);
 		}
 
-		ActiveJobRepository::mark_interrupted( $this->active_job_id, '', $context );
+		ActiveJobRepository::mark_interrupted( $this->active_job_id, '', $context, $this->active_job_generation );
+	}
+
+	/**
+	 * Refresh the active-job heartbeat under the worker-generation fence.
+	 *
+	 * A zero-row write only means lost ownership when the stored generation no
+	 * longer matches; a same-second refresh also touches zero rows.
+	 */
+	private function heartbeat_active_job(): void {
+		if ( '' === $this->active_job_id || $this->lost_job_ownership ) {
+			return;
+		}
+
+		if ( ActiveJobRepository::heartbeat( $this->active_job_id, $this->active_job_generation ) ) {
+			return;
+		}
+
+		if ( null !== $this->active_job_generation && ! ActiveJobRepository::owns_job( $this->active_job_id, $this->active_job_generation ) ) {
+			$this->lost_job_ownership = true;
+		}
+	}
+
+	/** Whether a newer worker generation has taken over this job. */
+	private function has_lost_job_ownership(): bool {
+		return $this->lost_job_ownership;
 	}
 
 	/**
@@ -1441,7 +1489,7 @@ PROMPT;
 	 * @return void
 	 */
 	private function save_active_job_checkpoint( string $phase, int $iterations_remaining ): void {
-		if ( '' === $this->active_job_id ) {
+		if ( '' === $this->active_job_id || $this->lost_job_ownership ) {
 			return;
 		}
 
@@ -1519,7 +1567,7 @@ PROMPT;
 			}
 		}
 
-		ActiveJobRepository::save_checkpoint(
+		$checkpoint_saved = ActiveJobRepository::save_checkpoint(
 			$this->active_job_id,
 			$phase,
 			array(
@@ -1540,8 +1588,13 @@ PROMPT;
 				'anonymous_allowed_collections' => self::checkpoint_ability_names( $this->anonymous_allowed_collections ),
 				'anonymous_policy_active'       => $this->anonymous_policy_active,
 				'mutation_policy_context'       => $this->mutation_policy_context,
-			)
+			),
+			$this->active_job_generation
 		);
+
+		if ( ! $checkpoint_saved && null !== $this->active_job_generation && ! ActiveJobRepository::owns_job( $this->active_job_id, $this->active_job_generation ) ) {
+			$this->lost_job_ownership = true;
+		}
 	}
 
 	/**
@@ -1862,8 +1915,20 @@ PROMPT;
 			// can distinguish an actively-running loop from a zombie row.
 			// Skipped when not running under a background job (active_job_id
 			// empty) to avoid unnecessary DB writes from automations/CLI.
-			if ( '' !== $this->active_job_id ) {
-				ActiveJobRepository::heartbeat( $this->active_job_id );
+			$this->heartbeat_active_job();
+			if ( $this->has_lost_job_ownership() ) {
+				// A resumed worker owns this job now; stop without publishing anything.
+				return $this->with_result_logs(
+					array(
+						'reply'           => '',
+						'history'         => $this->serialize_history(),
+						'tool_calls'      => $this->tool_call_log,
+						'token_usage'     => $this->token_usage,
+						'iterations_used' => $this->iterations_used,
+						'model_id'        => $this->model_id,
+						'exit_reason'     => 'job_ownership_lost',
+					)
+				);
 			}
 
 			// Wall-clock timeout check.
@@ -1910,19 +1975,6 @@ PROMPT;
 			// call may need a trimmed prompt, but error recovery must append against
 			// the untrimmed session prefix so the failed user turn is not skipped.
 			$recovery_history = $this->history;
-
-			// Smart conversation trimming before each LLM call.
-			// @phpstan-ignore-next-line
-			$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
-			if ( $max_turns > 0 ) {
-				$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
-			}
-
-			// Safety net: validate tool_use/tool_result pairing even when
-			// trimming is disabled. Deserialization round-trips or history
-			// corruption from session storage could leave orphaned tool
-			// calls that cause API 400 errors.
-			$this->history = ConversationTrimmer::validate_tool_pairs( $this->history );
 
 			if ( $this->history_ends_with_model_message() ) {
 				$result = $this->with_error_recovery_data(
@@ -2576,10 +2628,19 @@ PROMPT;
 	private function send_prompt_with_payload_recovery(): GenerativeAiResult|WP_Error {
 		$durable_history                       = $this->history;
 		$previous_provider_persistence_history = $this->providerPersistenceHistory;
-		$compacted_request_history             = $this->continued_provider_compaction_history();
+		$this->providerPersistenceHistory      = $durable_history;
+		// All history reductions are provider-only, including ordinary turn and
+		// byte-budget trimming. Completion, pauses and recovery retain the exact
+		// durable prefix; its old count is never an offset into a shortened prompt.
+		// @phpstan-ignore-next-line
+		$max_turns = (int) $this->settings_service->get( 'max_history_turns' );
+		if ( $max_turns > 0 ) {
+			$this->history = ConversationTrimmer::trim( $this->history, $max_turns );
+		}
+		$this->history             = ConversationTrimmer::validate_tool_pairs( $this->history );
+		$compacted_request_history = $this->continued_provider_compaction_history();
 		if ( is_array( $compacted_request_history ) ) {
-			$this->history                    = $compacted_request_history;
-			$this->providerPersistenceHistory = $durable_history;
+			$this->history = $compacted_request_history;
 		}
 
 		try {
@@ -2588,10 +2649,8 @@ PROMPT;
 			// Automatic retry compaction is provider context, not the durable chat
 			// transcript. Keep the full history for checkpoints, UI persistence,
 			// and recovery while subsequent provider calls reuse bounded context.
-			if ( is_array( $compacted_request_history ) ) {
-				$this->history                    = $durable_history;
-				$this->providerPersistenceHistory = $previous_provider_persistence_history;
-			}
+			$this->history                    = $durable_history;
+			$this->providerPersistenceHistory = $previous_provider_persistence_history;
 		}
 	}
 
@@ -3516,9 +3575,7 @@ PROMPT;
 	 */
 	private function wait_for_provider_retry( int $delay ): void {
 		for ( $remaining = max( 0, $delay ); $remaining > 0; --$remaining ) {
-			if ( '' !== $this->active_job_id ) {
-				ActiveJobRepository::heartbeat( $this->active_job_id );
-			}
+			$this->heartbeat_active_job();
 			sleep( 1 );
 		}
 	}
@@ -3623,9 +3680,7 @@ PROMPT;
 			'delay'        => $delay,
 			'sequence'     => $this->next_activity_sequence(),
 		];
-		if ( '' !== $this->active_job_id ) {
-			ActiveJobRepository::heartbeat( $this->active_job_id );
-		}
+		$this->heartbeat_active_job();
 		$this->fire_progress();
 	}
 

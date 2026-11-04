@@ -481,19 +481,23 @@ Key gotchas: `compile_class` required for hyphenated IDs, `REST_Handler` support
 - Abilities extend `AbstractAbility` which extends core `WP_Ability`
 
 ### Provider Credentials and Model Discovery
-- Do **not** add a plugin-level cache around provider/model discovery. The WP AI
-  Client SDK already caches model metadata, and an extra cache requires brittle
-  invalidation rules for unknown third-party provider option names.
+- Do **not** add a second cache around `/providers` or provider/model discovery.
+  Use the WP AI Client SDK's PSR-16 cache path. `WordPressTransientCache` supplies
+  the persistent backend when the host has not configured one and caps SDK model
+  metadata plus managed speech capabilities at five minutes; do not replace it
+  with per-provider option-key invalidation.
 - When provider availability must reflect newly saved keys (for example,
   `ai-provider-for-anthropic-max` or other connector plugins), reload credentials
   from the registry/options at request time via `ProviderCredentialLoader::load()`
-  and let `/providers` build its response fresh.
+  and let `/providers` build its response fresh. A newly authenticated provider
+  must appear immediately; an already-authenticated provider's model metadata may
+  be at most five minutes old.
 - Treat third-party provider option names as open-ended. Do not depend on a fixed
   list of option keys to invalidate provider state; prefer the connector registry,
-  provider credential loader, and request-time option reads.
-- If provider discovery appears stale, fix the credential-loading path or remove
-  redundant caching; do not whitelist individual option keys as a cache
-  invalidation strategy.
+  provider credential loader, request-time option reads, and the bounded SDK cache.
+- If provider discovery appears stale beyond five minutes, fix the credential or
+  SDK cache path; do not whitelist individual option keys as an invalidation
+  strategy.
 
 ### Secret-Option Read Blocklist (single source of truth)
 
@@ -570,6 +574,17 @@ second must report zero failures for the four ability suites.
 - **User Context**: Always execute REST operations as the real current user (via
   `get_current_user_id()` and capability checks). Never bypass user context or
   execute operations as a privileged system user without explicit authorization.
+- **Signed service command exception**: `POST /sd-ai-agent/v1/service/install-advanced`
+  (`includes/REST/AdvancedInstallController.php`) is the only route in the namespace
+  that is not authorised by a WordPress capability, because its caller is the SD AI
+  service, not a browser. Its `permission_callback` must keep verifying the Ed25519
+  signature, installation ID, site URL, expiry, package SHA-256, and single permitted
+  package URL via `AdvancedInstallCommand::verify()` before any handler code runs, and
+  the nonce must stay single-use. Never add another unauthenticated route, never relax
+  those checks, and never make the dashboard download or install Advanced itself:
+  WordPress.org guideline 8 only permits the service-pushed flow. Verify with
+  `rg -n "AdvancedInstallCommand::verify|install_from_command" includes/` and
+  `pnpm run test:php -- --filter='AdvancedInstallCommandTest|AdvancedPluginManagerTest'`.
 - **Endpoint Visibility**: The `sd-ai-agent/v1` namespace is private to the plugin.
   Do not expose internal implementation details, debug endpoints, or experimental
   features in the public REST API. Use capability checks to gate all endpoints.

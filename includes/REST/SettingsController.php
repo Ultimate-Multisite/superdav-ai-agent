@@ -160,7 +160,7 @@ final class SettingsController {
 					'action' => array(
 						'required'          => true,
 						'type'              => 'string',
-						'validate_callback' => static fn( mixed $value ): bool => is_string( $value ) && in_array( $value, array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account' ), true ),
+						'validate_callback' => static fn( mixed $value ): bool => is_string( $value ) && in_array( $value, array( 'account_portal', 'purchase_credits', 'payment_methods', 'link_account', 'install_advanced' ), true ),
 					),
 				),
 			)
@@ -666,6 +666,13 @@ final class SettingsController {
 		$action = $request->get_param( 'action' );
 		if ( ! is_string( $action ) ) {
 			return new WP_Error( 'sd_ai_agent_account_action_invalid', __( 'That SD AI account action is invalid.', 'superdav-ai-agent' ), array( 'status' => 400 ) );
+		}
+
+		// The signed install push runs without a WordPress user, so the plugin
+		// capability boundary must be enforced here, before the URL is minted.
+		// manage_options alone is not enough (e.g. multisite site administrators).
+		if ( 'install_advanced' === $action && ! AdvancedPluginManager::current_user_can_manage() ) {
+			return new WP_Error( 'sd_ai_agent_install_forbidden', __( 'You need permission to install and activate plugins on this site.', 'superdav-ai-agent' ), array( 'status' => 403 ) );
 		}
 
 		$result = ( new SuperdavSiteConnectionService() )->request_account_action( $action );
@@ -1541,14 +1548,12 @@ final class SettingsController {
 	/**
 	 * Handle the /providers endpoint — list registered AI providers and models.
 	 *
-	 * No caching layer is needed here: the underlying WP AI Client SDK already
-	 * caches `listModelMetadata()` results for 24 hours via
-	 * `AbstractApiBasedModelMetadataDirectory::getModelMetadataMap()`. Adding a
-	 * second cache on top forced us to invent invalidation rules per provider
-	 * option key, which broke whenever a new third-party provider plugin
-	 * (e.g. `ai-provider-for-anthropic-max`) stored credentials under an
-	 * option we did not know about. Dropping the layer keeps `/providers`
-	 * fresh by construction and removes the entire stale-cache class of bugs.
+	 * No controller cache is needed here: the underlying WP AI Client SDK caches
+	 * `listModelMetadata()` through its PSR-16 backend. This plugin supplies a
+	 * persistent backend capped at five minutes when the host has not configured
+	 * one. Adding another cache here would require brittle invalidation rules for
+	 * every third-party provider option key. `/providers` therefore rebuilds its
+	 * response from fresh registry/authentication state and bounded SDK metadata.
 	 *
 	 * @return WP_REST_Response
 	 */

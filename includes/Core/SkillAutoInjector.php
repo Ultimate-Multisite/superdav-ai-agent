@@ -81,6 +81,11 @@ class SkillAutoInjector {
 		// WP-CLI and ops — wp search-replace, wp cron, wp db, wp-cli.yml.
 		'/\bwp-cli\b|\bwp\s+search-replace\b|\bwp\s+db\b|\bwp\s+cron\b|\bwp\s+cache\s+flush\b|\bwp-cli\.yml\b|\bwp_cron\b/i'        => 'wp-wpcli-and-ops',
 
+		// Frontend layout overlap/overflow diagnosis — precedes the broad
+		// gutenberg-blocks ("layout", "page") and woocommerce ("product") triggers
+		// so "layout overlap" or "product summary overflow" loads troubleshooting.
+		'/\b(?:overlap|overlaps|overlapping|overflow|overflows|overflowing)\b/i'                                                         => 'site-troubleshooting',
+
 		'/\b(?:create|build|make|write|generate|add)\b.*\b(?:page|pages|post|posts|blog|article|content|landing|homepage|layout)\b/i' => 'gutenberg-blocks',
 		'/\b(?:page|pages|landing|homepage|layout|column|columns|hero|section|block|blocks|gutenberg)\b|\bfull[-\s]?width\b|\bfull[-\s]?bleed\b/i' => 'gutenberg-blocks',
 		'/\b(?:woocommerce|product|products|store|shop|order|orders|cart|checkout|coupon)\b/i'                                         => 'woocommerce',

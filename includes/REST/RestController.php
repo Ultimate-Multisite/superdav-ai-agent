@@ -42,6 +42,7 @@ use SdAiAgent\Core\RolePermissions;
 use SdAiAgent\Core\Settings;
 use SdAiAgent\Models\ActiveJobRepository;
 use SdAiAgent\Models\Agent;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -443,9 +444,6 @@ User: %s',
 		);
 
 		try {
-			$builder = wp_ai_client_prompt( $prompt_text );
-			/** @var \WP_AI_Client_Prompt_Builder $builder */
-
 			$effective_provider = $provider_id;
 			if ( empty( $effective_provider ) ) {
 				$settings = Settings::instance()->get();
@@ -454,18 +452,36 @@ User: %s',
 			}
 
 			$registry = \WordPress\AiClient\AiClient::defaultRegistry();
+			$result   = null;
 			if ( ! empty( $effective_provider ) && $registry->hasProvider( $effective_provider ) ) {
-				if ( ! empty( $model_id ) ) {
-					$builder->using_model( $registry->getProviderModel( $effective_provider, \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::canonical_model_id( $effective_provider, $model_id ) ) );
-				} else {
-					$builder->using_provider( $effective_provider );
+				$candidates = self::session_title_model_candidates( $effective_provider, $model_id );
+				foreach ( $candidates as $candidate_model_id ) {
+					try {
+						$candidate_builder = wp_ai_client_prompt( $prompt_text );
+						$candidate_builder->using_model( $registry->getProviderModel( $effective_provider, \SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider::canonical_model_id( $effective_provider, $candidate_model_id ) ) );
+						$candidate_builder->using_max_tokens( 20 );
+						$candidate_result = $candidate_builder->generate_text_result();
+						if ( ! is_wp_error( $candidate_result ) ) {
+							$result = $candidate_result;
+							break;
+						}
+					} catch ( \Throwable ) {
+						// Try the selected model when a preferred candidate is unavailable or fails.
+					}
 				}
+				if ( empty( $candidates ) ) {
+					$builder = wp_ai_client_prompt( $prompt_text );
+					$builder->using_provider( $effective_provider );
+					$builder->using_max_tokens( 20 );
+					$result = $builder->generate_text_result();
+				}
+			} else {
+				$builder = wp_ai_client_prompt( $prompt_text );
+				$builder->using_max_tokens( 20 );
+				$result = $builder->generate_text_result();
 			}
 
-			$builder->using_max_tokens( 20 );
-
-			$result = $builder->generate_text_result();
-			if ( is_wp_error( $result ) ) {
+			if ( null === $result || is_wp_error( $result ) ) {
 				return $fallback;
 			}
 			$raw_title = $result->toText();
@@ -478,6 +494,26 @@ User: %s',
 		$title = mb_substr( $title, 0, 100 );
 
 		return '' !== $title ? $title : $fallback;
+	}
+
+	/**
+	 * Prefer the managed Speedy alias for the small, latency-sensitive title task.
+	 *
+	 * The caller's selected model remains the fallback so accounts that do not
+	 * advertise Speedy can still generate a title with their configured model.
+	 *
+	 * @return list<string> Ordered model IDs to try.
+	 */
+	private static function session_title_model_candidates( string $provider_id, string $model_id ): array {
+		$candidates = array();
+		if ( SuperdavAiProvider::PROVIDER_ID === $provider_id ) {
+			$candidates[] = SuperdavAiProvider::FAST_MODEL_ID;
+		}
+		if ( '' !== $model_id ) {
+			$candidates[] = $model_id;
+		}
+
+		return array_values( array_unique( $candidates ) );
 	}
 
 	/**
@@ -877,36 +913,20 @@ User: %s',
 			);
 		}
 
-		// Update the job transient to 'complete' so the browser's next poll
-		// sees the finished state rather than the stale 'awaiting_client_tools'
-		// the background job left behind.  Must run before session persistence
-		// so the transient result carries the correct session_id when polled.
-		self::update_job_after_resume( $job_id, 'complete', $result, $session_id );
-
-		// Persist the completed conversation to the session.
-		$session = Database::get_session( $session_id );
-		if ( $session ) {
-			$existing_messages = json_decode( $session->messages, true ) ?: array();
-			$existing_count    = count( $existing_messages );
-			$full_history      = $result['history'] ?? array();
-			/** @var array<mixed> $full_history */
-			$appended = array_slice( $full_history, $existing_count );
-			/** @var list<array<string, mixed>> $tool_calls_stream */
-			$tool_calls_stream = $result['tool_calls'] ?? array();
-			Database::append_to_session( $session_id, array_values( $appended ), $tool_calls_stream );
-
-			$token_usage = $result['token_usage'] ?? array();
-			/** @var array<string, mixed> $token_usage */
-			if ( ! empty( $token_usage ) ) {
-				Database::update_session_tokens(
-					$session_id,
-					// @phpstan-ignore-next-line
-					(int) ( $token_usage['prompt'] ?? 0 ),
-					// @phpstan-ignore-next-line
-					(int) ( $token_usage['completion'] ?? 0 )
-				);
-			}
+		// Publish terminal success only after transcript and cumulative turn usage
+		// have committed. A poll must never race ahead and reload the old answer.
+		$saved = ( new SessionController( new Database() ) )->persist_completed_turn(
+			$session_id,
+			$job_id,
+			$result,
+			(string) ( $options['provider_id'] ?? '' ),
+			(string) ( $result['model_id'] ?? $options['model_id'] ?? '' )
+		);
+		if ( is_wp_error( $saved ) ) {
+			$saved->add_data( $result );
+			return self::accepted_tool_result_failure_response( $job_id, $session_id, $saved, array( 'last_safe_phase' => 'completion_persistence' ) );
 		}
+		self::update_job_after_resume( $job_id, 'complete', $result, $session_id );
 
 		$token_usage = $result['token_usage'] ?? array(
 			'prompt'     => 0,

@@ -293,7 +293,7 @@ class ProviderTrace {
 	/**
 	 * List trace records with optional filters.
 	 *
-	 * @param array<string, mixed> $filters Optional: provider_id, status_code, errors_only, limit, offset.
+	 * @param array<string, mixed> $filters Optional: provider_id, status_code, source, errors_only, limit, offset.
 	 * @return list<ProviderTraceRow> Array of trace row DTOs.
 	 */
 	public static function list( array $filters = [] ): array {
@@ -311,6 +311,10 @@ class ProviderTrace {
 			$where[] = $wpdb->prepare( 'status_code = %d', $filters['status_code'] );
 		}
 
+		if ( isset( $filters['source'] ) && in_array( $filters['source'], array( 'http', 'sdk' ), true ) ) {
+			$where[] = $wpdb->prepare( 'source = %s', $filters['source'] );
+		}
+
 		if ( ! empty( $filters['errors_only'] ) ) {
 			$where[] = "(status_code < 200 OR status_code >= 300 OR error != '')";
 		}
@@ -324,7 +328,7 @@ class ProviderTrace {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, created_at, provider_id, model_id, url, method, status_code, duration_ms,
-					cache_creation_tokens, cache_read_tokens, error,
+					cache_creation_tokens, cache_read_tokens, error, source,
 					LENGTH(request_body) AS request_body_size,
 					LENGTH(response_body) AS response_body_size
 				FROM {$table} {$where_sql}
@@ -334,7 +338,7 @@ class ProviderTrace {
 				$offset
 			)
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		return array_map( [ ProviderTraceRow::class, 'from_row' ], $rows ?? [] );
 	}
@@ -342,7 +346,7 @@ class ProviderTrace {
 	/**
 	 * Get the total count of trace records with optional filters.
 	 *
-	 * @param array<string, mixed> $filters Optional: provider_id, status_code, errors_only.
+	 * @param array<string, mixed> $filters Optional: provider_id, status_code, source, errors_only.
 	 * @return int Total count.
 	 */
 	public static function count( array $filters = [] ): int {
@@ -358,6 +362,10 @@ class ProviderTrace {
 
 		if ( ! empty( $filters['status_code'] ) ) {
 			$where[] = $wpdb->prepare( 'status_code = %d', $filters['status_code'] );
+		}
+
+		if ( isset( $filters['source'] ) && in_array( $filters['source'], array( 'http', 'sdk' ), true ) ) {
+			$where[] = $wpdb->prepare( 'source = %s', $filters['source'] );
 		}
 
 		if ( ! empty( $filters['errors_only'] ) ) {

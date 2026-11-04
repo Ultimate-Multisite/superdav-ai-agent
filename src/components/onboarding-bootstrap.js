@@ -77,6 +77,12 @@ export default function OnboardingBootstrap( {
 							onInitialSystemNoticeAppended();
 						}
 
+						// An existing session that already ran its kickoff must
+						// not trigger another agent run.
+						if ( data.kickoff_required === false ) {
+							return undefined;
+						}
+
 						return sendMessage(
 							data.kickoff_message ||
 								__(

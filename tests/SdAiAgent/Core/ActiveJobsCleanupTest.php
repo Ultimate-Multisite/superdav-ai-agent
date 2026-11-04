@@ -216,6 +216,39 @@ class ActiveJobsCleanupTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A reaped worker that is still alive cannot overwrite its resumed run.
+	 */
+	public function test_stale_worker_generation_is_fenced_after_resume_claim(): void {
+		$this->insert_job( 'test-fence-1', 'processing', gmdate( 'Y-m-d H:i:s', time() - 7200 ) );
+		$stale_generation = ActiveJobRepository::get_worker_generation( 'test-fence-1' );
+		$this->assertSame( 0, $stale_generation );
+
+		$this->assertTrue( ActiveJobRepository::reap_stale_job( 'test-fence-1', 15 ) );
+		$this->assertTrue( ActiveJobRepository::claim_resume_attempt( 'test-fence-1', 3, array( 'history' => array( 'resumed' ) ) ) );
+
+		$resumed_generation = ActiveJobRepository::get_worker_generation( 'test-fence-1' );
+		$this->assertSame( 1, $resumed_generation );
+		$before = $this->fetch_row( 'test-fence-1' );
+		$this->assertNotNull( $before );
+
+		$this->assertFalse( ActiveJobRepository::heartbeat( 'test-fence-1', $stale_generation ) );
+		$this->assertFalse( ActiveJobRepository::save_checkpoint( 'test-fence-1', 'stale_phase', array( 'history' => array( 'stale' ) ), $stale_generation ) );
+		$this->assertFalse( ActiveJobRepository::update_status( 'test-fence-1', 'complete', array(), $stale_generation ) );
+		$this->assertFalse( ActiveJobRepository::mark_interrupted( 'test-fence-1', '', array(), $stale_generation ) );
+		$this->assertFalse( ActiveJobRepository::owns_job( 'test-fence-1', (int) $stale_generation ) );
+
+		$after = $this->fetch_row( 'test-fence-1' );
+		$this->assertNotNull( $after );
+		$this->assertSame( 'processing', $after->status );
+		$this->assertSame( $before->checkpoint, $after->checkpoint );
+		$this->assertSame( $before->checkpoint_phase, $after->checkpoint_phase );
+
+		// A same-second heartbeat may touch zero rows, so assert ownership instead.
+		$this->assertTrue( ActiveJobRepository::owns_job( 'test-fence-1', (int) $resumed_generation ) );
+		$this->assertTrue( ActiveJobRepository::save_checkpoint( 'test-fence-1', 'resumed_phase', array( 'history' => array( 'ok' ) ), $resumed_generation ) );
+	}
+
+	/**
 	 * claim_resume_attempt() returns interrupted rows to processing with a retry cap.
 	 */
 	public function test_claim_resume_attempt_caps_retries(): void {
@@ -332,6 +365,19 @@ class ActiveJobsCleanupTest extends WP_UnitTestCase {
 		$this->assertSame( 'abandoned', $row->status );
 		$diagnostic = ActiveJobFailureDiagnostic::from_stored( 'test-stale-1', $row->error );
 		$this->assertSame( ActiveJobFailureDiagnostic::REASON_WORKER_TERMINATED, $diagnostic['reason'] );
+	}
+
+	/** reap_stale_job() abandons one stalled row and leaves fresh rows alone. */
+	public function test_reap_stale_job_abandons_only_stalled_row(): void {
+		$this->insert_job( 'test-stalled-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 1800 ) );
+		$this->insert_job( 'test-fresh-one', 'processing', gmdate( 'Y-m-d H:i:s', time() - 60 ) );
+
+		$this->assertTrue( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-fresh-one', 15 ) );
+		$this->assertFalse( ActiveJobRepository::reap_stale_job( 'test-stalled-one', 15 ), 'Already-abandoned row is not reaped twice.' );
+
+		$this->assertSame( 'abandoned', $this->fetch_row( 'test-stalled-one' )->status );
+		$this->assertSame( 'processing', $this->fetch_row( 'test-fresh-one' )->status );
 	}
 
 	/** cleanup_stale() also reaps queued workers that never receive a loopback delivery. */

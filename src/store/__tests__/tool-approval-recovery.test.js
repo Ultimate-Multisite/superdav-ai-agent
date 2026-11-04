@@ -32,6 +32,8 @@ describe( 'Tool approval recovery', () => {
 		getCurrentJobId: jest.fn(),
 		getSessionJob: jest.fn(),
 		getSessionJobs: jest.fn(),
+		getAgents: jest.fn( () => [] ),
+		getAgentsLoaded: jest.fn( () => false ),
 	};
 	const makeDispatch = () => {
 		const dispatch = {
@@ -50,6 +52,8 @@ describe( 'Tool approval recovery', () => {
 			drainMessageQueue: jest.fn(),
 			resetSessionTokens: jest.fn(),
 			addOpenTab: jest.fn(),
+			setSelectedAgentId: jest.fn(),
+			selectDefaultAgent: jest.fn(),
 		};
 		dispatch.pollJob = jest.fn( ( jobId, sessionId ) =>
 			jobActions.pollJob( jobId, sessionId )( { dispatch, select } )
@@ -275,6 +279,56 @@ describe( 'Tool approval recovery', () => {
 		}
 	);
 
+	it( 'openSession restores the agent stored on the session', async () => {
+		apiFetch
+			.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 7 } )
+			.mockRejectedValueOnce( new Error( 'no active job' ) );
+		const dispatch = makeDispatch();
+		dispatch.setSelectedAgentId = jest.fn();
+		await actions.openSession( 12 )( { dispatch, select } );
+		expect( dispatch.setSelectedAgentId ).toHaveBeenCalledWith( 7 );
+	} );
+
+	it( 'openSession selects the default agent for a session without one', async () => {
+		const agents = [ { id: 3, slug: 'general', enabled: true } ];
+		select.getAgents.mockReturnValueOnce( agents );
+		select.getAgentsLoaded.mockReturnValueOnce( true );
+		apiFetch
+			.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 0 } )
+			.mockRejectedValueOnce( new Error( 'no active job' ) );
+		const dispatch = makeDispatch();
+		await actions.openSession( 12 )( { dispatch, select } );
+		expect( dispatch.selectDefaultAgent ).toHaveBeenCalledWith( agents );
+		expect( dispatch.appendMessage ).not.toHaveBeenCalled();
+	} );
+
+	it.each( [
+		[ 'disabled', [ { id: 7, slug: 'seo', enabled: false } ] ],
+		[ 'deleted', [] ],
+	] )(
+		'openSession falls back and notifies when the stored agent is %s',
+		async ( _label, extraAgents ) => {
+			const agents = [
+				{ id: 3, slug: 'general', enabled: true },
+				...extraAgents,
+			];
+			select.getAgents.mockReturnValueOnce( agents );
+			select.getAgentsLoaded.mockReturnValueOnce( true );
+			apiFetch
+				.mockResolvedValueOnce( { id: 12, messages: [], agent_id: 7 } )
+				.mockRejectedValueOnce( new Error( 'no active job' ) );
+			const dispatch = makeDispatch();
+			await actions.openSession( 12 )( { dispatch, select } );
+			expect( dispatch.setSelectedAgentId ).not.toHaveBeenCalled();
+			expect( dispatch.selectDefaultAgent ).toHaveBeenCalledWith(
+				agents
+			);
+			expect( dispatch.appendMessage ).toHaveBeenCalledWith(
+				expect.objectContaining( { role: 'system' } )
+			);
+		}
+	);
+
 	it( 'stops when session ownership changes during the polling delay', async () => {
 		apiFetch.mockResolvedValue( { status: 'processing', tool_calls: [] } );
 		await makeDispatch().pollJob( 'job-1', 12 );
@@ -371,7 +425,15 @@ describe( 'Tool approval recovery', () => {
 					data: { status: 404 },
 				} );
 			}
-			const messages = [ { role: 'model', parts: [ { text: 'Done' } ] } ];
+			// The server tags the persisted reply with its completion receipt;
+			// a completed job's reload requires it before showing saved work.
+			const messages = [
+				{
+					role: 'model',
+					parts: [ { text: 'Done' } ],
+					completion_job_id: 'job-1',
+				},
+			];
 			apiFetch.mockResolvedValueOnce( {
 				id: 12,
 				messages,

@@ -78,12 +78,13 @@ class SessionRepository {
 				'title'       => $data['title'] ?? '',
 				'provider_id' => $data['provider_id'] ?? '',
 				'model_id'    => $data['model_id'] ?? '',
+				'agent_id'    => (int) ( $data['agent_id'] ?? 0 ),
 				'messages'    => '[]',
 				'tool_calls'  => '[]',
 				'created_at'  => $now,
 				'updated_at'  => $now,
 			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			[ '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' ]
 		);
 
 		return $result ? (int) $wpdb->insert_id : false;
@@ -579,7 +580,7 @@ class SessionRepository {
 
 		$formats = [];
 		foreach ( $data as $key => $value ) {
-			if ( in_array( $key, [ 'user_id', 'id' ], true ) ) {
+			if ( in_array( $key, [ 'user_id', 'id', 'agent_id' ], true ) ) {
 				$formats[] = '%d';
 			} else {
 				$formats[] = '%s';

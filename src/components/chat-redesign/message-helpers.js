@@ -468,7 +468,9 @@ export const ADVANCED_RELEASE_URL =
  * @return {boolean} True when the chip is an Advanced install request.
  */
 export function isAdvancedInstallSuggestion( text ) {
-	return /(?:install|download).*agent advanced/i.test( text );
+	// Anchor the action verb so "Uninstall …" or "Don't install …" chips are
+	// still sent to the model instead of opening the download page.
+	return /^\s*(?:install|download)\b.*\bagent advanced\b/i.test( text );
 }
 
 /**

@@ -417,6 +417,8 @@ describe( 'isAdvancedInstallSuggestion', () => {
 		'Create a staged plugin development plan',
 		'Define the owner payout hold period',
 		'Install an advanced theme',
+		'Uninstall SD AI Agent Advanced',
+		"Don't install SD AI Agent Advanced yet",
 	] )( 'ignores %s', ( label ) => {
 		expect( isAdvancedInstallSuggestion( label ) ).toBe( false );
 	} );

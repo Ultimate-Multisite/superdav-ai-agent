@@ -6,10 +6,9 @@ declare(strict_types=1);
  *
  * Flow: backup → stage → test → swap → verify → rollback on failure.
  *
- * Backups and staging directories live inside the uploads basedir under
- * `sd-ai-backups/` and `sd-ai-staging/` respectively, so they survive
- * relocated wp-content / plugins directories and follow WordPress's
- * recommended writeable-area convention.
+ * Backups and staging directories live in a private temporary root outside
+ * WordPress's web-served directories. The root is site-specific and may be
+ * relocated with the `sd_ai_agent_plugin_builder_private_root` filter.
  *
  * @package SdAiAgent\PluginBuilder
  * @license GPL-2.0-or-later
@@ -35,41 +34,116 @@ class PluginUpdater {
 	/**
 	 * Get the absolute path to the backups root directory.
 	 *
-	 * Uses uploads basedir per WP guidelines for plugin-managed writeable
-	 * locations, so it works on installs that relocate WP_CONTENT_DIR.
-	 *
-	 * @return string Trailing-slashed absolute path.
+	 * @return string|WP_Error Trailing-slashed absolute path or an error when a
+	 *                         private location cannot be established.
 	 */
-	private function backups_root(): string {
-		$uploads = wp_upload_dir( null, false );
-		$basedir = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		return trailingslashit( $this->canonicalize_base_dir( $basedir ) ) . 'sd-ai-backups/';
+	private function backups_root(): string|WP_Error {
+		return $this->private_subdirectory( 'backups' );
 	}
 
 	/**
 	 * Get the absolute path to the staging root directory.
 	 *
-	 * @return string Trailing-slashed absolute path.
+	 * @return string|WP_Error Trailing-slashed absolute path or an error when a
+	 *                         private location cannot be established.
 	 */
-	private function staging_root(): string {
-		$uploads = wp_upload_dir( null, false );
-		$basedir = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		return trailingslashit( $this->canonicalize_base_dir( $basedir ) ) . 'sd-ai-staging/';
+	private function staging_root(): string|WP_Error {
+		return $this->private_subdirectory( 'staging' );
 	}
 
 	/**
-	 * Canonicalise an uploads-based root while keeping a safe fallback.
+	 * Establish a site-specific private storage root outside web-served paths.
 	 *
-	 * @param string $basedir Uploads base directory.
-	 * @return string Canonical path when resolvable, otherwise original path.
+	 * @return string|WP_Error Trailing-slashed canonical root or an error.
 	 */
-	private function canonicalize_base_dir( string $basedir ): string {
-		$canonical = PathCanonicalizer::canonicalize_missing_path( $basedir );
-		if ( is_wp_error( $canonical ) ) {
-			return $basedir;
+	private function private_storage_root(): string|WP_Error {
+		$site_path = PathCanonicalizer::canonicalize_missing_path( ABSPATH );
+		if ( is_wp_error( $site_path ) ) {
+			$site_path = ABSPATH;
 		}
 
-		return (string) $canonical;
+		$default_root = trailingslashit( sys_get_temp_dir() )
+			. 'sd-ai-agent-plugin-builder/'
+			. substr( hash( 'sha256', (string) $site_path ), 0, 16 );
+
+		/**
+		 * Filter the private root used for plugin-builder backups and staging.
+		 *
+		 * The selected directory must remain outside WordPress core, content,
+		 * plugins, and uploads directories.
+		 *
+		 * @param string $default_root Site-specific default private root.
+		 */
+		$root      = (string) apply_filters( 'sd_ai_agent_plugin_builder_private_root', $default_root );
+		$canonical = PathCanonicalizer::canonicalize_missing_path( $root );
+		if ( is_wp_error( $canonical ) ) {
+			return $canonical;
+		}
+
+		$uploads     = wp_upload_dir( null, false );
+		$public_dirs = [
+			ABSPATH,
+			WP_CONTENT_DIR,
+			WP_PLUGIN_DIR,
+			! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads',
+		];
+
+		foreach ( array_unique( $public_dirs ) as $public_dir ) {
+			$public_path = PathCanonicalizer::canonicalize_missing_path( $public_dir );
+			if ( ! is_wp_error( $public_path ) && PathCanonicalizer::path_is_inside( (string) $canonical, (string) $public_path ) ) {
+				return new WP_Error(
+					'sd_ai_agent_private_storage_public',
+					__( 'Plugin backup storage must be outside web-served WordPress directories.', 'superdav-ai-agent' )
+				);
+			}
+		}
+
+		if ( ! wp_mkdir_p( (string) $canonical ) || ! is_dir( (string) $canonical ) ) {
+			return new WP_Error(
+				'sd_ai_agent_private_storage_unavailable',
+				__( 'Could not create private plugin backup storage.', 'superdav-ai-agent' )
+			);
+		}
+
+		// The root boundary protects all descendants from other local users.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Private storage requires restrictive filesystem permissions.
+		chmod( (string) $canonical, 0700 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Validating a local private storage path before filesystem operations.
+		if ( ! is_writable( (string) $canonical ) ) {
+			return new WP_Error(
+				'sd_ai_agent_private_storage_unavailable',
+				__( 'Private plugin backup storage is not writable.', 'superdav-ai-agent' )
+			);
+		}
+
+		return trailingslashit( (string) $canonical );
+	}
+
+	/**
+	 * Create and validate a directory beneath the private storage root.
+	 *
+	 * @param string $name Fixed internal subdirectory name.
+	 * @return string|WP_Error Trailing-slashed canonical path or an error.
+	 */
+	private function private_subdirectory( string $name ): string|WP_Error {
+		$root = $this->private_storage_root();
+		if ( is_wp_error( $root ) ) {
+			return $root;
+		}
+
+		$directory = PathCanonicalizer::canonicalize_missing_path_inside( $root . $name, $root );
+		if ( is_wp_error( $directory ) ) {
+			return $directory;
+		}
+
+		if ( ! wp_mkdir_p( $directory ) || ! is_dir( $directory ) ) {
+			return new WP_Error(
+				'sd_ai_agent_private_storage_unavailable',
+				__( 'Could not create private plugin backup storage.', 'superdav-ai-agent' )
+			);
+		}
+
+		return trailingslashit( $directory );
 	}
 
 	/**
@@ -93,7 +167,7 @@ class PluginUpdater {
 	}
 
 	/**
-	 * Backup an installed plugin to wp-content/sd-ai-backups/{slug}-{timestamp}/.
+	 * Backup an installed plugin to private storage under {slug}-{timestamp}/.
 	 *
 	 * @param string $slug Plugin slug (directory name under wp-content/plugins/).
 	 * @return string|\WP_Error Absolute path to the backup directory on success.
@@ -116,8 +190,13 @@ class PluginUpdater {
 			);
 		}
 
+		$backups_root = $this->backups_root();
+		if ( is_wp_error( $backups_root ) ) {
+			return $backups_root;
+		}
+
 		$timestamp  = gmdate( 'Y-m-d-His' );
-		$backup_dir = $this->backups_root() . $slug . '-' . $timestamp . '/';
+		$backup_dir = $backups_root . $slug . '-' . $timestamp . '/';
 
 		$result = $this->copy_directory( $plugin_dir, $backup_dir );
 		if ( is_wp_error( $result ) ) {
@@ -155,7 +234,12 @@ class PluginUpdater {
 			);
 		}
 
-		$staging_dir = $this->staging_root() . $slug . '/';
+		$staging_root = $this->staging_root();
+		if ( is_wp_error( $staging_root ) ) {
+			return $staging_root;
+		}
+
+		$staging_dir = $staging_root . $slug . '/';
 
 		// Remove stale staging dir if it exists.
 		if ( is_dir( $staging_dir ) ) {
@@ -362,6 +446,9 @@ class PluginUpdater {
 		 */
 		$max_age_days = (int) apply_filters( 'sd_ai_agent_backup_retention_days', $max_age_days );
 		$backups_root = $this->backups_root();
+		if ( is_wp_error( $backups_root ) ) {
+			return 0;
+		}
 
 		if ( ! is_dir( $backups_root ) ) {
 			return 0;

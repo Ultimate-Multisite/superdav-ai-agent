@@ -44,15 +44,19 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	/**
 	 * Temporary upload basedir used during this test class.
 	 *
-	 * Redirects wp_upload_dir() basedir to a writable location so that
-	 * PluginUpdater::copy_directory() can call wp_mkdir_p() for the staging
-	 * and backup paths without hitting permission failures in the
-	 * tests-wordpress container (where wp-content/uploads is typically owned
-	 * by www-data while PHPUnit runs as the host user, e.g. 1000:1000).
+	 * Redirects wp_upload_dir() so tests can prove private storage never uses
+	 * the public uploads tree.
 	 *
 	 * @var string
 	 */
 	private string $tmp_upload_basedir;
+
+	/**
+	 * Private plugin-builder root used during this test class.
+	 *
+	 * @var string
+	 */
+	private string $tmp_private_root;
 
 	/**
 	 * Set up test directories and a minimal plugin before each test.
@@ -60,7 +64,9 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 		$this->tmp_upload_basedir = sys_get_temp_dir() . '/sd-ai-agent-phpunit';
+		$this->tmp_private_root    = sys_get_temp_dir() . '/sd-ai-agent-phpunit-private';
 		add_filter( 'upload_dir', [ $this, 'filter_upload_dir_to_tmp' ] );
+		add_filter( 'sd_ai_agent_plugin_builder_private_root', [ $this, 'filter_private_root_to_tmp' ] );
 		// Allow file modifications for tests.
 		add_filter(
 			'file_mod_allowed',
@@ -82,17 +88,13 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	public function tearDown(): void {
 		$this->cleanup_all();
 		remove_filter( 'upload_dir', [ $this, 'filter_upload_dir_to_tmp' ] );
+		remove_filter( 'sd_ai_agent_plugin_builder_private_root', [ $this, 'filter_private_root_to_tmp' ] );
 		remove_all_filters( 'file_mod_allowed' );
 		parent::tearDown();
 	}
 
 	/**
 	 * Redirect wp_upload_dir() basedir to a writable tmp directory.
-	 *
-	 * PluginUpdater::staging_root() and ::backups_root() derive their paths
-	 * from wp_upload_dir()['basedir']. The helper methods backups_root() and
-	 * staging_root() in this class do the same, so both production and test
-	 * paths stay consistent and point to a location writable by any user.
 	 *
 	 * @param array<string,string> $uploads Upload directory info passed by WP.
 	 * @return array<string,string>
@@ -103,6 +105,15 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$uploads['baseurl'] = 'http://example.org/tmp-uploads';
 		$uploads['url']     = 'http://example.org/tmp-uploads';
 		return $uploads;
+	}
+
+	/**
+	 * Redirect private plugin-builder storage to a test-only temporary root.
+	 *
+	 * @return string
+	 */
+	public function filter_private_root_to_tmp(): string {
+		return $this->tmp_private_root;
 	}
 
 	// ─── backup() ────────────────────────────────────────────────────────────
@@ -116,6 +127,25 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertIsString( $result );
 		$this->assertDirectoryExists( $result );
 		$this->assertFileExists( $result . $this->slug . '.php' );
+		$this->assertStringStartsWith( trailingslashit( $this->tmp_private_root ), $result );
+		$this->assertStringNotContainsString( trailingslashit( $this->tmp_upload_basedir ), $result );
+	}
+
+	/**
+	 * backup() should fail closed when configured inside the public uploads tree.
+	 */
+	public function test_backup_rejects_public_storage_root(): void {
+		$public_root = static function ( string $root ): string {
+			unset( $root );
+			return sys_get_temp_dir() . '/sd-ai-agent-phpunit/public-backups';
+		};
+		add_filter( 'sd_ai_agent_plugin_builder_private_root', $public_root, 20 );
+
+		$result = $this->updater->backup( $this->slug );
+
+		remove_filter( 'sd_ai_agent_plugin_builder_private_root', $public_root, 20 );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_private_storage_public', $result->get_error_code() );
 	}
 
 	/**
@@ -162,6 +192,8 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertDirectoryExists( $result );
 		// Main plugin file should be copied from live.
 		$this->assertFileExists( $result . $this->slug . '.php' );
+		$this->assertStringStartsWith( trailingslashit( $this->tmp_private_root ), $result );
+		$this->assertStringNotContainsString( trailingslashit( $this->tmp_upload_basedir ), $result );
 	}
 
 	/**
@@ -407,18 +439,14 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	 * Mirror PluginUpdater::backups_root() so tests can locate backup dirs.
 	 */
 	private function backups_root(): string {
-		$uploads = wp_upload_dir( null, false );
-		$basedir = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		return trailingslashit( $basedir ) . 'sd-ai-backups/';
+		return trailingslashit( $this->tmp_private_root ) . 'backups/';
 	}
 
 	/**
 	 * Mirror PluginUpdater::staging_root() so tests can locate staging dirs.
 	 */
 	private function staging_root(): string {
-		$uploads = wp_upload_dir( null, false );
-		$basedir = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		return trailingslashit( $basedir ) . 'sd-ai-staging/';
+		return trailingslashit( $this->tmp_private_root ) . 'staging/';
 	}
 
 	/**

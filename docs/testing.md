@@ -27,6 +27,22 @@ constant is missing. Jobs stuck in `processing` with overdue
 the queue has not reached inference yet. Check loopback connectivity before
 diagnosing inference latency.
 
+## Plugin-builder private storage
+
+Plugin-builder backups and staged plugin files are stored in a site-specific
+directory below the system temporary directory, not below WordPress uploads or
+another web-served WordPress directory. Hosts that require persistent backup
+storage can relocate it with the `sd_ai_agent_plugin_builder_private_root`
+filter. The selected absolute directory must be writable and outside WordPress
+core, content, plugins, and uploads paths; unsafe locations fail closed.
+
+For an installed-package disclosure check, create only a synthetic plugin and
+marker, run `PluginUpdater::backup()` and `PluginUpdater::stage()`, and confirm
+that neither returned filesystem path maps to an uploads URL. An anonymous HTTP
+request for the former `/sd-ai-backups/` or `/sd-ai-staging/` marker location
+must return 401, 403, or 404 and must not return the marker. Remove all synthetic
+fixtures after the check.
+
 ## Native tool-search validation
 
 Use the installed site's existing connector credentials and managed model. Check

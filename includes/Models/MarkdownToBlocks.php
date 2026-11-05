@@ -374,7 +374,8 @@ class MarkdownToBlocks {
 		$tag           = $ordered ? 'ol' : 'ul';
 		$attrs         = $ordered ? [ 'ordered' => true ] : [];
 		$inner_blocks  = [];
-		$inner_content = [ '<' . $tag . '>' ];
+		$opening_tag   = '<' . $tag . ' class="wp-block-list">';
+		$inner_content = [ $opening_tag ];
 
 		foreach ( $items as $item ) {
 			$item_html       = self::parse_inline( $item );
@@ -391,7 +392,7 @@ class MarkdownToBlocks {
 
 		$inner_content[] = '</' . $tag . '>';
 
-		$inner_html = '<' . $tag . '>';
+		$inner_html = $opening_tag;
 		foreach ( $items as $item ) {
 			$inner_html .= '<li>' . self::parse_inline( $item ) . '</li>';
 		}

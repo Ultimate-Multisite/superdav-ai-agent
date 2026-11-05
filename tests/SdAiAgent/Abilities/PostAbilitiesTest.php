@@ -976,6 +976,34 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Create-post converts ordered and unordered Markdown lists to valid blocks.
+	 */
+	public function test_handle_create_post_converts_markdown_lists_to_valid_blocks(): void {
+		$lists = [
+			'unordered' => "## Items\n\n- Alpha\n- Beta",
+			'ordered'   => "## Items\n\n1. Alpha\n2. Beta",
+		];
+
+		foreach ( $lists as $type => $content ) {
+			$result = PostAbilities::handle_create_post(
+				[
+					'title'   => ucfirst( $type ) . ' Markdown list',
+					'content' => $content,
+				]
+			);
+
+			$this->assertIsArray( $result );
+			$this->assertTrue( $result['block_validation']['isValid'], $type );
+			$this->assertSame( 0, $result['block_validation']['invalidBlocks'], $type );
+
+			$saved_content = get_post( $result['post_id'] )->post_content;
+			$this->assertStringContainsString( 'class="wp-block-list"', $saved_content );
+			$this->assertStringContainsString( '<li>Alpha</li>', $saved_content );
+			$this->assertStringContainsString( '<li>Beta</li>', $saved_content );
+		}
+	}
+
+	/**
 	 * Content with valid block markup should attach block_validation with
 	 * isValid=true and invalidBlocks=0.
 	 */

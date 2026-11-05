@@ -64,6 +64,35 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test developer option controls use only the benchmark-owned namespace.
+	 */
+	public function test_developer_option_controls_use_owned_fixture(): void {
+		$create = $this->find_question( 'abilities-developer-v1', 'adev-001' );
+		$delete = $this->find_question( 'abilities-developer-v1', 'adev-002' );
+
+		$this->assertIsArray( $create );
+		$this->assertIsArray( $delete );
+		$this->assertStringContainsString( 'sd_ai_agent_benchmark_developer_option', (string) $create['prompt'] );
+		$this->assertStringNotContainsString( 'ac_dev_test_option', (string) wp_json_encode( $create ) );
+		$this->assertStringContainsString( 'update-option', (string) $delete['prompt'] );
+		$this->assertStringContainsString( 'delete-option', (string) $delete['prompt'] );
+		$this->assertContains( 'option_not_exists', array_column( $delete['assertions'], 'type' ) );
+	}
+
+	/**
+	 * Test the WooCommerce control declares its plugin prerequisite without
+	 * weakening the independent product-state assertions.
+	 */
+	public function test_ct_005_declares_woocommerce_prerequisite(): void {
+		$question = $this->find_question( 'content-v1', 'ct-005' );
+
+		$this->assertIsArray( $question );
+		$this->assertSame( 'woocommerce/woocommerce.php', $question['requires'][0]['plugin'] );
+		$this->assertCount( 3, $question['assertions'] );
+		$this->assertStringContainsString( '599|449', (string) $question['assertions'][2]['expected_output_pattern'] );
+	}
+
+	/**
 	 * Test adev-005 targets a file available under the file ability wp-content root.
 	 */
 	public function test_adev_005_uses_accessible_wp_content_root_file(): void {

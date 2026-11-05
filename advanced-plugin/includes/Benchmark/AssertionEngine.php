@@ -124,6 +124,9 @@ class AssertionEngine {
 			case 'option_exists':
 				return self::assert_option_exists( (string) ( $assertion['option'] ?? '' ) );
 
+			case 'option_not_exists':
+				return self::assert_option_not_exists( (string) ( $assertion['option'] ?? '' ) );
+
 			case 'file_exists_in_plugin':
 				return self::assert_file_exists_in_plugin(
 					(string) ( $assertion['file'] ?? '' ),
@@ -643,6 +646,23 @@ class AssertionEngine {
 			'pass'     => $pass,
 			'expected' => "option '{$option}' exists",
 			'actual'   => $pass ? 'exists (value: ' . substr( (string) wp_json_encode( $value ), 0, 80 ) . ')' : 'not found',
+		);
+	}
+
+	/**
+	 * Check a WordPress option does not exist.
+	 *
+	 * @param string $option Option name.
+	 * @return array{pass: bool, expected: string, actual: string}
+	 */
+	private static function assert_option_not_exists( string $option ): array {
+		$value = get_option( $option, '__benchmark_not_found__' );
+		$pass  = '__benchmark_not_found__' === $value;
+
+		return array(
+			'pass'     => $pass,
+			'expected' => "option '{$option}' does not exist",
+			'actual'   => $pass ? 'not found' : 'exists',
 		);
 	}
 

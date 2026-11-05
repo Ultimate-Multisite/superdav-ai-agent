@@ -447,6 +447,13 @@ class BenchmarkSuite {
 				'id'         => 'ct-005',
 				'category'   => 'woocommerce',
 				'max_turns'  => 12,
+				'requires'   => array(
+					array(
+						'type'   => 'plugin',
+						'plugin' => 'woocommerce/woocommerce.php',
+						'label'  => 'WooCommerce',
+					),
+				),
 				'prompt'     => 'Create a new WooCommerce product: "Ergonomic Standing Desk" priced at $599.99 (on sale for $449.99). SKU: DESK-ERG-001. Stock: 50 units. Category: "Office Furniture". Write a compelling product description highlighting the adjustable height range (28-48 inches), bamboo desktop surface, integrated cable management, and 10-year warranty. Set it as published.',
 				'assertions' => array(
 					array(
@@ -1519,7 +1526,7 @@ class BenchmarkSuite {
 				'id'         => 'adev-001',
 				'category'   => 'options',
 				'max_turns'  => 8,
-				'prompt'     => 'Use update-option to set an option named "ac_dev_test_option" to the JSON value {"a":1,"b":[1,2,3]}. Then use get-option to read it back. Then list-options to confirm it appears in the options list.',
+				'prompt'     => 'Use update-option to set an option named "sd_ai_agent_benchmark_developer_option" to the JSON value {"a":1,"b":[1,2,3]}. Then use get-option to read it back. Then list-options to confirm it appears in the options list.',
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1538,12 +1545,12 @@ class BenchmarkSuite {
 					),
 					array(
 						'type'        => 'option_exists',
-						'option'      => 'ac_dev_test_option',
-						'description' => 'ac_dev_test_option exists',
+						'option'      => 'sd_ai_agent_benchmark_developer_option',
+						'description' => 'Benchmark-owned developer option exists',
 					),
 					array(
 						'type'        => 'option_value_matches',
-						'option'      => 'ac_dev_test_option',
+						'option'      => 'sd_ai_agent_benchmark_developer_option',
 						'pattern'     => '"a".*1',
 						'description' => 'option holds the expected JSON',
 					),
@@ -1553,12 +1560,22 @@ class BenchmarkSuite {
 				'id'         => 'adev-002',
 				'category'   => 'options',
 				'max_turns'  => 6,
-				'prompt'     => 'Use delete-option to remove the option "ac_dev_test_option" that was created earlier.',
+				'prompt'     => 'Use update-option to create the option "sd_ai_agent_benchmark_developer_option" with the value "delete-control". Then use delete-option to remove it. This setup is part of the question so it can run independently.',
 				'assertions' => array(
+					array(
+						'type'        => 'tool_called',
+						'tools'       => array( 'sd-ai-agent/update-option' ),
+						'description' => 'update-option called to create the owned fixture',
+					),
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/delete-option' ),
 						'description' => 'delete-option called',
+					),
+					array(
+						'type'        => 'option_not_exists',
+						'option'      => 'sd_ai_agent_benchmark_developer_option',
+						'description' => 'Benchmark-owned developer option was deleted',
 					),
 				),
 			),

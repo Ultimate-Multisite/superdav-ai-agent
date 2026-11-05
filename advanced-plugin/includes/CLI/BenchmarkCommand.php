@@ -935,7 +935,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		// can print only the newly-added entry each time it fires.
 		$last_log_count = 0;
 
-		$options = array(
+		$options        = array(
 			'provider_id'       => $provider_id,
 			'model_id'          => $model_id,
 			'max_iterations'    => $max_turns,
@@ -971,17 +971,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 				}
 			},
 		);
-
-		if ( self::PROFILE_FUNCTIONAL === $this->executionProfile ) {
-			$options['yolo_mode']           = true;
-			$options['agent_system_prompt'] = self::SYSTEM_PROMPT;
-			// Preserve the legacy benchmark's explicit Tier-1 override.
-			$abilities = ToolDiscovery::tier_1_for_run();
-		} else {
-			$options['approved_once_abilities'] = $this->approvedOnceAbilities;
-			// An empty override selects AgentLoop's normal automatic catalog path.
-			$abilities = array();
-		}
+		$profile_config = $this->get_agent_loop_profile_config();
+		$options        = array_merge( $options, $profile_config['options'] );
+		$abilities      = $profile_config['abilities'];
 
 		$loop   = new AgentLoop( $prompt, $abilities, array(), $options );
 		$result = $loop->run();
@@ -996,6 +988,32 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'token_usage'   => $result['token_usage'] ?? array(),
 			'tool_call_log' => $tool_call_log,
 			'exit_reason'   => $result['exit_reason'] ?? '',
+		);
+	}
+
+	/**
+	 * Return the AgentLoop overrides for the selected execution profile.
+	 *
+	 * @return array{abilities: array<int, string>, options: array<string, mixed>}
+	 */
+	protected function get_agent_loop_profile_config(): array {
+		if ( self::PROFILE_FUNCTIONAL === $this->executionProfile ) {
+			return array(
+				// Preserve the legacy benchmark's explicit Tier-1 override.
+				'abilities' => ToolDiscovery::tier_1_for_run(),
+				'options'   => array(
+					'yolo_mode'           => true,
+					'agent_system_prompt' => self::SYSTEM_PROMPT,
+				),
+			);
+		}
+
+		return array(
+			// An empty override selects AgentLoop's normal automatic catalog path.
+			'abilities' => array(),
+			'options'   => array(
+				'approved_once_abilities' => $this->approvedOnceAbilities,
+			),
 		);
 	}
 

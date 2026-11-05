@@ -416,6 +416,12 @@ PROMPT;
 	/** @var RunLocalReadonlyToolCache Reuses safe local readonly calls within this run. */
 	private RunLocalReadonlyToolCache $readonly_tool_cache;
 
+	/** @var array<string, true> Read-only tool-call signatures already observed in this run. */
+	private array $seen_readonly_tool_signatures = array();
+
+	/** @var string System-level correction for genuinely repeated read-only inspections. */
+	private string $readonly_progress_guidance = '';
+
 	/** @var ClientAbilityRouter Partitions tool calls to PHP or JS handlers. */
 	private ClientAbilityRouter $client_router;
 
@@ -1858,8 +1864,8 @@ PROMPT;
 	}
 
 	/**
-	 * Record whether a tool round made mutable progress and inject a correction
-	 * after repeated inspection-only rounds.
+	 * Record whether a tool round made progress and prepare a system correction
+	 * only after repeated, unchanged read-only inspections.
 	 *
 	 * @param Message $message         Assistant tool-call message.
 	 * @param int     $readonly_rounds Consecutive read-only rounds so far.
@@ -1868,20 +1874,27 @@ PROMPT;
 	private function record_tool_progress( Message $message, int $readonly_rounds ): array {
 		$has_mutating_tools = ToolPermissionResolver::message_has_mutating_tools( $message );
 		if ( $has_mutating_tools ) {
+			$this->seen_readonly_tool_signatures = array();
+			$this->readonly_progress_guidance    = '';
 			return array(
 				'has_mutating_tools' => true,
 				'readonly_rounds'    => 0,
 			);
 		}
 
-		++$readonly_rounds;
+		$signature = $this->spin_detector->build_tool_signature( $message );
+		if ( '' !== $signature && ! isset( $this->seen_readonly_tool_signatures[ $signature ] ) ) {
+			$this->seen_readonly_tool_signatures[ $signature ] = true;
+			$this->readonly_progress_guidance                  = '';
+			$readonly_rounds                                   = 1;
+		} else {
+			++$readonly_rounds;
+		}
+
 		if ( 0 === $readonly_rounds % self::READONLY_INSPECTION_NUDGE_ROUNDS ) {
-			$this->history[] = new UserMessage(
-				array(
-					new MessagePart(
-						__( 'You have spent several consecutive rounds on read-only inspections without making a change. Stop re-checking known state and perform the next concrete mutation required by the user now. If no safe mutation is possible, explain the exact blocker and finish instead of inspecting again.', 'superdav-ai-agent' )
-					),
-				)
+			$this->readonly_progress_guidance = __(
+				'Automated progress safeguard: This exact read-only inspection has already been performed in this run. Reuse its prior result instead of repeating it. Continue any remaining distinct authorized reads, then answer the user\'s request. Do not perform a mutation unless the user explicitly requested and authorized one.',
+				'superdav-ai-agent'
 			);
 		}
 
@@ -3325,8 +3338,12 @@ PROMPT;
 	 * @return \WP_AI_Client_Prompt_Builder
 	 */
 	private function create_provider_prompt_builder( string $provider_id, string $model_id, array $abilities ): \WP_AI_Client_Prompt_Builder {
-		$builder = wp_ai_client_prompt();
-		$builder->using_system_instruction( $this->system_instruction );
+		$builder            = wp_ai_client_prompt();
+		$system_instruction = (string) $this->system_instruction;
+		if ( '' !== $this->readonly_progress_guidance ) {
+			$system_instruction .= "\n\n" . $this->readonly_progress_guidance;
+		}
+		$builder->using_system_instruction( $system_instruction );
 		$this->configure_model( $builder, $provider_id, $model_id );
 		// These setters use __call; method_exists() cannot detect them. Reasoning
 		// models retain their implicit temperature, but still receive max_tokens.

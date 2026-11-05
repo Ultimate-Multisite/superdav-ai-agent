@@ -181,6 +181,53 @@ RAW;
 		$this->assertSame( 'sd_ai_agent_invalid_generated_path', $result->get_error_code() );
 	}
 
+	/**
+	 * A dependency-first helper must not be renamed to and overwritten by main.
+	 */
+	public function test_dependency_order_preserves_declared_main_identity_and_helper_path(): void {
+		$method = new \ReflectionMethod( PluginGenerator::class, 'prepare_file_specs' );
+		$method->setAccessible( true );
+		$result = $method->invoke(
+			null,
+			[
+				[
+					'path'         => 'my-plugin/my-plugin',
+					'dependencies' => [ 'my-plugin/includes/shortcode.php' ],
+				],
+				[
+					'path'         => 'my-plugin/includes/shortcode.php',
+					'dependencies' => [],
+				],
+			],
+			'my-plugin'
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'my-plugin/includes/shortcode.php', $result[0]['path'] );
+		$this->assertFalse( $result[0]['is_main'] );
+		$this->assertSame( 'my-plugin/my-plugin.php', $result[1]['path'] );
+		$this->assertTrue( $result[1]['is_main'] );
+		$this->assertCount( 2, array_unique( array_column( $result, 'path' ) ) );
+	}
+
+	/**
+	 * Duplicate normalized paths fail before file generation can lose source.
+	 */
+	public function test_duplicate_normalized_generated_paths_are_rejected(): void {
+		$method = new \ReflectionMethod( PluginGenerator::class, 'prepare_file_specs' );
+		$method->setAccessible( true );
+		$result = $method->invoke(
+			null,
+			[
+				[ 'path' => 'my-plugin/my-plugin' ],
+				[ 'path' => 'my-plugin/my-plugin.php' ],
+			],
+			'my-plugin'
+		);
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_duplicate_generated_path', $result->get_error_code() );
+	}
+
 	// ─── generate_plan — SDK-unavailable path ─────────────────────────────────
 
 	/**

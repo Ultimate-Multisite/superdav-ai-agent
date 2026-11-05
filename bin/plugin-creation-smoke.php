@@ -15,6 +15,8 @@ return static function ( array $options ): array {
 	$slug   = (string) ( $options['slug'] ?? '' );
 	$mode   = (string) ( $options['scenario'] ?? '' );
 	$checks = [];
+	$details = [];
+	$requests = 0;
 	$assert = static function ( bool $condition, string $code ): void {
 		if ( ! $condition ) {
 			throw new RuntimeException( $code );
@@ -88,7 +90,6 @@ return static function ( array $options ): array {
 		}
 
 		// Bound outgoing POSTs and HTTP timeouts in every generation process.
-		$requests = 0;
 		$deadline = microtime( true ) + (int) $options['phaseSeconds'];
 		add_filter(
 			'pre_http_request',
@@ -126,7 +127,8 @@ return static function ( array $options ): array {
 			}
 			$checks[]    = 'unauthenticated_generation_denied';
 			$description = "Create a minimal WordPress plugin with exact slug {$slug} and main file {$slug}/{$slug}.php. Register shortcode [{$tag}] returning the exact literal string {$sentinel}_V1. Include normal plugin headers and an ABSPATH guard. No external requests, dependencies, JavaScript, or CSS. ";
-			$description .= 'multi' === $mode ? 'Use exactly two PHP files, with includes/shortcode.php loaded using require_once from the main file. Put shortcode registration in that helper.' : 'Use exactly one PHP file.';
+			$description .= 'multi' === $mode ? 'The complete file list must contain exactly two files total: the main PHP file and includes/shortcode.php. The main file must require_once the helper. Put shortcode registration in that helper.' : 'The complete file list must contain exactly one file total: the main PHP file.';
+			$description .= ' Do not add README files, license files, metadata files, assets, or any other files.';
 			if ( 'settings' === $mode ) {
 				$description .= " Also register a string setting named {$option} in group {$tag}, on admin_init, with sanitize_text_field as its sanitize_callback. No settings page is needed.";
 			}
@@ -146,6 +148,7 @@ return static function ( array $options ): array {
 					$ability->clear_provider_model_context();
 				}
 				$assert( ! empty( $result['installed'] ) && $slug === $result['slug'], 'generation_install_failed' );
+				$details = [ 'expectedFiles' => 'multi' === $mode ? 2 : 1, 'actualFiles' => count( $result['files'] ) ];
 				$assert( count( $result['files'] ) === ( 'multi' === $mode ? 2 : 1 ), 'generated_file_count_mismatch' );
 				$assert( $main === $result['plugin_file'], 'generated_main_file_mismatch' );
 			}
@@ -222,6 +225,6 @@ return static function ( array $options ): array {
 	} catch ( Throwable $error ) {
 		// Never include provider messages, generated source, credentials, or stack traces.
 		$code = $error instanceof RuntimeException && preg_match( '/^[a-z0-9_]+$/D', $error->getMessage() ) ? $error->getMessage() : 'smoke_operation_exception';
-		return [ 'passed' => false, 'phase' => $phase, 'code' => $code ];
+		return [ 'passed' => false, 'phase' => $phase, 'code' => $code, 'checks' => $checks, 'requests' => $requests, 'details' => $details ];
 	}
 };

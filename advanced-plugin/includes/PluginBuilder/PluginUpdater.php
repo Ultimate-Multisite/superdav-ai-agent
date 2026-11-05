@@ -95,6 +95,9 @@ class PluginUpdater {
 			WP_PLUGIN_DIR,
 			! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads',
 		];
+		if ( ! empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
+			$public_dirs[] = sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) );
+		}
 
 		foreach ( array_unique( $public_dirs ) as $public_dir ) {
 			$public_path = PathCanonicalizer::canonicalize_missing_path( $public_dir );
@@ -138,6 +141,16 @@ class PluginUpdater {
 				'sd_ai_agent_private_storage_permissions',
 				__( 'Private plugin backup storage permissions are not restrictive.', 'superdav-ai-agent' )
 			);
+		}
+		if ( function_exists( 'posix_geteuid' ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileowner -- Ownership verification closes shared-host directory substitution.
+			$owner = fileowner( (string) $canonical );
+			if ( false === $owner || $owner !== posix_geteuid() ) {
+				return new WP_Error(
+					'sd_ai_agent_private_storage_owner',
+					__( 'Private plugin backup storage is not owned by the current process user.', 'superdav-ai-agent' )
+				);
+			}
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Validating a local private storage path before filesystem operations.
 		if ( ! is_writable( (string) $canonical ) ) {
@@ -187,31 +200,56 @@ class PluginUpdater {
 	 * @return true|WP_Error True when all legacy content is private or absent.
 	 */
 	public function migrate_legacy_storage(): bool|WP_Error {
-		$backups_root = $this->backups_root();
-		$staging_root = $this->staging_root();
-		if ( is_wp_error( $backups_root ) ) {
-			return $backups_root;
-		}
-		if ( is_wp_error( $staging_root ) ) {
-			return $staging_root;
-		}
-
 		$uploads      = wp_upload_dir( null, false );
 		$uploads_root = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		$legacy_roots = [
-			[ trailingslashit( $uploads_root ) . 'sd-ai-backups', $uploads_root, $backups_root ],
-			[ trailingslashit( $uploads_root ) . 'sd-ai-staging', $uploads_root, $staging_root ],
-			[ trailingslashit( WP_CONTENT_DIR ) . 'sd-ai-backups', WP_CONTENT_DIR, $backups_root ],
+		$legacy_paths = [
+			trailingslashit( $uploads_root ) . 'sd-ai-backups',
+			trailingslashit( $uploads_root ) . 'sd-ai-staging',
+			trailingslashit( WP_CONTENT_DIR ) . 'sd-ai-backups',
 		];
-
-		foreach ( $legacy_roots as [ $source, $boundary, $destination ] ) {
-			$result = $this->migrate_legacy_root( $source, $boundary, $destination );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
+		if ( ! array_filter( $legacy_paths, 'is_dir' ) ) {
+			return true;
 		}
 
-		return true;
+		$lock_name = 'sd_ai_agent_plugin_storage_migration_lock';
+		$lock_time = (int) get_option( $lock_name, 0 );
+		if ( $lock_time > time() - ( 5 * MINUTE_IN_SECONDS ) ) {
+			return true;
+		}
+		if ( $lock_time ) {
+			delete_option( $lock_name );
+		}
+		if ( ! add_option( $lock_name, time(), '', false ) ) {
+			return true;
+		}
+
+		try {
+			$backups_root = $this->backups_root();
+			$staging_root = $this->staging_root();
+			if ( is_wp_error( $backups_root ) ) {
+				return $backups_root;
+			}
+			if ( is_wp_error( $staging_root ) ) {
+				return $staging_root;
+			}
+
+			$legacy_roots = [
+				[ $legacy_paths[0], $uploads_root, $backups_root ],
+				[ $legacy_paths[1], $uploads_root, $staging_root ],
+				[ $legacy_paths[2], WP_CONTENT_DIR, $backups_root ],
+			];
+			$first_error  = null;
+			foreach ( $legacy_roots as [ $source, $boundary, $destination ] ) {
+				$result = $this->migrate_legacy_root( $source, $boundary, $destination );
+				if ( is_wp_error( $result ) && null === $first_error ) {
+					$first_error = $result;
+				}
+			}
+
+			return $first_error ?? true;
+		} finally {
+			delete_option( $lock_name );
+		}
 	}
 
 	/**
@@ -649,14 +687,16 @@ class PluginUpdater {
 			);
 		}
 
-		$entries = new \FilesystemIterator( $source_real, \FilesystemIterator::SKIP_DOTS );
+		$first_error = null;
+		$entries     = new \FilesystemIterator( $source_real, \FilesystemIterator::SKIP_DOTS );
 		foreach ( $entries as $entry ) {
 			/** @var \SplFileInfo $entry */
 			if ( $entry->isLink() || ! $entry->isDir() ) {
-				return new WP_Error(
+				$first_error ??= new WP_Error(
 					'sd_ai_agent_legacy_storage_unexpected_entry',
 					__( 'Legacy plugin backup storage contains an unsafe entry.', 'superdav-ai-agent' )
 				);
+				continue;
 			}
 
 			$source      = $entry->getPathname();
@@ -664,29 +704,33 @@ class PluginUpdater {
 			if ( is_dir( $destination ) ) {
 				$matches = $this->directories_match( $source, $destination );
 				if ( is_wp_error( $matches ) ) {
-					return $matches;
+					$first_error ??= $matches;
+					continue;
 				}
-				if ( ! $matches ) {
-					$destination .= '-legacy-' . substr( hash( 'sha256', $source_real ), 0, 12 );
+				if ( $matches ) {
+					$this->remove_directory( $source );
+					continue;
 				}
+				$destination .= '-legacy-' . substr( hash( 'sha256', $source_real ), 0, 12 );
 			}
 
-			if ( ! is_dir( $destination ) ) {
-				$copied = $this->copy_directory( $source, $destination );
-				if ( is_wp_error( $copied ) ) {
-					return $copied;
+			if ( is_dir( $destination ) ) {
+				$matches = $this->directories_match( $source, $destination );
+				if ( is_wp_error( $matches ) || ! $matches ) {
+					$first_error ??= is_wp_error( $matches ) ? $matches : new WP_Error(
+						'sd_ai_agent_legacy_storage_conflict',
+						__( 'A conflicting private plugin backup already exists.', 'superdav-ai-agent' )
+					);
+					continue;
 				}
+				$this->remove_directory( $source );
+				continue;
 			}
 
-			$verified = $this->directories_match( $source, $destination );
-			if ( is_wp_error( $verified ) ) {
-				return $verified;
-			}
-			if ( ! $verified ) {
-				return new WP_Error(
-					'sd_ai_agent_legacy_storage_verification_failed',
-					__( 'A private plugin backup copy could not be verified.', 'superdav-ai-agent' )
-				);
+			$copied = $this->copy_verified_directory( $source, $destination );
+			if ( is_wp_error( $copied ) ) {
+				$first_error ??= $copied;
+				continue;
 			}
 
 			$this->remove_directory( $source );
@@ -695,6 +739,42 @@ class PluginUpdater {
 		$remaining = new \FilesystemIterator( $source_real, \FilesystemIterator::SKIP_DOTS );
 		if ( ! $remaining->valid() ) {
 			$this->remove_directory( $source_real );
+		}
+
+		return $first_error ?? true;
+	}
+
+	/**
+	 * Copy into a temporary sibling, verify it, then publish it atomically.
+	 *
+	 * @param string $source      Source directory.
+	 * @param string $destination Final private destination.
+	 * @return true|WP_Error
+	 */
+	private function copy_verified_directory( string $source, string $destination ): bool|WP_Error {
+		$temporary = $destination . '.migration-' . bin2hex( random_bytes( 8 ) );
+		$copied    = $this->copy_directory( $source, $temporary );
+		if ( is_wp_error( $copied ) ) {
+			$this->remove_directory( $temporary );
+			return $copied;
+		}
+
+		$verified = $this->directories_match( $source, $temporary );
+		if ( is_wp_error( $verified ) || ! $verified ) {
+			$this->remove_directory( $temporary );
+			return is_wp_error( $verified ) ? $verified : new WP_Error(
+				'sd_ai_agent_legacy_storage_verification_failed',
+				__( 'A private plugin backup copy could not be verified.', 'superdav-ai-agent' )
+			);
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-filesystem rename atomically publishes a verified private copy.
+		if ( ! rename( $temporary, $destination ) ) {
+			$this->remove_directory( $temporary );
+			return new WP_Error(
+				'sd_ai_agent_legacy_storage_publish_failed',
+				__( 'A verified private plugin backup could not be published.', 'superdav-ai-agent' )
+			);
 		}
 
 		return true;

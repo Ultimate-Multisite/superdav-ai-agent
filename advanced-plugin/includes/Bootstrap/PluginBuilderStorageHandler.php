@@ -33,6 +33,12 @@ final class PluginBuilderStorageHandler {
 	 */
 	#[Action( tag: 'init', priority: 1 )]
 	public function migrate_legacy_storage(): void {
-		( new PluginUpdater() )->migrate_legacy_storage();
+		$result = ( new PluginUpdater() )->migrate_legacy_storage();
+		if ( is_wp_error( $result ) ) {
+			update_option( 'sd_ai_agent_plugin_storage_migration_error', $result->get_error_code(), false );
+			return;
+		}
+
+		delete_option( 'sd_ai_agent_plugin_storage_migration_error' );
 	}
 }

@@ -266,12 +266,11 @@ final class Features {
 	 * is not advertised under any of the plugin's CLI namespaces and the
 	 * `BenchmarkCommand` class is never instantiated.
 	 *
-	 * Supplied by the advanced companion plugin because the
-	 * command's `--log-dir=<abs-path>` flag lets an administrator write
-	 * benchmark logs to an arbitrary absolute filesystem path, which the
-	 * WP.org reviewer flagged as out-of-scope for a public-directory
-	 * plugin (data should land in the database, the uploads dir, or the
-	 * media uploader).
+	 * Supplied by the advanced companion plugin because it runs live agent
+	 * benchmarks and writes detailed, credential-scrubbed diagnostics to
+	 * owner-only private storage outside web-served WordPress paths. The
+	 * optional `--log-dir=<abs-path>` override is subject to the same private
+	 * path and filesystem-permission checks.
 	 *
 	 * Constant: SD_AI_AGENT_FEATURE_BENCHMARK
 	 */

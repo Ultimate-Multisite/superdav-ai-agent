@@ -30,7 +30,30 @@ class InstallPluginAbilityTest extends WP_UnitTestCase {
 
 		$result = $ability->run( [ 'slug' => 'contact-form-7' ] );
 
-		$this->assertSame( $download_error, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'download_failed', $result->get_error_code() );
+		$this->assertSame( 'Package download failed.', $result->get_error_message() );
+	}
+
+	public function test_skin_error_scrubs_filesystem_paths(): void {
+		$download_error = new WP_Error( 'mkdir_failed', 'Could not create directory /var/www/html/wp-content/plugins/contact-form-7.' );
+		$ability        = $this->ability( false, $download_error );
+
+		$result = $ability->run( [ 'slug' => 'contact-form-7' ] );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'mkdir_failed', $result->get_error_code() );
+		$this->assertStringNotContainsString( '/var/www/html', $result->get_error_message() );
+		$this->assertStringContainsString( '[path]', $result->get_error_message() );
+	}
+
+	public function test_false_install_result_without_errors_is_reported_as_failed(): void {
+		$ability = $this->ability( false );
+
+		$result = $ability->run( [ 'slug' => 'contact-form-7' ] );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_install_failed', $result->get_error_code() );
 	}
 
 	public function test_success_requires_a_matching_plugin_file_on_disk(): void {

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Abilities;
 
 use SdAiAgent\Core\AbilityPluginRegistry;
+use SdAiAgent\Core\JobErrorSanitizer;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -111,7 +112,7 @@ class InstallPluginAbility extends AbstractAbility {
 		$api = $this->get_plugin_information( $slug );
 
 		if ( is_wp_error( $api ) ) {
-			return $api;
+			return $this->scrub_error( $api );
 		}
 		if ( ! is_object( $api ) || ! isset( $api->download_link ) || ! is_string( $api->download_link ) || '' === $api->download_link ) {
 			return new WP_Error( 'sd_ai_agent_plugin_api_invalid_response', __( 'WordPress.org did not return a valid plugin download.', 'superdav-ai-agent' ) );
@@ -123,13 +124,16 @@ class InstallPluginAbility extends AbstractAbility {
 		$result        = $installation['result'];
 
 		if ( is_wp_error( $result ) ) {
-			return $result;
+			return $this->scrub_error( $result );
 		}
 
 		if ( true !== $result ) {
 			$errors = $installation['errors'];
 			if ( is_wp_error( $errors ) && $errors->has_errors() ) {
-				return $errors;
+				return $this->scrub_error( $errors );
+			}
+			if ( null !== $result ) {
+				return new WP_Error( 'sd_ai_agent_install_failed', __( 'WordPress could not complete the plugin installation.', 'superdav-ai-agent' ) );
 			}
 			return new WP_Error(
 				'sd_ai_agent_install_aborted',
@@ -153,7 +157,7 @@ class InstallPluginAbility extends AbstractAbility {
 				return [
 					'status'      => 'installed',
 					// @phpstan-ignore-next-line
-					'message'     => sprintf( 'Plugin "%s" installed but activation failed: %s', $slug, $activate_result->get_error_message() ),
+					'message'     => sprintf( 'Plugin "%s" installed but activation failed: %s', $slug, $this->safe_error_message( $activate_result ) ),
 					'plugin_file' => $plugin_file,
 					'active'      => false,
 				];
@@ -277,6 +281,20 @@ class InstallPluginAbility extends AbstractAbility {
 
 	protected function is_plugin_active( string $plugin_file ): bool {
 		return is_plugin_active( $plugin_file );
+	}
+
+	protected function scrub_error( WP_Error $error ): WP_Error {
+		$code    = sanitize_key( (string) $error->get_error_code() );
+		$message = $this->safe_error_message( $error );
+
+		return new WP_Error(
+			'' !== $code ? $code : 'sd_ai_agent_install_failed',
+			'' !== $message ? $message : __( 'WordPress could not complete the plugin operation.', 'superdav-ai-agent' )
+		);
+	}
+
+	protected function safe_error_message( WP_Error $error ): string {
+		return JobErrorSanitizer::sanitize( $error->get_error_message(), 300 );
 	}
 
 	protected function permission_callback( $input ): bool {

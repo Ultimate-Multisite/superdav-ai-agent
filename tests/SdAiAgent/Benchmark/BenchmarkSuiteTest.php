@@ -19,6 +19,50 @@ use WP_UnitTestCase;
  */
 class BenchmarkSuiteTest extends WP_UnitTestCase {
 
+	/** Assertion intent distinguishes smoke coverage from verified outcomes. */
+	public function test_assertion_intent_classification_is_conservative(): void {
+		$invocation = BenchmarkSuite::inspect_assertion_intent(
+			array(
+				array( 'type' => 'tool_called' ),
+			)
+		);
+		$mixed      = BenchmarkSuite::inspect_assertion_intent(
+			array(
+				array( 'type' => 'tool_called' ),
+				array( 'type' => 'post_exists' ),
+			)
+		);
+		$composite  = BenchmarkSuite::inspect_assertion_intent(
+			array(
+				array( 'type' => 'tool_called_or_user_exists' ),
+			)
+		);
+		$unsupported = BenchmarkSuite::inspect_assertion_intent(
+			array(
+				array( 'type' => 'future_assertion_type' ),
+			)
+		);
+
+		$this->assertSame( 'invocation_only', $invocation['classification'] );
+		$this->assertFalse( $invocation['functionally_verifiable'] );
+		$this->assertSame( 'mixed', $mixed['classification'] );
+		$this->assertTrue( $mixed['functionally_verifiable'] );
+		$this->assertSame( 'composite', $composite['classification'] );
+		$this->assertFalse( $composite['functionally_verifiable'] );
+		$this->assertSame( 'unsupported', $unsupported['classification'] );
+		$this->assertFalse( $unsupported['functionally_verifiable'] );
+	}
+
+	/** Credentialed questions explicitly report graceful-degradation coverage. */
+	public function test_credentialed_questions_declare_graceful_degradation_dimension(): void {
+		$questions = BenchmarkSuite::get_questions( 'abilities-credentialed-v1' );
+
+		$this->assertNotEmpty( $questions );
+		foreach ( $questions as $question ) {
+			$this->assertSame( 'graceful_degradation', $question['benchmark_dimension'] ?? '' );
+		}
+	}
+
 	/**
 	 * Test adev-005 targets a file available under the file ability wp-content root.
 	 */

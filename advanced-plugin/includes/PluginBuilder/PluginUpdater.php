@@ -133,6 +133,7 @@ class PluginUpdater {
 				);
 			}
 		}
+		clearstatcache( true, (string) $canonical );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileperms -- Verifying that private storage is inaccessible to other local users.
 		$permissions = fileperms( (string) $canonical );

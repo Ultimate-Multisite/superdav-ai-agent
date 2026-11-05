@@ -5,9 +5,9 @@ declare(strict_types=1);
  * WP-CLI benchmark command.
  *
  * Drives the full AI agent loop against live WordPress and writes a structured
- * log file for every question run. No database writes — results live entirely
- * in a private directory outside web-served WordPress paths by default, or in
- * an explicitly supplied private absolute path passed via --log-dir.
+ * log file for every question run. Result logs live in a private directory
+ * outside web-served WordPress paths by default, but benchmark tasks and their
+ * fixtures may still mutate the database, filesystem, or site configuration.
  *
  * Usage:
  *   wp sd-ai-agent benchmark run --suite=functional-v1 --provider=anthropic --model=claude-sonnet-4-6
@@ -53,6 +53,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class BenchmarkCommand extends WP_CLI_Command {
 
+	private const PROFILE_FUNCTIONAL = 'functional';
+
+	private const PROFILE_PRODUCTION_PARITY = 'production-parity';
+
 	/**
 	 * Prefix for the site-specific private benchmark directory.
 	 *
@@ -88,6 +92,15 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 	/** @var array<int, array{login: string, owner: string}> Users owned by this run. */
 	private array $owned_user_fixtures = array();
+
+	/** @var string Active execution profile. */
+	private string $executionProfile = self::PROFILE_FUNCTIONAL;
+
+	/** @var array<int, string> Abilities explicitly approved once for a production-parity run. */
+	private array $approvedOnceAbilities = array();
+
+	/** @var array<string, mixed> Safe execution-profile details persisted with every result. */
+	private array $executionProfileMetadata = array();
 
 	/**
 	 * System prompt injected for every benchmark question.
@@ -189,6 +202,18 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * [--keep-plugins]
 	 * : Keep generated sandbox plugins on disk after the run for debugging.
 	 *
+	 * [--profile=<profile>]
+	 * : Execution profile. `functional` preserves the legacy privileged,
+	 *   globally-approved smoke profile. `production-parity` honors the current
+	 *   WP-CLI actor (select one with the global `--user` option), uses the normal
+	 *   prompt and automatic ability catalog, and keeps normal approval checks.
+	 *   Default: functional
+	 *
+	 * [--approve-abilities=<names>]
+	 * : Comma-separated ability names explicitly approved once for this run.
+	 *   Intended for controlled production-parity mutations; this does not enable
+	 *   global write approval.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *   wp sd-ai-agent benchmark run --suite=functional-v1 --provider=ultimate-ai-connector-anthropic-max --model=claude-sonnet-4-6
@@ -205,6 +230,14 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$model_id    = (string) ( $assoc_args['model'] ?? '' );
 		$log_dir     = (string) ( $assoc_args['log-dir'] ?? '' );
 		$no_cleanup  = isset( $assoc_args['keep-plugins'] );
+		$profile     = (string) ( $assoc_args['profile'] ?? self::PROFILE_FUNCTIONAL );
+
+		if ( ! in_array( $profile, array( self::PROFILE_FUNCTIONAL, self::PROFILE_PRODUCTION_PARITY ), true ) ) {
+			WP_CLI::error( 'Invalid benchmark profile. Use "functional" or "production-parity".' );
+		}
+
+		$this->executionProfile       = $profile;
+		$this->approvedOnceAbilities = $this->parse_approved_abilities( (string) ( $assoc_args['approve-abilities'] ?? '' ) );
 
 		// Resolve questions to run.
 		if ( '' !== $question_id ) {
@@ -251,36 +284,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 		// Ensure credentials are loaded for the AI SDK.
 		ProviderCredentialLoader::load();
 
-		// Set the current user to an administrator so abilities that gate on
-		// current_user_can( 'edit_posts' )/'manage_options' work in CLI context.
-		// Without this every ability returns ability_invalid_permissions.
-		$admin_id = 0;
-		if ( is_multisite() ) {
-			$super_admins = get_super_admins();
-			if ( ! empty( $super_admins ) ) {
-				$user = get_user_by( 'login', $super_admins[0] );
-				if ( $user ) {
-					$admin_id = (int) $user->ID;
-				}
-			}
-		}
-		if ( 0 === $admin_id ) {
-			$admins = get_users(
-				array(
-					'role'    => 'administrator',
-					'number'  => 1,
-					'orderby' => 'ID',
-				)
-			);
-			if ( ! empty( $admins ) ) {
-				$admin_id = (int) $admins[0]->ID;
-			}
-		}
-		if ( $admin_id > 0 ) {
-			wp_set_current_user( $admin_id );
-		} else {
-			WP_CLI::warning( 'No administrator user found — abilities may fail with permission errors.' );
-		}
+		$this->configure_actor();
+		$this->executionProfileMetadata = $this->build_execution_profile_metadata();
 
 		WP_CLI::log( '' );
 		WP_CLI::log( '╔══════════════════════════════════════════════════════════════╗' );
@@ -288,6 +293,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( '╚══════════════════════════════════════════════════════════════╝' );
 		WP_CLI::log( sprintf( '  Provider : %s', $provider_id ?: 'default' ) );
 		WP_CLI::log( sprintf( '  Model    : %s', $model_id ?: 'default' ) );
+		WP_CLI::log( sprintf( '  Profile  : %s', $profile ) );
+		WP_CLI::log( sprintf( '  Actor    : %s', implode( ',', $this->executionProfileMetadata['effective_actor']['roles'] ) ?: 'anonymous' ) );
 		WP_CLI::log( sprintf( '  Questions: %d', count( $questions ) ) );
 		WP_CLI::log( sprintf( '  Logs     : %s', $run_dir ) );
 		WP_CLI::log( '' );
@@ -440,6 +447,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'graceful_degradation_questions'  => $totals['graceful_degradation_questions'],
 			'run_status'                      => $run_status,
 			'ranking_eligible'                => $this->is_ranking_eligible( $totals, $run_status ),
+			'execution_profile'               => $this->executionProfileMetadata,
 			'questions'                       => $question_summaries,
 		);
 		$summary_file         = $run_dir . '/suite-summary.json';
@@ -760,6 +768,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'provider_id'         => $provider_id,
 			'model_id'            => $model_id,
 			'started_at'          => gmdate( 'c' ),
+			'execution_profile'  => $this->get_execution_profile_metadata(),
 		);
 
 		$execution = isset( $question['execution'] ) && is_array( $question['execution'] ) ? $question['execution'] : array();
@@ -775,6 +784,20 @@ class BenchmarkCommand extends WP_CLI_Command {
 				'results' => array(),
 			);
 			$log['completed_at']    = gmdate( 'c' );
+			return $log;
+		}
+
+		if ( self::PROFILE_PRODUCTION_PARITY === $this->executionProfile && $this->question_requires_browser_client( $question ) ) {
+			$log['status']          = 'deferred';
+			$log['deferred_reason'] = 'browser_client_unavailable';
+			$log['deferred_detail'] = 'The server-only WP-CLI profile cannot execute or verify browser client tools.';
+			$log['assertions']      = array(
+				'passed'  => 0,
+				'failed'  => 0,
+				'total'   => 0,
+				'results' => array(),
+			);
+			$log['completed_at'] = gmdate( 'c' );
 			return $log;
 		}
 
@@ -913,12 +936,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$last_log_count = 0;
 
 		$options = array(
-			'provider_id'         => $provider_id,
-			'model_id'            => $model_id,
-			'max_iterations'      => $max_turns,
-			'yolo_mode'           => true,  // No confirmation prompts in benchmark.
-			'agent_system_prompt' => self::SYSTEM_PROMPT,
-			'progress_callback'   => function ( array $full_log ) use ( &$tool_call_log, &$last_log_count ): void {
+			'provider_id'       => $provider_id,
+			'model_id'          => $model_id,
+			'max_iterations'    => $max_turns,
+			'progress_callback' => function ( array $full_log ) use ( &$tool_call_log, &$last_log_count ): void {
 				// The callback receives the full log on every fire — diff to get new entries.
 				$new_entries = array_slice( $full_log, $last_log_count );
 				$last_log_count = count( $full_log );
@@ -951,8 +972,16 @@ class BenchmarkCommand extends WP_CLI_Command {
 			},
 		);
 
-		// Load all server-side abilities (same as a normal agent run).
-		$abilities = ToolDiscovery::tier_1_for_run();
+		if ( self::PROFILE_FUNCTIONAL === $this->executionProfile ) {
+			$options['yolo_mode']           = true;
+			$options['agent_system_prompt'] = self::SYSTEM_PROMPT;
+			// Preserve the legacy benchmark's explicit Tier-1 override.
+			$abilities = ToolDiscovery::tier_1_for_run();
+		} else {
+			$options['approved_once_abilities'] = $this->approvedOnceAbilities;
+			// An empty override selects AgentLoop's normal automatic catalog path.
+			$abilities = array();
+		}
 
 		$loop   = new AgentLoop( $prompt, $abilities, array(), $options );
 		$result = $loop->run();
@@ -1009,7 +1038,114 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'provider_error'          => $result['provider_error'] ?? null,
 			'deferred_reason'         => (string) ( $result['deferred_reason'] ?? '' ),
 			'missing_prerequisites'   => $result['missing_prerequisites'] ?? array(),
+			'execution_profile'       => $result['execution_profile'] ?? array(),
 		);
+	}
+
+	/** Configure the effective actor for the selected execution profile. */
+	protected function configure_actor(): void {
+		if ( self::PROFILE_PRODUCTION_PARITY === $this->executionProfile ) {
+			if ( 0 === get_current_user_id() ) {
+				WP_CLI::warning( 'Production-parity profile is running anonymously. Use the global --user option to select an actor.' );
+			}
+			return;
+		}
+
+		$admin_id = 0;
+		if ( is_multisite() ) {
+			$super_admins = get_super_admins();
+			if ( ! empty( $super_admins ) ) {
+				$user = get_user_by( 'login', $super_admins[0] );
+				if ( $user ) {
+					$admin_id = (int) $user->ID;
+				}
+			}
+		}
+		if ( 0 === $admin_id ) {
+			$admins = get_users(
+				array(
+					'role'    => 'administrator',
+					'number'  => 1,
+					'orderby' => 'ID',
+				)
+			);
+			if ( ! empty( $admins ) ) {
+				$admin_id = (int) $admins[0]->ID;
+			}
+		}
+
+		if ( $admin_id > 0 ) {
+			wp_set_current_user( $admin_id );
+			return;
+		}
+
+		WP_CLI::warning( 'No administrator user found — abilities may fail with permission errors.' );
+	}
+
+	/** Select a profile in focused command tests. */
+	protected function set_execution_profile( string $profile, array $approved_once_abilities = array() ): void {
+		$this->executionProfile          = $profile;
+		$this->approvedOnceAbilities    = $approved_once_abilities;
+		$this->executionProfileMetadata = array();
+	}
+
+	/** Return safe, comparable metadata for the active execution profile. */
+	protected function get_execution_profile_metadata(): array {
+		if ( empty( $this->executionProfileMetadata ) ) {
+			$this->executionProfileMetadata = $this->build_execution_profile_metadata();
+		}
+
+		return $this->executionProfileMetadata;
+	}
+
+	/** Build safe, comparable metadata for the active execution profile. */
+	private function build_execution_profile_metadata(): array {
+		$user  = wp_get_current_user();
+		$roles = $user->exists() ? array_values( array_map( 'sanitize_key', $user->roles ) ) : array();
+
+		return array(
+			'name'               => $this->executionProfile,
+			'effective_actor'    => array(
+				'user_id' => (int) $user->ID,
+				'roles'   => $roles,
+			),
+			'approval_mode'      => self::PROFILE_FUNCTIONAL === $this->executionProfile
+				? 'global_write_approval'
+				: ( empty( $this->approvedOnceAbilities ) ? 'normal' : 'explicit_once' ),
+			'prompt_profile'     => self::PROFILE_FUNCTIONAL === $this->executionProfile ? 'custom_functional' : 'default',
+			'catalog_resolution' => self::PROFILE_FUNCTIONAL === $this->executionProfile ? 'explicit_tier_1' : 'automatic',
+			'browser_client'     => array(
+				'available' => false,
+				'mode'      => 'server_only',
+			),
+		);
+	}
+
+	/** Parse a comma-separated explicit approval list. */
+	private function parse_approved_abilities( string $value ): array {
+		$names = array_map( 'trim', explode( ',', $value ) );
+		$names = array_filter( $names, static fn( string $name ): bool => '' !== $name );
+
+		return array_values( array_unique( $names ) );
+	}
+
+	/** Whether a question requires a browser client that WP-CLI cannot provide. */
+	private function question_requires_browser_client( array $question ): bool {
+		if ( ! empty( $question['requires_browser_client'] ) ) {
+			return true;
+		}
+
+		$client_tools = array( 'sd-ai-agent/navigate', 'sd-ai-agent/get-page-html' );
+		foreach ( (array) ( $question['assertions'] ?? array() ) as $assertion ) {
+			foreach ( (array) ( $assertion['tools'] ?? array() ) as $tool ) {
+				$tool = (string) $tool;
+				if ( str_starts_with( $tool, 'sd-ai-agent-js/' ) || in_array( $tool, $client_tools, true ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**

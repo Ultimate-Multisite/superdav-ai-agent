@@ -1904,6 +1904,33 @@ PROMPT;
 		);
 	}
 
+	/** Return the shared bounded no-progress outcome for executed or reused calls. */
+	private function abort_on_spin(): array {
+		AgentEventLog::log(
+			'agent_loop_aborted',
+			AgentEventLog::SEVERITY_WARNING,
+			array(
+				'session_id'      => $this->session_id,
+				'reason'          => 'spin_detected',
+				'iterations_used' => $this->iterations_used,
+				'iterations_max'  => (int) $this->max_iterations,
+				'model_id'        => (string) $this->model_id,
+				'provider_id'     => (string) $this->provider_id,
+			)
+		);
+		return $this->with_result_logs(
+			array(
+				'reply'           => __( 'I\'ve been repeating the same operations without making progress. Here\'s what I found so far. Try rephrasing your request or providing more specifics.', 'superdav-ai-agent' ),
+				'history'         => $this->serialize_history(),
+				'tool_calls'      => $this->tool_call_log,
+				'token_usage'     => $this->token_usage,
+				'iterations_used' => $this->iterations_used,
+				'model_id'        => $this->model_id,
+				'exit_reason'     => 'spin_detected',
+			)
+		);
+	}
+
 	/**
 	 * Inner loop: send prompts, handle tool calls, repeat.
 	 *
@@ -2314,6 +2341,11 @@ PROMPT;
 			}
 
 			if ( ! $this->message_has_function_calls( $assistant_message ) ) {
+				$tool_progress   = $this->record_tool_progress( $history_message, $readonly_rounds );
+				$readonly_rounds = $tool_progress['readonly_rounds'];
+				if ( $this->spin_detector->record( $history_message, self::MAX_IDLE_ROUNDS ) ) {
+					return $this->abort_on_spin();
+				}
 				$this->last_loop_phase = 'reused_readonly_tool_results';
 				continue;
 			}
@@ -2466,34 +2498,8 @@ PROMPT;
 
 			// Spin detection: delegate to SpinDetector which encapsulates
 			// the idle-round state (last_tool_signature + idle_rounds counter).
-			if ( $this->spin_detector->record( $assistant_message, self::MAX_IDLE_ROUNDS ) ) {
-				AgentEventLog::log(
-					'agent_loop_aborted',
-					AgentEventLog::SEVERITY_WARNING,
-					array(
-						'session_id'      => $this->session_id,
-						'reason'          => 'spin_detected',
-						'iterations_used' => $this->iterations_used,
-						'iterations_max'  => (int) $this->max_iterations,
-						'model_id'        => (string) $this->model_id,
-						'provider_id'     => (string) $this->provider_id,
-					)
-				);
-
-				return $this->with_result_logs(
-					array(
-						'reply'           => __(
-							'I\'ve been repeating the same operations without making progress. Here\'s what I found so far. Try rephrasing your request or providing more specifics.',
-							'superdav-ai-agent'
-						),
-						'history'         => $this->serialize_history(),
-						'tool_calls'      => $this->tool_call_log,
-						'token_usage'     => $this->token_usage,
-						'iterations_used' => $this->iterations_used,
-						'model_id'        => $this->model_id,
-						'exit_reason'     => 'spin_detected',
-					)
-				);
+			if ( $this->spin_detector->record( $history_message, self::MAX_IDLE_ROUNDS ) ) {
+				return $this->abort_on_spin();
 			}
 		}
 

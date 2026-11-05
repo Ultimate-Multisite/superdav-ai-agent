@@ -158,7 +158,16 @@ class RunLocalReadonlyToolCache {
 	private function message_has_mutation( Message $message ): bool {
 		foreach ( $message->getParts() as $part ) {
 			$call = $part->getFunctionCall();
-			if ( $call && ! $this->is_cacheable_local_read( $call ) ) {
+			if ( ! $call ) {
+				continue;
+			}
+			$name = self::canonical_name( (string) $call->getName() );
+			// These built-in discovery callbacks only inspect registries/skill metadata.
+			// Do not trust arbitrary readonly annotations or unknown dispatcher targets.
+			if ( in_array( $name, [ 'sd-ai-agent/ability-search', 'sd-ai-agent/skill-list', 'sd-ai-agent/skill-load' ], true ) ) {
+				continue;
+			}
+			if ( ! $this->is_cacheable_local_read( $call ) ) {
 				return true;
 			}
 		}

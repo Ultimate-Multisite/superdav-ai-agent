@@ -13,6 +13,7 @@ namespace SdAiAgent\Tests\REST;
 
 use SdAiAgent\Core\BackgroundJobDispatcher;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
+use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Bootstrap\AutomationsHandler;
 use SdAiAgent\Core\Database;
 use SdAiAgent\Core\DurablePlanRunner;
@@ -34,6 +35,150 @@ class SessionControllerTest extends WP_UnitTestCase {
 	private int $admin_id;
 
 	private int $other_admin_id;
+
+	/** @return array<string, array{string}> */
+	public static function terminal_publication_phases(): array {
+		return array(
+			'exception' => array( 'exception_publication' ),
+			'result'    => array( 'result_publication' ),
+		);
+	}
+
+	/**
+	 * Terminal publication uses a longer wait and logs lock failures safely.
+	 *
+	 * @dataProvider terminal_publication_phases
+	 */
+	public function test_terminal_publication_lock_wait_and_diagnostic( string $phase ): void {
+		$queries = array();
+		$events  = array();
+		$fail_lock = static function ( $query ) use ( &$queries ) {
+			if ( str_starts_with( $query, 'SELECT GET_LOCK(' ) ) {
+				$queries[] = $query;
+				return 'SELECT NULL';
+			}
+			return $query;
+		};
+		$capture = static function ( $event, $severity, $context ) use ( &$events ) {
+			$events[] = array( $event, $severity, $context );
+		};
+		add_filter( 'query', $fail_lock );
+		add_action( 'sd_ai_agent_event_logged', $capture, 10, 3 );
+		try {
+			$acquire = new \ReflectionMethod( SessionController::class, 'acquire_job_publication_lock' );
+			$this->assertNull( $acquire->invoke( null, 'test-publication-wait', $phase ) );
+			$this->assertCount( 1, $queries );
+			$this->assertStringContainsString( ', 15)', $queries[0] );
+			$this->assertSame(
+				array( array( 'job_publication_lock_failed', 'warning', array( 'job_id' => 'test-publication-wait', 'phase' => $phase, 'reason' => 'mutation_lock_unavailable' ) ) ),
+				$events
+			);
+		} finally {
+			remove_filter( 'query', $fail_lock );
+			remove_action( 'sd_ai_agent_event_logged', $capture, 10 );
+		}
+	}
+
+	/** Recovery cannot advance the generation between an ownership check and a progress write. */
+	public function test_checkpoint_recovery_serializes_with_progress_publication(): void {
+		global $wpdb;
+		$test_connection = $wpdb;
+		$session_id      = $this->create_session();
+		// WP_UnitTestCase wraps its connection in a transaction. Use an
+		// autocommit worker connection so recovery can actually see the row.
+		$original = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$original->set_prefix( $test_connection->prefix );
+		$connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$connection->set_prefix( $original->prefix );
+		$wpdb       = $original;
+		$controller = new SessionController( new Database() );
+		$job_id     = wp_generate_uuid4();
+		$key        = RestController::JOB_PREFIX . $job_id;
+		$checkpoint = array(
+			'history'     => array( array( 'role' => 'user', 'parts' => array( array( 'text' => 'Continue safely.' ) ) ) ),
+			'provider_id' => 'test-provider',
+			'model_id'    => 'test-model',
+		);
+		ActiveJobRepository::create( $session_id, $job_id, $this->admin_id, 'processing' );
+		ActiveJobRepository::save_checkpoint( $job_id, AgentLoop::CHECKPOINT_BEFORE_PROVIDER_CALL, $checkpoint );
+		ActiveJobRepository::mark_interrupted( $job_id );
+		$row        = ActiveJobRepository::get_by_job_id( $job_id );
+		$generation = ActiveJobRepository::get_worker_generation( $job_id );
+		$factory    = new \ReflectionMethod( SessionController::class, 'build_job_progress_callback' );
+		$progress   = $factory->invoke( null, $job_id, $generation );
+		$resume     = new \ReflectionMethod( SessionController::class, 'maybe_dispatch_checkpoint_resume' );
+		$acquire    = new \ReflectionMethod( SessionController::class, 'acquire_job_mutation_lock' );
+		$release    = new \ReflectionMethod( SessionController::class, 'release_job_mutation_lock' );
+		set_transient( $key, array( 'status' => 'processing', 'messages' => array() ), RestController::JOB_TTL );
+		$overlaps = 0;
+		$overlap  = function ( $value ) use ( &$wpdb, $original, $connection, $controller, $job_id, $row, $resume, $acquire, $release, &$overlaps ) {
+			++$overlaps;
+			// This hook runs after owns_job(), immediately before the old write.
+			$wpdb = $connection;
+			try {
+				$visible = ActiveJobRepository::get_by_job_id( $job_id );
+				$this->assertNotNull( $visible, 'Recovery must see the committed fixture, not an empty transaction snapshot.' );
+				$this->assertSame( 'interrupted', $visible->status );
+				$outcome = $resume->invoke( $controller, $job_id, $row );
+				$this->assertFalse( $outcome['terminal'] );
+				$this->assertNull( $acquire->invoke( null, $job_id ) );
+				$other_lock = $acquire->invoke( null, $job_id . '-unrelated' );
+				$this->assertNotNull( $other_lock, 'Unrelated jobs must remain independent.' );
+				$release->invoke( null, $other_lock );
+			} finally {
+				$wpdb = $original;
+			}
+			$this->assertSame( 0, ActiveJobRepository::get_worker_generation( $job_id ) );
+			return $value;
+		};
+		$dispatches = 0;
+		$dispatch   = function ( $preempt ) use ( &$wpdb, $original, $connection, $job_id, $key, $acquire, $release, &$dispatches ) {
+			++$dispatches;
+			$this->assertTrue( get_transient( $key )['checkpoint_resume'] );
+			$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $job_id )->status );
+			$wpdb = $connection;
+			try {
+				$lock = $acquire->invoke( null, $job_id );
+				$this->assertNotNull( $lock, 'Dispatch must occur outside the publication lock.' );
+				$release->invoke( null, $lock );
+			} finally {
+				$wpdb = $original;
+			}
+			return new \WP_Error( 'http_request_failed', 'No network in this test.' );
+		};
+		add_filter( 'pre_set_transient_' . $key, $overlap );
+		add_filter( 'pre_http_request', $dispatch );
+		try {
+			$progress( array(), array( array( 'text' => 'Old progress.' ) ) );
+			$this->assertSame( 1, $overlaps );
+			$this->assertSame( 0, $dispatches, 'Contended recovery must not dispatch.' );
+			remove_filter( 'pre_set_transient_' . $key, $overlap );
+			$this->assertTrue( $resume->invoke( $controller, $job_id, $row )['dispatched'] );
+			$this->assertSame( 1, $dispatches );
+			$this->assertSame( 1, ActiveJobRepository::get_worker_generation( $job_id ) );
+			$resumed = get_transient( $key );
+			$progress( array(), array( array( 'text' => 'Stale progress.' ) ) );
+			$this->assertSame( $resumed, get_transient( $key ) );
+			$this->assertSame( $checkpoint['history'], $resumed['checkpoint_state']['history'] );
+			$this->assertSame( $resumed['checkpoint_state'], json_decode( ActiveJobRepository::get_by_job_id( $job_id )->checkpoint, true ) );
+		} finally {
+			$wpdb = $original;
+			try {
+				remove_filter( 'pre_set_transient_' . $key, $overlap );
+				remove_filter( 'pre_http_request', $dispatch );
+				delete_transient( $key );
+				ActiveJobRepository::delete( $job_id );
+				wp_clear_scheduled_hook( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ) );
+				if ( function_exists( 'as_unschedule_all_actions' ) ) {
+					as_unschedule_all_actions( BackgroundJobDispatcher::HOOK, array( get_current_blog_id(), $job_id ), 'sd-ai-agent' );
+				}
+			} finally {
+				$connection->close();
+				$original->close();
+				$wpdb = $test_connection;
+			}
+		}
+	}
 
 	/** Jobs retain one durable action and receive an immediate kick on their own site. */
 	public function test_background_dispatcher_queues_job_on_target_site_once(): void {
@@ -98,6 +243,11 @@ class SessionControllerTest extends WP_UnitTestCase {
 	 * @dataProvider background_job_starters
 	 */
 	public function test_background_job_runs_once_across_loopback_and_queue( bool $block_loopback ): void {
+		global $wpdb;
+		$original_connection = $wpdb;
+		$connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$connection->set_prefix( $wpdb->prefix );
+		$publications = 0;
 		$session_id = $this->create_session();
 		$original   = array();
 		for ( $i = 0; $i < 264; ++$i ) {
@@ -121,11 +271,31 @@ class SessionControllerTest extends WP_UnitTestCase {
 		if ( ! has_action( BackgroundJobDispatcher::HOOK ) ) {
 			add_action( BackgroundJobDispatcher::HOOK, $queue_callback, 10, 2 );
 		}
-		$intercept = function ( $preempt, $args, $url ) use ( $block_loopback, $controller, $blog_id, &$provider_calls, &$loopbacks, &$job_id, &$process ) {
+		$publication = function ( $value ) use ( &$wpdb, $original_connection, $connection, $controller, &$job_id, &$publications ) {
+			if ( 'complete' !== ( $value['status'] ?? '' ) ) {
+				return $value;
+			}
+			++$publications;
+			ActiveJobRepository::mark_interrupted( $job_id );
+			$row = ActiveJobRepository::get_by_job_id( $job_id );
+			$wpdb = $connection;
+			try {
+				$resume  = new \ReflectionMethod( SessionController::class, 'maybe_dispatch_checkpoint_resume' );
+				$acquire = new \ReflectionMethod( SessionController::class, 'acquire_job_mutation_lock' );
+				$this->assertFalse( $resume->invoke( $controller, $job_id, $row )['terminal'] );
+				$this->assertNull( $acquire->invoke( null, $job_id ), 'Final publication must retain the ownership lock until its transient and DB writes finish.' );
+			} finally {
+				$wpdb = $original_connection;
+			}
+			$this->assertSame( 0, ActiveJobRepository::get_worker_generation( $job_id ) );
+			return $value;
+		};
+		$intercept = function ( $preempt, $args, $url ) use ( $block_loopback, $controller, $blog_id, $publication, &$provider_calls, &$loopbacks, &$job_id, &$process ) {
 			if ( rest_url( RestController::NAMESPACE . '/process' ) === $url ) {
 				++$loopbacks;
 				$body    = json_decode( $args['body'], true );
 				$job_id  = $body['job_id'];
+				add_filter( 'pre_set_transient_' . RestController::JOB_PREFIX . $job_id, $publication );
 				$process = new WP_REST_Request( 'POST', '/sd-ai-agent/v1/process' );
 				$process->set_body_params( $body );
 				$this->assertSame( 'queued', ActiveJobRepository::get_by_job_id( $job_id )->status );
@@ -181,6 +351,7 @@ class SessionControllerTest extends WP_UnitTestCase {
 			$this->assertFalse( $controller->handle_process( $process )->get_data()['ok'] );
 			$this->assertSame( 1, $loopbacks );
 			$this->assertSame( 1, $provider_calls, 'AgentLoop must make exactly one provider turn across all starters.' );
+			$this->assertSame( 1, $publications );
 			$this->assertSame( 'complete', ActiveJobRepository::get_by_job_id( $job_id )->status );
 			$session = Database::get_session( $session_id );
 			$saved   = json_decode( $session->messages, true );
@@ -193,6 +364,9 @@ class SessionControllerTest extends WP_UnitTestCase {
 			$this->assertSame( 10, (int) $session->prompt_tokens );
 			$this->assertSame( 5, (int) $session->completion_tokens );
 		} finally {
+			$wpdb = $original_connection;
+			$connection->close();
+			remove_filter( 'pre_set_transient_' . RestController::JOB_PREFIX . $job_id, $publication );
 			remove_filter( 'pre_http_request', $intercept, 10 );
 			remove_action( BackgroundJobDispatcher::HOOK, $queue_callback, 10 );
 			delete_transient( RestController::JOB_PREFIX . $job_id );

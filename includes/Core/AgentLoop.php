@@ -1875,7 +1875,7 @@ PROMPT;
 		$has_mutating_tools = ToolPermissionResolver::message_has_mutating_tools( $message );
 		if ( $has_mutating_tools ) {
 			$this->seen_readonly_tool_signatures = array();
-			$this->readonly_progress_guidance     = '';
+			$this->readonly_progress_guidance    = '';
 			return array(
 				'has_mutating_tools' => true,
 				'readonly_rounds'    => 0,

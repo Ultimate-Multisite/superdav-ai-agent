@@ -739,7 +739,7 @@ PROMPT;
 			// completed turns, whose tool payloads are compacted in provider requests.
 			// Per-turn context is model input only: history (and therefore the saved
 			// transcript and chat UI) keeps exactly what the user typed.
-			$this->turn_context         = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt );
+			$this->turn_context         = $this->system_instruction_locked ? '' : $this->instruction_builder->build_turn_context( $this->settings_for_prompt, $this->abilities ?: null );
 			$this->current_turn_message = new UserMessage( array( new MessagePart( $this->user_message ) ) );
 			$this->history[]            = $this->current_turn_message;
 
@@ -3200,7 +3200,7 @@ PROMPT;
 		// identical cacheable prefix.
 		if ( ! $this->system_instruction_locked && ! $this->system_instruction_initialized ) {
 			$ability_names                        = $this->system_prompt_ability_names( $abilities );
-			$this->system_instruction             = $this->instruction_builder->build_for_session( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog );
+			$this->system_instruction             = $this->instruction_builder->build_for_session( $this->settings_for_prompt, $ability_names, $this->should_use_native_tool_search(), $this->native_full_catalog, array_map( static fn( \WP_Ability $ability ): string => $ability->get_name(), $abilities ) );
 			$this->system_instruction_initialized = true;
 		}
 

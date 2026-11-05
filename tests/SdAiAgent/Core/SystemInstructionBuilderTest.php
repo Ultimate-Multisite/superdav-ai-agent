@@ -205,14 +205,15 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 	public function test_build_includes_frontend_live_preview_guidance(): void {
 		$builder = new SystemInstructionBuilder(
 			'',
-			'',
+			'Update this page',
 			array(
 				'is_frontend' => true,
 				'url'         => 'https://example.com/',
 			)
 		);
 
-		$instruction = $builder->build( array() );
+		$this->assertStringNotContainsString( '## Frontend live-preview context', $builder->build( array() ) );
+		$instruction = $builder->build_turn_context( array( 'knowledge_enabled' => false ) );
 
 		$this->assertStringContainsString( '## Frontend live-preview context', $instruction );
 		$this->assertStringContainsString( '`affected` descriptor', $instruction );
@@ -220,6 +221,71 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'preserving the open widget and current session', $instruction );
 		$this->assertStringContainsString( 'not evidence that the changed output rendered', $instruction );
 		$this->assertStringContainsString( 'rendered result remains unverified', $instruction );
+	}
+
+	/** Restricted catalogs omit unreachable operational guidance, not safety rules. */
+	public function test_read_only_catalog_omits_unreachable_guidance(): void {
+		$builder = new SystemInstructionBuilder();
+		foreach ( array( false, true ) as $native ) {
+			$instruction = $builder->build( array(), array( 'sd-ai-agent/file-read' ), $native, true, array( 'sd-ai-agent/file-read' ) );
+			$this->assertStringNotContainsString( '## Memory Instructions', $instruction );
+			$this->assertStringNotContainsString( '## Available Skills', $instruction );
+			$this->assertStringNotContainsString( '## Frontend live-preview context', $instruction );
+			$this->assertStringContainsString( '## Read-only diagnostic requests', $instruction );
+			$this->assertStringContainsString( '## Underspecified requests', $instruction );
+			$this->assertStringContainsString( 'requires SD AI Agent Advanced', $instruction );
+		}
+		$this->assertStringNotContainsString( '## Frontend live-preview context', $builder->build_turn_context( array( 'knowledge_enabled' => false ), array( 'sd-ai-agent/file-read' ) ) );
+	}
+
+	/** Only callable memory tools are advertised, including native deferred tools. */
+	public function test_memory_guidance_uses_resolved_catalog_not_compact_routing_names(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build(
+			array(),
+			array( 'sd-ai-agent/file-read' ),
+			true,
+			true,
+			array( 'sd-ai-agent/file-read', 'sd-ai-agent/memory-save' )
+		);
+		$this->assertStringContainsString( '## Memory Instructions', $instruction );
+		$this->assertStringContainsString( '**sd-ai-agent/memory-save**', $instruction );
+		$this->assertStringNotContainsString( '**sd-ai-agent/memory-delete**', $instruction );
+		$this->assertStringNotContainsString( '**sd-ai-agent/knowledge-search**', $instruction );
+		$disabled = ( new SystemInstructionBuilder() )->build( array( 'auto_memory' => false ), array( 'sd-ai-agent/memory-save' ) );
+		$this->assertStringNotContainsString( '## Memory Instructions', $disabled );
+	}
+
+	/** Full catalog skills stay available without inlining the full tool catalog. */
+	public function test_skill_index_is_retained_for_resolved_skill_load(): void {
+		\SdAiAgent\Core\Database::install();
+		$id = \SdAiAgent\Models\Skill::create( array( 'slug' => 'prompt-scope-fixture', 'name' => 'Prompt scope fixture', 'description' => 'Scoped guide', 'content' => 'Use core blocks.' ) );
+		$this->assertNotFalse( $id );
+		try {
+			$builder = new SystemInstructionBuilder();
+			$restricted = $builder->build( array(), array( 'sd-ai-agent/file-read' ), true, true, array( 'sd-ai-agent/file-read' ) );
+			$this->assertStringNotContainsString( 'prompt-scope-fixture', $restricted );
+			$full = $builder->build( array(), array( 'sd-ai-agent/file-read' ), true, true, array( 'sd-ai-agent/file-read', 'sd-ai-agent/skill-load' ) );
+			$this->assertStringContainsString( 'prompt-scope-fixture', $full );
+			$this->assertLessThan( strlen( $full ), strlen( $restricted ) );
+		} finally {
+			\SdAiAgent\Models\Skill::delete( (int) $id );
+		}
+	}
+
+	/** A cached admin-started session can later acquire frontend preview context. */
+	public function test_frontend_guidance_follows_turn_context_not_session_snapshot(): void {
+		\SdAiAgent\Core\Database::install();
+		$session_id = (int) \SdAiAgent\Core\Database::create_session( array( 'user_id' => get_current_user_id() ) );
+		try {
+			$admin = new SystemInstructionBuilder( '', 'Inspect this file', array(), $session_id );
+			$instruction = $admin->build_for_session( array(), array( 'sd-ai-agent/file-read' ) );
+			$frontend = new SystemInstructionBuilder( '', 'Update this page', array( 'is_frontend' => true ), $session_id );
+			$this->assertSame( $instruction, $frontend->build_for_session( array(), array( 'sd-ai-agent/update-post' ) ) );
+			$this->assertStringContainsString( '## Frontend live-preview context', $frontend->build_turn_context( array( 'knowledge_enabled' => false ) ) );
+			$this->assertStringNotContainsString( '## Frontend live-preview context', $admin->build_turn_context( array( 'knowledge_enabled' => false ) ) );
+		} finally {
+			\SdAiAgent\Core\Database::delete_session( $session_id );
+		}
 	}
 
 	/**

@@ -122,10 +122,12 @@ class SystemInstructionBuilder {
 	 *                                             Used to conditionally inject the Working-cadence section.
 	 * @param bool                 $native_tool_search Whether the provider exposes deferred native functions.
 	 * @param bool                 $native_full_catalog Whether every visible function is supplied to native search.
+	 * @param string[]|null        $available_ability_names Resolved catalog, separate from compact routing names.
 	 * @return string
 	 */
-	public function build( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true ): string {
-		$ability_names = array_values( array_map( 'strval', $ability_names ) );
+	public function build( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true, ?array $available_ability_names = null ): string {
+		$ability_names             = array_values( array_map( 'strval', $ability_names ) );
+		$available_ability_names ??= $ability_names;
 
 		// Use custom system prompt if set, otherwise the built-in default.
 		$custom = $settings['system_prompt'] ?? '';
@@ -143,8 +145,8 @@ class SystemInstructionBuilder {
 			$base .= "\n\n" . $memory_text;
 		}
 
-		// Append skill index if skills are available.
-		$skill_index = Skill::get_index_for_prompt();
+		// Do not advertise skill-load in a run whose tools cannot reach it.
+		$skill_index = self::can_use_prompt_ability( $available_ability_names, 'sd-ai-agent/skill-load' ) ? Skill::get_index_for_prompt() : '';
 		if ( ! empty( $skill_index ) ) {
 			// @phpstan-ignore-next-line
 			$base .= "\n\n" . $skill_index;
@@ -153,18 +155,21 @@ class SystemInstructionBuilder {
 		// If auto-memory is enabled, tell the agent about memory abilities.
 		$auto_memory = $settings['auto_memory'] ?? true;
 		if ( $auto_memory ) {
-			// @phpstan-ignore-next-line
-			$base .= "\n\n## Memory Instructions\n"
-				. "You have access to persistent memory tools. Use them proactively:\n"
-				. "- Use **sd-ai-agent/memory-save** to remember important information the user tells you (preferences, site details, workflows).\n"
-				. "- Use **sd-ai-agent/memory-list** to recall what you've previously stored.\n"
-				. "- Use **sd-ai-agent/memory-delete** to remove outdated memories.\n"
-				. "- Use **sd-ai-agent/knowledge-search** to search the knowledge base for relevant documents and information.\n"
-				. 'Save memories when the user shares reusable facts, preferences, or context that would be valuable in future conversations.';
+			$memory_instructions = array();
+			foreach ( array(
+				'sd-ai-agent/memory-save'      => 'remember reusable user preferences, site details and workflows',
+				'sd-ai-agent/memory-list'      => 'recall stored information',
+				'sd-ai-agent/memory-delete'    => 'remove outdated memories',
+				'sd-ai-agent/knowledge-search' => 'find relevant knowledge-base documents',
+			) as $ability => $purpose ) {
+				if ( self::can_use_prompt_ability( $available_ability_names, $ability ) ) {
+					$memory_instructions[] = '- Use **' . $ability . '** to ' . $purpose . '.';
+				}
+			}
+			if ( ! empty( $memory_instructions ) ) {
+				$base .= "\n\n## Memory Instructions\n" . implode( "\n", $memory_instructions );
+			}
 		}
-
-		// Static operating guidance remains valid when the user changes pages.
-		$base .= "\n\n" . self::build_frontend_live_preview_section();
 
 		// Native discovery already supplies the catalog through deferred schemas.
 		$base .= "\n\n" . self::build_tool_routing_section( $ability_names, $native_tool_search );
@@ -199,7 +204,7 @@ class SystemInstructionBuilder {
 		// Plugin recommendations are static for this session. Keeping this section
 		// independent of the user message preserves the provider prompt prefix.
 		$plugin_recommendations_enabled = (bool) ( $settings['plugin_recommendations_enabled'] ?? true );
-		if ( $plugin_recommendations_enabled ) {
+		if ( $plugin_recommendations_enabled && self::can_use_prompt_ability( $available_ability_names, 'sd-ai-agent/search-plugin-directory' ) ) {
 			$plugin_rec_section = PluginRecommendations::build_system_prompt_section();
 			if ( '' !== $plugin_rec_section ) {
 				// @phpstan-ignore-next-line
@@ -260,14 +265,15 @@ class SystemInstructionBuilder {
 	 * @param string[]             $ability_names Active ability names.
 	 * @param bool                 $native_tool_search Native search mode.
 	 * @param bool                 $native_full_catalog Full native catalog mode.
+	 * @param string[]|null        $available_ability_names Resolved catalog for capability-specific guidance.
 	 * @return string Immutable session instruction.
 	 */
-	public function build_for_session( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true ): string {
+	public function build_for_session( array $settings, array $ability_names = array(), bool $native_tool_search = false, bool $native_full_catalog = true, ?array $available_ability_names = null ): string {
 		$snapshot = \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id );
 		if ( null !== $snapshot ) {
 			return $snapshot;
 		}
-		$instruction = $this->build( $settings, $ability_names, $native_tool_search, $native_full_catalog );
+		$instruction = $this->build( $settings, $ability_names, $native_tool_search, $native_full_catalog, $available_ability_names );
 		return \SdAiAgent\Repositories\SessionRepository::system_instruction( $this->session_id, $instruction ) ?? $instruction;
 	}
 
@@ -280,9 +286,10 @@ class SystemInstructionBuilder {
 	 * prefix on later turns.
 	 *
 	 * @param array<string, mixed> $settings Plugin settings.
+	 * @param string[]|null        $available_ability_names Explicit run scope; null retains automatic discovery.
 	 * @return string Context wrapped for appending to a user message, or empty.
 	 */
-	public function build_turn_context( array $settings ): string {
+	public function build_turn_context( array $settings, ?array $available_ability_names = null ): string {
 		if ( '' === trim( $this->user_message ) ) {
 			return '';
 		}
@@ -293,7 +300,11 @@ class SystemInstructionBuilder {
 		if ( '' !== $current_context ) {
 			$sections[] = $current_context;
 		}
+		if ( ! empty( $this->page_context['is_frontend'] ) ) {
+			$sections[] = self::build_frontend_live_preview_section();
+		}
 		$can_load_skills = ! \SdAiAgent\Abilities\KnowledgeAbilities::is_public_collection_mode()
+			&& ( null === $available_ability_names || self::can_use_prompt_ability( $available_ability_names, 'sd-ai-agent/skill-load' ) )
 			&& \SdAiAgent\Abilities\ToolCapabilities::current_user_can( 'sd-ai-agent/skill-load' );
 		if ( $can_load_skills && ModelHealthTracker::is_weak( $this->model_id ) ) {
 			$auto_skill = SkillAutoInjector::inject_for_message( $this->user_message, $this->model_id, $this->session_id );
@@ -324,6 +335,24 @@ class SystemInstructionBuilder {
 		}
 
 		return "<context>\n\n" . implode( "\n\n", $sections ) . "\n\n</context>";
+	}
+
+	/**
+	 * Whether guidance can name an active tool or an authorized discovery target.
+	 *
+	 * This only selects prose; tool execution retains its existing security gates.
+	 *
+	 * @param string[] $abilities Actual catalog for this run, not compact routing names.
+	 * @param string   $name Ability referenced by the guidance.
+	 * @return bool
+	 */
+	private static function can_use_prompt_ability( array $abilities, string $name ): bool {
+		if ( in_array( $name, $abilities, true ) ) {
+			return true;
+		}
+		return in_array( 'sd-ai-agent/ability-search', $abilities, true )
+			&& in_array( 'sd-ai-agent/ability-call', $abilities, true )
+			&& \SdAiAgent\Abilities\ToolCapabilities::current_user_can( $name );
 	}
 
 	/**

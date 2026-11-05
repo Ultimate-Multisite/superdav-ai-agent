@@ -26,7 +26,7 @@ class AssertionEngine {
 	 *
 	 * @param array<int, array<string, mixed>> $assertions Assertion definitions.
 	 * @param array<string, mixed>             $context    Runtime context (plugin_slug, etc.).
-	 * @return array{passed: int, failed: int, total: int, results: list<array<string, mixed>>}
+	 * @return array<string, mixed>
 	 */
 	public static function run( array $assertions, array $context = array() ): array {
 		$results = array();
@@ -37,21 +37,33 @@ class AssertionEngine {
 
 			$results[] = array_merge(
 				array(
-					'type'        => $type,
-					'description' => $assertion['description'] ?? $type,
+					'type'          => $type,
+					'description'   => $assertion['description'] ?? $type,
+					'evidence_type' => BenchmarkSuite::assertion_evidence_type( $type ),
 				),
 				$result
 			);
 		}
 
-		$passed = count( array_filter( $results, fn( $r ) => $r['pass'] ) );
-		$total  = count( $results );
+		$passed                            = count( array_filter( $results, fn( $r ) => $r['pass'] ) );
+		$total                             = count( $results );
+		$coverage                          = BenchmarkSuite::inspect_assertion_intent( $assertions );
+		$postcondition_pass                = count(
+			array_filter(
+				$results,
+				static fn( array $result ): bool => 'postcondition' === $result['evidence_type'] && true === $result['pass']
+			)
+		);
+		$coverage['postcondition_passed']  = $postcondition_pass;
+		$coverage['postcondition_failed']  = $coverage['postcondition_total'] - $postcondition_pass;
+		$coverage['functionally_verified'] = $coverage['functionally_verifiable'] && 0 === $coverage['postcondition_failed'];
 
 		return array(
-			'passed'  => $passed,
-			'failed'  => $total - $passed,
-			'total'   => $total,
-			'results' => $results,
+			'passed'   => $passed,
+			'failed'   => $total - $passed,
+			'total'    => $total,
+			'results'  => $results,
+			'coverage' => $coverage,
 		);
 	}
 

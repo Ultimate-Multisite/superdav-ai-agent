@@ -144,6 +144,54 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 	 */
 	private array $external_canaries = array();
 
+	/** Invocation-only summaries cannot claim functional ranking eligibility. */
+	public function test_invocation_only_summary_is_not_ranking_eligible(): void {
+		$command = new TestableBenchmarkCommand();
+		$method  = new ReflectionMethod( BenchmarkCommand::class, 'summarize_question_result' );
+		$summary = $method->invoke(
+			$command,
+			array(
+				'question_id' => 'invocation-only',
+				'status'      => 'passed',
+				'assertions'  => array(
+					'passed'   => 1,
+					'failed'   => 0,
+					'total'    => 1,
+					'coverage' => array(
+						'classification'          => 'invocation_only',
+						'postcondition_total'     => 0,
+						'postcondition_passed'    => 0,
+						'postcondition_failed'    => 0,
+						'functionally_verifiable' => false,
+						'functionally_verified'   => false,
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'invocation_only', $summary['coverage_classification'] );
+		$this->assertSame( 'not_assessed', $summary['functional_status'] );
+		$this->assertFalse( $summary['ranking_eligible'] );
+	}
+
+	/** Suite ranking requires functional evidence for every included question. */
+	public function test_suite_ranking_rejects_invocation_only_questions(): void {
+		$command = new TestableBenchmarkCommand();
+		$method  = new ReflectionMethod( BenchmarkCommand::class, 'is_ranking_eligible' );
+		$totals  = array(
+			'questions'                      => 2,
+			'questions_functionally_assessed' => 1,
+			'postconditions_passed'           => 1,
+			'postconditions_failed'           => 0,
+			'provider_errors'                 => 0,
+		);
+
+		$this->assertFalse( $method->invoke( $command, $totals, 'complete' ) );
+
+		$totals['questions_functionally_assessed'] = 2;
+		$this->assertTrue( $method->invoke( $command, $totals, 'complete' ) );
+	}
+
 	/**
 	 * Clean up synthetic fixtures after each test.
 	 */

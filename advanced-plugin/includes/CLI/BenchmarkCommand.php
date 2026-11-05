@@ -296,14 +296,22 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( '' );
 
 		$totals             = array(
-			'passed'          => 0,
-			'failed'          => 0,
-			'questions'       => 0,
-			'question_passed' => 0,
-			'errors'          => 0,
-			'provider_errors' => 0,
-			'fixture_errors'  => 0,
-			'deferred'        => 0,
+			'passed'                          => 0,
+			'failed'                          => 0,
+			'questions'                       => 0,
+			'question_passed'                 => 0,
+			'questions_functionally_assessed' => 0,
+			'questions_functionally_verified' => 0,
+			'questions_invocation_only'       => 0,
+			'questions_composite'             => 0,
+			'questions_mixed'                 => 0,
+			'postconditions_passed'           => 0,
+			'postconditions_failed'           => 0,
+			'graceful_degradation_questions'  => 0,
+			'errors'                          => 0,
+			'provider_errors'                 => 0,
+			'fixture_errors'                  => 0,
+			'deferred'                        => 0,
 		);
 		$question_summaries = array();
 
@@ -360,6 +368,27 @@ class BenchmarkCommand extends WP_CLI_Command {
 				}
 			}
 
+			$coverage = isset( $assertions['coverage'] ) && is_array( $assertions['coverage'] ) ? $assertions['coverage'] : array();
+			if ( ! empty( $coverage['functionally_verifiable'] ) ) {
+				++$totals['questions_functionally_assessed'];
+			}
+			if ( ! empty( $coverage['functionally_verified'] ) && empty( $result['agent_error'] ) ) {
+				++$totals['questions_functionally_verified'];
+			}
+			$classification = (string) ( $coverage['classification'] ?? '' );
+			if ( 'invocation_only' === $classification ) {
+				++$totals['questions_invocation_only'];
+			} elseif ( 'composite' === $classification ) {
+				++$totals['questions_composite'];
+			} elseif ( 'mixed' === $classification ) {
+				++$totals['questions_mixed'];
+			}
+			$totals['postconditions_passed'] += (int) ( $coverage['postcondition_passed'] ?? 0 );
+			$totals['postconditions_failed'] += (int) ( $coverage['postcondition_failed'] ?? 0 );
+			if ( 'graceful_degradation' === ( $result['benchmark_dimension'] ?? '' ) ) {
+				++$totals['graceful_degradation_questions'];
+			}
+
 			$result['status'] = $status;
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
 			file_put_contents( $log_file, wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
@@ -373,28 +402,41 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		// Summary.
-		$total_assertions = $totals['passed'] + $totals['failed'];
-		$run_status       = $this->determine_run_status( $totals );
-		$summary          = array(
-			'run_id'             => $run_id,
-			'provider_id'        => $provider_id ?: 'default',
-			'model_id'           => $model_id ?: 'default',
-			'suite'              => $suite_slug,
-			'question_count'     => $totals['questions'],
-			'questions_passed'   => $totals['question_passed'],
-			'agent_errors'       => $totals['errors'],
-			'provider_errors'    => $totals['provider_errors'],
-			'fixture_errors'     => $totals['fixture_errors'],
-			'questions_deferred' => $totals['deferred'],
-			'assertions_passed'  => $totals['passed'],
-			'assertions_failed'  => $totals['failed'],
-			'assertions_total'   => $total_assertions,
-			'assertion_score'    => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
-			'run_status'         => $run_status,
-			'ranking_eligible'   => $this->is_ranking_eligible( $totals, $run_status ),
-			'questions'          => $question_summaries,
+		$total_assertions     = $totals['passed'] + $totals['failed'];
+		$run_status           = $this->determine_run_status( $totals );
+		$total_postconditions = $totals['postconditions_passed'] + $totals['postconditions_failed'];
+		$summary              = array(
+			'summary_schema_version'          => 2,
+			'run_id'                          => $run_id,
+			'provider_id'                     => $provider_id ?: 'default',
+			'model_id'                        => $model_id ?: 'default',
+			'suite'                           => $suite_slug,
+			'question_count'                  => $totals['questions'],
+			'questions_passed'                => $totals['question_passed'],
+			'agent_errors'                    => $totals['errors'],
+			'provider_errors'                 => $totals['provider_errors'],
+			'fixture_errors'                  => $totals['fixture_errors'],
+			'questions_deferred'              => $totals['deferred'],
+			'assertions_passed'               => $totals['passed'],
+			'assertions_failed'               => $totals['failed'],
+			'assertions_total'                => $total_assertions,
+			'assertion_score'                 => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
+			'assertion_score_scope'           => 'all_assertions_including_invocation',
+			'postconditions_passed'           => $totals['postconditions_passed'],
+			'postconditions_failed'           => $totals['postconditions_failed'],
+			'postconditions_total'            => $total_postconditions,
+			'functional_score'                => $total_postconditions > 0 ? round( ( $totals['postconditions_passed'] / $total_postconditions ) * 100 ) : null,
+			'questions_functionally_assessed' => $totals['questions_functionally_assessed'],
+			'questions_functionally_verified' => $totals['questions_functionally_verified'],
+			'questions_invocation_only'       => $totals['questions_invocation_only'],
+			'questions_composite'             => $totals['questions_composite'],
+			'questions_mixed'                 => $totals['questions_mixed'],
+			'graceful_degradation_questions'  => $totals['graceful_degradation_questions'],
+			'run_status'                      => $run_status,
+			'ranking_eligible'                => $this->is_ranking_eligible( $totals, $run_status ),
+			'questions'                       => $question_summaries,
 		);
-		$summary_file     = $run_dir . '/suite-summary.json';
+		$summary_file         = $run_dir . '/suite-summary.json';
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
 		file_put_contents( $summary_file, wp_json_encode( $summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
 
@@ -405,6 +447,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  Provider errors  : %d', $totals['provider_errors'] ) );
 		WP_CLI::log( sprintf( '  Deferred         : %d', $totals['deferred'] ) );
 		WP_CLI::log( sprintf( '  Assertions       : %d/%d passed', $totals['passed'], $total_assertions ) );
+		WP_CLI::log( sprintf( '  Postconditions   : %d/%d passed', $totals['postconditions_passed'], $total_postconditions ) );
+		WP_CLI::log( sprintf( '  Invocation only  : %d question(s)', $totals['questions_invocation_only'] ) );
 		if ( $total_assertions > 0 ) {
 			WP_CLI::log( sprintf( '  Score            : %d%%', $summary['assertion_score'] ) );
 		}
@@ -437,12 +481,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$q_id       = (string) $question['id'];
 		$start_time = microtime( true );
 		$log        = array(
-			'question_id' => $q_id,
-			'category'    => $question['category'],
-			'prompt'      => $question['prompt'],
-			'provider_id' => $provider_id,
-			'model_id'    => $model_id,
-			'started_at'  => gmdate( 'c' ),
+			'question_id'         => $q_id,
+			'category'            => $question['category'],
+			'prompt'              => $question['prompt'],
+			'benchmark_dimension' => (string) ( $question['benchmark_dimension'] ?? 'capability' ),
+			'provider_id'         => $provider_id,
+			'model_id'            => $model_id,
+			'started_at'          => gmdate( 'c' ),
 		);
 
 		$execution = isset( $question['execution'] ) && is_array( $question['execution'] ) ? $question['execution'] : array();
@@ -643,20 +688,35 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @return array<string, mixed>
 	 */
 	private function summarize_question_result( array $result ): array {
-		$assertions = isset( $result['assertions'] ) && is_array( $result['assertions'] ) ? $result['assertions'] : array();
+		$assertions        = isset( $result['assertions'] ) && is_array( $result['assertions'] ) ? $result['assertions'] : array();
+		$coverage          = isset( $assertions['coverage'] ) && is_array( $assertions['coverage'] ) ? $assertions['coverage'] : array();
+		$dimension         = (string) ( $result['benchmark_dimension'] ?? 'capability' );
+		$assessed          = ! empty( $coverage['functionally_verifiable'] );
+		$verified          = ! empty( $coverage['functionally_verified'] ) && empty( $result['agent_error'] );
+		$functional_status = $assessed ? ( $verified ? 'verified' : 'failed' ) : 'not_assessed';
+		if ( 'graceful_degradation' === $dimension ) {
+			$functional_status = 'graceful_degradation';
+		}
 
 		return array(
-			'question_id'       => (string) ( $result['question_id'] ?? '' ),
-			'category'          => (string) ( $result['category'] ?? '' ),
-			'status'            => (string) ( $result['status'] ?? 'unknown' ),
-			'assertions_passed' => (int) ( $assertions['passed'] ?? 0 ),
-			'assertions_failed' => (int) ( $assertions['failed'] ?? 0 ),
-			'assertions_total'  => (int) ( $assertions['total'] ?? 0 ),
-			'turns_used'        => (int) ( $result['turns_used'] ?? 0 ),
-			'elapsed_ms'        => (int) ( $result['elapsed_ms'] ?? 0 ),
-			'agent_error'       => (string) ( $result['agent_error'] ?? '' ),
-			'provider_error'    => $result['provider_error'] ?? null,
-			'deferred_reason'   => (string) ( $result['deferred_reason'] ?? '' ),
+			'question_id'             => (string) ( $result['question_id'] ?? '' ),
+			'category'                => (string) ( $result['category'] ?? '' ),
+			'status'                  => (string) ( $result['status'] ?? 'unknown' ),
+			'assertions_passed'       => (int) ( $assertions['passed'] ?? 0 ),
+			'assertions_failed'       => (int) ( $assertions['failed'] ?? 0 ),
+			'assertions_total'        => (int) ( $assertions['total'] ?? 0 ),
+			'coverage_classification' => (string) ( $coverage['classification'] ?? 'unavailable' ),
+			'postconditions_passed'   => (int) ( $coverage['postcondition_passed'] ?? 0 ),
+			'postconditions_failed'   => (int) ( $coverage['postcondition_failed'] ?? 0 ),
+			'postconditions_total'    => (int) ( $coverage['postcondition_total'] ?? 0 ),
+			'functional_status'       => $functional_status,
+			'benchmark_dimension'     => $dimension,
+			'ranking_eligible'        => $assessed && empty( $result['provider_error'] ) && 'deferred' !== ( $result['status'] ?? '' ),
+			'turns_used'              => (int) ( $result['turns_used'] ?? 0 ),
+			'elapsed_ms'              => (int) ( $result['elapsed_ms'] ?? 0 ),
+			'agent_error'             => (string) ( $result['agent_error'] ?? '' ),
+			'provider_error'          => $result['provider_error'] ?? null,
+			'deferred_reason'         => (string) ( $result['deferred_reason'] ?? '' ),
 		);
 	}
 
@@ -744,7 +804,11 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return false;
 		}
 
-		return (int) ( $totals['questions'] ?? 0 ) > 0 && ( (int) ( $totals['passed'] ?? 0 ) + (int) ( $totals['failed'] ?? 0 ) ) > 0;
+		$questions = (int) ( $totals['questions'] ?? 0 );
+
+		return $questions > 0
+			&& $questions === (int) ( $totals['questions_functionally_assessed'] ?? 0 )
+			&& ( (int) ( $totals['postconditions_passed'] ?? 0 ) + (int) ( $totals['postconditions_failed'] ?? 0 ) ) > 0;
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────

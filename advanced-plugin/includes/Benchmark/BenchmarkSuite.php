@@ -28,6 +28,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class BenchmarkSuite {
 
+	/** Assertion types that only prove an ability was invoked. */
+	private const INVOCATION_ASSERTION_TYPES = array( 'tool_called' );
+
+	/** Assertion types whose success may come from invocation or final state. */
+	private const COMPOSITE_ASSERTION_TYPES = array( 'tool_called_or_user_exists' );
+
 	/**
 	 * List all available suites.
 	 *
@@ -217,6 +223,70 @@ class BenchmarkSuite {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Describe what evidence a question's assertions can establish.
+	 *
+	 * Composite assertions are kept separate and are not counted as verified
+	 * postconditions because their invocation branch can pass without inspecting
+	 * the requested outcome.
+	 *
+	 * @param array<int, array<string, mixed>> $assertions Assertion definitions.
+	 * @return array{classification: string, invocation_total: int, postcondition_total: int, composite_total: int, functionally_verifiable: bool}
+	 */
+	public static function inspect_assertion_intent( array $assertions ): array {
+		$counts = array(
+			'invocation'    => 0,
+			'postcondition' => 0,
+			'composite'     => 0,
+		);
+
+		foreach ( $assertions as $assertion ) {
+			$type = (string) ( $assertion['type'] ?? '' );
+			if ( in_array( $type, self::INVOCATION_ASSERTION_TYPES, true ) ) {
+				++$counts['invocation'];
+			} elseif ( in_array( $type, self::COMPOSITE_ASSERTION_TYPES, true ) ) {
+				++$counts['composite'];
+			} else {
+				++$counts['postcondition'];
+			}
+		}
+
+		if ( $counts['postcondition'] > 0 && ( $counts['invocation'] > 0 || $counts['composite'] > 0 ) ) {
+			$classification = 'mixed';
+		} elseif ( $counts['postcondition'] > 0 ) {
+			$classification = 'postcondition';
+		} elseif ( $counts['composite'] > 0 ) {
+			$classification = 'composite';
+		} else {
+			$classification = 'invocation_only';
+		}
+
+		return array(
+			'classification'          => $classification,
+			'invocation_total'        => $counts['invocation'],
+			'postcondition_total'     => $counts['postcondition'],
+			'composite_total'         => $counts['composite'],
+			'functionally_verifiable' => $counts['postcondition'] > 0,
+		);
+	}
+
+	/**
+	 * Return the evidence class for one assertion type.
+	 *
+	 * @param string $type Assertion type.
+	 */
+	public static function assertion_evidence_type( string $type ): string {
+		if ( in_array( $type, self::INVOCATION_ASSERTION_TYPES, true ) ) {
+			return 'invocation';
+		}
+
+		if ( in_array( $type, self::COMPOSITE_ASSERTION_TYPES, true ) ) {
+			return 'composite';
+		}
+
+		return 'postcondition';
 	}
 
 	/**
@@ -2069,11 +2139,12 @@ class BenchmarkSuite {
 	private static function get_abilities_credentialed_questions(): array {
 		return array(
 			array(
-				'id'         => 'acr-001',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-traffic-summary to fetch the last 7 days of traffic for this site. If GA credentials are not configured, report the error message gracefully.',
-				'assertions' => array(
+				'id'                  => 'acr-001',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-traffic-summary to fetch the last 7 days of traffic for this site. If GA credentials are not configured, report the error message gracefully.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-traffic-summary' ),
@@ -2082,11 +2153,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-002',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-top-pages to fetch the top 10 pages by pageviews for the last 30 days.',
-				'assertions' => array(
+				'id'                  => 'acr-002',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-top-pages to fetch the top 10 pages by pageviews for the last 30 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-top-pages' ),
@@ -2095,11 +2167,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-003',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-realtime to fetch the current live visitor count.',
-				'assertions' => array(
+				'id'                  => 'acr-003',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-realtime to fetch the current live visitor count.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-realtime' ),
@@ -2108,11 +2181,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-004',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-site-summary for the last 28 days, including the previous-period comparison.',
-				'assertions' => array(
+				'id'                  => 'acr-004',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-site-summary for the last 28 days, including the previous-period comparison.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-site-summary' ),
@@ -2121,11 +2195,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-005',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-top-queries to show the top 10 search queries driving traffic in the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-005',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-top-queries to show the top 10 search queries driving traffic in the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-top-queries' ),
@@ -2134,11 +2209,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-006',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-page-performance for the homepage URL of this site over the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-006',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-page-performance for the homepage URL of this site over the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-page-performance' ),
@@ -2147,11 +2223,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-007',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-query-details for the query "wordpress" over the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-007',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-query-details for the query "wordpress" over the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-query-details' ),

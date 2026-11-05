@@ -66,6 +66,9 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 	 */
 	public int $agent_calls = 0;
 
+	/** Prompt passed to the synthetic loop. */
+	public string $last_prompt = '';
+
 	/**
 	 * Run one question through the protected command method.
 	 *
@@ -89,6 +92,7 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 	protected function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
 		unset( $provider_id, $model_id, $max_turns );
 		++$this->agent_calls;
+		$this->last_prompt = $prompt;
 
 		if ( 'exception' === $this->agent_behavior ) {
 			throw new RuntimeException( 'Synthetic benchmark failure.' );
@@ -238,6 +242,52 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 		$this->assertSame( 'provider_error', $result['status'] );
 		$this->assertFileExists( WP_PLUGIN_DIR . '/' . $slug . '/.sd-ai-agent-benchmark-owner' );
+	}
+
+	/** Draft post fixtures are substituted into prompts and removed after execution. */
+	public function test_owned_draft_post_fixture_is_substituted_and_cleaned(): void {
+		$command  = new TestableBenchmarkCommand();
+		$question = array(
+			'id'         => 'draft-fixture-test',
+			'category'   => 'seo',
+			'prompt'     => 'Analyze post_id {{post_id}}.',
+			'max_turns'  => 1,
+			'setup'      => array(
+				'draft_post' => array(
+					'title'   => 'Command-owned draft fixture',
+					'content' => 'Fixture content.',
+				),
+			),
+			'assertions' => array(),
+		);
+
+		$result = $command->run_test_question( $question );
+
+		$this->assertSame( 'provider_error', $result['status'] );
+		$this->assertMatchesRegularExpression( '/Analyze post_id [1-9][0-9]*\./', $command->last_prompt );
+		$this->assertSame( array(), get_posts( array( 'title' => 'Command-owned draft fixture', 'post_status' => 'any' ) ) );
+	}
+
+	/** Deferred questions never invoke the model and retain the machine reason. */
+	public function test_deferred_question_skips_agent_execution(): void {
+		$command  = new TestableBenchmarkCommand();
+		$question = array(
+			'id'         => 'deferred-test',
+			'category'   => 'files',
+			'prompt'     => 'Mutate a file.',
+			'max_turns'  => 1,
+			'execution'  => array(
+				'status' => 'deferred',
+				'reason' => 'explicit_approval_profile_required',
+			),
+			'assertions' => array(),
+		);
+
+		$result = $command->run_test_question( $question );
+
+		$this->assertSame( 'deferred', $result['status'] );
+		$this->assertSame( 'explicit_approval_profile_required', $result['deferred_reason'] );
+		$this->assertSame( 0, $command->agent_calls );
 	}
 
 	/**

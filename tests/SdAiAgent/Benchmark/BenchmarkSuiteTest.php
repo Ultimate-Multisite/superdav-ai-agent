@@ -33,6 +33,28 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '*Abilities.php', $prompt );
 	}
 
+	/** Deferred contracts must be explicit instead of producing false model failures. */
+	public function test_unexecutable_mutation_contracts_are_deferred(): void {
+		$approval = $this->find_question( 'abilities-developer-v1', 'adev-006' );
+		$staging  = $this->find_question( 'abilities-plugin-mgmt-v1', 'apm-009' );
+		$update   = $this->find_question( 'abilities-plugin-mgmt-v1', 'apm-010' );
+
+		$this->assertSame( 'explicit_approval_profile_required', $approval['execution']['reason'] ?? '' );
+		$this->assertSame( 'sandbox_staging_operation_unavailable', $staging['execution']['reason'] ?? '' );
+		$this->assertSame( array( 'apm-009' ), $update['depends_on'] ?? array() );
+		$this->assertSame( 'deferred', $update['execution']['status'] ?? '' );
+	}
+
+	/** SEO analysis must use the registered post-ID schema and command-owned draft setup. */
+	public function test_au_007_declares_owned_draft_post_fixture(): void {
+		$question = $this->find_question( 'abilities-utility-v1', 'au-007' );
+
+		$this->assertIsArray( $question );
+		$this->assertStringContainsString( 'post_id {{post_id}}', (string) $question['prompt'] );
+		$this->assertSame( 'AU-007 Remote Work Tools Benchmark Fixture', $question['setup']['draft_post']['title'] ?? '' );
+		$this->assertSame( 'tool_output_contains', $question['assertions'][1]['type'] ?? '' );
+	}
+
 	/**
 	 * Test fn-004 requires benchmark-compatible zero-row WP-CLI output.
 	 */

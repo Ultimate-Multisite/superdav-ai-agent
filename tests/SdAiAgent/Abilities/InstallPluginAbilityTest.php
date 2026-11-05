@@ -90,6 +90,8 @@ class InstallPluginAbilityTest extends WP_UnitTestCase {
 			/** @var string[] */
 			private array $existing_files;
 
+			private int $plugin_inventory_calls = 0;
+
 			/**
 			 * @param mixed                            $install_result Upgrader result.
 			 * @param array<string,array<string,mixed>> $plugins       Enumerated plugins.
@@ -117,6 +119,11 @@ class InstallPluginAbilityTest extends WP_UnitTestCase {
 			}
 
 			protected function get_installed_plugins(): array {
+				++$this->plugin_inventory_calls;
+				if ( 1 === $this->plugin_inventory_calls ) {
+					return [];
+				}
+
 				return $this->plugins;
 			}
 

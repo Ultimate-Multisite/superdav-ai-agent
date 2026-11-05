@@ -56,22 +56,26 @@ class PluginBuilderIntegrationTest extends WP_UnitTestCase {
 	/**
 	 * Temporary upload basedir used during this test class.
 	 *
-	 * Redirects wp_upload_dir() basedir to a writable location so that
-	 * PluginUpdater::copy_directory() can call wp_mkdir_p() for the staging
-	 * and backup paths without hitting permission failures in the
-	 * tests-wordpress container (where wp-content/uploads is typically owned
-	 * by www-data while PHPUnit runs as the host user, e.g. 1000:1000).
+	 * Redirects wp_upload_dir() so migration and disclosure boundaries use
+	 * synthetic test-only paths.
 	 *
 	 * @var string
 	 */
 	private string $tmp_upload_basedir;
+
+	/**
+	 * Private plugin-builder root used by integration tests.
+	 */
+	private string $tmp_private_root;
 
 	// ── Lifecycle ──────────────────────────────────────────────────────────
 
 	public function setUp(): void {
 		parent::setUp();
 		$this->tmp_upload_basedir = sys_get_temp_dir() . '/sd-ai-agent-phpunit';
+		$this->tmp_private_root    = sys_get_temp_dir() . '/sd-ai-agent-integration-private';
 		add_filter( 'upload_dir', [ $this, 'filter_upload_dir_to_tmp' ] );
+		add_filter( 'sd_ai_agent_plugin_builder_private_root', [ $this, 'filter_private_root_to_tmp' ] );
 		// Allow file modifications for tests.
 		add_filter(
 			'file_mod_allowed',
@@ -96,18 +100,13 @@ class PluginBuilderIntegrationTest extends WP_UnitTestCase {
 			PluginInstaller::delete( $id, false );
 		}
 		remove_filter( 'upload_dir', [ $this, 'filter_upload_dir_to_tmp' ] );
+		remove_filter( 'sd_ai_agent_plugin_builder_private_root', [ $this, 'filter_private_root_to_tmp' ] );
 		remove_all_filters( 'file_mod_allowed' );
 		parent::tearDown();
 	}
 
 	/**
 	 * Redirect wp_upload_dir() basedir to a writable tmp directory.
-	 *
-	 * PluginUpdater::staging_root() and ::backups_root() derive their paths
-	 * from wp_upload_dir()['basedir']. By filtering upload_dir to point at
-	 * a tmp location, we ensure wp_mkdir_p() calls inside PluginUpdater can
-	 * always create the staging and backup directories regardless of which
-	 * user owns wp-content/uploads in the test container.
 	 *
 	 * @param array<string,string> $uploads Upload directory info passed by WP.
 	 * @return array<string,string>
@@ -118,6 +117,13 @@ class PluginBuilderIntegrationTest extends WP_UnitTestCase {
 		$uploads['baseurl'] = 'http://example.org/tmp-uploads';
 		$uploads['url']     = 'http://example.org/tmp-uploads';
 		return $uploads;
+	}
+
+	/**
+	 * Redirect private plugin-builder storage to a test-only root.
+	 */
+	public function filter_private_root_to_tmp(): string {
+		return $this->tmp_private_root;
 	}
 
 	// ── Private helpers ────────────────────────────────────────────────────
@@ -692,11 +698,8 @@ PHP
 		$current = file_get_contents( $dir . $slug . '.php' );
 		$this->assertStringContainsString( '// original', (string) $current );
 
-		// Clean up any backup directory left by the updater (new path: sd-ai-backups/).
-		// Backups now live under uploads basedir per wp.org guidelines.
-		$uploads      = wp_upload_dir( null, false );
-		$basedir      = ! empty( $uploads['basedir'] ) ? (string) $uploads['basedir'] : WP_CONTENT_DIR . '/uploads';
-		$backup_glob  = glob( trailingslashit( $basedir ) . 'sd-ai-backups/' . $slug . '-*', GLOB_ONLYDIR );
+		// Clean up any private backup directory left by the updater.
+		$backup_glob = glob( trailingslashit( $this->tmp_private_root ) . 'backups/' . $slug . '-*', GLOB_ONLYDIR );
 		if ( is_array( $backup_glob ) ) {
 			foreach ( $backup_glob as $backup_dir ) {
 				$this->rmdir_recursive( $backup_dir );

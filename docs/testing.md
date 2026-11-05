@@ -29,12 +29,20 @@ diagnosing inference latency.
 
 ## Plugin-builder private storage
 
-Plugin-builder backups and staged plugin files are stored in a site-specific
-directory below the system temporary directory, not below WordPress uploads or
-another web-served WordPress directory. Hosts that require persistent backup
-storage can relocate it with the `sd_ai_agent_plugin_builder_private_root`
-filter. The selected absolute directory must be writable and outside WordPress
-core, content, plugins, and uploads paths; unsafe locations fail closed.
+Plugin-builder backups and staged plugin files are stored in a site-specific,
+restricted sibling of the WordPress installation, not below WordPress uploads
+or another web-served WordPress directory. Hosts can relocate it with the
+`sd_ai_agent_plugin_builder_private_root` filter. The selected absolute
+directory must be writable, accessible only to its owner, and neither inside
+nor an ancestor of WordPress core, content, plugins, or uploads paths; unsafe
+locations fail closed.
+
+On `init`, historical `sd-ai-backups` and `sd-ai-staging` directories below
+uploads (plus the older content-directory backup location) are copied into
+private storage. Relative paths, entry types, byte sizes, and SHA-256 hashes are
+compared before a public source is removed. Symlinks, unexpected entries, or a
+failed comparison leave the public source intact so recovery data is never
+discarded without a verified private copy.
 
 For an installed-package disclosure check, create only a synthetic plugin and
 marker, run `PluginUpdater::backup()` and `PluginUpdater::stage()`, and confirm

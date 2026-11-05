@@ -149,6 +149,25 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Historical public backups should move only after a verified private copy.
+	 */
+	public function test_migrate_legacy_storage_moves_verified_backup(): void {
+		$legacy_dir = trailingslashit( $this->tmp_upload_basedir )
+			. 'sd-ai-backups/' . $this->slug . '-2020-01-01-000001/';
+		wp_mkdir_p( $legacy_dir );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Synthetic migration fixture.
+		file_put_contents( $legacy_dir . 'config.json', '{"marker":"synthetic-only"}' );
+
+		$result = $this->updater->migrate_legacy_storage();
+
+		$this->assertTrue( $result );
+		$this->assertDirectoryDoesNotExist( $legacy_dir );
+		$migrated = $this->backups_root() . $this->slug . '-2020-01-01-000001/config.json';
+		$this->assertFileExists( $migrated );
+		$this->assertSame( '{"marker":"synthetic-only"}', file_get_contents( $migrated ) );
+	}
+
+	/**
 	 * backup() should return WP_Error for an empty slug.
 	 */
 	public function test_backup_empty_slug_returns_error(): void {
@@ -417,6 +436,7 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 			trailingslashit( WP_PLUGIN_DIR ) . $this->slug . '/',
 			trailingslashit( WP_PLUGIN_DIR ) . 'non-existent-plugin-phpunit/',
 			$this->staging_root() . $this->slug . '/',
+			trailingslashit( $this->tmp_upload_basedir ) . 'sd-ai-backups/' . $this->slug . '-2020-01-01-000001/',
 		];
 
 		foreach ( $dirs_to_clean as $dir ) {

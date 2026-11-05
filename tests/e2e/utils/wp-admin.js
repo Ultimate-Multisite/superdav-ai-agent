@@ -22,6 +22,35 @@
 
 const WP_ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const WP_ADMIN_PASSWORD = process.env.WP_ADMIN_PASSWORD || 'password';
+const WP_SECONDARY_ADMIN_USER =
+	process.env.WP_SECONDARY_ADMIN_USER || 'admin2';
+const WP_SECONDARY_ADMIN_PASSWORD =
+	process.env.WP_SECONDARY_ADMIN_PASSWORD || 'password2';
+
+/**
+ * Give parallel workers distinct WordPress sessions. Concurrent logins for the
+ * same account can overwrite WordPress's serialized session-token user meta,
+ * invalidating one worker immediately after authentication.
+ *
+ * @return {{ username: string, password: string }} Worker login credentials.
+ */
+function getWorkerAdminCredentials() {
+	const parallelIndex = Number.parseInt(
+		process.env.TEST_PARALLEL_INDEX || '0',
+		10
+	);
+	if ( Number.isFinite( parallelIndex ) && parallelIndex % 2 === 1 ) {
+		return {
+			username: WP_SECONDARY_ADMIN_USER,
+			password: WP_SECONDARY_ADMIN_PASSWORD,
+		};
+	}
+
+	return {
+		username: WP_ADMIN_USER,
+		password: WP_ADMIN_PASSWORD,
+	};
+}
 
 /**
  * Log in to the WordPress admin dashboard.
@@ -32,25 +61,37 @@ const WP_ADMIN_PASSWORD = process.env.WP_ADMIN_PASSWORD || 'password';
  */
 async function loginToWordPress(
 	page,
-	username = WP_ADMIN_USER,
-	password = WP_ADMIN_PASSWORD
+	username,
+	password
 ) {
-	await page.goto( '/wp-login.php' );
-	await page.fill( '#user_login', username );
-	await page.fill( '#user_pass', password );
+	const workerCredentials = getWorkerAdminCredentials();
+	const loginUsername = username || workerCredentials.username;
+	const loginPassword = password || workerCredentials.password;
 
-	// Arm the redirect waiter before submitting so a fast response cannot race
-	// the listener. Stop waiting once the admin response is committed; waiting
-	// for `load` or `domcontentloaded` also couples login to slow admin scripts
-	// and styles. The authenticated admin DOM below is the actual readiness
-	// boundary needed by callers.
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			timeout: 60_000,
-			waitUntil: 'commit',
-		} ),
-		page.click( '#wp-submit' ),
-	] );
+	// Authenticate through the browser context's request client. Its cookies are
+	// shared with the page, while stopping at the login response avoids coupling
+	// authentication to a second, contended admin document load. This follows the
+	// request-login pattern from @wordpress/e2e-test-utils-playwright.
+	const loginPageResponse = await page.request.get( '/wp-login.php' );
+	await loginPageResponse.dispose();
+	const response = await page.request.post( '/wp-login.php', {
+		form: {
+			log: loginUsername,
+			pwd: loginPassword,
+			redirect_to: '/wp-admin/',
+			testcookie: '1',
+			'wp-submit': 'Log In',
+		},
+		maxRedirects: 0,
+		timeout: 60_000,
+	} );
+	const redirect = response.headers().location || '';
+	await response.dispose();
+	if ( ! redirect.includes( '/wp-admin' ) ) {
+		throw new Error( 'WordPress login did not redirect to the admin area.' );
+	}
+
+	await page.goto( '/wp-admin/', { waitUntil: 'commit' } );
 	await page.locator( 'body.wp-admin' ).waitFor( {
 		state: 'attached',
 		timeout: 60_000,

@@ -9,6 +9,7 @@
 
 namespace SdAiAgent\Tests\Models;
 
+use SdAiAgent\Core\BlockValidator;
 use SdAiAgent\Models\MarkdownToBlocks;
 use WP_UnitTestCase;
 
@@ -123,7 +124,8 @@ class MarkdownToBlocksTest extends WP_UnitTestCase {
 		$block = MarkdownToBlocks::make_list( [ 'Item 1', 'Item 2' ], false );
 
 		$this->assertSame( 'core/list', $block['blockName'] );
-		$this->assertStringContainsString( '<ul>', $block['innerHTML'] );
+		$this->assertStringContainsString( '<ul class="wp-block-list">', $block['innerHTML'] );
+		$this->assertSame( '<ul class="wp-block-list">', $block['innerContent'][0] );
 		$this->assertStringContainsString( '<li>Item 1</li>', $block['innerHTML'] );
 		$this->assertStringContainsString( '<li>Item 2</li>', $block['innerHTML'] );
 	}
@@ -135,8 +137,27 @@ class MarkdownToBlocksTest extends WP_UnitTestCase {
 		$block = MarkdownToBlocks::make_list( [ 'First', 'Second' ], true );
 
 		$this->assertSame( 'core/list', $block['blockName'] );
-		$this->assertStringContainsString( '<ol>', $block['innerHTML'] );
+		$this->assertStringContainsString( '<ol class="wp-block-list">', $block['innerHTML'] );
+		$this->assertSame( '<ol class="wp-block-list">', $block['innerContent'][0] );
 		$this->assertTrue( $block['attrs']['ordered'] );
+	}
+
+	/**
+	 * Converted lists pass deterministic server-side Gutenberg validation.
+	 */
+	public function test_converted_lists_are_valid_gutenberg_blocks() {
+		$validator = new BlockValidator();
+		$lists     = [
+			"- Alpha\n- Beta",
+			"1. Alpha\n2. Beta",
+		];
+
+		foreach ( $lists as $markdown ) {
+			$content = MarkdownToBlocks::convert( $markdown );
+			$report  = $validator->validate_server_side( $content );
+
+			$this->assertSame( 0, $report['invalidBlocks'], $markdown );
+		}
 	}
 
 	/**

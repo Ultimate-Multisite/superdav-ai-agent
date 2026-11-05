@@ -76,6 +76,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 	private array $owned_plugin_fixtures = array();
 
 	/**
+	 * Draft posts created by this command for schema-compatible benchmark input.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $owned_post_fixtures = array();
+
+	/**
 	 * System prompt injected for every benchmark question.
 	 * Tells the agent it is in a live WordPress environment and should act, not describe.
 	 */
@@ -296,6 +303,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'errors'          => 0,
 			'provider_errors' => 0,
 			'fixture_errors'  => 0,
+			'deferred'        => 0,
 		);
 		$question_summaries = array();
 
@@ -309,6 +317,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$result['log_dir'] = $run_dir;
 
 			$status = (string) ( $result['status'] ?? 'unknown' );
+			if ( 'deferred' === $status ) {
+				++$totals['deferred'];
+				WP_CLI::log( '│  Deferred: ' . (string) ( $result['deferred_reason'] ?? 'unsupported execution contract' ) );
+			}
 
 			// Print summary.
 			if ( ! empty( $result['agent_error'] ) ) {
@@ -364,22 +376,23 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$total_assertions = $totals['passed'] + $totals['failed'];
 		$run_status       = $this->determine_run_status( $totals );
 		$summary          = array(
-			'run_id'            => $run_id,
-			'provider_id'       => $provider_id ?: 'default',
-			'model_id'          => $model_id ?: 'default',
-			'suite'             => $suite_slug,
-			'question_count'    => $totals['questions'],
-			'questions_passed'  => $totals['question_passed'],
-			'agent_errors'      => $totals['errors'],
-			'provider_errors'   => $totals['provider_errors'],
-			'fixture_errors'    => $totals['fixture_errors'],
-			'assertions_passed' => $totals['passed'],
-			'assertions_failed' => $totals['failed'],
-			'assertions_total'  => $total_assertions,
-			'assertion_score'   => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
-			'run_status'        => $run_status,
-			'ranking_eligible'  => $this->is_ranking_eligible( $totals, $run_status ),
-			'questions'         => $question_summaries,
+			'run_id'             => $run_id,
+			'provider_id'        => $provider_id ?: 'default',
+			'model_id'           => $model_id ?: 'default',
+			'suite'              => $suite_slug,
+			'question_count'     => $totals['questions'],
+			'questions_passed'   => $totals['question_passed'],
+			'agent_errors'       => $totals['errors'],
+			'provider_errors'    => $totals['provider_errors'],
+			'fixture_errors'     => $totals['fixture_errors'],
+			'questions_deferred' => $totals['deferred'],
+			'assertions_passed'  => $totals['passed'],
+			'assertions_failed'  => $totals['failed'],
+			'assertions_total'   => $total_assertions,
+			'assertion_score'    => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
+			'run_status'         => $run_status,
+			'ranking_eligible'   => $this->is_ranking_eligible( $totals, $run_status ),
+			'questions'          => $question_summaries,
 		);
 		$summary_file     = $run_dir . '/suite-summary.json';
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
@@ -390,6 +403,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  Questions passed : %d', $totals['question_passed'] ) );
 		WP_CLI::log( sprintf( '  Agent errors     : %d', $totals['errors'] ) );
 		WP_CLI::log( sprintf( '  Provider errors  : %d', $totals['provider_errors'] ) );
+		WP_CLI::log( sprintf( '  Deferred         : %d', $totals['deferred'] ) );
 		WP_CLI::log( sprintf( '  Assertions       : %d/%d passed', $totals['passed'], $total_assertions ) );
 		if ( $total_assertions > 0 ) {
 			WP_CLI::log( sprintf( '  Score            : %d%%', $summary['assertion_score'] ) );
@@ -431,6 +445,22 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'started_at'  => gmdate( 'c' ),
 		);
 
+		$execution = isset( $question['execution'] ) && is_array( $question['execution'] ) ? $question['execution'] : array();
+		if ( 'deferred' === ( $execution['status'] ?? '' ) ) {
+			$log['status']          = 'deferred';
+			$log['deferred_reason'] = (string) ( $execution['reason'] ?? 'unsupported_execution_contract' );
+			$log['deferred_detail'] = (string) ( $execution['detail'] ?? '' );
+			$log['depends_on']      = array_values( (array) ( $question['depends_on'] ?? array() ) );
+			$log['assertions']      = array(
+				'passed'  => 0,
+				'failed'  => 0,
+				'total'   => 0,
+				'results' => array(),
+			);
+			$log['completed_at']    = gmdate( 'c' );
+			return $log;
+		}
+
 		// For plugin-building questions, create an isolated sandbox plugin slug.
 		$plugin_slug   = '';
 		$needs_plugin  = $this->question_needs_plugin( $question );
@@ -462,9 +492,24 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 		try {
 			$log['cleanup'] = $this->cleanup_question_fixtures( $question );
+			$setup          = $this->prepare_question_fixtures( $question );
+			if ( is_wp_error( $setup ) ) {
+				$log['status']        = 'fixture_error';
+				$log['fixture_error'] = $setup->get_error_message();
+				$log['agent_error']   = $setup->get_error_message();
+				$log['assertions']    = array(
+					'passed'  => 0,
+					'failed'  => 0,
+					'total'   => 0,
+					'results' => array(),
+				);
+				$log['completed_at']  = gmdate( 'c' );
+				return $log;
+			}
+			$log['setup'] = $setup['log'];
 
 			// Build the prompt — include plugin name guidance for plugin questions.
-			$prompt = $question['prompt'];
+			$prompt = strtr( (string) $question['prompt'], $setup['variables'] );
 			if ( $needs_plugin && '' !== $plugin_slug ) {
 				$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
 			}
@@ -507,6 +552,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['completed_at'] = gmdate( 'c' );
 			return $log;
 		} finally {
+			$this->cleanup_owned_post_fixtures();
 			// Always deactivate and remove the sandbox plugin if we created one,
 			// even on agent error or thrown exception, so deterministic slugs
 			// (e.g. event-manager) don't leak into later questions.
@@ -545,13 +591,22 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 				foreach ( $new_entries as $entry ) {
 					$type = $entry['type'] ?? '';
+					if ( 'response' === $type ) {
+						$response_id = (string) ( $entry['id'] ?? '' );
+						for ( $index = count( $tool_call_log ) - 1; $index >= 0; --$index ) {
+							if ( $response_id === (string) ( $tool_call_log[ $index ]['id'] ?? '' ) ) {
+								$tool_call_log[ $index ]['output'] = $entry['response'] ?? '';
+								break;
+							}
+						}
+						continue;
+					}
 					if ( 'call' !== $type && '' !== $type ) {
-						// Skip 'response' rows — we only log calls so the
-						// matcher can introspect what the agent invoked.
 						continue;
 					}
 					$name = $entry['name'] ?? ( $entry['tool'] ?? '?' );
 					$tool_call_log[] = array(
+						'id'        => (string) ( $entry['id'] ?? '' ),
 						'tool'      => $name,
 						'input'     => $entry['args'] ?? $entry['input'] ?? $entry['arguments'] ?? array(),
 						'output'    => $entry['output'] ?? $entry['result'] ?? '',
@@ -601,6 +656,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'elapsed_ms'        => (int) ( $result['elapsed_ms'] ?? 0 ),
 			'agent_error'       => (string) ( $result['agent_error'] ?? '' ),
 			'provider_error'    => $result['provider_error'] ?? null,
+			'deferred_reason'   => (string) ( $result['deferred_reason'] ?? '' ),
 		);
 	}
 
@@ -655,12 +711,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$provider_errors = (int) ( $totals['provider_errors'] ?? 0 );
 		$fixture_errors  = (int) ( $totals['fixture_errors'] ?? 0 );
 		$failed          = (int) ( $totals['failed'] ?? 0 );
+		$deferred        = (int) ( $totals['deferred'] ?? 0 );
 
 		if ( $questions > 0 && $provider_errors === $questions ) {
 			return 'blocked_provider';
 		}
 
-		if ( $provider_errors > 0 || $fixture_errors > 0 ) {
+		if ( $provider_errors > 0 || $fixture_errors > 0 || $deferred > 0 ) {
 			return 'inconclusive';
 		}
 
@@ -847,6 +904,73 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Create command-owned fixtures and return prompt substitutions.
+	 *
+	 * @param array<string, mixed> $question Question definition.
+	 * @return array{variables: array<string, string>, log: array<string, mixed>}|\WP_Error
+	 */
+	private function prepare_question_fixtures( array $question ): array|\WP_Error {
+		$setup      = isset( $question['setup'] ) && is_array( $question['setup'] ) ? $question['setup'] : array();
+		$draft_post = isset( $setup['draft_post'] ) && is_array( $setup['draft_post'] ) ? $setup['draft_post'] : array();
+
+		if ( empty( $draft_post ) ) {
+			return array(
+				'variables' => array(),
+				'log'       => array(),
+			);
+		}
+
+		$title   = (string) ( $draft_post['title'] ?? '' );
+		$content = (string) ( $draft_post['content'] ?? '' );
+		if ( '' === $title || '' === $content ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_invalid_post_fixture', 'Draft post fixtures require title and content.' );
+		}
+
+		$token   = wp_generate_uuid4();
+		$post_id = wp_insert_post(
+			array(
+				'post_title'   => $title,
+				'post_content' => $content,
+				'post_status'  => 'draft',
+				'post_type'    => 'post',
+				'meta_input'   => array( '_sd_ai_agent_benchmark_owner' => $token ),
+			),
+			true
+		);
+
+		if ( is_wp_error( $post_id ) ) {
+			return $post_id;
+		}
+
+		$this->owned_post_fixtures[ (int) $post_id ] = $token;
+
+		return array(
+			'variables' => array( '{{post_id}}' => (string) $post_id ),
+			'log'       => array(
+				'draft_post' => array(
+					'post_id' => (int) $post_id,
+					'status'  => 'draft',
+				),
+			),
+		);
+	}
+
+	/** Remove only draft fixtures whose ownership marker still matches. */
+	private function cleanup_owned_post_fixtures(): void {
+		foreach ( $this->owned_post_fixtures as $post_id => $token ) {
+			$owner  = get_post_meta( $post_id, '_sd_ai_agent_benchmark_owner', true );
+			$status = get_post_status( $post_id );
+			if ( $token !== $owner || 'draft' !== $status ) {
+				WP_CLI::warning( sprintf( 'Benchmark post fixture ownership or status changed; cleanup skipped: %d', $post_id ) );
+				continue;
+			}
+
+			wp_delete_post( $post_id, true );
+			unset( $this->owned_post_fixtures[ $post_id ] );
+		}
 	}
 
 	/**

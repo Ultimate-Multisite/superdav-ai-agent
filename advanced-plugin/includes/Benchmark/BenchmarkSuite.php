@@ -1514,6 +1514,11 @@ class BenchmarkSuite {
 				'category'   => 'files',
 				'max_turns'  => 14,
 				'prompt'     => 'Build a one-file plugin called "file-coverage" by: (a) using file-write to create file-coverage/file-coverage.php with the standard plugin header (Plugin Name: File Coverage), (b) using file-edit to append a comment "// EDITED" at the bottom, (c) using file-read to verify the change, (d) using file-delete to remove the file. The plugin slug must be exactly "file-coverage".',
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'explicit_approval_profile_required',
+					'detail' => 'File mutation coverage requires a benchmark profile that supplies approval through the supported confirmation path. YOLO mode is not approval evidence.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1714,7 +1719,12 @@ class BenchmarkSuite {
 				'id'         => 'apm-009',
 				'category'   => 'sandbox',
 				'max_turns'  => 25,
-				'prompt'     => 'Use generate-plugin to create a new sandboxed plugin called "apm-009-sandbox" that registers a single shortcode [apm009] returning the string "hello from apm-009". Then use sandbox-test-plugin to verify it loads cleanly. Then use sandbox-activate-plugin to copy it from sandbox to the live plugins directory and activate it.',
+				'prompt'     => 'Stage a new plugin called "apm-009-sandbox" outside the live plugins directory. It must register [apm009] and return "hello from apm-009". Test the staged plugin, deploy it only after the test passes, activate it transactionally, and verify the shortcode output.',
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'sandbox_staging_operation_unavailable',
+					'detail' => 'The current generate-plugin ability can return source or install directly to the live plugin directory; it does not expose the required sandbox-first staging operation.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1737,7 +1747,13 @@ class BenchmarkSuite {
 				'id'         => 'apm-010',
 				'category'   => 'sandbox',
 				'max_turns'  => 15,
-				'prompt'     => 'Use update-plugin-sandboxed to apply a small change to the previously generated "apm-009-sandbox" plugin: add a second shortcode [apm009v2] that returns "v2". Test it in the sandbox before deploying.',
+				'prompt'     => 'Update the benchmark-owned "apm-009-sandbox" plugin from apm-009 by staging code that adds [apm009v2] returning "v2". Verify both [apm009] and [apm009v2] in the staged copy, deploy only after both checks pass, and confirm the original shortcode still works.',
+				'depends_on' => array( 'apm-009' ),
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'dependency_requires_unavailable_sandbox_staging',
+					'detail' => 'This update depends on the sandbox-first fixture from apm-009, which cannot be created through the current ability contract.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1907,12 +1923,24 @@ class BenchmarkSuite {
 				'id'         => 'au-007',
 				'category'   => 'seo',
 				'max_turns'  => 8,
-				'prompt'     => 'Use seo-analyze-content on this body text targeting the keyword "remote work tools": "Working remotely changes the kinds of tools teams need. Project management software, video calls, async docs, and good ergonomics matter more than they do in an office. Choose tools that integrate well together." Report the score and top 3 suggestions.',
+				'prompt'     => 'Use seo-analyze-content with post_id {{post_id}} and focus_keyword "remote work tools". Report the returned word count, keyword density, and top 3 recommendations. Do not publish or modify the draft fixture.',
+				'setup'      => array(
+					'draft_post' => array(
+						'title'   => 'AU-007 Remote Work Tools Benchmark Fixture',
+						'content' => '<h2>Choosing remote work tools</h2><p>Working remotely changes the kinds of tools teams need. Project management software, video calls, async docs, and good ergonomics matter more than they do in an office. Choose remote work tools that integrate well together.</p>',
+					),
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/seo-analyze-content' ),
 						'description' => 'seo-analyze-content called',
+					),
+					array(
+						'type'          => 'tool_output_contains',
+						'tools'         => array( 'sd-ai-agent/seo-analyze-content' ),
+						'required_keys' => array( 'post_id', 'word_count', 'keyword_density', 'recommendations' ),
+						'description'   => 'seo-analyze-content returned supported analysis fields',
 					),
 				),
 			),

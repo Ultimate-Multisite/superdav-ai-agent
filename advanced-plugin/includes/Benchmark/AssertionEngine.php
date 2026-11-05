@@ -139,6 +139,13 @@ class AssertionEngine {
 					(int) ( $assertion['min_calls'] ?? 1 )
 				);
 
+			case 'tool_output_contains':
+				return self::assert_tool_output_contains(
+					self::normalize_string_list( $assertion['tools'] ?? array() ),
+					self::normalize_string_list( $assertion['required_keys'] ?? array() ),
+					$context
+				);
+
 			case 'tool_called_or_user_exists':
 				return self::assert_tool_called_or_user_exists(
 					self::normalize_string_list( $assertion['tools'] ?? array() ),
@@ -869,6 +876,76 @@ class AssertionEngine {
 			'expected' => sprintf( 'at least %d call to one of [%s]', $min_calls, implode( ', ', $tools ) ),
 			'actual'   => sprintf( '%d matching call(s) in tool log', $matches ),
 		);
+	}
+
+	/**
+	 * Assert that a matching tool returned all required top-level output keys.
+	 *
+	 * @param array<int, string>   $tools         Ability names to match.
+	 * @param array<int, string>   $required_keys Required top-level result keys.
+	 * @param array<string, mixed> $context       Runtime context with 'tool_call_log'.
+	 * @return array{pass: bool, expected: string, actual: string}
+	 */
+	private static function assert_tool_output_contains( array $tools, array $required_keys, array $context ): array {
+		$log = (array) ( $context['tool_call_log'] ?? array() );
+
+		foreach ( $log as $entry ) {
+			if ( ! is_array( $entry ) || ! self::tool_name_matches( (string) ( $entry['tool'] ?? '' ), $tools ) ) {
+				continue;
+			}
+
+			$output = $entry['output'] ?? array();
+			if ( is_string( $output ) ) {
+				$decoded = json_decode( $output, true );
+				$output  = is_array( $decoded ) ? $decoded : array();
+			}
+
+			if ( ! is_array( $output ) ) {
+				continue;
+			}
+
+			$missing = array_values(
+				array_filter(
+					$required_keys,
+					static fn( string $key ): bool => ! array_key_exists( $key, $output )
+				)
+			);
+
+			return array(
+				'pass'     => empty( $missing ),
+				'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
+				'actual'   => empty( $missing ) ? 'all required keys returned' : 'missing keys: ' . implode( ', ', $missing ),
+			);
+		}
+
+		return array(
+			'pass'     => false,
+			'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
+			'actual'   => 'no matching tool output found',
+		);
+	}
+
+	/**
+	 * Match a logged direct tool name against candidate ability IDs.
+	 *
+	 * @param string             $name  Logged tool name.
+	 * @param array<int, string> $tools Candidate ability names.
+	 */
+	private static function tool_name_matches( string $name, array $tools ): bool {
+		$wpab_name = self::ability_to_function_name( $name );
+
+		foreach ( $tools as $candidate ) {
+			$short = self::ability_short_name( $candidate );
+			if (
+				$name === $candidate
+				|| $wpab_name === self::ability_to_function_name( $candidate )
+				|| ( '' !== $short && ( str_ends_with( $name, '/' . $short ) || str_ends_with( $name, '__' . $short ) ) )
+			) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

@@ -443,6 +443,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 					? 'fixture_collision'
 					: 'fixture_error';
 				$log['fixture_error'] = $fixture_claim->get_error_message();
+				$log['agent_error']   = $fixture_claim->get_error_message();
 				$log['assertions']    = array(
 					'passed'  => 0,
 					'failed'  => 0,
@@ -905,7 +906,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param string $plugin_slug Plugin slug.
 	 */
 	private function cleanup_plugin( string $plugin_slug ): void {
-		$ownership = $this->owned_plugin_fixtures[ $plugin_slug ] ?? null;
+		$ownership  = $this->owned_plugin_fixtures[ $plugin_slug ] ?? null;
 		$plugin_dir = $this->plugin_fixture_path( $plugin_slug );
 		if ( null === $ownership || null === $plugin_dir || $plugin_dir !== $ownership['path'] || is_link( $plugin_dir ) ) {
 			return;
@@ -964,11 +965,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 					if ( ! unlink( $path ) ) {
 						return false;
 					}
-				} else {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
-					if ( ! rmdir( $path ) ) {
-						return false;
-					}
+
+					continue;
+				}
+
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
+				if ( ! rmdir( $path ) ) {
+					return false;
 				}
 			}
 		} catch ( \UnexpectedValueException $exception ) {

@@ -211,8 +211,12 @@ class BenchmarkCommand extends WP_CLI_Command {
 			WP_CLI::error( $log_dir->get_error_message() );
 		}
 
-		$run_id  = gmdate( 'Y-m-d_His' ) . '_' . ( $model_id ?: 'default' );
-		$run_dir = $log_dir . '/' . $run_id;
+		$model_slug = sanitize_file_name( $model_id ?: 'default' );
+		$run_id     = gmdate( 'Y-m-d_His' ) . '_' . ( $model_slug ?: 'default' );
+		$run_dir    = PathCanonicalizer::canonicalize_missing_path_inside( $log_dir . '/' . $run_id, $log_dir );
+		if ( is_wp_error( $run_dir ) ) {
+			WP_CLI::error( $run_dir->get_error_message() );
+		}
 
 		$run_dir_result = $this->ensure_secure_directory( $run_dir );
 		if ( is_wp_error( $run_dir_result ) ) {
@@ -493,12 +497,20 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return new \WP_Error( 'sd_ai_agent_benchmark_log_encode', 'Could not encode benchmark log data.' );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem is not initialized in CLI context.
-		if ( false === file_put_contents( $path, $json, LOCK_EX ) ) {
+		$previous_umask = umask( 0077 );
+		try {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem is not initialized in CLI context.
+			$bytes_written = file_put_contents( $path, $json, LOCK_EX );
+		} finally {
+			umask( $previous_umask );
+		}
+		if ( false === $bytes_written ) {
 			return new \WP_Error( 'sd_ai_agent_benchmark_log_write', "Could not write benchmark log: {$path}" );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Benchmark logs require owner-only filesystem access.
 		if ( ! chmod( $path, 0600 ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove a log that could not be secured.
+			unlink( $path );
 			return new \WP_Error( 'sd_ai_agent_benchmark_log_permissions', "Could not secure benchmark log: {$path}" );
 		}
 

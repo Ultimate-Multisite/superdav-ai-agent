@@ -69,6 +69,14 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 0, fileperms( $this->private_root ) & 0077 );
 	}
 
+	public function test_unfiltered_default_uses_user_state_storage(): void {
+		$result = $this->invoke( 'default_log_directory', array( ABSPATH ) );
+
+		$this->assertIsString( $result );
+		$this->assertStringContainsString( '/sd-ai-agent/benchmark-logs-', $result );
+		$this->assertStringNotContainsString( untrailingslashit( ABSPATH ) . '/', $result );
+	}
+
 	public function test_explicit_private_directory_is_preserved(): void {
 		$explicit = sys_get_temp_dir() . '/sd-ai-agent-benchmark-explicit-' . wp_generate_uuid4();
 		$result   = $this->invoke( 'prepare_log_directory', array( $explicit ) );
@@ -92,6 +100,30 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_benchmark_log_path_relative', $result->get_error_code() );
 	}
 
+	public function test_document_root_is_inferred_for_subdirectory_install(): void {
+		$result = $this->invoke( 'infer_document_root', array( '/var/www/html/wp', 'https://example.test/wp/' ) );
+
+		$this->assertSame( '/var/www/html', $result );
+	}
+
+	public function test_symlinked_directory_is_rejected(): void {
+		$target = sys_get_temp_dir() . '/sd-ai-agent-benchmark-target-' . wp_generate_uuid4();
+		$link   = sys_get_temp_dir() . '/sd-ai-agent-benchmark-link-' . wp_generate_uuid4();
+		wp_mkdir_p( $target );
+		chmod( $target, 0700 );
+		if ( ! symlink( $target, $link ) ) {
+			$this->remove_directory( $target );
+			$this->markTestSkipped( 'Symlinks are unavailable on this filesystem.' );
+		}
+
+		$result = $this->invoke( 'prepare_log_directory', array( $link ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_benchmark_log_path_symlink', $result->get_error_code() );
+		unlink( $link );
+		$this->remove_directory( $target );
+	}
+
 	public function test_existing_directory_with_public_permissions_is_rejected(): void {
 		$explicit = sys_get_temp_dir() . '/sd-ai-agent-benchmark-insecure-' . wp_generate_uuid4();
 		wp_mkdir_p( $explicit );
@@ -112,9 +144,10 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 			array(
 				$path,
 				array(
-					'api_key'    => 'synthetic-test-secret',
+					'api_key'     => 'synthetic-test-secret',
 					'token_usage' => array( 'input' => 10 ),
 					'tool_output' => 'Authorization: Bearer synthetic-token-value',
+					'json_output' => '{"refresh_token":"synthetic-json-token"}',
 				),
 			)
 		);
@@ -124,6 +157,7 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertIsString( $contents );
 		$this->assertStringNotContainsString( 'synthetic-test-secret', $contents );
 		$this->assertStringNotContainsString( 'synthetic-token-value', $contents );
+		$this->assertStringNotContainsString( 'synthetic-json-token', $contents );
 		$this->assertStringContainsString( 'token_usage', $contents );
 		$this->assertSame( 0, fileperms( $path ) & 0077 );
 	}

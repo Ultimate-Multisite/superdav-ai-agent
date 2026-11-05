@@ -79,11 +79,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    plugin and absent from the core WordPress.org package.
  *  - SD_AI_AGENT_FEATURE_BENCHMARK — The `wp sd-ai-agent benchmark …`
  *    WP-CLI subcommand, which runs the full agent loop and writes a
- *    JSON log per question. Supplied by the advanced companion plugin
- *    because the command's `--log-dir=<abs-path>` override lets an
- *    administrator point log writes at an arbitrary absolute filesystem
- *    path, which the WP.org reviewer flagged as out-of-scope for a
- *    public-directory plugin.
+ *    JSON log per question in owner-only private storage. Supplied by the
+ *    advanced companion plugin because it runs live agent benchmarks and
+ *    retains detailed diagnostics; private `--log-dir=<abs-path>` overrides
+ *    remain available subject to the same path and permission checks.
  *  - SD_AI_AGENT_FEATURE_USER_MANAGEMENT — Mutating user-management
  *    abilities (`sd-ai-agent/create-user`, `sd-ai-agent/update-user-role`).
  *    Supplied by the advanced companion plugin because custom user

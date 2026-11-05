@@ -694,7 +694,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$assessed          = ! empty( $coverage['functionally_verifiable'] );
 		$verified          = ! empty( $coverage['functionally_verified'] ) && empty( $result['agent_error'] );
 		$functional_status = $assessed ? ( $verified ? 'verified' : 'failed' ) : 'not_assessed';
-		if ( 'graceful_degradation' === $dimension ) {
+		if ( ! empty( $result['provider_error'] ) ) {
+			$functional_status = 'blocked_provider';
+		} elseif ( 'graceful_degradation' === $dimension ) {
 			$functional_status = 'graceful_degradation';
 		}
 
@@ -711,7 +713,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'postconditions_total'    => (int) ( $coverage['postcondition_total'] ?? 0 ),
 			'functional_status'       => $functional_status,
 			'benchmark_dimension'     => $dimension,
-			'ranking_eligible'        => $assessed && empty( $result['provider_error'] ) && 'deferred' !== ( $result['status'] ?? '' ),
+			'ranking_eligible'        => 'capability' === $dimension && $assessed && empty( $result['provider_error'] ) && 'deferred' !== ( $result['status'] ?? '' ),
 			'turns_used'              => (int) ( $result['turns_used'] ?? 0 ),
 			'elapsed_ms'              => (int) ( $result['elapsed_ms'] ?? 0 ),
 			'agent_error'             => (string) ( $result['agent_error'] ?? '' ),
@@ -808,6 +810,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 		return $questions > 0
 			&& $questions === (int) ( $totals['questions_functionally_assessed'] ?? 0 )
+			&& 0 === (int) ( $totals['graceful_degradation_questions'] ?? 0 )
 			&& ( (int) ( $totals['postconditions_passed'] ?? 0 ) + (int) ( $totals['postconditions_failed'] ?? 0 ) ) > 0;
 	}
 

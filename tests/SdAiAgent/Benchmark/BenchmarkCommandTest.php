@@ -174,6 +174,26 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertFalse( $summary['ranking_eligible'] );
 	}
 
+	/** Credentialed degradation stays distinct from provider unavailability. */
+	public function test_provider_error_takes_precedence_over_degradation_status(): void {
+		$command = new TestableBenchmarkCommand();
+		$method  = new ReflectionMethod( BenchmarkCommand::class, 'summarize_question_result' );
+		$summary = $method->invoke(
+			$command,
+			array(
+				'question_id'         => 'credentialed',
+				'status'              => 'provider_error',
+				'benchmark_dimension' => 'graceful_degradation',
+				'provider_error'      => array( 'type' => 'provider_unavailable' ),
+				'assertions'          => array(),
+			)
+		);
+
+		$this->assertSame( 'graceful_degradation', $summary['benchmark_dimension'] );
+		$this->assertSame( 'blocked_provider', $summary['functional_status'] );
+		$this->assertFalse( $summary['ranking_eligible'] );
+	}
+
 	/** Suite ranking requires functional evidence for every included question. */
 	public function test_suite_ranking_rejects_invocation_only_questions(): void {
 		$command = new TestableBenchmarkCommand();

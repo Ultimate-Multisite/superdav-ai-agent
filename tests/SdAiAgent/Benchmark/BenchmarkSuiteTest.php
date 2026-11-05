@@ -37,6 +37,11 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 				array( 'type' => 'tool_called_or_user_exists' ),
 			)
 		);
+		$unsupported = BenchmarkSuite::inspect_assertion_intent(
+			array(
+				array( 'type' => 'future_assertion_type' ),
+			)
+		);
 
 		$this->assertSame( 'invocation_only', $invocation['classification'] );
 		$this->assertFalse( $invocation['functionally_verifiable'] );
@@ -44,6 +49,8 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 		$this->assertTrue( $mixed['functionally_verifiable'] );
 		$this->assertSame( 'composite', $composite['classification'] );
 		$this->assertFalse( $composite['functionally_verifiable'] );
+		$this->assertSame( 'unsupported', $unsupported['classification'] );
+		$this->assertFalse( $unsupported['functionally_verifiable'] );
 	}
 
 	/** Credentialed questions explicitly report graceful-degradation coverage. */

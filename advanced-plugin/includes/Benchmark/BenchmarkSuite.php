@@ -34,6 +34,29 @@ class BenchmarkSuite {
 	/** Assertion types whose success may come from invocation or final state. */
 	private const COMPOSITE_ASSERTION_TYPES = array( 'tool_called_or_user_exists' );
 
+	/** Assertion types that inspect output or WordPress state after execution. */
+	private const POSTCONDITION_ASSERTION_TYPES = array(
+		'plugin_activates',
+		'plugin_no_php_errors',
+		'rest_endpoint_registered',
+		'rest_endpoint_response',
+		'db_table_exists',
+		'db_table_has_columns',
+		'shortcode_registered',
+		'post_type_registered',
+		'hook_registered',
+		'option_exists',
+		'file_exists_in_plugin',
+		'file_contains',
+		'wp_cli_command',
+		'tool_output_contains',
+		'post_exists',
+		'option_value_matches',
+		'taxonomy_registered',
+		'menu_exists',
+		'user_exists',
+	);
+
 	/**
 	 * List all available suites.
 	 *
@@ -233,13 +256,14 @@ class BenchmarkSuite {
 	 * the requested outcome.
 	 *
 	 * @param array<int, array<string, mixed>> $assertions Assertion definitions.
-	 * @return array{classification: string, invocation_total: int, postcondition_total: int, composite_total: int, functionally_verifiable: bool}
+	 * @return array{classification: string, invocation_total: int, postcondition_total: int, composite_total: int, unsupported_total: int, functionally_verifiable: bool}
 	 */
 	public static function inspect_assertion_intent( array $assertions ): array {
 		$counts = array(
 			'invocation'    => 0,
 			'postcondition' => 0,
 			'composite'     => 0,
+			'unsupported'   => 0,
 		);
 
 		foreach ( $assertions as $assertion ) {
@@ -248,12 +272,16 @@ class BenchmarkSuite {
 				++$counts['invocation'];
 			} elseif ( in_array( $type, self::COMPOSITE_ASSERTION_TYPES, true ) ) {
 				++$counts['composite'];
-			} else {
+			} elseif ( in_array( $type, self::POSTCONDITION_ASSERTION_TYPES, true ) ) {
 				++$counts['postcondition'];
+			} else {
+				++$counts['unsupported'];
 			}
 		}
 
-		if ( $counts['postcondition'] > 0 && ( $counts['invocation'] > 0 || $counts['composite'] > 0 ) ) {
+		if ( $counts['unsupported'] > 0 ) {
+			$classification = 'unsupported';
+		} elseif ( $counts['postcondition'] > 0 && ( $counts['invocation'] > 0 || $counts['composite'] > 0 ) ) {
 			$classification = 'mixed';
 		} elseif ( $counts['postcondition'] > 0 ) {
 			$classification = 'postcondition';
@@ -268,7 +296,8 @@ class BenchmarkSuite {
 			'invocation_total'        => $counts['invocation'],
 			'postcondition_total'     => $counts['postcondition'],
 			'composite_total'         => $counts['composite'],
-			'functionally_verifiable' => $counts['postcondition'] > 0,
+			'unsupported_total'       => $counts['unsupported'],
+			'functionally_verifiable' => $counts['postcondition'] > 0 && 0 === $counts['unsupported'],
 		);
 	}
 
@@ -286,7 +315,7 @@ class BenchmarkSuite {
 			return 'composite';
 		}
 
-		return 'postcondition';
+		return in_array( $type, self::POSTCONDITION_ASSERTION_TYPES, true ) ? 'postcondition' : 'unsupported';
 	}
 
 	/**

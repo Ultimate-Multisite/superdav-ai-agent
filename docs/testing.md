@@ -68,11 +68,14 @@ per operation (`--max-seconds`, `--phase-seconds`, `--max-requests`). These are
 request/time bounds, **not a currency or token spending cap**. Provider retry
 attempts consume the request budget. wp-env also runs `timeout` inside the
 container; allow up to 15 seconds transport grace and 60 seconds extra for cleanup.
-Hard host termination cannot guarantee cleanup: inspect a failed receipt's unique
+Interrupting or killing the runner cannot guarantee cleanup: inspect a failed receipt's unique
 slug before disposing of the site. Never automatically retry a paid failure.
 
 The final stdout JSON records each operation and cleanup, never raw provider
-responses, source code, credentials, or stack traces. `--report` reserves a new
+responses, source code, credentials, or stack traces. `requestAttempts` includes
+rejected attempts; `blockedRequests` shows how many were stopped before HTTP
+transport, so an exhausted budget is not mistaken for extra paid calls.
+`--report` reserves a new
 mode-0600 file and refuses overwrites. Exit 0 means every selected scenario and
 cleanup passed; exit 1 means a check failed; exit 2 means setup/arguments failed.
 This does not prove arbitrary generated code safe or cover every provider,

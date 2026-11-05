@@ -440,6 +440,9 @@ test.describe
 			hasEspresso,
 			'/menu/ must contain the "Espresso" category heading'
 		).toBe( true );
+
+		// This serial suite shares one page; leave the chat ready for the next step.
+		await goToAgentPageForOnboarding( page );
 	} );
 
 	// ── Test 4: completion gate → repair → DONE reply → theme on disk ─────

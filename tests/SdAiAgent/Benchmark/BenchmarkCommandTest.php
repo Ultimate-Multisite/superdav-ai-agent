@@ -87,11 +87,28 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 	 * @return array<string, mixed>
 	 */
 	protected function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
-		unset( $prompt, $provider_id, $model_id, $max_turns );
+		unset( $provider_id, $model_id, $max_turns );
 		++$this->agent_calls;
 
 		if ( 'exception' === $this->agent_behavior ) {
 			throw new RuntimeException( 'Synthetic benchmark failure.' );
+		}
+
+		if ( 'success' === $this->agent_behavior ) {
+			if ( 1 !== preg_match( '/directory name must be exactly "([^"]+)"/', $prompt, $matches ) ) {
+				throw new RuntimeException( 'Synthetic benchmark could not resolve the fixture slug.' );
+			}
+
+			$slug = $matches[1];
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test-owned generated plugin.
+			file_put_contents( WP_PLUGIN_DIR . "/{$slug}/{$slug}.php", "<?php\n", LOCK_EX );
+
+			return array(
+				'turns_used'    => 1,
+				'token_usage'   => array(),
+				'tool_call_log' => array(),
+				'reply'         => 'Synthetic success.',
+			);
 		}
 
 		return array(
@@ -180,6 +197,20 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A normal successful run removes its owned fixture after assertions.
+	 */
+	public function test_successful_run_cleans_owned_plugin_fixture(): void {
+		$slug                    = $this->new_slug( 'success' );
+		$command                 = new TestableBenchmarkCommand();
+		$command->agent_behavior = 'success';
+		$result                  = $command->run_test_question( $this->question( $slug ) );
+
+		$this->assertSame( 'passed', $result['status'] );
+		$this->assertSame( 1, $result['assertions']['passed'] );
+		$this->assertDirectoryDoesNotExist( WP_PLUGIN_DIR . '/' . $slug );
+	}
+
+	/**
 	 * Exceptions still remove a fixture owned by this run.
 	 */
 	public function test_exception_cleans_owned_plugin_fixture(): void {
@@ -232,6 +263,25 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'external-canary', file_get_contents( $canary ) );
 		$this->assertFileDoesNotExist( $link );
 		$this->assertDirectoryDoesNotExist( WP_PLUGIN_DIR . '/' . $slug );
+	}
+
+	/**
+	 * Cleanup fails closed when the ownership marker no longer matches.
+	 */
+	public function test_cleanup_preserves_fixture_with_tampered_ownership_marker(): void {
+		$slug    = $this->new_slug( 'tampered' );
+		$command = new TestableBenchmarkCommand();
+		$command->run_test_question( $this->question( $slug ), true );
+
+		$marker = WP_PLUGIN_DIR . '/' . $slug . '/.sd-ai-agent-benchmark-owner';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test-owned marker mutation.
+		file_put_contents( $marker, 'different-owner', LOCK_EX );
+
+		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_plugin' );
+		$cleanup->invoke( $command, $slug );
+
+		$this->assertDirectoryExists( WP_PLUGIN_DIR . '/' . $slug );
+		$this->assertSame( 'different-owner', file_get_contents( $marker ) );
 	}
 
 	/**

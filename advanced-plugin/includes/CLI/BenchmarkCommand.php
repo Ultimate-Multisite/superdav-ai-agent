@@ -295,6 +295,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'question_passed' => 0,
 			'errors'          => 0,
 			'provider_errors' => 0,
+			'fixture_errors'  => 0,
 		);
 		$question_summaries = array();
 
@@ -314,6 +315,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 				$error_label = ! empty( $result['provider_error'] ) ? 'Provider error' : 'Agent error';
 				WP_CLI::log( '│  ✗ ' . $error_label . ': ' . $result['agent_error'] );
 				++$totals['errors'];
+				if ( ! empty( $result['fixture_error'] ) ) {
+					++$totals['fixture_errors'];
+				}
 				if ( ! empty( $result['provider_error'] ) ) {
 					++$totals['provider_errors'];
 				}
@@ -368,6 +372,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'questions_passed'  => $totals['question_passed'],
 			'agent_errors'      => $totals['errors'],
 			'provider_errors'   => $totals['provider_errors'],
+			'fixture_errors'    => $totals['fixture_errors'],
 			'assertions_passed' => $totals['passed'],
 			'assertions_failed' => $totals['failed'],
 			'assertions_total'  => $total_assertions,
@@ -455,15 +460,15 @@ class BenchmarkCommand extends WP_CLI_Command {
 			}
 		}
 
-		$log['cleanup'] = $this->cleanup_question_fixtures( $question );
-
-		// Build the prompt — include plugin name guidance for plugin questions.
-		$prompt = $question['prompt'];
-		if ( $needs_plugin && '' !== $plugin_slug ) {
-			$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
-		}
-
 		try {
+			$log['cleanup'] = $this->cleanup_question_fixtures( $question );
+
+			// Build the prompt — include plugin name guidance for plugin questions.
+			$prompt = $question['prompt'];
+			if ( $needs_plugin && '' !== $plugin_slug ) {
+				$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
+			}
+
 			// Run the agent loop.
 			$agent_result = $this->run_agent_loop( $prompt, $provider_id, $model_id, (int) ( $question['max_turns'] ?? 20 ) );
 
@@ -648,13 +653,14 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$questions       = (int) ( $totals['questions'] ?? 0 );
 		$errors          = (int) ( $totals['errors'] ?? 0 );
 		$provider_errors = (int) ( $totals['provider_errors'] ?? 0 );
+		$fixture_errors  = (int) ( $totals['fixture_errors'] ?? 0 );
 		$failed          = (int) ( $totals['failed'] ?? 0 );
 
 		if ( $questions > 0 && $provider_errors === $questions ) {
 			return 'blocked_provider';
 		}
 
-		if ( $provider_errors > 0 ) {
+		if ( $provider_errors > 0 || $fixture_errors > 0 ) {
 			return 'inconclusive';
 		}
 
@@ -799,7 +805,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @return string|null
 	 */
 	private function plugin_fixture_path( string $plugin_slug ): ?string {
-		if ( 1 !== preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $plugin_slug ) ) {
+		if ( 1 !== preg_match( '/^[a-z0-9-]+$/', $plugin_slug ) ) {
 			return null;
 		}
 
@@ -944,7 +950,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param string $dir Directory path.
 	 */
 	private function rmdir_recursive( string $dir ): bool {
-		$boundary = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$boundary    = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$marker_path = $dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
 
 		try {
 			$items = new \RecursiveIteratorIterator(
@@ -954,6 +961,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 			foreach ( $items as $item ) {
 				$path = $item->getPathname();
+				if ( $marker_path === $path ) {
+					continue;
+				}
+
 				if ( ! str_starts_with( $path, $boundary ) ) {
 					WP_CLI::warning( sprintf( 'Benchmark cleanup boundary violation: %s', $path ) );
 					return false;
@@ -976,6 +987,12 @@ class BenchmarkCommand extends WP_CLI_Command {
 			}
 		} catch ( \UnexpectedValueException $exception ) {
 			WP_CLI::warning( sprintf( 'Benchmark cleanup could not inspect fixture: %s', $exception->getMessage() ) );
+			return false;
+		}
+
+		// Delete the ownership marker last so an interrupted cleanup can be retried safely.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only owned fixture cleanup.
+		if ( ! unlink( $marker_path ) ) {
 			return false;
 		}
 

@@ -36,6 +36,49 @@ class SessionControllerTest extends WP_UnitTestCase {
 
 	private int $other_admin_id;
 
+	/** @return array<string, array{string}> */
+	public static function terminal_publication_phases(): array {
+		return array(
+			'exception' => array( 'exception_publication' ),
+			'result'    => array( 'result_publication' ),
+		);
+	}
+
+	/**
+	 * Terminal publication uses a longer wait and logs lock failures safely.
+	 *
+	 * @dataProvider terminal_publication_phases
+	 */
+	public function test_terminal_publication_lock_wait_and_diagnostic( string $phase ): void {
+		$queries = array();
+		$events  = array();
+		$fail_lock = static function ( $query ) use ( &$queries ) {
+			if ( str_starts_with( $query, 'SELECT GET_LOCK(' ) ) {
+				$queries[] = $query;
+				return 'SELECT NULL';
+			}
+			return $query;
+		};
+		$capture = static function ( $event, $severity, $context ) use ( &$events ) {
+			$events[] = array( $event, $severity, $context );
+		};
+		add_filter( 'query', $fail_lock );
+		add_action( 'sd_ai_agent_event_logged', $capture, 10, 3 );
+		try {
+			$acquire = new \ReflectionMethod( SessionController::class, 'acquire_job_publication_lock' );
+			$this->assertNull( $acquire->invoke( null, 'test-publication-wait', $phase ) );
+			$this->assertCount( 1, $queries );
+			$this->assertStringContainsString( ', 15)', $queries[0] );
+			$this->assertSame(
+				array( array( 'job_publication_lock_failed', 'warning', array( 'job_id' => 'test-publication-wait', 'phase' => $phase, 'reason' => 'mutation_lock_unavailable' ) ) ),
+				$events
+			);
+		} finally {
+			remove_filter( 'query', $fail_lock );
+			remove_action( 'sd_ai_agent_event_logged', $capture, 10 );
+		}
+	}
+
 	/** Recovery cannot advance the generation between an ownership check and a progress write. */
 	public function test_checkpoint_recovery_serializes_with_progress_publication(): void {
 		global $wpdb;

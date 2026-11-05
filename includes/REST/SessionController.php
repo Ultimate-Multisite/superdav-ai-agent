@@ -69,6 +69,9 @@ final class SessionController {
 	/** Maximum automatic resume attempts for a crashed background job. */
 	private const JOB_AUTO_RESUME_MAX_ATTEMPTS = 2;
 
+	/** Terminal results must wait longer than best-effort progress updates. */
+	private const JOB_PUBLICATION_LOCK_TIMEOUT = 15;
+
 	/**
 	 * Per-message transport attribution that does not alter conversation meaning.
 	 *
@@ -3580,6 +3583,28 @@ final class SessionController {
 	}
 
 	/**
+	 * Wait for terminal publication and surface any exhausted lock wait.
+	 *
+	 * @param string $job_id Active job UUID.
+	 * @param string $phase Terminal publication phase.
+	 */
+	private static function acquire_job_publication_lock( string $job_id, string $phase ): ?string {
+		$lock = self::acquire_job_mutation_lock( $job_id, self::JOB_PUBLICATION_LOCK_TIMEOUT );
+		if ( null === $lock ) {
+			AgentEventLog::log(
+				'job_publication_lock_failed',
+				AgentEventLog::SEVERITY_WARNING,
+				array(
+					'job_id' => $job_id,
+					'phase'  => $phase,
+					'reason' => 'mutation_lock_unavailable',
+				)
+			);
+		}
+		return $lock;
+	}
+
+	/**
 	 * Build the callback that consumes queued user interrupts.
 	 *
 	 * @param string $job_id Active job UUID.
@@ -4256,7 +4281,7 @@ final class SessionController {
 				$result = $loop->run();
 			}
 		} catch ( \Throwable $e ) {
-			$lock = self::acquire_job_mutation_lock( $job_id, 1 );
+			$lock = self::acquire_job_publication_lock( $job_id, 'exception_publication' );
 			if ( null === $lock ) {
 				return new WP_REST_Response( array( 'ok' => false ), 200 );
 			}
@@ -4317,7 +4342,7 @@ final class SessionController {
 
 		// Provider/tool execution is over. Fence all final publication, including
 		// session/DB writes and paused results, against checkpoint recovery.
-		$lock = self::acquire_job_mutation_lock( $job_id, 1 );
+		$lock = self::acquire_job_publication_lock( $job_id, 'result_publication' );
 		if ( null === $lock ) {
 			return new WP_REST_Response( array( 'ok' => false ), 200 );
 		}

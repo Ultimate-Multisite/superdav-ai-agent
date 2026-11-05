@@ -173,7 +173,10 @@ INSTRUCTION;
 			)
 		);
 
-		$ordered = self::order_files_by_dependencies( $file_specs );
+		$ordered = self::prepare_file_specs( $file_specs, (string) $plan['slug'] );
+		if ( is_wp_error( $ordered ) ) {
+			return $ordered;
+		}
 		/** @var array<string,string> $generated_files */
 		$generated_files = array();
 
@@ -181,13 +184,6 @@ INSTRUCTION;
 			if ( ! is_array( $file_spec ) ) {
 				continue;
 			}
-
-			$path       = isset( $file_spec['path'] ) ? (string) $file_spec['path'] : '';
-			$normalised = self::normalise_generated_file_path( (string) $plan['slug'], $path, empty( $generated_files ) );
-			if ( is_wp_error( $normalised ) ) {
-				return $normalised;
-			}
-			$file_spec['path'] = $normalised;
 
 			$code = self::generate_file( $plan, $file_spec, $generated_files, $context );
 
@@ -244,7 +240,7 @@ INSTRUCTION;
 		$version = isset( $plan['version'] ) ? (string) $plan['version'] : '1.0.0';
 		$path    = isset( $file_spec['path'] ) ? (string) $file_spec['path'] : $slug . '/' . $slug . '.php';
 		$purpose = isset( $file_spec['purpose'] ) ? (string) $file_spec['purpose'] : 'Plugin file';
-		$is_main = empty( $prior_files );
+		$is_main = isset( $file_spec['is_main'] ) ? (bool) $file_spec['is_main'] : empty( $prior_files );
 
 		$system_instruction = <<<'INSTRUCTION'
 You are an expert WordPress plugin developer. Generate production-ready WordPress plugin PHP code.
@@ -495,7 +491,7 @@ INSTRUCTION;
 	 *
 	 * @param string $slug    Plugin slug.
 	 * @param string $path    AI-supplied path.
-	 * @param bool   $is_main Whether this is the first/main generated file.
+	 * @param bool   $is_main Whether this is the declared main plugin file.
 	 * @return string|\WP_Error Normalised path, including the slug prefix.
 	 */
 	public static function normalise_generated_file_path( string $slug, string $path, bool $is_main = false ): string|\WP_Error {
@@ -845,6 +841,40 @@ INSTRUCTION;
 		}
 
 		return $stripped;
+	}
+
+	/**
+	 * Preserve declared main identity and unique paths before dependency ordering.
+	 *
+	 * The first plan entry is the main file, but it may depend on a helper that
+	 * must be generated first. Emission order must not rename that helper to the
+	 * main path or request plugin headers for it.
+	 *
+	 * @param array<int,array<string,mixed>> $file_specs Declared file specs.
+	 * @param string                         $slug Plugin slug.
+	 * @return array<int,array<string,mixed>>|WP_Error Prepared dependency order.
+	 */
+	private static function prepare_file_specs( array $file_specs, string $slug ): array|WP_Error {
+		$prepared = [];
+		$paths    = [];
+		foreach ( $file_specs as $index => $spec ) {
+			$is_main = 0 === $index;
+			$path    = self::normalise_generated_file_path( $slug, (string) ( $spec['path'] ?? '' ), $is_main );
+			if ( is_wp_error( $path ) ) {
+				return $path;
+			}
+			if ( isset( $paths[ $path ] ) ) {
+				return new WP_Error(
+					'sd_ai_agent_duplicate_generated_path',
+					__( 'The plugin plan contains duplicate file paths.', 'superdav-ai-agent' )
+				);
+			}
+			$paths[ $path ]  = true;
+			$spec['path']    = $path;
+			$spec['is_main'] = $is_main;
+			$prepared[]      = $spec;
+		}
+		return self::order_files_by_dependencies( $prepared );
 	}
 
 	/**

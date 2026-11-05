@@ -40,14 +40,14 @@ async function loginToWordPress(
 	await page.fill( '#user_pass', password );
 
 	// Arm the redirect waiter before submitting so a fast response cannot race
-	// the listener. The previous default waited for every admin subresource to
-	// reach the `load` state, which made a successful login look like a timeout
-	// when a CI worker was busy. The authenticated admin DOM below is the actual
-	// readiness boundary needed by callers.
+	// the listener. Stop waiting once the admin response is committed; waiting
+	// for `load` or `domcontentloaded` also couples login to slow admin scripts
+	// and styles. The authenticated admin DOM below is the actual readiness
+	// boundary needed by callers.
 	await Promise.all( [
 		page.waitForURL( /\/wp-admin(?:\/|$)/, {
 			timeout: 60_000,
-			waitUntil: 'domcontentloaded',
+			waitUntil: 'commit',
 		} ),
 		page.click( '#wp-submit' ),
 	] );

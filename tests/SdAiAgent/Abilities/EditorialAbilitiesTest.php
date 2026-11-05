@@ -99,6 +99,43 @@ class EditorialAbilitiesTest extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test title suggestions are plain text, nonempty, and limited to the request.
+	 */
+	public function test_sanitize_title_suggestions_preserves_candidate_semantics() {
+		$method = new \ReflectionMethod( EditorialAbilities::class, 'sanitize_title_suggestions' );
+
+		$result = $method->invoke(
+			null,
+			[ '1. "First title" ', '', 42, '- <strong>Second title</strong>', 'Extra title' ],
+			2
+		);
+
+		$this->assertSame( [ 'First title', 'Second title' ], $result );
+	}
+
+	/**
+	 * Test title generation cannot read a private post outside the current user context.
+	 */
+	public function test_build_title_context_rejects_unreadable_private_post() {
+		$author_id = $this->factory->user->create( [ 'role' => 'author' ] );
+		$post_id   = $this->factory->post->create(
+			[
+				'post_author'  => $author_id,
+				'post_content' => 'Private editorial content.',
+				'post_status'  => 'private',
+			]
+		);
+		$subscriber_id = $this->factory->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $subscriber_id );
+
+		$method = new \ReflectionMethod( EditorialAbilities::class, 'build_text_context' );
+		$result = $method->invoke( null, [ 'post_id' => $post_id ] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'insufficient_capabilities', $result->get_error_code() );
+	}
+
 	// ─── handle_generate_excerpt ──────────────────────────────────
 
 	/**

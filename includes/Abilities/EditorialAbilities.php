@@ -148,21 +148,21 @@ The title suggestion should follow these requirements:
 - Should not contain any markdown, bullets, numbering, or formatting — plain text only
 - Should be distinct in tone and focus
 - Must reflect the actual content and context, not generic clickbait
+- Return exactly the requested number of suggestions, one per line
 
 The context you will be provided is delimited by triple quotes.
 INSTRUCTION;
 
-		$builder = wp_ai_client_prompt( '"""' . $context . '"""' )
+		$builder = wp_ai_client_prompt( "Generate exactly {$candidates} title suggestions for this context:\n\n\"\"\"{$context}\"\"\"" )
 			->using_system_instruction( $system_instruction )
-			->using_temperature( 0.7 )
-			->using_candidate_count( $candidates );
+			->using_temperature( 0.7 );
 
 		$model = self::get_configured_model();
 		if ( ! empty( $model ) ) {
 			$builder = $builder->using_model_preference( $model );
 		}
 
-		$result = $builder->generate_texts();
+		$result = $builder->generate_text();
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -172,14 +172,49 @@ INSTRUCTION;
 			return new WP_Error( 'no_results', __( 'No title suggestions were generated.', 'superdav-ai-agent' ) );
 		}
 
+		$raw_titles = preg_split( '/\R/u', (string) $result );
+		if ( false === $raw_titles ) {
+			return new WP_Error( 'invalid_results', __( 'The generated title suggestions were invalid.', 'superdav-ai-agent' ) );
+		}
+
+		$titles = self::sanitize_title_suggestions( $raw_titles, $candidates );
+		if ( count( $titles ) !== $candidates ) {
+			return new WP_Error( 'invalid_results', __( 'The generated title suggestions were invalid.', 'superdav-ai-agent' ) );
+		}
+
 		return [
-			'titles' => array_values(
-				array_map(
-					static fn( string $t ) => sanitize_text_field( trim( $t, ' "\'' ) ),
-					$result
-				)
-			),
+			'titles' => $titles,
 		];
+	}
+
+	/**
+	 * Sanitize generated title suggestions while preserving the requested limit.
+	 *
+	 * @param array<mixed> $titles     Raw title values.
+	 * @param int          $candidates Maximum number of titles to return.
+	 * @return list<string>
+	 */
+	private static function sanitize_title_suggestions( array $titles, int $candidates ): array {
+		$sanitized = [];
+
+		foreach ( $titles as $title ) {
+			if ( ! is_string( $title ) ) {
+				continue;
+			}
+
+			$title = preg_replace( '/^\s*(?:[-*•]|\d+[.)])\s+/u', '', $title ) ?? $title;
+			$title = sanitize_text_field( trim( $title, ' "\'' ) );
+			if ( '' === $title ) {
+				continue;
+			}
+
+			$sanitized[] = $title;
+			if ( count( $sanitized ) >= $candidates ) {
+				break;
+			}
+		}
+
+		return $sanitized;
 	}
 
 	// ─── Excerpt Generation ──────────────────────────────────────────────────
@@ -764,6 +799,13 @@ INSTRUCTION;
 				// translators: %d: Post ID.
 				$error_message = sprintf( __( 'Post with ID %d not found.', 'superdav-ai-agent' ), absint( $post_id_int ) );
 				return new WP_Error( 'post_not_found', $error_message );
+			}
+
+			if ( ! current_user_can( 'read_post', $post->ID ) ) {
+				return new WP_Error(
+					'insufficient_capabilities',
+					__( 'You do not have permission to read this post.', 'superdav-ai-agent' )
+				);
 			}
 
 			$parts = array_filter(

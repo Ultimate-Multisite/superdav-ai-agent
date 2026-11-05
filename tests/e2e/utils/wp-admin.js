@@ -22,8 +22,7 @@
 
 const WP_ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const WP_ADMIN_PASSWORD = process.env.WP_ADMIN_PASSWORD || 'password';
-const WP_SECONDARY_ADMIN_USER =
-	process.env.WP_SECONDARY_ADMIN_USER || 'admin2';
+const WP_SECONDARY_ADMIN_USER = process.env.WP_SECONDARY_ADMIN_USER || 'admin2';
 const WP_SECONDARY_ADMIN_PASSWORD =
 	process.env.WP_SECONDARY_ADMIN_PASSWORD || 'password2';
 
@@ -59,11 +58,7 @@ function getWorkerAdminCredentials() {
  * @param {string}                          [username] - WordPress admin username.
  * @param {string}                          [password] - WordPress admin password.
  */
-async function loginToWordPress(
-	page,
-	username,
-	password
-) {
+async function loginToWordPress( page, username, password ) {
 	const workerCredentials = getWorkerAdminCredentials();
 	const loginUsername = username || workerCredentials.username;
 	const loginPassword = password || workerCredentials.password;
@@ -88,7 +83,9 @@ async function loginToWordPress(
 	const redirect = response.headers().location || '';
 	await response.dispose();
 	if ( ! redirect.includes( '/wp-admin' ) ) {
-		throw new Error( 'WordPress login did not redirect to the admin area.' );
+		throw new Error(
+			'WordPress login did not redirect to the admin area.'
+		);
 	}
 
 	await page.goto( '/wp-admin/', { waitUntil: 'commit' } );
@@ -159,7 +156,10 @@ async function goToAgentPage( page ) {
 	await page.waitForLoadState( 'domcontentloaded' );
 
 	// Wait for both responses so the sidebar is fully populated before returning.
-	await Promise.all( [ sessionsResponsePromise, sharedSessionsResponsePromise ] );
+	await Promise.all( [
+		sessionsResponsePromise,
+		sharedSessionsResponsePromise,
+	] );
 
 	// Wait for the unified admin app root to be present. The SPA mounts into
 	// #sdaa-root and renders .sdaa-unified-admin once React

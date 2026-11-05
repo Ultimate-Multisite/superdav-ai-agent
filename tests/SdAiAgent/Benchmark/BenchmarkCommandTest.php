@@ -291,6 +291,59 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Missing plugin prerequisites skip the question before invoking the agent.
+	 */
+	public function test_missing_plugin_prerequisite_is_not_exercised(): void {
+		$slug    = $this->new_slug( 'missing-prerequisite' );
+		$command = new TestableBenchmarkCommand();
+		$result  = $command->run_test_question( $this->prerequisite_question( $slug ) );
+
+		$this->assertSame( 'not_exercised', $result['status'] );
+		$this->assertSame( array( 'Synthetic commerce plugin' ), $result['missing_prerequisites'] );
+		$this->assertSame( 0, $result['assertions']['total'] );
+		$this->assertSame( 0, $command->agent_calls );
+	}
+
+	/**
+	 * Active plugin prerequisites permit the real question path to execute.
+	 */
+	public function test_active_plugin_prerequisite_executes_question(): void {
+		$slug        = $this->new_slug( 'active-prerequisite' );
+		$plugin_file = $this->write_plugin( $slug );
+		$this->assertNull( activate_plugin( "{$slug}/{$slug}.php" ) );
+
+		$command = new TestableBenchmarkCommand();
+		$result  = $command->run_test_question( $this->prerequisite_question( $slug ) );
+
+		$this->assertFileExists( $plugin_file );
+		$this->assertSame( 'provider_error', $result['status'] );
+		$this->assertSame( 1, $command->agent_calls );
+	}
+
+	/**
+	 * Not-exercised questions make suite summaries inconclusive and ineligible.
+	 */
+	public function test_not_exercised_summary_is_not_ranking_eligible(): void {
+		$command = new BenchmarkCommand();
+		$totals  = array(
+			'questions'       => 2,
+			'passed'          => 1,
+			'failed'          => 0,
+			'errors'          => 0,
+			'provider_errors' => 0,
+			'fixture_errors'  => 0,
+			'not_exercised'   => 1,
+		);
+
+		$status_method = new ReflectionMethod( BenchmarkCommand::class, 'determine_run_status' );
+		$status        = $status_method->invoke( $command, $totals );
+		$this->assertSame( 'inconclusive', $status );
+
+		$ranking_method = new ReflectionMethod( BenchmarkCommand::class, 'is_ranking_eligible' );
+		$this->assertFalse( $ranking_method->invoke( $command, $totals, $status ) );
+	}
+
+	/**
 	 * Cleanup unlinks a leaf symlink without deleting its external target.
 	 */
 	public function test_cleanup_unlinks_symlink_without_following_target(): void {
@@ -352,6 +405,29 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 					'path' => $slug . '.php',
 				),
 			),
+		);
+	}
+
+	/**
+	 * Build a benchmark question with a synthetic plugin prerequisite.
+	 *
+	 * @param string $slug Required plugin slug.
+	 * @return array<string, mixed>
+	 */
+	private function prerequisite_question( string $slug ): array {
+		return array(
+			'id'         => 'prerequisite-test',
+			'category'   => 'prerequisite-safety',
+			'prompt'     => 'Exercise a prerequisite-gated question.',
+			'max_turns'  => 1,
+			'requires'   => array(
+				array(
+					'type'   => 'plugin',
+					'plugin' => "{$slug}/{$slug}.php",
+					'label'  => 'Synthetic commerce plugin',
+				),
+			),
+			'assertions' => array(),
 		);
 	}
 

@@ -341,6 +341,38 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 'publish', $result['status'] );
+		$this->assertSame( get_post_status( $result['post_id'] ), $result['status'] );
+	}
+
+	/** Future status is rejected before WordPress can publish it immediately. */
+	public function test_handle_create_post_rejects_future_status_before_insertion(): void {
+		$before = wp_count_posts()->publish;
+		$result = PostAbilities::handle_create_post(
+			[
+				'title'  => 'Unsafe scheduling request',
+				'status' => 'future',
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_scheduling_unsupported', $result->get_error_code() );
+		$this->assertSame( $before, wp_count_posts()->publish );
+	}
+
+	/** Supported creation statuses are persisted and reported exactly. */
+	public function test_handle_create_post_reports_persisted_supported_statuses(): void {
+		foreach ( [ 'draft', 'pending', 'private', 'publish' ] as $status ) {
+			$result = PostAbilities::handle_create_post(
+				[
+					'title'  => 'Status ' . $status,
+					'status' => $status,
+				]
+			);
+
+			$this->assertIsArray( $result );
+			$this->assertSame( get_post_status( $result['post_id'] ), $result['status'] );
+			$this->assertSame( $status, $result['status'] );
+		}
 	}
 
 	/**
@@ -733,6 +765,22 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 'publish', $result['status'] );
+	}
+
+	/** Update requests cannot enter WordPress's unsafe date-less future path. */
+	public function test_handle_update_post_rejects_future_status_without_changing_post(): void {
+		$post_id = $this->factory->post->create( [ 'post_status' => 'draft' ] );
+
+		$result = PostAbilities::handle_update_post(
+			[
+				'post_id' => $post_id,
+				'status'  => 'future',
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_scheduling_unsupported', $result->get_error_code() );
+		$this->assertSame( 'draft', get_post_status( $post_id ) );
 	}
 
 	/**
@@ -1154,6 +1202,26 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 		$this->assertSame( 0, $result['results'][0]['post_id'] );
 		$this->assertNotEmpty( $result['results'][0]['error'] );
 		$this->assertGreaterThan( 0, $result['results'][1]['post_id'] );
+	}
+
+	/** Batch creation reports date-less future requests as per-item errors. */
+	public function test_handle_batch_create_posts_rejects_future_status(): void {
+		$result = PostAbilities::handle_batch_create_posts(
+			[
+				'posts' => [
+					[
+						'title'  => 'Unsafe batch schedule',
+						'status' => 'future',
+					],
+				],
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['created_count'] );
+		$this->assertSame( 1, $result['error_count'] );
+		$this->assertSame( 0, $result['results'][0]['post_id'] );
+		$this->assertStringContainsString( 'explicit future date', $result['results'][0]['error'] );
 	}
 
 	/**

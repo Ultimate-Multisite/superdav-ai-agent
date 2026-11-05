@@ -132,8 +132,8 @@ class PostAbilities {
 						],
 						'status'            => [
 							'type'        => 'string',
-							'description' => 'Post status: "draft" (default), "publish", "pending", "private", or "future".',
-							'enum'        => [ 'draft', 'publish', 'pending', 'private', 'future' ],
+							'description' => 'Post status: "draft" (default), "publish", "pending", or "private". Scheduled publishing is not supported.',
+							'enum'        => [ 'draft', 'publish', 'pending', 'private' ],
 						],
 						'post_type'         => [
 							'type'        => 'string',
@@ -224,8 +224,8 @@ class PostAbilities {
 						],
 						'status'                => [
 							'type'        => 'string',
-							'description' => 'New post status. Changing an existing published item to draft also requires confirm_status_change=true so provider-filled defaults cannot unpublish content.',
-							'enum'        => [ 'draft', 'publish', 'pending', 'private', 'future', 'trash' ],
+							'description' => 'New post status. Scheduled publishing is not supported. Changing an existing published item to draft also requires confirm_status_change=true so provider-filled defaults cannot unpublish content.',
+							'enum'        => [ 'draft', 'publish', 'pending', 'private', 'trash' ],
 						],
 						'confirm_status_change' => [
 							'type'        => 'boolean',
@@ -570,8 +570,8 @@ class PostAbilities {
 									],
 									'status'            => [
 										'type'        => 'string',
-										'description' => 'Post status: "draft" (default), "publish", "pending", "private", or "future".',
-										'enum'        => [ 'draft', 'publish', 'pending', 'private', 'future' ],
+										'description' => 'Post status: "draft" (default), "publish", "pending", or "private". Scheduled publishing is not supported.',
+										'enum'        => [ 'draft', 'publish', 'pending', 'private' ],
 									],
 									'post_type'         => [
 										'type'        => 'string',
@@ -1274,7 +1274,15 @@ class PostAbilities {
 			return new WP_Error( 'ai_agent_empty_title', __( 'Post title is required.', 'superdav-ai-agent' ) );
 		}
 
-		$allowed_statuses = [ 'draft', 'publish', 'pending', 'private', 'future' ];
+		if ( 'future' === $status ) {
+			return new WP_Error(
+				'sd_ai_agent_scheduling_unsupported',
+				__( 'Scheduled publishing requires an explicit future date, which this ability does not support.', 'superdav-ai-agent' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$allowed_statuses = [ 'draft', 'publish', 'pending', 'private' ];
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			$status = 'draft';
 		}
@@ -1370,8 +1378,8 @@ class PostAbilities {
 		$response = [
 			'post_id'     => $post_id,
 			'permalink'   => $permalink ?: '',
-			'status'      => $status,
-			'post_type'   => $post_type,
+			'status'      => $created_post instanceof WP_Post ? $created_post->post_status : '',
+			'post_type'   => $created_post instanceof WP_Post ? $created_post->post_type : '',
 			'revision_id' => RevisionGuard::current_revision_id( $post_id ),
 		];
 
@@ -1582,9 +1590,19 @@ class PostAbilities {
 			$post_data['post_excerpt'] = sanitize_textarea_field( $input['excerpt'] );
 		}
 		if ( isset( $input['status'] ) ) {
-			$allowed_statuses = [ 'draft', 'publish', 'pending', 'private', 'future', 'trash' ];
+			$allowed_statuses = [ 'draft', 'publish', 'pending', 'private', 'trash' ];
 			// @phpstan-ignore-next-line
-			$new_status              = sanitize_text_field( $input['status'] );
+			$new_status = sanitize_text_field( $input['status'] );
+			if ( 'future' === $new_status ) {
+				if ( $switched ) {
+					restore_current_blog();
+				}
+				return new WP_Error(
+					'sd_ai_agent_scheduling_unsupported',
+					__( 'Scheduled publishing requires an explicit future date, which this ability does not support.', 'superdav-ai-agent' ),
+					array( 'status' => 400 )
+				);
+			}
 			$unsafe_provider_default = 'publish' === $post->post_status
 				&& 'draft' === $new_status
 				&& true !== ( $input['confirm_status_change'] ?? false );

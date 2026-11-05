@@ -145,7 +145,34 @@ final class CompletedTurnCompactor {
 			}
 		}
 
-		return $compact;
+		$compact_json = wp_json_encode( $compact );
+		if ( is_string( $compact_json ) && strlen( $compact_json ) <= self::MAX_PAYLOAD_BYTES ) {
+			return $compact;
+		}
+
+		// Many short fields (or long keys) can exceed the budget without any one
+		// value being large. Retain identifiers first, then only fields that fit.
+		$priority = array_flip( array( 'id', 'post_id', 'path', 'slug', 'title', 'revision_id', 'expected_revision', 'expected_revision_id' ) );
+		$ordered  = array_intersect_key( $compact, $priority ) + $compact;
+		$bounded  = array(
+			'_compacted'      => true,
+			'_omitted_fields' => count( $compact ),
+		);
+		$retained = 0;
+		foreach ( $ordered as $key => $value ) {
+			if ( in_array( $key, array( '_compacted', '_omitted_fields' ), true ) ) {
+				continue;
+			}
+			$candidate                    = $bounded;
+			$candidate[ $key ]            = $value;
+			$candidate['_omitted_fields'] = count( $compact ) - $retained - 1;
+			$candidate_json               = wp_json_encode( $candidate );
+			if ( is_string( $candidate_json ) && strlen( $candidate_json ) <= self::MAX_PAYLOAD_BYTES ) {
+				$bounded = $candidate;
+				++$retained;
+			}
+		}
+		return $bounded;
 	}
 
 	/**

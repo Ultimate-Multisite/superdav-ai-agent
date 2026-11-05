@@ -17,6 +17,7 @@ return static function ( array $options ): array {
 	$checks = [];
 	$details = [];
 	$requests = 0;
+	$blocked_requests = 0;
 	$assert = static function ( bool $condition, string $code ): void {
 		if ( ! $condition ) {
 			throw new RuntimeException( $code );
@@ -59,6 +60,7 @@ return static function ( array $options ): array {
 
 		if ( 'preflight' === $phase ) {
 			$assert( ! file_exists( $dir ) && ! is_link( $dir ), 'smoke_slug_already_exists' );
+			$assert( null === \SdAiAgent\Repositories\GeneratedPluginsRepository::get( $slug ) && null === get_option( $option, null ), 'smoke_record_or_setting_already_exists' );
 			return [ 'passed' => true, 'version' => SD_AI_AGENT_VERSION, 'phase' => $phase ];
 		}
 
@@ -93,10 +95,11 @@ return static function ( array $options ): array {
 		$deadline = microtime( true ) + (int) $options['phaseSeconds'];
 		add_filter(
 			'pre_http_request',
-			static function ( mixed $pre, array $args, string $url ) use ( &$requests, $options, $deadline ): mixed {
+			static function ( mixed $pre, array $args, string $url ) use ( &$requests, &$blocked_requests, $options, $deadline ): mixed {
 				if ( 'POST' === strtoupper( $args['method'] ?? 'GET' ) && wp_parse_url( $url, PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST ) ) {
 					++$requests;
 					if ( $requests > (int) $options['maxRequests'] || microtime( true ) >= $deadline ) {
+						++$blocked_requests;
 						return new WP_Error( 'sd_smoke_request_budget_exceeded', 'Live smoke request budget exhausted.' );
 					}
 				}
@@ -221,10 +224,10 @@ return static function ( array $options ): array {
 		} else {
 			$assert( false, 'unknown_smoke_phase' );
 		}
-		return [ 'passed' => true, 'phase' => $phase, 'checks' => $checks, 'requests' => $requests ];
+		return [ 'passed' => true, 'phase' => $phase, 'checks' => $checks, 'requestAttempts' => $requests, 'blockedRequests' => $blocked_requests ];
 	} catch ( Throwable $error ) {
 		// Never include provider messages, generated source, credentials, or stack traces.
 		$code = $error instanceof RuntimeException && preg_match( '/^[a-z0-9_]+$/D', $error->getMessage() ) ? $error->getMessage() : 'smoke_operation_exception';
-		return [ 'passed' => false, 'phase' => $phase, 'code' => $code, 'checks' => $checks, 'requests' => $requests, 'details' => $details ];
+		return [ 'passed' => false, 'phase' => $phase, 'code' => $code, 'checks' => $checks, 'requestAttempts' => $requests, 'blockedRequests' => $blocked_requests, 'details' => $details ];
 	}
 };

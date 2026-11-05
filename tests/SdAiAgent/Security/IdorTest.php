@@ -15,8 +15,7 @@ declare(strict_types=1);
  * Per-resource checks were added to all affected handlers in GH#1802 / PR #1806.
  * These tests now serve as regression tests confirming the fix is in place.
  *
- * One remaining gap (handle_delete_media) is still marked incomplete and tracked
- * as a follow-up.  `BlockMutator::revert_to_revision()` had the check from the start.
+ * `BlockMutator::revert_to_revision()` had the check from the start.
  *
  * @package SdAiAgent
  * @subpackage Tests\Security
@@ -28,9 +27,10 @@ declare(strict_types=1);
 namespace SdAiAgent\Tests\Security;
 
 use SdAiAgent\Abilities\BlockAbilities;
-use SdAiAgent\Abilities\MediaAbilities;
 use SdAiAgent\Abilities\PostAbilities;
+use SdAiAgent\Abilities\ToolCapabilities;
 use SdAiAgent\Core\RevisionGuard;
+use SdAiAgent\Core\ToolPermissionResolver;
 use WP_UnitTestCase;
 
 /**
@@ -61,6 +61,15 @@ class IdorTest extends WP_UnitTestCase {
 	private int $contributor_id;
 
 	/**
+	 * Author user ID used to exercise the approved media-deletion path.
+	 *
+	 * Authors hold upload_files but cannot delete another user's attachments.
+	 *
+	 * @var int
+	 */
+	private int $author_id;
+
+	/**
 	 * Admin-owned draft post used as the IDOR target across all tests.
 	 *
 	 * @var int
@@ -75,14 +84,15 @@ class IdorTest extends WP_UnitTestCase {
 	private int $admin_attachment_id;
 
 	/**
-	 * Set up two users and an admin-owned draft post before each test.
+	 * Set up test users and an admin-owned draft post before each test.
 	 */
 	public function set_up(): void {
 		parent::set_up();
 
-		// Create admin and contributor.
+		// Create admin, contributor, and author users.
 		$this->admin_id       = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		$this->contributor_id = self::factory()->user->create( [ 'role' => 'contributor' ] );
+		$this->author_id      = self::factory()->user->create( [ 'role' => 'author' ] );
 
 		// Create the IDOR target as admin.
 		wp_set_current_user( $this->admin_id );
@@ -107,6 +117,7 @@ class IdorTest extends WP_UnitTestCase {
 	 * Restore user context after each test.
 	 */
 	public function tear_down(): void {
+		ToolPermissionResolver::clear_one_turn_approved_abilities();
 		wp_set_current_user( 0 );
 		parent::tear_down();
 	}
@@ -310,27 +321,55 @@ class IdorTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * IDOR gap (remaining): handle_delete_media lacks per-resource cap check.
+	 * AC: approved delete-media cannot delete an administrator's attachment.
 	 *
-	 * handle_delete_media was not included in the GH#1802 fix scope.
-	 * Tracked as a follow-up; test remains incomplete until fixed.
-	 *
-	 * @see https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/1802
+	 * The Author holds upload_files, and one-turn approval satisfies the plugin
+	 * prompt layer. The registered ability must still enforce delete_post for the
+	 * specific attachment.
 	 */
-	public function test_delete_media_contributor_blocked_on_admin_attachment(): void {
-		$this->markTestIncomplete(
-			'GH#1802 (partial): handle_delete_media does not yet enforce ' .
-			'current_user_can("delete_post", $attachment_id) internally. ' .
-			'File a follow-up to add the per-resource check to MediaAbilities::handle_delete_media.'
-		);
+	public function test_approved_delete_media_author_blocked_on_admin_attachment(): void {
+		wp_set_current_user( $this->author_id );
+		$this->assertFalse( current_user_can( 'delete_post', $this->admin_attachment_id ) );
+		$this->assertFalse( ToolCapabilities::current_user_can( 'sd-ai-agent/delete-media' ) );
 
-		wp_set_current_user( $this->contributor_id );
-		$result = MediaAbilities::handle_delete_media( [
+		ToolPermissionResolver::set_one_turn_approved_abilities( [ 'sd-ai-agent/delete-media' ] );
+		$this->assertTrue( ToolCapabilities::current_user_can( 'sd-ai-agent/delete-media' ) );
+
+		$ability = wp_get_ability( 'sd-ai-agent/delete-media' );
+		$this->assertNotNull( $ability );
+
+		$result = $ability->execute( [
 			'attachment_id' => $this->admin_attachment_id,
 		] );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'insufficient_capability', $result->get_error_code() );
+		$this->assertNotNull( get_post( $this->admin_attachment_id ) );
+	}
+
+	/**
+	 * Positive control: an approved Author can delete their own attachment.
+	 */
+	public function test_approved_delete_media_author_can_delete_own_attachment(): void {
+		wp_set_current_user( $this->author_id );
+		$attachment_id = self::factory()->attachment->create( [
+			'post_author'    => $this->author_id,
+			'post_mime_type' => 'image/jpeg',
+			'post_status'    => 'inherit',
+			'post_title'     => 'Author Attachment',
+		] );
+
+		$this->assertTrue( current_user_can( 'delete_post', $attachment_id ) );
+		ToolPermissionResolver::set_one_turn_approved_abilities( [ 'sd-ai-agent/delete-media' ] );
+
+		$ability = wp_get_ability( 'sd-ai-agent/delete-media' );
+		$this->assertNotNull( $ability );
+
+		$result = $ability->execute( [ 'attachment_id' => $attachment_id ] );
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['deleted'] );
+		$this->assertNull( get_post( $attachment_id ) );
 	}
 
 	/**

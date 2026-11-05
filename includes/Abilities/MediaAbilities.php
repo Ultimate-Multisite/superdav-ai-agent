@@ -492,6 +492,18 @@ class MediaAbilities {
 			);
 		}
 
+		// Tool approval satisfies only the plugin prompt layer. WordPress must
+		// still authorize deletion of this specific attachment for the current user.
+		if ( ! current_user_can( 'delete_post', $attachment_id ) ) {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+			return new WP_Error(
+				'insufficient_capability',
+				__( 'You do not have permission to delete this attachment.', 'superdav-ai-agent' )
+			);
+		}
+
 		$title          = $attachment->post_title;
 		$attachment_url = wp_get_attachment_url( $attachment_id ) ?: '';
 		$result         = wp_delete_attachment( $attachment_id, true );

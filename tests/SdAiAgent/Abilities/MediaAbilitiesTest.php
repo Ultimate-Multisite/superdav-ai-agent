@@ -194,7 +194,10 @@ class MediaAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_delete_media with valid attachment deletes it and returns structure.
 	 */
 	public function test_handle_delete_media_deletes_attachment() {
+		$admin_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
 		$attachment_id = $this->factory->attachment->create( [
+			'post_author'    => $admin_id,
 			'post_title'     => 'Deletable Image',
 			'post_mime_type' => 'image/jpeg',
 			'post_status'    => 'inherit',
@@ -214,7 +217,10 @@ class MediaAbilitiesTest extends WP_UnitTestCase {
 	 * Test handle_delete_media returns an affected descriptor.
 	 */
 	public function test_handle_delete_media_returns_affected_payload() {
+		$admin_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
 		$attachment_id = $this->factory->attachment->create( [
+			'post_author'    => $admin_id,
 			'post_title'     => 'Affected Deletable Image',
 			'post_mime_type' => 'image/jpeg',
 			'post_status'    => 'inherit',
@@ -228,5 +234,27 @@ class MediaAbilitiesTest extends WP_UnitTestCase {
 		$this->assertSame( $attachment_id, $result['affected']['post_id'] );
 		$this->assertArrayHasKey( 'url', $result['affected'] );
 		$this->assertContains( 'deleted', $result['affected']['fields'] );
+	}
+
+	/**
+	 * Test handle_delete_media rejects deletion of another user's attachment.
+	 */
+	public function test_handle_delete_media_rejects_foreign_attachment() {
+		$admin_id  = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		$author_id = $this->factory->user->create( [ 'role' => 'author' ] );
+		wp_set_current_user( $admin_id );
+		$attachment_id = $this->factory->attachment->create( [
+			'post_author'    => $admin_id,
+			'post_title'     => 'Administrator Image',
+			'post_mime_type' => 'image/jpeg',
+			'post_status'    => 'inherit',
+		] );
+
+		wp_set_current_user( $author_id );
+		$result = MediaAbilities::handle_delete_media( [ 'attachment_id' => $attachment_id ] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'insufficient_capability', $result->get_error_code() );
+		$this->assertNotNull( get_post( $attachment_id ) );
 	}
 }

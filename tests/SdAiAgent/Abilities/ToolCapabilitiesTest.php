@@ -270,6 +270,28 @@ class ToolCapabilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * One-turn approval can satisfy delete-media's prompt layer for an Author.
+	 *
+	 * The handler remains responsible for checking delete_post against the
+	 * requested attachment after this generic gate passes.
+	 */
+	public function test_delete_media_approval_only_satisfies_generic_tool_gate(): void {
+		$ability_id = 'sd-ai-agent/delete-media';
+		$author_id  = $this->factory->user->create( [ 'role' => 'author' ] );
+		wp_set_current_user( $author_id );
+
+		$this->assertTrue( current_user_can( 'upload_files' ) );
+		$this->assertFalse( ToolCapabilities::current_user_can( $ability_id ) );
+		ToolPermissionResolver::set_one_turn_approved_abilities( [ $ability_id ] );
+
+		try {
+			$this->assertTrue( ToolCapabilities::current_user_can( $ability_id ) );
+		} finally {
+			ToolPermissionResolver::clear_one_turn_approved_abilities();
+		}
+	}
+
+	/**
 	 * Denial diagnostics identify the missing core capability after a tool grant.
 	 */
 	public function test_permission_denial_error_identifies_missing_core_capability(): void {

@@ -64,6 +64,18 @@ class BenchmarkCommand extends WP_CLI_Command {
 	private const LOG_SUBDIR = 'sd-ai-agent/benchmark-logs';
 
 	/**
+	 * Marker stored only in plugin fixtures created by this command instance.
+	 */
+	private const PLUGIN_OWNER_MARKER = '.sd-ai-agent-benchmark-owner';
+
+	/**
+	 * Plugin fixtures atomically claimed by this command instance.
+	 *
+	 * @var array<string, array{path: string, token: string}>
+	 */
+	private array $owned_plugin_fixtures = array();
+
+	/**
 	 * System prompt injected for every benchmark question.
 	 * Tells the agent it is in a live WordPress environment and should act, not describe.
 	 */
@@ -283,6 +295,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'question_passed' => 0,
 			'errors'          => 0,
 			'provider_errors' => 0,
+			'fixture_errors'  => 0,
 		);
 		$question_summaries = array();
 
@@ -302,6 +315,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 				$error_label = ! empty( $result['provider_error'] ) ? 'Provider error' : 'Agent error';
 				WP_CLI::log( '│  ✗ ' . $error_label . ': ' . $result['agent_error'] );
 				++$totals['errors'];
+				if ( ! empty( $result['fixture_error'] ) ) {
+					++$totals['fixture_errors'];
+				}
 				if ( ! empty( $result['provider_error'] ) ) {
 					++$totals['provider_errors'];
 				}
@@ -356,6 +372,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'questions_passed'  => $totals['question_passed'],
 			'agent_errors'      => $totals['errors'],
 			'provider_errors'   => $totals['provider_errors'],
+			'fixture_errors'    => $totals['fixture_errors'],
 			'assertions_passed' => $totals['passed'],
 			'assertions_failed' => $totals['failed'],
 			'assertions_total'  => $total_assertions,
@@ -402,7 +419,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param bool                 $no_cleanup  Whether to keep generated plugins.
 	 * @return array<string, mixed> Full result including agent output, tool log, and assertions.
 	 */
-	private function run_question( array $question, string $provider_id, string $model_id, bool $no_cleanup = false ): array {
+	protected function run_question( array $question, string $provider_id, string $model_id, bool $no_cleanup = false ): array {
 		$q_id       = (string) $question['id'];
 		$start_time = microtime( true );
 		$log        = array(
@@ -424,17 +441,34 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$plugin_slug                  = $this->extract_plugin_slug( $question['prompt'] );
 			$assertion_ctx['plugin_slug'] = $plugin_slug;
 			$log['plugin_slug']           = $plugin_slug;
-		}
 
-		$log['cleanup'] = $this->cleanup_question_fixtures( $question );
-
-		// Build the prompt — include plugin name guidance for plugin questions.
-		$prompt = $question['prompt'];
-		if ( $needs_plugin && '' !== $plugin_slug ) {
-			$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
+			$fixture_claim = $this->claim_plugin_fixture( $plugin_slug );
+			if ( is_wp_error( $fixture_claim ) ) {
+				$log['status']        = 'sd_ai_agent_benchmark_fixture_collision' === $fixture_claim->get_error_code()
+					? 'fixture_collision'
+					: 'fixture_error';
+				$log['fixture_error'] = $fixture_claim->get_error_message();
+				$log['agent_error']   = $fixture_claim->get_error_message();
+				$log['assertions']    = array(
+					'passed'  => 0,
+					'failed'  => 0,
+					'total'   => 0,
+					'results' => array(),
+				);
+				$log['completed_at']  = gmdate( 'c' );
+				return $log;
+			}
 		}
 
 		try {
+			$log['cleanup'] = $this->cleanup_question_fixtures( $question );
+
+			// Build the prompt — include plugin name guidance for plugin questions.
+			$prompt = $question['prompt'];
+			if ( $needs_plugin && '' !== $plugin_slug ) {
+				$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
+			}
+
 			// Run the agent loop.
 			$agent_result = $this->run_agent_loop( $prompt, $provider_id, $model_id, (int) ( $question['max_turns'] ?? 20 ) );
 
@@ -491,7 +525,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param int    $max_turns   Maximum agent iterations.
 	 * @return array<string, mixed>
 	 */
-	private function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
+	protected function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
 		$tool_call_log = array();
 
 		// Track how many log entries we've seen so the progress callback
@@ -619,13 +653,14 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$questions       = (int) ( $totals['questions'] ?? 0 );
 		$errors          = (int) ( $totals['errors'] ?? 0 );
 		$provider_errors = (int) ( $totals['provider_errors'] ?? 0 );
+		$fixture_errors  = (int) ( $totals['fixture_errors'] ?? 0 );
 		$failed          = (int) ( $totals['failed'] ?? 0 );
 
 		if ( $questions > 0 && $provider_errors === $questions ) {
 			return 'blocked_provider';
 		}
 
-		if ( $provider_errors > 0 ) {
+		if ( $provider_errors > 0 || $fixture_errors > 0 ) {
 			return 'inconclusive';
 		}
 
@@ -695,6 +730,91 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 		// Fallback: derive from first words of prompt.
 		return 'bench-' . substr( md5( $prompt ), 0, 8 );
+	}
+
+	/**
+	 * Atomically create and mark a plugin fixture owned by this command instance.
+	 *
+	 * A pre-existing path is never adopted. Creating the directory ourselves
+	 * closes the check/create race and gives cleanup a verifiable ownership token.
+	 *
+	 * @param string $plugin_slug Plugin slug.
+	 * @return true|\WP_Error
+	 */
+	private function claim_plugin_fixture( string $plugin_slug ): true|\WP_Error {
+		$plugin_dir = $this->plugin_fixture_path( $plugin_slug );
+		if ( null === $plugin_dir ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_boundary',
+				__( 'Benchmark plugin fixture path is outside the plugin directory.', 'superdav-ai-agent' )
+			);
+		}
+
+		if ( file_exists( $plugin_dir ) || is_link( $plugin_dir ) ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_collision',
+				sprintf(
+					/* translators: %s: plugin slug. */
+					__( 'Benchmark skipped because plugin path "%s" already exists and is not owned by this run.', 'superdav-ai-agent' ),
+					$plugin_slug
+				)
+			);
+		}
+
+		$directory_mode = defined( 'FS_CHMOD_DIR' ) ? FS_CHMOD_DIR : 0755;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir, WordPress.PHP.NoSilencedErrors.Discouraged -- Atomic CLI-only fixture claim; failure is returned below.
+		if ( ! @mkdir( $plugin_dir, $directory_mode ) ) {
+			$error_code = file_exists( $plugin_dir ) || is_link( $plugin_dir )
+				? 'sd_ai_agent_benchmark_fixture_collision'
+				: 'sd_ai_agent_benchmark_fixture_create_failed';
+
+			return new \WP_Error(
+				$error_code,
+				sprintf(
+					/* translators: %s: plugin slug. */
+					__( 'Benchmark could not claim plugin fixture "%s".', 'superdav-ai-agent' ),
+					$plugin_slug
+				)
+			);
+		}
+
+		$token       = wp_generate_uuid4();
+		$marker_path = $plugin_dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- CLI-only ownership marker.
+		if ( false === file_put_contents( $marker_path, $token, LOCK_EX ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Directory was atomically created above and is still empty.
+			rmdir( $plugin_dir );
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_create_failed',
+				__( 'Benchmark could not write the plugin fixture ownership marker.', 'superdav-ai-agent' )
+			);
+		}
+
+		$this->owned_plugin_fixtures[ $plugin_slug ] = array(
+			'path'  => $plugin_dir,
+			'token' => $token,
+		);
+
+		return true;
+	}
+
+	/**
+	 * Resolve a plugin fixture path while keeping it inside the plugin root.
+	 *
+	 * @param string $plugin_slug Plugin slug.
+	 * @return string|null
+	 */
+	private function plugin_fixture_path( string $plugin_slug ): ?string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]+$/', $plugin_slug ) ) {
+			return null;
+		}
+
+		$plugin_root = realpath( WP_PLUGIN_DIR );
+		if ( false === $plugin_root || ! is_dir( $plugin_root ) ) {
+			return null;
+		}
+
+		return $plugin_root . DIRECTORY_SEPARATOR . $plugin_slug;
 	}
 
 	/**
@@ -792,8 +912,26 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param string $plugin_slug Plugin slug.
 	 */
 	private function cleanup_plugin( string $plugin_slug ): void {
+		$ownership  = $this->owned_plugin_fixtures[ $plugin_slug ] ?? null;
+		$plugin_dir = $this->plugin_fixture_path( $plugin_slug );
+		if ( null === $ownership || null === $plugin_dir || $plugin_dir !== $ownership['path'] || is_link( $plugin_dir ) ) {
+			return;
+		}
+
+		$marker_path = $plugin_dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
+		if ( is_link( $marker_path ) || ! is_file( $marker_path ) ) {
+			WP_CLI::warning( sprintf( 'Benchmark plugin fixture ownership could not be verified: %s', $plugin_slug ) );
+			return;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- CLI-only ownership marker.
+		$marker_token = file_get_contents( $marker_path );
+		if ( ! is_string( $marker_token ) || ! hash_equals( $ownership['token'], $marker_token ) ) {
+			WP_CLI::warning( sprintf( 'Benchmark plugin fixture ownership changed; cleanup skipped: %s', $plugin_slug ) );
+			return;
+		}
+
 		$plugin_file = "{$plugin_slug}/{$plugin_slug}.php";
-		$plugin_dir  = WP_PLUGIN_DIR . '/' . $plugin_slug;
 
 		// Deactivate silently.
 		if ( is_plugin_active( $plugin_file ) ) {
@@ -801,8 +939,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		// Remove the directory.
-		if ( is_dir( $plugin_dir ) ) {
-			$this->rmdir_recursive( $plugin_dir );
+		if ( is_dir( $plugin_dir ) && $this->rmdir_recursive( $plugin_dir ) ) {
+			unset( $this->owned_plugin_fixtures[ $plugin_slug ] );
 		}
 	}
 
@@ -811,18 +949,54 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 *
 	 * @param string $dir Directory path.
 	 */
-	private function rmdir_recursive( string $dir ): void {
-		$items = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
-			\RecursiveIteratorIterator::CHILD_FIRST
-		);
+	private function rmdir_recursive( string $dir ): bool {
+		$boundary    = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$marker_path = $dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
 
-		foreach ( $items as $item ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only sandbox cleanup.
-			$item->isDir() ? rmdir( $item->getRealPath() ) : unlink( $item->getRealPath() );
+		try {
+			$items = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+				\RecursiveIteratorIterator::CHILD_FIRST
+			);
+
+			foreach ( $items as $item ) {
+				$path = $item->getPathname();
+				if ( $marker_path === $path ) {
+					continue;
+				}
+
+				if ( ! str_starts_with( $path, $boundary ) ) {
+					WP_CLI::warning( sprintf( 'Benchmark cleanup boundary violation: %s', $path ) );
+					return false;
+				}
+
+				if ( is_link( $path ) || ! is_dir( $path ) ) {
+					// Use the literal iterator path. Resolving it would follow symlinks outside the fixture.
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only owned fixture cleanup.
+					if ( ! unlink( $path ) ) {
+						return false;
+					}
+
+					continue;
+				}
+
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
+				if ( ! rmdir( $path ) ) {
+					return false;
+				}
+			}
+		} catch ( \UnexpectedValueException $exception ) {
+			WP_CLI::warning( sprintf( 'Benchmark cleanup could not inspect fixture: %s', $exception->getMessage() ) );
+			return false;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only sandbox cleanup.
-		rmdir( $dir );
+		// Delete the ownership marker last so an interrupted cleanup can be retried safely.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only owned fixture cleanup.
+		if ( ! unlink( $marker_path ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
+		return rmdir( $dir );
 	}
 }

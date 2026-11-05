@@ -61,6 +61,17 @@ class PluginBuilderAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Generation remains a safe write because fresh installs refuse slug collisions.
+	 */
+	public function test_generate_plugin_is_non_destructive_and_documents_collision_handling(): void {
+		$ability = new GeneratePluginAbility( 'sd-ai-agent/generate-plugin' );
+		$schema  = $ability->get_input_schema();
+
+		$this->assertFalse( $ability->get_meta()['annotations']['destructive'] );
+		$this->assertStringContainsString( 'update-plugin-sandboxed', $schema['properties']['install']['description'] );
+	}
+
+	/**
 	 * Provider/model context is scoped to one resolver dispatch and can be cleared.
 	 */
 	public function test_generate_plugin_provider_model_context_is_clearable(): void {

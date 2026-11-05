@@ -95,6 +95,11 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 		return $this->get_execution_profile_metadata();
 	}
 
+	/** Return the AgentLoop profile configuration. */
+	public function profile_loop_config(): array {
+		return $this->get_agent_loop_profile_config();
+	}
+
 	/**
 	 * Return a deterministic provider error or throw before assertions.
 	 *
@@ -316,6 +321,7 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$metadata = $command->profile_metadata();
 
 		$this->assertSame( $subscriber_id, get_current_user_id() );
+		$this->assertFalse( current_user_can( 'manage_options' ) );
 		$this->assertSame( $subscriber_id, $metadata['effective_actor']['user_id'] );
 		$this->assertSame( array( 'subscriber' ), $metadata['effective_actor']['roles'] );
 		$this->assertSame( 'normal', $metadata['approval_mode'] );
@@ -333,9 +339,16 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$command->use_profile( 'production-parity', array( 'sd-ai-agent/create-post' ) );
 
 		$metadata = $command->profile_metadata();
+		$config   = $command->profile_loop_config();
+
+		$this->assertTrue( current_user_can( 'edit_posts' ) );
 		$this->assertSame( array( 'administrator' ), $metadata['effective_actor']['roles'] );
 		$this->assertSame( 'explicit_once', $metadata['approval_mode'] );
 		$this->assertSame( 'automatic', $metadata['catalog_resolution'] );
+		$this->assertSame( array(), $config['abilities'] );
+		$this->assertSame( array( 'sd-ai-agent/create-post' ), $config['options']['approved_once_abilities'] );
+		$this->assertArrayNotHasKey( 'yolo_mode', $config['options'] );
+		$this->assertArrayNotHasKey( 'agent_system_prompt', $config['options'] );
 	}
 
 	/** Browser-dependent questions are deferred without being scored as failures. */

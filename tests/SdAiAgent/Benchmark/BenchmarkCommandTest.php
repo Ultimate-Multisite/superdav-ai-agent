@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Test case for benchmark command fixture cleanup and private log storage.
+	 * Test case for benchmark command fixture cleanup and private log storage.
  *
  * @package SdAiAgent
  * @subpackage Tests

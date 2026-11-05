@@ -60,6 +60,28 @@ class ToolResultTruncator {
 			}
 		}
 
+		if ( is_string( $result ) ) {
+			$encoded = wp_json_encode( $result );
+			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+				return $result;
+			}
+			$decoded = json_decode( $result, true );
+			if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
+				$bounded = wp_json_encode( self::truncate( $decoded, $tool_name ) );
+				$quoted  = wp_json_encode( $bounded );
+				if ( is_string( $bounded ) && is_string( $quoted ) && strlen( $quoted ) <= self::MAX_RESULT_BYTES ) {
+					return $bounded;
+				}
+				return (string) wp_json_encode(
+					[
+						'_truncated' => true,
+						'_omitted'   => self::omission_note( strlen( $result ) ),
+					]
+				);
+			}
+			return self::bound_string_result( $result );
+		}
+
 		if ( ! is_array( $result ) ) {
 			return $result;
 		}
@@ -442,11 +464,11 @@ class ToolResultTruncator {
 			case 'sd-ai-agent/navigate':
 			case 'sd-ai-agent/get-page-html':
 				if ( isset( $result['html'] ) && is_string( $result['html'] ) && strlen( $result['html'] ) > self::MAX_STRING_LENGTH ) {
-					$result['html']       = substr( $result['html'], 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+					$result['html']       = self::truncate_string( $result['html'] );
 					$result['_truncated'] = true;
 				}
 				if ( isset( $result['content'] ) && is_string( $result['content'] ) && strlen( $result['content'] ) > self::MAX_STRING_LENGTH ) {
-					$result['content']    = substr( $result['content'], 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+					$result['content']    = self::truncate_string( $result['content'] );
 					$result['_truncated'] = true;
 				}
 				break;
@@ -685,6 +707,35 @@ class ToolResultTruncator {
 			return $str;
 		}
 
-		return substr( $str, 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+		return self::utf8_prefix( $str, self::MAX_STRING_LENGTH ) . '... [truncated]';
+	}
+
+	/** Keep a plain string, including JSON escaping, inside the result budget. */
+	private static function bound_string_result( string $value ): string {
+		$suffix = '... [truncated; request a narrower section]';
+		$low    = 0;
+		$high   = min( strlen( $value ), self::MAX_RESULT_BYTES );
+		$best   = $suffix;
+		while ( $low <= $high ) {
+			$middle    = intdiv( $low + $high, 2 );
+			$candidate = self::utf8_prefix( $value, $middle ) . $suffix;
+			$encoded   = wp_json_encode( $candidate );
+			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+				$best = $candidate;
+				$low  = $middle + 1;
+			} else {
+				$high = $middle - 1;
+			}
+		}
+		return $best;
+	}
+
+	/** Return a byte-bounded prefix without splitting a UTF-8 codepoint. */
+	private static function utf8_prefix( string $value, int $bytes ): string {
+		$prefix = substr( $value, 0, max( 0, $bytes ) );
+		while ( '' !== $prefix && 1 !== preg_match( '//u', $prefix ) ) {
+			$prefix = substr( $prefix, 0, -1 );
+		}
+		return $prefix;
 	}
 }

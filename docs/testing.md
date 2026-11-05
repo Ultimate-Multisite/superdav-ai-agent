@@ -4,6 +4,95 @@ For full browser-accessible local WordPress testing without Docker, including
 multi-worktree site provisioning, see
 [`local-wordpress-worktree-testing.md`](local-wordpress-worktree-testing.md).
 
+## Opt-in packaged plugin-creation smoke tests
+
+`pnpm run test:plugin-creation -- --help` describes the live release check. It
+uses the existing WP-CLI and configured provider credentials, not another test
+framework. It is **not** included in `verify` or automatic CI: it spends provider
+credit and executes generated PHP, so both `--live` and `--disposable-site` are
+mandatory. Never use a shared browser-demo, customer, or production database.
+
+Prepare a disposable, single-site WordPress install with environment type
+`development` or `local`. Build the packages with `bash bin/build.sh --target=both`
+in a separate packaging worktree: that script temporarily prunes dev dependencies.
+Install and activate the actual Core and Advanced ZIPs under their canonical
+directories. Configure the chosen provider using the site's normal credential
+settings; do not pass keys as flags or put them in report files.
+
+Do not install over a source symlink or Docker bind mount. The target's canonical
+`superdav-ai-agent` and `superdav-ai-agent-advanced` directories must be independent
+installed packages, not this checkout. The runner checks package identity, equal
+versions, absence of the source-bundled companion, administrator permissions, and
+the exact expected site URL before creating anything. After `wp-env start`, also
+check that it has not reactivated a source copy alongside the packaged Core.
+
+For an already prepared wp-env **test** site:
+
+```bash
+pnpm run test:plugin-creation -- --live --disposable-site \
+  --site-url=http://localhost:8893 --wp-env=tests-cli \
+  --provider=sd-ai-agent-cloud --model=superdav-chat-standard \
+  --scenarios=single,multi,settings,rest --max-seconds=1200 \
+  --report=/private/existing-directory/new-release-smoke.json
+```
+
+For an independently provisioned host-native disposable site, replace
+`--wp-env=tests-cli` with `--wp-path=/absolute/path/to/disposable/wordpress` and
+use that site's exact URL. The selected WP-CLI user defaults to `admin`; override
+with `--user=LOGIN` when needed.
+
+Scenarios:
+
+- `single`, `multi` (defaults): exactly one or two generated PHP files, working
+  shortcode, actual installation, syntax/include sandbox and activation.
+- `settings`: Settings API registration, sanitization and persistence across
+  fresh requests and an update.
+- `rest`: authenticated REST behavior and rejection of anonymous requests.
+- `agent` (optional): natural-language orchestration through the existing
+  production CLI, including discovery/generation/sandbox/activation. This CLI
+  auto-approves write tools; use only the disposable site and a larger explicit
+  request budget such as `--max-requests=12`.
+
+Each operation boots a fresh WordPress process. Every scenario verifies a valid
+update's changed behavior, rejects malformed PHP while checking all original file
+hashes, verifies behavior again after rejection, and denies unauthenticated
+generation. A `finally` cleanup runs in a fresh process with only the generated QA
+plugin skipped, so activation errors do not prevent normal recovery. Cleanup
+checks the generated record, directory, activation status and known QA settings,
+and removes matching staging/backups. A failed cleanup fails the overall result.
+Only uniquely named `sd-release-smoke-*` QA artifacts are targeted; collisions
+fail before ownership or cleanup is assumed.
+
+Defaults are 600 seconds total, 180 per operation, and four external HTTP POSTs
+per operation (`--max-seconds`, `--phase-seconds`, `--max-requests`). These are
+request/time bounds, **not a currency or token spending cap**. Provider retry
+attempts consume the request budget. wp-env also runs `timeout` inside the
+container; allow up to 15 seconds transport grace and 60 seconds extra for cleanup.
+Hard host termination cannot guarantee cleanup: inspect a failed receipt's unique
+slug before disposing of the site. Never automatically retry a paid failure.
+
+The final stdout JSON records each operation and cleanup, never raw provider
+responses, source code, credentials, or stack traces. `--report` reserves a new
+mode-0600 file and refuses overwrites. Exit 0 means every selected scenario and
+cleanup passed; exit 1 means a check failed; exit 2 means setup/arguments failed.
+This does not prove arbitrary generated code safe or cover every provider,
+dependency, multisite topology, or browser approval flow.
+
+## Plugin Check findings are a release gate
+
+Do not trust the scanner's exit code alone. Capture its `--format=json` output,
+then run `pnpm run check:plugin-report -- /path/to/report`. The parser supports
+per-file JSON arrays with wrapper headers; ERROR findings or malformed/missing
+evidence fail even when the scanner returned zero. Warnings remain visible and
+can be gated with `--fail-on-warnings`. An explicit empty JSON array or the
+scanner's explicit clean-result message is required to prove a clean result.
+
+`bin/wporg-review.sh` now applies this gate as well as preserving scanner process
+failures. That existing review command still requests AI review; the report parser
+itself makes no network or paid requests. Document skipped/incomplete tests and
+review scanner findings individually; never relabel an entire report as passing
+because one detector has a demonstrated limitation.
+
 ## wp-env loopbacks
 
 The browser sites use published ports 8890 and 8893, but Apache listens on port

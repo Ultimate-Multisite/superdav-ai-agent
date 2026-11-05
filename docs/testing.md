@@ -4,6 +4,45 @@ For full browser-accessible local WordPress testing without Docker, including
 multi-worktree site provisioning, see
 [`local-wordpress-worktree-testing.md`](local-wordpress-worktree-testing.md).
 
+## Context efficiency safeguards
+
+Run the existing focused suites before comparing provider latency:
+
+```bash
+pnpm run test:php -- --filter='ToolResultTruncatorTest|ConversationSerializerTest|ConversationTrimmerTest|CompletedTurnCompactorTest|RunLocalReadonlyToolCacheTest|SkillContextDeliveryTest|SkillAbilitiesTest|SkillAutoInjectorTest'
+```
+
+Ordinary tool results, including plain and JSON-encoded strings, have a 4 KiB
+encoded-history cap. Truncation must preserve UTF-8. Completed-turn argument
+receipts have a 2 KiB cap; active-turn arguments and durable/UI history are not
+rewritten by that provider-view optimization. Repeated cached file reads count
+toward spin detection, while known registry/skill discovery does not invalidate
+safe file-read reuse. Writes and unknown tools still invalidate it.
+
+Skill guidance uses a separate explicit contract rather than an opaque 500-byte
+excerpt: each versioned page is at most 6 KiB encoded, and a dispatcher envelope
+with one skill page is at most 16 KiB (including JSON-string transport escaping).
+The first page contains guidance plus a
+section index. Use `skill-load` with `slug` and an exact `section` when a detail is
+missing; continue the same section with `offset=next_offset` and
+`content_version`. A changed version or invalid offset is rejected. Do not fetch
+every section automatically: load the overview once and retrieve only necessary
+details. Explicit loads, automatic attachments and full prompt injection share
+run-local delivery state; repeated pages return `already_loaded` and continuation
+metadata instead of duplicating instructions. Disabled-skill/capability gates
+still apply before retrieval. If recovery compaction removed previously delivered
+guidance, request the needed section with `reload=true`; this is an explicit
+recovery path, not a reason to reload every page.
+
+Paid comparisons require explicit operator authorization, configured credentials
+on a disposable installed-package site, finite request/time budgets, correctness
+checks and cleanup. Keep models, permissions, prompts and fixtures matched across
+before/after runs; record every provider request's elapsed time, body size and
+reported input/output/cached-input tokens, without raw requests or credentials.
+Warm-cache differences and noisy small samples are not proof of a speedup. A
+lower token count obtained by losing facts, invalidating blocks or truncating
+necessary guidance is not an acceptable optimization.
+
 ## wp-env loopbacks
 
 The browser sites use published ports 8890 and 8893, but Apache listens on port

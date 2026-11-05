@@ -19,6 +19,25 @@ use WP_UnitTestCase;
  */
 class SkillAbilitiesTest extends WP_UnitTestCase {
 
+	public function set_up(): void {
+		parent::set_up();
+		\SdAiAgent\Core\SkillAutoInjector::reset_request_state();
+	}
+
+	/** Explicit and automatic deliveries share a content-version-aware registry. */
+	public function test_explicit_and_automatic_skill_loads_do_not_duplicate(): void {
+		Skill::seed_builtins();
+		$explicit = SkillAbilities::handle_skill_load( [ 'slug' => 'wp-block-themes' ] );
+		$this->assertIsArray( $explicit );
+		$this->assertNull( \SdAiAgent\Core\SkillAutoInjector::consume_skill_for_ability( 'sd-ai-agent/get-theme-json' ) );
+		\SdAiAgent\Core\SkillAutoInjector::reset_request_state();
+		$automatic = \SdAiAgent\Core\SkillAutoInjector::consume_skill_for_ability( 'sd-ai-agent/get-theme-json' );
+		$this->assertIsArray( $automatic );
+		$repeat = SkillAbilities::handle_skill_load( [ 'slug' => 'wp-block-themes' ] );
+		$this->assertTrue( $repeat['already_loaded'] );
+		$this->assertSame( '', $repeat['content'] );
+	}
+
 	/**
 	 * Test handle_skill_list returns message when no enabled skills exist.
 	 *

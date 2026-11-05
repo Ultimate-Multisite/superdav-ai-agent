@@ -439,6 +439,7 @@ PROMPT;
 	 * @param Settings|null        $settings_service  Injected Settings service (uses Settings::instance() when null).
 	 */
 	public function __construct( string $user_message, array $abilities = array(), array $history = array(), array $options = array(), ?Settings $settings_service = null ) {
+		SkillAutoInjector::reset_request_state();
 		$this->user_message      = $user_message;
 		$this->abilities         = $abilities;
 		$this->history           = $history;
@@ -1891,7 +1892,11 @@ PROMPT;
 		);
 	}
 
-	/** Return the shared bounded no-progress outcome for executed or reused calls. */
+	/**
+	 * Return the shared bounded no-progress outcome for executed or reused calls.
+	 *
+	 * @return array<string, mixed> Result carrying the bounded spin exit reason.
+	 */
 	private function abort_on_spin(): array {
 		AgentEventLog::log(
 			'agent_loop_aborted',

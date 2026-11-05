@@ -160,6 +160,15 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		);
 	}
 
+	/** Explicit output contracts take precedence over conversational suggestion chips. */
+	public function test_follow_up_suggestions_preserve_exclusive_output_contracts(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build( array( 'suggestion_count' => 3 ) );
+
+		$this->assertStringContainsString( 'After each response, include exactly 3 brief follow-up suggestions', $instruction );
+		$this->assertStringContainsString( 'code-only, raw-source, JSON-only, machine-readable', $instruction );
+		$this->assertStringContainsString( 'obey that output contract exactly and return nothing else', $instruction );
+	}
+
 	/** Non-native first requests must stay comfortably below the payload guard. */
 	public function test_non_native_instruction_stays_within_first_request_budget(): void {
 		$instruction = ( new SystemInstructionBuilder() )->build(

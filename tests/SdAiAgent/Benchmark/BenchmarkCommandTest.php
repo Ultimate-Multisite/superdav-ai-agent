@@ -426,6 +426,18 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_benchmark_log_path_relative', $result->get_error_code() );
 	}
 
+	public function test_existing_directory_with_public_permissions_is_rejected(): void {
+		$explicit = sys_get_temp_dir() . '/sd-ai-agent-benchmark-insecure-' . wp_generate_uuid4();
+		wp_mkdir_p( $explicit );
+		chmod( $explicit, 0755 );
+
+		$result = $this->invoke( 'prepare_log_directory', array( $explicit ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_benchmark_log_permissions', $result->get_error_code() );
+		$this->remove_directory( $explicit );
+	}
+
 	public function test_json_logs_redact_credentials_and_use_owner_only_permissions(): void {
 		$this->invoke( 'prepare_log_directory', array( '' ) );
 		$path   = $this->private_root . '/question.json';

@@ -80,6 +80,21 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 		return $this->run_question( $question, 'test-provider', 'test-model', $keep );
 	}
 
+	/** Select an execution profile for a focused test. */
+	public function use_profile( string $profile, array $approved_once_abilities = array() ): void {
+		$this->set_execution_profile( $profile, $approved_once_abilities );
+	}
+
+	/** Configure the actor through the production command path. */
+	public function configure_test_actor(): void {
+		$this->configure_actor();
+	}
+
+	/** Return the safe profile metadata. */
+	public function profile_metadata(): array {
+		return $this->get_execution_profile_metadata();
+	}
+
 	/**
 	 * Return a deterministic provider error or throw before assertions.
 	 *
@@ -288,6 +303,75 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'deferred', $result['status'] );
 		$this->assertSame( 'explicit_approval_profile_required', $result['deferred_reason'] );
 		$this->assertSame( 0, $command->agent_calls );
+	}
+
+	/** Production parity preserves the requested lower-privilege WP-CLI actor. */
+	public function test_production_parity_preserves_subscriber_actor(): void {
+		$subscriber_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $subscriber_id );
+
+		$command = new TestableBenchmarkCommand();
+		$command->use_profile( 'production-parity' );
+		$command->configure_test_actor();
+		$metadata = $command->profile_metadata();
+
+		$this->assertSame( $subscriber_id, get_current_user_id() );
+		$this->assertSame( $subscriber_id, $metadata['effective_actor']['user_id'] );
+		$this->assertSame( array( 'subscriber' ), $metadata['effective_actor']['roles'] );
+		$this->assertSame( 'normal', $metadata['approval_mode'] );
+		$this->assertSame( 'default', $metadata['prompt_profile'] );
+		$this->assertSame( 'automatic', $metadata['catalog_resolution'] );
+		$this->assertFalse( $metadata['browser_client']['available'] );
+	}
+
+	/** Explicit production-parity approvals remain scoped rather than global. */
+	public function test_production_parity_records_explicit_once_approval(): void {
+		$administrator_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $administrator_id );
+
+		$command = new TestableBenchmarkCommand();
+		$command->use_profile( 'production-parity', array( 'sd-ai-agent/create-post' ) );
+
+		$metadata = $command->profile_metadata();
+		$this->assertSame( array( 'administrator' ), $metadata['effective_actor']['roles'] );
+		$this->assertSame( 'explicit_once', $metadata['approval_mode'] );
+		$this->assertSame( 'automatic', $metadata['catalog_resolution'] );
+	}
+
+	/** Browser-dependent questions are deferred without being scored as failures. */
+	public function test_production_parity_defers_browser_client_question(): void {
+		$command = new TestableBenchmarkCommand();
+		$command->use_profile( 'production-parity' );
+		$question = array(
+			'id'         => 'browser-client-test',
+			'category'   => 'navigation',
+			'prompt'     => 'Navigate to the dashboard.',
+			'max_turns'  => 1,
+			'assertions' => array(
+				array(
+					'type'  => 'tools_called',
+					'tools' => array( 'sd-ai-agent/navigate' ),
+				),
+			),
+		);
+
+		$result = $command->run_test_question( $question );
+
+		$this->assertSame( 'deferred', $result['status'] );
+		$this->assertSame( 'browser_client_unavailable', $result['deferred_reason'] );
+		$this->assertSame( 0, $command->agent_calls );
+		$this->assertSame( 'production-parity', $result['execution_profile']['name'] );
+	}
+
+	/** The default functional profile retains its legacy privileged metadata. */
+	public function test_default_functional_profile_remains_legacy_mode(): void {
+		$command  = new TestableBenchmarkCommand();
+		$metadata = $command->profile_metadata();
+
+		$this->assertSame( 'functional', $metadata['name'] );
+		$this->assertSame( 'global_write_approval', $metadata['approval_mode'] );
+		$this->assertSame( 'custom_functional', $metadata['prompt_profile'] );
+		$this->assertSame( 'explicit_tier_1', $metadata['catalog_resolution'] );
 	}
 
 	/**

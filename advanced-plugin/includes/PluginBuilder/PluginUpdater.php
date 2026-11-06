@@ -46,6 +46,13 @@ class PluginUpdater {
 	private array $owned_backups = [];
 
 	/**
+	 * Per-plugin locks held by the current update transaction.
+	 *
+	 * @var array<string,resource>
+	 */
+	private array $held_update_locks = [];
+
+	/**
 	 * Get the absolute path to the backups root directory.
 	 *
 	 * @return string|WP_Error Trailing-slashed absolute path or an error when a
@@ -547,6 +554,14 @@ class PluginUpdater {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function rollback( string $slug, string $backup_dir ): array|\WP_Error {
+		$slug = sanitize_title( $slug );
+		if ( empty( $slug ) ) {
+			return new WP_Error(
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'superdav-ai-agent' )
+			);
+		}
+
 		if ( ! is_dir( $backup_dir ) ) {
 			return new WP_Error(
 				'sd_ai_agent_backup_not_found',
@@ -555,22 +570,55 @@ class PluginUpdater {
 			);
 		}
 
-		$plugin_dir = $this->plugin_dir_path( sanitize_title( $slug ) );
-
-		if ( is_dir( $plugin_dir ) ) {
-			$this->remove_directory( $plugin_dir );
+		$backups_root = $this->backups_root();
+		$backup_real  = realpath( $backup_dir );
+		$root_real    = is_wp_error( $backups_root ) ? false : realpath( $backups_root );
+		$backup_name  = false === $backup_real ? '' : basename( $backup_real );
+		$name_pattern = '/^' . preg_quote( $slug, '/' ) . '-\d{4}-\d{2}-\d{2}-\d{6}(?:-[a-f0-9]{24}|-legacy-[a-f0-9]{12})?$/';
+		if (
+			false === $backup_real
+			|| false === $root_real
+			|| ! PathCanonicalizer::path_is_inside( $backup_real, $root_real )
+			|| ! preg_match( $name_pattern, $backup_name )
+		) {
+			return new WP_Error(
+				'sd_ai_agent_backup_not_owned',
+				__( 'The backup does not belong to this plugin update storage.', 'superdav-ai-agent' )
+			);
 		}
 
-		$result = $this->copy_directory( $backup_dir, $plugin_dir );
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		$acquired_here = ! isset( $this->held_update_locks[ $slug ] );
+		if ( $acquired_here ) {
+			$lock = $this->acquire_update_lock( $slug );
+			if ( is_wp_error( $lock ) ) {
+				return $lock;
+			}
+			$this->held_update_locks[ $slug ] = $lock;
 		}
 
-		return [
-			'rolled_back' => true,
-			'slug'        => $slug,
-			'backup_dir'  => $backup_dir,
-		];
+		try {
+			$plugin_dir = $this->plugin_dir_path( $slug );
+
+			if ( is_dir( $plugin_dir ) ) {
+				$this->remove_directory( $plugin_dir );
+			}
+
+			$result = $this->copy_directory( $backup_real, $plugin_dir );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			return [
+				'rolled_back' => true,
+				'slug'        => $slug,
+				'backup_dir'  => trailingslashit( $backup_real ),
+			];
+		} finally {
+			if ( $acquired_here ) {
+				$this->release_update_lock( $this->held_update_locks[ $slug ] );
+				unset( $this->held_update_locks[ $slug ] );
+			}
+		}
 	}
 
 	/**
@@ -612,7 +660,7 @@ class PluginUpdater {
 		foreach ( $entries as $entry ) {
 			$basename = basename( $entry );
 			// Accept historical timestamp-only names and operation-owned names.
-			if ( preg_match( '/^(.+)-(\d{4}-\d{2}-\d{2}-\d{6})(?:-[a-f0-9]{24})?$/', $basename, $m ) ) {
+			if ( preg_match( '/^(.+)-(\d{4}-\d{2}-\d{2}-\d{6})(?:-[a-f0-9]{24}|-legacy-[a-f0-9]{12})?$/', $basename, $m ) ) {
 				$by_slug[ $m[1] ][] = [
 					'dir'       => $entry,
 					'timestamp' => $m[2],
@@ -664,11 +712,18 @@ class PluginUpdater {
 				__( 'Plugin slug must not be empty.', 'superdav-ai-agent' )
 			);
 		}
+		if ( ! is_dir( $this->plugin_dir_path( $slug ) ) ) {
+			return new WP_Error(
+				'sd_ai_agent_plugin_not_found',
+				__( 'Plugin directory not found.', 'superdav-ai-agent' )
+			);
+		}
 
 		$lock = $this->acquire_update_lock( $slug );
 		if ( is_wp_error( $lock ) ) {
 			return $lock;
 		}
+		$this->held_update_locks[ $slug ] = $lock;
 
 		try {
 			// Step 1: Backup.
@@ -703,7 +758,27 @@ class PluginUpdater {
 			// Keep the transaction lock through caller-owned health validation and
 			// rollback so a later update cannot be overwritten by a stale snapshot.
 			if ( null !== $post_swap ) {
-				$post_swap_result = $post_swap( $swap_result, $backup_dir );
+				try {
+					$post_swap_result = $post_swap( $swap_result, $backup_dir );
+				} catch ( \Throwable $e ) {
+					$rollback_result = $this->rollback( $slug, $backup_dir );
+					$this->remove_owned_stage( $staging_dir );
+					if ( is_wp_error( $rollback_result ) ) {
+						return new WP_Error(
+							'sd_ai_agent_post_swap_rollback_failed',
+							sprintf(
+								/* translators: %s: rollback error message */
+								__( 'Post-update validation failed, and the backup could not be restored: %s', 'superdav-ai-agent' ),
+								$rollback_result->get_error_message()
+							),
+							[ 'rollback_error_code' => $rollback_result->get_error_code() ]
+						);
+					}
+					return new WP_Error(
+						'sd_ai_agent_post_swap_validation_failed',
+						__( 'Post-update validation failed and the backup was restored.', 'superdav-ai-agent' )
+					);
+				}
 				if ( is_wp_error( $post_swap_result ) ) {
 					$this->remove_owned_stage( $staging_dir );
 					return $post_swap_result;
@@ -718,7 +793,8 @@ class PluginUpdater {
 				[ 'backup_dir' => $backup_dir ]
 			);
 		} finally {
-			$this->release_update_lock( $lock );
+			$this->release_update_lock( $this->held_update_locks[ $slug ] );
+			unset( $this->held_update_locks[ $slug ] );
 		}
 	}
 

@@ -394,6 +394,37 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_backup_not_found', $result->get_error_code() );
 	}
 
+	/**
+	 * rollback() must reject existing directories outside private backup storage.
+	 */
+	public function test_rollback_rejects_directory_outside_backup_storage(): void {
+		$result = $this->updater->rollback( $this->slug, $this->plugin_dir );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_backup_not_owned', $result->get_error_code() );
+		$this->assertFileExists( $this->plugin_dir . $this->slug . '.php' );
+	}
+
+	/**
+	 * Explicit rollback uses the same per-plugin transaction lock as update().
+	 */
+	public function test_rollback_refuses_competing_update_lock(): void {
+		$backup = $this->updater->backup( $this->slug );
+		$this->assertIsString( $backup );
+		$lock = $this->acquire_external_update_lock( $this->slug );
+		$no_wait = static function (): int {
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+
+		$result = $this->updater->rollback( $this->slug, $backup );
+
+		remove_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		flock( $lock, LOCK_UN );
+		fclose( $lock );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_update_in_progress', $result->get_error_code() );
+	}
+
 	// ─── cleanup_old_backups() ───────────────────────────────────────────────
 
 	/**
@@ -413,7 +444,7 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		wp_mkdir_p( $backups_root );
 
 		$old_dir = $backups_root . $this->slug . '-2020-01-01-000001/';
-		$new_dir = $backups_root . $this->slug . '-2020-01-02-000001/';
+		$new_dir = $backups_root . $this->slug . '-2020-01-02-000001-0123456789abcdef01234567/';
 		wp_mkdir_p( $old_dir );
 		wp_mkdir_p( $new_dir );
 
@@ -562,6 +593,63 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertSame( 'synthetic_health_failure', $result->get_error_code() );
 		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Healthy Follow-up */' ]
+		);
+		$this->assertIsArray( $next );
+		$this->assertStringContainsString( 'Healthy Follow-up', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * Callback exceptions roll back safely and still release the transaction lock.
+	 */
+	public function test_update_post_swap_exception_rolls_back_and_releases_lock(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Exception Transaction */' ],
+			static function (): void {
+				throw new \RuntimeException( 'Synthetic callback exception.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_post_swap_validation_failed', $result->get_error_code() );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: After Exception */' ]
+		);
+		$this->assertIsArray( $next );
+		$this->assertStringContainsString( 'After Exception', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * Callback exceptions report a failed rollback instead of claiming recovery.
+	 */
+	public function test_update_post_swap_exception_reports_rollback_failure(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Unrecoverable Transaction */' ],
+			function ( array $swap_result, string $backup_dir ): void {
+				unset( $swap_result );
+				$this->remove_dir( $backup_dir );
+				throw new \RuntimeException( 'Synthetic callback exception.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_post_swap_rollback_failed', $result->get_error_code() );
+		$this->assertSame( 'sd_ai_agent_backup_not_found', $result->get_error_data()['rollback_error_code'] );
+		$this->assertStringContainsString( 'Unrecoverable Transaction', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Recovered Later */' ]
+		);
+		$this->assertIsArray( $next );
 	}
 
 	// ─── Helpers ─────────────────────────────────────────────────────────────

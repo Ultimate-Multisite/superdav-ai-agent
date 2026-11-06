@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Abilities;
 
 use SdAiAgent\Core\AbilityPluginRegistry;
+use SdAiAgent\Core\JobErrorSanitizer;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -74,16 +75,19 @@ class InstallPluginAbility extends AbstractAbility {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 
 		// Check if already installed.
-		$installed_plugins = get_plugins();
+		$installed_plugins = $this->get_installed_plugins();
 		foreach ( $installed_plugins as $plugin_file => $plugin_data ) {
 			// @phpstan-ignore-next-line
 			if ( strpos( $plugin_file, $slug . '/' ) === 0 || $plugin_file === $slug . '.php' ) {
-				$is_active = is_plugin_active( $plugin_file );
+				$is_active = $this->is_plugin_active( $plugin_file );
 
 				if ( $activate && ! $is_active ) {
-					$result = activate_plugin( $plugin_file );
+					$result = $this->activate_plugin( $plugin_file );
 					if ( is_wp_error( $result ) ) {
 						return $result;
+					}
+					if ( ! $this->is_plugin_active( $plugin_file ) ) {
+						return new WP_Error( 'sd_ai_agent_activation_not_verified', __( 'WordPress did not confirm that the plugin was activated.', 'superdav-ai-agent' ) );
 					}
 					return [
 						'status'      => 'activated',
@@ -105,70 +109,64 @@ class InstallPluginAbility extends AbstractAbility {
 		}
 
 		// Get plugin info from wordpress.org.
-		$api = plugins_api(
-			'plugin_information',
-			// @phpstan-ignore-next-line
-			[
-				'slug'   => $slug,
-				'fields' => [
-					'sections'          => false,
-					'short_description' => true,
-				],
-			]
-		);
+		$api = $this->get_plugin_information( $slug );
 
 		if ( is_wp_error( $api ) ) {
-			return $api;
+			return $this->scrub_error( $api );
+		}
+		if ( ! is_object( $api ) || ! isset( $api->download_link ) || ! is_string( $api->download_link ) || '' === $api->download_link ) {
+			return new WP_Error( 'sd_ai_agent_plugin_api_invalid_response', __( 'WordPress.org did not return a valid plugin download.', 'superdav-ai-agent' ) );
 		}
 
 		// Install the plugin.
-		$skin          = new \WP_Ajax_Upgrader_Skin();
-		$upgrader      = new \Plugin_Upgrader( $skin );
-		$download_link = is_object( $api ) ? $api->download_link : '';
-		$result        = $upgrader->install( $download_link );
+		$download_link = $api->download_link;
+		$installation  = $this->install_package( $download_link );
+		$result        = $installation['result'];
 
 		if ( is_wp_error( $result ) ) {
-			return $result;
+			return $this->scrub_error( $result );
 		}
 
-		if ( false === $result ) {
-			$errors = $skin->get_errors();
+		if ( true !== $result ) {
+			$errors = $installation['errors'];
 			if ( is_wp_error( $errors ) && $errors->has_errors() ) {
-				return $errors;
+				return $this->scrub_error( $errors );
 			}
-			return new WP_Error( 'sd_ai_agent_install_failed', __( 'Installation failed for unknown reason.', 'superdav-ai-agent' ) );
-		}
-
-		$plugin_file = $upgrader->plugin_info();
-
-		// Some plugin packages do not populate the upgrader's plugin info. Refresh
-		// the plugin cache and resolve the installed main file from the requested slug.
-		if ( ! is_string( $plugin_file ) || '' === $plugin_file ) {
-			wp_clean_plugins_cache();
-
-			foreach ( get_plugins() as $installed_plugin_file => $_plugin_data ) {
-				if ( strpos( $installed_plugin_file, $slug . '/' ) === 0 || $installed_plugin_file === $slug . '.php' ) {
-					$plugin_file = $installed_plugin_file;
-					break;
-				}
+			if ( null !== $result ) {
+				return new WP_Error( 'sd_ai_agent_install_failed', __( 'WordPress could not complete the plugin installation.', 'superdav-ai-agent' ) );
 			}
-		}
-
-		if ( ! is_string( $plugin_file ) || '' === $plugin_file ) {
 			return new WP_Error(
-				'sd_ai_agent_plugin_file_not_resolved',
-				/* translators: %s: plugin slug */
-				sprintf( __( 'Plugin "%s" was installed but its main file could not be resolved. Refresh the Plugins page and try again.', 'superdav-ai-agent' ), $slug )
+				'sd_ai_agent_install_aborted',
+				__( 'Installation was aborted before WordPress confirmed that the plugin files were written. Check filesystem credentials and permissions, then try again.', 'superdav-ai-agent' )
 			);
 		}
 
-		if ( $activate && $plugin_file ) {
-			$activate_result = activate_plugin( $plugin_file );
+		$plugin_file = $this->resolve_installed_plugin_file( $slug, $installation['plugin_file'] );
+
+		if ( '' === $plugin_file ) {
+			return new WP_Error(
+				'sd_ai_agent_plugin_file_not_resolved',
+				/* translators: %s: plugin slug */
+				sprintf( __( 'WordPress completed the installer for plugin "%s", but no matching main plugin file exists.', 'superdav-ai-agent' ), $slug )
+			);
+		}
+
+		if ( $activate ) {
+			$activate_result = $this->activate_plugin( $plugin_file );
 			if ( is_wp_error( $activate_result ) ) {
 				return [
 					'status'      => 'installed',
 					// @phpstan-ignore-next-line
-					'message'     => sprintf( 'Plugin "%s" installed but activation failed: %s', $slug, $activate_result->get_error_message() ),
+					'message'     => sprintf( 'Plugin "%s" installed but activation failed: %s', $slug, $this->safe_error_message( $activate_result ) ),
+					'plugin_file' => $plugin_file,
+					'active'      => false,
+				];
+			}
+			if ( ! $this->is_plugin_active( $plugin_file ) ) {
+				return [
+					'status'      => 'installed',
+					// @phpstan-ignore-next-line
+					'message'     => sprintf( 'Plugin "%s" installed, but WordPress did not confirm activation.', $slug ),
 					'plugin_file' => $plugin_file,
 					'active'      => false,
 				];
@@ -189,6 +187,114 @@ class InstallPluginAbility extends AbstractAbility {
 			'plugin_file' => $plugin_file ?: '',
 			'active'      => false,
 		];
+	}
+
+	/**
+	 * Retrieve plugin information from WordPress.org.
+	 *
+	 * @return object|WP_Error
+	 */
+	protected function get_plugin_information( string $slug ) {
+		$response = plugins_api(
+			'plugin_information',
+			// @phpstan-ignore-next-line
+			[
+				'slug'   => $slug,
+				'fields' => [
+					'sections'          => false,
+					'short_description' => true,
+				],
+			]
+		);
+
+		if ( $response instanceof WP_Error || is_object( $response ) ) {
+			return $response;
+		}
+
+		return new WP_Error( 'sd_ai_agent_plugin_api_invalid_response', __( 'WordPress.org returned an invalid plugin response.', 'superdav-ai-agent' ) );
+	}
+
+	/**
+	 * Install a downloaded package and retain the upgrader diagnostics.
+	 *
+	 * WordPress may return null when filesystem credentials are declined, even
+	 * though Plugin_Upgrader documents a boolean result.
+	 *
+	 * @return array{result:mixed,errors:WP_Error,plugin_file:mixed}
+	 */
+	protected function install_package( string $download_link ): array {
+		$skin     = new \WP_Ajax_Upgrader_Skin();
+		$upgrader = new \Plugin_Upgrader( $skin );
+		$result   = $upgrader->install( $download_link );
+
+		return [
+			'result'      => $result,
+			'errors'      => $skin->get_errors(),
+			'plugin_file' => true === $result ? $upgrader->plugin_info() : '',
+		];
+	}
+
+	/**
+	 * Resolve a main plugin file only when WordPress can enumerate it on disk.
+	 *
+	 * @param string $slug      Requested WordPress.org plugin slug.
+	 * @param mixed  $candidate Main file reported by the upgrader.
+	 */
+	protected function resolve_installed_plugin_file( string $slug, $candidate ): string {
+		wp_clean_plugins_cache();
+		$installed_plugins = $this->get_installed_plugins();
+
+		if ( is_string( $candidate ) && $this->plugin_file_matches_slug( $candidate, $slug ) && isset( $installed_plugins[ $candidate ] ) && $this->plugin_file_exists( $candidate ) ) {
+			return $candidate;
+		}
+
+		foreach ( $installed_plugins as $installed_plugin_file => $_plugin_data ) {
+			if ( $this->plugin_file_matches_slug( $installed_plugin_file, $slug ) && $this->plugin_file_exists( $installed_plugin_file ) ) {
+				return $installed_plugin_file;
+			}
+		}
+
+		return '';
+	}
+
+	protected function plugin_file_matches_slug( string $plugin_file, string $slug ): bool {
+		return strpos( $plugin_file, $slug . '/' ) === 0 || $plugin_file === $slug . '.php';
+	}
+
+	/**
+	 * @return array<array>
+	 */
+	protected function get_installed_plugins(): array {
+		return get_plugins();
+	}
+
+	protected function plugin_file_exists( string $plugin_file ): bool {
+		return is_file( WP_PLUGIN_DIR . '/' . $plugin_file );
+	}
+
+	/**
+	 * @return null|WP_Error
+	 */
+	protected function activate_plugin( string $plugin_file ) {
+		return activate_plugin( $plugin_file );
+	}
+
+	protected function is_plugin_active( string $plugin_file ): bool {
+		return is_plugin_active( $plugin_file );
+	}
+
+	protected function scrub_error( WP_Error $error ): WP_Error {
+		$code    = sanitize_key( (string) $error->get_error_code() );
+		$message = $this->safe_error_message( $error );
+
+		return new WP_Error(
+			'' !== $code ? $code : 'sd_ai_agent_install_failed',
+			'' !== $message ? $message : __( 'WordPress could not complete the plugin operation.', 'superdav-ai-agent' )
+		);
+	}
+
+	protected function safe_error_message( WP_Error $error ): string {
+		return JobErrorSanitizer::sanitize( $error->get_error_message(), 300 );
 	}
 
 	protected function permission_callback( $input ): bool {

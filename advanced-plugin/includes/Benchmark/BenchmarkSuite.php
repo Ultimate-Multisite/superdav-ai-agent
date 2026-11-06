@@ -28,6 +28,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class BenchmarkSuite {
 
+	/** Assertion types that only prove an ability was invoked. */
+	private const INVOCATION_ASSERTION_TYPES = array( 'tool_called' );
+
+	/** Assertion types whose success may come from invocation or final state. */
+	private const COMPOSITE_ASSERTION_TYPES = array( 'tool_called_or_user_exists' );
+
+	/** Assertion types that inspect output or WordPress state after execution. */
+	private const POSTCONDITION_ASSERTION_TYPES = array(
+		'plugin_activates',
+		'plugin_no_php_errors',
+		'rest_endpoint_registered',
+		'rest_endpoint_response',
+		'db_table_exists',
+		'db_table_has_columns',
+		'shortcode_registered',
+		'post_type_registered',
+		'hook_registered',
+		'option_exists',
+		'file_exists_in_plugin',
+		'file_contains',
+		'wp_cli_command',
+		'tool_output_contains',
+		'post_exists',
+		'option_value_matches',
+		'taxonomy_registered',
+		'menu_exists',
+		'user_exists',
+	);
+
 	/**
 	 * List all available suites.
 	 *
@@ -217,6 +246,76 @@ class BenchmarkSuite {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Describe what evidence a question's assertions can establish.
+	 *
+	 * Composite assertions are kept separate and are not counted as verified
+	 * postconditions because their invocation branch can pass without inspecting
+	 * the requested outcome.
+	 *
+	 * @param array<int, array<string, mixed>> $assertions Assertion definitions.
+	 * @return array{classification: string, invocation_total: int, postcondition_total: int, composite_total: int, unsupported_total: int, functionally_verifiable: bool}
+	 */
+	public static function inspect_assertion_intent( array $assertions ): array {
+		$counts = array(
+			'invocation'    => 0,
+			'postcondition' => 0,
+			'composite'     => 0,
+			'unsupported'   => 0,
+		);
+
+		foreach ( $assertions as $assertion ) {
+			$type = (string) ( $assertion['type'] ?? '' );
+			if ( in_array( $type, self::INVOCATION_ASSERTION_TYPES, true ) ) {
+				++$counts['invocation'];
+			} elseif ( in_array( $type, self::COMPOSITE_ASSERTION_TYPES, true ) ) {
+				++$counts['composite'];
+			} elseif ( in_array( $type, self::POSTCONDITION_ASSERTION_TYPES, true ) ) {
+				++$counts['postcondition'];
+			} else {
+				++$counts['unsupported'];
+			}
+		}
+
+		if ( $counts['unsupported'] > 0 ) {
+			$classification = 'unsupported';
+		} elseif ( $counts['postcondition'] > 0 && ( $counts['invocation'] > 0 || $counts['composite'] > 0 ) ) {
+			$classification = 'mixed';
+		} elseif ( $counts['postcondition'] > 0 ) {
+			$classification = 'postcondition';
+		} elseif ( $counts['composite'] > 0 ) {
+			$classification = 'composite';
+		} else {
+			$classification = 'invocation_only';
+		}
+
+		return array(
+			'classification'          => $classification,
+			'invocation_total'        => $counts['invocation'],
+			'postcondition_total'     => $counts['postcondition'],
+			'composite_total'         => $counts['composite'],
+			'unsupported_total'       => $counts['unsupported'],
+			'functionally_verifiable' => $counts['postcondition'] > 0 && 0 === $counts['unsupported'],
+		);
+	}
+
+	/**
+	 * Return the evidence class for one assertion type.
+	 *
+	 * @param string $type Assertion type.
+	 */
+	public static function assertion_evidence_type( string $type ): string {
+		if ( in_array( $type, self::INVOCATION_ASSERTION_TYPES, true ) ) {
+			return 'invocation';
+		}
+
+		if ( in_array( $type, self::COMPOSITE_ASSERTION_TYPES, true ) ) {
+			return 'composite';
+		}
+
+		return in_array( $type, self::POSTCONDITION_ASSERTION_TYPES, true ) ? 'postcondition' : 'unsupported';
 	}
 
 	/**
@@ -1514,6 +1613,11 @@ class BenchmarkSuite {
 				'category'   => 'files',
 				'max_turns'  => 14,
 				'prompt'     => 'Build a one-file plugin called "file-coverage" by: (a) using file-write to create file-coverage/file-coverage.php with the standard plugin header (Plugin Name: File Coverage), (b) using file-edit to append a comment "// EDITED" at the bottom, (c) using file-read to verify the change, (d) using file-delete to remove the file. The plugin slug must be exactly "file-coverage".',
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'explicit_approval_profile_required',
+					'detail' => 'File mutation coverage requires a benchmark profile that supplies approval through the supported confirmation path. YOLO mode is not approval evidence.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1714,7 +1818,12 @@ class BenchmarkSuite {
 				'id'         => 'apm-009',
 				'category'   => 'sandbox',
 				'max_turns'  => 25,
-				'prompt'     => 'Use generate-plugin to create a new sandboxed plugin called "apm-009-sandbox" that registers a single shortcode [apm009] returning the string "hello from apm-009". Then use sandbox-test-plugin to verify it loads cleanly. Then use sandbox-activate-plugin to copy it from sandbox to the live plugins directory and activate it.',
+				'prompt'     => 'Stage a new plugin called "apm-009-sandbox" outside the live plugins directory. It must register [apm009] and return "hello from apm-009". Test the staged plugin, deploy it only after the test passes, activate it transactionally, and verify the shortcode output.',
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'sandbox_staging_operation_unavailable',
+					'detail' => 'The current generate-plugin ability can return source or install directly to the live plugin directory; it does not expose the required sandbox-first staging operation.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1737,7 +1846,13 @@ class BenchmarkSuite {
 				'id'         => 'apm-010',
 				'category'   => 'sandbox',
 				'max_turns'  => 15,
-				'prompt'     => 'Use update-plugin-sandboxed to apply a small change to the previously generated "apm-009-sandbox" plugin: add a second shortcode [apm009v2] that returns "v2". Test it in the sandbox before deploying.',
+				'prompt'     => 'Update the benchmark-owned "apm-009-sandbox" plugin from apm-009 by staging code that adds [apm009v2] returning "v2". Verify both [apm009] and [apm009v2] in the staged copy, deploy only after both checks pass, and confirm the original shortcode still works.',
+				'depends_on' => array( 'apm-009' ),
+				'execution'  => array(
+					'status' => 'deferred',
+					'reason' => 'dependency_requires_unavailable_sandbox_staging',
+					'detail' => 'This update depends on the sandbox-first fixture from apm-009, which cannot be created through the current ability contract.',
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1907,12 +2022,24 @@ class BenchmarkSuite {
 				'id'         => 'au-007',
 				'category'   => 'seo',
 				'max_turns'  => 8,
-				'prompt'     => 'Use seo-analyze-content on this body text targeting the keyword "remote work tools": "Working remotely changes the kinds of tools teams need. Project management software, video calls, async docs, and good ergonomics matter more than they do in an office. Choose tools that integrate well together." Report the score and top 3 suggestions.',
+				'prompt'     => 'Use seo-analyze-content with post_id {{post_id}} and focus_keyword "remote work tools". Report the returned word count, keyword density, and top 3 recommendations. Do not publish or modify the draft fixture.',
+				'setup'      => array(
+					'draft_post' => array(
+						'title'   => 'AU-007 Remote Work Tools Benchmark Fixture',
+						'content' => '<h2>Choosing remote work tools</h2><p>Working remotely changes the kinds of tools teams need. Project management software, video calls, async docs, and good ergonomics matter more than they do in an office. Choose remote work tools that integrate well together.</p>',
+					),
+				),
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/seo-analyze-content' ),
 						'description' => 'seo-analyze-content called',
+					),
+					array(
+						'type'          => 'tool_output_contains',
+						'tools'         => array( 'sd-ai-agent/seo-analyze-content' ),
+						'required_keys' => array( 'post_id', 'word_count', 'keyword_density', 'recommendations' ),
+						'description'   => 'seo-analyze-content returned supported analysis fields',
 					),
 				),
 			),
@@ -2041,11 +2168,12 @@ class BenchmarkSuite {
 	private static function get_abilities_credentialed_questions(): array {
 		return array(
 			array(
-				'id'         => 'acr-001',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-traffic-summary to fetch the last 7 days of traffic for this site. If GA credentials are not configured, report the error message gracefully.',
-				'assertions' => array(
+				'id'                  => 'acr-001',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-traffic-summary to fetch the last 7 days of traffic for this site. If GA credentials are not configured, report the error message gracefully.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-traffic-summary' ),
@@ -2054,11 +2182,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-002',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-top-pages to fetch the top 10 pages by pageviews for the last 30 days.',
-				'assertions' => array(
+				'id'                  => 'acr-002',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-top-pages to fetch the top 10 pages by pageviews for the last 30 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-top-pages' ),
@@ -2067,11 +2196,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-003',
-				'category'   => 'ga',
-				'max_turns'  => 6,
-				'prompt'     => 'Use ga-realtime to fetch the current live visitor count.',
-				'assertions' => array(
+				'id'                  => 'acr-003',
+				'category'            => 'ga',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use ga-realtime to fetch the current live visitor count.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/ga-realtime' ),
@@ -2080,11 +2210,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-004',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-site-summary for the last 28 days, including the previous-period comparison.',
-				'assertions' => array(
+				'id'                  => 'acr-004',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-site-summary for the last 28 days, including the previous-period comparison.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-site-summary' ),
@@ -2093,11 +2224,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-005',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-top-queries to show the top 10 search queries driving traffic in the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-005',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-top-queries to show the top 10 search queries driving traffic in the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-top-queries' ),
@@ -2106,11 +2238,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-006',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-page-performance for the homepage URL of this site over the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-006',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-page-performance for the homepage URL of this site over the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-page-performance' ),
@@ -2119,11 +2252,12 @@ class BenchmarkSuite {
 				),
 			),
 			array(
-				'id'         => 'acr-007',
-				'category'   => 'gsc',
-				'max_turns'  => 6,
-				'prompt'     => 'Use gsc-query-details for the query "wordpress" over the last 28 days.',
-				'assertions' => array(
+				'id'                  => 'acr-007',
+				'category'            => 'gsc',
+				'benchmark_dimension' => 'graceful_degradation',
+				'max_turns'           => 6,
+				'prompt'              => 'Use gsc-query-details for the query "wordpress" over the last 28 days.',
+				'assertions'          => array(
 					array(
 						'type'        => 'tool_called',
 						'tools'       => array( 'sd-ai-agent/gsc-query-details' ),

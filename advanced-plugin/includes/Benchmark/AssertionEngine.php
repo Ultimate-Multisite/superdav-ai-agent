@@ -26,7 +26,7 @@ class AssertionEngine {
 	 *
 	 * @param array<int, array<string, mixed>> $assertions Assertion definitions.
 	 * @param array<string, mixed>             $context    Runtime context (plugin_slug, etc.).
-	 * @return array{passed: int, failed: int, total: int, results: list<array<string, mixed>>}
+	 * @return array<string, mixed>
 	 */
 	public static function run( array $assertions, array $context = array() ): array {
 		$results = array();
@@ -37,21 +37,33 @@ class AssertionEngine {
 
 			$results[] = array_merge(
 				array(
-					'type'        => $type,
-					'description' => $assertion['description'] ?? $type,
+					'type'          => $type,
+					'description'   => $assertion['description'] ?? $type,
+					'evidence_type' => BenchmarkSuite::assertion_evidence_type( $type ),
 				),
 				$result
 			);
 		}
 
-		$passed = count( array_filter( $results, fn( $r ) => $r['pass'] ) );
-		$total  = count( $results );
+		$passed                            = count( array_filter( $results, fn( $r ) => $r['pass'] ) );
+		$total                             = count( $results );
+		$coverage                          = BenchmarkSuite::inspect_assertion_intent( $assertions );
+		$postcondition_pass                = count(
+			array_filter(
+				$results,
+				static fn( array $result ): bool => 'postcondition' === $result['evidence_type'] && true === $result['pass']
+			)
+		);
+		$coverage['postcondition_passed']  = $postcondition_pass;
+		$coverage['postcondition_failed']  = $coverage['postcondition_total'] - $postcondition_pass;
+		$coverage['functionally_verified'] = $coverage['functionally_verifiable'] && 0 === $coverage['postcondition_failed'];
 
 		return array(
-			'passed'  => $passed,
-			'failed'  => $total - $passed,
-			'total'   => $total,
-			'results' => $results,
+			'passed'   => $passed,
+			'failed'   => $total - $passed,
+			'total'    => $total,
+			'results'  => $results,
+			'coverage' => $coverage,
 		);
 	}
 
@@ -137,6 +149,13 @@ class AssertionEngine {
 					self::normalize_string_list( $assertion['tools'] ?? array() ),
 					$context,
 					(int) ( $assertion['min_calls'] ?? 1 )
+				);
+
+			case 'tool_output_contains':
+				return self::assert_tool_output_contains(
+					self::normalize_string_list( $assertion['tools'] ?? array() ),
+					self::normalize_string_list( $assertion['required_keys'] ?? array() ),
+					$context
 				);
 
 			case 'tool_called_or_user_exists':
@@ -869,6 +888,76 @@ class AssertionEngine {
 			'expected' => sprintf( 'at least %d call to one of [%s]', $min_calls, implode( ', ', $tools ) ),
 			'actual'   => sprintf( '%d matching call(s) in tool log', $matches ),
 		);
+	}
+
+	/**
+	 * Assert that a matching tool returned all required top-level output keys.
+	 *
+	 * @param array<int, string>   $tools         Ability names to match.
+	 * @param array<int, string>   $required_keys Required top-level result keys.
+	 * @param array<string, mixed> $context       Runtime context with 'tool_call_log'.
+	 * @return array{pass: bool, expected: string, actual: string}
+	 */
+	private static function assert_tool_output_contains( array $tools, array $required_keys, array $context ): array {
+		$log = (array) ( $context['tool_call_log'] ?? array() );
+
+		foreach ( $log as $entry ) {
+			if ( ! is_array( $entry ) || ! self::tool_name_matches( (string) ( $entry['tool'] ?? '' ), $tools ) ) {
+				continue;
+			}
+
+			$output = $entry['output'] ?? array();
+			if ( is_string( $output ) ) {
+				$decoded = json_decode( $output, true );
+				$output  = is_array( $decoded ) ? $decoded : array();
+			}
+
+			if ( ! is_array( $output ) ) {
+				continue;
+			}
+
+			$missing = array_values(
+				array_filter(
+					$required_keys,
+					static fn( string $key ): bool => ! array_key_exists( $key, $output )
+				)
+			);
+
+			return array(
+				'pass'     => empty( $missing ),
+				'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
+				'actual'   => empty( $missing ) ? 'all required keys returned' : 'missing keys: ' . implode( ', ', $missing ),
+			);
+		}
+
+		return array(
+			'pass'     => false,
+			'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
+			'actual'   => 'no matching tool output found',
+		);
+	}
+
+	/**
+	 * Match a logged direct tool name against candidate ability IDs.
+	 *
+	 * @param string             $name  Logged tool name.
+	 * @param array<int, string> $tools Candidate ability names.
+	 */
+	private static function tool_name_matches( string $name, array $tools ): bool {
+		$wpab_name = self::ability_to_function_name( $name );
+
+		foreach ( $tools as $candidate ) {
+			$short = self::ability_short_name( $candidate );
+			if (
+				$name === $candidate
+				|| $wpab_name === self::ability_to_function_name( $candidate )
+				|| ( '' !== $short && ( str_ends_with( $name, '/' . $short ) || str_ends_with( $name, '__' . $short ) ) )
+			) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

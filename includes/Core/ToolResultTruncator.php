@@ -42,6 +42,9 @@ class ToolResultTruncator {
 	 */
 	const MAX_STRING_LENGTH = 500;
 
+	/** A bounded skill page plus an ordinary dispatcher result and metadata. */
+	public const MAX_SKILL_ENVELOPE_BYTES = 16384;
+
 	/**
 	 * Truncate a tool result if it exceeds the size threshold.
 	 *
@@ -50,6 +53,9 @@ class ToolResultTruncator {
 	 * @return mixed The possibly-truncated result.
 	 */
 	public static function truncate( $result, string $tool_name = '' ) {
+		if ( str_starts_with( $tool_name, 'wpab__sd-ai-agent__' ) ) {
+			$tool_name = 'sd-ai-agent/' . substr( $tool_name, strlen( 'wpab__sd-ai-agent__' ) );
+		}
 		if ( is_string( $result ) && self::is_woocommerce_order_tool( $tool_name ) ) {
 			$decoded = json_decode( $result, true );
 			if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
@@ -60,8 +66,72 @@ class ToolResultTruncator {
 			}
 		}
 
+		if ( is_string( $result ) ) {
+			$encoded = wp_json_encode( $result );
+			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+				return $result;
+			}
+			$decoded = json_decode( $result, true );
+			if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
+				$bounded_result = self::truncate( $decoded, $tool_name );
+				$skill_context  = is_array( $bounded_result ) && self::has_bounded_skill_context( $bounded_result, $tool_name );
+				$limit          = $skill_context ? self::MAX_SKILL_ENVELOPE_BYTES : self::MAX_RESULT_BYTES;
+				$bounded        = wp_json_encode( $bounded_result );
+				$quoted         = wp_json_encode( $bounded );
+				if ( is_string( $bounded ) && is_string( $quoted ) && strlen( $quoted ) <= $limit ) {
+					return $bounded;
+				}
+				if ( $skill_context && is_array( $bounded_result ) ) {
+					$field   = 'sd-ai-agent/skill-load' === ( $bounded_result['ability'] ?? '' ) ? 'result' : '_skill_context';
+					$minimal = [
+						'_truncated' => true,
+						'ability'    => is_string( $bounded_result['ability'] ?? null ) ? self::truncate_string( $bounded_result['ability'] ) : $tool_name,
+						'success'    => $bounded_result['success'] ?? true,
+						$field       => $bounded_result[ $field ] ?? $bounded_result,
+					];
+					if ( '_skill_context' === $field && is_array( $bounded_result['result'] ?? null ) ) {
+						$minimal['result'] = self::truncate_recursive( array_intersect_key( $bounded_result['result'], array_flip( [ 'id', 'post_id', 'slug', 'status', 'revision_id', 'permalink' ] ) ), 0 );
+					}
+					$bounded = wp_json_encode( $minimal );
+					$quoted  = wp_json_encode( $bounded );
+					if ( is_string( $bounded ) && is_string( $quoted ) && strlen( $quoted ) <= $limit ) {
+						return $bounded;
+					}
+				}
+				return (string) wp_json_encode(
+					[
+						'_truncated' => true,
+						'_omitted'   => self::omission_note( strlen( $result ) ),
+					]
+				);
+			}
+			return self::bound_string_result( $result );
+		}
+
 		if ( ! is_array( $result ) ) {
 			return $result;
+		}
+
+		// Skill guidance has an explicit page budget and continuation contract.
+		// Do not reduce an already-bounded page back to the generic 500-byte excerpt.
+		if ( 'sd-ai-agent/skill-load' === $tool_name && self::is_bounded_skill_page( $result ) ) {
+			return $result;
+		}
+		if ( 'sd-ai-agent/ability-call' === $tool_name ) {
+			$field = 'sd-ai-agent/skill-load' === ( $result['ability'] ?? '' ) ? 'result' : '_skill_context';
+			if ( is_array( $result[ $field ] ?? null ) && self::is_bounded_skill_page( $result[ $field ] ) ) {
+				$skill = $result[ $field ];
+				unset( $result[ $field ] );
+				$bounded = self::truncate( $result );
+				if ( ! is_array( $bounded ) ) {
+					return $bounded;
+				}
+				$result           = $bounded;
+				$result[ $field ] = $skill;
+				if ( strlen( (string) wp_json_encode( $result ) ) <= self::MAX_SKILL_ENVELOPE_BYTES ) {
+					return $result;
+				}
+			}
 		}
 
 		if ( self::is_woocommerce_order_tool( $tool_name ) ) {
@@ -82,6 +152,36 @@ class ToolResultTruncator {
 		$result = self::truncate_recursive( $result, 0 );
 
 		return is_array( $result ) ? self::enforce_byte_cap( $result ) : $result;
+	}
+
+	/**
+	 * Only versioned pages from the known skill tool qualify for this policy.
+	 *
+	 * @param array<string|int, mixed> $result Possible skill page.
+	 */
+	private static function is_bounded_skill_page( array $result ): bool {
+		return is_string( $result['content'] ?? null )
+			&& is_string( $result['content_version'] ?? null )
+			&& 1 === preg_match( '/^[a-f0-9]{64}$/D', $result['content_version'] )
+			&& isset( $result['slug'], $result['total_bytes'], $result['offset'] )
+			&& strlen( (string) wp_json_encode( $result ) ) <= SkillContextDelivery::MAX_BYTES;
+	}
+
+	/**
+	 * Recognize the same bounded skill contract in array and JSON-string transports.
+	 *
+	 * @param array<string|int, mixed> $result Possible skill envelope.
+	 * @param string                   $tool_name Canonical tool name.
+	 */
+	private static function has_bounded_skill_context( array $result, string $tool_name ): bool {
+		if ( 'sd-ai-agent/skill-load' === $tool_name ) {
+			return self::is_bounded_skill_page( $result );
+		}
+		if ( 'sd-ai-agent/ability-call' !== $tool_name ) {
+			return false;
+		}
+		$field = 'sd-ai-agent/skill-load' === ( $result['ability'] ?? '' ) ? 'result' : '_skill_context';
+		return is_array( $result[ $field ] ?? null ) && self::is_bounded_skill_page( $result[ $field ] );
 	}
 
 	/**
@@ -442,11 +542,11 @@ class ToolResultTruncator {
 			case 'sd-ai-agent/navigate':
 			case 'sd-ai-agent/get-page-html':
 				if ( isset( $result['html'] ) && is_string( $result['html'] ) && strlen( $result['html'] ) > self::MAX_STRING_LENGTH ) {
-					$result['html']       = substr( $result['html'], 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+					$result['html']       = self::truncate_string( $result['html'] );
 					$result['_truncated'] = true;
 				}
 				if ( isset( $result['content'] ) && is_string( $result['content'] ) && strlen( $result['content'] ) > self::MAX_STRING_LENGTH ) {
-					$result['content']    = substr( $result['content'], 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+					$result['content']    = self::truncate_string( $result['content'] );
 					$result['_truncated'] = true;
 				}
 				break;
@@ -685,6 +785,35 @@ class ToolResultTruncator {
 			return $str;
 		}
 
-		return substr( $str, 0, self::MAX_STRING_LENGTH ) . '... [truncated]';
+		return self::utf8_prefix( $str, self::MAX_STRING_LENGTH ) . '... [truncated]';
+	}
+
+	/** Keep a plain string, including JSON escaping, inside the result budget. */
+	private static function bound_string_result( string $value ): string {
+		$suffix = '... [truncated; request a narrower section]';
+		$low    = 0;
+		$high   = min( strlen( $value ), self::MAX_RESULT_BYTES );
+		$best   = $suffix;
+		while ( $low <= $high ) {
+			$middle    = intdiv( $low + $high, 2 );
+			$candidate = self::utf8_prefix( $value, $middle ) . $suffix;
+			$encoded   = wp_json_encode( $candidate );
+			if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+				$best = $candidate;
+				$low  = $middle + 1;
+			} else {
+				$high = $middle - 1;
+			}
+		}
+		return $best;
+	}
+
+	/** Return a byte-bounded prefix without splitting a UTF-8 codepoint. */
+	private static function utf8_prefix( string $value, int $bytes ): string {
+		$prefix = substr( $value, 0, max( 0, $bytes ) );
+		while ( '' !== $prefix && 1 !== preg_match( '//u', $prefix ) ) {
+			$prefix = substr( $prefix, 0, -1 );
+		}
+		return $prefix;
 	}
 }

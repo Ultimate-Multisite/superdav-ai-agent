@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Abilities;
 
 use SdAiAgent\Models\Skill;
+use SdAiAgent\Core\SkillContextDelivery;
 use SdAiAgent\Repositories\SkillUsageRepository;
 use SdAiAgent\Tools\ModelHealthTracker;
 
@@ -32,14 +33,31 @@ class SkillAbilities {
 			'sd-ai-agent/skill-load',
 			[
 				'label'               => __( 'Load Skill', 'superdav-ai-agent' ),
-				'description'         => __( 'Load the full instructions for a specific skill guide by its slug.', 'superdav-ai-agent' ),
+				'description'         => __( 'Load bounded, actionable skill guidance by slug. The first page includes a section index; request an exact section only when needed. Follow next_offset with the same section/content_version for more, rather than repeatedly loading the entire guide.', 'superdav-ai-agent' ),
 				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
-						'slug' => [
+						'slug'            => [
 							'type'        => 'string',
 							'description' => 'The skill slug to load (e.g. wordpress-admin, woocommerce)',
+						],
+						'section'         => [
+							'type'        => 'string',
+							'description' => 'Exact Markdown heading from the section index. Omit for the overview.',
+						],
+						'offset'          => [
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => 'Byte offset returned as next_offset for the same section.',
+						],
+						'content_version' => [
+							'type'        => 'string',
+							'description' => 'Version from the previous result; rejects stale continuation after edits.',
+						],
+						'reload'          => [
+							'type'        => 'boolean',
+							'description' => 'Use only when earlier guidance was removed from the current context by compaction. Ordinary repeated pages are deduplicated.',
 						],
 					],
 					'required'   => [ 'slug' ],
@@ -47,10 +65,18 @@ class SkillAbilities {
 				'output_schema'       => [
 					'type'       => 'object',
 					'properties' => [
-						'name'    => [ 'type' => 'string' ],
-						'slug'    => [ 'type' => 'string' ],
-						'content' => [ 'type' => 'string' ],
-						'error'   => [ 'type' => 'string' ],
+						'name'            => [ 'type' => 'string' ],
+						'slug'            => [ 'type' => 'string' ],
+						'content'         => [ 'type' => 'string' ],
+						'error'           => [ 'type' => 'string' ],
+						'sections'        => [
+							'type'  => 'array',
+							'items' => [ 'type' => 'string' ],
+						],
+						'content_version' => [ 'type' => 'string' ],
+						'next_offset'     => [ 'type' => [ 'integer', 'null' ] ],
+						'truncated'       => [ 'type' => 'boolean' ],
+						'already_loaded'  => [ 'type' => 'boolean' ],
 					],
 				],
 				'meta'                => [
@@ -134,6 +160,11 @@ class SkillAbilities {
 			}
 		}
 
+		$result = SkillContextDelivery::build( (string) $skill->slug, (string) $skill->name, (string) $skill->content, $input );
+		if ( is_wp_error( $result ) || $result['already_loaded'] ) {
+			return $result;
+		}
+
 		// Record tool_call usage for telemetry (Phase 1 / t215).
 		// Model ID is unknown here (abilities don't receive request context),
 		// so model_id defaults to '' and session_id to 0.
@@ -142,7 +173,7 @@ class SkillAbilities {
 				'skill_id'        => $skill->id,
 				'session_id'      => 0,
 				'trigger_type'    => 'tool_call',
-				'injected_tokens' => SkillUsageRepository::estimate_tokens( $skill->content ),
+				'injected_tokens' => SkillUsageRepository::estimate_tokens( $result['content'] ),
 				'outcome'         => 'unknown',
 				'model_id'        => '',
 			]
@@ -154,11 +185,7 @@ class SkillAbilities {
 		// tune the auto-injection threshold per model.
 		ModelHealthTracker::record_skill_load();
 
-		return [
-			'name'    => $skill->name,
-			'slug'    => $skill->slug,
-			'content' => $skill->content,
-		];
+		return $result;
 	}
 
 	/**

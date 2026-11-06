@@ -35,6 +35,17 @@ use WP_UnitTestCase;
  */
 class ConversationSerializerTest extends WP_UnitTestCase {
 
+	/** The actual SDK history boundary must not retain unbounded string results. */
+	public function test_large_string_response_is_bounded_in_history(): void {
+		$this->skip_if_sdk_unavailable();
+		$message = new UserMessage( [ new MessagePart( new FunctionResponse( 'large', 'wpab__sd-ai-agent__file-read', str_repeat( 'A', 1048576 ) ) ) ] );
+		$result  = ConversationSerializer::truncate_tool_results( $message );
+		$payload = $result->getParts()[0]->getFunctionResponse()->getResponse();
+		$this->assertIsString( $payload );
+		$this->assertLessThanOrEqual( 4096, strlen( wp_json_encode( $payload ) ) );
+		$this->assertStringContainsString( 'truncated', $payload );
+	}
+
 	/**
 	 * Skip the test if the AI Client SDK isn't autoloaded in this environment.
 	 */

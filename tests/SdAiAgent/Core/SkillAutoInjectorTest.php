@@ -24,6 +24,7 @@ class SkillAutoInjectorTest extends WP_UnitTestCase {
 	 */
 	public function set_up(): void {
 		parent::set_up();
+		SkillAutoInjector::reset_request_state();
 		Skill::seed_builtins();
 
 		global $wpdb;

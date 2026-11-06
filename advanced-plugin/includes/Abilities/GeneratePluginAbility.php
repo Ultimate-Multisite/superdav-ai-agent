@@ -82,7 +82,7 @@ class GeneratePluginAbility extends AbstractAbility {
 				],
 				'install'     => [
 					'type'        => 'boolean',
-					'description' => 'Whether to install the generated plugin to wp-content/plugins/. Defaults to true.',
+					'description' => 'Whether to install the generated plugin to wp-content/plugins/. Defaults to true. Installation fails if the slug already exists; use update-plugin-sandboxed for intentional updates.',
 				],
 			],
 			'required'   => [ 'description' ],

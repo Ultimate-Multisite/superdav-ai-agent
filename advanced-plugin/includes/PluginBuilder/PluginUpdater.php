@@ -32,6 +32,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PluginUpdater {
 
 	/**
+	 * Staging directories created by this updater instance.
+	 *
+	 * @var array<string,true>
+	 */
+	private array $owned_stages = [];
+
+	/**
+	 * Backup directories created by this updater instance.
+	 *
+	 * @var array<string,true>
+	 */
+	private array $owned_backups = [];
+
+	/**
 	 * Get the absolute path to the backups root directory.
 	 *
 	 * @return string|WP_Error Trailing-slashed absolute path or an error when a
@@ -49,6 +63,15 @@ class PluginUpdater {
 	 */
 	private function staging_root(): string|WP_Error {
 		return $this->private_subdirectory( 'staging' );
+	}
+
+	/**
+	 * Get the absolute path to the per-plugin update lock directory.
+	 *
+	 * @return string|WP_Error Trailing-slashed absolute path or an error.
+	 */
+	private function locks_root(): string|WP_Error {
+		return $this->private_subdirectory( 'locks' );
 	}
 
 	/**
@@ -274,7 +297,7 @@ class PluginUpdater {
 	}
 
 	/**
-	 * Backup an installed plugin to private storage under {slug}-{timestamp}/.
+	 * Backup an installed plugin to an atomically claimed private directory.
 	 *
 	 * @param string $slug Plugin slug (directory name under wp-content/plugins/).
 	 * @return string|\WP_Error Absolute path to the backup directory on success.
@@ -302,14 +325,21 @@ class PluginUpdater {
 			return $backups_root;
 		}
 
-		$timestamp  = gmdate( 'Y-m-d-His' );
-		$backup_dir = $backups_root . $slug . '-' . $timestamp . '/';
+		$backup_dir = $this->claim_operation_directory(
+			$backups_root,
+			$slug . '-' . gmdate( 'Y-m-d-His' ) . '-'
+		);
+		if ( is_wp_error( $backup_dir ) ) {
+			return $backup_dir;
+		}
 
 		$result = $this->copy_directory( $plugin_dir, $backup_dir );
 		if ( is_wp_error( $result ) ) {
+			$this->remove_directory( $backup_dir );
 			return $result;
 		}
 
+		$this->owned_backups[ $backup_dir ] = true;
 		return $backup_dir;
 	}
 
@@ -346,16 +376,16 @@ class PluginUpdater {
 			return $staging_root;
 		}
 
-		$staging_dir = $staging_root . $slug . '/';
-
-		// Remove stale staging dir if it exists.
-		if ( is_dir( $staging_dir ) ) {
-			$this->remove_directory( $staging_dir );
+		$staging_dir = $this->claim_operation_directory( $staging_root, $slug . '-' );
+		if ( is_wp_error( $staging_dir ) ) {
+			return $staging_dir;
 		}
+		$this->owned_stages[ $staging_dir ] = true;
 
 		// Copy live plugin to staging so the staged copy is always complete.
 		$result = $this->copy_directory( $plugin_dir, $staging_dir );
 		if ( is_wp_error( $result ) ) {
+			$this->remove_owned_stage( $staging_dir );
 			return $result;
 		}
 
@@ -365,7 +395,7 @@ class PluginUpdater {
 			$abs_path      = $staging_dir . $relative_path;
 			$dir           = PathCanonicalizer::canonicalize_missing_path_inside( dirname( $abs_path ), $staging_dir );
 			if ( is_wp_error( $dir ) ) {
-				$this->remove_directory( $staging_dir );
+				$this->remove_owned_stage( $staging_dir );
 				return $dir;
 			}
 
@@ -375,7 +405,7 @@ class PluginUpdater {
 			if ( $this->is_php_file( $relative_path ) ) {
 				$lint = $this->lint_php( $content );
 				if ( ! $lint['valid'] ) {
-					$this->remove_directory( $staging_dir );
+					$this->remove_owned_stage( $staging_dir );
 					return new WP_Error(
 						'sd_ai_agent_php_syntax_error',
 						sprintf(
@@ -391,7 +421,7 @@ class PluginUpdater {
 
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Staging: WP_Filesystem not applicable when writing generated PHP source to a temp location.
 			if ( false === file_put_contents( $abs_path, $content ) ) {
-				$this->remove_directory( $staging_dir );
+				$this->remove_owned_stage( $staging_dir );
 				return new WP_Error(
 					'sd_ai_agent_staging_write_failed',
 					/* translators: %s: relative file path */
@@ -436,6 +466,13 @@ class PluginUpdater {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function swap( string $slug, string $staging_dir, string $backup_dir ): array|\WP_Error {
+		if ( ! isset( $this->owned_stages[ $staging_dir ] ) || ! isset( $this->owned_backups[ $backup_dir ] ) ) {
+			return new WP_Error(
+				'sd_ai_agent_update_resource_not_owned',
+				__( 'The staged plugin and backup must belong to the current update operation.', 'superdav-ai-agent' )
+			);
+		}
+
 		if ( ! is_dir( $staging_dir ) ) {
 			return new WP_Error(
 				'sd_ai_agent_staging_not_found',
@@ -574,8 +611,8 @@ class PluginUpdater {
 		$by_slug = [];
 		foreach ( $entries as $entry ) {
 			$basename = basename( $entry );
-			// Expected format: {slug}-YYYY-MM-DD-HHiiss
-			if ( preg_match( '/^(.+)-(\d{4}-\d{2}-\d{2}-\d{6})$/', $basename, $m ) ) {
+			// Accept historical timestamp-only names and operation-owned names.
+			if ( preg_match( '/^(.+)-(\d{4}-\d{2}-\d{2}-\d{6})(?:-[a-f0-9]{24})?$/', $basename, $m ) ) {
 				$by_slug[ $m[1] ][] = [
 					'dir'       => $entry,
 					'timestamp' => $m[2],
@@ -619,45 +656,171 @@ class PluginUpdater {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function update( string $slug, array $modified_files ): array|\WP_Error {
-		// Step 1: Backup.
-		$backup_dir = $this->backup( $slug );
-		if ( is_wp_error( $backup_dir ) ) {
-			return $backup_dir;
-		}
-
-		// Step 2: Stage.
-		$staging_dir = $this->stage( $slug, $modified_files );
-		if ( is_wp_error( $staging_dir ) ) {
-			return $staging_dir;
-		}
-
-		// Step 3: Test staged copy.
-		$test_result = $this->test_staged( $slug, $staging_dir );
-		if ( ! $test_result['passed'] ) {
-			$this->remove_directory( $staging_dir );
+		$slug = sanitize_title( $slug );
+		if ( empty( $slug ) ) {
 			return new WP_Error(
-				'sd_ai_agent_sandbox_failed',
-				implode( '; ', $test_result['errors'] )
+				'sd_ai_agent_invalid_slug',
+				__( 'Plugin slug must not be empty.', 'superdav-ai-agent' )
 			);
 		}
 
-		// Step 4: Swap.
-		$swap_result = $this->swap( $slug, $staging_dir, $backup_dir );
-		if ( is_wp_error( $swap_result ) ) {
-			$this->remove_directory( $staging_dir );
-			return $swap_result;
+		$lock = $this->acquire_update_lock( $slug );
+		if ( is_wp_error( $lock ) ) {
+			return $lock;
 		}
 
-		// Step 5: Cleanup staging.
-		$this->remove_directory( $staging_dir );
+		try {
+			// Step 1: Backup.
+			$backup_dir = $this->backup( $slug );
+			if ( is_wp_error( $backup_dir ) ) {
+				return $backup_dir;
+			}
 
-		return array_merge(
-			$swap_result,
-			[ 'backup_dir' => $backup_dir ]
-		);
+			// Step 2: Stage.
+			$staging_dir = $this->stage( $slug, $modified_files );
+			if ( is_wp_error( $staging_dir ) ) {
+				return $staging_dir;
+			}
+
+			// Step 3: Test staged copy.
+			$test_result = $this->test_staged( $slug, $staging_dir );
+			if ( ! $test_result['passed'] ) {
+				$this->remove_owned_stage( $staging_dir );
+				return new WP_Error(
+					'sd_ai_agent_sandbox_failed',
+					implode( '; ', $test_result['errors'] )
+				);
+			}
+
+			// Step 4: Swap.
+			$swap_result = $this->swap( $slug, $staging_dir, $backup_dir );
+			if ( is_wp_error( $swap_result ) ) {
+				$this->remove_owned_stage( $staging_dir );
+				return $swap_result;
+			}
+
+			// Step 5: Cleanup only this operation's staging directory.
+			$this->remove_owned_stage( $staging_dir );
+
+			return array_merge(
+				$swap_result,
+				[ 'backup_dir' => $backup_dir ]
+			);
+		} finally {
+			$this->release_update_lock( $lock );
+		}
 	}
 
 	// ─── Private helpers ──────────────────────────────────────────────────────
+
+	/**
+	 * Atomically claim a unique directory for one backup or staging operation.
+	 *
+	 * @param string $root   Validated private storage root.
+	 * @param string $prefix Directory-name prefix.
+	 * @return string|WP_Error Trailing-slashed claimed directory or an error.
+	 */
+	private function claim_operation_directory( string $root, string $prefix ): string|WP_Error {
+		for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+			try {
+				$suffix = bin2hex( random_bytes( 12 ) );
+			} catch ( \Throwable $e ) {
+				return new WP_Error(
+					'sd_ai_agent_operation_identity_failed',
+					__( 'Could not create a unique plugin update operation.', 'superdav-ai-agent' )
+				);
+			}
+
+			$directory = PathCanonicalizer::canonicalize_missing_path_inside( $root . $prefix . $suffix, $root );
+			if ( is_wp_error( $directory ) ) {
+				return $directory;
+			}
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Atomic exclusive directory creation provides operation identity.
+			if ( mkdir( $directory, 0700 ) ) {
+				return trailingslashit( $directory );
+			}
+		}
+
+		return new WP_Error(
+			'sd_ai_agent_operation_identity_failed',
+			__( 'Could not claim unique private storage for the plugin update.', 'superdav-ai-agent' )
+		);
+	}
+
+	/**
+	 * Acquire a bounded exclusive lock for one live plugin.
+	 *
+	 * @param string $slug Sanitized plugin slug.
+	 * @return resource|WP_Error Open locked file handle or an error.
+	 */
+	private function acquire_update_lock( string $slug ) {
+		$locks_root = $this->locks_root();
+		if ( is_wp_error( $locks_root ) ) {
+			return $locks_root;
+		}
+
+		$lock_path = $locks_root . hash( 'sha256', $slug ) . '.lock';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- flock requires a process-local file handle.
+		$handle = fopen( $lock_path, 'c+' );
+		if ( false === $handle ) {
+			return new WP_Error(
+				'sd_ai_agent_update_lock_failed',
+				__( 'Could not create the plugin update lock.', 'superdav-ai-agent' )
+			);
+		}
+
+		/**
+		 * Filter how long an update waits for another operation on the same plugin.
+		 *
+		 * @param int    $timeout_ms Maximum lock wait in milliseconds.
+		 * @param string $slug       Sanitized plugin slug.
+		 */
+		$timeout_ms = max( 0, (int) apply_filters( 'sd_ai_agent_plugin_update_lock_timeout_ms', 5000, $slug ) );
+		$deadline   = microtime( true ) + ( $timeout_ms / 1000 );
+		do {
+			if ( flock( $handle, LOCK_EX | LOCK_NB ) ) {
+				return $handle;
+			}
+			if ( microtime( true ) >= $deadline ) {
+				break;
+			}
+			usleep( 50000 );
+		} while ( true );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the process-local flock handle.
+		fclose( $handle );
+		return new WP_Error(
+			'sd_ai_agent_plugin_update_in_progress',
+			__( 'Another update is already in progress for this plugin.', 'superdav-ai-agent' )
+		);
+	}
+
+	/**
+	 * Release a plugin update lock.
+	 *
+	 * @param resource $handle Locked file handle.
+	 * @return void
+	 */
+	private function release_update_lock( $handle ): void {
+		flock( $handle, LOCK_UN );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the process-local flock handle.
+		fclose( $handle );
+	}
+
+	/**
+	 * Remove a staging directory only when this updater created it.
+	 *
+	 * @param string $staging_dir Absolute staging directory.
+	 * @return void
+	 */
+	private function remove_owned_stage( string $staging_dir ): void {
+		if ( ! isset( $this->owned_stages[ $staging_dir ] ) ) {
+			return;
+		}
+		$this->remove_directory( $staging_dir );
+		unset( $this->owned_stages[ $staging_dir ] );
+	}
 
 	/**
 	 * Migrate each child directory from one historical public root.

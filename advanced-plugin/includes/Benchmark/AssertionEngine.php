@@ -949,7 +949,7 @@ class AssertionEngine {
 	private static function matching_tool_output( array $entry, array $tools ): ?array {
 		$name    = (string) ( $entry['tool'] ?? '' );
 		$output  = $entry['output'] ?? null;
-		$is_meta = self::tool_name_matches( $name, array( 'sd-ai-agent/ability-call' ) );
+		$is_meta = self::ability_name_matches( $name, array( 'sd-ai-agent/ability-call' ) );
 
 		if ( is_string( $output ) ) {
 			$decoded = json_decode( $output, true );
@@ -961,7 +961,7 @@ class AssertionEngine {
 		}
 
 		if ( ! $is_meta ) {
-			return self::tool_name_matches( $name, $tools ) ? $output : null;
+			return self::ability_name_matches( $name, $tools ) ? $output : null;
 		}
 
 		$input          = (array) ( $entry['input'] ?? array() );
@@ -969,8 +969,8 @@ class AssertionEngine {
 		$output_ability = (string) ( $output['ability'] ?? '' );
 		if (
 			true !== ( $output['success'] ?? null )
-			|| ! self::tool_name_matches( $input_ability, $tools )
-			|| ! self::tool_name_matches( $output_ability, $tools )
+			|| ! self::ability_name_matches( $input_ability, $tools )
+			|| ! self::ability_name_matches( $output_ability, $tools )
 		) {
 			return null;
 		}
@@ -985,12 +985,12 @@ class AssertionEngine {
 	}
 
 	/**
-	 * Match a logged direct tool name against candidate ability IDs.
+	 * Match a direct tool name or dispatcher target against candidate ability IDs.
 	 *
 	 * @param string             $name  Logged tool name.
 	 * @param array<int, string> $tools Candidate ability names.
 	 */
-	private static function tool_name_matches( string $name, array $tools ): bool {
+	private static function ability_name_matches( string $name, array $tools ): bool {
 		$wpab_name = self::ability_to_function_name( $name );
 
 		foreach ( $tools as $candidate ) {

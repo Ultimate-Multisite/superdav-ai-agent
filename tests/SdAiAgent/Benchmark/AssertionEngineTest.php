@@ -445,6 +445,25 @@ PHP
 		);
 
 		$this->assertSame( 0, $wrong_dispatcher['passed'], (string) wp_json_encode( $wrong_dispatcher ) );
+
+		$wrong_target = $this->run_tool_output_assertion(
+			array(
+				array(
+					'tool'   => 'wpab__sd-ai-agent__ability-call',
+					'input'  => array( 'ability' => 'other-plugin/seo-analyze-content' ),
+					'output' => array(
+						'ability' => 'sd-ai-agent/seo-analyze-content',
+						'success' => true,
+						'result'  => array(
+							'post_id'         => 42,
+							'recommendations' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 0, $wrong_target['passed'], (string) wp_json_encode( $wrong_target ) );
 	}
 
 	/** A later complete matching call can satisfy the postcondition. */

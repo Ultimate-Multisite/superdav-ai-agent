@@ -32,6 +32,8 @@
 		"test:php:stress": "php bin/run-wp-phpunit.php --testsuite=stress",
 		"test:php:testdox": "php bin/run-wp-phpunit.php --testdox",
 		"test:php:coverage": "PHPUNIT_PHP_ARGS='-d pcov.enabled=1' php bin/run-wp-phpunit.php --coverage-text",
+		"test:plugin-creation": "node scripts/plugin-creation-smoke.js",
+		"check:plugin-report": "node scripts/plugin-check-report.js",
 		"wporg-review": "bash bin/wporg-review.sh",
 		"wp-env": "wp-env",
 		"wp-env:start": "wp-env start",

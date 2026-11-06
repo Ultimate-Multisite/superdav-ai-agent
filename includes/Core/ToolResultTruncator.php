@@ -43,6 +43,11 @@ class ToolResultTruncator {
 	const MAX_STRING_LENGTH = 500;
 
 	/**
+	 * Reserve enough of the hard cap for the ability-call dispatcher envelope.
+	 */
+	private const THEME_INVENTORY_BYTES = 3584;
+
+	/**
 	 * Truncate a tool result if it exceeds the size threshold.
 	 *
 	 * @param mixed  $result    The raw tool result (array, string, or scalar).
@@ -68,6 +73,15 @@ class ToolResultTruncator {
 			return self::enforce_byte_cap( self::apply_tool_strategy( $result, $tool_name ) );
 		}
 
+		if (
+			'sd-ai-agent/ability-call' === $tool_name
+			&& isset( $result['ability'], $result['result'] )
+			&& is_string( $result['ability'] )
+			&& is_array( $result['result'] )
+		) {
+			$result['result'] = self::apply_tool_strategy( $result['result'], $result['ability'] );
+		}
+
 		// Check if the result is small enough to pass through.
 		$encoded = wp_json_encode( $result );
 		if ( false === $encoded || strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
@@ -76,7 +90,11 @@ class ToolResultTruncator {
 
 		// Apply tool-specific truncation strategies.
 		// @phpstan-ignore-next-line
-		$result = self::apply_tool_strategy( $result, $tool_name );
+		$result  = self::apply_tool_strategy( $result, $tool_name );
+		$encoded = wp_json_encode( $result );
+		if ( is_string( $encoded ) && strlen( $encoded ) <= self::MAX_RESULT_BYTES ) {
+			return $result;
+		}
 
 		// Generic truncation: truncate arrays and long strings.
 		$result = self::truncate_recursive( $result, 0 );
@@ -367,6 +385,12 @@ class ToolResultTruncator {
 				$result = self::scrub_woocommerce_order_result( $result );
 				break;
 
+			// Theme inventory: retain useful identity/status fields and provide a
+			// deterministic offset for any entries that do not fit the byte budget.
+			case 'sd-ai-agent/get-themes':
+				$result = self::compact_theme_inventory( $result );
+				break;
+
 			// Plugin list: keep name + active status + file, drop description/version details.
 			case 'sd-ai-agent/get-plugins':
 				if ( isset( $result['plugins'] ) && is_array( $result['plugins'] ) ) {
@@ -453,6 +477,83 @@ class ToolResultTruncator {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Compact a theme inventory while retaining deterministic continuation metadata.
+	 *
+	 * @param array<string|int, mixed> $result Theme ability result.
+	 * @return array<string|int, mixed> Compact result.
+	 */
+	private static function compact_theme_inventory( array $result ): array {
+		if ( ! isset( $result['themes'] ) || ! is_array( $result['themes'] ) ) {
+			return $result;
+		}
+
+		$offset = isset( $result['offset'] ) && is_numeric( $result['offset'] ) ? max( 0, (int) $result['offset'] ) : 0;
+		$limit  = isset( $result['limit'] ) && is_numeric( $result['limit'] ) ? max( 1, (int) $result['limit'] ) : max( 1, count( $result['themes'] ) );
+		$total  = isset( $result['total'] ) && is_numeric( $result['total'] ) ? max( 0, (int) $result['total'] ) : $offset + count( $result['themes'] );
+
+		$themes = [];
+		foreach ( $result['themes'] as $theme ) {
+			if ( ! is_array( $theme ) ) {
+				continue;
+			}
+			$themes[] = [
+				'slug'    => self::compact_inventory_string( $theme['slug'] ?? '' ),
+				'name'    => self::compact_inventory_string( $theme['name'] ?? '' ),
+				'version' => self::compact_inventory_string( $theme['version'] ?? '' ),
+				'active'  => (bool) ( $theme['active'] ?? false ),
+			];
+		}
+
+		do {
+			$showing     = count( $themes );
+			$next_offset = $offset + $showing;
+			$has_more    = $next_offset < $total;
+			$compact     = [
+				'themes'      => $themes,
+				'total'       => $total,
+				'showing'     => $showing,
+				'offset'      => $offset,
+				'limit'       => $limit,
+				'has_more'    => $has_more,
+				'next_offset' => $has_more ? $next_offset : null,
+				'active'      => self::compact_inventory_string( $result['active'] ?? '' ),
+				'_truncated'  => $has_more,
+			];
+			if ( $has_more ) {
+				$compact['next_arguments'] = [
+					'offset' => $next_offset,
+					'limit'  => $limit,
+				];
+			}
+
+			$encoded = wp_json_encode( $compact );
+			if ( ! is_string( $encoded ) || strlen( $encoded ) <= self::THEME_INVENTORY_BYTES || count( $themes ) <= 1 ) {
+				return $compact;
+			}
+			array_pop( $themes );
+		} while ( true );
+	}
+
+	/**
+	 * Return a short valid UTF-8 inventory field without splitting a codepoint.
+	 *
+	 * @param mixed $value Inventory field.
+	 */
+	private static function compact_inventory_string( $value ): string {
+		$string = is_scalar( $value ) ? (string) $value : '';
+		if ( strlen( $string ) <= self::MAX_STRING_LENGTH ) {
+			return $string;
+		}
+
+		$prefix = substr( $string, 0, self::MAX_STRING_LENGTH );
+		while ( '' !== $prefix && 1 !== preg_match( '//u', $prefix ) ) {
+			$prefix = substr( $prefix, 0, -1 );
+		}
+
+		return $prefix . '... [truncated]';
 	}
 
 	/**

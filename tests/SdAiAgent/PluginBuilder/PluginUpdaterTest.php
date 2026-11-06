@@ -515,6 +515,55 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Post-swap validation remains inside the same-plugin transaction lock.
+	 */
+	public function test_update_holds_lock_through_post_swap_validation(): void {
+		$no_wait = static function (): int {
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		$competing_result = null;
+
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: First Transaction */' ],
+			function () use ( &$competing_result ): true {
+				$competing_result = ( new PluginUpdater() )->update(
+					$this->slug,
+					[ $this->slug . '.php' => '<?php /* Plugin Name: Competing Transaction */' ]
+				);
+				return true;
+			}
+		);
+
+		remove_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		$this->assertIsArray( $result );
+		$this->assertWPError( $competing_result );
+		$this->assertSame( 'sd_ai_agent_plugin_update_in_progress', $competing_result->get_error_code() );
+		$this->assertStringContainsString( 'First Transaction', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * A failed post-swap health check can restore its own immutable backup.
+	 */
+	public function test_update_post_swap_failure_rolls_back_before_unlocking(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Unhealthy Transaction */' ],
+			function ( array $swap_result, string $backup_dir ) {
+				unset( $swap_result );
+				$rollback = $this->updater->rollback( $this->slug, $backup_dir );
+				$this->assertIsArray( $rollback );
+				return new \WP_Error( 'synthetic_health_failure', 'Synthetic health failure.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'synthetic_health_failure', $result->get_error_code() );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
 	// ─── Helpers ─────────────────────────────────────────────────────────────
 
 	/**

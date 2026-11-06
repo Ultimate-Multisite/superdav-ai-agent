@@ -649,13 +649,14 @@ class PluginUpdater {
 	/**
 	 * Orchestrate the full update flow for an installed plugin.
 	 *
-	 * Steps: backup → stage → test → swap → cleanup staging.
+	 * Steps: backup → stage → test → swap → optional post-swap validation → cleanup staging.
 	 *
 	 * @param string               $slug           Plugin slug.
 	 * @param array<string,string> $modified_files Map of relative path → PHP source.
+	 * @param callable|null        $post_swap      Optional validation executed while the per-plugin lock remains held.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public function update( string $slug, array $modified_files ): array|\WP_Error {
+	public function update( string $slug, array $modified_files, ?callable $post_swap = null ): array|\WP_Error {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
@@ -697,6 +698,16 @@ class PluginUpdater {
 			if ( is_wp_error( $swap_result ) ) {
 				$this->remove_owned_stage( $staging_dir );
 				return $swap_result;
+			}
+
+			// Keep the transaction lock through caller-owned health validation and
+			// rollback so a later update cannot be overwritten by a stale snapshot.
+			if ( null !== $post_swap ) {
+				$post_swap_result = $post_swap( $swap_result, $backup_dir );
+				if ( is_wp_error( $post_swap_result ) ) {
+					$this->remove_owned_stage( $staging_dir );
+					return $post_swap_result;
+				}
 			}
 
 			// Step 5: Cleanup only this operation's staging directory.

@@ -129,7 +129,11 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 				'token_usage'   => array(),
 				'tool_call_log' => array(
 					array( 'tool' => 'sd-ai-agent/list-users' ),
-					array( 'tool' => 'sd-ai-agent/create-user' ),
+					array(
+						'tool'   => 'sd-ai-agent/create-user',
+						'input'  => array( 'username' => $matches[1] ),
+						'output' => array( 'user_id' => $user_id ),
+					),
 					array( 'tool' => 'sd-ai-agent/update-user-role' ),
 				),
 				'reply'         => 'Synthetic user success.',
@@ -428,7 +432,16 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		);
 
 		$claim = new ReflectionMethod( BenchmarkCommand::class, 'claim_created_user_fixtures' );
-		$claim->invoke( $command );
+		$claim->invoke(
+			$command,
+			array(
+				array(
+					'tool'   => 'sd-ai-agent/create-user',
+					'input'  => array( 'username' => $login ),
+					'output' => array( 'user_id' => $user_id ),
+				),
+			)
+		);
 		update_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', 'different-owner' );
 
 		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_owned_user_fixtures' );
@@ -436,6 +449,28 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 		$this->assertNotFalse( get_user_by( 'id', $user_id ) );
 		$this->assertSame( 'different-owner', get_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', true ) );
+	}
+
+	/** A generated-login collision without matching create-user evidence is never adopted. */
+	public function test_user_fixture_requires_matching_creation_evidence(): void {
+		$command = new TestableBenchmarkCommand();
+		$prepare = new ReflectionMethod( BenchmarkCommand::class, 'prepare_question_fixtures' );
+		$setup   = $prepare->invoke( $command, $this->user_question() );
+		$login   = $setup['variables']['{{user_login}}'];
+		$user_id = self::factory()->user->create(
+			array(
+				'user_login' => $login,
+				'user_email' => $setup['variables']['{{user_email}}'],
+			)
+		);
+
+		$claim = new ReflectionMethod( BenchmarkCommand::class, 'claim_created_user_fixtures' );
+		$claim->invoke( $command, array() );
+		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_owned_user_fixtures' );
+		$cleanup->invoke( $command );
+
+		$this->assertNotFalse( get_user_by( 'id', $user_id ) );
+		$this->assertFalse( metadata_exists( 'user', $user_id, '_sd_ai_agent_benchmark_owner' ) );
 	}
 
 	/** Deferred questions never invoke the model and retain the machine reason. */

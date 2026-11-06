@@ -573,7 +573,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['tool_call_log'] = $agent_result['tool_call_log'] ?? array();
 			$log['agent_reply']   = $agent_result['reply'] ?? '';
 			$log['elapsed_ms']    = (int) ( ( microtime( true ) - $start_time ) * 1000 );
-			$this->claim_created_user_fixtures();
+			$this->claim_created_user_fixtures( (array) $log['tool_call_log'] );
 
 			if ( ! empty( $agent_result['error'] ) ) {
 				$provider_error = $this->classify_provider_error( (string) $agent_result['error'] );
@@ -1060,11 +1060,15 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 	}
 
-	/** Mark generated users as owned only after the agent creates the exact identity. */
-	private function claim_created_user_fixtures(): void {
+	/**
+	 * Mark generated users as owned only when the create-user result proves creation.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Agent tool calls.
+	 */
+	private function claim_created_user_fixtures( array $tool_call_log ): void {
 		foreach ( $this->pending_user_fixtures as $login => $owner ) {
 			$user = get_user_by( 'login', $login );
-			if ( ! $user || metadata_exists( 'user', (int) $user->ID, '_sd_ai_agent_benchmark_owner' ) ) {
+			if ( ! $user || ! $this->tool_log_proves_user_creation( $tool_call_log, $login, (int) $user->ID ) || metadata_exists( 'user', (int) $user->ID, '_sd_ai_agent_benchmark_owner' ) ) {
 				continue;
 			}
 
@@ -1080,6 +1084,38 @@ class BenchmarkCommand extends WP_CLI_Command {
 			);
 			unset( $this->pending_user_fixtures[ $login ] );
 		}
+	}
+
+	/**
+	 * Verify a successful create-user call returned the exact generated user ID.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Agent tool calls.
+	 * @param string                           $login         Generated login.
+	 * @param int                              $user_id       Created user ID.
+	 */
+	private function tool_log_proves_user_creation( array $tool_call_log, string $login, int $user_id ): bool {
+		foreach ( $tool_call_log as $entry ) {
+			if ( 'sd-ai-agent/create-user' !== ( $entry['tool'] ?? '' ) ) {
+				continue;
+			}
+
+			$input = isset( $entry['input'] ) && is_array( $entry['input'] ) ? $entry['input'] : array();
+			if ( $login !== (string) ( $input['username'] ?? '' ) ) {
+				continue;
+			}
+
+			$output = $entry['output'] ?? array();
+			if ( is_string( $output ) ) {
+				$decoded = json_decode( $output, true );
+				$output  = is_array( $decoded ) ? $decoded : array();
+			}
+
+			if ( is_array( $output ) && $user_id === (int) ( $output['user_id'] ?? 0 ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** Delete only users whose ID, login, and ownership marker still match. */

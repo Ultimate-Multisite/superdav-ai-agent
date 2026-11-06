@@ -72,6 +72,9 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 	/** User login created by the synthetic loop. */
 	public string $last_user_login = '';
 
+	/** Tool-log shape emitted for a synthetic user creation. */
+	public string $user_tool_mode = 'canonical';
+
 	/**
 	 * Run one question through the protected command method.
 	 *
@@ -124,16 +127,33 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 			}
 			$created_user->set_role( 'editor' );
 
+			$create_entry = array(
+				'tool'   => 'sd-ai-agent/create-user',
+				'input'  => array( 'username' => $matches[1] ),
+				'output' => array( 'user_id' => $user_id ),
+			);
+			if ( 'sdk' === $this->user_tool_mode ) {
+				$create_entry['tool'] = 'wpab__sd-ai-agent__create-user';
+			} elseif ( 'meta' === $this->user_tool_mode ) {
+				$create_entry = array(
+					'tool'   => 'wpab__sd-ai-agent__ability-call',
+					'input'  => array(
+						'ability'   => 'sd-ai-agent/create-user',
+						'arguments' => wp_json_encode( array( 'username' => $matches[1] ) ),
+					),
+					'output' => array(
+						'success' => true,
+						'result'  => array( 'user_id' => $user_id ),
+					),
+				);
+			}
+
 			return array(
 				'turns_used'    => 1,
 				'token_usage'   => array(),
 				'tool_call_log' => array(
 					array( 'tool' => 'sd-ai-agent/list-users' ),
-					array(
-						'tool'   => 'sd-ai-agent/create-user',
-						'input'  => array( 'username' => $matches[1] ),
-						'output' => array( 'user_id' => $user_id ),
-					),
+					$create_entry,
 					array( 'tool' => 'sd-ai-agent/update-user-role' ),
 				),
 				'reply'         => 'Synthetic user success.',
@@ -416,6 +436,19 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 4, $result['assertions']['passed'] );
 		$this->assertStringStartsWith( 'as010-user-', $command->last_user_login );
 		$this->assertFalse( get_user_by( 'login', $command->last_user_login ) );
+	}
+
+	/** SDK function names and ability-call wrappers retain ownership evidence. */
+	public function test_owned_user_fixture_accepts_routed_tool_evidence(): void {
+		foreach ( array( 'sdk', 'meta' ) as $mode ) {
+			$command                 = new TestableBenchmarkCommand();
+			$command->agent_behavior = 'user-success';
+			$command->user_tool_mode = $mode;
+			$result                  = $command->run_test_question( $this->user_question() );
+
+			$this->assertSame( 'passed', $result['status'], $mode );
+			$this->assertFalse( get_user_by( 'login', $command->last_user_login ), $mode );
+		}
 	}
 
 	/** Cleanup fails closed when a generated user's ownership marker is changed. */

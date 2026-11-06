@@ -606,6 +606,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		} finally {
 			$this->cleanup_owned_post_fixtures();
 			$this->cleanup_owned_user_fixtures();
+			$this->pending_user_fixtures = array();
 			// Always deactivate and remove the sandbox plugin if we created one,
 			// even on agent error or thrown exception, so deterministic slugs
 			// (e.g. event-manager) don't leak into later questions.
@@ -1095,19 +1096,35 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 */
 	private function tool_log_proves_user_creation( array $tool_call_log, string $login, int $user_id ): bool {
 		foreach ( $tool_call_log as $entry ) {
-			if ( 'sd-ai-agent/create-user' !== ( $entry['tool'] ?? '' ) ) {
-				continue;
-			}
-
+			$tool  = (string) ( $entry['tool'] ?? '' );
 			$input = isset( $entry['input'] ) && is_array( $entry['input'] ) ? $entry['input'] : array();
-			if ( $login !== (string) ( $input['username'] ?? '' ) ) {
-				continue;
+			if ( str_starts_with( $tool, 'wpab__sd-ai-agent__' ) ) {
+				$tool = 'sd-ai-agent/' . substr( $tool, strlen( 'wpab__sd-ai-agent__' ) );
 			}
 
 			$output = $entry['output'] ?? array();
 			if ( is_string( $output ) ) {
 				$decoded = json_decode( $output, true );
 				$output  = is_array( $decoded ) ? $decoded : array();
+			}
+
+			if ( 'sd-ai-agent/ability-call' === $tool ) {
+				if ( 'sd-ai-agent/create-user' !== ( $input['ability'] ?? '' ) ) {
+					continue;
+				}
+				$arguments = $input['arguments'] ?? $input['parameters'] ?? array();
+				if ( is_string( $arguments ) ) {
+					$decoded   = json_decode( $arguments, true );
+					$arguments = is_array( $decoded ) ? $decoded : array();
+				}
+				$input  = is_array( $arguments ) ? $arguments : array();
+				$output = is_array( $output['result'] ?? null ) ? $output['result'] : array();
+			} elseif ( 'sd-ai-agent/create-user' !== $tool ) {
+				continue;
+			}
+
+			if ( $login !== (string) ( $input['username'] ?? '' ) ) {
+				continue;
 			}
 
 			if ( is_array( $output ) && $user_id === (int) ( $output['user_id'] ?? 0 ) ) {

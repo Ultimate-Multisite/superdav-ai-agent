@@ -242,7 +242,7 @@ class SystemInstructionBuilder {
 					. "[suggestion] Optimize the database\n"
 					. 'Keep suggestions relevant, actionable, and under 60 characters each. '
 					. 'Do NOT include suggestions when you are asking the user a question or waiting for input. '
-					. 'Also omit suggestions whenever the user explicitly requires code-only, raw-source, JSON-only, machine-readable, or otherwise exclusive output; obey that output contract exactly and return nothing else.',
+					. 'Also omit suggestions whenever the user explicitly requires code-only, raw-source, JSON-only, machine-readable, or otherwise exclusive output; obey that output contract exactly and return nothing else: no Markdown fences, trailing comments, or suggestion lines.',
 					$suggestion_count
 				);
 		}

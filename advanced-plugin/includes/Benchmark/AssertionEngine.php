@@ -944,12 +944,12 @@ class AssertionEngine {
 	 *
 	 * @param array<string, mixed> $entry Logged tool call.
 	 * @param array<int, string>   $tools Candidate ability names.
-	 * @return array<string, mixed>|null
+	 * @return array<mixed, mixed>|null
 	 */
 	private static function matching_tool_output( array $entry, array $tools ): ?array {
 		$name    = (string) ( $entry['tool'] ?? '' );
 		$output  = $entry['output'] ?? null;
-		$is_meta = str_ends_with( $name, '/ability-call' ) || str_ends_with( $name, '__ability-call' );
+		$is_meta = self::tool_name_matches( $name, array( 'sd-ai-agent/ability-call' ) );
 
 		if ( is_string( $output ) ) {
 			$decoded = json_decode( $output, true );

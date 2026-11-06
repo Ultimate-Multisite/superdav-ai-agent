@@ -227,9 +227,9 @@ PHP
 	}
 
 	/**
-	 * Test state-sensitive user benchmarks declare cleanup fixtures.
+	 * Test state-sensitive user benchmarks declare run-scoped fixtures.
 	 */
-	public function test_as_010_declares_user_cleanup_fixture(): void {
+	public function test_as_010_declares_run_scoped_user_fixture(): void {
 		$questions = BenchmarkSuite::get_questions( 'abilities-structure-v1' );
 		$matches   = array_values(
 			array_filter(
@@ -239,7 +239,9 @@ PHP
 		);
 
 		$this->assertCount( 1, $matches );
-		$this->assertSame( array( 'as010_user' ), $matches[0]['cleanup']['users'] ?? array() );
+		$this->assertArrayNotHasKey( 'cleanup', $matches[0] );
+		$this->assertSame( 'as010-user', $matches[0]['setup']['user']['login_prefix'] ?? '' );
+		$this->assertSame( '{{user_login}}', $matches[0]['assertions'][3]['login'] ?? '' );
 	}
 
 	/**

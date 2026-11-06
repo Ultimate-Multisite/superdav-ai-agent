@@ -99,6 +99,17 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 		$this->assertSame( 'tool_output_contains', $question['assertions'][1]['type'] ?? '' );
 	}
 
+	/** User mutation uses a unique command-owned identity instead of a static cleanup target. */
+	public function test_as_010_declares_owned_user_fixture(): void {
+		$question = $this->find_question( 'abilities-structure-v1', 'as-010' );
+
+		$this->assertIsArray( $question );
+		$this->assertArrayNotHasKey( 'cleanup', $question );
+		$this->assertSame( 'as010-user', $question['setup']['user']['login_prefix'] ?? '' );
+		$this->assertStringContainsString( 'login "{{user_login}}"', (string) $question['prompt'] );
+		$this->assertSame( '{{user_login}}', $question['assertions'][3]['login'] ?? '' );
+	}
+
 	/**
 	 * Test fn-004 requires benchmark-compatible zero-row WP-CLI output.
 	 */

@@ -241,6 +241,36 @@ class BlockMutatorTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<p>Text</p>', $result[0]['innerHTML'] );
 	}
 
+	/** Block delimiters in update-html cannot create or close parsed blocks. */
+	public function test_update_html_strips_block_comment_delimiters(): void {
+		$blocks = [ $this->make_block( 'core/paragraph' ) ];
+
+		$result = BlockMutator::apply( $blocks, 'update-html', [
+			'path'      => [ 0 ],
+			'innerHTML' => '<p>Safe</p><!-- wp:custom-block {"className":"is-test"} --><em>Text</em><!-- /wp:custom-block -->',
+		] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( '<p>Safe</p><em>Text</em>', $result[0]['innerHTML'] );
+		$this->assertSame( [ '<p>Safe</p><em>Text</em>' ], $result[0]['innerContent'] );
+	}
+
+	/** update-html preserves real child blocks while stripping supplied delimiters. */
+	public function test_update_html_preserves_child_block_slots_when_stripping_delimiters(): void {
+		$child  = $this->make_block( 'core/paragraph', [], [], '<p>Child</p>' );
+		$parent = $this->make_block( 'core/group', [], [ $child ], '<div>Original</div>' );
+
+		$result = BlockMutator::apply( [ $parent ], 'update-html', [
+			'path'      => [ 0 ],
+			'innerHTML' => '<div>Safe</div><!-- wp:html --><strong>Text</strong><!-- /wp:html -->',
+		] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( '<div>Safe</div><strong>Text</strong>', $result[0]['innerHTML'] );
+		$this->assertSame( [ '<div>Safe</div><strong>Text</strong>', null ], $result[0]['innerContent'] );
+		$this->assertSame( $child, $result[0]['innerBlocks'][0] );
+	}
+
 	/**
 	 * update-html without innerHTML key returns missing_inner_html error.
 	 */
@@ -825,7 +855,7 @@ class BlockMutatorTest extends WP_UnitTestCase {
 			[
 				'path'       => [ 0 ],
 				'attributes' => [ 'questions' => [ [ 'id' => 'q1', 'question' => 'Q?', 'answer' => 'A.' ] ] ],
-				'innerHTML'  => '<div class="schema-faq"><p>A.</p></div>',
+				'innerHTML'  => '<div class="schema-faq"><p>A.</p></div><!-- wp:html --><em>Safe</em><!-- /wp:html -->',
 			]
 		);
 
@@ -833,6 +863,8 @@ class BlockMutatorTest extends WP_UnitTestCase {
 		$this->assertSame( 'yoast/faq-block', $result[0]['blockName'] );
 		$this->assertNotEmpty( $result[0]['attrs']['questions'] );
 		$this->assertStringContainsString( 'A.', $result[0]['innerHTML'] );
+		$this->assertStringNotContainsString( '<!-- wp:', $result[0]['innerHTML'] );
+		$this->assertStringContainsString( '<em>Safe</em>', $result[0]['innerHTML'] );
 	}
 
 	/**

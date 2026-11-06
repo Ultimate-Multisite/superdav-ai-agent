@@ -336,6 +336,148 @@ PHP
 		$this->assertSame( 0, $result['failed'], (string) wp_json_encode( $result ) );
 	}
 
+	/** Successful ability-call envelopes expose the dispatched ability result. */
+	public function test_tool_output_contains_checks_successful_dispatcher_result(): void {
+		$result = $this->run_tool_output_assertion(
+			array(
+				array(
+					'tool'   => 'wpab__sd-ai-agent__ability-call',
+					'input'  => array( 'ability' => 'sd-ai-agent/seo-analyze-content' ),
+					'output' => array(
+						'ability'       => 'sd-ai-agent/seo-analyze-content',
+						'success'       => true,
+						'result'        => array(
+							'post_id'         => 42,
+							'recommendations' => array( 'Add a meta description.' ),
+						),
+						'_skill_context' => array( 'recommendations' => array( 'Diagnostic only.' ) ),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
+		$this->assertSame( 0, $result['failed'], (string) wp_json_encode( $result ) );
+	}
+
+	/** JSON-encoded ability-call envelopes are decoded before result inspection. */
+	public function test_tool_output_contains_checks_json_dispatcher_result(): void {
+		$result = $this->run_tool_output_assertion(
+			array(
+				array(
+					'tool'   => 'sd-ai-agent/ability-call',
+					'input'  => array( 'ability' => 'sd-ai-agent/seo-analyze-content' ),
+					'output' => wp_json_encode(
+						array(
+							'ability' => 'sd-ai-agent/seo-analyze-content',
+							'success' => true,
+							'result'  => array(
+								'post_id'         => 42,
+								'recommendations' => array(),
+							),
+						)
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
+	}
+
+	/** Denied, unrelated, malformed, and diagnostic-only dispatcher output cannot pass. */
+	public function test_tool_output_contains_rejects_invalid_dispatcher_output(): void {
+		$outputs = array(
+			array(
+				'ability' => 'sd-ai-agent/seo-analyze-content',
+				'success' => false,
+				'result'  => array(
+					'post_id'         => 42,
+					'recommendations' => array(),
+				),
+			),
+			array(
+				'ability' => 'other-plugin/seo-analyze-content',
+				'success' => true,
+				'result'  => array(
+					'post_id'         => 42,
+					'recommendations' => array(),
+				),
+			),
+			array(
+				'ability'       => 'sd-ai-agent/seo-analyze-content',
+				'success'       => true,
+				'result'        => array( 'post_id' => 42 ),
+				'_skill_context' => array( 'recommendations' => array( 'Diagnostic only.' ) ),
+			),
+			'{"ability":"sd-ai-agent/seo-analyze-content","success":true,"result":',
+		);
+
+		foreach ( $outputs as $output ) {
+			$result = $this->run_tool_output_assertion(
+				array(
+					array(
+						'tool'   => 'wpab__sd-ai-agent__ability-call',
+						'input'  => array( 'ability' => 'sd-ai-agent/seo-analyze-content' ),
+						'output' => $output,
+					),
+				)
+			);
+
+			$this->assertSame( 0, $result['passed'], (string) wp_json_encode( $output ) );
+			$this->assertSame( 1, $result['failed'], (string) wp_json_encode( $output ) );
+		}
+	}
+
+	/** A later complete matching call can satisfy the postcondition. */
+	public function test_tool_output_contains_checks_all_matching_dispatcher_calls(): void {
+		$result = $this->run_tool_output_assertion(
+			array(
+				array(
+					'tool'   => 'wpab__sd-ai-agent__ability-call',
+					'input'  => array( 'ability' => 'sd-ai-agent/seo-analyze-content' ),
+					'output' => array(
+						'ability' => 'sd-ai-agent/seo-analyze-content',
+						'success' => true,
+						'result'  => array( 'post_id' => 42 ),
+					),
+				),
+				array(
+					'tool'   => 'wpab__sd-ai-agent__ability-call',
+					'input'  => array( 'ability' => 'sd-ai-agent/seo-analyze-content' ),
+					'output' => array(
+						'ability' => 'sd-ai-agent/seo-analyze-content',
+						'success' => true,
+						'result'  => array(
+							'post_id'         => 42,
+							'recommendations' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
+	}
+
+	/**
+	 * Run the SEO output assertion against a supplied tool-call log.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Tool-call entries.
+	 * @return array<string, mixed>
+	 */
+	private function run_tool_output_assertion( array $tool_call_log ): array {
+		return AssertionEngine::run(
+			array(
+				array(
+					'type'          => 'tool_output_contains',
+					'tools'         => array( 'sd-ai-agent/seo-analyze-content' ),
+					'required_keys' => array( 'post_id', 'recommendations' ),
+				),
+			),
+			array( 'tool_call_log' => $tool_call_log )
+		);
+	}
+
 	/**
 	 * Write a single-file benchmark fixture plugin.
 	 *

@@ -5,9 +5,9 @@ declare(strict_types=1);
  * WP-CLI benchmark command.
  *
  * Drives the full AI agent loop against live WordPress and writes a structured
- * log file for every question run.  No database writes — results live entirely
- * in log files under the uploads directory ({uploads}/sd-ai-agent/benchmark-logs/)
- * by default, or any absolute path passed via --log-dir.
+ * log file for every question run. No database writes — results live entirely
+ * in a private directory outside web-served WordPress paths by default, or in
+ * an explicitly supplied private absolute path passed via --log-dir.
  *
  * Usage:
  *   wp sd-ai-agent benchmark run --suite=functional-v1 --provider=anthropic --model=claude-sonnet-4-6
@@ -24,6 +24,7 @@ namespace SdAiAgent\CLI;
 use SdAiAgent\Benchmark\AssertionEngine;
 use SdAiAgent\Benchmark\BenchmarkSuite;
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\Filesystem\PathCanonicalizer;
 use SdAiAgent\Core\ProviderCredentialLoader;
 use SdAiAgent\Tools\ToolDiscovery;
 use WP_CLI;
@@ -53,15 +54,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class BenchmarkCommand extends WP_CLI_Command {
 
 	/**
-	 * Subdirectory inside the WordPress uploads directory where benchmark
-	 * log files are written by default. The full default path is therefore
-	 * `{uploads_basedir}/sd-ai-agent/benchmark-logs/`, which is outside the
-	 * plugin folder (so it survives plugin upgrades) and outside the document
-	 * root's reach for direct download (governed by the uploads dir policy).
+	 * Prefix for the site-specific private benchmark directory.
 	 *
-	 * Operators can override the absolute path per-run via `--log-dir=<path>`.
+	 * The directory lives in the WP-CLI user's private state directory by
+	 * default, not under uploads, wp-content, the document root, or ABSPATH.
 	 */
-	private const LOG_SUBDIR = 'sd-ai-agent/benchmark-logs';
+	private const LOG_DIR_PREFIX = 'benchmark-logs-';
+
+	/** Redaction marker used for credential-bearing benchmark values. */
+	private const REDACTED = '[redacted]';
 
 	/**
 	 * Marker stored only in plugin fixtures created by this command instance.
@@ -163,10 +164,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * Run benchmark questions against the AI agent.
 	 *
 	 * Runs each question through the full AgentLoop with all tools available.
-	 * A log file is written for every question under
-	 * `{uploads_basedir}/sd-ai-agent/benchmark-logs/` (typically
-	 * `wp-content/uploads/sd-ai-agent/benchmark-logs/`). Plugins created
-	 * during functional tests are cleaned up after each question.
+	 * A log file is written for every question under a site-specific private
+	 * directory outside web-served WordPress paths. Plugins created during
+	 * functional tests are cleaned up after each question.
 	 *
 	 * ## OPTIONS
 	 *
@@ -183,8 +183,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * : Model ID (e.g. claude-sonnet-4-6, gpt-4o).
 	 *
 	 * [--log-dir=<path>]
-	 * : Absolute path for log output. Defaults to
-	 * `{uploads_basedir}/sd-ai-agent/benchmark-logs/`.
+	 * : Private absolute path for log output. Paths inside WordPress, wp-content,
+	 * uploads, plugins, or the server document root are rejected.
 	 *
 	 * [--keep-plugins]
 	 * : Keep generated sandbox plugins on disk after the run for debugging.
@@ -231,30 +231,21 @@ class BenchmarkCommand extends WP_CLI_Command {
 			}
 		}
 
-		// Resolve log directory.
-		//
-		// The default lives inside the WordPress uploads directory, NOT inside
-		// the plugin folder, so logs survive plugin upgrades (which delete the
-		// plugin directory) and are compatible with multisite/uploads-relocation
-		// configurations. Operators can pass --log-dir=<abs-path> to override.
-		if ( '' === $log_dir ) {
-			$uploads = wp_upload_dir( null, false );
-			if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
-				WP_CLI::error(
-					sprintf(
-						'Could not resolve the WordPress uploads directory for benchmark logs: %s',
-						(string) ( $uploads['error'] ?? 'unknown error' )
-					)
-				);
-			}
-			$log_dir = trailingslashit( $uploads['basedir'] ) . self::LOG_SUBDIR;
+		$log_dir = $this->prepare_log_directory( $log_dir );
+		if ( is_wp_error( $log_dir ) ) {
+			WP_CLI::error( $log_dir->get_error_message() );
 		}
 
-		$run_id  = gmdate( 'Y-m-d_His' ) . '_' . ( $model_id ?: 'default' );
-		$run_dir = $log_dir . '/' . $run_id;
+		$model_slug = sanitize_file_name( $model_id ?: 'default' );
+		$run_id     = gmdate( 'Y-m-d_His' ) . '_' . ( $model_slug ?: 'default' );
+		$run_dir    = PathCanonicalizer::canonicalize_missing_path_inside( $log_dir . '/' . $run_id, $log_dir );
+		if ( is_wp_error( $run_dir ) ) {
+			WP_CLI::error( $run_dir->get_error_message() );
+		}
 
-		if ( ! wp_mkdir_p( $run_dir ) ) {
-			WP_CLI::error( "Could not create log directory: {$run_dir}" );
+		$run_dir_result = $this->ensure_secure_directory( $run_dir );
+		if ( is_wp_error( $run_dir_result ) ) {
+			WP_CLI::error( $run_dir_result->get_error_message() );
 		}
 
 		// Ensure credentials are loaded for the AI SDK.
@@ -396,8 +387,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 			}
 
 			$result['status'] = $status;
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
-			file_put_contents( $log_file, wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+			$write_result     = $this->write_json_log( $log_file, $result );
+			if ( is_wp_error( $write_result ) ) {
+				WP_CLI::error( $write_result->get_error_message() );
+			}
 
 			$question_summaries[] = $this->summarize_question_result( $result );
 
@@ -443,8 +436,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'questions'                       => $question_summaries,
 		);
 		$summary_file         = $run_dir . '/suite-summary.json';
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
-		file_put_contents( $summary_file, wp_json_encode( $summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		$write_result         = $this->write_json_log( $summary_file, $summary );
+		if ( is_wp_error( $write_result ) ) {
+			WP_CLI::error( $write_result->get_error_message() );
+		}
 
 		WP_CLI::log( '══════════════════════════════════════════════════════════════' );
 		WP_CLI::log( sprintf( '  Questions run    : %d', $totals['questions'] ) );
@@ -467,6 +462,267 @@ class BenchmarkCommand extends WP_CLI_Command {
 		if ( $totals['failed'] > 0 || $totals['errors'] > 0 ) {
 			WP_CLI::halt( 1 );
 		}
+	}
+
+	/**
+	 * Resolve, validate, and secure the benchmark log root.
+	 *
+	 * @param string $requested_path Explicit path, or an empty string for the default.
+	 * @return string|\WP_Error Canonical private directory or an error.
+	 */
+	private function prepare_log_directory( string $requested_path ): string|\WP_Error {
+		$site_path = PathCanonicalizer::canonicalize_missing_path( ABSPATH );
+		if ( is_wp_error( $site_path ) ) {
+			return $site_path;
+		}
+
+		if ( '' === $requested_path ) {
+			$default_path = $this->default_log_directory( $site_path );
+			if ( is_wp_error( $default_path ) ) {
+				return $default_path;
+			}
+
+			/**
+			 * Filter the private directory used for benchmark logs.
+			 *
+			 * The selected directory must remain outside all web-served WordPress paths.
+			 *
+			 * @param string $default_path Site-specific default private path.
+			 */
+			$requested_path = (string) apply_filters( 'sd_ai_agent_benchmark_private_log_dir', $default_path );
+		}
+
+		if ( ! path_is_absolute( $requested_path ) ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_path_relative', 'Benchmark log directory must be an absolute path.' );
+		}
+
+		$is_symlink = is_link( $requested_path );
+		$canonical  = PathCanonicalizer::canonicalize_missing_path( $requested_path );
+		if ( is_wp_error( $canonical ) ) {
+			return $canonical;
+		}
+		if ( $is_symlink ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_path_symlink', 'Benchmark log directory cannot be a symbolic link.' );
+		}
+
+		$uploads     = wp_upload_dir( null, false );
+		$public_dirs = array( ABSPATH, WP_CONTENT_DIR, WP_PLUGIN_DIR );
+		if ( ! empty( $uploads['basedir'] ) ) {
+			$public_dirs[] = (string) $uploads['basedir'];
+		}
+		if ( ! empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
+			$public_dirs[] = sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) );
+		}
+		$inferred_document_root = $this->infer_document_root( $site_path, site_url( '/' ) );
+		if ( null !== $inferred_document_root ) {
+			$public_dirs[] = $inferred_document_root;
+		}
+
+		foreach ( array_unique( $public_dirs ) as $public_dir ) {
+			$public_path = PathCanonicalizer::canonicalize_missing_path( $public_dir );
+			if ( ! is_wp_error( $public_path ) && PathCanonicalizer::path_is_inside( $canonical, $public_path ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_log_path_public', 'Benchmark log directory must be outside web-served WordPress paths.' );
+			}
+		}
+
+		return $this->ensure_secure_directory( $canonical );
+	}
+
+	/**
+	 * Build a private default beneath the WP-CLI user's state directory.
+	 *
+	 * @param string $site_path Canonical WordPress installation path.
+	 * @return string|\WP_Error Private default path or an error requiring --log-dir.
+	 */
+	private function default_log_directory( string $site_path ): string|\WP_Error {
+		$state_home = getenv( 'XDG_STATE_HOME' );
+		if ( false === $state_home || '' === trim( $state_home ) ) {
+			$home = getenv( 'HOME' );
+			if ( false === $home || '' === trim( $home ) ) {
+				return new \WP_Error(
+					'sd_ai_agent_benchmark_log_default_unavailable',
+					'Could not resolve private benchmark storage. Pass --log-dir with a private absolute path.'
+				);
+			}
+			$state_home = trailingslashit( $home ) . '.local/state';
+		}
+
+		if ( ! path_is_absolute( $state_home ) ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_log_default_unavailable',
+				'Private benchmark storage must be absolute. Pass --log-dir with a private absolute path.'
+			);
+		}
+
+		return trailingslashit( $state_home ) . 'sd-ai-agent/' . self::LOG_DIR_PREFIX
+			. substr( hash_hmac( 'sha256', $site_path, wp_salt( 'auth' ) ), 0, 24 );
+	}
+
+	/**
+	 * Infer a document root when WordPress core is installed in a URL subdirectory.
+	 *
+	 * @param string $site_path Canonical ABSPATH.
+	 * @param string $site_url  WordPress site URL.
+	 * @return string|null Inferred document root when path suffixes agree.
+	 */
+	private function infer_document_root( string $site_path, string $site_url ): ?string {
+		$url_path = wp_parse_url( $site_url, PHP_URL_PATH );
+		if ( ! is_string( $url_path ) ) {
+			return null;
+		}
+
+		$url_path  = trim( rawurldecode( $url_path ), '/\\' );
+		$site_path = rtrim( str_replace( '\\', '/', $site_path ), '/' );
+		if ( '' === $url_path || ! str_ends_with( $site_path, '/' . $url_path ) ) {
+			return null;
+		}
+
+		$document_root = substr( $site_path, 0, -strlen( '/' . $url_path ) );
+		return '' !== $document_root ? $document_root : '/';
+	}
+
+	/**
+	 * Create a directory and require owner-only access.
+	 *
+	 * @param string $directory Absolute directory path.
+	 * @return string|\WP_Error Canonical directory or an error.
+	 */
+	private function ensure_secure_directory( string $directory ): string|\WP_Error {
+		$existed = is_dir( $directory );
+		if ( ! $existed ) {
+			$previous_umask = umask( 0077 );
+			try {
+				$created = wp_mkdir_p( $directory );
+			} finally {
+				umask( $previous_umask );
+			}
+			if ( ! $created ) {
+				return new \WP_Error(
+					'sd_ai_agent_benchmark_log_unavailable',
+					"Could not create benchmark log directory: {$directory}. Pass --log-dir with a writable private absolute path."
+				);
+			}
+		}
+		if ( ! is_dir( $directory ) ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_unavailable', "Benchmark log path is not a directory: {$directory}" );
+		}
+
+		if ( ! $existed ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Benchmark logs require owner-only filesystem access.
+			if ( ! chmod( $directory, 0700 ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_log_permissions', 'Could not secure benchmark log directory.' );
+			}
+		}
+		clearstatcache( true, $directory );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileperms -- Verifying owner-only access.
+		$permissions = fileperms( $directory );
+		if ( false === $permissions || 0 !== ( $permissions & 0077 ) ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_permissions', 'Benchmark log directory permissions must deny group and public access.' );
+		}
+		if ( function_exists( 'posix_geteuid' ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileowner -- Preventing shared-host directory substitution.
+			$owner = fileowner( $directory );
+			if ( false === $owner || $owner !== posix_geteuid() ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_log_owner', 'Benchmark log directory must be owned by the current process user.' );
+			}
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Validating operator log storage.
+		if ( ! is_writable( $directory ) ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_unavailable', 'Benchmark log directory is not writable.' );
+		}
+
+		return untrailingslashit( $directory );
+	}
+
+	/**
+	 * Write a redacted JSON log with owner-only permissions.
+	 *
+	 * @param string               $path Absolute log file path.
+	 * @param array<string, mixed> $data Log payload.
+	 * @return true|\WP_Error True on success or an error.
+	 */
+	private function write_json_log( string $path, array $data ): true|\WP_Error {
+		$json = wp_json_encode( $this->scrub_sensitive_log_values( $data ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		if ( false === $json ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_encode', 'Could not encode benchmark log data.' );
+		}
+
+		$previous_umask = umask( 0077 );
+		try {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem is not initialized in CLI context.
+			$bytes_written = file_put_contents( $path, $json, LOCK_EX );
+		} finally {
+			umask( $previous_umask );
+		}
+		if ( false === $bytes_written ) {
+			if ( is_file( $path ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove a failed partial log write.
+				unlink( $path );
+			}
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_write', "Could not write benchmark log: {$path}" );
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Benchmark logs require owner-only filesystem access.
+		if ( ! chmod( $path, 0600 ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove a log that could not be secured.
+			unlink( $path );
+			return new \WP_Error( 'sd_ai_agent_benchmark_log_permissions', "Could not secure benchmark log: {$path}" );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Recursively remove credential-bearing values from durable benchmark logs.
+	 *
+	 * @param mixed       $value Current value.
+	 * @param string|null $key   Parent key when available.
+	 * @return mixed Scrubbed value.
+	 */
+	private function scrub_sensitive_log_values( mixed $value, ?string $key = null ): mixed {
+		if ( null !== $key && $this->is_sensitive_log_key( $key ) ) {
+			return self::REDACTED;
+		}
+
+		if ( is_object( $value ) ) {
+			$value = get_object_vars( $value );
+		}
+
+		if ( is_array( $value ) ) {
+			$scrubbed = array();
+			foreach ( $value as $child_key => $child_value ) {
+				$scrubbed[ $child_key ] = $this->scrub_sensitive_log_values( $child_value, is_string( $child_key ) ? $child_key : null );
+			}
+			return $scrubbed;
+		}
+
+		if ( is_string( $value ) ) {
+			$patterns = array(
+				'/\bBearer\s+[A-Za-z0-9\-._~+\/=]{12,}/i',
+				'/\bBasic\s+[A-Za-z0-9+\/=]{12,}/i',
+				'/["\']?(?:api[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token|password|passwd|secret|credentials?)["\']?\s*[=:]\s*["\']?[^\s&"\',}]{3,}["\']?/i',
+				'/\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{16,}\b/i',
+				'/\b(?:gh[oprsu]_[A-Za-z0-9_]{16,}|xox[a-z]-[A-Za-z0-9-]{16,}|AIza[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16})\b/',
+				'/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/',
+				'/-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----.*?-----END(?: [A-Z0-9]+)? PRIVATE KEY-----/s',
+			);
+			return (string) preg_replace( $patterns, self::REDACTED, $value );
+		}
+
+		return $value;
+	}
+
+	/** Determine whether a structured log key conventionally contains a secret. */
+	private function is_sensitive_log_key( string $key ): bool {
+		$key = strtolower( str_replace( '-', '_', $key ) );
+		if ( 'token_usage' === $key ) {
+			return false;
+		}
+
+		return in_array( $key, array( 'token', 'authorization', 'auth', 'cookie', 'nonce', 'credentials' ), true )
+			|| (bool) preg_match( '/(?:^|_)(?:password|passwd|passphrase|secret|api_key|private_key|client_secret|credentials?)(?:_|$)/', $key )
+			|| str_ends_with( $key, '_token' )
+			|| str_ends_with( $key, '_nonce' )
+			|| str_ends_with( $key, '_salt' );
 	}
 
 	// ── Question execution ────────────────────────────────────────────────────

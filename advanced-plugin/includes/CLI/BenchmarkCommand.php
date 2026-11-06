@@ -64,6 +64,31 @@ class BenchmarkCommand extends WP_CLI_Command {
 	private const LOG_SUBDIR = 'sd-ai-agent/benchmark-logs';
 
 	/**
+	 * Marker stored only in plugin fixtures created by this command instance.
+	 */
+	private const PLUGIN_OWNER_MARKER = '.sd-ai-agent-benchmark-owner';
+
+	/**
+	 * Plugin fixtures atomically claimed by this command instance.
+	 *
+	 * @var array<string, array{path: string, token: string}>
+	 */
+	private array $owned_plugin_fixtures = array();
+
+	/**
+	 * Draft posts created by this command for schema-compatible benchmark input.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $owned_post_fixtures = array();
+
+	/** @var array<string, string> Generated user identities awaiting agent creation. */
+	private array $pending_user_fixtures = array();
+
+	/** @var array<int, array{login: string, owner: string}> Users owned by this run. */
+	private array $owned_user_fixtures = array();
+
+	/**
 	 * System prompt injected for every benchmark question.
 	 * Tells the agent it is in a live WordPress environment and should act, not describe.
 	 */
@@ -277,12 +302,22 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( '' );
 
 		$totals             = array(
-			'passed'          => 0,
-			'failed'          => 0,
-			'questions'       => 0,
-			'question_passed' => 0,
-			'errors'          => 0,
-			'provider_errors' => 0,
+			'passed'                          => 0,
+			'failed'                          => 0,
+			'questions'                       => 0,
+			'question_passed'                 => 0,
+			'questions_functionally_assessed' => 0,
+			'questions_functionally_verified' => 0,
+			'questions_invocation_only'       => 0,
+			'questions_composite'             => 0,
+			'questions_mixed'                 => 0,
+			'postconditions_passed'           => 0,
+			'postconditions_failed'           => 0,
+			'graceful_degradation_questions'  => 0,
+			'errors'                          => 0,
+			'provider_errors'                 => 0,
+			'fixture_errors'                  => 0,
+			'deferred'                        => 0,
 		);
 		$question_summaries = array();
 
@@ -296,12 +331,19 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$result['log_dir'] = $run_dir;
 
 			$status = (string) ( $result['status'] ?? 'unknown' );
+			if ( 'deferred' === $status ) {
+				++$totals['deferred'];
+				WP_CLI::log( '│  Deferred: ' . (string) ( $result['deferred_reason'] ?? 'unsupported execution contract' ) );
+			}
 
 			// Print summary.
 			if ( ! empty( $result['agent_error'] ) ) {
 				$error_label = ! empty( $result['provider_error'] ) ? 'Provider error' : 'Agent error';
 				WP_CLI::log( '│  ✗ ' . $error_label . ': ' . $result['agent_error'] );
 				++$totals['errors'];
+				if ( ! empty( $result['fixture_error'] ) ) {
+					++$totals['fixture_errors'];
+				}
 				if ( ! empty( $result['provider_error'] ) ) {
 					++$totals['provider_errors'];
 				}
@@ -332,6 +374,27 @@ class BenchmarkCommand extends WP_CLI_Command {
 				}
 			}
 
+			$coverage = isset( $assertions['coverage'] ) && is_array( $assertions['coverage'] ) ? $assertions['coverage'] : array();
+			if ( ! empty( $coverage['functionally_verifiable'] ) ) {
+				++$totals['questions_functionally_assessed'];
+			}
+			if ( ! empty( $coverage['functionally_verified'] ) && empty( $result['agent_error'] ) ) {
+				++$totals['questions_functionally_verified'];
+			}
+			$classification = (string) ( $coverage['classification'] ?? '' );
+			if ( 'invocation_only' === $classification ) {
+				++$totals['questions_invocation_only'];
+			} elseif ( 'composite' === $classification ) {
+				++$totals['questions_composite'];
+			} elseif ( 'mixed' === $classification ) {
+				++$totals['questions_mixed'];
+			}
+			$totals['postconditions_passed'] += (int) ( $coverage['postcondition_passed'] ?? 0 );
+			$totals['postconditions_failed'] += (int) ( $coverage['postcondition_failed'] ?? 0 );
+			if ( 'graceful_degradation' === ( $result['benchmark_dimension'] ?? '' ) ) {
+				++$totals['graceful_degradation_questions'];
+			}
+
 			$result['status'] = $status;
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
 			file_put_contents( $log_file, wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
@@ -345,26 +408,41 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		// Summary.
-		$total_assertions = $totals['passed'] + $totals['failed'];
-		$run_status       = $this->determine_run_status( $totals );
-		$summary          = array(
-			'run_id'            => $run_id,
-			'provider_id'       => $provider_id ?: 'default',
-			'model_id'          => $model_id ?: 'default',
-			'suite'             => $suite_slug,
-			'question_count'    => $totals['questions'],
-			'questions_passed'  => $totals['question_passed'],
-			'agent_errors'      => $totals['errors'],
-			'provider_errors'   => $totals['provider_errors'],
-			'assertions_passed' => $totals['passed'],
-			'assertions_failed' => $totals['failed'],
-			'assertions_total'  => $total_assertions,
-			'assertion_score'   => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
-			'run_status'        => $run_status,
-			'ranking_eligible'  => $this->is_ranking_eligible( $totals, $run_status ),
-			'questions'         => $question_summaries,
+		$total_assertions     = $totals['passed'] + $totals['failed'];
+		$run_status           = $this->determine_run_status( $totals );
+		$total_postconditions = $totals['postconditions_passed'] + $totals['postconditions_failed'];
+		$summary              = array(
+			'summary_schema_version'          => 2,
+			'run_id'                          => $run_id,
+			'provider_id'                     => $provider_id ?: 'default',
+			'model_id'                        => $model_id ?: 'default',
+			'suite'                           => $suite_slug,
+			'question_count'                  => $totals['questions'],
+			'questions_passed'                => $totals['question_passed'],
+			'agent_errors'                    => $totals['errors'],
+			'provider_errors'                 => $totals['provider_errors'],
+			'fixture_errors'                  => $totals['fixture_errors'],
+			'questions_deferred'              => $totals['deferred'],
+			'assertions_passed'               => $totals['passed'],
+			'assertions_failed'               => $totals['failed'],
+			'assertions_total'                => $total_assertions,
+			'assertion_score'                 => $total_assertions > 0 ? round( ( $totals['passed'] / $total_assertions ) * 100 ) : null,
+			'assertion_score_scope'           => 'all_assertions_including_invocation',
+			'postconditions_passed'           => $totals['postconditions_passed'],
+			'postconditions_failed'           => $totals['postconditions_failed'],
+			'postconditions_total'            => $total_postconditions,
+			'functional_score'                => $total_postconditions > 0 ? round( ( $totals['postconditions_passed'] / $total_postconditions ) * 100 ) : null,
+			'questions_functionally_assessed' => $totals['questions_functionally_assessed'],
+			'questions_functionally_verified' => $totals['questions_functionally_verified'],
+			'questions_invocation_only'       => $totals['questions_invocation_only'],
+			'questions_composite'             => $totals['questions_composite'],
+			'questions_mixed'                 => $totals['questions_mixed'],
+			'graceful_degradation_questions'  => $totals['graceful_degradation_questions'],
+			'run_status'                      => $run_status,
+			'ranking_eligible'                => $this->is_ranking_eligible( $totals, $run_status ),
+			'questions'                       => $question_summaries,
 		);
-		$summary_file     = $run_dir . '/suite-summary.json';
+		$summary_file         = $run_dir . '/suite-summary.json';
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- CLI-only log writing; WP_Filesystem not initialised in CLI context.
 		file_put_contents( $summary_file, wp_json_encode( $summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
 
@@ -373,7 +451,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  Questions passed : %d', $totals['question_passed'] ) );
 		WP_CLI::log( sprintf( '  Agent errors     : %d', $totals['errors'] ) );
 		WP_CLI::log( sprintf( '  Provider errors  : %d', $totals['provider_errors'] ) );
+		WP_CLI::log( sprintf( '  Deferred         : %d', $totals['deferred'] ) );
 		WP_CLI::log( sprintf( '  Assertions       : %d/%d passed', $totals['passed'], $total_assertions ) );
+		WP_CLI::log( sprintf( '  Postconditions   : %d/%d passed', $totals['postconditions_passed'], $total_postconditions ) );
+		WP_CLI::log( sprintf( '  Invocation only  : %d question(s)', $totals['questions_invocation_only'] ) );
 		if ( $total_assertions > 0 ) {
 			WP_CLI::log( sprintf( '  Score            : %d%%', $summary['assertion_score'] ) );
 		}
@@ -402,17 +483,34 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param bool                 $no_cleanup  Whether to keep generated plugins.
 	 * @return array<string, mixed> Full result including agent output, tool log, and assertions.
 	 */
-	private function run_question( array $question, string $provider_id, string $model_id, bool $no_cleanup = false ): array {
+	protected function run_question( array $question, string $provider_id, string $model_id, bool $no_cleanup = false ): array {
 		$q_id       = (string) $question['id'];
 		$start_time = microtime( true );
 		$log        = array(
-			'question_id' => $q_id,
-			'category'    => $question['category'],
-			'prompt'      => $question['prompt'],
-			'provider_id' => $provider_id,
-			'model_id'    => $model_id,
-			'started_at'  => gmdate( 'c' ),
+			'question_id'         => $q_id,
+			'category'            => $question['category'],
+			'prompt'              => $question['prompt'],
+			'benchmark_dimension' => (string) ( $question['benchmark_dimension'] ?? 'capability' ),
+			'provider_id'         => $provider_id,
+			'model_id'            => $model_id,
+			'started_at'          => gmdate( 'c' ),
 		);
+
+		$execution = isset( $question['execution'] ) && is_array( $question['execution'] ) ? $question['execution'] : array();
+		if ( 'deferred' === ( $execution['status'] ?? '' ) ) {
+			$log['status']          = 'deferred';
+			$log['deferred_reason'] = (string) ( $execution['reason'] ?? 'unsupported_execution_contract' );
+			$log['deferred_detail'] = (string) ( $execution['detail'] ?? '' );
+			$log['depends_on']      = array_values( (array) ( $question['depends_on'] ?? array() ) );
+			$log['assertions']      = array(
+				'passed'  => 0,
+				'failed'  => 0,
+				'total'   => 0,
+				'results' => array(),
+			);
+			$log['completed_at']    = gmdate( 'c' );
+			return $log;
+		}
 
 		// For plugin-building questions, create an isolated sandbox plugin slug.
 		$plugin_slug   = '';
@@ -424,17 +522,49 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$plugin_slug                  = $this->extract_plugin_slug( $question['prompt'] );
 			$assertion_ctx['plugin_slug'] = $plugin_slug;
 			$log['plugin_slug']           = $plugin_slug;
-		}
 
-		$log['cleanup'] = $this->cleanup_question_fixtures( $question );
-
-		// Build the prompt — include plugin name guidance for plugin questions.
-		$prompt = $question['prompt'];
-		if ( $needs_plugin && '' !== $plugin_slug ) {
-			$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
+			$fixture_claim = $this->claim_plugin_fixture( $plugin_slug );
+			if ( is_wp_error( $fixture_claim ) ) {
+				$log['status']        = 'sd_ai_agent_benchmark_fixture_collision' === $fixture_claim->get_error_code()
+					? 'fixture_collision'
+					: 'fixture_error';
+				$log['fixture_error'] = $fixture_claim->get_error_message();
+				$log['agent_error']   = $fixture_claim->get_error_message();
+				$log['assertions']    = array(
+					'passed'  => 0,
+					'failed'  => 0,
+					'total'   => 0,
+					'results' => array(),
+				);
+				$log['completed_at']  = gmdate( 'c' );
+				return $log;
+			}
 		}
 
 		try {
+			$setup = $this->prepare_question_fixtures( $question );
+			if ( is_wp_error( $setup ) ) {
+				$log['status']        = 'fixture_error';
+				$log['fixture_error'] = $setup->get_error_message();
+				$log['agent_error']   = $setup->get_error_message();
+				$log['assertions']    = array(
+					'passed'  => 0,
+					'failed'  => 0,
+					'total'   => 0,
+					'results' => array(),
+				);
+				$log['completed_at']  = gmdate( 'c' );
+				return $log;
+			}
+			$log['setup']           = $setup['log'];
+			$question['assertions'] = $this->substitute_fixture_variables( (array) $question['assertions'], $setup['variables'] );
+
+			// Build the prompt — include plugin name guidance for plugin questions.
+			$prompt = strtr( (string) $question['prompt'], $setup['variables'] );
+			if ( $needs_plugin && '' !== $plugin_slug ) {
+				$prompt .= "\n\nIMPORTANT: The plugin slug and directory name must be exactly \"{$plugin_slug}\". The main plugin file must be \"{$plugin_slug}/{$plugin_slug}.php\".";
+			}
+
 			// Run the agent loop.
 			$agent_result = $this->run_agent_loop( $prompt, $provider_id, $model_id, (int) ( $question['max_turns'] ?? 20 ) );
 
@@ -443,6 +573,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['tool_call_log'] = $agent_result['tool_call_log'] ?? array();
 			$log['agent_reply']   = $agent_result['reply'] ?? '';
 			$log['elapsed_ms']    = (int) ( ( microtime( true ) - $start_time ) * 1000 );
+			$this->claim_created_user_fixtures( (array) $log['tool_call_log'] );
 
 			if ( ! empty( $agent_result['error'] ) ) {
 				$provider_error = $this->classify_provider_error( (string) $agent_result['error'] );
@@ -473,6 +604,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['completed_at'] = gmdate( 'c' );
 			return $log;
 		} finally {
+			$this->cleanup_owned_post_fixtures();
+			$this->cleanup_owned_user_fixtures();
+			$this->pending_user_fixtures = array();
 			// Always deactivate and remove the sandbox plugin if we created one,
 			// even on agent error or thrown exception, so deterministic slugs
 			// (e.g. event-manager) don't leak into later questions.
@@ -491,7 +625,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param int    $max_turns   Maximum agent iterations.
 	 * @return array<string, mixed>
 	 */
-	private function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
+	protected function run_agent_loop( string $prompt, string $provider_id, string $model_id, int $max_turns ): array {
 		$tool_call_log = array();
 
 		// Track how many log entries we've seen so the progress callback
@@ -511,13 +645,22 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 				foreach ( $new_entries as $entry ) {
 					$type = $entry['type'] ?? '';
+					if ( 'response' === $type ) {
+						$response_id = (string) ( $entry['id'] ?? '' );
+						for ( $index = count( $tool_call_log ) - 1; $index >= 0; --$index ) {
+							if ( $response_id === (string) ( $tool_call_log[ $index ]['id'] ?? '' ) ) {
+								$tool_call_log[ $index ]['output'] = $entry['response'] ?? '';
+								break;
+							}
+						}
+						continue;
+					}
 					if ( 'call' !== $type && '' !== $type ) {
-						// Skip 'response' rows — we only log calls so the
-						// matcher can introspect what the agent invoked.
 						continue;
 					}
 					$name = $entry['name'] ?? ( $entry['tool'] ?? '?' );
 					$tool_call_log[] = array(
+						'id'        => (string) ( $entry['id'] ?? '' ),
 						'tool'      => $name,
 						'input'     => $entry['args'] ?? $entry['input'] ?? $entry['arguments'] ?? array(),
 						'output'    => $entry['output'] ?? $entry['result'] ?? '',
@@ -554,19 +697,37 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @return array<string, mixed>
 	 */
 	private function summarize_question_result( array $result ): array {
-		$assertions = isset( $result['assertions'] ) && is_array( $result['assertions'] ) ? $result['assertions'] : array();
+		$assertions        = isset( $result['assertions'] ) && is_array( $result['assertions'] ) ? $result['assertions'] : array();
+		$coverage          = isset( $assertions['coverage'] ) && is_array( $assertions['coverage'] ) ? $assertions['coverage'] : array();
+		$dimension         = (string) ( $result['benchmark_dimension'] ?? 'capability' );
+		$assessed          = ! empty( $coverage['functionally_verifiable'] );
+		$verified          = ! empty( $coverage['functionally_verified'] ) && empty( $result['agent_error'] );
+		$functional_status = $assessed ? ( $verified ? 'verified' : 'failed' ) : 'not_assessed';
+		if ( ! empty( $result['provider_error'] ) ) {
+			$functional_status = 'blocked_provider';
+		} elseif ( 'graceful_degradation' === $dimension ) {
+			$functional_status = 'graceful_degradation';
+		}
 
 		return array(
-			'question_id'       => (string) ( $result['question_id'] ?? '' ),
-			'category'          => (string) ( $result['category'] ?? '' ),
-			'status'            => (string) ( $result['status'] ?? 'unknown' ),
-			'assertions_passed' => (int) ( $assertions['passed'] ?? 0 ),
-			'assertions_failed' => (int) ( $assertions['failed'] ?? 0 ),
-			'assertions_total'  => (int) ( $assertions['total'] ?? 0 ),
-			'turns_used'        => (int) ( $result['turns_used'] ?? 0 ),
-			'elapsed_ms'        => (int) ( $result['elapsed_ms'] ?? 0 ),
-			'agent_error'       => (string) ( $result['agent_error'] ?? '' ),
-			'provider_error'    => $result['provider_error'] ?? null,
+			'question_id'             => (string) ( $result['question_id'] ?? '' ),
+			'category'                => (string) ( $result['category'] ?? '' ),
+			'status'                  => (string) ( $result['status'] ?? 'unknown' ),
+			'assertions_passed'       => (int) ( $assertions['passed'] ?? 0 ),
+			'assertions_failed'       => (int) ( $assertions['failed'] ?? 0 ),
+			'assertions_total'        => (int) ( $assertions['total'] ?? 0 ),
+			'coverage_classification' => (string) ( $coverage['classification'] ?? 'unavailable' ),
+			'postconditions_passed'   => (int) ( $coverage['postcondition_passed'] ?? 0 ),
+			'postconditions_failed'   => (int) ( $coverage['postcondition_failed'] ?? 0 ),
+			'postconditions_total'    => (int) ( $coverage['postcondition_total'] ?? 0 ),
+			'functional_status'       => $functional_status,
+			'benchmark_dimension'     => $dimension,
+			'ranking_eligible'        => 'capability' === $dimension && $assessed && empty( $result['provider_error'] ) && 'deferred' !== ( $result['status'] ?? '' ),
+			'turns_used'              => (int) ( $result['turns_used'] ?? 0 ),
+			'elapsed_ms'              => (int) ( $result['elapsed_ms'] ?? 0 ),
+			'agent_error'             => (string) ( $result['agent_error'] ?? '' ),
+			'provider_error'          => $result['provider_error'] ?? null,
+			'deferred_reason'         => (string) ( $result['deferred_reason'] ?? '' ),
 		);
 	}
 
@@ -619,13 +780,15 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$questions       = (int) ( $totals['questions'] ?? 0 );
 		$errors          = (int) ( $totals['errors'] ?? 0 );
 		$provider_errors = (int) ( $totals['provider_errors'] ?? 0 );
+		$fixture_errors  = (int) ( $totals['fixture_errors'] ?? 0 );
 		$failed          = (int) ( $totals['failed'] ?? 0 );
+		$deferred        = (int) ( $totals['deferred'] ?? 0 );
 
 		if ( $questions > 0 && $provider_errors === $questions ) {
 			return 'blocked_provider';
 		}
 
-		if ( $provider_errors > 0 ) {
+		if ( $provider_errors > 0 || $fixture_errors > 0 || $deferred > 0 ) {
 			return 'inconclusive';
 		}
 
@@ -652,7 +815,12 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return false;
 		}
 
-		return (int) ( $totals['questions'] ?? 0 ) > 0 && ( (int) ( $totals['passed'] ?? 0 ) + (int) ( $totals['failed'] ?? 0 ) ) > 0;
+		$questions = (int) ( $totals['questions'] ?? 0 );
+
+		return $questions > 0
+			&& $questions === (int) ( $totals['questions_functionally_assessed'] ?? 0 )
+			&& 0 === (int) ( $totals['graceful_degradation_questions'] ?? 0 )
+			&& ( (int) ( $totals['postconditions_passed'] ?? 0 ) + (int) ( $totals['postconditions_failed'] ?? 0 ) ) > 0;
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
@@ -698,62 +866,297 @@ class BenchmarkCommand extends WP_CLI_Command {
 	}
 
 	/**
-	 * Remove benchmark-owned fixtures before an agent run.
+	 * Atomically create and mark a plugin fixture owned by this command instance.
 	 *
-	 * Question definitions may declare cleanup fixtures that must not leak from
-	 * a previous run into the current attempt. This keeps state-sensitive
-	 * ability benchmarks deterministic while restricting destructive cleanup to
-	 * explicit, benchmark-owned identifiers.
+	 * A pre-existing path is never adopted. Creating the directory ourselves
+	 * closes the check/create race and gives cleanup a verifiable ownership token.
 	 *
-	 * @param array<string, mixed> $question Question definition.
-	 * @return array{users: array<int, array{login: string, status: string}>}
+	 * @param string $plugin_slug Plugin slug.
+	 * @return true|\WP_Error
 	 */
-	private function cleanup_question_fixtures( array $question ): array {
-		$cleanup = isset( $question['cleanup'] ) && is_array( $question['cleanup'] ) ? $question['cleanup'] : array();
-		$users   = isset( $cleanup['users'] ) && is_array( $cleanup['users'] ) ? $cleanup['users'] : array();
-		$result  = array(
-			'users' => array(),
-		);
-
-		foreach ( $users as $login ) {
-			if ( ! is_scalar( $login ) || '' === (string) $login ) {
-				continue;
-			}
-
-			$result['users'][] = array(
-				'login'  => (string) $login,
-				'status' => $this->cleanup_user_fixture( (string) $login ),
+	private function claim_plugin_fixture( string $plugin_slug ): true|\WP_Error {
+		$plugin_dir = $this->plugin_fixture_path( $plugin_slug );
+		if ( null === $plugin_dir ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_boundary',
+				__( 'Benchmark plugin fixture path is outside the plugin directory.', 'superdav-ai-agent' )
 			);
 		}
 
-		return $result;
+		if ( file_exists( $plugin_dir ) || is_link( $plugin_dir ) ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_collision',
+				sprintf(
+					/* translators: %s: plugin slug. */
+					__( 'Benchmark skipped because plugin path "%s" already exists and is not owned by this run.', 'superdav-ai-agent' ),
+					$plugin_slug
+				)
+			);
+		}
+
+		$directory_mode = defined( 'FS_CHMOD_DIR' ) ? FS_CHMOD_DIR : 0755;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir, WordPress.PHP.NoSilencedErrors.Discouraged -- Atomic CLI-only fixture claim; failure is returned below.
+		if ( ! @mkdir( $plugin_dir, $directory_mode ) ) {
+			$error_code = file_exists( $plugin_dir ) || is_link( $plugin_dir )
+				? 'sd_ai_agent_benchmark_fixture_collision'
+				: 'sd_ai_agent_benchmark_fixture_create_failed';
+
+			return new \WP_Error(
+				$error_code,
+				sprintf(
+					/* translators: %s: plugin slug. */
+					__( 'Benchmark could not claim plugin fixture "%s".', 'superdav-ai-agent' ),
+					$plugin_slug
+				)
+			);
+		}
+
+		$token       = wp_generate_uuid4();
+		$marker_path = $plugin_dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- CLI-only ownership marker.
+		if ( false === file_put_contents( $marker_path, $token, LOCK_EX ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Directory was atomically created above and is still empty.
+			rmdir( $plugin_dir );
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_fixture_create_failed',
+				__( 'Benchmark could not write the plugin fixture ownership marker.', 'superdav-ai-agent' )
+			);
+		}
+
+		$this->owned_plugin_fixtures[ $plugin_slug ] = array(
+			'path'  => $plugin_dir,
+			'token' => $token,
+		);
+
+		return true;
 	}
 
 	/**
-	 * Delete a single benchmark-owned user fixture by login.
+	 * Resolve a plugin fixture path while keeping it inside the plugin root.
 	 *
-	 * @param string $login User login.
-	 * @return string Cleanup status.
+	 * @param string $plugin_slug Plugin slug.
+	 * @return string|null
 	 */
-	private function cleanup_user_fixture( string $login ): string {
-		$user = get_user_by( 'login', $login );
-		if ( ! $user ) {
-			return 'not-found';
+	private function plugin_fixture_path( string $plugin_slug ): ?string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]+$/', $plugin_slug ) ) {
+			return null;
 		}
 
-		if ( ! function_exists( 'wp_delete_user' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
+		$plugin_root = realpath( WP_PLUGIN_DIR );
+		if ( false === $plugin_root || ! is_dir( $plugin_root ) ) {
+			return null;
 		}
 
-		$reassign_user_id = $this->get_cleanup_reassign_user_id( (int) $user->ID );
-		$deleted          = wp_delete_user( (int) $user->ID, $reassign_user_id > 0 ? $reassign_user_id : null );
+		return $plugin_root . DIRECTORY_SEPARATOR . $plugin_slug;
+	}
 
-		if ( ! $deleted ) {
-			WP_CLI::warning( sprintf( 'Could not delete benchmark user fixture: %s', $login ) );
-			return 'delete-failed';
+	/**
+	 * Create command-owned fixtures and return prompt substitutions.
+	 *
+	 * @param array<string, mixed> $question Question definition.
+	 * @return array{variables: array<string, string>, log: array<string, mixed>}|\WP_Error
+	 */
+	private function prepare_question_fixtures( array $question ): array|\WP_Error {
+		$setup      = isset( $question['setup'] ) && is_array( $question['setup'] ) ? $question['setup'] : array();
+		$draft_post = isset( $setup['draft_post'] ) && is_array( $setup['draft_post'] ) ? $setup['draft_post'] : array();
+		$user       = isset( $setup['user'] ) && is_array( $setup['user'] ) ? $setup['user'] : array();
+		$variables  = array();
+		$setup_log  = array();
+
+		if ( ! empty( $user ) ) {
+			$prefix = sanitize_user( (string) ( $user['login_prefix'] ?? '' ), true );
+			$domain = sanitize_text_field( (string) ( $user['email_domain'] ?? '' ) );
+			if ( '' === $prefix || '' === $domain || ! is_email( 'fixture@' . $domain ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_invalid_user_fixture', 'User fixtures require a login prefix and email domain.' );
+			}
+
+			$login = $prefix . '-' . strtolower( wp_generate_password( 12, false, false ) );
+			if ( get_user_by( 'login', $login ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_user_fixture_collision', 'Generated benchmark user fixture already exists.' );
+			}
+
+			$email                                 = $login . '@' . $domain;
+			$this->pending_user_fixtures[ $login ] = wp_generate_uuid4();
+			$variables['{{user_login}}']           = $login;
+			$variables['{{user_email}}']           = $email;
+			$setup_log['user']                     = array(
+				'login' => $login,
+				'email' => $email,
+			);
 		}
 
-		return 'deleted';
+		if ( empty( $draft_post ) ) {
+			return array(
+				'variables' => $variables,
+				'log'       => $setup_log,
+			);
+		}
+
+		$title   = (string) ( $draft_post['title'] ?? '' );
+		$content = (string) ( $draft_post['content'] ?? '' );
+		if ( '' === $title || '' === $content ) {
+			return new \WP_Error( 'sd_ai_agent_benchmark_invalid_post_fixture', 'Draft post fixtures require title and content.' );
+		}
+
+		$token   = wp_generate_uuid4();
+		$post_id = wp_insert_post(
+			array(
+				'post_title'   => $title,
+				'post_content' => $content,
+				'post_status'  => 'draft',
+				'post_type'    => 'post',
+				'meta_input'   => array( '_sd_ai_agent_benchmark_owner' => $token ),
+			),
+			true
+		);
+
+		if ( is_wp_error( $post_id ) ) {
+			return $post_id;
+		}
+
+		$this->owned_post_fixtures[ (int) $post_id ] = $token;
+		$variables['{{post_id}}']                    = (string) $post_id;
+		$setup_log['draft_post']                     = array(
+			'post_id' => (int) $post_id,
+			'status'  => 'draft',
+		);
+
+		return array(
+			'variables' => $variables,
+			'log'       => $setup_log,
+		);
+	}
+
+	/**
+	 * Substitute fixture placeholders throughout assertion definitions.
+	 *
+	 * @param array<mixed>         $value     Assertion definitions.
+	 * @param array<string,string> $variables Fixture substitutions.
+	 * @return array<mixed>
+	 */
+	private function substitute_fixture_variables( array $value, array $variables ): array {
+		foreach ( $value as $key => $item ) {
+			if ( is_array( $item ) ) {
+				$value[ $key ] = $this->substitute_fixture_variables( $item, $variables );
+			} elseif ( is_string( $item ) ) {
+				$value[ $key ] = strtr( $item, $variables );
+			}
+		}
+
+		return $value;
+	}
+
+	/** Remove only draft fixtures whose ownership marker still matches. */
+	private function cleanup_owned_post_fixtures(): void {
+		foreach ( $this->owned_post_fixtures as $post_id => $token ) {
+			$owner  = get_post_meta( $post_id, '_sd_ai_agent_benchmark_owner', true );
+			$status = get_post_status( $post_id );
+			if ( $token !== $owner || 'draft' !== $status ) {
+				WP_CLI::warning( sprintf( 'Benchmark post fixture ownership or status changed; cleanup skipped: %d', $post_id ) );
+				continue;
+			}
+
+			wp_delete_post( $post_id, true );
+			unset( $this->owned_post_fixtures[ $post_id ] );
+		}
+	}
+
+	/**
+	 * Mark generated users as owned only when the create-user result proves creation.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Agent tool calls.
+	 */
+	private function claim_created_user_fixtures( array $tool_call_log ): void {
+		foreach ( $this->pending_user_fixtures as $login => $owner ) {
+			$user = get_user_by( 'login', $login );
+			if ( ! $user || ! $this->tool_log_proves_user_creation( $tool_call_log, $login, (int) $user->ID ) || metadata_exists( 'user', (int) $user->ID, '_sd_ai_agent_benchmark_owner' ) ) {
+				continue;
+			}
+
+			update_user_meta( (int) $user->ID, '_sd_ai_agent_benchmark_owner', $owner );
+			if ( $owner !== get_user_meta( (int) $user->ID, '_sd_ai_agent_benchmark_owner', true ) ) {
+				WP_CLI::warning( sprintf( 'Could not mark benchmark user fixture as owned: %s', $login ) );
+				continue;
+			}
+
+			$this->owned_user_fixtures[ (int) $user->ID ] = array(
+				'login' => $login,
+				'owner' => $owner,
+			);
+			unset( $this->pending_user_fixtures[ $login ] );
+		}
+	}
+
+	/**
+	 * Verify a successful create-user call returned the exact generated user ID.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Agent tool calls.
+	 * @param string                           $login         Generated login.
+	 * @param int                              $user_id       Created user ID.
+	 */
+	private function tool_log_proves_user_creation( array $tool_call_log, string $login, int $user_id ): bool {
+		foreach ( $tool_call_log as $entry ) {
+			$tool  = (string) ( $entry['tool'] ?? '' );
+			$input = isset( $entry['input'] ) && is_array( $entry['input'] ) ? $entry['input'] : array();
+			if ( str_starts_with( $tool, 'wpab__sd-ai-agent__' ) ) {
+				$tool = 'sd-ai-agent/' . substr( $tool, strlen( 'wpab__sd-ai-agent__' ) );
+			}
+
+			$output = $entry['output'] ?? array();
+			if ( is_string( $output ) ) {
+				$decoded = json_decode( $output, true );
+				$output  = is_array( $decoded ) ? $decoded : array();
+			}
+
+			if ( 'sd-ai-agent/ability-call' === $tool ) {
+				if ( 'sd-ai-agent/create-user' !== ( $input['ability'] ?? '' ) ) {
+					continue;
+				}
+				$arguments = $input['arguments'] ?? $input['parameters'] ?? array();
+				if ( is_string( $arguments ) ) {
+					$decoded   = json_decode( $arguments, true );
+					$arguments = is_array( $decoded ) ? $decoded : array();
+				}
+				$input  = is_array( $arguments ) ? $arguments : array();
+				$output = is_array( $output['result'] ?? null ) ? $output['result'] : array();
+			} elseif ( 'sd-ai-agent/create-user' !== $tool ) {
+				continue;
+			}
+
+			if ( $login !== (string) ( $input['username'] ?? '' ) ) {
+				continue;
+			}
+
+			if ( is_array( $output ) && $user_id === (int) ( $output['user_id'] ?? 0 ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/** Delete only users whose ID, login, and ownership marker still match. */
+	private function cleanup_owned_user_fixtures(): void {
+		foreach ( $this->owned_user_fixtures as $user_id => $fixture ) {
+			$user  = get_user_by( 'id', $user_id );
+			$owner = get_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', true );
+			if ( ! $user || $fixture['login'] !== $user->user_login || $fixture['owner'] !== $owner ) {
+				WP_CLI::warning( sprintf( 'Benchmark user fixture ownership changed; cleanup skipped: %s', $fixture['login'] ) );
+				continue;
+			}
+
+			if ( ! function_exists( 'wp_delete_user' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/user.php';
+			}
+
+			$reassign_user_id = $this->get_cleanup_reassign_user_id( $user_id );
+			if ( ! wp_delete_user( $user_id, $reassign_user_id > 0 ? $reassign_user_id : null ) ) {
+				WP_CLI::warning( sprintf( 'Could not delete benchmark user fixture: %s', $fixture['login'] ) );
+				continue;
+			}
+
+			unset( $this->owned_user_fixtures[ $user_id ] );
+		}
 	}
 
 	/**
@@ -792,8 +1195,26 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 * @param string $plugin_slug Plugin slug.
 	 */
 	private function cleanup_plugin( string $plugin_slug ): void {
+		$ownership  = $this->owned_plugin_fixtures[ $plugin_slug ] ?? null;
+		$plugin_dir = $this->plugin_fixture_path( $plugin_slug );
+		if ( null === $ownership || null === $plugin_dir || $plugin_dir !== $ownership['path'] || is_link( $plugin_dir ) ) {
+			return;
+		}
+
+		$marker_path = $plugin_dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
+		if ( is_link( $marker_path ) || ! is_file( $marker_path ) ) {
+			WP_CLI::warning( sprintf( 'Benchmark plugin fixture ownership could not be verified: %s', $plugin_slug ) );
+			return;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- CLI-only ownership marker.
+		$marker_token = file_get_contents( $marker_path );
+		if ( ! is_string( $marker_token ) || ! hash_equals( $ownership['token'], $marker_token ) ) {
+			WP_CLI::warning( sprintf( 'Benchmark plugin fixture ownership changed; cleanup skipped: %s', $plugin_slug ) );
+			return;
+		}
+
 		$plugin_file = "{$plugin_slug}/{$plugin_slug}.php";
-		$plugin_dir  = WP_PLUGIN_DIR . '/' . $plugin_slug;
 
 		// Deactivate silently.
 		if ( is_plugin_active( $plugin_file ) ) {
@@ -801,8 +1222,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		// Remove the directory.
-		if ( is_dir( $plugin_dir ) ) {
-			$this->rmdir_recursive( $plugin_dir );
+		if ( is_dir( $plugin_dir ) && $this->rmdir_recursive( $plugin_dir ) ) {
+			unset( $this->owned_plugin_fixtures[ $plugin_slug ] );
 		}
 	}
 
@@ -811,18 +1232,54 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 *
 	 * @param string $dir Directory path.
 	 */
-	private function rmdir_recursive( string $dir ): void {
-		$items = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
-			\RecursiveIteratorIterator::CHILD_FIRST
-		);
+	private function rmdir_recursive( string $dir ): bool {
+		$boundary    = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$marker_path = $dir . DIRECTORY_SEPARATOR . self::PLUGIN_OWNER_MARKER;
 
-		foreach ( $items as $item ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only sandbox cleanup.
-			$item->isDir() ? rmdir( $item->getRealPath() ) : unlink( $item->getRealPath() );
+		try {
+			$items = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+				\RecursiveIteratorIterator::CHILD_FIRST
+			);
+
+			foreach ( $items as $item ) {
+				$path = $item->getPathname();
+				if ( $marker_path === $path ) {
+					continue;
+				}
+
+				if ( ! str_starts_with( $path, $boundary ) ) {
+					WP_CLI::warning( sprintf( 'Benchmark cleanup boundary violation: %s', $path ) );
+					return false;
+				}
+
+				if ( is_link( $path ) || ! is_dir( $path ) ) {
+					// Use the literal iterator path. Resolving it would follow symlinks outside the fixture.
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only owned fixture cleanup.
+					if ( ! unlink( $path ) ) {
+						return false;
+					}
+
+					continue;
+				}
+
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
+				if ( ! rmdir( $path ) ) {
+					return false;
+				}
+			}
+		} catch ( \UnexpectedValueException $exception ) {
+			WP_CLI::warning( sprintf( 'Benchmark cleanup could not inspect fixture: %s', $exception->getMessage() ) );
+			return false;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only sandbox cleanup.
-		rmdir( $dir );
+		// Delete the ownership marker last so an interrupted cleanup can be retried safely.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- CLI-only owned fixture cleanup.
+		if ( ! unlink( $marker_path ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- CLI-only owned fixture cleanup.
+		return rmdir( $dir );
 	}
 }

@@ -132,6 +132,24 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Same-second backups must use distinct immutable snapshots.
+	 */
+	public function test_backup_same_second_snapshots_are_distinct_and_immutable(): void {
+		$first = $this->updater->backup( $this->slug );
+		$this->assertIsString( $first );
+
+		$updated_content = '<?php /* Plugin Name: Second Snapshot */';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Mutating the owned test plugin verifies snapshot immutability.
+		file_put_contents( $this->plugin_dir . $this->slug . '.php', $updated_content );
+
+		$second = $this->updater->backup( $this->slug );
+		$this->assertIsString( $second );
+		$this->assertNotSame( $first, $second );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $first . $this->slug . '.php' ) );
+		$this->assertSame( $updated_content, file_get_contents( $second . $this->slug . '.php' ) );
+	}
+
+	/**
 	 * backup() should fail closed when configured inside the public uploads tree.
 	 */
 	public function test_backup_rejects_public_storage_root(): void {
@@ -186,7 +204,7 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Backup directory name should follow the {slug}-YYYY-MM-DD-HHiiss pattern.
+	 * Backup directory name should include the timestamp and operation identity.
 	 */
 	public function test_backup_dir_name_format(): void {
 		$result = $this->updater->backup( $this->slug );
@@ -194,7 +212,7 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertIsString( $result );
 		$basename = basename( rtrim( $result, '/' ) );
 		$this->assertMatchesRegularExpression(
-			'/^' . preg_quote( $this->slug, '/' ) . '-\d{4}-\d{2}-\d{2}-\d{6}$/',
+			'/^' . preg_quote( $this->slug, '/' ) . '-\d{4}-\d{2}-\d{2}-\d{6}-[a-f0-9]{24}$/',
 			$basename
 		);
 	}
@@ -229,6 +247,45 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Separate updater instances must not share or overwrite staging directories.
+	 */
+	public function test_interleaved_stages_are_isolated_and_cannot_be_cross_swapped(): void {
+		$updater_a = new PluginUpdater();
+		$updater_b = new PluginUpdater();
+		$backup_a  = $updater_a->backup( $this->slug );
+		$stage_a   = $updater_a->stage( $this->slug, [ $this->slug . '.php' => '<?php /* candidate A */' ] );
+		$stage_b   = $updater_b->stage( $this->slug, [ $this->slug . '.php' => '<?php /* candidate B */' ] );
+
+		$this->assertIsString( $backup_a );
+		$this->assertIsString( $stage_a );
+		$this->assertIsString( $stage_b );
+		$this->assertNotSame( $stage_a, $stage_b );
+		$this->assertStringContainsString( 'candidate A', (string) file_get_contents( $stage_a . $this->slug . '.php' ) );
+		$this->assertStringContainsString( 'candidate B', (string) file_get_contents( $stage_b . $this->slug . '.php' ) );
+
+		$result = $updater_a->swap( $this->slug, $stage_b, $backup_a );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_update_resource_not_owned', $result->get_error_code() );
+		$this->assertDirectoryExists( $stage_a );
+		$this->assertDirectoryExists( $stage_b );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * A failed stage must not remove another operation's completed candidate.
+	 */
+	public function test_stage_abort_removes_only_its_own_candidate(): void {
+		$stage_a = ( new PluginUpdater() )->stage( $this->slug, [ $this->slug . '.php' => '<?php /* candidate A */' ] );
+		$this->assertIsString( $stage_a );
+
+		$stage_b = ( new PluginUpdater() )->stage( $this->slug, [ $this->slug . '.php' => '<?php $broken = ;' ] );
+		$this->assertWPError( $stage_b );
+		$this->assertSame( 'sd_ai_agent_php_syntax_error', $stage_b->get_error_code() );
+		$this->assertDirectoryExists( $stage_a );
+		$this->assertStringContainsString( 'candidate A', (string) file_get_contents( $stage_a . $this->slug . '.php' ) );
+	}
+
+	/**
 	 * stage() should return WP_Error for an empty slug.
 	 */
 	public function test_stage_empty_slug_returns_error(): void {
@@ -257,10 +314,9 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_php_syntax_error', $result->get_error_code() );
 		$this->assertStringContainsString( 'syntax error', $result->get_error_message() );
 
-		// Verify the staging directory was cleaned up (no partial write).
-		$staging_root = $this->staging_root();
-		$staging_dir  = $staging_root . $this->slug . '/';
-		$this->assertFalse( is_dir( $staging_dir ), 'Staging directory should be cleaned up after lint failure' );
+		// Verify the failed operation's unique staging directory was cleaned up.
+		$stages = glob( $this->staging_root() . $this->slug . '-*', GLOB_ONLYDIR );
+		$this->assertSame( [], $stages, 'Staging directory should be cleaned up after lint failure' );
 	}
 
 	/**
@@ -338,6 +394,37 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_backup_not_found', $result->get_error_code() );
 	}
 
+	/**
+	 * rollback() must reject existing directories outside private backup storage.
+	 */
+	public function test_rollback_rejects_directory_outside_backup_storage(): void {
+		$result = $this->updater->rollback( $this->slug, $this->plugin_dir );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_backup_not_owned', $result->get_error_code() );
+		$this->assertFileExists( $this->plugin_dir . $this->slug . '.php' );
+	}
+
+	/**
+	 * Explicit rollback uses the same per-plugin transaction lock as update().
+	 */
+	public function test_rollback_refuses_competing_update_lock(): void {
+		$backup = $this->updater->backup( $this->slug );
+		$this->assertIsString( $backup );
+		$lock = $this->acquire_external_update_lock( $this->slug );
+		$no_wait = static function (): int {
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+
+		$result = $this->updater->rollback( $this->slug, $backup );
+
+		remove_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		flock( $lock, LOCK_UN );
+		fclose( $lock );
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_update_in_progress', $result->get_error_code() );
+	}
+
 	// ─── cleanup_old_backups() ───────────────────────────────────────────────
 
 	/**
@@ -357,7 +444,7 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		wp_mkdir_p( $backups_root );
 
 		$old_dir = $backups_root . $this->slug . '-2020-01-01-000001/';
-		$new_dir = $backups_root . $this->slug . '-2020-01-02-000001/';
+		$new_dir = $backups_root . $this->slug . '-2020-01-02-000001-0123456789abcdef01234567/';
 		wp_mkdir_p( $old_dir );
 		wp_mkdir_p( $new_dir );
 
@@ -412,6 +499,159 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Updated Test Plugin', $live_content );
 	}
 
+	/**
+	 * update() must refuse a competing operation for the same live plugin.
+	 */
+	public function test_update_serializes_competing_operations_per_plugin(): void {
+		$lock = $this->acquire_external_update_lock( $this->slug );
+		$no_wait = static function (): int {
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+
+		$result = ( new PluginUpdater() )->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* blocked candidate */' ]
+		);
+
+		remove_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		flock( $lock, LOCK_UN );
+		fclose( $lock );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_update_in_progress', $result->get_error_code() );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * A lock for one slug must not prevent updates to another plugin.
+	 */
+	public function test_update_locks_are_independent_between_plugins(): void {
+		$other_slug = $this->slug . '-other';
+		$this->create_minimal_plugin( $other_slug );
+		$lock = $this->acquire_external_update_lock( $this->slug );
+
+		$result = ( new PluginUpdater() )->update(
+			$other_slug,
+			[ $other_slug . '.php' => '<?php /* Plugin Name: Independently Updated */' ]
+		);
+
+		flock( $lock, LOCK_UN );
+		fclose( $lock );
+		$this->assertIsArray( $result );
+		$this->assertTrue( (bool) $result['swapped'] );
+		$this->assertStringContainsString(
+			'Independently Updated',
+			(string) file_get_contents( trailingslashit( WP_PLUGIN_DIR ) . $other_slug . '/' . $other_slug . '.php' )
+		);
+	}
+
+	/**
+	 * Post-swap validation remains inside the same-plugin transaction lock.
+	 */
+	public function test_update_holds_lock_through_post_swap_validation(): void {
+		$no_wait = static function (): int {
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		$competing_result = null;
+
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: First Transaction */' ],
+			function () use ( &$competing_result ): true {
+				$competing_result = ( new PluginUpdater() )->update(
+					$this->slug,
+					[ $this->slug . '.php' => '<?php /* Plugin Name: Competing Transaction */' ]
+				);
+				return true;
+			}
+		);
+
+		remove_filter( 'sd_ai_agent_plugin_update_lock_timeout_ms', $no_wait );
+		$this->assertIsArray( $result );
+		$this->assertWPError( $competing_result );
+		$this->assertSame( 'sd_ai_agent_plugin_update_in_progress', $competing_result->get_error_code() );
+		$this->assertStringContainsString( 'First Transaction', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * A failed post-swap health check can restore its own immutable backup.
+	 */
+	public function test_update_post_swap_failure_rolls_back_before_unlocking(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Unhealthy Transaction */' ],
+			function ( array $swap_result, string $backup_dir ) {
+				unset( $swap_result );
+				$rollback = $this->updater->rollback( $this->slug, $backup_dir );
+				$this->assertIsArray( $rollback );
+				return new \WP_Error( 'synthetic_health_failure', 'Synthetic health failure.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'synthetic_health_failure', $result->get_error_code() );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Healthy Follow-up */' ]
+		);
+		$this->assertIsArray( $next );
+		$this->assertStringContainsString( 'Healthy Follow-up', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * Callback exceptions roll back safely and still release the transaction lock.
+	 */
+	public function test_update_post_swap_exception_rolls_back_and_releases_lock(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Exception Transaction */' ],
+			static function (): void {
+				throw new \RuntimeException( 'Synthetic callback exception.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_post_swap_validation_failed', $result->get_error_code() );
+		$this->assertStringContainsString( 'Test Updater Plugin', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: After Exception */' ]
+		);
+		$this->assertIsArray( $next );
+		$this->assertStringContainsString( 'After Exception', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+	}
+
+	/**
+	 * Callback exceptions report a failed rollback instead of claiming recovery.
+	 */
+	public function test_update_post_swap_exception_reports_rollback_failure(): void {
+		$result = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Unrecoverable Transaction */' ],
+			function ( array $swap_result, string $backup_dir ): void {
+				unset( $swap_result );
+				$this->remove_dir( $backup_dir );
+				throw new \RuntimeException( 'Synthetic callback exception.' );
+			}
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_post_swap_rollback_failed', $result->get_error_code() );
+		$this->assertSame( 'sd_ai_agent_backup_not_found', $result->get_error_data()['rollback_error_code'] );
+		$this->assertStringContainsString( 'Unrecoverable Transaction', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+
+		$next = $this->updater->update(
+			$this->slug,
+			[ $this->slug . '.php' => '<?php /* Plugin Name: Recovered Later */' ]
+		);
+		$this->assertIsArray( $next );
+	}
+
 	// ─── Helpers ─────────────────────────────────────────────────────────────
 
 	/**
@@ -419,11 +659,13 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	private function create_minimal_plugin(): void {
-		wp_mkdir_p( $this->plugin_dir );
+	private function create_minimal_plugin( ?string $slug = null ): void {
+		$slug       = $slug ?? $this->slug;
+		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
+		wp_mkdir_p( $plugin_dir );
 		$content = '<?php /* Plugin Name: Test Updater Plugin */' . "\n";
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test setup: creating a minimal plugin file.
-		file_put_contents( $this->plugin_dir . $this->slug . '.php', $content );
+		file_put_contents( $plugin_dir . $slug . '.php', $content );
 	}
 
 	/**
@@ -434,8 +676,8 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	private function cleanup_all(): void {
 		$dirs_to_clean = [
 			trailingslashit( WP_PLUGIN_DIR ) . $this->slug . '/',
+			trailingslashit( WP_PLUGIN_DIR ) . $this->slug . '-other/',
 			trailingslashit( WP_PLUGIN_DIR ) . 'non-existent-plugin-phpunit/',
-			$this->staging_root() . $this->slug . '/',
 			trailingslashit( $this->tmp_upload_basedir ) . 'sd-ai-backups/' . $this->slug . '-2020-01-01-000001/',
 		];
 
@@ -453,6 +695,36 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 				}
 			}
 		}
+
+		$staging_root = $this->staging_root();
+		if ( is_dir( $staging_root ) ) {
+			$entries = glob( $staging_root . $this->slug . '-*', GLOB_ONLYDIR );
+			if ( false !== $entries ) {
+				foreach ( $entries as $entry ) {
+					$this->remove_dir( $entry );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Hold the production per-plugin lock to simulate a competing request.
+	 *
+	 * @param string $slug Plugin slug.
+	 * @return resource Locked file handle.
+	 */
+	private function acquire_external_update_lock( string $slug ) {
+		$locks_root = trailingslashit( $this->tmp_private_root ) . 'locks/';
+		wp_mkdir_p( $locks_root );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Match production's private-root permissions in this synthetic fixture.
+		chmod( $this->tmp_private_root, 0700 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Test fixture must hold the same OS lock as production.
+		$handle = fopen( $locks_root . hash( 'sha256', $slug ) . '.lock', 'c+' );
+		if ( false === $handle ) {
+			$this->fail( 'Could not open the synthetic update lock.' );
+		}
+		$this->assertTrue( flock( $handle, LOCK_EX | LOCK_NB ) );
+		return $handle;
 	}
 
 	/**

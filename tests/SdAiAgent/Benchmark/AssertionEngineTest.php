@@ -227,9 +227,9 @@ PHP
 	}
 
 	/**
-	 * Test state-sensitive user benchmarks declare cleanup fixtures.
+	 * Test state-sensitive user benchmarks declare run-scoped fixtures.
 	 */
-	public function test_as_010_declares_user_cleanup_fixture(): void {
+	public function test_as_010_declares_run_scoped_user_fixture(): void {
 		$questions = BenchmarkSuite::get_questions( 'abilities-structure-v1' );
 		$matches   = array_values(
 			array_filter(
@@ -239,7 +239,9 @@ PHP
 		);
 
 		$this->assertCount( 1, $matches );
-		$this->assertSame( array( 'as010_user' ), $matches[0]['cleanup']['users'] ?? array() );
+		$this->assertArrayNotHasKey( 'cleanup', $matches[0] );
+		$this->assertSame( 'as010-user', $matches[0]['setup']['user']['login_prefix'] ?? '' );
+		$this->assertSame( '{{user_login}}', $matches[0]['assertions'][3]['login'] ?? '' );
 	}
 
 	/**
@@ -273,6 +275,65 @@ PHP
 		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
 		$this->assertSame( 0, $result['failed'], (string) wp_json_encode( $result ) );
 		$this->assertStringContainsString( 'final state satisfied', $result['results'][0]['actual'] );
+		$this->assertSame( 'composite', $result['coverage']['classification'] );
+		$this->assertFalse( $result['coverage']['functionally_verifiable'] );
+		$this->assertFalse( $result['coverage']['functionally_verified'] );
+	}
+
+	/** Invocation coverage remains successful even when the logged call was denied. */
+	public function test_denied_tool_call_is_invocation_coverage_not_functional_verification(): void {
+		$result = AssertionEngine::run(
+			array(
+				array(
+					'type'  => 'tool_called',
+					'tools' => array( 'sd-ai-agent/create-post' ),
+				),
+			),
+			array(
+				'tool_call_log' => array(
+					array(
+						'tool'   => 'sd-ai-agent/create-post',
+						'output' => array(
+							'code'    => 'ability_invalid_permissions',
+							'message' => 'Denied',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'] );
+		$this->assertSame( 'invocation', $result['results'][0]['evidence_type'] );
+		$this->assertSame( 'invocation_only', $result['coverage']['classification'] );
+		$this->assertSame( 0, $result['coverage']['postcondition_total'] );
+		$this->assertFalse( $result['coverage']['functionally_verified'] );
+	}
+
+	/** Tool output assertions require real supported fields, not invocation alone. */
+	public function test_tool_output_contains_checks_required_fields(): void {
+		$result = AssertionEngine::run(
+			array(
+				array(
+					'type'          => 'tool_output_contains',
+					'tools'         => array( 'sd-ai-agent/seo-analyze-content' ),
+					'required_keys' => array( 'post_id', 'recommendations' ),
+				),
+			),
+			array(
+				'tool_call_log' => array(
+					array(
+						'tool'   => 'wpab__sd-ai-agent__seo-analyze-content',
+						'output' => array(
+							'post_id'         => 42,
+							'recommendations' => array( 'Add a meta description.' ),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
+		$this->assertSame( 0, $result['failed'], (string) wp_json_encode( $result ) );
 	}
 
 	/**

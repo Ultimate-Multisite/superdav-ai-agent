@@ -4929,7 +4929,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertTrue( ToolPermissionResolver::message_has_mutating_tools( $mutation ) );
 	}
 
-	/** Alternating inspections trigger a correction and mutation resets the counter. */
+	/** Distinct reads remain productive while repeated inspections get system guidance. */
 	public function test_record_tool_progress_nudges_and_resets_without_provider(): void {
 		if ( ! function_exists( 'wp_get_abilities' ) || ! wp_has_ability( 'sd-ai-agent/list-posts' ) || ! wp_has_ability( 'sd-ai-agent/create-post' ) ) {
 			$this->markTestSkipped( 'Required read and write abilities are not registered.' );
@@ -4938,14 +4938,9 @@ class AgentLoopTest extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WP_AI_Client_Ability_Function_Resolver not available.' );
 		}
 
-		$loop       = new AgentLoop( 'Complete the site without repeated inspections.' );
-		$method     = new \ReflectionMethod( AgentLoop::class, 'record_tool_progress' );
-		$inspection = new ModelMessage(
-			array(
-				new MessagePart( new FunctionCall( 'call_inspect', 'wpab__sd-ai-agent__list-posts', array() ) ),
-			)
-		);
-		$mutation   = new ModelMessage(
+		$loop     = new AgentLoop( 'Complete the site without repeated inspections.' );
+		$method   = new \ReflectionMethod( AgentLoop::class, 'record_tool_progress' );
+		$mutation = new ModelMessage(
 			array(
 				new MessagePart( new FunctionCall( 'call_mutate', 'wpab__sd-ai-agent__create-post', array( 'title' => 'Progress marker' ) ) ),
 			)
@@ -4956,19 +4951,35 @@ class AgentLoopTest extends WP_UnitTestCase {
 			'readonly_rounds'    => 0,
 		);
 		for ( $round = 1; $round <= AgentLoop::READONLY_INSPECTION_NUDGE_ROUNDS; ++$round ) {
+			$inspection = new ModelMessage(
+				array(
+					new MessagePart( new FunctionCall( 'call_inspect_' . $round, 'wpab__sd-ai-agent__list-posts', array( 'page' => $round ) ) ),
+				)
+			);
 			$progress = $method->invoke( $loop, $inspection, $progress['readonly_rounds'] );
 			$this->assertFalse( $progress['has_mutating_tools'] );
-			$this->assertSame( $round, $progress['readonly_rounds'] );
+			$this->assertSame( 1, $progress['readonly_rounds'] );
 		}
+
+		$guidance = new \ReflectionProperty( AgentLoop::class, 'readonly_progress_guidance' );
+		$this->assertSame( '', $guidance->getValue( $loop ) );
+
+		$progress = $method->invoke( $loop, $inspection, $progress['readonly_rounds'] );
+		$this->assertSame( 2, $progress['readonly_rounds'] );
+		$progress = $method->invoke( $loop, $inspection, $progress['readonly_rounds'] );
+		$this->assertSame( AgentLoop::READONLY_INSPECTION_NUDGE_ROUNDS, $progress['readonly_rounds'] );
+		$this->assertStringContainsString( 'Continue any remaining distinct authorized reads', $guidance->getValue( $loop ) );
+		$this->assertStringContainsString( 'Do not perform a mutation unless the user explicitly requested', $guidance->getValue( $loop ) );
 
 		$serialize = new \ReflectionMethod( AgentLoop::class, 'serialize_history' );
 		$history   = wp_json_encode( $serialize->invoke( $loop ) );
 		$this->assertIsString( $history );
-		$this->assertStringContainsString( 'Stop re-checking known state', $history );
+		$this->assertStringNotContainsString( 'Automated progress safeguard', $history );
 
 		$progress = $method->invoke( $loop, $mutation, $progress['readonly_rounds'] );
 		$this->assertTrue( $progress['has_mutating_tools'] );
 		$this->assertSame( 0, $progress['readonly_rounds'] );
+		$this->assertSame( '', $guidance->getValue( $loop ) );
 	}
 
 	/**

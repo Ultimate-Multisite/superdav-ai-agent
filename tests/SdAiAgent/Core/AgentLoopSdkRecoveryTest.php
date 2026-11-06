@@ -37,9 +37,11 @@ final class AgentLoopSdkRecoveryTest extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 		global $wp_filter;
-		foreach ( array( 'pre_http_request', 'sd_ai_agent_cloud_base_url', 'sd_ai_agent_provider_request_max_bytes', 'sd_ai_agent_provider_request_safety_margin_bytes' ) as $hook ) {
+		foreach ( array( 'pre_http_request', 'sd_ai_agent_cloud_base_url', 'sd_ai_agent_provider_request_max_bytes', 'sd_ai_agent_provider_request_safety_margin_bytes', 'sd_ai_agent_responses_background_enabled' ) as $hook ) {
 			$this->original_hooks[ $hook ] = isset( $wp_filter[ $hook ] ) ? clone $wp_filter[ $hook ] : null;
 		}
+		// These cases stub the buffered transport; background polling is covered by ResponsesContinuationTest.
+		add_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
 		$this->original_registry = AiClient::defaultRegistry();
 		$registry                = new ProviderRegistry();
 		$registry->setHttpTransporter( $this->original_registry->getHttpTransporter() );

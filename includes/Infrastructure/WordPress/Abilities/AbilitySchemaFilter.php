@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Infrastructure\WordPress\Abilities;
 
+use SdAiAgent\Abilities\AbstractAbility;
 use SdAiAgent\Infrastructure\Schema\EmptyJsonObject;
 use SdAiAgent\Infrastructure\Schema\SchemaNormalizer;
 use XWP\DI\Decorators\Filter;
@@ -46,6 +47,15 @@ final class AbilitySchemaFilter {
 	 */
 	#[Filter( tag: 'wp_register_ability_args', priority: 10 )]
 	public function normalize_ability_args( array $args ): array {
+		if (
+			! isset( $args['category'] )
+			&& isset( $args['ability_class'] )
+			&& is_string( $args['ability_class'] )
+			&& is_a( $args['ability_class'], AbstractAbility::class, true )
+		) {
+			$args['category'] = 'sd-ai-agent';
+		}
+
 		if ( ! isset( $args['input_schema'] ) ) {
 			$args['input_schema'] = array(
 				'type'       => 'object',

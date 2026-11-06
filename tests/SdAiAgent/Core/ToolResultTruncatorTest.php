@@ -238,6 +238,114 @@ class ToolResultTruncatorTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Fifteen verbose themes become a complete compact inventory. */
+	public function test_get_themes_strategy_preserves_complete_compact_inventory(): void {
+		$themes = $this->make_themes( 15 );
+		$input  = [
+			'themes' => $themes,
+			'total'  => 15,
+			'offset' => 0,
+			'limit'  => 100,
+			'active' => 'theme-7',
+		];
+
+		$result = ToolResultTruncator::truncate( $input, 'sd-ai-agent/get-themes' );
+
+		$this->assertSame( 15, $result['showing'] );
+		$this->assertFalse( $result['has_more'] );
+		$this->assertNull( $result['next_offset'] );
+		$this->assertCount( 15, $result['themes'] );
+		$this->assertSame( 'theme-7', $result['active'] );
+		$this->assertSame( [ 'slug', 'name', 'version', 'active' ], array_keys( $result['themes'][0] ) );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $result ) ) );
+	}
+
+	/** Oversized compact pages expose a stable continuation without gaps or duplicates. */
+	public function test_get_themes_strategy_continues_without_identity_loss(): void {
+		$themes = $this->make_themes( 80, str_repeat( '多', 100 ) );
+		$seen   = [];
+		$offset = 0;
+
+		do {
+			$page_themes = array_slice( $themes, $offset, 100 );
+			$showing     = count( $page_themes );
+			$has_more    = $offset + $showing < count( $themes );
+			$page = ToolResultTruncator::truncate(
+				[
+					'themes'      => $page_themes,
+					'total'       => count( $themes ),
+					'showing'     => $showing,
+					'offset'      => $offset,
+					'limit'       => 100,
+					'has_more'    => $has_more,
+					'next_offset' => $has_more ? $offset + $showing : null,
+					'active'      => 'theme-7',
+				],
+				'sd-ai-agent/get-themes'
+			);
+
+			$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $page ) ) );
+			$this->assertSame( 1, preg_match( '//u', (string) wp_json_encode( $page ) ) );
+			$this->assertSame( count( $page['themes'] ), $page['showing'] );
+			foreach ( $page['themes'] as $theme ) {
+				$seen[] = $theme['slug'];
+			}
+			if ( ! $page['has_more'] ) {
+				break;
+			}
+			$this->assertSame( $offset + $page['showing'], $page['next_offset'] );
+			$this->assertSame( $page['next_offset'], $page['next_arguments']['offset'] );
+			$offset = $page['next_offset'];
+		} while ( true );
+
+		$this->assertSame( array_column( $themes, 'slug' ), $seen );
+		$this->assertSame( count( $seen ), count( array_unique( $seen ) ) );
+	}
+
+	/** The dispatcher uses its declared target ability without rewriting the envelope. */
+	public function test_ability_call_envelope_compacts_the_actual_theme_target(): void {
+		$input = [
+			'ability' => 'sd-ai-agent/get-themes',
+			'success' => true,
+			'result'  => [
+				'themes' => $this->make_themes( 15 ),
+				'total'  => 15,
+				'offset' => 0,
+				'limit'  => 100,
+				'active' => 'theme-7',
+			],
+		];
+
+		$result = ToolResultTruncator::truncate( $input, 'sd-ai-agent/ability-call' );
+
+		$this->assertSame( 'sd-ai-agent/get-themes', $result['ability'] );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 15, $result['result']['showing'] );
+		$this->assertCount( 15, $result['result']['themes'] );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $result ) ) );
+	}
+
+	/**
+	 * Build representative verbose inventory rows.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function make_themes( int $count, string $name_suffix = '' ): array {
+		$themes = [];
+		for ( $index = 0; $index < $count; $index++ ) {
+			$themes[] = [
+				'slug'        => "theme-{$index}",
+				'name'        => "Theme {$index}{$name_suffix}",
+				'version'     => "1.{$index}.0",
+				'active'      => 7 === $index,
+				'description' => str_repeat( 'Verbose theme description. ', 20 ),
+				'author'      => str_repeat( 'Theme Author ', 10 ),
+			];
+		}
+
+		return $themes;
+	}
+
 	/**
 	 * Test db-query strategy truncates rows.
 	 */

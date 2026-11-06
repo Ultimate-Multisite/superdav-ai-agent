@@ -166,7 +166,7 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'After each response, include exactly 3 brief follow-up suggestions', $instruction );
 		$this->assertStringContainsString( 'code-only, raw-source, JSON-only, machine-readable', $instruction );
-		$this->assertStringContainsString( 'obey that output contract exactly and return nothing else', $instruction );
+		$this->assertStringContainsString( 'obey that output contract exactly and return nothing else: no Markdown fences, trailing comments, or suggestion lines', $instruction );
 	}
 
 	/** Non-native first requests must stay comfortably below the payload guard. */

@@ -112,12 +112,17 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 					'user_login' => $matches[1],
 					'user_email' => $matches[2],
 					'user_pass'  => wp_generate_password( 24, true, true ),
-					'role'       => 'editor',
+					'role'       => 'subscriber',
 				)
 			);
 			if ( is_wp_error( $user_id ) ) {
 				throw new RuntimeException( $user_id->get_error_message() );
 			}
+			$created_user = get_user_by( 'id', $user_id );
+			if ( ! $created_user ) {
+				throw new RuntimeException( 'Synthetic benchmark could not reload the user fixture.' );
+			}
+			$created_user->set_role( 'editor' );
 
 			return array(
 				'turns_used'    => 1,

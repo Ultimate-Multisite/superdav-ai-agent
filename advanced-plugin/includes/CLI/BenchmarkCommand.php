@@ -82,6 +82,12 @@ class BenchmarkCommand extends WP_CLI_Command {
 	 */
 	private array $owned_post_fixtures = array();
 
+	/** @var array<string, string> Generated user identities awaiting agent creation. */
+	private array $pending_user_fixtures = array();
+
+	/** @var array<int, array{login: string, owner: string}> Users owned by this run. */
+	private array $owned_user_fixtures = array();
+
 	/**
 	 * System prompt injected for every benchmark question.
 	 * Tells the agent it is in a live WordPress environment and should act, not describe.
@@ -536,8 +542,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		try {
-			$log['cleanup'] = $this->cleanup_question_fixtures( $question );
-			$setup          = $this->prepare_question_fixtures( $question );
+			$setup = $this->prepare_question_fixtures( $question );
 			if ( is_wp_error( $setup ) ) {
 				$log['status']        = 'fixture_error';
 				$log['fixture_error'] = $setup->get_error_message();
@@ -551,7 +556,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 				$log['completed_at']  = gmdate( 'c' );
 				return $log;
 			}
-			$log['setup'] = $setup['log'];
+			$log['setup']           = $setup['log'];
+			$question['assertions'] = $this->substitute_fixture_variables( (array) $question['assertions'], $setup['variables'] );
 
 			// Build the prompt — include plugin name guidance for plugin questions.
 			$prompt = strtr( (string) $question['prompt'], $setup['variables'] );
@@ -567,6 +573,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['tool_call_log'] = $agent_result['tool_call_log'] ?? array();
 			$log['agent_reply']   = $agent_result['reply'] ?? '';
 			$log['elapsed_ms']    = (int) ( ( microtime( true ) - $start_time ) * 1000 );
+			$this->claim_created_user_fixtures();
 
 			if ( ! empty( $agent_result['error'] ) ) {
 				$provider_error = $this->classify_provider_error( (string) $agent_result['error'] );
@@ -598,6 +605,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return $log;
 		} finally {
 			$this->cleanup_owned_post_fixtures();
+			$this->cleanup_owned_user_fixtures();
 			// Always deactivate and remove the sandbox plugin if we created one,
 			// even on agent error or thrown exception, so deterministic slugs
 			// (e.g. event-manager) don't leak into later questions.
@@ -942,38 +950,6 @@ class BenchmarkCommand extends WP_CLI_Command {
 	}
 
 	/**
-	 * Remove benchmark-owned fixtures before an agent run.
-	 *
-	 * Question definitions may declare cleanup fixtures that must not leak from
-	 * a previous run into the current attempt. This keeps state-sensitive
-	 * ability benchmarks deterministic while restricting destructive cleanup to
-	 * explicit, benchmark-owned identifiers.
-	 *
-	 * @param array<string, mixed> $question Question definition.
-	 * @return array{users: array<int, array{login: string, status: string}>}
-	 */
-	private function cleanup_question_fixtures( array $question ): array {
-		$cleanup = isset( $question['cleanup'] ) && is_array( $question['cleanup'] ) ? $question['cleanup'] : array();
-		$users   = isset( $cleanup['users'] ) && is_array( $cleanup['users'] ) ? $cleanup['users'] : array();
-		$result  = array(
-			'users' => array(),
-		);
-
-		foreach ( $users as $login ) {
-			if ( ! is_scalar( $login ) || '' === (string) $login ) {
-				continue;
-			}
-
-			$result['users'][] = array(
-				'login'  => (string) $login,
-				'status' => $this->cleanup_user_fixture( (string) $login ),
-			);
-		}
-
-		return $result;
-	}
-
-	/**
 	 * Create command-owned fixtures and return prompt substitutions.
 	 *
 	 * @param array<string, mixed> $question Question definition.
@@ -982,11 +958,36 @@ class BenchmarkCommand extends WP_CLI_Command {
 	private function prepare_question_fixtures( array $question ): array|\WP_Error {
 		$setup      = isset( $question['setup'] ) && is_array( $question['setup'] ) ? $question['setup'] : array();
 		$draft_post = isset( $setup['draft_post'] ) && is_array( $setup['draft_post'] ) ? $setup['draft_post'] : array();
+		$user       = isset( $setup['user'] ) && is_array( $setup['user'] ) ? $setup['user'] : array();
+		$variables  = array();
+		$setup_log  = array();
+
+		if ( ! empty( $user ) ) {
+			$prefix = sanitize_user( (string) ( $user['login_prefix'] ?? '' ), true );
+			$domain = sanitize_text_field( (string) ( $user['email_domain'] ?? '' ) );
+			if ( '' === $prefix || '' === $domain || ! is_email( 'fixture@' . $domain ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_invalid_user_fixture', 'User fixtures require a login prefix and email domain.' );
+			}
+
+			$login = $prefix . '-' . strtolower( wp_generate_password( 12, false, false ) );
+			if ( get_user_by( 'login', $login ) ) {
+				return new \WP_Error( 'sd_ai_agent_benchmark_user_fixture_collision', 'Generated benchmark user fixture already exists.' );
+			}
+
+			$email                                 = $login . '@' . $domain;
+			$this->pending_user_fixtures[ $login ] = wp_generate_uuid4();
+			$variables['{{user_login}}']           = $login;
+			$variables['{{user_email}}']           = $email;
+			$setup_log['user']                     = array(
+				'login' => $login,
+				'email' => $email,
+			);
+		}
 
 		if ( empty( $draft_post ) ) {
 			return array(
-				'variables' => array(),
-				'log'       => array(),
+				'variables' => $variables,
+				'log'       => $setup_log,
 			);
 		}
 
@@ -1013,16 +1014,35 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		$this->owned_post_fixtures[ (int) $post_id ] = $token;
+		$variables['{{post_id}}']                    = (string) $post_id;
+		$setup_log['draft_post']                     = array(
+			'post_id' => (int) $post_id,
+			'status'  => 'draft',
+		);
 
 		return array(
-			'variables' => array( '{{post_id}}' => (string) $post_id ),
-			'log'       => array(
-				'draft_post' => array(
-					'post_id' => (int) $post_id,
-					'status'  => 'draft',
-				),
-			),
+			'variables' => $variables,
+			'log'       => $setup_log,
 		);
+	}
+
+	/**
+	 * Substitute fixture placeholders throughout assertion definitions.
+	 *
+	 * @param array<mixed>         $value     Assertion definitions.
+	 * @param array<string,string> $variables Fixture substitutions.
+	 * @return array<mixed>
+	 */
+	private function substitute_fixture_variables( array $value, array $variables ): array {
+		foreach ( $value as $key => $item ) {
+			if ( is_array( $item ) ) {
+				$value[ $key ] = $this->substitute_fixture_variables( $item, $variables );
+			} elseif ( is_string( $item ) ) {
+				$value[ $key ] = strtr( $item, $variables );
+			}
+		}
+
+		return $value;
 	}
 
 	/** Remove only draft fixtures whose ownership marker still matches. */
@@ -1040,31 +1060,50 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 	}
 
-	/**
-	 * Delete a single benchmark-owned user fixture by login.
-	 *
-	 * @param string $login User login.
-	 * @return string Cleanup status.
-	 */
-	private function cleanup_user_fixture( string $login ): string {
-		$user = get_user_by( 'login', $login );
-		if ( ! $user ) {
-			return 'not-found';
+	/** Mark generated users as owned only after the agent creates the exact identity. */
+	private function claim_created_user_fixtures(): void {
+		foreach ( $this->pending_user_fixtures as $login => $owner ) {
+			$user = get_user_by( 'login', $login );
+			if ( ! $user || metadata_exists( 'user', (int) $user->ID, '_sd_ai_agent_benchmark_owner' ) ) {
+				continue;
+			}
+
+			update_user_meta( (int) $user->ID, '_sd_ai_agent_benchmark_owner', $owner );
+			if ( $owner !== get_user_meta( (int) $user->ID, '_sd_ai_agent_benchmark_owner', true ) ) {
+				WP_CLI::warning( sprintf( 'Could not mark benchmark user fixture as owned: %s', $login ) );
+				continue;
+			}
+
+			$this->owned_user_fixtures[ (int) $user->ID ] = array(
+				'login' => $login,
+				'owner' => $owner,
+			);
+			unset( $this->pending_user_fixtures[ $login ] );
 		}
+	}
 
-		if ( ! function_exists( 'wp_delete_user' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/user.php';
+	/** Delete only users whose ID, login, and ownership marker still match. */
+	private function cleanup_owned_user_fixtures(): void {
+		foreach ( $this->owned_user_fixtures as $user_id => $fixture ) {
+			$user  = get_user_by( 'id', $user_id );
+			$owner = get_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', true );
+			if ( ! $user || $fixture['login'] !== $user->user_login || $fixture['owner'] !== $owner ) {
+				WP_CLI::warning( sprintf( 'Benchmark user fixture ownership changed; cleanup skipped: %s', $fixture['login'] ) );
+				continue;
+			}
+
+			if ( ! function_exists( 'wp_delete_user' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/user.php';
+			}
+
+			$reassign_user_id = $this->get_cleanup_reassign_user_id( $user_id );
+			if ( ! wp_delete_user( $user_id, $reassign_user_id > 0 ? $reassign_user_id : null ) ) {
+				WP_CLI::warning( sprintf( 'Could not delete benchmark user fixture: %s', $fixture['login'] ) );
+				continue;
+			}
+
+			unset( $this->owned_user_fixtures[ $user_id ] );
 		}
-
-		$reassign_user_id = $this->get_cleanup_reassign_user_id( (int) $user->ID );
-		$deleted          = wp_delete_user( (int) $user->ID, $reassign_user_id > 0 ? $reassign_user_id : null );
-
-		if ( ! $deleted ) {
-			WP_CLI::warning( sprintf( 'Could not delete benchmark user fixture: %s', $login ) );
-			return 'delete-failed';
-		}
-
-		return 'deleted';
 	}
 
 	/**

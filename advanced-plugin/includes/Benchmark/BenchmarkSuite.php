@@ -1271,10 +1271,13 @@ class BenchmarkSuite {
 				'id'         => 'as-010',
 				'category'   => 'users',
 				'max_turns'  => 10,
-				'cleanup'    => array(
-					'users' => array( 'as010_user' ),
+				'setup'      => array(
+					'user' => array(
+						'login_prefix' => 'as010-user',
+						'email_domain' => 'example.test',
+					),
 				),
-				'prompt'     => 'Use list-users to show the first 5 users on this site, then create-user to add a new user with login "as010_user", email "as010_user@example.test", role "subscriber". Then use update-user-role to change them to "editor".',
+				'prompt'     => 'Use list-users to show the first 5 users on this site, then create-user to add a new user with login "{{user_login}}", email "{{user_email}}", role "subscriber". Then use update-user-role to change them to "editor".',
 				'assertions' => array(
 					array(
 						'type'        => 'tool_called',
@@ -1284,22 +1287,22 @@ class BenchmarkSuite {
 					array(
 						'type'        => 'tool_called_or_user_exists',
 						'tools'       => array( 'sd-ai-agent/create-user' ),
-						'login'       => 'as010_user',
+						'login'       => '{{user_login}}',
 						'role'        => 'editor',
 						'description' => 'create-user called',
 					),
 					array(
 						'type'        => 'tool_called_or_user_exists',
 						'tools'       => array( 'sd-ai-agent/update-user-role' ),
-						'login'       => 'as010_user',
+						'login'       => '{{user_login}}',
 						'role'        => 'editor',
 						'description' => 'update-user-role called',
 					),
 					array(
 						'type'        => 'user_exists',
-						'login'       => 'as010_user',
+						'login'       => '{{user_login}}',
 						'role'        => 'editor',
-						'description' => 'user as010_user has role editor',
+						'description' => 'benchmark-owned user has role editor',
 					),
 				),
 			),

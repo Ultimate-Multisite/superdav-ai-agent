@@ -69,6 +69,9 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 	/** Prompt passed to the synthetic loop. */
 	public string $last_prompt = '';
 
+	/** User login created by the synthetic loop. */
+	public string $last_user_login = '';
+
 	/**
 	 * Run one question through the protected command method.
 	 *
@@ -96,6 +99,36 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 
 		if ( 'exception' === $this->agent_behavior ) {
 			throw new RuntimeException( 'Synthetic benchmark failure.' );
+		}
+
+		if ( 'user-success' === $this->agent_behavior ) {
+			if ( 1 !== preg_match( '/login "([^"]+)".*email "([^"]+)"/s', $prompt, $matches ) ) {
+				throw new RuntimeException( 'Synthetic benchmark could not resolve the user fixture.' );
+			}
+
+			$this->last_user_login = $matches[1];
+			$user_id               = wp_insert_user(
+				array(
+					'user_login' => $matches[1],
+					'user_email' => $matches[2],
+					'user_pass'  => wp_generate_password( 24, true, true ),
+					'role'       => 'editor',
+				)
+			);
+			if ( is_wp_error( $user_id ) ) {
+				throw new RuntimeException( $user_id->get_error_message() );
+			}
+
+			return array(
+				'turns_used'    => 1,
+				'token_usage'   => array(),
+				'tool_call_log' => array(
+					array( 'tool' => 'sd-ai-agent/list-users' ),
+					array( 'tool' => 'sd-ai-agent/create-user' ),
+					array( 'tool' => 'sd-ai-agent/update-user-role' ),
+				),
+				'reply'         => 'Synthetic user success.',
+			);
 		}
 
 		if ( 'success' === $this->agent_behavior ) {
@@ -336,6 +369,70 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( array(), get_posts( array( 'title' => 'Command-owned draft fixture', 'post_status' => 'any' ) ) );
 	}
 
+	/** A static benchmark-like login and its authored content are never adopted or changed. */
+	public function test_pre_existing_user_and_authored_content_are_preserved(): void {
+		$user_id = self::factory()->user->create(
+			array(
+				'user_login' => 'as010_user',
+				'user_email' => 'as010-user-canary@example.test',
+				'role'       => 'subscriber',
+			)
+		);
+		update_user_meta( $user_id, 'benchmark_canary', 'unchanged' );
+		$post_id = self::factory()->post->create(
+			array(
+				'post_author' => $user_id,
+				'post_status' => 'draft',
+			)
+		);
+
+		$command = new TestableBenchmarkCommand();
+		$result  = $command->run_test_question( $this->user_question() );
+		$user    = get_user_by( 'id', $user_id );
+
+		$this->assertSame( 'provider_error', $result['status'] );
+		$this->assertNotFalse( $user );
+		$this->assertSame( array( 'subscriber' ), $user->roles );
+		$this->assertSame( 'unchanged', get_user_meta( $user_id, 'benchmark_canary', true ) );
+		$this->assertSame( $user_id, (int) get_post_field( 'post_author', $post_id ) );
+	}
+
+	/** A generated user can satisfy assertions and is removed after the question. */
+	public function test_owned_user_fixture_completes_and_is_cleaned(): void {
+		$command                 = new TestableBenchmarkCommand();
+		$command->agent_behavior = 'user-success';
+		$result                  = $command->run_test_question( $this->user_question() );
+
+		$this->assertSame( 'passed', $result['status'] );
+		$this->assertSame( 4, $result['assertions']['passed'] );
+		$this->assertStringStartsWith( 'as010-user-', $command->last_user_login );
+		$this->assertFalse( get_user_by( 'login', $command->last_user_login ) );
+	}
+
+	/** Cleanup fails closed when a generated user's ownership marker is changed. */
+	public function test_user_cleanup_preserves_fixture_with_tampered_ownership_marker(): void {
+		$command = new TestableBenchmarkCommand();
+		$prepare = new ReflectionMethod( BenchmarkCommand::class, 'prepare_question_fixtures' );
+		$setup   = $prepare->invoke( $command, $this->user_question() );
+		$login   = $setup['variables']['{{user_login}}'];
+		$user_id = self::factory()->user->create(
+			array(
+				'user_login' => $login,
+				'user_email' => $setup['variables']['{{user_email}}'],
+			)
+		);
+
+		$claim = new ReflectionMethod( BenchmarkCommand::class, 'claim_created_user_fixtures' );
+		$claim->invoke( $command );
+		update_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', 'different-owner' );
+
+		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_owned_user_fixtures' );
+		$cleanup->invoke( $command );
+
+		$this->assertNotFalse( get_user_by( 'id', $user_id ) );
+		$this->assertSame( 'different-owner', get_user_meta( $user_id, '_sd_ai_agent_benchmark_owner', true ) );
+	}
+
 	/** Deferred questions never invoke the model and retain the machine reason. */
 	public function test_deferred_question_skips_agent_execution(): void {
 		$command  = new TestableBenchmarkCommand();
@@ -419,6 +516,28 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 					'type' => 'file_exists_in_plugin',
 					'path' => $slug . '.php',
 				),
+			),
+		);
+	}
+
+	/** Build a user-mutation benchmark question with run-scoped fixture placeholders. */
+	private function user_question(): array {
+		return array(
+			'id'         => 'user-fixture-test',
+			'category'   => 'users',
+			'prompt'     => 'Use list-users, then create-user with login "{{user_login}}", email "{{user_email}}", role "subscriber". Then use update-user-role to change them to "editor".',
+			'max_turns'  => 1,
+			'setup'      => array(
+				'user' => array(
+					'login_prefix' => 'as010-user',
+					'email_domain' => 'example.test',
+				),
+			),
+			'assertions' => array(
+				array( 'type' => 'tool_called', 'tools' => array( 'sd-ai-agent/list-users' ) ),
+				array( 'type' => 'tool_called_or_user_exists', 'tools' => array( 'sd-ai-agent/create-user' ), 'login' => '{{user_login}}', 'role' => 'editor' ),
+				array( 'type' => 'tool_called_or_user_exists', 'tools' => array( 'sd-ai-agent/update-user-role' ), 'login' => '{{user_login}}', 'role' => 'editor' ),
+				array( 'type' => 'user_exists', 'login' => '{{user_login}}', 'role' => 'editor' ),
 			),
 		);
 	}

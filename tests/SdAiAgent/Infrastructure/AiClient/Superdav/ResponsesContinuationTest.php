@@ -40,12 +40,71 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		parent::set_up();
 		$this->owner = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->owner );
+		// Transport-shape tests below assert the buffered contract; background tests opt back in.
+		add_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
 	}
 
 	/** Remove only fixture cursors. */
 	public function tear_down(): void {
 		( new ResponsesContinuation( 123, $this->owner ) )->clear();
+		remove_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
+		delete_transient( 'sd_ai_agent_responses_background_unsupported' );
 		parent::tear_down();
+	}
+
+	/** Background mode long-polls the edge job and returns the completed native result. */
+	public function test_background_mode_long_polls_until_completed(): void {
+		remove_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
+		$id       = 'resp_bg' . str_repeat( 'a1', 16 );
+		$requests = array();
+		$queued   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'object' => 'response', 'status' => 'queued', 'background' => true, 'output' => array() ) ) );
+		$running  = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'object' => 'response', 'status' => 'in_progress', 'background' => true, 'output' => array() ) ) );
+		$result   = $this->model( array( $queued, $running, $this->text_response( $id ) ), $requests )
+			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Write a long report.' ) ) ) ) );
+
+		$this->assertSame( 'Found it.', $result->toText() );
+		$this->assertCount( 3, $requests );
+		$this->assertStringEndsWith( '/responses?wait=45', $requests[0]->getUri() );
+		$this->assertTrue( $requests[0]->getData()['background'] );
+		$this->assertFalse( $requests[0]->getData()['store'] );
+		$this->assertSame( 'GET', $requests[1]->getMethod()->value );
+		$this->assertStringEndsWith( '/responses/' . $id . '?wait=45', $requests[1]->getUri() );
+		$this->assertStringEndsWith( '/responses/' . $id . '?wait=45', $requests[2]->getUri() );
+	}
+
+	/** A service without background support is retried once without it and remembered. */
+	public function test_background_unsupported_service_falls_back_to_buffered(): void {
+		remove_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
+		$requests = array();
+		$rejected = new Response( 400, array(), wp_json_encode( array( 'error' => array( 'code' => 'invalid_responses_request', 'message' => 'Invalid Responses request.' ) ) ) );
+		$this->model( array( $rejected, $this->text_response( 'resp_buffered' ) ), $requests )
+			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Hello.' ) ) ) ) );
+
+		$this->assertCount( 2, $requests );
+		$this->assertStringEndsWith( '/responses', $requests[1]->getUri() );
+		$this->assertArrayNotHasKey( 'background', $requests[1]->getData() );
+		$this->assertNotFalse( get_transient( 'sd_ai_agent_responses_background_unsupported' ) );
+
+		$this->model( array( $this->text_response( 'resp_direct' ) ), $requests )
+			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Again.' ) ) ) ) );
+		$this->assertCount( 3, $requests );
+		$this->assertStringEndsWith( '/responses', $requests[2]->getUri() );
+	}
+
+	/** A failed background job surfaces as a provider error and never advances the cursor. */
+	public function test_background_failure_surfaces_as_server_error(): void {
+		remove_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
+		$id       = 'resp_bg' . str_repeat( 'b2', 16 );
+		$requests = array();
+		$queued   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'status' => 'queued', 'output' => array() ) ) );
+		$failed   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'status' => 'failed', 'output' => array(), 'error' => array( 'code' => 'managed_service_timeout', 'message' => 'Timed out.' ) ) ) );
+		try {
+			$this->model( array( $queued, $failed ), $requests )->generateTextResult( array( new UserMessage( array( new MessagePart( 'Hello.' ) ) ) ) );
+			$this->fail( 'Expected the background failure to propagate.' );
+		} catch ( ServerException $error ) {
+			$this->assertStringContainsString( 'Timed out.', $error->getMessage() );
+		}
+		$this->assertCount( 2, $requests );
 	}
 
 	/** A fresh PHP object loads encrypted native history without storing plaintext. */

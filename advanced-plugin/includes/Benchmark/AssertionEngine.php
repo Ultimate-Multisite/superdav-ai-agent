@@ -899,59 +899,110 @@ class AssertionEngine {
 	 * @return array{pass: bool, expected: string, actual: string}
 	 */
 	private static function assert_tool_output_contains( array $tools, array $required_keys, array $context ): array {
-		$log = (array) ( $context['tool_call_log'] ?? array() );
+		$log     = (array) ( $context['tool_call_log'] ?? array() );
+		$missing = array();
 
 		foreach ( $log as $entry ) {
-			if ( ! is_array( $entry ) || ! self::tool_name_matches( (string) ( $entry['tool'] ?? '' ), $tools ) ) {
+			if ( ! is_array( $entry ) ) {
 				continue;
 			}
 
-			$output = $entry['output'] ?? array();
-			if ( is_string( $output ) ) {
-				$decoded = json_decode( $output, true );
-				$output  = is_array( $decoded ) ? $decoded : array();
-			}
-
-			if ( ! is_array( $output ) ) {
+			$output = self::matching_tool_output( $entry, $tools );
+			if ( null === $output ) {
 				continue;
 			}
 
-			$missing = array_values(
+			$current_missing = array_values(
 				array_filter(
 					$required_keys,
 					static fn( string $key ): bool => ! array_key_exists( $key, $output )
 				)
 			);
 
-			return array(
-				'pass'     => empty( $missing ),
-				'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
-				'actual'   => empty( $missing ) ? 'all required keys returned' : 'missing keys: ' . implode( ', ', $missing ),
-			);
+			if ( empty( $current_missing ) ) {
+				return array(
+					'pass'     => true,
+					'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
+					'actual'   => 'all required keys returned',
+				);
+			}
+
+			if ( empty( $missing ) || count( $current_missing ) < count( $missing ) ) {
+				$missing = $current_missing;
+			}
 		}
 
 		return array(
 			'pass'     => false,
 			'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
-			'actual'   => 'no matching tool output found',
+			'actual'   => empty( $missing ) ? 'no matching tool output found' : 'missing keys: ' . implode( ', ', $missing ),
 		);
 	}
 
 	/**
-	 * Match a logged direct tool name against candidate ability IDs.
+	 * Return the result payload for a matching direct call or successful dispatcher call.
+	 *
+	 * @param array<string, mixed> $entry Logged tool call.
+	 * @param array<int, string>   $tools Candidate ability names.
+	 * @return array<mixed, mixed>|null
+	 */
+	private static function matching_tool_output( array $entry, array $tools ): ?array {
+		$name    = (string) ( $entry['tool'] ?? '' );
+		$output  = $entry['output'] ?? null;
+		$is_meta = self::ability_name_matches( $name, array( 'sd-ai-agent/ability-call' ) );
+
+		if ( is_string( $output ) ) {
+			$decoded = json_decode( $output, true );
+			$output  = is_array( $decoded ) ? $decoded : null;
+		}
+
+		if ( ! is_array( $output ) ) {
+			return null;
+		}
+
+		if ( ! $is_meta ) {
+			return self::ability_name_matches( $name, $tools ) ? $output : null;
+		}
+
+		$input          = (array) ( $entry['input'] ?? array() );
+		$input_ability  = (string) ( $input['ability'] ?? $input['ability_name'] ?? $input['name'] ?? '' );
+		$output_ability = (string) ( $output['ability'] ?? '' );
+		if (
+			true !== ( $output['success'] ?? null )
+			|| ! self::ability_name_matches( $input_ability, $tools )
+			|| ! self::ability_name_matches( $output_ability, $tools )
+		) {
+			return null;
+		}
+
+		$result = $output['result'] ?? null;
+		if ( is_string( $result ) ) {
+			$decoded = json_decode( $result, true );
+			$result  = is_array( $decoded ) ? $decoded : null;
+		}
+
+		return is_array( $result ) ? $result : null;
+	}
+
+	/**
+	 * Match a direct tool name or dispatcher target against candidate ability IDs.
 	 *
 	 * @param string             $name  Logged tool name.
 	 * @param array<int, string> $tools Candidate ability names.
 	 */
-	private static function tool_name_matches( string $name, array $tools ): bool {
+	private static function ability_name_matches( string $name, array $tools ): bool {
 		$wpab_name = self::ability_to_function_name( $name );
 
 		foreach ( $tools as $candidate ) {
+			if ( '' === $candidate ) {
+				continue;
+			}
+
 			$short = self::ability_short_name( $candidate );
 			if (
 				$name === $candidate
 				|| $wpab_name === self::ability_to_function_name( $candidate )
-				|| ( '' !== $short && ( str_ends_with( $name, '/' . $short ) || str_ends_with( $name, '__' . $short ) ) )
+				|| ( ! str_contains( $candidate, '/' ) && ! str_starts_with( $candidate, 'wpab__' ) && ( str_ends_with( $name, '/' . $short ) || str_ends_with( $name, '__' . $short ) ) )
 			) {
 				return true;
 			}

@@ -165,8 +165,21 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		$instruction = ( new SystemInstructionBuilder() )->build( array( 'suggestion_count' => 3 ) );
 
 		$this->assertStringContainsString( 'After each response, include exactly 3 brief follow-up suggestions', $instruction );
-		$this->assertStringContainsString( 'code-only, raw-source, JSON-only, machine-readable', $instruction );
-		$this->assertStringContainsString( 'obey that output contract exactly and return nothing else: no Markdown fences, trailing comments, or suggestion lines', $instruction );
+		$this->assertStringContainsString(
+			'omit suggestions whenever the user explicitly requires code-only, raw-source, JSON-only, machine-readable, a single fenced code block, or otherwise exclusive output',
+			$instruction
+		);
+		$this->assertStringContainsString( 'obey that output contract exactly and return nothing beyond its required format', $instruction );
+	}
+
+	/** Tool-result summaries must not violate exclusive response formats. */
+	public function test_tool_result_summaries_preserve_exclusive_output_contracts(): void {
+		foreach ( array( false, true ) as $native_tool_search ) {
+			$instruction = SystemInstructionBuilder::default_system_instruction( $native_tool_search );
+
+			$this->assertStringContainsString( 'when the user explicitly requires raw source or another exclusive output format', $instruction );
+			$this->assertStringContainsString( 'then return only that required format', $instruction );
+		}
 	}
 
 	/** Non-native first requests must stay comfortably below the payload guard. */

@@ -4,7 +4,7 @@ Tags: ai, chatbot, assistant, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.25.0
+Stable tag: 1.26.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -174,6 +174,15 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 3. Changes review workspace showing the completed page-editing workflow and its recorded updates.
 
 == Changelog ==
+
+= 1.26.0 =
+Version 1.26.0 - Released on 2026-11-08
+- New: Long managed-model responses run in background mode with long-polling, so multi-minute generations no longer fail at edge timeouts.
+- New: Chat widget and onboarding for chat-access roles and non-admin site owners, and one-click Advanced install through a signed push from sdaiagent.com.
+- Improved: Bound tool results and skill guidance with recoverable continuation pages, keep complete theme inventories within budget, trim irrelevant prompt context, and stop redundant agent loops.
+- Improved: Run background jobs on the queue worker, fence stale workers, and reap stalled jobs so the chat shows an error with Retry.
+- Fix: Compatibility with WordPress 7.2, which requires a category for every ability registration.
+- Fix: Prevent block-comment injection through block HTML updates, enforce attachment authorization for media deletion, reject unsafe date-less scheduling, emit valid Gutenberg list wrappers, and honor code-only or JSON-only output requests.
 
 = 1.25.0 =
 Version 1.25.0 - Released on 2026-10-15

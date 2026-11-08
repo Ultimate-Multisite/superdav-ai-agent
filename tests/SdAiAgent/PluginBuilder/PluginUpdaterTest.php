@@ -386,6 +386,20 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * rollback() should restore a backup when the live directory is missing.
+	 */
+	public function test_rollback_restores_missing_live_directory(): void {
+		$backup_dir = $this->updater->backup( $this->slug );
+		$this->assertIsString( $backup_dir );
+		$this->remove_dir( $this->plugin_dir );
+
+		$result = $this->updater->rollback( $this->slug, $backup_dir );
+
+		$this->assertIsArray( $result );
+		$this->assertFileExists( $this->plugin_dir . $this->slug . '.php' );
+	}
+
+	/**
 	 * rollback() should return WP_Error when backup directory does not exist.
 	 */
 	public function test_rollback_missing_backup_returns_error(): void {
@@ -484,6 +498,10 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	 */
 	public function test_update_replaces_live_plugin_files(): void {
 		$new_content = '<?php /* Plugin Name: Updated Test Plugin */';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Regression fixture verifies publication preserves the live root mode.
+		chmod( $this->plugin_dir, 0755 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileperms -- Capture the live root mode before publication.
+		$mode_before = fileperms( $this->plugin_dir );
 
 		$result = $this->updater->update(
 			$this->slug,
@@ -497,6 +515,55 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 		// Main plugin file should contain the updated content.
 		$live_content = (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' );
 		$this->assertStringContainsString( 'Updated Test Plugin', $live_content );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fileperms -- Verify publication preserves the live root mode.
+		$mode_after = fileperms( $this->plugin_dir );
+		$this->assertIsInt( $mode_before );
+		$this->assertIsInt( $mode_after );
+		$this->assertSame( $mode_before & 0777, $mode_after & 0777 );
+	}
+
+	/**
+	 * A leaf symlink inserted after candidate preparation must be moved aside,
+	 * not followed while publishing the staged tree.
+	 */
+	public function test_update_does_not_follow_leaf_symlink_created_during_publish(): void {
+		$outside_file = tempnam( sys_get_temp_dir(), 'sd-ai-agent-updater-outside-' );
+		$this->assertIsString( $outside_file );
+		$outside_dir = sys_get_temp_dir() . '/sd-ai-agent-updater-outside-dir-' . wp_generate_uuid4();
+		wp_mkdir_p( $outside_dir );
+		$outside_sentinel = trailingslashit( $outside_dir ) . 'sentinel.txt';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Synthetic external target for the symlink race regression.
+		file_put_contents( $outside_file, 'outside remains unchanged' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Synthetic external directory target for symlink-safe cleanup.
+		file_put_contents( $outside_sentinel, 'directory remains unchanged' );
+		$hook_ran = false;
+		$inject   = function ( string $live_dir, string $candidate_dir ) use ( $outside_file, $outside_dir, &$hook_ran ): void {
+			$this->assertDirectoryExists( $candidate_dir );
+			$live_file = $live_dir . $this->slug . '.php';
+			unlink( $live_file );
+			$this->assertTrue( symlink( $outside_file, $live_file ) );
+			$this->assertTrue( symlink( $outside_dir, $live_dir . 'linked-directory' ) );
+			$hook_ran = true;
+		};
+		add_action( 'sd_ai_agent_plugin_update_candidate_ready', $inject, 10, 2 );
+
+		try {
+			$result = $this->updater->update(
+				$this->slug,
+				[ $this->slug . '.php' => '<?php /* Plugin Name: Race-safe Update */' ]
+			);
+		} finally {
+			remove_action( 'sd_ai_agent_plugin_update_candidate_ready', $inject, 10 );
+		}
+
+		$this->assertTrue( $hook_ran );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'outside remains unchanged', file_get_contents( $outside_file ) );
+		$this->assertSame( 'directory remains unchanged', file_get_contents( $outside_sentinel ) );
+		$this->assertStringContainsString( 'Race-safe Update', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+		unlink( $outside_file );
+		unlink( $outside_sentinel );
+		rmdir( $outside_dir );
 	}
 
 	/**

@@ -1198,7 +1198,7 @@ class BlockMutator {
 		// When innerHTML is also supplied (required for dual-storage blocks),
 		// sanitize it now so the closure captures the safe value.
 		$safe_html = isset( $args['innerHTML'] ) && is_string( $args['innerHTML'] )
-			? wp_kses_post( $args['innerHTML'] )
+			? self::strip_block_comments( wp_kses_post( $args['innerHTML'] ) )
 			: null;
 
 		return self::mutate_at_path(
@@ -1244,7 +1244,8 @@ class BlockMutator {
 	/**
 	 * Replace a block's innerHTML (update-html op).
 	 *
-	 * The wp_kses_post() function is applied to strip scripts and inline event handlers.
+	 * The wp_kses_post() function is applied to strip scripts and inline event handlers,
+	 * then WordPress block delimiters are removed so the HTML cannot alter block structure.
 	 *
 	 * @param array<int,mixed>    $blocks Parsed block tree.
 	 * @param int[]               $path   Resolved target path.
@@ -1260,7 +1261,7 @@ class BlockMutator {
 			);
 		}
 
-		$safe_html = wp_kses_post( $args['innerHTML'] );
+		$safe_html = self::strip_block_comments( wp_kses_post( $args['innerHTML'] ) );
 		if ( '' === trim( $safe_html ) ) {
 			return new \WP_Error(
 				'missing_inner_html',
@@ -2295,13 +2296,22 @@ class BlockMutator {
 	 * - Opening: `<!-- wp:blockname ... -->`
 	 * - Closing: `<!-- /wp:blockname -->`
 	 *
+	 * If PCRE fails (for example on the backtrack limit), every comment opener
+	 * is escaped instead, so no delimiter can survive and content is never
+	 * silently replaced with an empty string.
+	 *
 	 * @param string $html HTML content potentially containing block delimiters.
-	 * @return string HTML with block comment delimiters removed.
+	 * @return string HTML with block comment delimiters removed or neutralised.
 	 */
 	private static function strip_block_comments( string $html ): string {
 		// Remove opening block comments: <!-- wp:blockname ... -->
 		// and closing block comments: <!-- /wp:blockname -->
-		return (string) preg_replace( '/<!--\s*\/?wp:[^-]*-->/i', '', $html );
+		$stripped = preg_replace( '/<!--\s*\/?wp:.*?-->/is', '', $html );
+		if ( null === $stripped ) {
+			return str_replace( '<!--', '&lt;!--', $html );
+		}
+
+		return $stripped;
 	}
 
 	/**

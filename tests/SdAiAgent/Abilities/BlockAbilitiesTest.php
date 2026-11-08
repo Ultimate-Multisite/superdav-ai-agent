@@ -1492,6 +1492,40 @@ class BlockAbilitiesTest extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $get_after['revision_id'] );
 	}
 
+	/** A later invalid update prevents an earlier sanitized mutation from reaching disk. */
+	public function test_update_blocks_failure_does_not_persist_partial_content(): void {
+		$post_id = $this->factory->post->create( [
+			'post_content' => '<!-- wp:paragraph --><p>original</p><!-- /wp:paragraph -->',
+			'post_status'  => 'draft',
+		] );
+
+		$get = BlockAbilities::handle_get_page_blocks( [
+			'post_id'      => $post_id,
+			'persist_refs' => true,
+		] );
+		$this->assertIsArray( $get );
+		$original_content = get_post_field( 'post_content', $post_id );
+
+		$result = BlockAbilities::handle_update_blocks( [
+			'post_id' => $post_id,
+			'updates' => [
+				[
+					'op'        => 'update-html',
+					'ref'       => $get['blocks'][0]['ref'],
+					'innerHTML' => '<p>safe</p><!-- wp:html --><em>injected</em><!-- /wp:html -->',
+				],
+				[
+					'op'        => 'update-html',
+					'ref'       => 'blk_missing',
+					'innerHTML' => '<p>must fail</p>',
+				],
+			],
+		] );
+
+		$this->assertWPError( $result );
+		$this->assertSame( $original_content, get_post_field( 'post_content', $post_id ) );
+	}
+
 	/**
 	 * Block tree mutations report affected post_content for the live-preview bus.
 	 */

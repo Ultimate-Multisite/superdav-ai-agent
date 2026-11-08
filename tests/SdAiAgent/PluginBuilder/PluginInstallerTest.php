@@ -163,6 +163,65 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * install_plugin() must not replace an untracked installed plugin.
+	 */
+	public function test_install_plugin_rejects_untracked_existing_slug_without_mutation(): void {
+		global $wpdb;
+		wp_mkdir_p( $this->plugin_dir );
+		$plugin_file = $this->plugin_dir . $this->test_slug . '.php';
+		$original    = '<?php /* Plugin Name: Existing Untracked Plugin */';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Synthetic installed-plugin fixture.
+		file_put_contents( $plugin_file, $original );
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		activate_plugin( $this->test_slug . '/' . $this->test_slug . '.php' );
+		$hash_before = hash_file( 'sha256', $plugin_file );
+
+		$result = PluginInstaller::install_plugin(
+			$this->test_slug,
+			'<?php /* Plugin Name: Replacement */',
+			'Replacement attempt',
+			[]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_slug_exists', $result->get_error_code() );
+		$this->assertSame( $hash_before, hash_file( 'sha256', $plugin_file ) );
+		$this->assertTrue( is_plugin_active( $this->test_slug . '/' . $this->test_slug . '.php' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion against the generated plugin table.
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ) ) );
+	}
+
+	/**
+	 * install_plugin() must not replace a tracked generated plugin.
+	 */
+	public function test_install_plugin_rejects_tracked_existing_slug_without_mutation(): void {
+		global $wpdb;
+		$original = PluginInstaller::install_plugin(
+			$this->test_slug,
+			'<?php /* Plugin Name: Existing Tracked Plugin */',
+			'Original',
+			[]
+		);
+		$this->assertIsArray( $original );
+		$plugin_file = $this->plugin_dir . $this->test_slug . '.php';
+		$hash_before = hash_file( 'sha256', $plugin_file );
+
+		$result = PluginInstaller::install_plugin(
+			$this->test_slug,
+			'<?php /* Plugin Name: Replacement */',
+			'Replacement attempt',
+			[]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_slug_exists', $result->get_error_code() );
+		$this->assertSame( $hash_before, hash_file( 'sha256', $plugin_file ) );
+		$this->assertFalse( is_plugin_active( $this->test_slug . '/' . $this->test_slug . '.php' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion against the generated plugin table.
+		$this->assertSame( '1', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ) ) );
+	}
+
+	/**
 	 * install_plugin() should reject PHP with syntax errors.
 	 */
 	public function test_install_plugin_rejects_invalid_php_syntax(): void {
@@ -429,6 +488,11 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	 * @return void
 	 */
 	private function cleanup_plugin_dir(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		$plugin_file = $this->test_slug . '/' . $this->test_slug . '.php';
+		if ( is_plugin_active( $plugin_file ) ) {
+			deactivate_plugins( $plugin_file, true );
+		}
 		$this->remove_directory( $this->plugin_dir );
 	}
 

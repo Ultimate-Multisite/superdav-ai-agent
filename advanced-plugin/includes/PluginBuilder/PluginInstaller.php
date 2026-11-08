@@ -440,6 +440,17 @@ class PluginInstaller {
 		$plugins_dir = trailingslashit( WP_PLUGIN_DIR );
 		$plugin_dir  = $plugins_dir . $slug . '/';
 
+		// Fresh installs must never adopt an existing on-disk plugin or tracking row.
+		// Intentional replacements belong to the sandboxed update flow.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Table name comes from a trusted internal method.
+		$tracked_id = $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name comes from a trusted internal method.
+			$wpdb->prepare( 'SELECT id FROM ' . self::table_name() . ' WHERE slug = %s LIMIT 1', $slug )
+		);
+		if ( null !== $tracked_id || self::path_entry_exists( $plugin_dir ) ) {
+			return self::plugin_slug_exists_error( $slug );
+		}
+
 		// Validate paths to prevent directory traversal.
 		$canonical_plugins = realpath( $plugins_dir );
 		if ( false === $canonical_plugins ) {
@@ -454,17 +465,8 @@ class PluginInstaller {
 			return $canonical_plugin_dir;
 		}
 
-		// Create plugin directory.
-		if ( ! wp_mkdir_p( $canonical_plugin_dir ) ) {
-			return new WP_Error(
-				'sd_ai_agent_mkdir_failed',
-				/* translators: %s: directory path */
-				sprintf( __( 'Could not create plugin directory: %s', 'superdav-ai-agent' ), $canonical_plugin_dir )
-			);
-		}
-
-		// Write each file.
-		$written = [];
+		// Validate and lint everything before claiming the target directory.
+		$validated_files = [];
 		foreach ( $files as $relative_path => $content ) {
 			$validated = self::validate_plugin_path( $slug, (string) $relative_path );
 			if ( is_wp_error( $validated ) ) {
@@ -478,25 +480,7 @@ class PluginInstaller {
 				);
 			}
 
-			$relative_path = $validated;
-			$abs_path      = trailingslashit( $canonical_plugin_dir ) . $relative_path;
-
-			// Ensure destination is inside plugin dir.
-			$dest_real = PathCanonicalizer::canonicalize_missing_path_inside( dirname( $abs_path ), $canonical_plugin_dir );
-			if ( is_wp_error( $dest_real ) ) {
-				return $dest_real;
-			}
-
-			if ( false === wp_mkdir_p( $dest_real ) ) {
-				return new WP_Error(
-					'sd_ai_agent_mkdir_failed',
-					/* translators: %s: directory path */
-					sprintf( __( 'Could not create directory: %s', 'superdav-ai-agent' ), $dest_real )
-				);
-			}
-
-			// Validate PHP syntax before writing.
-			if ( self::is_php_file( $relative_path ) ) {
+			if ( self::is_php_file( $validated ) ) {
 				$lint = self::lint_php( $content );
 				if ( ! $lint['valid'] ) {
 					return new WP_Error(
@@ -504,7 +488,7 @@ class PluginInstaller {
 						sprintf(
 							/* translators: 1: file path 2: error message 3: line number */
 							__( 'PHP syntax error in %1$s: %2$s (line %3$d)', 'superdav-ai-agent' ),
-							$relative_path,
+							$validated,
 							$lint['error'] ?? 'Unknown',
 							$lint['line'] ?? 0
 						)
@@ -512,20 +496,9 @@ class PluginInstaller {
 				}
 			}
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Plugin installation writes local files; WP_Filesystem not available at this stage.
-			$result = file_put_contents( $abs_path, $content );
-			if ( false === $result ) {
-				return new WP_Error(
-					'sd_ai_agent_write_failed',
-					/* translators: %s: file path */
-					sprintf( __( 'Could not write file: %s', 'superdav-ai-agent' ), $relative_path )
-				);
-			}
-
-			$written[] = $relative_path;
+			$validated_files[ $validated ] = $content;
 		}
 
-		// Determine the plugin file path relative to the plugins directory.
 		if ( empty( $plugin_file ) ) {
 			$plugin_file = $slug . '/' . $slug . '.php';
 		}
@@ -540,6 +513,66 @@ class PluginInstaller {
 				'sd_ai_agent_invalid_plugin_file_path',
 				__( 'Main plugin file path must point to a PHP file.', 'superdav-ai-agent' )
 			);
+		}
+
+		// FS_CHMOD_DIR is only defined once WP_Filesystem() has run; mirror the
+		// core default so a fresh request cannot fatal on the undefined constant.
+		$dir_mode = defined( 'FS_CHMOD_DIR' ) ? (int) FS_CHMOD_DIR : ( ( fileperms( ABSPATH ) & 0777 ) | 0755 );
+
+		// mkdir() is the atomic slug claim. A concurrent creator that wins the
+		// directory race is treated as a collision rather than being overwritten.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Atomic exclusive directory creation is required here.
+		if ( ! mkdir( $canonical_plugin_dir, $dir_mode ) ) {
+			if ( self::path_entry_exists( $plugin_dir ) ) {
+				return self::plugin_slug_exists_error( $slug );
+			}
+			return new WP_Error(
+				'sd_ai_agent_mkdir_failed',
+				/* translators: %s: directory path */
+				sprintf( __( 'Could not create plugin directory: %s', 'superdav-ai-agent' ), $canonical_plugin_dir )
+			);
+		}
+
+		// Write each file.
+		$written = [];
+		foreach ( $validated_files as $relative_path => $content ) {
+			$abs_path = trailingslashit( $canonical_plugin_dir ) . $relative_path;
+
+			// Ensure destination is inside plugin dir.
+			$dest_real = PathCanonicalizer::canonicalize_missing_path_inside( dirname( $abs_path ), $canonical_plugin_dir );
+			if ( is_wp_error( $dest_real ) ) {
+				self::remove_new_plugin_directory( $canonical_plugin_dir );
+				return $dest_real;
+			}
+
+			if ( false === wp_mkdir_p( $dest_real ) ) {
+				self::remove_new_plugin_directory( $canonical_plugin_dir );
+				return new WP_Error(
+					'sd_ai_agent_mkdir_failed',
+					/* translators: %s: directory path */
+					sprintf( __( 'Could not create directory: %s', 'superdav-ai-agent' ), $dest_real )
+				);
+			}
+
+			// Exclusive creation prevents a concurrent writer from being overwritten.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Exclusive mode is required for collision safety.
+			$handle = fopen( $abs_path, 'x+b' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Writing to the exclusive local file handle claimed above.
+			$result = false !== $handle ? fwrite( $handle, $content ) : false;
+			if ( false !== $handle ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the exclusive local file handle.
+				fclose( $handle );
+			}
+			if ( false === $result || strlen( $content ) !== $result ) {
+				self::remove_new_plugin_directory( $canonical_plugin_dir );
+				return new WP_Error(
+					'sd_ai_agent_write_failed',
+					/* translators: %s: file path */
+					sprintf( __( 'Could not write file: %s', 'superdav-ai-agent' ), $relative_path )
+				);
+			}
+
+			$written[] = $relative_path;
 		}
 
 		$plugin_file = $slug . '/' . $normalised_plugin_file;
@@ -565,6 +598,7 @@ class PluginInstaller {
 		);
 
 		if ( false === $insert ) {
+			self::remove_new_plugin_directory( $canonical_plugin_dir );
 			return new WP_Error(
 				'sd_ai_agent_db_insert_failed',
 				/* translators: %s: database error */
@@ -579,6 +613,39 @@ class PluginInstaller {
 			'plugin_dir'  => $plugin_dir,
 			'plugin_file' => $plugin_file,
 		];
+	}
+
+	/**
+	 * Build the uniform error returned when a fresh install collides.
+	 */
+	private static function plugin_slug_exists_error( string $slug ): WP_Error {
+		return new WP_Error(
+			'sd_ai_agent_plugin_slug_exists',
+			sprintf(
+				/* translators: %s: plugin slug */
+				__( 'A plugin already exists for slug "%s". Use the sandboxed update flow to change it.', 'superdav-ai-agent' ),
+				$slug
+			)
+		);
+	}
+
+	/**
+	 * Check for any filesystem entry, including a broken symbolic link.
+	 *
+	 * @phpstan-impure The filesystem can change between collision checks.
+	 */
+	private static function path_entry_exists( string $path ): bool {
+		return file_exists( $path ) || is_link( untrailingslashit( $path ) );
+	}
+
+	/**
+	 * Remove only the directory exclusively created by the current install.
+	 */
+	private static function remove_new_plugin_directory( string $plugin_dir ): void {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+		$filesystem = new \WP_Filesystem_Direct( [] );
+		$filesystem->rmdir( $plugin_dir, true );
 	}
 
 	/**

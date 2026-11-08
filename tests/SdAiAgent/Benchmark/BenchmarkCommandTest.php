@@ -1020,6 +1020,22 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 0, fileperms( $this->private_root ) & 0077 );
 	}
 
+	public function test_filtered_default_is_used_when_user_state_storage_is_unavailable(): void {
+		$original_state_home = getenv( 'XDG_STATE_HOME' );
+		$original_home       = getenv( 'HOME' );
+		putenv( 'XDG_STATE_HOME' );
+		putenv( 'HOME' );
+		try {
+			$result = $this->invoke( 'prepare_log_directory', array( '' ) );
+		} finally {
+			putenv( false === $original_state_home ? 'XDG_STATE_HOME' : 'XDG_STATE_HOME=' . $original_state_home );
+			putenv( false === $original_home ? 'HOME' : 'HOME=' . $original_home );
+		}
+
+		$this->assertSame( $this->private_root, $result );
+		$this->assertSame( 0, fileperms( $this->private_root ) & 0077 );
+	}
+
 	public function test_unfiltered_default_uses_user_state_storage(): void {
 		$result = $this->invoke( 'default_log_directory', array( ABSPATH ) );
 

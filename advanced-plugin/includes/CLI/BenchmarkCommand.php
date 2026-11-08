@@ -493,19 +493,23 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		if ( '' === $requested_path ) {
-			$default_path = $this->default_log_directory( $site_path );
-			if ( is_wp_error( $default_path ) ) {
-				return $default_path;
-			}
+			$default_path  = $this->default_log_directory( $site_path );
+			$default_error = is_wp_error( $default_path ) ? $default_path : null;
 
 			/**
 			 * Filter the private directory used for benchmark logs.
 			 *
 			 * The selected directory must remain outside all web-served WordPress paths.
 			 *
-			 * @param string $default_path Site-specific default private path.
+			 * @param string $default_path Site-specific default private path, or an empty string when unavailable.
 			 */
-			$requested_path = (string) apply_filters( 'sd_ai_agent_benchmark_private_log_dir', $default_path );
+			$requested_path = (string) apply_filters(
+				'sd_ai_agent_benchmark_private_log_dir',
+				null !== $default_error ? '' : $default_path
+			);
+			if ( '' === $requested_path && null !== $default_error ) {
+				return $default_error;
+			}
 		}
 
 		if ( ! path_is_absolute( $requested_path ) ) {

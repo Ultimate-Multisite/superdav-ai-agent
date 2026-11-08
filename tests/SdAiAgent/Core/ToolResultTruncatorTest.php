@@ -325,6 +325,52 @@ class ToolResultTruncatorTest extends WP_UnitTestCase {
 		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $result ) ) );
 	}
 
+	/** An oversized single theme remains usable in direct and dispatcher results. */
+	public function test_oversized_single_theme_retains_identity_status_and_continuation(): void {
+		$escaped_unicode = str_repeat( 'é', 300 );
+		$inventory       = [
+			'themes' => [
+				[
+					'slug'    => "theme-{$escaped_unicode}",
+					'name'    => "Theme {$escaped_unicode}",
+					'version' => "1.0-{$escaped_unicode}",
+					'active'  => true,
+				],
+			],
+			'total'  => 2,
+			'offset' => 0,
+			'limit'  => 100,
+			'active' => "theme-{$escaped_unicode}",
+		];
+
+		$direct    = ToolResultTruncator::truncate( $inventory, 'sd-ai-agent/get-themes' );
+		$enveloped = ToolResultTruncator::truncate(
+			[
+				'ability' => 'sd-ai-agent/get-themes',
+				'success' => true,
+				'result'  => $inventory,
+			],
+			'sd-ai-agent/ability-call'
+		);
+
+		foreach ( [ $direct, $enveloped['result'] ] as $result ) {
+			$this->assertCount( 1, $result['themes'] );
+			$this->assertTrue( $result['themes'][0]['active'] );
+			$this->assertStringStartsWith( 'theme-', $result['themes'][0]['slug'] );
+			$this->assertStringStartsWith( 'Theme ', $result['themes'][0]['name'] );
+			$this->assertStringStartsWith( '1.0-', $result['themes'][0]['version'] );
+			$this->assertStringStartsWith( 'theme-', $result['active'] );
+			$this->assertSame( 1, $result['showing'] );
+			$this->assertTrue( $result['has_more'] );
+			$this->assertSame( 1, $result['next_offset'] );
+			$this->assertSame( [ 'offset' => 1, 'limit' => 100 ], $result['next_arguments'] );
+			$this->assertSame( 1, preg_match( '//u', (string) wp_json_encode( $result ) ) );
+		}
+
+		$this->assertLessThanOrEqual( 3584, strlen( (string) wp_json_encode( $direct ) ) );
+		$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( (string) wp_json_encode( $enveloped ) ) );
+	}
+
 	/**
 	 * Build representative verbose inventory rows.
 	 *

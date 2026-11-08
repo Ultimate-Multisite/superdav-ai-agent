@@ -48,6 +48,11 @@ class ToolResultTruncator {
 	private const THEME_INVENTORY_BYTES = 3584;
 
 	/**
+	 * Maximum raw bytes retained per string when one theme alone exceeds the reserve.
+	 */
+	private const OVERSIZED_THEME_STRING_BYTES = 64;
+
+	/**
 	 * Truncate a tool result if it exceeds the size threshold.
 	 *
 	 * @param mixed  $result    The raw tool result (array, string, or scalar).
@@ -506,6 +511,8 @@ class ToolResultTruncator {
 				'active'  => (bool) ( $theme['active'] ?? false ),
 			];
 		}
+		$active               = self::compact_inventory_string( $result['active'] ?? '' );
+		$single_theme_bounded = false;
 
 		do {
 			$showing     = count( $themes );
@@ -519,7 +526,7 @@ class ToolResultTruncator {
 				'limit'       => $limit,
 				'has_more'    => $has_more,
 				'next_offset' => $has_more ? $next_offset : null,
-				'active'      => self::compact_inventory_string( $result['active'] ?? '' ),
+				'active'      => $active,
 				'_truncated'  => $has_more,
 			];
 			if ( $has_more ) {
@@ -530,7 +537,21 @@ class ToolResultTruncator {
 			}
 
 			$encoded = wp_json_encode( $compact );
-			if ( ! is_string( $encoded ) || strlen( $encoded ) <= self::THEME_INVENTORY_BYTES || count( $themes ) <= 1 ) {
+			if ( ! is_string( $encoded ) || strlen( $encoded ) <= self::THEME_INVENTORY_BYTES ) {
+				return $compact;
+			}
+			if ( 1 === count( $themes ) && ! $single_theme_bounded ) {
+				foreach ( [ 'slug', 'name', 'version' ] as $field ) {
+					$themes[0][ $field ] = self::compact_inventory_string(
+						$themes[0][ $field ],
+						self::OVERSIZED_THEME_STRING_BYTES
+					);
+				}
+				$active               = self::compact_inventory_string( $active, self::OVERSIZED_THEME_STRING_BYTES );
+				$single_theme_bounded = true;
+				continue;
+			}
+			if ( count( $themes ) <= 1 ) {
 				return $compact;
 			}
 			array_pop( $themes );
@@ -540,15 +561,16 @@ class ToolResultTruncator {
 	/**
 	 * Return a short valid UTF-8 inventory field without splitting a codepoint.
 	 *
-	 * @param mixed $value Inventory field.
+	 * @param mixed $value      Inventory field.
+	 * @param int   $max_length Maximum raw bytes to retain.
 	 */
-	private static function compact_inventory_string( $value ): string {
+	private static function compact_inventory_string( $value, int $max_length = self::MAX_STRING_LENGTH ): string {
 		$string = is_scalar( $value ) ? (string) $value : '';
-		if ( strlen( $string ) <= self::MAX_STRING_LENGTH ) {
+		if ( strlen( $string ) <= $max_length ) {
 			return $string;
 		}
 
-		$prefix = substr( $string, 0, self::MAX_STRING_LENGTH );
+		$prefix = substr( $string, 0, $max_length );
 		while ( '' !== $prefix && 1 !== preg_match( '//u', $prefix ) ) {
 			$prefix = substr( $prefix, 0, -1 );
 		}

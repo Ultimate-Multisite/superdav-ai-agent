@@ -683,7 +683,7 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->private_root           = sys_get_temp_dir() . '/sd-ai-agent-benchmark-private-' . wp_generate_uuid4();
 		$this->uploads_root           = sys_get_temp_dir() . '/sd-ai-agent-benchmark-public-' . wp_generate_uuid4();
 		$this->original_document_root = $_SERVER['DOCUMENT_ROOT'] ?? null;
-		$_SERVER['DOCUMENT_ROOT']     = dirname( untrailingslashit( ABSPATH ) );
+		$_SERVER['DOCUMENT_ROOT']     = untrailingslashit( ABSPATH );
 		wp_mkdir_p( $this->uploads_root );
 		add_filter( 'upload_dir', array( $this, 'filter_upload_dir' ) );
 		add_filter( 'sd_ai_agent_benchmark_private_log_dir', array( $this, 'filter_private_root' ) );

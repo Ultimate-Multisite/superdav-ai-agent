@@ -39,7 +39,12 @@ class SkillsCommand extends WP_CLI_Command {
 
 	/**
 	 * Raw content base for direct file downloads.
+	 *
+	 * Used only by the explicit `wp sd-ai-agent skills sync-wp-agent-skills`
+	 * command to fetch upstream SKILL.md markdown into the local skill store.
+	 * Nothing from this host is enqueued or served to browsers.
 	 */
+	// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- WP-CLI markdown sync source, not an offloaded front-end asset.
 	private const UPSTREAM_RAW_BASE = 'https://raw.githubusercontent.com/WordPress/agent-skills/trunk/skills';
 
 	/**

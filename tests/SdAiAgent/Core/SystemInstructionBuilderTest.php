@@ -160,6 +160,28 @@ class SystemInstructionBuilderTest extends WP_UnitTestCase {
 		);
 	}
 
+	/** Explicit output contracts take precedence over conversational suggestion chips. */
+	public function test_follow_up_suggestions_preserve_exclusive_output_contracts(): void {
+		$instruction = ( new SystemInstructionBuilder() )->build( array( 'suggestion_count' => 3 ) );
+
+		$this->assertStringContainsString( 'After each response, include exactly 3 brief follow-up suggestions', $instruction );
+		$this->assertStringContainsString(
+			'omit suggestions whenever the user explicitly requires code-only, raw-source, JSON-only, machine-readable, a single fenced code block, or otherwise exclusive output',
+			$instruction
+		);
+		$this->assertStringContainsString( 'obey that output contract exactly and return nothing beyond its required format', $instruction );
+	}
+
+	/** Tool-result summaries must not violate exclusive response formats. */
+	public function test_tool_result_summaries_preserve_exclusive_output_contracts(): void {
+		foreach ( array( false, true ) as $native_tool_search ) {
+			$instruction = SystemInstructionBuilder::default_system_instruction( $native_tool_search );
+
+			$this->assertStringContainsString( 'when the user explicitly requires raw source or another exclusive output format', $instruction );
+			$this->assertStringContainsString( 'then return only that required format', $instruction );
+		}
+	}
+
 	/** Non-native first requests must stay comfortably below the payload guard. */
 	public function test_non_native_instruction_stays_within_first_request_budget(): void {
 		$instruction = ( new SystemInstructionBuilder() )->build(

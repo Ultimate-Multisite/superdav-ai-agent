@@ -134,15 +134,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				}
 			}
 
-			$request = $this->createRequest(
-				HttpMethodEnum::POST(),
-				'responses',
-				array( 'Content-Type' => 'application/json' ),
-				$params
-			);
-			$request = $this->getRequestAuthentication()->authenticateRequest( $request );
-
-			$response = $this->getHttpTransporter()->send( $request );
+			$response = $this->send_responses_request( $params );
 			ResponseUtil::throwIfNotSuccessful( $response );
 
 			$result = $this->parse_response_to_generative_ai_result( $response );
@@ -248,11 +240,180 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @return Request
 	 */
 	protected function createRequest( HttpMethodEnum $method, string $path, array $headers = array(), mixed $data = null ): Request {
-		$request_headers = 'responses' === trim( $path, '/' )
+		$endpoint        = trim( (string) strtok( $path, '?' ), '/' );
+		$request_headers = 'responses' === $endpoint || str_starts_with( $endpoint, 'responses/' )
 			? SuperdavAiProvider::with_managed_chat_attribution( $headers )
 			: SuperdavAiProvider::with_session_attribution( $headers );
 
 		return new Request( $method, SuperdavAiProvider::url( $path ), $request_headers, $data, $this->getRequestOptions() );
+	}
+
+	/** Seconds each create/poll request may wait server-side for completion (below Cloudflare's origin limit). */
+	private const BACKGROUND_WAIT_SECONDS = 45;
+
+	/** Total polling budget; stays below the 600s worker time limit and the 15-minute stale-job reaper. */
+	private const BACKGROUND_MAX_SECONDS = 540;
+
+	/** Remembers a service without background support so later turns skip the extra round trip. */
+	private const BACKGROUND_UNSUPPORTED_TRANSIENT = 'sd_ai_agent_responses_background_unsupported';
+
+	/**
+	 * Send a Responses request, using edge background mode when the service supports it.
+	 *
+	 * Background mode removes the buffered edge/CDN timeouts for long generations. The
+	 * create call and each poll long-wait server-side and return as soon as the job
+	 * finishes, so short requests complete in one round trip and long ones without
+	 * polling delay.
+	 *
+	 * @param array<string, mixed> $params Responses request body.
+	 */
+	private function send_responses_request( array $params ): Response {
+		/**
+		 * Filters whether managed Responses requests use edge background mode.
+		 *
+		 * @param bool $enabled Whether background mode is enabled.
+		 */
+		$enabled = (bool) apply_filters( 'sd_ai_agent_responses_background_enabled', true );
+		if ( ! $enabled || get_transient( self::BACKGROUND_UNSUPPORTED_TRANSIENT ) ) {
+			return $this->send_responses_api( HttpMethodEnum::POST(), 'responses', $params );
+		}
+
+		$wait     = $this->background_wait_seconds();
+		$response = $this->send_responses_api( HttpMethodEnum::POST(), 'responses?wait=' . $wait, array_merge( $params, array( 'background' => true ) ) );
+		$code     = $this->response_error_code( $response );
+		if ( 'background_responses_capacity' === $code ) {
+			// Edge background pool is full; a buffered request still works for most turns.
+			return $this->send_responses_api( HttpMethodEnum::POST(), 'responses', $params );
+		}
+		if ( 400 === $response->getStatusCode() && in_array( $code, array( 'invalid_responses_request', 'background_responses_unavailable' ), true ) ) {
+			// Older services reject the background field; only remember that when the plain request succeeds.
+			$buffered = $this->send_responses_api( HttpMethodEnum::POST(), 'responses', $params );
+			if ( $buffered->isSuccessful() ) {
+				set_transient( self::BACKGROUND_UNSUPPORTED_TRANSIENT, 1, HOUR_IN_SECONDS );
+			}
+			return $buffered;
+		}
+		if ( ! $response->isSuccessful() ) {
+			return $response;
+		}
+
+		$deadline = time() + $this->background_max_seconds();
+		$data     = $response->getData();
+		$backoff  = 0;
+		while ( is_array( $data ) && in_array( $data['status'] ?? '', array( 'queued', 'in_progress' ), true ) ) {
+			$id = is_string( $data['id'] ?? null ) ? $data['id'] : '';
+			if ( ! preg_match( '/^resp_bg[a-f0-9]{32}$/', $id ) ) {
+				return $this->background_failure_response( 'responses_invalid_result', 'The AI service returned an invalid background response.' );
+			}
+			$remaining = $deadline - time();
+			if ( $remaining <= 0 ) {
+				$this->send_responses_api( HttpMethodEnum::POST(), 'responses/' . $id . '/cancel', null );
+				return $this->background_failure_response( 'managed_service_timeout', 'The AI service did not finish this request in time.', 504 );
+			}
+			$poll_started = microtime( true );
+			$response     = $this->send_responses_api( HttpMethodEnum::GET(), 'responses/' . $id . '?wait=' . min( $wait, $remaining ), null );
+			if ( ! $response->isSuccessful() ) {
+				return $response;
+			}
+			$data = $response->getData();
+
+			// The service answers immediately when its waiter pool is full (or a proxy drops `wait`);
+			// back off instead of re-polling in a tight loop until the deadline.
+			$still_running = is_array( $data ) && in_array( $data['status'] ?? '', array( 'queued', 'in_progress' ), true );
+			if ( $still_running && microtime( true ) - $poll_started < 1.0 ) {
+				$backoff = min( 5, $backoff + 1 );
+				$this->background_poll_pause( min( $backoff, max( 0, $deadline - time() ) ) );
+			} else {
+				$backoff = 0;
+			}
+		}
+
+		if ( ! is_array( $data ) || ! in_array( $data['status'] ?? '', array( 'completed', 'incomplete' ), true ) ) {
+			$error = is_array( $data ) && is_array( $data['error'] ?? null ) ? $data['error'] : array();
+			return $this->background_failure_response(
+				is_string( $error['code'] ?? null ) ? $error['code'] : 'responses_outcome_unknown',
+				is_string( $error['message'] ?? null ) ? $error['message'] : 'The AI service could not complete this request.'
+			);
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Send one authenticated Responses API call.
+	 *
+	 * @param HttpMethodEnum            $method HTTP method.
+	 * @param string                    $path   Endpoint path, optionally with a query string.
+	 * @param array<string, mixed>|null $data   Request body, or null for body-less calls.
+	 */
+	private function send_responses_api( HttpMethodEnum $method, string $path, ?array $data ): Response {
+		$headers = null === $data ? array() : array( 'Content-Type' => 'application/json' );
+		$request = $this->createRequest( $method, $path, $headers, $data );
+		$request = $this->getRequestAuthentication()->authenticateRequest( $request );
+
+		return $this->getHttpTransporter()->send( $request );
+	}
+
+	/** Server-side wait per request, kept below the transport timeout. */
+	private function background_wait_seconds(): int {
+		$timeout = $this->getRequestOptions()?->getTimeout();
+		$limit   = null === $timeout ? self::BACKGROUND_WAIT_SECONDS : max( 1, (int) floor( $timeout ) - 5 );
+
+		return max( 1, min( self::BACKGROUND_WAIT_SECONDS, $limit ) );
+	}
+
+	/**
+	 * Pause between early-returning polls.
+	 *
+	 * @param int $seconds Seconds to wait; filterable so tests and hosts can shorten it.
+	 */
+	private function background_poll_pause( int $seconds ): void {
+		/**
+		 * Filters the pause between background polls that returned before the long-poll wait elapsed.
+		 *
+		 * @param int $seconds Pause in seconds (escalates 1–5).
+		 */
+		$seconds = max( 0, (int) apply_filters( 'sd_ai_agent_responses_background_poll_pause', $seconds ) );
+		if ( $seconds > 0 ) {
+			sleep( $seconds );
+		}
+	}
+
+	/** Total polling budget in seconds. */
+	private function background_max_seconds(): int {
+		/**
+		 * Filters the total seconds a managed background Responses request may be polled.
+		 *
+		 * @param int $seconds Polling budget in seconds.
+		 */
+		return max( 1, (int) apply_filters( 'sd_ai_agent_responses_background_max_seconds', self::BACKGROUND_MAX_SECONDS ) );
+	}
+
+	/** Extract a stable OpenAI-style error code from a failed response. */
+	private function response_error_code( Response $response ): string {
+		if ( $response->isSuccessful() ) {
+			return '';
+		}
+		$data = $response->getData();
+
+		return is_array( $data ) && is_array( $data['error'] ?? null ) && is_string( $data['error']['code'] ?? null ) ? $data['error']['code'] : '';
+	}
+
+	/** Represent a terminal background failure as an error response so existing error handling applies. */
+	private function background_failure_response( string $code, string $message, int $status = 502 ): Response {
+		return new Response(
+			$status,
+			array( 'Content-Type' => 'application/json' ),
+			(string) wp_json_encode(
+				array(
+					'error' => array(
+						'message' => $message,
+						'type'    => 'server_error',
+						'code'    => $code,
+					),
+				)
+			)
+		);
 	}
 
 	/**

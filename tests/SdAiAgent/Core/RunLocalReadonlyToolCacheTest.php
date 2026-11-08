@@ -13,6 +13,19 @@ use WP_UnitTestCase;
 /** @group agent-loop */
 class RunLocalReadonlyToolCacheTest extends WP_UnitTestCase {
 
+	/** Pure discovery must not erase an unchanged file-read fingerprint. */
+	public function test_discovery_preserves_reads_but_unknown_tools_invalidate(): void {
+		$read = new ModelMessage( [ new MessagePart( new FunctionCall( 'read', 'wpab__sd-ai-agent__file-read', [ 'path' => 'theme/style.css' ] ) ) ] );
+		foreach ( [ 'ability-search', 'skill-list', 'skill-load' ] as $name ) {
+			$cache = new RunLocalReadonlyToolCache();
+			$cache->record( $read );
+			$cache->reuse( new ModelMessage( [ new MessagePart( new FunctionCall( 'discovery', 'wpab__sd-ai-agent__' . $name, [] ) ) ] ) );
+			$this->assertSame( 1, $cache->reuse( $read )['count'] );
+			$cache->reuse( new ModelMessage( [ new MessagePart( new FunctionCall( 'unknown', 'unknown/tool', [] ) ) ] ) );
+			$this->assertSame( 0, $cache->reuse( $read )['count'] );
+		}
+	}
+
 	public function test_reuses_normalized_file_read_arguments_within_one_run(): void {
 		if ( ! class_exists( ModelMessage::class ) ) {
 			$this->markTestSkipped( 'WP AI Client message classes are not available.' );

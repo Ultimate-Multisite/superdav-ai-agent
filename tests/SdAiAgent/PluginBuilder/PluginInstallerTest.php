@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * Test case for PluginInstaller class.
  *
@@ -36,6 +38,8 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	 */
 	public function setUp(): void {
 		parent::setUp();
+		add_filter( 'file_mod_allowed', '__return_true', PHP_INT_MAX );
+		add_filter( 'sd_ai_agent_allow_shared_code_modifications', '__return_true', PHP_INT_MAX );
 		$this->plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $this->test_slug . '/';
 		$this->cleanup_plugin_dir();
 	}
@@ -46,6 +50,8 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	public function tearDown(): void {
 		$this->cleanup_plugin_dir();
 		$this->cleanup_db_records();
+		remove_filter( 'file_mod_allowed', '__return_true', PHP_INT_MAX );
+		remove_filter( 'sd_ai_agent_allow_shared_code_modifications', '__return_true', PHP_INT_MAX );
 		parent::tearDown();
 	}
 
@@ -315,6 +321,7 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	 * install_complex_plugin() should reject PHP with syntax errors.
 	 */
 	public function test_install_complex_plugin_rejects_invalid_php_syntax(): void {
+		global $wpdb;
 		$files = [
 			$this->test_slug . '.php' => '<?php /* Plugin Name: Complex Test */',
 			'includes/broken.php' => '<?php $x = ;', // Missing value after =
@@ -331,8 +338,81 @@ class PluginInstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_php_syntax_error', $result->get_error_code() );
 		$this->assertStringContainsString( 'syntax error', $result->get_error_message() );
 
-		// The broken file should not be written (lint check prevents it).
-		$this->assertFileDoesNotExist( $this->plugin_dir . 'includes/broken.php' );
+		$this->assertDirectoryDoesNotExist( $this->plugin_dir );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion against the generated plugin table.
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ) ) );
+	}
+
+	/**
+	 * A later install write failure removes only the newly claimed plugin directory.
+	 */
+	public function test_install_complex_plugin_rolls_back_after_later_write_failure(): void {
+		global $wpdb;
+		$result = PluginInstaller::install_complex_plugin(
+			$this->test_slug,
+			[
+				$this->test_slug . '.php' => '<?php /* Plugin Name: Atomic Install */',
+				'blocked'                  => 'This file prevents a child directory from being created.',
+				'blocked/later.php'        => '<?php /* valid but unwritable destination */',
+			],
+			'Atomic install test',
+			[]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_mkdir_failed', $result->get_error_code() );
+		$this->assertDirectoryDoesNotExist( $this->plugin_dir );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion against the generated plugin table.
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ) ) );
+	}
+
+	/**
+	 * A failed metadata insert removes every file from the fresh installation.
+	 */
+	public function test_install_complex_plugin_rolls_back_after_db_insert_failure(): void {
+		global $wpdb;
+		$original_wpdb = $wpdb;
+		$wpdb          = new class( $original_wpdb ) {
+			private \wpdb $delegate;
+			public string $prefix;
+			public int $insert_id = 0;
+			public string $last_error = 'Simulated generated plugin insert failure.';
+
+			public function __construct( \wpdb $delegate ) {
+				$this->delegate = $delegate;
+				$this->prefix   = $delegate->prefix;
+			}
+
+			public function __call( string $name, array $arguments ): mixed {
+				return $this->delegate->{$name}( ...$arguments );
+			}
+
+			public function __get( string $name ): mixed {
+				return $this->delegate->{$name};
+			}
+
+			public function insert(): false {
+				return false;
+			}
+		};
+
+		try {
+			$result = PluginInstaller::install_complex_plugin(
+				$this->test_slug,
+				[
+					$this->test_slug . '.php' => '<?php /* Plugin Name: Failed DB Install */',
+					'includes/valid.php'       => '<?php /* valid */',
+				],
+				'Database failure test',
+				[]
+			);
+		} finally {
+			$wpdb = $original_wpdb;
+		}
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_db_insert_failed', $result->get_error_code() );
+		$this->assertDirectoryDoesNotExist( $this->plugin_dir );
 	}
 
 	/**
@@ -378,6 +458,23 @@ class PluginInstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 'sd_ai_agent_invalid_plugin_file_path', $result->get_error_code() );
 		$this->assertDirectoryDoesNotExist( $plugin_dir . $slug );
 		$this->remove_directory( $plugin_dir );
+	}
+
+	/**
+	 * install() must reject a main entrypoint that is absent from the file set.
+	 */
+	public function test_install_rejects_missing_main_plugin_file_before_writing(): void {
+		$result = PluginInstaller::install(
+			$this->test_slug,
+			[ 'includes/helper.php' => '<?php /* helper */' ],
+			'Missing entrypoint test',
+			'{}',
+			$this->test_slug . '/missing-main.php'
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_plugin_file_missing', $result->get_error_code() );
+		$this->assertDirectoryDoesNotExist( $this->plugin_dir );
 	}
 
 	// ─── update_plugin_files ─────────────────────────────────────────────────
@@ -429,6 +526,166 @@ class PluginInstallerTest extends WP_UnitTestCase {
 		$file_path = $this->plugin_dir . $this->test_slug . '.php';
 		$this->assertFileExists( $file_path );
 		$this->assertStringContainsString( 'updated', file_get_contents( $file_path ) );
+	}
+
+	/**
+	 * Updates preserve a generated plugin's recorded non-canonical entrypoint.
+	 */
+	public function test_update_plugin_files_uses_recorded_main_plugin_file(): void {
+		$install = PluginInstaller::install_complex_plugin(
+			$this->test_slug,
+			[
+				'main-entry.php' => '<?php /* Plugin Name: Alternate Entrypoint */',
+				'first.txt'      => 'ORIGINAL',
+			],
+			'Alternate entrypoint test',
+			[]
+		);
+		$this->assertIsArray( $install );
+		$this->assertSame( $this->test_slug . '/main-entry.php', $install['plugin_file'] );
+
+		$result = PluginInstaller::update_plugin_files(
+			$this->test_slug,
+			[ 'first.txt' => 'CHANGED' ]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'CHANGED', file_get_contents( $this->plugin_dir . 'first.txt' ) );
+		$this->assertFileExists( $this->plugin_dir . 'main-entry.php' );
+	}
+
+	/**
+	 * Invalid later PHP content must not persist an earlier ordered update.
+	 */
+	public function test_update_plugin_files_preflights_all_content_before_mutation(): void {
+		global $wpdb;
+		$install = PluginInstaller::install_complex_plugin(
+			$this->test_slug,
+			[
+				$this->test_slug . '.php' => '<?php /* Plugin Name: Atomic Update */',
+				'first.txt'                => 'ORIGINAL',
+				'second.php'               => '<?php /* original */',
+			],
+			'Original metadata',
+			[ 'step' => 'original' ]
+		);
+		$this->assertIsArray( $install );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test snapshot of generated plugin metadata.
+		$metadata_before = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A );
+
+		$result = PluginInstaller::update_plugin_files(
+			$this->test_slug,
+			[
+				'first.txt'  => 'CHANGED',
+				'second.php' => '<?php $broken = ;',
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_php_syntax_error', $result->get_error_code() );
+		$this->assertSame( 'ORIGINAL', file_get_contents( $this->plugin_dir . 'first.txt' ) );
+		$this->assertSame( '<?php /* original */', file_get_contents( $this->plugin_dir . 'second.php' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion that metadata is byte-for-byte unchanged.
+		$this->assertSame( $metadata_before, $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A ) );
+	}
+
+	/**
+	 * A later staging write failure leaves live files and metadata unchanged.
+	 */
+	public function test_update_plugin_files_rolls_back_after_later_write_failure(): void {
+		global $wpdb;
+		$install = PluginInstaller::install_complex_plugin(
+			$this->test_slug,
+			[
+				$this->test_slug . '.php' => '<?php /* Plugin Name: Atomic Update */',
+				'first.txt'                => 'ORIGINAL',
+				'blocked'                  => 'This remains a file.',
+			],
+			'Original metadata',
+			[]
+		);
+		$this->assertIsArray( $install );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test snapshot of generated plugin metadata.
+		$metadata_before = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A );
+
+		$result = PluginInstaller::update_plugin_files(
+			$this->test_slug,
+			[
+				'first.txt'         => 'CHANGED',
+				'blocked/later.php' => '<?php /* valid but unwritable staging destination */',
+			]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_staging_write_failed', $result->get_error_code() );
+		$this->assertSame( 'ORIGINAL', file_get_contents( $this->plugin_dir . 'first.txt' ) );
+		$this->assertSame( 'This remains a file.', file_get_contents( $this->plugin_dir . 'blocked' ) );
+		$this->assertFileDoesNotExist( $this->plugin_dir . 'blocked/later.php' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion that metadata is byte-for-byte unchanged.
+		$this->assertSame( $metadata_before, $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A ) );
+	}
+
+	/**
+	 * A metadata update failure restores every original file and database field.
+	 */
+	public function test_update_plugin_files_rolls_back_after_db_update_failure(): void {
+		global $wpdb;
+		$install = PluginInstaller::install_complex_plugin(
+			$this->test_slug,
+			[
+				$this->test_slug . '.php' => '<?php /* Plugin Name: Atomic DB Update */',
+				'first.txt'                => 'ORIGINAL',
+				'second.php'               => '<?php /* original */',
+			],
+			'Original metadata',
+			[ 'step' => 'original' ]
+		);
+		$this->assertIsArray( $install );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test snapshot of generated plugin metadata.
+		$metadata_before = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A );
+
+		$original_wpdb = $wpdb;
+		$wpdb          = new class( $original_wpdb ) {
+			private \wpdb $delegate;
+			public string $prefix;
+			public string $last_error = 'Simulated generated plugin update failure.';
+
+			public function __construct( \wpdb $delegate ) {
+				$this->delegate = $delegate;
+				$this->prefix   = $delegate->prefix;
+			}
+
+			public function __call( string $name, array $arguments ): mixed {
+				return $this->delegate->{$name}( ...$arguments );
+			}
+
+			public function __get( string $name ): mixed {
+				return $this->delegate->{$name};
+			}
+
+			public function update(): false {
+				return false;
+			}
+		};
+
+		try {
+			$result = PluginInstaller::update_plugin_files(
+				$this->test_slug,
+				[
+					'first.txt'  => 'CHANGED',
+					'second.php' => '<?php /* changed */',
+				]
+			);
+		} finally {
+			$wpdb = $original_wpdb;
+		}
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_db_update_failed', $result->get_error_code() );
+		$this->assertSame( 'ORIGINAL', file_get_contents( $this->plugin_dir . 'first.txt' ) );
+		$this->assertSame( '<?php /* original */', file_get_contents( $this->plugin_dir . 'second.php' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion that metadata is byte-for-byte unchanged.
+		$this->assertSame( $metadata_before, $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A ) );
 	}
 
 	/**

@@ -4789,6 +4789,28 @@ class AgentLoopTest extends WP_UnitTestCase {
 	// Production hardening: spin detection
 	// -------------------------------------------------------------------------
 
+	/** Reused reads must terminate just like repeated executed inspections. */
+	public function test_cached_file_read_spin_stops_before_iteration_exhaustion(): void {
+		$results = [];
+		for ( $index = 0; $index < 10; ++$index ) {
+			$results[] = $this->create_scripted_result( '', new FunctionCall( 'cached_' . $index, 'wpab__sd-ai-agent__file-read', [ 'path' => 'stable-fixture.php' ] ) );
+		}
+		$response = new UserMessage( [ new MessagePart( new FunctionResponse( 'cached_0', 'wpab__sd-ai-agent__file-read', [ 'content' => 'Stable fixture' ] ) ) ] );
+		$loop = new ScriptedAbilityAgentLoop(
+			'Inspect the fixture once and finish.',
+			[ 'sd-ai-agent/file-read' ],
+			[],
+			[ 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model', 'max_iterations' => 10, 'yolo_mode' => true ],
+			$results,
+			$response
+		);
+		$result = $loop->run();
+		$this->assertIsArray( $result );
+		$this->assertSame( 'spin_detected', $result['exit_reason'] );
+		$this->assertLessThanOrEqual( AgentLoop::MAX_IDLE_ROUNDS + 1, count( $loop->requestSizes ) );
+		$this->assertCount( 1, $loop->executedAbilityMessages );
+	}
+
 	/**
 	 * Test run() detects spin (identical tool calls repeated) and exits gracefully.
 	 *

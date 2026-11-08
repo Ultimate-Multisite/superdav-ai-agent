@@ -16,7 +16,7 @@ use SdAiAgent\Core\ModelCapabilityRegistry;
 use SdAiAgent\Core\Settings;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\UserMessage;
-use WordPress\AiClient\Messages\DTO\AssistantMessage;
+use WordPress\AiClient\Messages\DTO\ModelMessage;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Tools\DTO\FunctionCall;
 use WordPress\AiClient\Tools\DTO\FunctionResponse;
@@ -36,7 +36,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 		parent::set_up();
 
 		// Skip tests if AI Client SDK is not available.
-		if ( ! class_exists( AssistantMessage::class ) ) {
+		if ( ! class_exists( ModelMessage::class ) ) {
 			$this->markTestSkipped( 'AI Client SDK not available.' );
 		}
 
@@ -67,10 +67,10 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	 * Create a mock assistant message.
 	 *
 	 * @param string $text Message text.
-	 * @return AssistantMessage
+	 * @return ModelMessage
 	 */
-	private function create_assistant_message( string $text ): AssistantMessage {
-		return new AssistantMessage( [ new MessagePart( $text ) ] );
+	private function create_assistant_message( string $text ): ModelMessage {
+		return new ModelMessage( [ new MessagePart( $text ) ] );
 	}
 
 	/**
@@ -150,7 +150,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 
 	/** Provider-measured context adds only the new request bytes at four bytes per token. */
 	public function test_next_request_token_estimate_uses_reported_input_tokens(): void {
-		$this->assertSame( 21000, ConversationTrimmer::estimate_next_request_tokens( 20000, 4096 ) );
+		$this->assertSame( 21024, ConversationTrimmer::estimate_next_request_tokens( 20000, 4096 ) );
 	}
 
 	/**
@@ -433,27 +433,9 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	private function create_tool_call_message( array $calls ): object {
 		$parts = [];
 		foreach ( $calls as $call_def ) {
-			$call = $this->createMock( FunctionCall::class );
-			$call->method( 'getId' )->willReturn( $call_def['id'] );
-			$call->method( 'getName' )->willReturn( $call_def['name'] );
-			$call->method( 'getArgs' )->willReturn( [] );
-
-			$part = $this->createMock( MessagePart::class );
-			$part->method( 'getFunctionCall' )->willReturn( $call );
-			$part->method( 'getFunctionResponse' )->willReturn( null );
-			$part->method( 'getText' )->willReturn( null );
-
-			$parts[] = $part;
+			$parts[] = new MessagePart( new FunctionCall( $call_def['id'], $call_def['name'], [] ) );
 		}
-
-		$role = $this->createMock( \WordPress\AiClient\Messages\Enums\MessageRoleEnum::class );
-		$role->method( '__toString' )->willReturn( 'model' );
-
-		$message = $this->createMock( \WordPress\AiClient\Messages\DTO\Message::class );
-		$message->method( 'getParts' )->willReturn( $parts );
-		$message->method( 'getRole' )->willReturn( $role );
-
-		return $message;
+		return new ModelMessage( $parts );
 	}
 
 	/**
@@ -464,24 +446,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	 * @return object Mock user message with FunctionResponse.
 	 */
 	private function create_tool_response_message( string $id, string $name ): object {
-		$response = $this->createMock( FunctionResponse::class );
-		$response->method( 'getId' )->willReturn( $id );
-		$response->method( 'getName' )->willReturn( $name );
-		$response->method( 'getResponse' )->willReturn( '{"success":true}' );
-
-		$part = $this->createMock( MessagePart::class );
-		$part->method( 'getFunctionCall' )->willReturn( null );
-		$part->method( 'getFunctionResponse' )->willReturn( $response );
-		$part->method( 'getText' )->willReturn( null );
-
-		$role = $this->createMock( \WordPress\AiClient\Messages\Enums\MessageRoleEnum::class );
-		$role->method( '__toString' )->willReturn( 'user' );
-
-		$message = $this->createMock( \WordPress\AiClient\Messages\DTO\Message::class );
-		$message->method( 'getParts' )->willReturn( [ $part ] );
-		$message->method( 'getRole' )->willReturn( $role );
-
-		return $message;
+		return new UserMessage( [ new MessagePart( new FunctionResponse( $id, $name, '{"success":true}' ) ) ] );
 	}
 
 	/**
@@ -491,19 +456,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	 * @return object Mock user message.
 	 */
 	private function create_user_message_mock( string $text ): object {
-		$part = $this->createMock( MessagePart::class );
-		$part->method( 'getFunctionCall' )->willReturn( null );
-		$part->method( 'getFunctionResponse' )->willReturn( null );
-		$part->method( 'getText' )->willReturn( $text );
-
-		$role = $this->createMock( \WordPress\AiClient\Messages\Enums\MessageRoleEnum::class );
-		$role->method( '__toString' )->willReturn( 'user' );
-
-		$message = $this->createMock( \WordPress\AiClient\Messages\DTO\Message::class );
-		$message->method( 'getParts' )->willReturn( [ $part ] );
-		$message->method( 'getRole' )->willReturn( $role );
-
-		return $message;
+		return $this->create_user_message( $text );
 	}
 
 	/**
@@ -513,19 +466,7 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	 * @return object Mock assistant message.
 	 */
 	private function create_assistant_message_mock( string $text ): object {
-		$part = $this->createMock( MessagePart::class );
-		$part->method( 'getFunctionCall' )->willReturn( null );
-		$part->method( 'getFunctionResponse' )->willReturn( null );
-		$part->method( 'getText' )->willReturn( $text );
-
-		$role = $this->createMock( \WordPress\AiClient\Messages\Enums\MessageRoleEnum::class );
-		$role->method( '__toString' )->willReturn( 'model' );
-
-		$message = $this->createMock( \WordPress\AiClient\Messages\DTO\Message::class );
-		$message->method( 'getParts' )->willReturn( [ $part ] );
-		$message->method( 'getRole' )->willReturn( $role );
-
-		return $message;
+		return $this->create_assistant_message( $text );
 	}
 
 	/**

@@ -241,7 +241,8 @@ class SystemInstructionBuilder {
 					. "[suggestion] Check plugin updates\n"
 					. "[suggestion] Optimize the database\n"
 					. 'Keep suggestions relevant, actionable, and under 60 characters each. '
-					. 'Do NOT include suggestions when you are asking the user a question or waiting for input.',
+					. 'Do NOT include suggestions when you are asking the user a question or waiting for input. '
+					. 'Also omit suggestions whenever the user explicitly requires code-only, raw-source, JSON-only, machine-readable, a single fenced code block, or otherwise exclusive output; obey that output contract exactly and return nothing beyond its required format, including no trailing commentary or suggestion lines.',
 					$suggestion_count
 				);
 		}
@@ -622,7 +623,7 @@ class SystemInstructionBuilder {
 				. "## Core Principles\n"
 				. "Ask one concise question when intent or target is missing. Never invent public changes. Confirm destructive operations. Diagnostic and capability questions are read-only; do not remediate without explicit approval.\n"
 				. "Use registered abilities, discover missing schemas, and load the matching skill before specialized work. Respect tool permissions and current-user context. Do not invent tool names, IDs, URLs, or successful results.\n"
-				. "After tool calls, always provide a text summary with links where available. Claim completion only for successful operations; report remaining blockers. After two similar failures, change approach.\n\n"
+				. "After tool calls, always provide a text summary with links where available, except when the user explicitly requires raw source or another exclusive output format; then return only that required format. Claim completion only for successful operations; report remaining blockers. After two similar failures, change approach.\n\n"
 				. self::build_read_only_diagnostics_section() . "\n\n"
 				. "## Content and site changes\n"
 				. "Use create-post/update-post for posts and pages, and native WooCommerce abilities for products. Write substantial real content. Articles use markdown; visual pages use editable Gutenberg blocks. Never mix markdown and block markup. Use draft/publish status deliberately.\n"
@@ -642,7 +643,7 @@ class SystemInstructionBuilder {
 			. "2. **Generate real content.** When creating pages or posts, write substantial, realistic content (3+ paragraphs). Never use placeholder text like \"Lorem ipsum\" or \"Content goes here\".\n"
 			. "3. **Use tools directly.** Call tools immediately — don't describe what you would do.\n"
 			. "4. **Call all needed tools in one response.** When a task requires multiple tools (e.g. create a post AND find an image), call them all at once.\n"
-			. "5. **After receiving tool results, ALWAYS provide a text response summarizing the results for the user.** Never return an empty response after tool calls.\n"
+			. "5. **After receiving tool results, ALWAYS provide a text response summarizing the results for the user, except when the user explicitly requires raw source or another exclusive output format; then return only that required format.** Never return an empty response after tool calls.\n"
 			. "6. **Only claim completion for work you actually performed.** Do not claim to have set the site title, front page, or created menus unless you have actually called the corresponding tools and received success responses.\n\n"
 			. "7. **Screenshot assignments need matching evidence.** If screenshot capture or media upload fails, report that failure and do not assign an arbitrary existing media ID or claim a fresh screenshot was assigned. Only claim success after the upload response identifies the new media and the assignment response confirms that same media ID. For routine visual review, prefer a viewport or target-section screenshot; request a full-page screenshot only when the user explicitly asks for the whole page or the bounded capture is insufficient. `screenshot-url` can only capture the browser's current origin; for an authorized multisite subdomain, open that site's wp-admin first.\n\n"
 			. "## Content Creation (IMPORTANT)\n"

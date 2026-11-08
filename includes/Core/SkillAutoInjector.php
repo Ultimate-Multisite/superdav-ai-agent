@@ -130,6 +130,7 @@ class SkillAutoInjector {
 			}
 
 			$sections[] = $content;
+			SkillContextDelivery::mark_full( $slug, $content );
 
 			// Record the injection event for telemetry (Phase 1 / t215).
 			if ( '' !== $model_id ) {
@@ -210,14 +211,6 @@ class SkillAutoInjector {
 	}
 
 	/**
-	 * Per-request cache of skill slugs already auto-attached to ability
-	 * responses, so we attach each skill at most once per chat turn.
-	 *
-	 * @var array<string, true>
-	 */
-	private static array $attached_for_request = [];
-
-	/**
 	 * Map ability id prefix → skill slug. When an ability matching a prefix
 	 * is invoked via ability-call, the corresponding skill content is
 	 * attached to the response on first call only.
@@ -267,30 +260,24 @@ class SkillAutoInjector {
 	 * calls. Returns null when no skill applies or when already attached.
 	 *
 	 * @param string $ability_id Ability id being invoked.
-	 * @return array{slug:string,name:string,content:string}|null
+	 * @return array<string, mixed>|null
 	 */
 	public static function consume_skill_for_ability( string $ability_id ): ?array {
 		$slug = self::skill_for_ability( $ability_id );
 		if ( '' === $slug ) {
 			return null;
 		}
-		if ( isset( self::$attached_for_request[ $slug ] ) ) {
-			return null;
-		}
-
 		// @phpstan-ignore-next-line
 		$skill = Skill::get_by_slug( $slug );
 		if ( ! $skill || ( ! (int) $skill->enabled && ! Skill::is_skill_auto_enabled( $slug ) ) ) {
 			return null;
 		}
 
-		self::$attached_for_request[ $slug ] = true;
-
-		return [
-			'slug'    => $slug,
-			'name'    => (string) $skill->name,
-			'content' => (string) $skill->content,
-		];
+		if ( SkillContextDelivery::has_skill( $slug, (string) $skill->content ) ) {
+			return null;
+		}
+		$result = SkillContextDelivery::build( $slug, (string) $skill->name, (string) $skill->content );
+		return is_wp_error( $result ) ? null : $result;
 	}
 
 	/**
@@ -299,7 +286,7 @@ class SkillAutoInjector {
 	 * @return void
 	 */
 	public static function reset_request_state(): void {
-		self::$attached_for_request = [];
+		SkillContextDelivery::reset();
 	}
 
 	/**

@@ -20,15 +20,14 @@ declare(strict_types=1);
  *   - The saved post_content contains no executable JavaScript.
  *   - parse_blocks() on safe content does not produce unintended blocks.
  *
- * What is marked incomplete (GH#1804):
- *   - The assertion that no extra `core/html` block is created when block
- *     comment delimiters survive sanitisation. That gap requires a custom
- *     block-comment-stripping step beyond `wp_kses_post()`.
+ * The regression assertions exercise the registered update-blocks ability and
+ * verify that supplied delimiters cannot change the persisted block structure.
  *
  * @package SdAiAgent
  * @subpackage Tests\Security
  * @see     https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/1789
  * @see     https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/1804
+ * @see     https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/2930
  * @license GPL-2.0-or-later
  */
 
@@ -36,6 +35,7 @@ namespace SdAiAgent\Tests\Security;
 
 use SdAiAgent\Abilities\BlockAbilities;
 use SdAiAgent\Core\BlockMutator;
+use SdAiAgent\Core\ToolPermissionResolver;
 use WP_UnitTestCase;
 
 /**
@@ -68,6 +68,7 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 	 * Restore user context after each test.
 	 */
 	public function tear_down(): void {
+		ToolPermissionResolver::clear_one_turn_approved_abilities();
 		wp_set_current_user( 0 );
 		parent::tear_down();
 	}
@@ -202,27 +203,14 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Block comment injection in innerHTML creates an unintended core/html block.
+	 * Block comment injection in innerHTML does not create an unintended core/html block.
 	 *
-	 * This test documents the gap tracked in GH#1804.  After wp_kses_post strips
-	 * the `<script>`, the block comment delimiters (`<!-- wp:html -->`) survive.
-	 * When the resulting post_content is re-parsed, `parse_blocks()` interprets
-	 * the delimiters as real block boundaries and creates an extra `core/html`
-	 * block (with empty innerHTML since the script was stripped).
-	 *
-	 * The fix (GH#1804) must add a block-comment-stripping step in
-	 * `BlockMutator::sanitize_block_tree()` so the delimiters are escaped
-	 * before serialisation.
+	 * Exercises the registered ability with legitimate one-turn approval and
+	 * verifies the persisted block tree, not only the mutator's return value.
 	 *
 	 * @see https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/1804
 	 */
 	public function test_block_comment_injection_does_not_create_core_html_block(): void {
-		$this->markTestIncomplete(
-			'GH#1804: Block comment delimiters in innerHTML survive wp_kses_post() and cause ' .
-			'parse_blocks() to create an unintended core/html block. Fix by escaping ' .
-			'<!-- wp:xxx --> patterns in BlockMutator::sanitize_block_tree().'
-		);
-
 		$post_id = self::factory()->post->create( [
 			'post_status'  => 'draft',
 			'post_content' => "<!-- wp:paragraph -->\n<p>Original.</p>\n<!-- /wp:paragraph -->",
@@ -239,10 +227,13 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 		$this->assertNotEmpty( $ref );
 
 		// Injection payload: block comment delimiter + script.
-		// wp_kses_post strips <script> but leaves <!-- wp:html -->.
 		$payload = '<p>safe</p><!-- wp:html --><script>alert(1)</script><!-- /wp:html -->';
 
-		BlockAbilities::handle_update_blocks( [
+		ToolPermissionResolver::set_one_turn_approved_abilities( [ 'sd-ai-agent/update-blocks' ] );
+		$ability = wp_get_ability( 'sd-ai-agent/update-blocks' );
+		$this->assertNotNull( $ability );
+
+		$result = $ability->execute( [
 			'post_id' => $post_id,
 			'updates' => [
 				[
@@ -252,6 +243,8 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 				],
 			],
 		] );
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] ?? false );
 
 		// Re-read and re-parse the saved post content.
 		$saved_post = get_post( $post_id );
@@ -263,7 +256,7 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 			0,
 			$html_block_count,
 			'Block comment injection must not create an unintended core/html block. ' .
-			'See GH#1804 for the sanitise_block_tree() fix.'
+			'See GH#2930 for the update-html sanitization fix.'
 		);
 	}
 
@@ -272,17 +265,11 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 	 *
 	 * A `<!-- /wp:paragraph -->` inside innerHTML prematurely closes the parent
 	 * block comment, potentially splitting the paragraph and creating sibling
-	 * blocks. This test documents the gap (see GH#1804).
+	 * blocks.
 	 *
 	 * @see https://github.com/Ultimate-Multisite/superdav-ai-agent/issues/1804
 	 */
 	public function test_closing_tag_injection_does_not_break_block_structure(): void {
-		$this->markTestIncomplete(
-			'GH#1804: A <!-- /wp:paragraph --> inside innerHTML prematurely closes the ' .
-			'surrounding block, potentially creating extra blocks when re-parsed. ' .
-			'Fix: escape block-comment patterns in BlockMutator::sanitize_block_tree().'
-		);
-
 		$post_id = self::factory()->post->create( [
 			'post_status'  => 'draft',
 			'post_content' => "<!-- wp:paragraph -->\n<p>Original.</p>\n<!-- /wp:paragraph -->",
@@ -299,7 +286,11 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 		// Attempt to close the paragraph early with a closing tag inside innerHTML.
 		$payload = '<p>safe</p><!-- /wp:paragraph --><!-- wp:html --><script>alert(1)</script><!-- /wp:html --><p>';
 
-		BlockAbilities::handle_update_blocks( [
+		ToolPermissionResolver::set_one_turn_approved_abilities( [ 'sd-ai-agent/update-blocks' ] );
+		$ability = wp_get_ability( 'sd-ai-agent/update-blocks' );
+		$this->assertNotNull( $ability );
+
+		$result = $ability->execute( [
 			'post_id' => $post_id,
 			'updates' => [
 				[
@@ -309,6 +300,8 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 				],
 			],
 		] );
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] ?? false );
 
 		$saved_post = get_post( $post_id );
 		$re_parsed  = parse_blocks( $saved_post->post_content );
@@ -318,7 +311,7 @@ class BlockCommentInjectionTest extends WP_UnitTestCase {
 		$this->assertCount(
 			1,
 			$named,
-			'Closing-tag injection must not create extra blocks. See GH#1804.'
+			'Closing-tag injection must not create extra blocks. See GH#2930.'
 		);
 		$this->assertSame( 'core/paragraph', $named[0]['blockName'] );
 	}

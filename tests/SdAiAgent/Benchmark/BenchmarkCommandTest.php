@@ -974,10 +974,14 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 	private string $uploads_root;
 
+	private ?string $original_document_root;
+
 	public function setUp(): void {
 		parent::setUp();
-		$this->private_root = sys_get_temp_dir() . '/sd-ai-agent-benchmark-private-' . wp_generate_uuid4();
-		$this->uploads_root = sys_get_temp_dir() . '/sd-ai-agent-benchmark-public-' . wp_generate_uuid4();
+		$this->private_root           = sys_get_temp_dir() . '/sd-ai-agent-benchmark-private-' . wp_generate_uuid4();
+		$this->uploads_root           = sys_get_temp_dir() . '/sd-ai-agent-benchmark-public-' . wp_generate_uuid4();
+		$this->original_document_root = $_SERVER['DOCUMENT_ROOT'] ?? null;
+		$_SERVER['DOCUMENT_ROOT']     = untrailingslashit( ABSPATH );
 		wp_mkdir_p( $this->uploads_root );
 		add_filter( 'upload_dir', array( $this, 'filter_upload_dir' ) );
 		add_filter( 'sd_ai_agent_benchmark_private_log_dir', array( $this, 'filter_private_root' ) );
@@ -989,6 +993,11 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		remove_filter( 'sd_ai_agent_benchmark_private_log_dir', array( $this, 'filter_private_root' ) );
 		$this->remove_directory( $this->private_root );
 		$this->remove_directory( $this->uploads_root );
+		if ( null === $this->original_document_root ) {
+			unset( $_SERVER['DOCUMENT_ROOT'] );
+		} else {
+			$_SERVER['DOCUMENT_ROOT'] = $this->original_document_root;
+		}
 		parent::tearDown();
 	}
 
@@ -1008,6 +1017,22 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 		$this->assertSame( $this->private_root, $result );
 		$this->assertStringNotContainsString( $this->uploads_root, (string) $result );
+		$this->assertSame( 0, fileperms( $this->private_root ) & 0077 );
+	}
+
+	public function test_filtered_default_is_used_when_user_state_storage_is_unavailable(): void {
+		$original_state_home = getenv( 'XDG_STATE_HOME' );
+		$original_home       = getenv( 'HOME' );
+		putenv( 'XDG_STATE_HOME' );
+		putenv( 'HOME' );
+		try {
+			$result = $this->invoke( 'prepare_log_directory', array( '' ) );
+		} finally {
+			putenv( false === $original_state_home ? 'XDG_STATE_HOME' : 'XDG_STATE_HOME=' . $original_state_home );
+			putenv( false === $original_home ? 'HOME' : 'HOME=' . $original_home );
+		}
+
+		$this->assertSame( $this->private_root, $result );
 		$this->assertSame( 0, fileperms( $this->private_root ) & 0077 );
 	}
 
@@ -1046,6 +1071,29 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$result = $this->invoke( 'infer_document_root', array( '/var/www/html/wp', 'https://example.test/wp/' ) );
 
 		$this->assertSame( '/var/www/html', $result );
+	}
+
+	public function test_log_directory_is_rejected_when_document_root_cannot_be_inferred(): void {
+		$original_document_root = $_SERVER['DOCUMENT_ROOT'] ?? null;
+		$original_site_url      = get_option( 'siteurl' );
+		$candidate              = dirname( untrailingslashit( ABSPATH ) ) . '/benchmark-logs-' . wp_generate_uuid4();
+
+		$_SERVER['DOCUMENT_ROOT'] = '';
+		update_option( 'siteurl', 'https://example.test' );
+		try {
+			$result = $this->invoke( 'prepare_log_directory', array( $candidate ) );
+		} finally {
+			update_option( 'siteurl', $original_site_url );
+			if ( null === $original_document_root ) {
+				unset( $_SERVER['DOCUMENT_ROOT'] );
+			} else {
+				$_SERVER['DOCUMENT_ROOT'] = $original_document_root;
+			}
+		}
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_benchmark_log_document_root_unknown', $result->get_error_code() );
+		$this->assertDirectoryDoesNotExist( $candidate );
 	}
 
 	public function test_symlinked_directory_is_rejected(): void {

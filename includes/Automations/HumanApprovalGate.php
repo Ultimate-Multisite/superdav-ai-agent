@@ -96,7 +96,8 @@ class HumanApprovalGate {
 
 		$now        = current_time( 'mysql', true );
 		$expires_at = self::normalize_datetime( $args['expires_at'] ?? null );
-		$result     = $wpdb->insert(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserts one approval request into a custom table; no read result is available to cache.
+		$result = $wpdb->insert(
 			self::table_name(),
 			[
 				'source_type'  => $source_type,
@@ -142,10 +143,12 @@ class HumanApprovalGate {
 		$limit  = max( 1, min( 100, $limit ) );
 
 		if ( '' !== $status ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Approval state is mutable and must be listed from live custom-table rows.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare( 'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC LIMIT %d', self::table_name(), $status, $limit )
 			);
 		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Approval state is mutable and must be listed from live custom-table rows.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare( 'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d', self::table_name(), $limit )
 			);
@@ -163,6 +166,7 @@ class HumanApprovalGate {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Approval transitions and execution races require the current custom-table row.
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', self::table_name(), $id ) );
 
 		return $row ? self::decode_row( $row ) : null;
@@ -300,6 +304,7 @@ class HumanApprovalGate {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency lookup must observe the live pending set before creating another approval.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE source_type = %s AND source_id = %d AND action_type = %s AND payload_hash = %s AND status = %s ORDER BY created_at DESC LIMIT 1',
@@ -354,6 +359,7 @@ class HumanApprovalGate {
 			$formats[] = in_array( $key, [ 'approved_by' ], true ) ? '%d' : '%s';
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Optimistic status transition must compare against live approval state.
 		$updated = $wpdb->update(
 			self::table_name(),
 			$data,
@@ -393,6 +399,7 @@ class HumanApprovalGate {
 			$result_json = '{}';
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Execution result is stored only while the live row remains approved.
 		$updated = $wpdb->update(
 			self::table_name(),
 			[

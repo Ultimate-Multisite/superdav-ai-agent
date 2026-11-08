@@ -1912,6 +1912,7 @@ final class SessionController {
 
 		// Compare-and-swap the message snapshot and job identity in one write.
 		// On contention retain the row so a later delivery can re-read and retry.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic compare-and-swap must use live session/job state so a stale delivery cannot overwrite newer messages.
 		return 1 === $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i AS session SET messages = %s, updated_at = %s WHERE session.id = %d AND BINARY session.messages = BINARY %s AND EXISTS (SELECT 1 FROM %i AS job WHERE job.id = %d AND job.job_id = %s AND job.session_id = session.id AND job.status IN ('error', 'interrupted', 'abandoned')) AND NOT EXISTS (SELECT 1 FROM %i AS newer WHERE newer.session_id = session.id AND newer.id > %d)",

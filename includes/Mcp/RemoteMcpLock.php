@@ -41,6 +41,7 @@ final class RemoteMcpLock {
 		if ( ! is_string( $wpdb->options ) ) {
 			return new WP_Error( 'sd_ai_agent_remote_mcp_busy', __( 'This connection is busy. Try again shortly.', 'superdav-ai-agent' ) );
 		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic option-row lock acquisition cannot be expressed through update_option(); the trusted core options table is paired with explicit option-cache invalidation.
 		$inserted = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", $name, $value ) );
 		wp_cache_delete( $name, 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
@@ -57,6 +58,7 @@ final class RemoteMcpLock {
 		}
 		$name = self::name( $key );
 		// Compare the complete lease so an expired owner cannot delete its successor.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Compare-and-delete prevents an expired owner from deleting a successor; the affected option cache is invalidated below.
 		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $name, $owner ) );
 		if ( $deleted ) {
 			wp_cache_delete( $name, 'options' );
@@ -102,7 +104,7 @@ final class RemoteMcpLock {
 			$sql  = "UPDATE {$wpdb->options} AS data JOIN {$wpdb->options} AS lease ON lease.option_name = %s LEFT JOIN {$wpdb->options} AS parent_lease ON parent_lease.option_name = %s SET data.option_value = %s WHERE data.option_name = %s AND data.option_value = %s AND lease.option_value = %s AND %d >= UNIX_TIMESTAMP() AND (%s = '' OR (parent_lease.option_value = %s AND %d >= UNIX_TIMESTAMP()))";
 			$args = array( self::name( $key ), $parent_name, $new, $option, maybe_serialize( $old ), $owner, (int) ( $lease['expires'] ?? 0 ), $parent_owner, $parent_owner, $parent_expires );
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only fixed SQL/validated table identifiers are composed; every value is bound by prepare.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Atomic lease-fenced option commit uses only the trusted core options table; every value is bound by prepare and all affected option caches are invalidated below.
 		$written = $wpdb->query( $wpdb->prepare( $sql, $args ) );
 		if ( false === $written ) {
 			return false;

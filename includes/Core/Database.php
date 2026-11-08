@@ -1459,7 +1459,7 @@ class Database {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal schema introspection during a versioned upgrade.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal schema introspection; the table name is generated from $wpdb->prefix plus a plugin constant.
 		$legacy_index = $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'file_path'" );
 		if ( null !== $legacy_index ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Removes the globally-scoped legacy uniqueness constraint from an internal table name; caching a schema mutation is not applicable.
@@ -1468,7 +1468,7 @@ class Database {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal schema introspection during a versioned upgrade.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal schema introspection; the table name is generated from $wpdb->prefix plus a plugin constant.
 		$package_index = $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'package_file' AND Non_unique = 0" );
 		if ( null !== $package_index ) {
 			return true;

@@ -1033,7 +1033,7 @@ class Automations {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Detects an outer transaction before creating the short lifecycle scope.
 		$has_outer_transaction = 1 === (int) $wpdb->get_var( 'SELECT @@in_transaction' );
 		$query                 = $has_outer_transaction ? 'SAVEPOINT ' . self::LIFECYCLE_SAVEPOINT : 'START TRANSACTION';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Coordinates durable automation and log lifecycle rows without nesting transactions.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query is selected only from fixed START TRANSACTION/SAVEPOINT statements and coordinates durable lifecycle rows without nesting transactions.
 		if ( false === $wpdb->query( $query ) ) {
 			return false;
 		}
@@ -1054,7 +1054,7 @@ class Automations {
 		}
 
 		$query = self::$lifecycle_transaction_uses_savepoint ? 'RELEASE SAVEPOINT ' . self::LIFECYCLE_SAVEPOINT : 'COMMIT';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Coordinates durable automation and log lifecycle rows.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query is selected only from fixed COMMIT/RELEASE SAVEPOINT statements for the lifecycle transaction.
 		$committed = false !== $wpdb->query( $query );
 		if ( $committed ) {
 			self::$lifecycle_transaction_active         = false;

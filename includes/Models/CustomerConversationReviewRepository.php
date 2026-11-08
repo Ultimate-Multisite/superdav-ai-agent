@@ -200,7 +200,7 @@ final class CustomerConversationReviewRepository {
 		$sql                  = 'SELECT review_id, source, agent_id, status, summary, turn_count, provider_id, model_id, iterations_used, prompt_tokens, completion_tokens, handoff_intent, error_code, expires_at, created_at, updated_at FROM %i WHERE ' . $where . ' ORDER BY updated_at DESC, id DESC LIMIT %d OFFSET %d';
 		$query_args           = array_merge( array( self::table_name() ), $args, array( $limit, $offset ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Paged read intentionally excludes transcripts and private source identifiers.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Paged read excludes transcripts; the WHERE fragment is assembled only from fixed clauses and every table/filter/limit value is bound through prepare(), including the %i identifier.
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$query_args ), ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			return array();
@@ -227,7 +227,7 @@ final class CustomerConversationReviewRepository {
 		$sql                  = 'SELECT COUNT(*) FROM %i WHERE ' . $where;
 		$query_args           = array_merge( array( self::table_name() ), $args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Bounded admin pagination count over the minimized review table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Bounded count uses only fixed WHERE clauses and binds every table/filter value through prepare(), including the %i identifier.
 		return max( 0, (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$query_args ) ) );
 	}
 
@@ -857,7 +857,7 @@ final class CustomerConversationReviewRepository {
 		$limit      = max( 1, min( 1000, $limit ) );
 		$sql        = 'SELECT review_id FROM %i WHERE ' . $where . ' ORDER BY updated_at ASC, id ASC LIMIT %d';
 		$query_args = array_merge( array( self::table_name() ), $args, array( $limit ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Bounded selection lets each tombstone take the same race-safe deletion path.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Bounded selection uses an internal fixed WHERE clause and binds the %i table plus every filter/limit value through prepare().
 		$review_ids = $wpdb->get_col( $wpdb->prepare( $sql, ...$query_args ) );
 		if ( ! is_array( $review_ids ) ) {
 			return 0;
@@ -973,7 +973,7 @@ final class CustomerConversationReviewRepository {
 			$sql = $commit ? 'COMMIT' : 'ROLLBACK';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Ends only the transaction boundary opened by begin_transaction().
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is selected only from four fixed transaction-control statements and ends the boundary opened by begin_transaction().
 		$result = $wpdb->query( $sql );
 
 		return false !== $result;

@@ -713,7 +713,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 	/** Determine whether a structured log key conventionally contains a secret. */
 	private function is_sensitive_log_key( string $key ): bool {
-		$key = strtolower( str_replace( '-', '_', $key ) );
+		// Split camelCase (apiKey, refreshToken, clientSecret, APIKey) before matching.
+		$key = (string) preg_replace( '/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/', '_', $key );
+		$key = strtolower( str_replace( array( '-', ' ' ), '_', $key ) );
 		if ( 'token_usage' === $key ) {
 			return false;
 		}

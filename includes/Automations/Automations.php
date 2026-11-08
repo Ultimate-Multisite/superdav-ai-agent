@@ -259,6 +259,7 @@ class Automations {
 			return;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Persists the inspectable live cron schedule; cached state could report an obsolete next run.
 		$wpdb->update(
 			self::table_name(),
 			[
@@ -759,6 +760,7 @@ class Automations {
 			return;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes the live Monitor cooldown fence; stale cache state could dispatch duplicate work.
 		$wpdb->update(
 			self::table_name(),
 			[

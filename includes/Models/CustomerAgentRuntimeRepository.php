@@ -40,6 +40,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads one real-time private runtime row by opaque conversation ID; stale cached state could resurrect expired customer context.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE conversation_id = %s LIMIT 1',
@@ -61,6 +62,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Resolves the current private runtime row for an opaque integration/session pair; the lifecycle state must not be cached.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE integration_hash = %s AND external_session_hash = %s LIMIT 1',
@@ -83,6 +85,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserts one private runtime row into a custom table; no read result is available to cache.
 		$result = $wpdb->insert(
 			self::conversations_table_name(),
 			$data,
@@ -99,6 +102,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates live retention/profile state in the custom runtime table; cached state could outlive the new expiry.
 		$result = $wpdb->update(
 			self::conversations_table_name(),
 			array(
@@ -121,6 +125,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Replaces bounded private history used by the next turn; readers require the latest value.
 		$result = $wpdb->update(
 			self::conversations_table_name(),
 			array(
@@ -145,6 +150,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads current job lifecycle state by opaque ID; cancellation and timeout races make caching unsafe.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE job_id = %s LIMIT 1',
@@ -191,6 +197,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads current idempotency state before provider work; stale results could cause duplicate billing.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE integration_hash = %s AND external_session_hash = %s AND external_message_hash = %s LIMIT 1',
@@ -214,6 +221,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserts one queued job into a custom table; no read result is available to cache.
 		$result = $wpdb->insert(
 			self::jobs_table_name(),
 			$data,
@@ -254,6 +262,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic queued-to-processing transition prevents concurrent workers from billing twice.
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET status = 'processing', started_at = %s, updated_at = %s WHERE job_id = %s AND status = 'queued' AND deadline_at >= %s",
@@ -282,6 +291,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic cancellation must observe and update current job state without a cache race.
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET status = 'cancelled', cancelled_at = %s, completed_at = %s, updated_at = %s WHERE job_id = %s AND status IN ('queued', 'processing')",
@@ -313,6 +323,7 @@ class CustomerAgentRuntimeRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic completion must not overwrite a concurrent cancellation or timeout.
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET status = 'complete', result_payload = %s, provider_id = %s, model_id = %s, iterations_used = %d, prompt_tokens = %d, completion_tokens = %d, error_code = '', error_message = '', completed_at = %s, updated_at = %s WHERE job_id = %s AND status = 'processing'",
@@ -351,6 +362,7 @@ class CustomerAgentRuntimeRepository {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional privacy purge reads the live owned-job set before deleting related rows.
 		$raw_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT job_id FROM %i WHERE conversation_id = %s',
@@ -387,6 +399,7 @@ class CustomerAgentRuntimeRepository {
 		$jobs_deleted = $wpdb->delete( self::jobs_table_name(), array( 'conversation_id' => $conversation_id ), array( '%s' ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Purging a private runtime record requires an atomic direct delete.
 		$deleted = $wpdb->delete( self::conversations_table_name(), array( 'conversation_id' => $conversation_id ), array( '%s' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits the atomic conversation privacy purge only after every related custom-table delete succeeds.
 		if ( false === $jobs_deleted || false === $deleted || false === $wpdb->query( 'COMMIT' ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reverts a failed source-scoped runtime purge.
 			$wpdb->query( 'ROLLBACK' );
@@ -424,6 +437,7 @@ class CustomerAgentRuntimeRepository {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional integration purge reads the live owned-job set; cached ownership could leave retained data.
 		$raw_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT job_id FROM %i WHERE integration_hash = %s',
@@ -446,6 +460,7 @@ class CustomerAgentRuntimeRepository {
 				$job_ids[] = $raw_id;
 			}
 		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional integration purge reads the live conversation set before deleting its review projections.
 		$raw_conversation_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT conversation_id FROM %i WHERE integration_hash = %s',
@@ -469,6 +484,7 @@ class CustomerAgentRuntimeRepository {
 			}
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reports the exact live row count from the same purge transaction.
 		$conversation_count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE integration_hash = %s',
@@ -498,6 +514,7 @@ class CustomerAgentRuntimeRepository {
 		$jobs_deleted = $wpdb->delete( self::jobs_table_name(), array( 'integration_hash' => $integration_hash ), array( '%s' ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Purges only an explicitly managed integration's private runtime conversations.
 		$conversations_deleted = $wpdb->delete( self::conversations_table_name(), array( 'integration_hash' => $integration_hash ), array( '%s' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits the atomic privacy purge only after every related custom-table delete succeeds.
 		if ( false === $jobs_deleted || false === $conversations_deleted || false === $wpdb->query( 'COMMIT' ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reverts a failed managed-profile runtime purge.
 			$wpdb->query( 'ROLLBACK' );
@@ -583,7 +600,7 @@ class CustomerAgentRuntimeRepository {
 			$from_statuses
 		);
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Status placeholders are generated internally and every value is passed to wpdb::prepare().
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Status placeholders are generated from an internal allowlist and every table/value argument is passed to wpdb::prepare(), including the %i table identifier; this atomic terminal transition must use live state.
 		$result = $wpdb->query( $wpdb->prepare( $sql, ...$args ) );
 
 		return 1 === (int) $result;

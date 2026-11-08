@@ -413,8 +413,8 @@ final class CustomerConversationReviewRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		$now    = current_time( 'mysql', true );
-		$data   = array(
+		$now  = current_time( 'mysql', true );
+		$data = array(
 			'review_id'               => $review_id,
 			'runtime_conversation_id' => $runtime_conversation_id,
 			'source'                  => self::sanitize_source( $source ),
@@ -433,6 +433,7 @@ final class CustomerConversationReviewRepository {
 			'created_at'              => $now,
 			'updated_at'              => $now,
 		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserts one minimized review shell into a custom table; no read result is available to cache.
 		$result = $wpdb->insert(
 			self::table_name(),
 			$data,
@@ -655,6 +656,7 @@ final class CustomerConversationReviewRepository {
 		$formats[]          = '%s';
 		$formats[]          = '%d';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates the locked review aggregate inside its transaction; cached state would break event ordering and token totals.
 		$result = $wpdb->update(
 			self::table_name(),
 			$data,
@@ -813,7 +815,8 @@ final class CustomerConversationReviewRepository {
 			return false;
 		}
 
-		$now    = current_time( 'mysql', true );
+		$now = current_time( 'mysql', true );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes the review tombstone under a row lock so deleted customer content cannot be recreated by a concurrent completion.
 		$update = $wpdb->update(
 			self::table_name(),
 			array(

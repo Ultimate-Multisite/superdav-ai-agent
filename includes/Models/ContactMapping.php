@@ -112,7 +112,7 @@ class ContactMapping {
 
 		$prepared['updated_at'] = current_time( 'mysql' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table CRUD.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-table write; the subsequent read must observe the updated mapping rather than stale cached data.
 		$updated = $wpdb->update( Database::contact_mappings_table_name(), $prepared, array( 'id' => $id ), self::formats_for( $prepared ), array( '%d' ) );
 		if ( false === $updated ) {
 			return new WP_Error( 'sd_ai_agent_contact_duplicate', __( 'A contact mapping already exists for this attendee email.', 'superdav-ai-agent' ), array( 'status' => 409 ) );

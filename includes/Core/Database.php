@@ -1218,7 +1218,7 @@ class Database {
 				continue;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Adds one verified-missing lifecycle column from a fixed internal schema map.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Adds one verified-missing lifecycle column; the %i table identifier is prepared and the column/definition come from a fixed internal schema map, while caching a schema mutation is not applicable.
 			if ( false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN {$column} {$definition}", $table ) ) ) {
 				// A concurrent request may have completed this fixed migration after the
 				// preceding introspection. Accept only that already-present outcome.
@@ -1248,7 +1248,7 @@ class Database {
 				continue;
 			}
 			if ( [] !== $existing ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Replaces a fixed internal index whose definition does not match the required lifecycle schema.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Replaces a fixed internal index; both %i identifiers are prepared and caching a schema mutation is not applicable.
 				if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $index ) ) ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms a concurrent fixed index repair completed.
 					$after_failed_drop = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table, $index ), ARRAY_A );
@@ -1261,7 +1261,7 @@ class Database {
 
 			$index_type = $definition['unique'] ? 'UNIQUE KEY' : 'KEY';
 			$columns    = implode( ', ', $definition['columns'] );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Adds one verified-missing lifecycle index from a fixed internal schema map.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Adds one verified-missing lifecycle index; the %i table identifier is prepared and type/name/columns come from a fixed internal schema map, while caching a schema mutation is not applicable.
 			if ( false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD {$index_type} {$index} ({$columns})", $table ) ) ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirms a concurrent fixed index migration completed.
 				$after_failed_add = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table, $index ), ARRAY_A );
@@ -1372,7 +1372,7 @@ class Database {
 			return true;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Required migration for atomic Monitor event-wake claims.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Required live schema migration for atomic Monitor event-wake claims; caching a storage-engine conversion is not applicable.
 		if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ENGINE=InnoDB', $monitor_wakes_table ) ) ) {
 			return false;
 		}
@@ -1415,7 +1415,7 @@ class Database {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Adds the required full-text index to the fixed review projection table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Adds the required full-text index to the fixed review projection table; caching a schema mutation is not applicable.
 		$wpdb->query( "ALTER TABLE {$table} ADD FULLTEXT KEY review_summary (summary)" );
 	}
 
@@ -1439,10 +1439,10 @@ class Database {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Required schema repair for the calendar reminder dedupe index.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Required schema repair for the calendar reminder dedupe index; caching a schema mutation is not applicable.
 		$wpdb->query( "ALTER TABLE {$table} DROP INDEX reminder_dedupe" );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Required schema repair for the calendar reminder dedupe index.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Required schema repair for the calendar reminder dedupe index; caching a schema mutation is not applicable.
 		$wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY reminder_dedupe (calendar_id, event_id, attendee_email, reminder_date)" );
 	}
 
@@ -1462,7 +1462,7 @@ class Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal schema introspection during a versioned upgrade.
 		$legacy_index = $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'file_path'" );
 		if ( null !== $legacy_index ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Removes the globally-scoped legacy uniqueness constraint.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Removes the globally-scoped legacy uniqueness constraint from an internal table name; caching a schema mutation is not applicable.
 			if ( false === $wpdb->query( "ALTER TABLE {$table} DROP INDEX file_path" ) ) {
 				return false;
 			}
@@ -1476,7 +1476,7 @@ class Database {
 
 		// Prefix lengths remain below InnoDB's utf8mb4 index-byte limit while
 		// retaining enough package/path identity for WordPress-managed files.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Adds the package-scoped uniqueness constraint required by GitTracker.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Adds the package-scoped uniqueness constraint to an internal table name; caching a schema mutation is not applicable.
 		return false !== $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY package_file (package_slug(191), file_path(255))" );
 	}
 
@@ -1490,37 +1490,37 @@ class Database {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Converts an internal lifecycle key to nullable so normal agents can coexist under its unique index.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Converts an internal lifecycle key to nullable; the table name is generated from $wpdb->prefix plus a plugin constant.
 		if ( false === $wpdb->query( "ALTER TABLE {$table} MODIFY managed_profile_key varchar(100) DEFAULT NULL" ) ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Converts existing ordinary-agent empty keys to NULL before enforcing managed ownership uniqueness.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Converts existing ordinary-agent empty keys to NULL; the table name is generated from $wpdb->prefix plus a plugin constant.
 		if ( false === $wpdb->query( "UPDATE {$table} SET managed_profile_key = NULL WHERE managed_profile_key = ''" ) ) {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Checks the internal schema before repairing its lifecycle index.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Checks the internal schema before repairing its lifecycle index; the table name is generated from $wpdb->prefix plus a plugin constant.
 		$unique_index = $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'managed_profile_key' AND Non_unique = 0" );
 		if ( null !== $unique_index ) {
 			return true;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fails the upgrade safely before replacing the legacy lookup index when historical ownership is ambiguous.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fails the upgrade safely before replacing the legacy lookup index; the table name is generated from $wpdb->prefix plus a plugin constant.
 		$duplicate_key = $wpdb->get_var( "SELECT managed_profile_key FROM {$table} WHERE managed_profile_key IS NOT NULL GROUP BY managed_profile_key HAVING COUNT(*) > 1 LIMIT 1" );
 		if ( null !== $duplicate_key ) {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Checks whether the previous non-unique lifecycle index must be replaced.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Checks whether the previous non-unique lifecycle index must be replaced; the table name is generated from $wpdb->prefix plus a plugin constant.
 		$existing_index = $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'managed_profile_key'" );
 		if ( null !== $existing_index ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Replaces the previous internal lifecycle lookup index with a uniqueness constraint.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Replaces the previous internal lifecycle lookup index; the table name is generated from $wpdb->prefix plus a plugin constant.
 			if ( false === $wpdb->query( "ALTER TABLE {$table} DROP INDEX managed_profile_key" ) ) {
 				return false;
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Enforces one explicit managed owner per integration key.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Enforces one explicit managed owner per integration key; the table name is generated from $wpdb->prefix plus a plugin constant.
 		return false !== $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY managed_profile_key (managed_profile_key)" );
 	}
 

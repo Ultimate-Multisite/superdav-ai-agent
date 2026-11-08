@@ -216,6 +216,37 @@ that the plugin is not ready for approval:
 5. State whether the updated ZIP has been resubmitted and whether any item needs
    reviewer confirmation.
 
+### Plugin Check 2.1.0 warning adjudication
+
+The Core ZIP review for version 1.25.0 produced no Plugin Check errors and 97
+warnings. Each warning category was inspected rather than dismissed as a group:
+
+| Count | Finding | Adjudication |
+| ---: | --- | --- |
+| 39 | `WordPress.DB.DirectDatabaseQuery.NoCaching` | Custom `sd_ai_agent_*` table reads are live lifecycle, lock, retention, migration, or privacy-purge state where stale cache data would be incorrect. Writes and schema mutations have no cacheable result. Each retained direct call has a line-scoped reason in `includes/Core/Database.php`, the affected `includes/Models/` repositories, `includes/Knowledge/KnowledgeDatabase.php`, or `includes/Automations/Automations.php`. |
+| 34 | `WordPress.DB.DirectDatabaseQuery.DirectQuery` | These calls implement the plugin's custom-table repositories and atomic state transitions. They use `$wpdb` CRUD methods or prepared SQL and now carry line-scoped explanations rather than a global ruleset exclusion. |
+| 20 | `PluginCheck.Security.DirectDB.UnescapedDBParameter` | Dynamic values are passed through `$wpdb->prepare()`. Table identifiers use the WordPress `%i` placeholder where the statement permits it. The remaining interpolated schema fragments are fixed internal definitions or table names derived from `$wpdb->prefix` plus plugin constants; those sites carry the specific line-scoped `PluginCheck.Security.DirectDB.UnescapedDBParameter` rationale. |
+| 1 | `Squiz.PHP.DiscouragedFunctions.Discouraged` | `includes/REST/RestController.php` renews the execution budget to 600 seconds only when an authenticated tool-result request synchronously resumes a previously paused agent loop. Long-lived FrankenPHP workers can enter that follow-up request with the previous turn's budget already consumed. This is request-scoped and does not alter PHP configuration persistently. |
+| 1 | `PrefixAllGlobals.NonPrefixedHooknameFound` | `includes/Core/LoopbackRequest.php` applies WordPress core's documented `https_local_ssl_verify` filter before a same-site loopback. It is a core hook, not a plugin-defined global; the plugin's own adjacent filter remains prefixed as `sd_ai_agent_fast_loopback`. |
+| 1 | `PrefixAllGlobals.NonPrefixedClassFound` | `CompiledContainerSdAiAgent` is the explicit generated DI class paired with the canonical `sd-ai-agent` container ID. The default class derived from a hyphenated ID is not a valid PHP class name. `superdav-ai-agent.php` supplies the valid canonical class, and `bin/build.sh` regenerates it under the versioned `build/di-cache/` package path. It must not be renamed. |
+| 1 | `PluginCheck.CodeAnalysis.AIProvider.DirectIntegration` | `includes/Core/PromptCache/GeminiCacheManager.php` calls Gemini's provider-specific `cachedContents` resource endpoint because that cache-resource lifecycle is not an AI completion and is not exposed by the WordPress AI Client SDK. The call uses the WordPress HTTP API, has a 15-second timeout, fails closed to uncached requests, and stores only the returned resource name with an expiry safety margin. |
+
+Verification for this adjudication:
+
+```bash
+bash bin/build.sh --target=core
+wp plugin check <extracted-core-dir> --slug=superdav-ai-agent --format=json
+vendor/bin/phpcs --standard=WordPress --sniffs=WordPress.DB.DirectDatabaseQuery \
+  includes/Core/Database.php includes/Models \
+  includes/Knowledge/KnowledgeDatabase.php includes/Automations/Automations.php
+pnpm run lint:php
+pnpm run test:php
+```
+
+The response to a reviewer should cite the exact packaged scan totals from the
+ZIP being resubmitted and should not describe a retained, evidence-backed
+warning as a scanner false positive.
+
 ### Common rejection reasons to pre-empt
 
 | Issue | Our status |

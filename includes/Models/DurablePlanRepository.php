@@ -437,9 +437,9 @@ final class DurablePlanRepository {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom durable-plan table cleanup.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-table cleanup after failed creation; caching a destructive rollback is not applicable.
 		$wpdb->delete( self::steps_table_name(), [ 'plan_db_id' => $plan_db_id ], [ '%d' ] );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom durable-plan table cleanup.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-table cleanup after failed creation; caching a destructive rollback is not applicable.
 		$result = $wpdb->delete( self::table_name(), [ 'id' => $plan_db_id ], [ '%d' ] );
 		return false !== $result;
 	}

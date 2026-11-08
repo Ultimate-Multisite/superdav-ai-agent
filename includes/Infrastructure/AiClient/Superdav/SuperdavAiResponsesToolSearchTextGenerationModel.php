@@ -299,6 +299,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 
 		$deadline = time() + $this->background_max_seconds();
 		$data     = $response->getData();
+		$backoff  = 0;
 		while ( is_array( $data ) && in_array( $data['status'] ?? '', array( 'queued', 'in_progress' ), true ) ) {
 			$id = is_string( $data['id'] ?? null ) ? $data['id'] : '';
 			if ( ! preg_match( '/^resp_bg[a-f0-9]{32}$/', $id ) ) {
@@ -309,11 +310,22 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				$this->send_responses_api( HttpMethodEnum::POST(), 'responses/' . $id . '/cancel', null );
 				return $this->background_failure_response( 'managed_service_timeout', 'The AI service did not finish this request in time.', 504 );
 			}
-			$response = $this->send_responses_api( HttpMethodEnum::GET(), 'responses/' . $id . '?wait=' . min( $wait, $remaining ), null );
+			$poll_started = microtime( true );
+			$response     = $this->send_responses_api( HttpMethodEnum::GET(), 'responses/' . $id . '?wait=' . min( $wait, $remaining ), null );
 			if ( ! $response->isSuccessful() ) {
 				return $response;
 			}
 			$data = $response->getData();
+
+			// The service answers immediately when its waiter pool is full (or a proxy drops `wait`);
+			// back off instead of re-polling in a tight loop until the deadline.
+			$still_running = is_array( $data ) && in_array( $data['status'] ?? '', array( 'queued', 'in_progress' ), true );
+			if ( $still_running && microtime( true ) - $poll_started < 1.0 ) {
+				$backoff = min( 5, $backoff + 1 );
+				$this->background_poll_pause( min( $backoff, max( 0, $deadline - time() ) ) );
+			} else {
+				$backoff = 0;
+			}
 		}
 
 		if ( ! is_array( $data ) || ! in_array( $data['status'] ?? '', array( 'completed', 'incomplete' ), true ) ) {
@@ -348,6 +360,23 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		$limit   = null === $timeout ? self::BACKGROUND_WAIT_SECONDS : max( 1, (int) floor( $timeout ) - 5 );
 
 		return max( 1, min( self::BACKGROUND_WAIT_SECONDS, $limit ) );
+	}
+
+	/**
+	 * Pause between early-returning polls.
+	 *
+	 * @param int $seconds Seconds to wait; filterable so tests and hosts can shorten it.
+	 */
+	private function background_poll_pause( int $seconds ): void {
+		/**
+		 * Filters the pause between background polls that returned before the long-poll wait elapsed.
+		 *
+		 * @param int $seconds Pause in seconds (escalates 1–5).
+		 */
+		$seconds = max( 0, (int) apply_filters( 'sd_ai_agent_responses_background_poll_pause', $seconds ) );
+		if ( $seconds > 0 ) {
+			sleep( $seconds );
+		}
 	}
 
 	/** Total polling budget in seconds. */

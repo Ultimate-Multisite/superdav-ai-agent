@@ -59,9 +59,21 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$requests = array();
 		$queued   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'object' => 'response', 'status' => 'queued', 'background' => true, 'output' => array() ) ) );
 		$running  = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'object' => 'response', 'status' => 'in_progress', 'background' => true, 'output' => array() ) ) );
-		$result   = $this->model( array( $queued, $running, $this->text_response( $id ) ), $requests )
-			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Write a long report.' ) ) ) ) );
+		$pauses   = array();
+		$capture  = static function ( int $seconds ) use ( &$pauses ): int {
+			$pauses[] = $seconds;
+			return 0;
+		};
+		add_filter( 'sd_ai_agent_responses_background_poll_pause', $capture );
+		try {
+			$result = $this->model( array( $queued, $running, $this->text_response( $id ) ), $requests )
+				->generateTextResult( array( new UserMessage( array( new MessagePart( 'Write a long report.' ) ) ) ) );
+		} finally {
+			remove_filter( 'sd_ai_agent_responses_background_poll_pause', $capture );
+		}
 
+		// Polls that return before the long-poll wait elapses back off instead of spinning.
+		$this->assertSame( array( 1 ), $pauses );
 		$this->assertSame( 'Found it.', $result->toText() );
 		$this->assertCount( 3, $requests );
 		$this->assertStringEndsWith( '/responses?wait=45', $requests[0]->getUri() );

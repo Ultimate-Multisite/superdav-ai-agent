@@ -15,6 +15,25 @@ use WP_UnitTestCase;
 /** Completed-turn tool payloads are bounded in the provider view only. */
 final class CompletedTurnCompactorTest extends WP_UnitTestCase {
 
+	/** Wide completed arguments are bounded, retain IDs and compact idempotently. */
+	public function test_wide_arguments_are_bounded_without_changing_current_turn(): void {
+		$args = [];
+		for ( $index = 0; $index < 2000; ++$index ) {
+			$args[ 'field_' . $index ] = str_repeat( 'x', 100 );
+		}
+		$args['post_id'] = 42;
+		$bounded = CompletedTurnCompactor::compact_arguments( $args );
+		$this->assertLessThanOrEqual( CompletedTurnCompactor::MAX_PAYLOAD_BYTES, strlen( wp_json_encode( $bounded ) ) );
+		$this->assertSame( 42, $bounded['post_id'] );
+		$this->assertGreaterThan( 0, $bounded['_omitted_fields'] );
+		$this->assertSame( $bounded, CompletedTurnCompactor::compact_arguments( $bounded ) );
+		$text = CompletedTurnCompactor::compact_argument_text( wp_json_encode( $args ) );
+		$this->assertIsArray( json_decode( $text, true ) );
+		$this->assertLessThanOrEqual( CompletedTurnCompactor::MAX_PAYLOAD_BYTES, strlen( $text ) );
+		$current = $this->turn( 'current', 'current', $args, [] );
+		$this->assertSame( $current, CompletedTurnCompactor::compact_history( $current, 0 ) );
+	}
+
 	/**
 	 * Build one user turn with a tool call and result.
 	 *

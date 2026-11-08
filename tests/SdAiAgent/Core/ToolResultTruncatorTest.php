@@ -17,6 +17,32 @@ use WP_UnitTestCase;
  */
 class ToolResultTruncatorTest extends WP_UnitTestCase {
 
+	/** Plain and JSON-encoded strings must obey the actual encoded result cap. */
+	public function test_large_string_results_are_bounded_and_keep_their_type(): void {
+		foreach ( [ str_repeat( 'A', 1048576 ), str_repeat( '☕', 4000 ), wp_json_encode( [ 'post_id' => 42, 'content' => str_repeat( 'A', 1048576 ) ] ) ] as $input ) {
+			$result = ToolResultTruncator::truncate( $input );
+			$this->assertIsString( $result );
+			$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( wp_json_encode( $result ) ) );
+			$this->assertSame( 1, preg_match( '//u', $result ) );
+		}
+		$decoded = json_decode( $result, true );
+		$this->assertIsArray( $decoded );
+		$this->assertSame( 42, $decoded['post_id'] );
+	}
+
+	/** Each byte boundary must preserve complete multibyte characters. */
+	public function test_nested_and_html_truncation_preserve_utf8(): void {
+		foreach ( [ 'é', '☕', '😀' ] as $character ) {
+			foreach ( [ '', 'A', 'AA', 'AAA' ] as $prefix ) {
+				foreach ( [ '', 'sd-ai-agent/get-page-html' ] as $tool ) {
+					$result = ToolResultTruncator::truncate( [ 'content' => $prefix . str_repeat( $character, 10000 ) ], $tool );
+					$this->assertSame( 1, preg_match( '//u', $result['content'] ) );
+					$this->assertLessThanOrEqual( ToolResultTruncator::MAX_RESULT_BYTES, strlen( wp_json_encode( $result ) ) );
+				}
+			}
+		}
+	}
+
 	// ── truncate — pass-through ───────────────────────────────────────────
 
 	/**

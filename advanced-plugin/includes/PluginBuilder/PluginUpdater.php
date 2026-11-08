@@ -406,7 +406,14 @@ class PluginUpdater {
 				return $dir;
 			}
 
-			wp_mkdir_p( $dir );
+			if ( ! wp_mkdir_p( $dir ) || ! is_dir( $dir ) ) {
+				$this->remove_owned_stage( $staging_dir );
+				return new WP_Error(
+					'sd_ai_agent_staging_write_failed',
+					/* translators: %s: relative file path */
+					sprintf( __( 'Could not prepare staging directory for file: %s', 'superdav-ai-agent' ), $relative_path )
+				);
+			}
 
 			// Validate PHP syntax before writing.
 			if ( $this->is_php_file( $relative_path ) ) {
@@ -443,12 +450,13 @@ class PluginUpdater {
 	/**
 	 * Run PluginSandbox checks on a staged plugin directory.
 	 *
-	 * @param string $slug        Plugin slug (used to derive the main plugin file name).
-	 * @param string $staging_dir Absolute path to the staging directory.
+	 * @param string      $slug        Plugin slug (used to derive the default main plugin file name).
+	 * @param string      $staging_dir Absolute path to the staging directory.
+	 * @param string|null $main_file   Main plugin file relative to the plugin directory.
 	 * @return array<string,mixed> Sandbox result with at least `passed` (bool) and `errors` (string[]).
 	 */
-	public function test_staged( string $slug, string $staging_dir ): array {
-		$plugin_file    = $slug . '.php';
+	public function test_staged( string $slug, string $staging_dir, ?string $main_file = null ): array {
+		$plugin_file    = $main_file ?? $slug . '.php';
 		$sandbox_result = PluginSandbox::run_all( $staging_dir, $plugin_file );
 
 		if ( is_wp_error( $sandbox_result ) ) {
@@ -467,12 +475,13 @@ class PluginUpdater {
 	 * Deactivates the plugin (if active), copies staging over the live directory,
 	 * then reactivates. If reactivation fails, restores from backup automatically.
 	 *
-	 * @param string $slug        Plugin slug.
-	 * @param string $staging_dir Absolute path to the staging directory.
-	 * @param string $backup_dir  Absolute path to the backup directory (used for rollback on failure).
+	 * @param string      $slug        Plugin slug.
+	 * @param string      $staging_dir Absolute path to the staging directory.
+	 * @param string      $backup_dir  Absolute path to the backup directory (used for rollback on failure).
+	 * @param string|null $main_file   Main plugin file relative to the plugin directory.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public function swap( string $slug, string $staging_dir, string $backup_dir ): array|\WP_Error {
+	public function swap( string $slug, string $staging_dir, string $backup_dir, ?string $main_file = null ): array|\WP_Error {
 		if ( ! isset( $this->owned_stages[ $staging_dir ] ) || ! isset( $this->owned_backups[ $backup_dir ] ) ) {
 			return new WP_Error(
 				'sd_ai_agent_update_resource_not_owned',
@@ -488,7 +497,7 @@ class PluginUpdater {
 			);
 		}
 
-		$plugin_file = $slug . '/' . $slug . '.php';
+		$plugin_file = $slug . '/' . ( $main_file ?? $slug . '.php' );
 		$plugin_dir  = $this->plugin_dir_path( $slug );
 
 		// Check if plugin file modifications are allowed.
@@ -702,9 +711,10 @@ class PluginUpdater {
 	 * @param string               $slug           Plugin slug.
 	 * @param array<string,string> $modified_files Map of relative path → PHP source.
 	 * @param callable|null        $post_swap      Optional validation executed while the per-plugin lock remains held.
+	 * @param string|null          $main_file      Main plugin file relative to the plugin directory.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public function update( string $slug, array $modified_files, ?callable $post_swap = null ): array|\WP_Error {
+	public function update( string $slug, array $modified_files, ?callable $post_swap = null, ?string $main_file = null ): array|\WP_Error {
 		$slug = sanitize_title( $slug );
 		if ( empty( $slug ) ) {
 			return new WP_Error(
@@ -739,7 +749,7 @@ class PluginUpdater {
 			}
 
 			// Step 3: Test staged copy.
-			$test_result = $this->test_staged( $slug, $staging_dir );
+			$test_result = $this->test_staged( $slug, $staging_dir, $main_file );
 			if ( ! $test_result['passed'] ) {
 				$this->remove_owned_stage( $staging_dir );
 				return new WP_Error(
@@ -749,7 +759,7 @@ class PluginUpdater {
 			}
 
 			// Step 4: Swap.
-			$swap_result = $this->swap( $slug, $staging_dir, $backup_dir );
+			$swap_result = $this->swap( $slug, $staging_dir, $backup_dir, $main_file );
 			if ( is_wp_error( $swap_result ) ) {
 				$this->remove_owned_stage( $staging_dir );
 				return $swap_result;

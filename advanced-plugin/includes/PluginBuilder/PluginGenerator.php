@@ -857,8 +857,11 @@ INSTRUCTION;
 	private static function prepare_file_specs( array $file_specs, string $slug ): array|WP_Error {
 		$prepared = [];
 		$paths    = [];
-		foreach ( $file_specs as $index => $spec ) {
-			$is_main = 0 === $index;
+		foreach ( $file_specs as $spec ) {
+			if ( ! is_array( $spec ) ) {
+				continue;
+			}
+			$is_main = empty( $prepared );
 			$path    = self::normalise_generated_file_path( $slug, (string) ( $spec['path'] ?? '' ), $is_main );
 			if ( is_wp_error( $path ) ) {
 				return $path;

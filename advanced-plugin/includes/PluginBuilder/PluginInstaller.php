@@ -515,10 +515,14 @@ class PluginInstaller {
 			);
 		}
 
+		// FS_CHMOD_DIR is only defined once WP_Filesystem() has run; mirror the
+		// core default so a fresh request cannot fatal on the undefined constant.
+		$dir_mode = defined( 'FS_CHMOD_DIR' ) ? (int) FS_CHMOD_DIR : ( ( fileperms( ABSPATH ) & 0777 ) | 0755 );
+
 		// mkdir() is the atomic slug claim. A concurrent creator that wins the
 		// directory race is treated as a collision rather than being overwritten.
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Atomic exclusive directory creation is required here.
-		if ( ! mkdir( $canonical_plugin_dir, FS_CHMOD_DIR ) ) {
+		if ( ! mkdir( $canonical_plugin_dir, $dir_mode ) ) {
 			if ( self::path_entry_exists( $plugin_dir ) ) {
 				return self::plugin_slug_exists_error( $slug );
 			}

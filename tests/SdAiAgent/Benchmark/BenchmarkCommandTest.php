@@ -13,7 +13,10 @@ namespace SdAiAgent\Tests\Benchmark;
 
 use ReflectionMethod;
 use RuntimeException;
+use SdAiAgent\Abilities\PostAbilities;
+use SdAiAgent\Abilities\UserManagementAbilities;
 use SdAiAgent\CLI\BenchmarkCommand;
+use SdAiAgent\Core\AgentLoop;
 use WP_Error;
 use WP_UnitTestCase;
 
@@ -87,7 +90,12 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 		return $this->run_question( $question, 'test-provider', 'test-model', $keep );
 	}
 
-	/** Select an execution profile for a focused test. */
+	/**
+	 * Select an execution profile for a focused test.
+	 *
+	 * @param string             $profile Profile slug.
+	 * @param array<int, string> $approved_once_abilities Explicit one-run approvals.
+	 */
 	public function use_profile( string $profile, array $approved_once_abilities = array() ): void {
 		$this->set_execution_profile( $profile, $approved_once_abilities );
 	}
@@ -102,7 +110,11 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 		return $this->get_execution_profile_metadata();
 	}
 
-	/** Return the AgentLoop profile configuration. */
+	/**
+	 * Return the AgentLoop profile configuration.
+	 *
+	 * @return array{abilities: array<int, string>, options: array<string, mixed>}
+	 */
 	public function profile_loop_config(): array {
 		return $this->get_agent_loop_profile_config();
 	}
@@ -204,6 +216,63 @@ class TestableBenchmarkCommand extends BenchmarkCommand {
 			'token_usage'   => array(),
 			'tool_call_log' => array(),
 			'reply'         => '',
+		);
+	}
+}
+
+/** Test command that exercises the production confirmation-resume path. */
+class ConfirmationBenchmarkCommand extends BenchmarkCommand {
+
+	/** Initial synthetic AgentLoop result. */
+	public array|WP_Error $initialResult = array();
+
+	/** Result returned after approved confirmation. */
+	public array|WP_Error $resumedResult = array();
+
+	/** Number of confirmation resumes. */
+	public int $resumeCalls = 0;
+
+	/**
+	 * Run the protected production AgentLoop wrapper.
+	 *
+	 * @param array<int, string> $approved_once_abilities Explicit one-run approvals.
+	 * @return array<string, mixed>
+	 */
+	public function run_profile_loop( array $approved_once_abilities = array() ): array {
+		$this->set_execution_profile( 'production-parity', $approved_once_abilities );
+		return $this->run_agent_loop( 'Create an approved draft.', 'test-provider', 'test-model', 4 );
+	}
+
+	/** Return the configured initial result without contacting a provider. */
+	protected function execute_agent_loop( AgentLoop $loop ): array|WP_Error {
+		unset( $loop );
+		return $this->initialResult;
+	}
+
+	/** Execute a real draft mutation under the current actor after approval. */
+	protected function resume_agent_loop_after_confirmation( AgentLoop $loop, int $remaining_iterations ): array|WP_Error {
+		unset( $loop, $remaining_iterations );
+		++$this->resumeCalls;
+
+		if ( ! empty( $this->resumedResult ) ) {
+			return $this->resumedResult;
+		}
+
+		$post = PostAbilities::handle_create_post(
+			array(
+				'title'   => 'Production parity approved draft',
+				'content' => 'Approved benchmark content.',
+				'status'  => 'draft',
+			)
+		);
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+
+		return array(
+			'reply'           => 'Draft created.',
+			'iterations_used' => 2,
+			'token_usage'     => array(),
 		);
 	}
 }
@@ -567,6 +636,16 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 'default', $metadata['prompt_profile'] );
 		$this->assertSame( 'automatic', $metadata['catalog_resolution'] );
 		$this->assertFalse( $metadata['browser_client']['available'] );
+
+		$denied = UserManagementAbilities::handle_create_user(
+			array(
+				'username' => 'benchmark-denied-' . wp_generate_password( 8, false, false ),
+				'email'    => 'benchmark-denied@example.test',
+				'role'     => 'subscriber',
+			)
+		);
+		$this->assertInstanceOf( WP_Error::class, $denied );
+		$this->assertSame( 'ai_agent_forbidden', $denied->get_error_code() );
 	}
 
 	/** Explicit production-parity approvals remain scoped rather than global. */
@@ -588,6 +667,52 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'sd-ai-agent/create-post' ), $config['options']['approved_once_abilities'] );
 		$this->assertArrayNotHasKey( 'yolo_mode', $config['options'] );
 		$this->assertArrayNotHasKey( 'agent_system_prompt', $config['options'] );
+	}
+
+	/** An explicitly approved administrator mutation resumes and creates a draft. */
+	public function test_production_parity_resumes_approved_draft_operation(): void {
+		$administrator_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $administrator_id );
+
+		$command                 = new ConfirmationBenchmarkCommand();
+		$command->initialResult = array(
+			'awaiting_confirmation'   => true,
+			'approved_once_abilities' => array( 'sd-ai-agent/create-post' ),
+			'iterations_remaining'    => 3,
+			'iterations_used'         => 1,
+			'token_usage'             => array(),
+		);
+
+		$result = $command->run_profile_loop( array( 'sd-ai-agent/create-post' ) );
+		$posts  = get_posts(
+			array(
+				'post_status' => 'draft',
+				'title'       => 'Production parity approved draft',
+			)
+		);
+
+		$this->assertSame( 1, $command->resumeCalls );
+		$this->assertSame( 'Draft created.', $result['reply'] );
+		$this->assertCount( 1, $posts );
+		$this->assertSame( $administrator_id, (int) $posts[0]->post_author );
+	}
+
+	/** Unapproved confirmation pauses are deferred rather than scored as model failures. */
+	public function test_production_parity_defers_unapproved_confirmation(): void {
+		$command                 = new ConfirmationBenchmarkCommand();
+		$command->initialResult = array(
+			'awaiting_confirmation'   => true,
+			'approved_once_abilities' => array( 'sd-ai-agent/delete-post' ),
+			'iterations_remaining'    => 3,
+			'iterations_used'         => 1,
+			'token_usage'             => array(),
+		);
+
+		$result = $command->run_profile_loop( array( 'sd-ai-agent/create-post' ) );
+
+		$this->assertSame( 0, $command->resumeCalls );
+		$this->assertSame( 'explicit_approval_required', $result['deferred_reason'] );
+		$this->assertArrayNotHasKey( 'error', $result );
 	}
 
 	/** Browser-dependent questions are deferred without being scored as failures. */

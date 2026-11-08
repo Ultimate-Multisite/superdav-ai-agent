@@ -94,13 +94,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 	private array $owned_user_fixtures = array();
 
 	/** @var string Active execution profile. */
-	private string $executionProfile = self::PROFILE_FUNCTIONAL;
+	private string $execution_profile = self::PROFILE_FUNCTIONAL;
 
 	/** @var array<int, string> Abilities explicitly approved once for a production-parity run. */
-	private array $approvedOnceAbilities = array();
+	private array $approved_once_abilities = array();
 
 	/** @var array<string, mixed> Safe execution-profile details persisted with every result. */
-	private array $executionProfileMetadata = array();
+	private array $execution_profile_metadata = array();
 
 	/**
 	 * System prompt injected for every benchmark question.
@@ -236,8 +236,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 			WP_CLI::error( 'Invalid benchmark profile. Use "functional" or "production-parity".' );
 		}
 
-		$this->executionProfile       = $profile;
-		$this->approvedOnceAbilities = $this->parse_approved_abilities( (string) ( $assoc_args['approve-abilities'] ?? '' ) );
+		$this->execution_profile       = $profile;
+		$this->approved_once_abilities = $this->parse_approved_abilities( (string) ( $assoc_args['approve-abilities'] ?? '' ) );
 
 		// Resolve questions to run.
 		if ( '' !== $question_id ) {
@@ -285,7 +285,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		ProviderCredentialLoader::load();
 
 		$this->configure_actor();
-		$this->executionProfileMetadata = $this->build_execution_profile_metadata();
+		$this->execution_profile_metadata = $this->build_execution_profile_metadata();
 
 		WP_CLI::log( '' );
 		WP_CLI::log( '╔══════════════════════════════════════════════════════════════╗' );
@@ -294,7 +294,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  Provider : %s', $provider_id ?: 'default' ) );
 		WP_CLI::log( sprintf( '  Model    : %s', $model_id ?: 'default' ) );
 		WP_CLI::log( sprintf( '  Profile  : %s', $profile ) );
-		WP_CLI::log( sprintf( '  Actor    : %s', implode( ',', $this->executionProfileMetadata['effective_actor']['roles'] ) ?: 'anonymous' ) );
+		WP_CLI::log( sprintf( '  Actor    : %s', implode( ',', $this->execution_profile_metadata['effective_actor']['roles'] ) ?: 'anonymous' ) );
 		WP_CLI::log( sprintf( '  Questions: %d', count( $questions ) ) );
 		WP_CLI::log( sprintf( '  Logs     : %s', $run_dir ) );
 		WP_CLI::log( '' );
@@ -447,7 +447,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'graceful_degradation_questions'  => $totals['graceful_degradation_questions'],
 			'run_status'                      => $run_status,
 			'ranking_eligible'                => $this->is_ranking_eligible( $totals, $run_status ),
-			'execution_profile'               => $this->executionProfileMetadata,
+			'execution_profile'               => $this->execution_profile_metadata,
 			'questions'                       => $question_summaries,
 		);
 		$summary_file         = $run_dir . '/suite-summary.json';
@@ -768,7 +768,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'provider_id'         => $provider_id,
 			'model_id'            => $model_id,
 			'started_at'          => gmdate( 'c' ),
-			'execution_profile'  => $this->get_execution_profile_metadata(),
+			'execution_profile'   => $this->get_execution_profile_metadata(),
 		);
 
 		$execution = isset( $question['execution'] ) && is_array( $question['execution'] ) ? $question['execution'] : array();
@@ -787,7 +787,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return $log;
 		}
 
-		if ( self::PROFILE_PRODUCTION_PARITY === $this->executionProfile && $this->question_requires_browser_client( $question ) ) {
+		if ( self::PROFILE_PRODUCTION_PARITY === $this->execution_profile && $this->question_requires_browser_client( $question ) ) {
 			$log['status']          = 'deferred';
 			$log['deferred_reason'] = 'browser_client_unavailable';
 			$log['deferred_detail'] = 'The server-only WP-CLI profile cannot execute or verify browser client tools.';
@@ -797,7 +797,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 				'total'   => 0,
 				'results' => array(),
 			);
-			$log['completed_at'] = gmdate( 'c' );
+			$log['completed_at']    = gmdate( 'c' );
 			return $log;
 		}
 
@@ -877,6 +877,20 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$log['agent_reply']   = $agent_result['reply'] ?? '';
 			$log['elapsed_ms']    = (int) ( ( microtime( true ) - $start_time ) * 1000 );
 			$this->claim_created_user_fixtures( (array) $log['tool_call_log'] );
+
+			if ( ! empty( $agent_result['deferred_reason'] ) ) {
+				$log['status']          = 'deferred';
+				$log['deferred_reason'] = (string) $agent_result['deferred_reason'];
+				$log['deferred_detail'] = (string) ( $agent_result['deferred_detail'] ?? '' );
+				$log['assertions']      = array(
+					'passed'  => 0,
+					'failed'  => 0,
+					'total'   => 0,
+					'results' => array(),
+				);
+				$log['completed_at']    = gmdate( 'c' );
+				return $log;
+			}
 
 			if ( ! empty( $agent_result['error'] ) ) {
 				$provider_error = $this->classify_provider_error( (string) $agent_result['error'] );
@@ -975,8 +989,49 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$options        = array_merge( $options, $profile_config['options'] );
 		$abilities      = $profile_config['abilities'];
 
-		$loop   = new AgentLoop( $prompt, $abilities, array(), $options );
-		$result = $loop->run();
+		$loop         = new AgentLoop( $prompt, $abilities, array(), $options );
+		$result       = $this->execute_agent_loop( $loop );
+		$resume_count = 0;
+
+		while ( is_array( $result ) && ! empty( $result['awaiting_confirmation'] ) ) {
+			$pending_abilities = array_values(
+				array_filter(
+					(array) ( $result['approved_once_abilities'] ?? array() ),
+					static fn( $name ): bool => is_string( $name ) && '' !== $name
+				)
+			);
+			$unapproved        = array_diff( $pending_abilities, $this->approved_once_abilities );
+
+			if ( empty( $pending_abilities ) || ! empty( $unapproved ) ) {
+				return $this->confirmation_deferred_result(
+					$result,
+					$tool_call_log,
+					'explicit_approval_required',
+					'The benchmark paused before an ability that was not explicitly approved for this run.'
+				);
+			}
+
+			$remaining_iterations = (int) ( $result['iterations_remaining'] ?? 0 );
+			if ( $remaining_iterations <= 0 || $resume_count >= $max_turns ) {
+				return $this->confirmation_deferred_result(
+					$result,
+					$tool_call_log,
+					'confirmation_resume_unavailable',
+					'The approved confirmation could not be resumed within the benchmark iteration limit.'
+				);
+			}
+
+			++$resume_count;
+			$result = $this->resume_agent_loop_after_confirmation( $loop, $remaining_iterations );
+			if ( is_wp_error( $result ) ) {
+				return $this->confirmation_deferred_result(
+					array(),
+					$tool_call_log,
+					'confirmation_resume_failed',
+					'The approved confirmation could not be resumed safely.'
+				);
+			}
+		}
 
 		if ( is_wp_error( $result ) ) {
 			return array( 'error' => $result->get_error_message() );
@@ -991,13 +1046,35 @@ class BenchmarkCommand extends WP_CLI_Command {
 		);
 	}
 
+	/** Execute the initial AgentLoop pass. */
+	protected function execute_agent_loop( AgentLoop $loop ): array|\WP_Error {
+		return $loop->run();
+	}
+
+	/** Resume an explicitly approved confirmation batch. */
+	protected function resume_agent_loop_after_confirmation( AgentLoop $loop, int $remaining_iterations ): array|\WP_Error {
+		return $loop->resume_after_confirmation( true, $remaining_iterations );
+	}
+
+	/** Build a non-scoring result when a confirmation cannot be completed. */
+	private function confirmation_deferred_result( array $result, array $tool_call_log, string $reason, string $detail ): array {
+		return array(
+			'deferred_reason' => $reason,
+			'deferred_detail' => $detail,
+			'turns_used'      => (int) ( $result['iterations_used'] ?? 0 ),
+			'token_usage'     => $result['token_usage'] ?? array(),
+			'tool_call_log'   => $tool_call_log,
+			'reply'           => '',
+		);
+	}
+
 	/**
 	 * Return the AgentLoop overrides for the selected execution profile.
 	 *
 	 * @return array{abilities: array<int, string>, options: array<string, mixed>}
 	 */
 	protected function get_agent_loop_profile_config(): array {
-		if ( self::PROFILE_FUNCTIONAL === $this->executionProfile ) {
+		if ( self::PROFILE_FUNCTIONAL === $this->execution_profile ) {
 			return array(
 				// Preserve the legacy benchmark's explicit Tier-1 override.
 				'abilities' => ToolDiscovery::tier_1_for_run(),
@@ -1012,7 +1089,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			// An empty override selects AgentLoop's normal automatic catalog path.
 			'abilities' => array(),
 			'options'   => array(
-				'approved_once_abilities' => $this->approvedOnceAbilities,
+				'approved_once_abilities' => $this->approved_once_abilities,
 			),
 		);
 	}
@@ -1062,7 +1139,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 	/** Configure the effective actor for the selected execution profile. */
 	protected function configure_actor(): void {
-		if ( self::PROFILE_PRODUCTION_PARITY === $this->executionProfile ) {
+		if ( self::PROFILE_PRODUCTION_PARITY === $this->execution_profile ) {
 			if ( 0 === get_current_user_id() ) {
 				WP_CLI::warning( 'Production-parity profile is running anonymously. Use the global --user option to select an actor.' );
 			}
@@ -1102,18 +1179,18 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 	/** Select a profile in focused command tests. */
 	protected function set_execution_profile( string $profile, array $approved_once_abilities = array() ): void {
-		$this->executionProfile          = $profile;
-		$this->approvedOnceAbilities    = $approved_once_abilities;
-		$this->executionProfileMetadata = array();
+		$this->execution_profile          = $profile;
+		$this->approved_once_abilities    = $approved_once_abilities;
+		$this->execution_profile_metadata = array();
 	}
 
 	/** Return safe, comparable metadata for the active execution profile. */
 	protected function get_execution_profile_metadata(): array {
-		if ( empty( $this->executionProfileMetadata ) ) {
-			$this->executionProfileMetadata = $this->build_execution_profile_metadata();
+		if ( empty( $this->execution_profile_metadata ) ) {
+			$this->execution_profile_metadata = $this->build_execution_profile_metadata();
 		}
 
-		return $this->executionProfileMetadata;
+		return $this->execution_profile_metadata;
 	}
 
 	/** Build safe, comparable metadata for the active execution profile. */
@@ -1122,16 +1199,16 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$roles = $user->exists() ? array_values( array_map( 'sanitize_key', $user->roles ) ) : array();
 
 		return array(
-			'name'               => $this->executionProfile,
+			'name'               => $this->execution_profile,
 			'effective_actor'    => array(
 				'user_id' => (int) $user->ID,
 				'roles'   => $roles,
 			),
-			'approval_mode'      => self::PROFILE_FUNCTIONAL === $this->executionProfile
+			'approval_mode'      => self::PROFILE_FUNCTIONAL === $this->execution_profile
 				? 'global_write_approval'
-				: ( empty( $this->approvedOnceAbilities ) ? 'normal' : 'explicit_once' ),
-			'prompt_profile'     => self::PROFILE_FUNCTIONAL === $this->executionProfile ? 'custom_functional' : 'default',
-			'catalog_resolution' => self::PROFILE_FUNCTIONAL === $this->executionProfile ? 'explicit_tier_1' : 'automatic',
+				: ( empty( $this->approved_once_abilities ) ? 'normal' : 'explicit_once' ),
+			'prompt_profile'     => self::PROFILE_FUNCTIONAL === $this->execution_profile ? 'custom_functional' : 'default',
+			'catalog_resolution' => self::PROFILE_FUNCTIONAL === $this->execution_profile ? 'explicit_tier_1' : 'automatic',
 			'browser_client'     => array(
 				'available' => false,
 				'mode'      => 'server_only',

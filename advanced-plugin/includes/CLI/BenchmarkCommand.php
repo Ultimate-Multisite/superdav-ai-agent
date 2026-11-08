@@ -526,12 +526,26 @@ class BenchmarkCommand extends WP_CLI_Command {
 		if ( ! empty( $uploads['basedir'] ) ) {
 			$public_dirs[] = (string) $uploads['basedir'];
 		}
+		$has_reliable_document_root = false;
 		if ( ! empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
-			$public_dirs[] = sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) );
+			$document_root = PathCanonicalizer::canonicalize_missing_path(
+				sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) )
+			);
+			if ( ! is_wp_error( $document_root ) ) {
+				$public_dirs[]              = $document_root;
+				$has_reliable_document_root = true;
+			}
 		}
 		$inferred_document_root = $this->infer_document_root( $site_path, site_url( '/' ) );
 		if ( null !== $inferred_document_root ) {
-			$public_dirs[] = $inferred_document_root;
+			$public_dirs[]              = $inferred_document_root;
+			$has_reliable_document_root = true;
+		}
+		if ( ! $has_reliable_document_root ) {
+			return new \WP_Error(
+				'sd_ai_agent_benchmark_log_document_root_unknown',
+				'Could not determine the server document root for benchmark log validation. Set DOCUMENT_ROOT to a trusted absolute path or configure the WordPress site URL with its installation subdirectory.'
+			);
 		}
 
 		foreach ( array_unique( $public_dirs ) as $public_dir ) {

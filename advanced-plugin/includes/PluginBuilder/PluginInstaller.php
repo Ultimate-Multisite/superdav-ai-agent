@@ -92,28 +92,23 @@ class PluginInstaller {
 			);
 		}
 
-		// Build the expected plugin directory path for boundary validation.
-		// Use WP_PLUGIN_DIR (not WP_CONTENT_DIR.'/plugins/') so this works on
-		// installs that relocate the plugins directory.
-		$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug . '/';
+		// Resolve both the plugin directory and the complete destination against
+		// WP_PLUGIN_DIR. Complete-path validation rejects existing or dangling leaf
+		// links instead of allowing the subsequent write to follow them.
+		$plugins_root = realpath( WP_PLUGIN_DIR );
+		if ( false !== $plugins_root ) {
+			$plugin_dir = trailingslashit( WP_PLUGIN_DIR ) . $slug;
+			$plugin_dir = PathCanonicalizer::canonicalize_write_path_inside( $plugin_dir, $plugins_root );
+			if ( is_wp_error( $plugin_dir ) ) {
+				return $plugin_dir;
+			}
 
-		// Ensure the plugin directory exists before using realpath.
-		if ( is_dir( $plugin_dir ) ) {
-			$real_plugin_dir = realpath( $plugin_dir );
-			if ( false !== $real_plugin_dir ) {
-				// Resolve what the final path would be (without the file existing yet).
-				$candidate     = $real_plugin_dir . '/' . $normalised;
-				$dir_candidate = dirname( $candidate );
-
-				// The parent directory must be inside the plugin directory.
-				if ( is_dir( $dir_candidate ) ) {
-					$real_dir = realpath( $dir_candidate );
-					if ( false !== $real_dir && ! str_starts_with( $real_dir . '/', $real_plugin_dir . '/' ) ) {
-						return new WP_Error(
-							'sd_ai_agent_path_traversal',
-							__( 'File path escapes the plugin directory.', 'superdav-ai-agent' )
-						);
-					}
+			// A missing plugin directory cannot contain a leaf entry. Fresh installs
+			// claim that directory atomically before using exclusive file creation.
+			if ( is_dir( $plugin_dir ) ) {
+				$destination = PathCanonicalizer::canonicalize_write_path_inside( $plugin_dir . '/' . $normalised, $plugin_dir );
+				if ( is_wp_error( $destination ) ) {
+					return $destination;
 				}
 			}
 		}

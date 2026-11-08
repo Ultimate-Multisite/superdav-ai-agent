@@ -256,36 +256,15 @@ class PluginInstaller {
 			);
 		}
 
-		// Validate all paths before touching the filesystem.
+		// Validate and lint every proposed file before touching live plugin files.
 		$normalised_files = [];
 		foreach ( $files as $relative_path => $content ) {
 			$validated = self::validate_plugin_path( $slug, $relative_path );
 			if ( is_wp_error( $validated ) ) {
 				return $validated;
 			}
-			$normalised_files[ $validated ] = $content;
-		}
 
-		// Write files using WP_Filesystem.
-		global $wp_filesystem;
-		/** @var \WP_Filesystem_Base $wp_filesystem */
-		if ( empty( $wp_filesystem ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			WP_Filesystem();
-		}
-
-		$updated = [];
-		foreach ( $normalised_files as $relative_path => $content ) {
-			$abs_path = $plugin_dir . $relative_path;
-			$dir      = PathCanonicalizer::canonicalize_missing_path_inside( dirname( $abs_path ), $plugin_dir );
-			if ( is_wp_error( $dir ) ) {
-				return $dir;
-			}
-
-			wp_mkdir_p( $dir );
-
-			// Validate PHP syntax before writing.
-			if ( self::is_php_file( $relative_path ) ) {
+			if ( self::is_php_file( $validated ) ) {
 				$lint = self::lint_php( $content );
 				if ( ! $lint['valid'] ) {
 					return new WP_Error(
@@ -293,37 +272,76 @@ class PluginInstaller {
 						sprintf(
 							/* translators: 1: file path 2: error message 3: line number */
 							__( 'PHP syntax error in %1$s: %2$s (line %3$d)', 'superdav-ai-agent' ),
-							$relative_path,
+							$validated,
 							$lint['error'] ?? 'Unknown',
 							$lint['line'] ?? 0
 						)
 					);
 				}
 			}
-
-			if ( ! $wp_filesystem->put_contents( $abs_path, $content, FS_CHMOD_FILE ) ) {
-				return new WP_Error(
-					'sd_ai_agent_write_failed',
-					/* translators: %s: file path */
-					sprintf( __( 'Could not write file: %s', 'superdav-ai-agent' ), $relative_path )
-				);
-			}
-
-			$updated[] = $relative_path;
+			$normalised_files[ $validated ] = $content;
 		}
 
-		// Refresh the files list and updated_at in the DB record.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update generated plugin record.
-		$wpdb->update(
-			self::table_name(),
-			[
-				'files'      => wp_json_encode( $updated ),
-				'updated_at' => current_time( 'mysql' ),
-			],
-			[ 'slug' => $slug ],
-			[ '%s', '%s' ],
-			[ '%s' ]
+		$updated = array_keys( $normalised_files );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Read generated plugin metadata to preserve its actual entrypoint during the staged update.
+		$stored_plugin_file = $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name comes from a trusted internal method.
+			$wpdb->prepare( 'SELECT plugin_file FROM ' . self::table_name() . ' WHERE slug = %s LIMIT 1', $slug )
 		);
+		$main_file = $slug . '.php';
+		if ( is_string( $stored_plugin_file ) && '' !== $stored_plugin_file ) {
+			$validated_main = self::validate_plugin_path( $slug, $stored_plugin_file );
+			if ( is_wp_error( $validated_main ) ) {
+				return $validated_main;
+			}
+			$main_file = $validated_main;
+		}
+
+		$updater = new PluginUpdater();
+		$result  = $updater->update(
+			$slug,
+			$normalised_files,
+			static function ( array $swap_result, string $backup_dir ) use ( $wpdb, $updater, $slug, $updated ): true|WP_Error {
+				if ( empty( $swap_result['swapped'] ) ) {
+					return true;
+				}
+
+				// Commit metadata only after the complete staged filesystem swap succeeds.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update generated plugin record.
+				$db_updated = $wpdb->update(
+					self::table_name(),
+					[
+						'files'      => wp_json_encode( $updated ),
+						'updated_at' => current_time( 'mysql' ),
+					],
+					[ 'slug' => $slug ],
+					[ '%s', '%s' ],
+					[ '%s' ]
+				);
+				if ( false !== $db_updated ) {
+					return true;
+				}
+
+				$rollback = $updater->rollback( $slug, $backup_dir );
+				if ( is_wp_error( $rollback ) ) {
+					return new WP_Error(
+						'sd_ai_agent_db_update_rollback_failed',
+						__( 'Plugin metadata update failed, and the original plugin files could not be restored.', 'superdav-ai-agent' ),
+						[ 'rollback_error_code' => $rollback->get_error_code() ]
+					);
+				}
+
+				return new WP_Error(
+					'sd_ai_agent_db_update_failed',
+					__( 'Plugin metadata update failed, so the original plugin files were restored.', 'superdav-ai-agent' )
+				);
+			},
+			$main_file
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
 
 		return [ 'updated' => $updated ];
 	}
@@ -512,6 +530,13 @@ class PluginInstaller {
 			return new WP_Error(
 				'sd_ai_agent_invalid_plugin_file_path',
 				__( 'Main plugin file path must point to a PHP file.', 'superdav-ai-agent' )
+			);
+		}
+
+		if ( ! array_key_exists( $normalised_plugin_file, $validated_files ) ) {
+			return new WP_Error(
+				'sd_ai_agent_plugin_file_missing',
+				__( 'Main plugin file must be included in the generated file set.', 'superdav-ai-agent' )
 			);
 		}
 

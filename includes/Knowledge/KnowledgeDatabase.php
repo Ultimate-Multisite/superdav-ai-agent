@@ -776,7 +776,7 @@ class KnowledgeDatabase {
 		$sql           .= ' ORDER BY relevance DESC LIMIT %d';
 		$query_values[] = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Custom table query; caching not applicable.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Search clauses contain only fixed SQL; terms, limits, and all three %i custom-table identifiers are bound through prepare().
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $query_values ) );
 
 		return $results ?: [];

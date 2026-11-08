@@ -1387,19 +1387,39 @@ class PluginUpdater {
 	}
 
 	/**
-	 * Recursively remove a directory using WP_Filesystem_Direct.
+	 * Recursively remove a directory without traversing symbolic links.
 	 *
 	 * @param string $dir Absolute path to the directory to remove.
 	 * @return void
 	 */
 	private function remove_directory( string $dir ): void {
+		if ( is_link( $dir ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Unlink the directory entry itself; never recurse through a symbolic link.
+			unlink( $dir );
+			return;
+		}
 		if ( ! is_dir( $dir ) ) {
 			return;
 		}
 
-		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
-		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
-		$fs = new \WP_Filesystem_Direct( [] );
-		$fs->rmdir( $dir, true );
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $iterator as $entry ) {
+			/** @var \SplFileInfo $entry */
+			$path = $entry->getPathname();
+			if ( $entry->isLink() || ! $entry->isDir() ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Owned cleanup must unlink entries directly without following symlinks.
+				unlink( $path );
+				continue;
+			}
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Child-first cleanup removes only the owned real directory.
+			rmdir( $path );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Remove the now-empty owned root.
+		rmdir( $dir );
 	}
 }

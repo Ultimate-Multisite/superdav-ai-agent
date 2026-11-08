@@ -472,8 +472,9 @@ class PluginUpdater {
 	/**
 	 * Swap the staged plugin over the live plugin.
 	 *
-	 * Deactivates the plugin (if active), copies staging over the live directory,
-	 * then reactivates. If reactivation fails, restores from backup automatically.
+	 * Deactivates the plugin (if active), prepares a complete sibling directory,
+	 * atomically renames it over the live directory, then reactivates. If
+	 * reactivation fails, restores from backup automatically.
 	 *
 	 * @param string      $slug        Plugin slug.
 	 * @param string      $staging_dir Absolute path to the staging directory.
@@ -513,19 +514,14 @@ class PluginUpdater {
 			deactivate_plugins( $plugin_file, true );
 		}
 
-		// Replace live directory with staged copy.
-		if ( is_dir( $plugin_dir ) ) {
-			$this->remove_directory( $plugin_dir );
-		}
-
-		$copy_result = $this->copy_directory( $staging_dir, $plugin_dir );
+		// Build the replacement outside the live tree so copy() can never follow a
+		// leaf symlink inserted into the live directory during publication.
+		$copy_result = $this->publish_directory_atomically( $staging_dir, $plugin_dir );
 		if ( is_wp_error( $copy_result ) ) {
-			// Restore backup.
-			$this->rollback( $slug, $backup_dir );
 			return new WP_Error(
 				'sd_ai_agent_swap_copy_failed',
 				/* translators: %s: underlying error message */
-				sprintf( __( 'Swap failed, backup restored: %s', 'superdav-ai-agent' ), $copy_result->get_error_message() )
+				sprintf( __( 'Swap failed before the prepared update could be published: %s', 'superdav-ai-agent' ), $copy_result->get_error_message() )
 			);
 		}
 
@@ -534,7 +530,6 @@ class PluginUpdater {
 			$activate_result = activate_plugin( $plugin_file );
 			if ( is_wp_error( $activate_result ) ) {
 				// Reactivation failed — restore from backup.
-				$this->remove_directory( $plugin_dir );
 				$this->rollback( $slug, $backup_dir );
 				return new WP_Error(
 					'sd_ai_agent_reactivation_failed',
@@ -608,11 +603,7 @@ class PluginUpdater {
 		try {
 			$plugin_dir = $this->plugin_dir_path( $slug );
 
-			if ( is_dir( $plugin_dir ) ) {
-				$this->remove_directory( $plugin_dir );
-			}
-
-			$result = $this->copy_directory( $backup_real, $plugin_dir );
+			$result = $this->publish_directory_atomically( $backup_real, $plugin_dir );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -1039,6 +1030,144 @@ class PluginUpdater {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Publish a directory without copying into the live plugin tree.
+	 *
+	 * The complete candidate is built in an exclusively claimed sibling directory.
+	 * The live directory is then renamed aside before the candidate is renamed into
+	 * place. A leaf symlink inserted into the live tree while the candidate is built
+	 * therefore moves with the old tree and is never used as a copy destination.
+	 *
+	 * @param string $source      Complete source directory.
+	 * @param string $destination Live plugin directory.
+	 * @return true|WP_Error
+	 */
+	private function publish_directory_atomically( string $source, string $destination ): bool|WP_Error {
+		$destination  = untrailingslashit( $destination );
+		$plugins_root = realpath( dirname( $destination ) );
+		if ( false === $plugins_root || is_link( $destination ) || ! is_dir( $destination ) ) {
+			return new WP_Error(
+				'sd_ai_agent_publish_destination_invalid',
+				__( 'The live plugin directory cannot be published safely.', 'superdav-ai-agent' )
+			);
+		}
+
+		$destination_path = PathCanonicalizer::canonicalize_missing_path_inside( $destination, $plugins_root );
+		if ( is_wp_error( $destination_path ) || untrailingslashit( $destination_path ) !== $destination ) {
+			return is_wp_error( $destination_path ) ? $destination_path : new WP_Error(
+				'sd_ai_agent_publish_destination_invalid',
+				__( 'The live plugin directory cannot be published safely.', 'superdav-ai-agent' )
+			);
+		}
+
+		$candidate = $this->claim_publish_sibling( $plugins_root, basename( $destination ) . '.candidate-' );
+		if ( is_wp_error( $candidate ) ) {
+			return $candidate;
+		}
+
+		$copied = $this->copy_directory( $source, $candidate );
+		if ( is_wp_error( $copied ) ) {
+			$this->remove_directory( $candidate );
+			return $copied;
+		}
+
+		/**
+		 * Fires after a complete candidate exists but before the live tree is renamed.
+		 *
+		 * @param string $destination Live plugin directory.
+		 * @param string $candidate   Prepared sibling candidate directory.
+		 */
+		do_action( 'sd_ai_agent_plugin_update_candidate_ready', trailingslashit( $destination ), trailingslashit( $candidate ) );
+
+		if ( is_link( $destination ) || ! is_dir( $destination ) ) {
+			$this->remove_directory( $candidate );
+			return new WP_Error(
+				'sd_ai_agent_publish_destination_changed',
+				__( 'The live plugin directory changed before the update could be published.', 'superdav-ai-agent' )
+			);
+		}
+
+		$previous = $this->publish_sibling_path( $plugins_root, basename( $destination ) . '.previous-' );
+		if ( is_wp_error( $previous ) ) {
+			$this->remove_directory( $candidate );
+			return $previous;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-filesystem rename moves the complete live tree aside without following leaf symlinks.
+		if ( ! rename( $destination, $previous ) ) {
+			$this->remove_directory( $candidate );
+			return new WP_Error(
+				'sd_ai_agent_publish_previous_failed',
+				__( 'The current plugin directory could not be preserved for rollback.', 'superdav-ai-agent' )
+			);
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-filesystem rename atomically publishes the complete candidate tree.
+		if ( ! rename( $candidate, $destination ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Restore the preserved live tree when candidate publication fails.
+			$restored = rename( $previous, $destination );
+			$this->remove_directory( $candidate );
+			return new WP_Error(
+				$restored ? 'sd_ai_agent_publish_candidate_failed' : 'sd_ai_agent_publish_restore_failed',
+				$restored
+					? __( 'The prepared plugin update could not be published; the previous plugin was restored.', 'superdav-ai-agent' )
+					: __( 'The prepared plugin update could not be published or restored.', 'superdav-ai-agent' )
+			);
+		}
+
+		$this->remove_directory( $previous );
+		return true;
+	}
+
+	/**
+	 * Atomically claim a private sibling directory used to build a candidate.
+	 *
+	 * @param string $plugins_root Validated plugins directory.
+	 * @param string $prefix Sibling name prefix.
+	 * @return string|WP_Error
+	 */
+	private function claim_publish_sibling( string $plugins_root, string $prefix ): string|WP_Error {
+		for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+			$path = $this->publish_sibling_path( $plugins_root, $prefix );
+			if ( is_wp_error( $path ) ) {
+				return $path;
+			}
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Exclusive creation prevents a pre-existing sibling from being reused.
+			if ( mkdir( $path, 0700 ) ) {
+				return $path;
+			}
+		}
+
+		return new WP_Error(
+			'sd_ai_agent_publish_identity_failed',
+			__( 'Could not claim temporary storage for the plugin update.', 'superdav-ai-agent' )
+		);
+	}
+
+	/**
+	 * Generate a unique, validated path directly beneath the plugins directory.
+	 *
+	 * @param string $plugins_root Validated plugins directory.
+	 * @param string $prefix Sibling name prefix.
+	 * @return string|WP_Error
+	 */
+	private function publish_sibling_path( string $plugins_root, string $prefix ): string|WP_Error {
+		try {
+			$suffix = bin2hex( random_bytes( 12 ) );
+		} catch ( \Throwable $e ) {
+			return new WP_Error(
+				'sd_ai_agent_publish_identity_failed',
+				__( 'Could not create a unique plugin update directory.', 'superdav-ai-agent' )
+			);
+		}
+
+		return PathCanonicalizer::canonicalize_missing_path_inside(
+			trailingslashit( $plugins_root ) . '.' . $prefix . $suffix,
+			$plugins_root
+		);
 	}
 
 	/**

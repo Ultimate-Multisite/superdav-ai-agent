@@ -500,6 +500,41 @@ class PluginUpdaterTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A leaf symlink inserted after candidate preparation must be moved aside,
+	 * not followed while publishing the staged tree.
+	 */
+	public function test_update_does_not_follow_leaf_symlink_created_during_publish(): void {
+		$outside_file = tempnam( sys_get_temp_dir(), 'sd-ai-agent-updater-outside-' );
+		$this->assertIsString( $outside_file );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Synthetic external target for the symlink race regression.
+		file_put_contents( $outside_file, 'outside remains unchanged' );
+		$hook_ran = false;
+		$inject   = function ( string $live_dir, string $candidate_dir ) use ( $outside_file, &$hook_ran ): void {
+			$this->assertDirectoryExists( $candidate_dir );
+			$live_file = $live_dir . $this->slug . '.php';
+			unlink( $live_file );
+			$this->assertTrue( symlink( $outside_file, $live_file ) );
+			$hook_ran = true;
+		};
+		add_action( 'sd_ai_agent_plugin_update_candidate_ready', $inject, 10, 2 );
+
+		try {
+			$result = $this->updater->update(
+				$this->slug,
+				[ $this->slug . '.php' => '<?php /* Plugin Name: Race-safe Update */' ]
+			);
+		} finally {
+			remove_action( 'sd_ai_agent_plugin_update_candidate_ready', $inject, 10 );
+		}
+
+		$this->assertTrue( $hook_ran );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'outside remains unchanged', file_get_contents( $outside_file ) );
+		$this->assertStringContainsString( 'Race-safe Update', (string) file_get_contents( $this->plugin_dir . $this->slug . '.php' ) );
+		unlink( $outside_file );
+	}
+
+	/**
 	 * update() must refuse a competing operation for the same live plugin.
 	 */
 	public function test_update_serializes_competing_operations_per_plugin(): void {

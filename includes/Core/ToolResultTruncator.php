@@ -543,7 +543,7 @@ class ToolResultTruncator {
 			if ( 1 === count( $themes ) && ! $single_theme_bounded ) {
 				foreach ( [ 'slug', 'name', 'version' ] as $field ) {
 					$themes[0][ $field ] = self::compact_inventory_string(
-						$themes[0][ $field ] ?? '',
+						$themes[0][ $field ],
 						self::OVERSIZED_THEME_STRING_BYTES
 					);
 				}

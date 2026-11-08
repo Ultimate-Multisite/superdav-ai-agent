@@ -98,6 +98,7 @@ require_cmd() {
 require_cmd wp
 require_cmd unzip
 require_cmd bash
+require_cmd node
 
 if [ ! -d "$WP_DIR" ]; then
 	echo "ERROR: WordPress dev install not found at ${WP_DIR}" >&2
@@ -243,13 +244,13 @@ mkdir -p "$REPORT_DIR"
 	echo "                     --slug=${SUBMISSION_SLUG} \\"
 	echo "                     --ai --ai-model=${MODEL} \\"
 	echo "                     --require=${PCP_CLI} \\"
-	echo "                     --skip-plugins=${SKIP_PLUGINS} --skip-themes"
+	echo "                     --skip-plugins=${SKIP_PLUGINS} --skip-themes --format=json"
 	echo "=================================================="
 	echo
 } >"$REPORT_PATH"
 
-# PCP exits non-zero when issues are found — that's the whole point of
-# running it. Capture the exit code but don't abort the script on it.
+# Some PCP versions return zero despite ERROR entries. Preserve process and
+# report-write failures, then separately gate the structured findings.
 set +e
 wp --path="$WP_DIR" plugin check "$REVIEW_SLUG" \
 	--slug="$SUBMISSION_SLUG" \
@@ -257,9 +258,22 @@ wp --path="$WP_DIR" plugin check "$REVIEW_SLUG" \
 	--ai-model="$MODEL" \
 	--require="$PCP_CLI" \
 	--skip-plugins="$SKIP_PLUGINS" \
-	--skip-themes \
+	--skip-themes --format=json \
 	2>&1 | tee -a "$REPORT_PATH"
-PCP_EXIT=${PIPESTATUS[0]}
+PCP_PIPE_STATUS=("${PIPESTATUS[@]}")
+PCP_EXIT=${PCP_PIPE_STATUS[0]}
+if [ "$PCP_EXIT" -eq 0 ] && [ "${PCP_PIPE_STATUS[1]}" -ne 0 ]; then
+	PCP_EXIT=${PCP_PIPE_STATUS[1]}
+fi
+node "${PLUGIN_DIR}/scripts/plugin-check-report.js" "$REPORT_PATH" | tee -a "$REPORT_PATH"
+REPORT_PIPE_STATUS=("${PIPESTATUS[@]}")
+REPORT_EXIT=${REPORT_PIPE_STATUS[0]}
+if [ "$REPORT_EXIT" -eq 0 ] && [ "${REPORT_PIPE_STATUS[1]}" -ne 0 ]; then
+	REPORT_EXIT=${REPORT_PIPE_STATUS[1]}
+fi
+if [ "$PCP_EXIT" -eq 0 ] && [ "$REPORT_EXIT" -ne 0 ]; then
+	PCP_EXIT="$REPORT_EXIT"
+fi
 set -e
 
 # ── 5. Cleanup ───────────────────────────────────────────────────────────────
@@ -286,5 +300,5 @@ fi
 echo
 echo "==> Done."
 echo "    Report  : ${REPORT_PATH}"
-echo "    PCP exit: ${PCP_EXIT}  (non-zero is normal — it means issues were found)"
+echo "    Review exit: ${PCP_EXIT}  (scanner failures, ERROR findings, or unreadable results fail the review)"
 exit "$PCP_EXIT"

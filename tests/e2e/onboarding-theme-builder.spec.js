@@ -62,10 +62,11 @@ const {
  * non-fatal — the spec uses overwrite=true in the build instruction to handle
  * any leftover test-theme directory from a previous run.
  *
- * @param {string} command - WP-CLI command WITHOUT the `wp` prefix.
+ * @param {string}  command  - WP-CLI command WITHOUT the `wp` prefix.
+ * @param {boolean} required - Fail instead of swallowing fixture errors.
  * @return {string} Trimmed stdout, or '' on error.
  */
-function wpCli( command ) {
+function wpCli( command, required = false ) {
 	const baseUrl = process.env.WP_BASE_URL || 'http://localhost:8890';
 	const service = baseUrl.includes( ':8893' ) ? 'tests-cli' : 'cli';
 	const cwd = path.resolve( __dirname, '../..' );
@@ -91,7 +92,12 @@ function wpCli( command ) {
 				stdio: [ 'pipe', 'pipe', 'pipe' ],
 			}
 		).trim();
-	} catch {
+	} catch ( error ) {
+		if ( required ) {
+			throw new Error( 'Required WordPress fixture command failed', {
+				cause: error,
+			} );
+		}
 		// Non-fatal: log nothing to avoid noise in CI logs.
 		return '';
 	}
@@ -166,7 +172,8 @@ async function goToAgentPageForOnboarding( page ) {
 // Serial describe block
 // ---------------------------------------------------------------------------
 
-test.describe.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v2)', () => {
+test.describe
+	.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v2)', () => {
 	/**
 	 * Shared browser page — all tests in this serial suite reuse the same
 	 * page so the browser session (cookies, React state) persists across steps.
@@ -368,7 +375,7 @@ test.describe.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v
 		// sd-ai-agent/generate-menu-page produces when given real menu data.
 		const menuPageCreated = wpCli(
 			'eval "' +
-				'use SdAiAgent\\\\Core\\\\MenuPageBuilder; ' +
+				'use SdAiAgent\\Core\\MenuPageBuilder; ' +
 				'$data = [' +
 				"  'categories' => [" +
 				"    ['name' => 'Espresso', 'items' => [" +
@@ -384,25 +391,17 @@ test.describe.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v
 				"$existing = get_page_by_path('menu', OBJECT, 'page'); " +
 				'if ($existing) { wp_delete_post($existing->ID, true); } ' +
 				"$id = wp_insert_post(['post_title' => 'Menu', 'post_content' => $content, 'post_status' => 'publish', 'post_type' => 'page', 'post_name' => 'menu'], true); " +
-				"echo is_int($id) && $id > 0 ? 'created:' . $id : 'failed';\""
+				"echo is_int($id) && $id > 0 ? 'created:' . $id : 'failed';\"",
+			true
 		);
 
-		// If WP-CLI eval can not run (e.g. autoload not available in eval context), skip gracefully.
-		if (
-			! menuPageCreated ||
-			menuPageCreated.startsWith( 'failed' ) ||
-			menuPageCreated === ''
-		) {
-			// Mark test as skipped with a clear message rather than failing.
-			test.skip(
-				true,
-				'WP-CLI eval could not create menu page — skipping frontend assertion'
-			);
-			return;
-		}
+		// A broken fixture is a failed check, not missing optional coverage.
+		expect( menuPageCreated ).toMatch( /\bcreated:\d+\b/ );
+		const menuPageId = menuPageCreated.match( /\bcreated:(\d+)\b/ )[ 1 ];
 
-		// Navigate to /menu/ and verify the page renders structured content.
-		await page.goto( '/menu/' );
+		// Also work on the default plain-permalink wp-env install.
+		const response = await page.goto( `/?page_id=${ menuPageId }` );
+		expect( response.status() ).toBe( 200 );
 		await page.waitForLoadState( 'domcontentloaded' );
 
 		// The page must contain at least one sd-ai-agent-menu-category-heading (h2).
@@ -441,6 +440,9 @@ test.describe.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v
 			hasEspresso,
 			'/menu/ must contain the "Espresso" category heading'
 		).toBe( true );
+
+		// This serial suite shares one page; leave the chat ready for the next step.
+		await goToAgentPageForOnboarding( page );
 	} );
 
 	// ── Test 4: completion gate → repair → DONE reply → theme on disk ─────
@@ -502,9 +504,9 @@ test.describe.serial( 'Setup Assistant theme-build onboarding flow (Onboarding v
 			}
 		};
 		const handleJob = async ( route ) => {
-			const repaired = decodeURIComponent( route.request().url() ).includes(
-				`${ runJobPrefix }2`
-			);
+			const repaired = decodeURIComponent(
+				route.request().url()
+			).includes( `${ runJobPrefix }2` );
 			const overflowViolation = {
 				code: 'document_horizontal_overflow',
 				url: completionUrls[ 0 ],

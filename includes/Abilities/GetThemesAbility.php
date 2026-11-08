@@ -33,7 +33,21 @@ class GetThemesAbility extends AbstractAbility {
 	protected function input_schema(): array {
 		return [
 			'type'       => 'object',
-			'properties' => (object) [],
+			'properties' => [
+				'offset' => [
+					'type'        => 'integer',
+					'description' => __( 'Zero-based offset of the first theme to return.', 'superdav-ai-agent' ),
+					'default'     => 0,
+					'minimum'     => 0,
+				],
+				'limit'  => [
+					'type'        => 'integer',
+					'description' => __( 'Maximum themes to return. Use next_offset to continue.', 'superdav-ai-agent' ),
+					'default'     => 100,
+					'minimum'     => 1,
+					'maximum'     => 100,
+				],
+			],
 		];
 	}
 
@@ -41,9 +55,14 @@ class GetThemesAbility extends AbstractAbility {
 		return [
 			'type'       => 'object',
 			'properties' => [
-				'themes' => [ 'type' => 'array' ],
-				'total'  => [ 'type' => 'integer' ],
-				'active' => [ 'type' => 'string' ],
+				'themes'      => [ 'type' => 'array' ],
+				'total'       => [ 'type' => 'integer' ],
+				'showing'     => [ 'type' => 'integer' ],
+				'offset'      => [ 'type' => 'integer' ],
+				'limit'       => [ 'type' => 'integer' ],
+				'has_more'    => [ 'type' => 'boolean' ],
+				'next_offset' => [ 'type' => [ 'integer', 'null' ] ],
+				'active'      => [ 'type' => 'string' ],
 			],
 		];
 	}
@@ -52,23 +71,35 @@ class GetThemesAbility extends AbstractAbility {
 		/** @var array<string, mixed> $input */
 		$all_themes   = wp_get_themes();
 		$active_theme = get_stylesheet();
+		$offset       = max( 0, (int) ( $input['offset'] ?? 0 ) );
+		$limit        = min( 100, max( 1, (int) ( $input['limit'] ?? 100 ) ) );
+
+		uksort( $all_themes, 'strnatcasecmp' );
+		$total       = count( $all_themes );
+		$page_themes = array_slice( $all_themes, $offset, $limit, true );
 
 		$themes = [];
-		foreach ( $all_themes as $theme_slug => $theme ) {
+		foreach ( $page_themes as $theme_slug => $theme ) {
 			$themes[] = [
-				'slug'        => $theme_slug,
-				'name'        => $theme->get( 'Name' ),
-				'version'     => $theme->get( 'Version' ),
-				'description' => $theme->get( 'Description' ),
-				'author'      => $theme->get( 'Author' ),
-				'active'      => $theme_slug === $active_theme,
+				'slug'    => $theme_slug,
+				'name'    => $theme->get( 'Name' ),
+				'version' => $theme->get( 'Version' ),
+				'active'  => $theme_slug === $active_theme,
 			];
 		}
+		$showing     = count( $themes );
+		$next_offset = $offset + $showing;
+		$has_more    = $next_offset < $total;
 
 		return [
-			'themes' => $themes,
-			'total'  => count( $themes ),
-			'active' => $active_theme,
+			'themes'      => $themes,
+			'total'       => $total,
+			'showing'     => $showing,
+			'offset'      => $offset,
+			'limit'       => $limit,
+			'has_more'    => $has_more,
+			'next_offset' => $has_more ? $next_offset : null,
+			'active'      => $active_theme,
 		];
 	}
 

@@ -512,12 +512,13 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 		$has_reliable_document_root = false;
 		if ( ! empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
-			$document_root = PathCanonicalizer::canonicalize_missing_path(
-				sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) )
-			);
-			if ( ! is_wp_error( $document_root ) ) {
-				$public_dirs[]              = $document_root;
-				$has_reliable_document_root = true;
+			$document_root = sanitize_text_field( wp_unslash( (string) $_SERVER['DOCUMENT_ROOT'] ) );
+			if ( path_is_absolute( $document_root ) ) {
+				$document_root = PathCanonicalizer::canonicalize_missing_path( $document_root );
+				if ( ! is_wp_error( $document_root ) ) {
+					$public_dirs[]              = $document_root;
+					$has_reliable_document_root = true;
+				}
 			}
 		}
 		$inferred_document_root = $this->infer_document_root( $site_path, site_url( '/' ) );

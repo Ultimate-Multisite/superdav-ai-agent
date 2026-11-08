@@ -309,6 +309,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'provider_errors'                 => 0,
 			'fixture_errors'                  => 0,
 			'deferred'                        => 0,
+			'not_exercised'                   => 0,
 		);
 		$question_summaries = array();
 
@@ -322,13 +323,18 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$result['log_dir'] = $run_dir;
 
 			$status = (string) ( $result['status'] ?? 'unknown' );
-			if ( 'deferred' === $status ) {
+			if ( 'not_exercised' === $status ) {
+				++$totals['not_exercised'];
+			} elseif ( 'deferred' === $status ) {
 				++$totals['deferred'];
-				WP_CLI::log( '│  Deferred: ' . (string) ( $result['deferred_reason'] ?? 'unsupported execution contract' ) );
 			}
 
 			// Print summary.
-			if ( ! empty( $result['agent_error'] ) ) {
+			if ( 'not_exercised' === $status ) {
+				WP_CLI::log( '│  Not exercised: ' . implode( ', ', (array) ( $result['missing_prerequisites'] ?? array() ) ) );
+			} elseif ( 'deferred' === $status ) {
+				WP_CLI::log( '│  Deferred: ' . (string) ( $result['deferred_reason'] ?? 'unsupported execution contract' ) );
+			} elseif ( ! empty( $result['agent_error'] ) ) {
 				$error_label = ! empty( $result['provider_error'] ) ? 'Provider error' : 'Agent error';
 				WP_CLI::log( '│  ✗ ' . $error_label . ': ' . $result['agent_error'] );
 				++$totals['errors'];
@@ -416,6 +422,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'provider_errors'                 => $totals['provider_errors'],
 			'fixture_errors'                  => $totals['fixture_errors'],
 			'questions_deferred'              => $totals['deferred'],
+			'questions_not_exercised'         => $totals['not_exercised'],
 			'assertions_passed'               => $totals['passed'],
 			'assertions_failed'               => $totals['failed'],
 			'assertions_total'                => $total_assertions,
@@ -447,6 +454,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  Agent errors     : %d', $totals['errors'] ) );
 		WP_CLI::log( sprintf( '  Provider errors  : %d', $totals['provider_errors'] ) );
 		WP_CLI::log( sprintf( '  Deferred         : %d', $totals['deferred'] ) );
+		WP_CLI::log( sprintf( '  Not exercised    : %d', $totals['not_exercised'] ) );
 		WP_CLI::log( sprintf( '  Assertions       : %d/%d passed', $totals['passed'], $total_assertions ) );
 		WP_CLI::log( sprintf( '  Postconditions   : %d/%d passed', $totals['postconditions_passed'], $total_postconditions ) );
 		WP_CLI::log( sprintf( '  Invocation only  : %d question(s)', $totals['questions_invocation_only'] ) );
@@ -770,6 +778,20 @@ class BenchmarkCommand extends WP_CLI_Command {
 			return $log;
 		}
 
+		$missing_prerequisites = $this->find_missing_prerequisites( $question );
+		if ( ! empty( $missing_prerequisites ) ) {
+			$log['status']                = 'not_exercised';
+			$log['missing_prerequisites'] = $missing_prerequisites;
+			$log['assertions']            = array(
+				'passed'  => 0,
+				'failed'  => 0,
+				'total'   => 0,
+				'results' => array(),
+			);
+			$log['completed_at']          = gmdate( 'c' );
+			return $log;
+		}
+
 		// For plugin-building questions, create an isolated sandbox plugin slug.
 		$plugin_slug   = '';
 		$needs_plugin  = $this->question_needs_plugin( $question );
@@ -986,7 +1008,36 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'agent_error'             => (string) ( $result['agent_error'] ?? '' ),
 			'provider_error'          => $result['provider_error'] ?? null,
 			'deferred_reason'         => (string) ( $result['deferred_reason'] ?? '' ),
+			'missing_prerequisites'   => $result['missing_prerequisites'] ?? array(),
 		);
+	}
+
+	/**
+	 * Return labels for unavailable question prerequisites.
+	 *
+	 * Unknown prerequisite types fail closed so malformed benchmark metadata
+	 * cannot be scored as a model failure.
+	 *
+	 * @param array<string, mixed> $question Question definition.
+	 * @return array<int, string>
+	 */
+	private function find_missing_prerequisites( array $question ): array {
+		$missing = array();
+
+		foreach ( (array) ( $question['requires'] ?? array() ) as $requirement ) {
+			if ( ! is_array( $requirement ) ) {
+				$missing[] = 'Invalid prerequisite definition';
+				continue;
+			}
+
+			$type  = (string) ( $requirement['type'] ?? '' );
+			$label = (string) ( $requirement['label'] ?? $requirement['plugin'] ?? $type );
+			if ( 'plugin' !== $type || ! is_plugin_active( (string) ( $requirement['plugin'] ?? '' ) ) ) {
+				$missing[] = '' !== $label ? $label : 'Unknown prerequisite';
+			}
+		}
+
+		return $missing;
 	}
 
 	/**
@@ -1041,6 +1092,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		$fixture_errors  = (int) ( $totals['fixture_errors'] ?? 0 );
 		$failed          = (int) ( $totals['failed'] ?? 0 );
 		$deferred        = (int) ( $totals['deferred'] ?? 0 );
+		$not_exercised   = (int) ( $totals['not_exercised'] ?? 0 );
 
 		if ( $questions > 0 && $provider_errors === $questions ) {
 			return 'blocked_provider';
@@ -1048,6 +1100,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 
 		if ( $provider_errors > 0 || $fixture_errors > 0 || $deferred > 0 ) {
 			return 'inconclusive';
+		}
+
+		if ( $not_exercised > 0 ) {
+			return $not_exercised === $questions ? 'not_exercised' : 'inconclusive';
 		}
 
 		if ( $errors > 0 || $failed > 0 ) {
@@ -1070,6 +1126,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 		}
 
 		if ( (int) ( $totals['provider_errors'] ?? 0 ) > 0 ) {
+			return false;
+		}
+
+		if ( (int) ( $totals['not_exercised'] ?? 0 ) > 0 ) {
 			return false;
 		}
 

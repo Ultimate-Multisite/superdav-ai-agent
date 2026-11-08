@@ -24,6 +24,37 @@ use WP_UnitTestCase;
 class AssertionEngineTest extends WP_UnitTestCase {
 
 	/**
+	 * Test option absence assertions independently verify delete controls.
+	 */
+	public function test_option_not_exists_tracks_real_option_state(): void {
+		$option = 'sd_ai_agent_benchmark_assertion_test';
+		delete_option( $option );
+
+		$missing = AssertionEngine::run(
+			array(
+				array(
+					'type'   => 'option_not_exists',
+					'option' => $option,
+				),
+			)
+		);
+		$this->assertSame( 1, $missing['passed'] );
+
+		update_option( $option, 'present' );
+		$present = AssertionEngine::run(
+			array(
+				array(
+					'type'   => 'option_not_exists',
+					'option' => $option,
+				),
+			)
+		);
+		$this->assertSame( 1, $present['failed'] );
+
+		delete_option( $option );
+	}
+
+	/**
 	 * Set up before each test.
 	 */
 	public function set_up(): void {

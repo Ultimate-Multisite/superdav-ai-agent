@@ -1061,6 +1061,14 @@ class PluginUpdater {
 				__( 'The live plugin directory cannot be published safely.', 'superdav-ai-agent' )
 			);
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_lstat -- Device/inode identity detects replacement of the live directory during candidate preparation.
+		$destination_stat = lstat( $destination );
+		if ( false === $destination_stat ) {
+			return new WP_Error(
+				'sd_ai_agent_publish_destination_invalid',
+				__( 'The live plugin directory cannot be published safely.', 'superdav-ai-agent' )
+			);
+		}
 
 		$candidate = $this->claim_publish_sibling( $plugins_root, basename( $destination ) . '.candidate-' );
 		if ( is_wp_error( $candidate ) ) {
@@ -1081,7 +1089,14 @@ class PluginUpdater {
 		 */
 		do_action( 'sd_ai_agent_plugin_update_candidate_ready', trailingslashit( $destination ), trailingslashit( $candidate ) );
 
-		if ( is_link( $destination ) || ! is_dir( $destination ) ) {
+		clearstatcache( true, $destination );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_lstat -- Re-check the exact live directory identity immediately before rename.
+		$current_stat = lstat( $destination );
+		if (
+			false === $current_stat
+			|| $current_stat['dev'] !== $destination_stat['dev']
+			|| $current_stat['ino'] !== $destination_stat['ino']
+		) {
 			$this->remove_directory( $candidate );
 			return new WP_Error(
 				'sd_ai_agent_publish_destination_changed',

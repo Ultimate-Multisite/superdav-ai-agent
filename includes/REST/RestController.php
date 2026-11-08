@@ -28,6 +28,10 @@ declare(strict_types=1);
 
 namespace SdAiAgent\REST;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use SdAiAgent\Core\AgentLoop;
 use SdAiAgent\Core\AgentEventLog;
 use SdAiAgent\Core\BackgroundJobDispatcher;
@@ -49,10 +53,6 @@ use WP_REST_Response;
 use WP_REST_Server;
 use XWP\DI\Decorators\Action;
 use XWP\DI\Decorators\Handler;
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
 
 /**
  * Core REST controller — holds the shared NAMESPACE constant and the

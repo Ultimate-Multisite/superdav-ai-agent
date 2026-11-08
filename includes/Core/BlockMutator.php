@@ -2296,13 +2296,22 @@ class BlockMutator {
 	 * - Opening: `<!-- wp:blockname ... -->`
 	 * - Closing: `<!-- /wp:blockname -->`
 	 *
+	 * If PCRE fails (for example on the backtrack limit), every comment opener
+	 * is escaped instead, so no delimiter can survive and content is never
+	 * silently replaced with an empty string.
+	 *
 	 * @param string $html HTML content potentially containing block delimiters.
-	 * @return string HTML with block comment delimiters removed.
+	 * @return string HTML with block comment delimiters removed or neutralised.
 	 */
 	private static function strip_block_comments( string $html ): string {
 		// Remove opening block comments: <!-- wp:blockname ... -->
 		// and closing block comments: <!-- /wp:blockname -->
-		return (string) preg_replace( '/<!--\s*\/?wp:.*?-->/is', '', $html );
+		$stripped = preg_replace( '/<!--\s*\/?wp:.*?-->/is', '', $html );
+		if ( null === $stripped ) {
+			return str_replace( '<!--', '&lt;!--', $html );
+		}
+
+		return $stripped;
 	}
 
 	/**

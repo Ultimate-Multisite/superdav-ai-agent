@@ -83,6 +83,80 @@ class PathCanonicalizerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Write destinations must not follow an existing leaf symbolic link.
+	 */
+	public function test_canonicalize_write_path_inside_rejects_existing_leaf_symlink(): void {
+		$root     = $this->base_dir . '/content/plugins';
+		$outside  = $this->base_dir . '/outside/sentinel.php';
+		$link     = $root . '/sentinel.php';
+		$contents = '<?php /* sentinel */';
+		file_put_contents( $outside, $contents );
+		$this->assertTrue( symlink( $outside, $link ) );
+
+		$result = PathCanonicalizer::canonicalize_write_path_inside( $link, $root );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+		$this->assertSame( $contents, file_get_contents( $outside ) );
+	}
+
+	/**
+	 * Dangling leaf links are entries, not missing destinations.
+	 */
+	public function test_canonicalize_write_path_inside_rejects_dangling_leaf_symlink(): void {
+		$root = $this->base_dir . '/content/plugins';
+		$link = $root . '/dangling.php';
+		$this->assertTrue( symlink( $this->base_dir . '/outside/missing.php', $link ) );
+
+		$result = PathCanonicalizer::canonicalize_write_path_inside( $link, $root );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+	}
+
+	/**
+	 * Dangling links are rejected when they occur before the final component.
+	 */
+	public function test_canonicalize_write_path_inside_rejects_dangling_parent_symlink(): void {
+		$root = $this->base_dir . '/content/plugins';
+		$link = $root . '/dangling-parent';
+		$this->assertTrue( symlink( $this->base_dir . '/outside/missing-directory', $link ) );
+
+		$result = PathCanonicalizer::canonicalize_write_path_inside( $link . '/file.php', $root );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+	}
+
+	/**
+	 * Existing parent links cannot redirect a destination outside the root.
+	 */
+	public function test_canonicalize_write_path_inside_rejects_parent_symlink_outside_root(): void {
+		$root = $this->base_dir . '/content/plugins';
+		$link = $root . '/linked-parent';
+		$this->assertTrue( symlink( $this->base_dir . '/outside', $link ) );
+
+		$result = PathCanonicalizer::canonicalize_write_path_inside( $link . '/file.php', $root );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+	}
+
+	/**
+	 * Ordinary existing files remain valid write destinations.
+	 */
+	public function test_canonicalize_write_path_inside_accepts_ordinary_file(): void {
+		$root = $this->base_dir . '/content/plugins';
+		$file = $root . '/ordinary.php';
+		file_put_contents( $file, '<?php /* ordinary */' );
+
+		$result = PathCanonicalizer::canonicalize_write_path_inside( $file, $root );
+
+		$this->assertIsString( $result );
+		$this->assertSame( $file, $result );
+	}
+
+	/**
 	 * Recursively remove a directory using WP_Filesystem_Direct.
 	 *
 	 * @param string $dir Directory path.

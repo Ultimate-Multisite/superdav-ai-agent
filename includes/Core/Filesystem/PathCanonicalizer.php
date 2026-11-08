@@ -44,6 +44,12 @@ class PathCanonicalizer {
 		$existing = $path;
 		$suffix   = [];
 		while ( ! file_exists( $existing ) && $existing !== dirname( $existing ) ) {
+			if ( is_link( $existing ) ) {
+				return new WP_Error(
+					'sd_ai_agent_path_traversal',
+					__( 'Path contains an unresolved symbolic link.', 'superdav-ai-agent' )
+				);
+			}
 			$suffix[] = basename( $existing );
 			$existing = dirname( $existing );
 		}
@@ -68,6 +74,29 @@ class PathCanonicalizer {
 		}
 
 		return $canonical;
+	}
+
+	/**
+	 * Canonicalise a write destination inside an allowed root.
+	 *
+	 * Existing final-component symbolic links are rejected instead of followed.
+	 * Dangling links in any path component are rejected by
+	 * {@see self::canonicalize_missing_path()}. Callers must still use exclusive
+	 * creation or another no-follow primitive when committing a checked path.
+	 *
+	 * @param string $path Absolute write destination to canonicalise.
+	 * @param string $root Existing allowed root directory.
+	 * @return string|WP_Error Canonical absolute destination, or WP_Error on failure.
+	 */
+	public static function canonicalize_write_path_inside( string $path, string $root ): string|WP_Error {
+		if ( is_link( $path ) ) {
+			return new WP_Error(
+				'sd_ai_agent_path_traversal',
+				__( 'Write destination cannot be a symbolic link.', 'superdav-ai-agent' )
+			);
+		}
+
+		return self::canonicalize_missing_path_inside( $path, $root );
 	}
 
 	/**

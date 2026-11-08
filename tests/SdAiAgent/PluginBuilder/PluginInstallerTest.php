@@ -198,6 +198,35 @@ class PluginInstallerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * install_plugin() must not follow an existing main-file symbolic link.
+	 */
+	public function test_install_plugin_rejects_leaf_symlink_without_mutation(): void {
+		global $wpdb;
+		wp_mkdir_p( $this->plugin_dir );
+		$sentinel = trailingslashit( sys_get_temp_dir() ) . $this->test_slug . '-install-sentinel.php';
+		$original = '<?php /* outside install sentinel */';
+		file_put_contents( $sentinel, $original );
+		$this->assertTrue( symlink( $sentinel, $this->plugin_dir . $this->test_slug . '.php' ) );
+
+		try {
+			$result = PluginInstaller::install_plugin(
+				$this->test_slug,
+				'<?php /* replacement */',
+				'Symlink collision test',
+				[]
+			);
+
+			$this->assertWPError( $result );
+			$this->assertSame( 'sd_ai_agent_plugin_slug_exists', $result->get_error_code() );
+			$this->assertSame( $original, file_get_contents( $sentinel ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion against the generated plugin table.
+			$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ) ) );
+		} finally {
+			unlink( $sentinel );
+		}
+	}
+
+	/**
 	 * install_plugin() must not replace a tracked generated plugin.
 	 */
 	public function test_install_plugin_rejects_tracked_existing_slug_without_mutation(): void {
@@ -526,6 +555,67 @@ class PluginInstallerTest extends WP_UnitTestCase {
 		$file_path = $this->plugin_dir . $this->test_slug . '.php';
 		$this->assertFileExists( $file_path );
 		$this->assertStringContainsString( 'updated', file_get_contents( $file_path ) );
+	}
+
+	/**
+	 * update_plugin_files() must reject a leaf link before staging or metadata changes.
+	 */
+	public function test_update_plugin_files_rejects_leaf_symlink_without_mutation(): void {
+		global $wpdb;
+		$install = PluginInstaller::install_plugin(
+			$this->test_slug,
+			'<?php /* original */',
+			'Leaf link update test',
+			[]
+		);
+		$this->assertIsArray( $install );
+		$plugin_file    = $this->plugin_dir . $this->test_slug . '.php';
+		$sentinel       = trailingslashit( sys_get_temp_dir() ) . $this->test_slug . '-update-sentinel.php';
+		$original       = '<?php /* outside update sentinel */';
+		$metadata_before = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A );
+		unlink( $plugin_file );
+		file_put_contents( $sentinel, $original );
+		$this->assertTrue( symlink( $sentinel, $plugin_file ) );
+
+		try {
+			$result = PluginInstaller::update_plugin_files(
+				$this->test_slug,
+				[ $this->test_slug . '.php' => '<?php /* changed */' ]
+			);
+
+			$this->assertWPError( $result );
+			$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+			$this->assertSame( $original, file_get_contents( $sentinel ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Test assertion that metadata is byte-for-byte unchanged.
+			$this->assertSame( $metadata_before, $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . PluginInstaller::table_name() . ' WHERE slug = %s', $this->test_slug ), ARRAY_A ) );
+		} finally {
+			unlink( $sentinel );
+		}
+	}
+
+	/**
+	 * update_plugin_files() must reject dangling leaf links.
+	 */
+	public function test_update_plugin_files_rejects_dangling_leaf_symlink(): void {
+		$install = PluginInstaller::install_plugin(
+			$this->test_slug,
+			'<?php /* original */',
+			'Dangling link update test',
+			[]
+		);
+		$this->assertIsArray( $install );
+		$plugin_file = $this->plugin_dir . $this->test_slug . '.php';
+		unlink( $plugin_file );
+		$this->assertTrue( symlink( $this->plugin_dir . 'missing-target.php', $plugin_file ) );
+
+		$result = PluginInstaller::update_plugin_files(
+			$this->test_slug,
+			[ $this->test_slug . '.php' => '<?php /* changed */' ]
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_path_traversal', $result->get_error_code() );
+		$this->assertTrue( is_link( $plugin_file ) );
 	}
 
 	/**

@@ -44,7 +44,8 @@ class PathCanonicalizer {
 		$existing = $path;
 		$suffix   = [];
 		while ( ! file_exists( $existing ) && $existing !== dirname( $existing ) ) {
-			if ( is_link( $existing ) ) {
+			// A trailing slash makes lstat() resolve the link, hiding dangling links from is_link().
+			if ( is_link( rtrim( $existing, '/' ) ) ) {
 				return new WP_Error(
 					'sd_ai_agent_path_traversal',
 					__( 'Path contains an unresolved symbolic link.', 'superdav-ai-agent' )
@@ -89,7 +90,7 @@ class PathCanonicalizer {
 	 * @return string|WP_Error Canonical absolute destination, or WP_Error on failure.
 	 */
 	public static function canonicalize_write_path_inside( string $path, string $root ): string|WP_Error {
-		if ( is_link( $path ) ) {
+		if ( is_link( rtrim( $path, '/' ) ) ) {
 			return new WP_Error(
 				'sd_ai_agent_path_traversal',
 				__( 'Write destination cannot be a symbolic link.', 'superdav-ai-agent' )

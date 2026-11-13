@@ -84,6 +84,28 @@ class EventTriggerRegistryTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test the Ninja Forms trigger is registered only when Ninja Forms is active.
+	 */
+	public function test_get_all_registers_ninja_forms_trigger_only_when_active(): void {
+		$matches = array_values(
+			array_filter(
+				EventTriggerRegistry::get_all(),
+				static fn( array $trigger ): bool => 'ninja_forms_after_submission' === ( $trigger['hook_name'] ?? '' )
+			)
+		);
+
+		if ( ! function_exists( 'Ninja_Forms' ) ) {
+			$this->assertSame( [], $matches );
+			return;
+		}
+
+		$this->assertCount( 1, $matches );
+		$this->assertSame( 'forms', $matches[0]['category'] );
+		$this->assertSame( [ 'form_data' ], $matches[0]['args'] );
+		$this->assertArrayHasKey( 'form_data.settings.title', $matches[0]['placeholders'] );
+	}
+
+	/**
 	 * Test get_all includes core WordPress triggers.
 	 */
 	public function test_get_all_includes_wordpress_triggers(): void {

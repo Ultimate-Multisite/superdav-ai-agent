@@ -9,17 +9,18 @@ Use this skill when the user asks to:
 
 ## Recommended Path: `sd-ai-agent/create-contact-form`
 
-Use the `sd-ai-agent/create-contact-form` ability for new contact pages. It creates a WPForms Lite form when WPForms is active, creates a Contact Form 7 form when CF7 is active, and otherwise returns a dependency-free Gutenberg HTML fallback. Do not assume WPForms Lite registers WordPress Abilities on the target site.
+Use the `sd-ai-agent/create-contact-form` ability for new contact pages. It creates a Ninja Forms form when Ninja Forms is active, otherwise a WPForms Lite form when WPForms is active, otherwise a Contact Form 7 form when CF7 is active, and finally returns a dependency-free Gutenberg HTML fallback. Do not assume the form plugin registers WordPress Abilities on the target site.
 
-WPForms Lite (`wpforms-lite`) remains the recommended form plugin when a plugin-backed form is needed:
+Ninja Forms (`ninja-forms`) is the recommended form plugin when a plugin-backed form is needed:
 
-- **Slug**: `wpforms-lite`
-- **Active installs**: 6 million+
-- **WP Abilities**: not required; availability varies by install
+- **Slug**: `ninja-forms`
+- **WP Abilities**: not required
 - **Gutenberg block**: yes
-- **Spam protection**: built-in, plus reCAPTCHA/hCaptcha/Turnstile
-- **Email notifications**: yes, with smart tags
-- **Free tier covers**: simple contact, feedback, and lead capture forms
+- **Spam protection**: built-in honeypot, plus reCAPTCHA/hCaptcha/Turnstile
+- **Email notifications**: yes, with merge tags such as `{field:email}` and `{all_fields_table}`
+- **Free tier covers**: contact, registration and inquiry forms, repeatable fieldsets, typed or drawn signatures, calculations, and saved submissions
+
+WPForms Lite (`wpforms-lite`) is supported when it is already active on a site; do not install it on new sites.
 
 ## Setup Workflow
 
@@ -29,22 +30,23 @@ Use `sd-ai-agent/get-plugins` to list installed plugins, then look for:
 
 | Plugin slug | Abilities API | Notes |
 |---|---|---|
-| `wpforms-lite` / `wpforms` | Varies | Preferred; use `sd-ai-agent/create-contact-form` |
+| `ninja-forms` | No | Preferred; use `sd-ai-agent/create-contact-form` |
+| `wpforms-lite` / `wpforms` | Varies | Supported when already active; use `sd-ai-agent/create-contact-form` |
 | `contact-form-7` | No | 10M installs, common fallback |
 | `fluentform` | No | Developer-friendly, no Abilities yet |
 
-### Step 2 — Install WPForms if the user wants plugin-backed submissions
+### Step 2 — Install Ninja Forms if the user wants plugin-backed submissions
 
 Use `sd-ai-agent/install-plugin`:
 ```json
-{ "slug": "wpforms-lite", "activate": true }
+{ "slug": "ninja-forms", "activate": true }
 ```
 
 This installs from wordpress.org and immediately activates the plugin.
 
 ### Step 3 — Create the form
 
-Call `sd-ai-agent/create-contact-form` after activating WPForms Lite:
+Call `sd-ai-agent/create-contact-form` after activating Ninja Forms:
 ```json
 {
   "title": "Contact Form",
@@ -53,17 +55,17 @@ Call `sd-ai-agent/create-contact-form` after activating WPForms Lite:
 }
 ```
 
-Use the returned `block` or `shortcode` exactly. If the result provider is `wpforms-lite`, the shortcode is `[wpforms id="FORM_ID"]`.
+Use the returned `block` or `shortcode` exactly. If the result provider is `ninja-forms`, the shortcode is `[ninja_form id="FORM_ID"]`. The form saves every submission and emails the recipient; only send the recipient a confirmed address.
 
 ### Step 4 — Embed the form in a page
 
-WPForms forms are embedded via shortcode: `[wpforms id="FORM_ID"]`
+Ninja Forms forms are embedded via shortcode: `[ninja_form id="FORM_ID"]`
 
 To create a new page with the form, use `sd-ai-agent/create-post`:
 ```json
 {
   "title": "Contact Us",
-  "content": "[wpforms id=\"FORM_ID\"]",
+  "content": "[ninja_form id=\"FORM_ID\"]",
   "status": "publish",
   "post_type": "page"
 }
@@ -73,18 +75,25 @@ Or to append a form to an existing page, use `sd-ai-agent/update-post` and appen
 
 ## WP-CLI Patterns
 
-WPForms Lite does not ship WP-CLI commands. Use WP-CLI for plugin management only:
+Ninja Forms does not ship form-management WP-CLI commands. Use WP-CLI for plugin management and checks only:
 
 ```bash
-# Check if WPForms is active
-wp plugin list --status=active --format=csv | grep wpforms
+# Check if Ninja Forms is active
+wp plugin list --status=active --format=csv | grep ninja-forms
 
 # Get the site admin email (useful for form notification setup)
 wp option get admin_email
 
-# Verify shortcode renders (returns HTML)
-wp post get <PAGE_ID> --field=post_content | grep wpforms
+# Verify the shortcode is in a page
+wp post get <PAGE_ID> --field=post_content | grep ninja_form
+
+# List forms (id and title)
+wp eval 'foreach ( Ninja_Forms()->form()->get_forms() as $f ) { echo $f->get_id() . " " . $f->get_setting( "title" ) . "\n"; }'
 ```
+
+## Sites That Already Use WPForms
+
+If WPForms Lite is active and the user does not want to switch plugins, `sd-ai-agent/create-contact-form` still creates a WPForms form (shortcode `[wpforms id="FORM_ID"]`). Do not install WPForms on a new site.
 
 ## Contact Form 7 Fallback
 
@@ -92,14 +101,14 @@ If CF7 (`contact-form-7`) is already installed and the user does not want to swi
 
 CF7 shortcode format: `[contact-form-7 id="FORM_ID" title="FORM_TITLE"]`
 
-Note: Avoid installing CF7 on new sites. Prefer WPForms Lite for all new setups.
+Note: Avoid installing CF7 on new sites. Prefer Ninja Forms for all new setups.
 
 ## Verification Steps
 
 After creating and embedding a form:
-1. Confirm WPForms is active when the provider is `wpforms-lite`: `sd-ai-agent/get-plugins`
-2. Confirm the returned form ID exists: `wp post get <FORM_ID> --post_type=wpforms --field=post_status`
+1. Confirm the form plugin is active for the returned provider (`ninja-forms`, `wpforms-lite`, or `contact-form-7`): `sd-ai-agent/get-plugins`
+2. Confirm the returned form exists. For Ninja Forms: `wp eval 'echo Ninja_Forms()->form( FORM_ID )->get()->get_setting( "title" );'`. For WPForms: `wp post get <FORM_ID> --post_type=wpforms --field=post_status`
 3. Confirm the page is published: `wp post get <PAGE_ID> --field=post_status`
 4. Confirm the shortcode is in the page content: `wp post get <PAGE_ID> --field=post_content`
-5. Confirm the admin notification email is set to the site owner's address
+5. Confirm the notification email recipient is the site owner's confirmed address
 6. Visit the frontend page or fetch it anonymously and confirm the form markup renders, not just the shortcode text

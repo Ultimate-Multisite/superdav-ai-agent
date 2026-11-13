@@ -287,6 +287,118 @@ class ContentAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test the provider filter can disable every plugin-backed provider.
+	 */
+	public function test_create_contact_form_provider_filter_can_force_html_fallback() {
+		register_post_type( 'wpforms', [ 'public' => false ] );
+		add_filter( 'sd_ai_agent_contact_form_providers', '__return_empty_array' );
+
+		$result = ContentAbilities::handle_create_contact_form( [ 'title' => 'Forced Fallback' ] );
+
+		remove_filter( 'sd_ai_agent_contact_form_providers', '__return_empty_array' );
+
+		$this->assertSame( 'html', $result['provider'] );
+		$this->assertSame( 0, $result['form_id'] );
+	}
+
+	/**
+	 * Test the provider filter order decides between available providers.
+	 */
+	public function test_create_contact_form_provider_filter_orders_providers() {
+		register_post_type( 'wpforms', [ 'public' => false ] );
+
+		$only_wpforms = static fn(): array => [ 'wpforms-lite' ];
+		add_filter( 'sd_ai_agent_contact_form_providers', $only_wpforms );
+
+		$result = ContentAbilities::handle_create_contact_form( [ 'title' => 'Ordered' ] );
+
+		remove_filter( 'sd_ai_agent_contact_form_providers', $only_wpforms );
+
+		$this->assertSame( 'wpforms-lite', $result['provider'] );
+	}
+
+	/**
+	 * Test Ninja Forms is skipped, not fatal, when the plugin is not active.
+	 */
+	public function test_create_contact_form_skips_ninja_forms_when_unavailable() {
+		if ( function_exists( 'Ninja_Forms' ) ) {
+			$this->markTestSkipped( 'Ninja Forms is active in this environment.' );
+		}
+
+		$only_ninja = static fn(): array => [ 'ninja-forms' ];
+		add_filter( 'sd_ai_agent_contact_form_providers', $only_ninja );
+
+		$result = ContentAbilities::handle_create_contact_form( [ 'title' => 'No Ninja' ] );
+
+		remove_filter( 'sd_ai_agent_contact_form_providers', $only_ninja );
+
+		$this->assertSame( 'html', $result['provider'] );
+	}
+
+	/**
+	 * Test the Ninja Forms field definitions for a basic contact form.
+	 */
+	public function test_build_ninja_form_fields_defines_a_basic_contact_form() {
+		$method = new \ReflectionMethod( ContentAbilities::class, 'build_ninja_form_fields' );
+		$fields = $method->invoke( null, 'Send Inquiry' );
+
+		$this->assertSame( [ 'name', 'email', 'subject', 'message', 'submit' ], array_column( $fields, 'key' ) );
+		$this->assertSame( [ 'textbox', 'email', 'textbox', 'textarea', 'submit' ], array_column( $fields, 'type' ) );
+
+		$required = array_column( array_filter( $fields, static fn( array $f ): bool => ! empty( $f['required'] ) ), 'key' );
+		$this->assertSame( [ 'name', 'email', 'message' ], array_values( $required ) );
+		$this->assertSame( 'Send Inquiry', $fields[4]['label'] );
+	}
+
+	/**
+	 * Test the Ninja Forms actions save, email the recipient, and confirm.
+	 */
+	public function test_build_ninja_form_actions_email_the_recipient() {
+		$method  = new \ReflectionMethod( ContentAbilities::class, 'build_ninja_form_actions' );
+		$actions = $method->invoke( null, 'Sales Inquiry', 'sales@example.test' );
+		$by_type = array_column( $actions, null, 'type' );
+
+		$this->assertSame( [ 'save', 'email', 'successmessage' ], array_column( $actions, 'type' ) );
+		$this->assertSame( 'sales@example.test', $by_type['email']['to'] );
+		$this->assertSame( 'New entry: Sales Inquiry', $by_type['email']['email_subject'] );
+		$this->assertSame( '{field:email}', $by_type['email']['reply_to'] );
+		$this->assertSame( 1, $by_type['email']['active'] );
+		$this->assertStringContainsString( 'Thanks for contacting us', $by_type['successmessage']['success_msg'] );
+	}
+
+	/**
+	 * Test a real Ninja Forms form is created when the plugin is active.
+	 */
+	public function test_handle_create_contact_form_creates_ninja_form_when_available() {
+		if ( ! function_exists( 'Ninja_Forms' ) || ! class_exists( 'NF_Database_Models_Form' ) ) {
+			$this->markTestSkipped( 'Ninja Forms is not active in this environment.' );
+		}
+
+		$result = ContentAbilities::handle_create_contact_form( [
+			'title'           => 'Sales Inquiry',
+			'recipient_email' => 'sales@example.test',
+			'submit_label'    => 'Send Inquiry',
+		] );
+
+		$this->assertSame( 'ninja-forms', $result['provider'] );
+		$this->assertGreaterThan( 0, $result['form_id'] );
+		$this->assertSame( '[ninja_form id="' . $result['form_id'] . '"]', $result['shortcode'] );
+		$this->assertStringContainsString( '<!-- wp:shortcode -->', $result['block'] );
+
+		$form_id = (int) $result['form_id'];
+		$this->assertSame( 'Sales Inquiry', \Ninja_Forms()->form( $form_id )->get()->get_setting( 'title' ) );
+		$this->assertCount( 5, \Ninja_Forms()->form( $form_id )->get_fields() );
+
+		$email_to = null;
+		foreach ( \Ninja_Forms()->form( $form_id )->get_actions() as $action ) {
+			if ( 'email' === $action->get_setting( 'type' ) ) {
+				$email_to = $action->get_setting( 'to' );
+			}
+		}
+		$this->assertSame( 'sales@example.test', $email_to );
+	}
+
+	/**
 	 * Test handle_create_contact_form falls back to defaults for empty inputs.
 	 */
 	public function test_handle_create_contact_form_uses_defaults_for_empty_inputs() {

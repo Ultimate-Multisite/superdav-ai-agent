@@ -73,12 +73,12 @@ class AbilityPluginRegistry {
 		[
 			'slug'            => 'ninja-forms',
 			'name'            => 'Ninja Forms',
-			'ability_count'   => 0,
-			'has_abilities'   => false,
+			'ability_count'   => 32,
+			'has_abilities'   => true,
 			'has_blocks'      => true,
 			'categories'      => [ 'forms', 'contact', 'surveys', 'lead-capture' ],
 			'active_installs' => 800000,
-			'description'     => 'Recommended form plugin for plugin-backed submissions: free repeatable fieldsets, signatures, calculations and saved submissions. Use sd-ai-agent/create-contact-form to create and verify forms; it returns a [ninja_form id="N"] shortcode.',
+			'description'     => 'Recommended form plugin: free repeatable fieldsets, signatures, calculations and saved submissions. Registers its own ninjaforms/* abilities to create and edit forms, actions, calculations and submissions; find them with ability-search and run them with ability-call.',
 		],
 		[
 			'slug'            => 'wpforms-lite',
@@ -88,7 +88,7 @@ class AbilityPluginRegistry {
 			'has_blocks'      => true,
 			'categories'      => [ 'forms', 'contact', 'surveys', 'lead-capture' ],
 			'active_installs' => 6000000,
-			'description'     => 'Supported when already active on a site; prefer Ninja Forms for new sites. WordPress Abilities availability varies by install; sd-ai-agent/create-contact-form can still create and verify forms.',
+			'description'     => 'Supported when already active on a site; prefer Ninja Forms for new sites. WordPress Abilities availability varies by install; use sd-ai-agent/create-contact-form to create and verify forms.',
 		],
 		[
 			'slug'            => 'contact-form-7',

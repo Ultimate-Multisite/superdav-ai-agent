@@ -134,7 +134,7 @@ class ContentAbilities {
 			'sd-ai-agent/create-contact-form',
 			[
 				'label'               => __( 'Create Contact Form', 'superdav-ai-agent' ),
-				'description'         => __( 'Create a simple contact form for a page. Uses Ninja Forms, WPForms Lite or Contact Form 7 when available (in that order) and otherwise returns a Gutenberg HTML block with a dependency-free mailto form.', 'superdav-ai-agent' ),
+				'description'         => __( 'Create a simple contact form for a page. Uses WPForms Lite or Contact Form 7 when available and otherwise returns a Gutenberg HTML block with a dependency-free mailto form.', 'superdav-ai-agent' ),
 				'category'            => 'sd-ai-agent',
 				'input_schema'        => [
 					'type'       => 'object',
@@ -439,30 +439,19 @@ class ContentAbilities {
 	 * @return array<string,mixed> Contact form result.
 	 */
 	private static function create_contact_form_result( string $title, string $recipient_email, string $submit_label ): array {
-		/**
-		 * Filters the contact form providers tried, in order, by sd-ai-agent/create-contact-form.
-		 *
-		 * A provider is only used when its plugin is active. The first provider that
-		 * creates a form wins; when none does, a dependency-free HTML block is returned.
-		 *
-		 * @param string[] $providers Provider slugs: 'ninja-forms', 'wpforms-lite', 'contact-form-7'.
-		 */
-		$providers = (array) apply_filters( 'sd_ai_agent_contact_form_providers', [ 'ninja-forms', 'wpforms-lite', 'contact-form-7' ] );
+		$wpforms_result = self::create_wpforms_form( $title, $recipient_email, $submit_label );
 
-		foreach ( $providers as $provider ) {
-			$result = [];
+		if ( ! empty( $wpforms_result ) ) {
+			return $wpforms_result;
+		}
 
-			if ( 'ninja-forms' === $provider ) {
-				$result = self::create_ninja_form( $title, $recipient_email, $submit_label );
-			} elseif ( 'wpforms-lite' === $provider ) {
-				$result = self::create_wpforms_form( $title, $recipient_email, $submit_label );
-			} elseif ( 'contact-form-7' === $provider ) {
-				$cf7_class = 'WPCF7_ContactForm';
-				$result    = class_exists( $cf7_class ) ? self::create_contact_form_7_form( $cf7_class, $title, $recipient_email, $submit_label ) : [];
-			}
+		$cf7_class = 'WPCF7_ContactForm';
 
-			if ( ! empty( $result ) ) {
-				return $result;
+		if ( class_exists( $cf7_class ) ) {
+			$cf7_result = self::create_contact_form_7_form( $cf7_class, $title, $recipient_email, $submit_label );
+
+			if ( ! empty( $cf7_result ) ) {
+				return $cf7_result;
 			}
 		}
 
@@ -474,216 +463,8 @@ class ContentAbilities {
 			'shortcode' => '',
 			'block'     => $block,
 			'form_id'   => 0,
-			'message'   => __( 'No supported form plugin is active (Ninja Forms, WPForms Lite or Contact Form 7); use the returned Gutenberg HTML block in the page content.', 'superdav-ai-agent' ),
+			'message'   => __( 'Contact Form 7 is not active; use the returned Gutenberg HTML block in the page content.', 'superdav-ai-agent' ),
 		];
-	}
-
-	/**
-	 * Create a Ninja Forms form when the plugin is active.
-	 *
-	 * Ninja Forms stores forms in its own tables, so the form is created through
-	 * its models: Name, Email, Subject, Message and a submit button, with actions
-	 * to save the submission, email the recipient, and show a confirmation. Ninja
-	 * Forms' built-in honeypot stays on.
-	 *
-	 * @param string $title           Form title.
-	 * @param string $recipient_email Recipient email address.
-	 * @param string $submit_label    Submit button label.
-	 * @return array<string,mixed> Ninja Forms result, or empty array when unavailable.
-	 */
-	private static function create_ninja_form( string $title, string $recipient_email, string $submit_label ): array {
-		if ( ! function_exists( 'Ninja_Forms' ) || ! class_exists( 'NF_Database_Models_Form' ) || ! class_exists( 'WPN_Helper' ) ) {
-			return [];
-		}
-
-		global $wpdb;
-
-		$form = new \NF_Database_Models_Form( $wpdb );
-		$form->update_settings(
-			[
-				'title'             => $title,
-				'show_title'        => 0,
-				'clear_complete'    => 1,
-				'hide_complete'     => 1,
-				'default_label_pos' => 'above',
-				'logged_in'         => 0,
-			]
-		);
-		$form->save();
-		$form_id = (int) $form->get_id();
-
-		if ( $form_id <= 0 ) {
-			return [];
-		}
-
-		$layout       = [];
-		$saved_fields = [];
-		$order        = 0;
-
-		foreach ( self::build_ninja_form_fields( $submit_label ) as $definition ) {
-			$field = \Ninja_Forms()->form( $form_id )->field()->get();
-			$field->update_settings( array_merge( self::ninja_field_defaults( $definition['type'] ), [ 'label_pos' => 'above' ], $definition, [ 'order' => ++$order ] ) );
-			$field->save();
-
-			$saved_fields[] = [
-				'id'       => $field->get_id(),
-				'settings' => $field->get_settings(),
-			];
-			$layout[]       = [
-				'order' => count( $layout ),
-				'cells' => [
-					[
-						'order'  => 0,
-						'fields' => [ $definition['key'] ],
-						'width'  => 100,
-					],
-				],
-			];
-		}
-
-		$form->update_setting( 'formContentData', $layout );
-		$form->save();
-
-		$saved_actions = [];
-
-		foreach ( self::build_ninja_form_actions( $title, $recipient_email ) as $action_settings ) {
-			$action = \Ninja_Forms()->form( $form_id )->action()->get();
-			$action->update_settings( $action_settings );
-			$action->save();
-
-			$saved_actions[] = [
-				'id'       => $action->get_id(),
-				'settings' => $action->get_settings(),
-			];
-		}
-
-		\WPN_Helper::update_nf_cache(
-			$form_id,
-			[
-				'id'       => $form_id,
-				'settings' => $form->get_settings(),
-				'fields'   => $saved_fields,
-				'actions'  => $saved_actions,
-			]
-		);
-
-		$shortcode = sprintf( '[ninja_form id="%d"]', $form_id );
-
-		return [
-			'provider'  => 'ninja-forms',
-			'title'     => $title,
-			'shortcode' => $shortcode,
-			'block'     => '<!-- wp:shortcode -->' . "\n" . $shortcode . "\n" . '<!-- /wp:shortcode -->',
-			'form_id'   => $form_id,
-			'message'   => __( 'Ninja Forms form created; insert the shortcode block into page content and verify the frontend renders the form.', 'superdav-ai-agent' ),
-		];
-	}
-
-	/**
-	 * Build the Ninja Forms field definitions for a basic contact form.
-	 *
-	 * @param string $submit_label Submit button label.
-	 * @return list<array{type:string,key:string,label:string,required?:int,processing_label?:string}> Field definitions.
-	 */
-	private static function build_ninja_form_fields( string $submit_label ): array {
-		return [
-			[
-				'type'     => 'textbox',
-				'key'      => 'name',
-				'label'    => __( 'Name', 'superdav-ai-agent' ),
-				'required' => 1,
-			],
-			[
-				'type'     => 'email',
-				'key'      => 'email',
-				'label'    => __( 'Email', 'superdav-ai-agent' ),
-				'required' => 1,
-			],
-			[
-				'type'  => 'textbox',
-				'key'   => 'subject',
-				'label' => __( 'Subject', 'superdav-ai-agent' ),
-			],
-			[
-				'type'     => 'textarea',
-				'key'      => 'message',
-				'label'    => __( 'Message', 'superdav-ai-agent' ),
-				'required' => 1,
-			],
-			[
-				'type'             => 'submit',
-				'key'              => 'submit',
-				'label'            => $submit_label,
-				'processing_label' => __( 'Sending...', 'superdav-ai-agent' ),
-			],
-		];
-	}
-
-	/**
-	 * Build the Ninja Forms actions for a basic contact form.
-	 *
-	 * @param string $title           Form title.
-	 * @param string $recipient_email Recipient email address.
-	 * @return list<array<string,mixed>> Action settings.
-	 */
-	private static function build_ninja_form_actions( string $title, string $recipient_email ): array {
-		return [
-			[
-				'type'   => 'save',
-				'label'  => __( 'Record Submission', 'superdav-ai-agent' ),
-				'active' => 1,
-			],
-			[
-				'type'          => 'email',
-				'label'         => __( 'Email Notification', 'superdav-ai-agent' ),
-				'active'        => 1,
-				'to'            => $recipient_email,
-				'email_subject' => sprintf(
-					/* translators: %s: contact form title */
-					__( 'New entry: %s', 'superdav-ai-agent' ),
-					$title
-				),
-				'email_message' => '<p>{all_fields_table}</p>',
-				'from_name'     => '{field:name}',
-				'from_address'  => '{system:admin_email}',
-				'reply_to'      => '{field:email}',
-				'email_format'  => 'html',
-			],
-			[
-				'type'        => 'successmessage',
-				'label'       => __( 'Success Message', 'superdav-ai-agent' ),
-				'active'      => 1,
-				'success_msg' => '<p>' . __( 'Thanks for contacting us. We will be in touch soon.', 'superdav-ai-agent' ) . '</p>',
-			],
-		];
-	}
-
-	/**
-	 * Default settings Ninja Forms applies to a field type, keyed by setting name.
-	 *
-	 * @param string $type Ninja Forms field type.
-	 * @return array<string,mixed> Default settings.
-	 */
-	private static function ninja_field_defaults( string $type ): array {
-		if ( ! function_exists( 'Ninja_Forms' ) ) {
-			return [];
-		}
-
-		$field = \Ninja_Forms()->fields[ $type ] ?? null;
-
-		if ( null === $field ) {
-			return [];
-		}
-
-		$defaults = [];
-
-		foreach ( (array) $field->get_settings() as $setting ) {
-			if ( is_array( $setting ) && isset( $setting['name'] ) ) {
-				$defaults[ (string) $setting['name'] ] = $setting['value'] ?? '';
-			}
-		}
-
-		return $defaults;
 	}
 
 	/**

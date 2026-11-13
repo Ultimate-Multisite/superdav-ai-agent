@@ -598,6 +598,22 @@ class EventTriggerRegistry {
 			];
 		}
 
+		// Ninja Forms.
+		if ( function_exists( 'Ninja_Forms' ) ) {
+			$triggers[] = [
+				'hook_name'    => 'ninja_forms_after_submission',
+				'label'        => __( 'Ninja Form Submitted', 'superdav-ai-agent' ),
+				'description'  => __( 'Fires after a Ninja Forms submission has been processed.', 'superdav-ai-agent' ),
+				'category'     => 'forms',
+				'args'         => [ 'form_data' ],
+				'placeholders' => [
+					'form_data.form_id'        => __( 'Form ID', 'superdav-ai-agent' ),
+					'form_data.settings.title' => __( 'Form title', 'superdav-ai-agent' ),
+				],
+				'conditions'   => [],
+			];
+		}
+
 		// WPForms.
 		if ( defined( 'WPFORMS_VERSION' ) ) {
 			$triggers[] = [

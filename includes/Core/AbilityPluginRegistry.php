@@ -71,6 +71,16 @@ class AbilityPluginRegistry {
 
 		// ── Forms ─────────────────────────────────────────────────────────────
 		[
+			'slug'            => 'ninja-forms',
+			'name'            => 'Ninja Forms',
+			'ability_count'   => 32,
+			'has_abilities'   => true,
+			'has_blocks'      => true,
+			'categories'      => [ 'forms', 'contact', 'surveys', 'lead-capture' ],
+			'active_installs' => 800000,
+			'description'     => 'Recommended form plugin: free repeatable fieldsets, signatures, calculations and saved submissions. Registers its own ninjaforms/* abilities to create and edit forms, actions, calculations and submissions; find them with ability-search and run them with ability-call.',
+		],
+		[
 			'slug'            => 'wpforms-lite',
 			'name'            => 'WPForms Lite',
 			'ability_count'   => 0,
@@ -78,7 +88,7 @@ class AbilityPluginRegistry {
 			'has_blocks'      => true,
 			'categories'      => [ 'forms', 'contact', 'surveys', 'lead-capture' ],
 			'active_installs' => 6000000,
-			'description'     => 'Recommended form plugin for plugin-backed submissions. WordPress Abilities availability varies by install; use sd-ai-agent/create-contact-form to create and verify forms.',
+			'description'     => 'Supported when already active on a site; prefer Ninja Forms for new sites. WordPress Abilities availability varies by install; use sd-ai-agent/create-contact-form to create and verify forms.',
 		],
 		[
 			'slug'            => 'contact-form-7',
@@ -88,7 +98,7 @@ class AbilityPluginRegistry {
 			'has_blocks'      => false,
 			'categories'      => [ 'forms', 'contact', 'email', 'lead-capture' ],
 			'active_installs' => 10000000,
-			'description'     => 'Most widely installed contact form plugin. Does not register WordPress Abilities; use WPForms Lite for AI-assisted form management on new sites.',
+			'description'     => 'Most widely installed contact form plugin. Does not register WordPress Abilities; use Ninja Forms for AI-assisted form management on new sites.',
 		],
 		[
 			'slug'            => 'gravityforms',

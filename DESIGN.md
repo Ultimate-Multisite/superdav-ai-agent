@@ -257,6 +257,15 @@ System notices:
 - After activation, Advanced updates through WordPress' normal plugin updater. Keep release publishing credentials out of browser state.
 - Keep the account tab and each account card padded on every viewport: use the 2xl spacing token on desktop, the xl token on compact screens, and never let card content touch the settings panel edge.
 
+### Credit-Exhausted Upgrade Popup
+
+- When managed SD AI credit runs out mid-chat, open the add-credit popup automatically in both the main chat and the floating widget. The inline transcript notice stays as a fallback and its **Add credit** button reopens the same popup.
+- Lead with paid credit: **Add credit** is the only primary button and opens the one-time `purchase_credits` URL in a new tab directly from the popup. Never send the user to the settings page first. Coupons sit behind a quiet **Have a coupon code?** link with an inline field; do not advertise promotional codes in the popup or notice.
+- After checkout opens, switch the popup to a waiting state. Re-check `/superdav-account` when the chat tab regains focus, with no timer polling, and offer **I've added credit** for a manual check. Credit counts as added only when the balance rises above the balance captured when the popup opened.
+- On success, show the new balance and a primary **Continue my request** action that retries the last user message in the same session.
+- Users without `manage_options` see a single "ask a site administrator" message with no billing actions.
+- Keep the popup code in a lazy chunk; the launch bundle carries only the store prompt state and a tiny host component.
+
 ### Tooltips
 
 Use `<Tooltip>` from `@wordpress/components` (or `showTooltip + label` on `<Button>`) for every icon-only button. Do not rely on the native `title` attribute — it has poor accessibility and inconsistent browser styling.
@@ -354,7 +363,8 @@ Err toward more whitespace. Padding should feel generous inside panels. List ite
 
 - Separate account overview, usage, and activity surfaces with a `24px` vertical gap.
 - Give each account surface `24px` desktop padding, reducing to `16px` on mobile, with an `8px` radius and the standard subtle border.
-- Keep the account header focused on one primary action. Coupon redemption opens in a modal rather than placing a persistent form between account sections.
+- Keep the account header focused on one primary action: **Add credits** when purchasing is available, otherwise **Redeem Coupon**. Coupon redemption opens in a modal rather than placing a persistent form between account sections.
+- Credit-exhaustion links deep-link to the account tab (`admin.php?page=sd-ai-agent&tab=superdav-account#/settings`), never the generic General settings tab.
 - Refresh managed account data automatically when the account screen mounts; do not require a manual refresh control for current balances.
 
 ---

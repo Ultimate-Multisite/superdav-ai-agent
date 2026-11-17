@@ -156,7 +156,7 @@ export function getActiveJobFailureMessage( diagnostic ) {
 			);
 		case 'credit_exhausted':
 			return __(
-				'Good news—as an early adopter, you can use coupon code EARLY in your account settings to claim $200 in AI usage credits. We only ask that you please leave a review.',
+				'You’ve used your SD AI credit. Add credit to keep working. Your conversation is saved.',
 				'superdav-ai-agent'
 			);
 		case 'worker_terminated':

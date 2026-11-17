@@ -306,6 +306,8 @@ class UnifiedAdminMenu {
 				'menuItems'            => self::getMenuItems(),
 				'connectorsUrl'        => self::getConnectorsUrl(),
 				'settingsPageUrl'      => admin_url( 'admin.php?page=sd-ai-agent#/settings' ),
+				'accountPageUrl'       => admin_url( 'admin.php?page=sd-ai-agent&tab=superdav-account#/settings' ),
+				'canManageBilling'     => current_user_can( 'manage_options' ),
 				'advancedInstallUrl'   => current_user_can( 'install_plugins' ) ? admin_url( 'admin.php?page=sd-ai-agent&tab=superdav-account#/settings' ) : '',
 				'connectorsAvailable'  => self::hasNativeConnectorsPage() || self::hasGutenbergConnectorsPage() ? '1' : '',
 				'screenshotOrigins'    => self::getScreenshotAllowedOrigins(),

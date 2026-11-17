@@ -24,7 +24,9 @@ const BUDGETS = [
 		minifiedBudgetKiB: 100,
 		// Session agent restore/fallback (GH#2885): measured 28.12 KiB gzip.
 		// Durable completion receipts + reload guards (GH#2873): 28.21 KiB.
-		gzipBudgetKiB: 28.3,
+		// Credit-exhausted add-credit popup (store prompt state + lazy host):
+		// measured 28.31 KiB; the popup itself stays in a deferred chunk.
+		gzipBudgetKiB: 28.4,
 	},
 	{
 		name: 'widget-panel',
@@ -44,8 +46,10 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	// (account card button, focus refresh, settings tab deep link) on top:
 	// measured 1739.5 KiB minified / 532.8 KiB gzip. Provider Trace source
 	// filter (provider-trace-cache) on top: 1740.2 KiB / 532.9 KiB gzip.
-	minifiedBudgetKiB: 1741,
-	gzipBudgetKiB: 533,
+	// Credit-exhausted add-credit popup (deferred 7 KiB chunk) on top:
+	// measured 1747.5 KiB / 535.3 KiB gzip.
+	minifiedBudgetKiB: 1748,
+	gzipBudgetKiB: 535.5,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,
 };

@@ -209,8 +209,8 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 		);
 
 		$message = ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_CREDIT_EXHAUSTED );
-		$this->assertStringContainsString( 'EARLY', $message );
-		$this->assertStringContainsString( '$200', $message );
+		$this->assertStringContainsString( 'Add credit', $message );
+		$this->assertStringNotContainsString( 'EARLY', $message );
 	}
 
 	public function test_retry_exhaustion_uses_underlying_safe_error_code_without_assuming_timeout(): void {

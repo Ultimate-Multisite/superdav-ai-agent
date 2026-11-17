@@ -2,22 +2,20 @@
  * Shared account-action message rendered by every React chat surface.
  */
 
-import { createInterpolateElement } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
+import STORE_NAME from '../../store';
 import {
 	CREDIT_EXHAUSTED_REASON,
 	PURCHASE_CREDITS_ACTION,
 } from '../../utils/superdav-credit-notice';
 
-const WORDPRESS_ORG_REVIEW_URL =
-	'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post';
-
 /**
  * Resolve translated presentation copy for a semantic account action.
  *
  * @param {Object} notice Structured account-action notice.
- * @return {{template: string, primaryActionText: string, secondaryActionText: string, hasCreditOffer: boolean}}
+ * @return {{message: string, primaryActionText: string, opensCreditPrompt: boolean}}
  *   Translated notice presentation.
  */
 export function getAccountActionPresentation( notice ) {
@@ -26,18 +24,17 @@ export function getAccountActionPresentation( notice ) {
 		notice?.action === PURCHASE_CREDITS_ACTION
 	) {
 		return {
-			template: __(
-				'Good news—as an early adopter, use coupon code <strong>EARLY</strong> in your <settingsLink>account settings</settingsLink> to claim $200 in AI usage credits. We only ask that you please leave a review.',
+			message: __(
+				'You’ve used your SD AI credit. Add credit to keep working. Your conversation is saved.',
 				'superdav-ai-agent'
 			),
-			primaryActionText: __( 'Redeem EARLY coupon', 'superdav-ai-agent' ),
-			secondaryActionText: __( 'Leave a review', 'superdav-ai-agent' ),
-			hasCreditOffer: true,
+			primaryActionText: __( 'Add credit', 'superdav-ai-agent' ),
+			opensCreditPrompt: true,
 		};
 	}
 
 	return {
-		template:
+		message:
 			typeof notice?.message === 'string'
 				? notice.message
 				: __(
@@ -45,39 +42,55 @@ export function getAccountActionPresentation( notice ) {
 						'superdav-ai-agent'
 				  ),
 		primaryActionText: __( 'Account settings', 'superdav-ai-agent' ),
-		secondaryActionText: '',
-		hasCreditOffer: false,
+		opensCreditPrompt: false,
 	};
 }
 
 /**
  * Render a semantic account-action notice with an optional CTA.
  *
+ * Credit-exhaustion notices reopen the shared add-credit popup so the inline
+ * transcript entry and the popup always lead to the same one-click checkout.
+ *
  * @param {Object} root0
  * @param {Object} root0.notice Structured account-action notice.
  * @return {JSX.Element} Notice row.
  */
 export default function AccountActionMessage( { notice } ) {
+	const { openCreditPrompt } = useDispatch( STORE_NAME );
+	const currentSessionId = useSelect(
+		( sel ) => sel( STORE_NAME ).getCurrentSessionId?.() ?? null,
+		[]
+	);
 	const actionUrl = notice?.actionUrl || '';
 	const presentation = getAccountActionPresentation( notice );
-	const settingsElement = actionUrl ? (
-		// The translated <settingsLink> content is supplied by createInterpolateElement.
-		// eslint-disable-next-line jsx-a11y/anchor-has-content
-		<a
-			className="sd-ai-agent-cr-msg-system-inline-action"
-			href={ actionUrl }
-			target="_blank"
-			rel="noopener noreferrer"
-		/>
-	) : (
-		<span />
-	);
-	const message = presentation.hasCreditOffer
-		? createInterpolateElement( presentation.template, {
-				settingsLink: settingsElement,
-				strong: <strong />,
-		  } )
-		: presentation.template;
+	const canOpenPrompt =
+		presentation.opensCreditPrompt &&
+		typeof openCreditPrompt === 'function';
+
+	let action = null;
+	if ( canOpenPrompt ) {
+		action = (
+			<button
+				type="button"
+				className="sd-ai-agent-cr-msg-system-action"
+				onClick={ () => openCreditPrompt( currentSessionId ) }
+			>
+				{ presentation.primaryActionText }
+			</button>
+		);
+	} else if ( actionUrl ) {
+		action = (
+			<a
+				className="sd-ai-agent-cr-msg-system-action"
+				href={ actionUrl }
+				target="_blank"
+				rel="noopener noreferrer"
+			>
+				{ presentation.primaryActionText }
+			</a>
+		);
+	}
 
 	return (
 		<div className="sdaa-cr-msg-row">
@@ -85,29 +98,10 @@ export default function AccountActionMessage( { notice } ) {
 				className="sd-ai-agent-cr-msg-system sd-ai-agent-cr-msg-system--account-action"
 				role="status"
 			>
-				{ message }
-				{ ( actionUrl || presentation.secondaryActionText ) && (
+				{ presentation.message }
+				{ action && (
 					<div className="sd-ai-agent-cr-msg-system-actions">
-						{ actionUrl && (
-							<a
-								className="sd-ai-agent-cr-msg-system-action"
-								href={ actionUrl }
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								{ presentation.primaryActionText }
-							</a>
-						) }
-						{ presentation.secondaryActionText && (
-							<a
-								className="sd-ai-agent-cr-msg-system-action sd-ai-agent-cr-msg-system-action--secondary"
-								href={ WORDPRESS_ORG_REVIEW_URL }
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								{ presentation.secondaryActionText }
-							</a>
-						) }
+						{ action }
 					</div>
 				) }
 			</div>

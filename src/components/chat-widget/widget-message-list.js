@@ -14,6 +14,7 @@ import STORE_NAME from '../../store';
 import AutomaticFeedbackPrompt from '../automatic-feedback-prompt';
 import CompactConversationActionCard from '../compact-conversation-action-card';
 import RecoverableJobActionCard from '../recoverable-job-action-card';
+import CreditUpgradePrompt from '../credit-upgrade-modal/prompt';
 import FeedbackConsentModal from '../feedback-consent-modal';
 import MessageRows from '../chat-messages/message-rows';
 import {
@@ -298,6 +299,8 @@ export default function WidgetMessageList( { voiceConversation } ) {
 					onClose={ () => setThumbsDownMessageIndex( null ) }
 				/>
 			) }
+
+			<CreditUpgradePrompt />
 		</>
 	);
 }

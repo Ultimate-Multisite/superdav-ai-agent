@@ -56,41 +56,30 @@ describe( 'embed widget', () => {
 				'https://example.test/subsite/wp-json/sd-ai-agent/v1'
 			)
 		).toBe(
-			'https://example.test/subsite/wp-admin/admin.php?page=sd-ai-agent#/settings'
+			'https://example.test/subsite/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings'
 		);
 		expect(
 			module.getAccountSettingsUrl( 'https://example.test/api' )
 		).toBe( '' );
 	} );
 
-	test( 'renders managed-credit notices with linked settings text and CTA', () => {
+	test( 'renders managed-credit notices with a single Add credit CTA', () => {
+		const accountUrl =
+			'https://example.test/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings';
 		const message = document.createElement( 'div' );
 		module.renderAccountActionNotice( message, {
 			type: 'account_action',
 			reason: 'credit_exhausted',
 			action: 'purchase_credits',
-			actionUrl:
-				'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings',
+			actionUrl: accountUrl,
 		} );
 
 		const links = message.querySelectorAll( 'a' );
-		expect( message.textContent ).toContain(
-			'Good news—as an early adopter, use coupon code EARLY'
-		);
-		expect( message.textContent ).toContain( '$200 in AI usage credits' );
-		expect( links ).toHaveLength( 3 );
-		expect( links[ 0 ].textContent ).toBe( 'account settings' );
-		expect( links[ 1 ].textContent ).toBe( 'Redeem EARLY coupon' );
-		expect( links[ 2 ].textContent ).toBe( 'Leave a review' );
-		expect( links[ 0 ].getAttribute( 'href' ) ).toBe(
-			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
-		);
-		expect( links[ 1 ].getAttribute( 'href' ) ).toBe(
-			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
-		);
-		expect( links[ 2 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
-		);
+		expect( message.textContent ).toContain( 'SD AI credit has run out' );
+		expect( message.textContent ).not.toContain( 'EARLY' );
+		expect( links ).toHaveLength( 1 );
+		expect( links[ 0 ].textContent ).toBe( 'Add credit' );
+		expect( links[ 0 ].getAttribute( 'href' ) ).toBe( accountUrl );
 	} );
 
 	test( 'initializes once only after the visitor opens the launcher', async () => {

@@ -430,7 +430,7 @@ export function getAccountSettingsUrl( apiBase ) {
 			return '';
 		}
 
-		return `${ apiUrl.origin }${ rootPath }/wp-admin/admin.php?page=sd-ai-agent#/settings`;
+		return `${ apiUrl.origin }${ rootPath }/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings`;
 	} catch {
 		return '';
 	}
@@ -453,61 +453,22 @@ export function renderAccountActionNotice( item, notice ) {
 	}
 
 	const accountUrl = notice.actionUrl;
-	item.textContent = '';
-	item.appendChild(
-		document.createTextNode(
-			'Good news—as an early adopter, use coupon code '
-		)
-	);
+	item.textContent =
+		'This site’s SD AI credit has run out. The site owner can add credit to keep the assistant working.';
 
-	const coupon = document.createElement( 'code' );
-	coupon.className = 'sd-ai-agent-embed-credit-code';
-	coupon.textContent = 'EARLY';
-	item.appendChild( coupon );
-	item.appendChild( document.createTextNode( ' in your ' ) );
-
-	if ( accountUrl ) {
-		const inlineLink = document.createElement( 'a' );
-		inlineLink.className = 'sd-ai-agent-embed-credit-inline-link';
-		inlineLink.href = accountUrl;
-		inlineLink.target = '_blank';
-		inlineLink.rel = 'noopener noreferrer';
-		inlineLink.textContent = 'account settings';
-		item.appendChild( inlineLink );
-	} else {
-		item.appendChild( document.createTextNode( 'account settings' ) );
+	if ( ! accountUrl ) {
+		return;
 	}
-	item.appendChild(
-		document.createTextNode(
-			' to claim $200 in AI usage credits. We only ask that you please leave a review.'
-		)
-	);
 
 	const actions = document.createElement( 'div' );
 	actions.className = 'sd-ai-agent-embed-credit-actions';
-	const actionLinks = [
-		[
-			'Leave a review',
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post',
-			true,
-		],
-	];
-	if ( accountUrl ) {
-		actionLinks.unshift( [ 'Redeem EARLY coupon', accountUrl, false ] );
-	}
-
-	for ( const [ label, url, secondary ] of actionLinks ) {
-		const action = document.createElement( 'a' );
-		action.className = `sd-ai-agent-embed-credit-action${
-			secondary ? ' sd-ai-agent-embed-credit-action--secondary' : ''
-		}`;
-		action.href = url;
-		action.target = '_blank';
-		action.rel = 'noopener noreferrer';
-		action.textContent = label;
-		actions.appendChild( action );
-	}
-
+	const action = document.createElement( 'a' );
+	action.className = 'sd-ai-agent-embed-credit-action';
+	action.href = accountUrl;
+	action.target = '_blank';
+	action.rel = 'noopener noreferrer';
+	action.textContent = 'Add credit';
+	actions.appendChild( action );
 	item.appendChild( actions );
 }
 

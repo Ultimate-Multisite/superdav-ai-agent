@@ -7,4 +7,4 @@ declare(strict_types=1);
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
-return array('dependencies' => array('react-jsx-runtime', 'wp-api-fetch', 'wp-components', 'wp-data', 'wp-element', 'wp-i18n', 'wp-primitives'), 'version' => '8beb3be595adcc37bed5');
+return array('dependencies' => array('react-jsx-runtime', 'wp-api-fetch', 'wp-components', 'wp-data', 'wp-element', 'wp-i18n', 'wp-primitives'), 'version' => '31ee6e3bce74683800ad');

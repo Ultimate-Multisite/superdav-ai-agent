@@ -1070,6 +1070,11 @@ export const actions = {
 										  }
 								);
 							}
+							if ( isCreditNotice ) {
+								// Lead with the add-credit popup; the inline
+								// notice stays in the transcript as a fallback.
+								dispatch.openCreditPrompt?.( sessionId );
+							}
 							if ( ! isDurablePlan && ! isCreditNotice ) {
 								if ( canCompactConversation ) {
 									dispatch.setPendingActionCard( {

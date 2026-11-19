@@ -2465,7 +2465,8 @@ class BlockAbilities {
 		$opens        = preg_match_all( '/<!-- wp:(\S+)/', $content );
 		$self_closing = preg_match_all( '/<!-- wp:\S+(?:(?!-->).)*?\/\s*-->/s', $content );
 		$closes       = preg_match_all( '/<!-- \/wp:(\S+)/', $content );
-		$opens       -= $self_closing;
+		// Self-closing blocks intentionally have no matching closing comment.
+		$opens -= $self_closing;
 		if ( $opens !== $closes ) {
 			$warnings[] = sprintf(
 				'Mismatched block comments: %d opening vs %d closing. Check for unclosed blocks.',

@@ -8,7 +8,7 @@ Stable tag: 1.26.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI agent in wp-admin: build Gutenberg pages, manage plugins and WooCommerce. You approve changes, cap spend and undo most changes.
+AI agent in wp-admin: build Gutenberg pages, manage WooCommerce. Use any WordPress AI connector; approve changes, cap spend, undo most.
 
 == Description ==
 
@@ -29,6 +29,7 @@ You stay in control: choose the included SD AI managed service or your own compa
 * **Undo changes** — the agent logs each change with a diff. You can revert most changes in one click from the Changes screen. Some changes, such as deleting a media item or changing product categories, cannot be reverted automatically.
 * **Cap what it spends** — set daily and monthly budgets; with the default pause action, new agent runs are blocked once a cap is reached.
 * **Connect other AI clients** — the built-in MCP server (`/wp-json/sd-ai-agent/v1/mcp`) lets MCP clients that can send a WordPress Application Password call the plugin's tools as the authenticated WordPress user.
+* **Bring your own AI** — use the included SD AI service or any AI provider connector registered through the WordPress Connectors API, and choose your default model in **AI Agent > Settings**.
 * **Understand usage** — review conversation history, tool activity, exports, token usage, and estimated provider costs.
 
 Generated pages remain ordinary, editable WordPress content. Block changes use native Gutenberg markup and WordPress revisions instead of introducing a proprietary page format.
@@ -140,7 +141,7 @@ Stock-image services run only when requested. They receive the search keyword an
 
 = Which AI providers are supported? =
 
-The included SD AI managed provider is supported. For local models or other compatible provider endpoints, install [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/) and configure the endpoint in **Settings > Connectors**. Available providers and models depend on the endpoint you configure.
+Any AI provider connector registered through the WordPress Connectors API can be used, and the included SD AI managed provider works out of the box. For local models or other compatible provider endpoints, install [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/) and configure the endpoint in **Settings > Connectors**. Available providers and models depend on the endpoint you configure.
 
 = How much does it cost to use? =
 

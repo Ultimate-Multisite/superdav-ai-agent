@@ -55,9 +55,7 @@ async function capture() {
 		await goToAgentPage( page );
 		if ( captureSessionTitle ) {
 			await page
-				.locator( '.sdaa-cr-session-row', {
-					hasText: captureSessionTitle,
-				} )
+				.locator( '.sdaa-cr-session-row', { hasText: captureSessionTitle } )
 				.first()
 				.click();
 		} else {
@@ -73,9 +71,7 @@ async function capture() {
 			.last()
 			.waitFor( { state: 'visible', timeout: 15_000 } );
 		if (
-			( await page
-				.getByText( 'Some steps need attention' )
-				.isVisible() ) ||
+			( await page.getByText( 'Some steps need attention' ).isVisible() ) ||
 			( await page
 				.getByText( 'The background agent job could not finish.' )
 				.isVisible() )
@@ -119,18 +115,14 @@ async function capture() {
 		if ( reviewSessionTitle ) {
 			await goToAgentPage( page );
 			await page
-				.locator( '.sdaa-cr-session-row', {
-					hasText: reviewSessionTitle,
-				} )
+				.locator( '.sdaa-cr-session-row', { hasText: reviewSessionTitle } )
 				.first()
 				.click();
 			await page
 				.locator( '.sdaa-cr-msg-assistant' )
 				.last()
 				.waitFor( { state: 'visible', timeout: 15_000 } );
-			if (
-				await page.getByText( 'Some steps need attention' ).isVisible()
-			) {
+			if ( await page.getByText( 'Some steps need attention' ).isVisible() ) {
 				throw new Error(
 					'Capture requires a completed review workflow without unresolved steps.'
 				);
@@ -144,7 +136,7 @@ async function capture() {
 				.getByText( 'Loading changes…' )
 				.waitFor( { state: 'hidden', timeout: 30_000 } );
 			await page.locator( '.sdaa-route-changes' ).screenshot( {
-				path: path.join( outputDirectory, 'screenshot-3.png' ),
+			path: path.join( outputDirectory, 'screenshot-3.png' ),
 			} );
 		}
 	} finally {

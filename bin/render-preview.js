@@ -36,16 +36,13 @@ function getArg( args, flag ) {
 	return idx !== -1 ? args[ idx + 1 ] || null : null;
 }
 
-/**
- *
- */
 async function main() {
 	const args = process.argv.slice( 2 );
 
 	const htmlPath = getArg( args, '--html' );
-	const outPath = getArg( args, '--output' );
-	const width = parseInt( getArg( args, '--width' ) || '1280', 10 );
-	const height = parseInt( getArg( args, '--height' ) || '800', 10 );
+	const outPath  = getArg( args, '--output' );
+	const width    = parseInt( getArg( args, '--width' )  || '1280', 10 );
+	const height   = parseInt( getArg( args, '--height' ) || '800',  10 );
 
 	if ( ! htmlPath || ! outPath ) {
 		process.stderr.write(
@@ -63,9 +60,7 @@ async function main() {
 		try {
 			( { chromium } = require( 'playwright' ) );
 		} catch {
-			process.stderr.write(
-				'Playwright not available. Install @playwright/test or playwright.\n'
-			);
+			process.stderr.write( 'Playwright not available. Install @playwright/test or playwright.\n' );
 			process.exit( 1 );
 		}
 	}
@@ -74,22 +69,15 @@ async function main() {
 	try {
 		browser = await chromium.launch( { headless: true } );
 		const context = await browser.newContext();
-		const page = await context.newPage();
+		const page    = await context.newPage();
 
 		await page.setViewportSize( { width, height } );
 
 		// Use file:// protocol for the local HTML file.
 		const fileUrl = 'file://' + path.resolve( htmlPath );
-		await page.goto( fileUrl, {
-			waitUntil: 'networkidle',
-			timeout: 30_000,
-		} );
+		await page.goto( fileUrl, { waitUntil: 'networkidle', timeout: 30_000 } );
 
-		await page.screenshot( {
-			path: outPath,
-			type: 'png',
-			fullPage: false,
-		} );
+		await page.screenshot( { path: outPath, type: 'png', fullPage: false } );
 	} catch ( err ) {
 		process.stderr.write( 'Screenshot failed: ' + err.message + '\n' );
 		process.exit( 1 );

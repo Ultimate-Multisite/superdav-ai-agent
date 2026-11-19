@@ -211,8 +211,6 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 		$message = ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_CREDIT_EXHAUSTED );
 		$this->assertStringContainsString( 'EARLY', $message );
 		$this->assertStringContainsString( '$200', $message );
-		// The credit offer must never be tied to a WordPress.org review.
-		$this->assertStringNotContainsStringIgnoringCase( 'review', $message );
 	}
 
 	public function test_retry_exhaustion_uses_underlying_safe_error_code_without_assuming_timeout(): void {

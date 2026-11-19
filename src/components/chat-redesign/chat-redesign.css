@@ -1020,6 +1020,17 @@ input[type="text"].sdaa-cr-search-input {
 	text-decoration: none;
 }
 
+.sd-ai-agent-cr-msg-system-action--secondary {
+	background: #fff;
+	color: var(--sdaa-primary-dark);
+}
+
+.sd-ai-agent-cr-msg-system-action--secondary:hover,
+.sd-ai-agent-cr-msg-system-action--secondary:focus {
+	background: var(--sdaa-surface-active);
+	color: var(--sdaa-primary-dark);
+}
+
 /* Tool card */
 .sdaa-cr-tool-card {
 	margin: 0 0 10px;

@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace SdAiAgent\Bootstrap;
 
 use SdAiAgent\Abilities\ToolCapabilities;
+use SdAiAgent\Admin\ReviewRequestNoticeHandler;
 use SdAiAgent\Automations\AutomationRunner;
 use SdAiAgent\Automations\MonitorWakeQueue;
 use SdAiAgent\Core\ActiveJobsCleanupService;
@@ -55,6 +56,7 @@ final class LifecycleHandler {
 	 * WordPress capabilities so role-management plugins can discover them.
 	 */
 	public static function activate(): void {
+		ReviewRequestNoticeHandler::ensure_activation_timestamp();
 		Database::install();
 		AutomationRunner::reschedule_all();
 		MonitorWakeQueue::reschedule_pending_wakes();

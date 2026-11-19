@@ -1,6 +1,6 @@
 === SD AI Agent ===
 Contributors: superdav42
-Tags: ai, chatbot, assistant, automation, connector
+Tags: ai, ai agent, mcp, automation, gutenberg
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
@@ -8,7 +8,7 @@ Stable tag: 1.26.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A native AI agent to build and edit WordPress sites, improve content, manage site work, and automate tasks with your chosen provider.
+AI agent in wp-admin: build Gutenberg pages, manage plugins and WooCommerce. You approve changes, cap spend and undo any change.
 
 == Description ==
 
@@ -26,6 +26,9 @@ You stay in control: choose the included SD AI managed service or your own compa
 * **Publish with fewer handoffs** — work with copy, media, products, comments, settings, and supported plugin tools without jumping between admin screens.
 * **Automate routine work** — schedule prompts or respond to WordPress and WooCommerce events for reports, moderation, reminders, follow-up, and maintenance checks.
 * **Review work before it changes your site** — use read-only or scoped tool profiles, disable tools you do not want available, and approve sensitive actions before they run.
+* **Undo changes** — every change the agent makes is logged with a diff, and you can revert it in one click from the Changes screen.
+* **Cap what it spends** — set daily and monthly budgets; the agent pauses when it reaches them.
+* **Connect other AI clients** — the built-in MCP server (`/wp-json/sd-ai-agent/v1/mcp`) lets MCP clients that can send a WordPress Application Password use the same tools and permissions.
 * **Understand usage** — review conversation history, tool activity, exports, token usage, and estimated provider costs.
 
 Generated pages remain ordinary, editable WordPress content. Block changes use native Gutenberg markup and WordPress revisions instead of introducing a proprietary page format.
@@ -141,7 +144,7 @@ The included SD AI managed provider is supported. For local models or other comp
 
 = How much does it cost to use? =
 
-The plugin is free and open source. The managed SD AI service uses account credits, while third-party providers apply their own pricing and terms. To use a local model or another compatible provider, connect its endpoint with [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/). The **Usage** tab records token usage and estimated provider costs when pricing data is available.
+The plugin is free and open source. The managed SD AI service uses account credits: $10 of free credit is added when you activate the plugin, and you can top up in $10 steps after that. Third-party providers apply their own pricing and terms. Daily and monthly spend caps in **AI Agent > Settings** pause the agent when it reaches your limit. To use a local model or another compatible provider, connect its endpoint with [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/). The **Usage** tab records token usage and estimated provider costs when pricing data is available.
 
 = Is my data sent to a third party? =
 

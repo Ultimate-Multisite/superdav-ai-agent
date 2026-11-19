@@ -2462,8 +2462,11 @@ class BlockAbilities {
 			$warnings[] = 'Content has no Gutenberg blocks — it appears to be plain text or markdown. Use markdown format (without <!-- wp: --> comments) and it will be auto-converted, or write proper block markup.';
 		}
 
-		$opens  = preg_match_all( '/<!-- wp:(\S+)/', $content );
-		$closes = preg_match_all( '/<!-- \/wp:(\S+)/', $content );
+		$opens        = preg_match_all( '/<!-- wp:(\S+)/', $content );
+		$self_closing = preg_match_all( '/<!-- wp:\S+(?:(?!-->).)*?\/\s*-->/s', $content );
+		$closes       = preg_match_all( '/<!-- \/wp:(\S+)/', $content );
+		// Self-closing blocks intentionally have no matching closing comment.
+		$opens -= $self_closing;
 		if ( $opens !== $closes ) {
 			$warnings[] = sprintf(
 				'Mismatched block comments: %d opening vs %d closing. Check for unclosed blocks.',

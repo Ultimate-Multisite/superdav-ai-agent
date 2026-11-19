@@ -478,9 +478,7 @@ export function renderAccountActionNotice( item, notice ) {
 		item.appendChild( document.createTextNode( 'account settings' ) );
 	}
 	item.appendChild(
-		document.createTextNode(
-			' to claim $200 in AI usage credits.'
-		)
+		document.createTextNode( ' to claim $200 in AI usage credits.' )
 	);
 
 	// Never pair the credit offer with a review request: WordPress.org treats

@@ -586,6 +586,41 @@ class BlockAbilitiesTest extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'hint', $result );
 	}
 
+	/**
+	 * Self-closing blocks do not require matching closing comments.
+	 *
+	 * @see GH#3010
+	 */
+	public function test_validate_block_content_accepts_self_closing_blocks(): void {
+		$content = "<!-- wp:site-title {\"level\":0} /-->\n\n<!-- wp:paragraph -->\n<p>x</p>\n<!-- /wp:paragraph -->";
+
+		$result = BlockAbilities::handle_validate_block_content( [
+			'content' => $content,
+		] );
+
+		$this->assertTrue( $result['valid'] );
+		$this->assertSame( [], $result['warnings'] );
+	}
+
+	/**
+	 * Genuinely unclosed blocks still produce a mismatch warning.
+	 *
+	 * @see GH#3010
+	 */
+	public function test_validate_block_content_warns_for_unclosed_blocks(): void {
+		$content = "<!-- wp:group -->\n<div class=\"wp-block-group\">\n<!-- wp:paragraph -->\n<p>x</p>\n<!-- /wp:paragraph -->\n</div>";
+
+		$result = BlockAbilities::handle_validate_block_content( [
+			'content' => $content,
+		] );
+
+		$this->assertFalse( $result['valid'] );
+		$this->assertContains(
+			'Mismatched block comments: 2 opening vs 1 closing. Check for unclosed blocks.',
+			$result['warnings']
+		);
+	}
+
 	// ─── get-page-blocks ──────────────────────────────────────────────────
 
 	/**

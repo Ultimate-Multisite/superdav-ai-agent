@@ -78,19 +78,30 @@ describe( 'embed widget', () => {
 			'Good news—as an early adopter, use coupon code EARLY'
 		);
 		expect( message.textContent ).toContain( '$200 in AI usage credits' );
-		expect( links ).toHaveLength( 3 );
+		expect( links ).toHaveLength( 2 );
 		expect( links[ 0 ].textContent ).toBe( 'account settings' );
 		expect( links[ 1 ].textContent ).toBe( 'Redeem EARLY coupon' );
-		expect( links[ 2 ].textContent ).toBe( 'Leave a review' );
 		expect( links[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
 		);
 		expect( links[ 1 ].getAttribute( 'href' ) ).toBe(
 			'https://example.test/wp-admin/admin.php?page=sd-ai-agent#/settings'
 		);
-		expect( links[ 2 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
-		);
+		// The credit offer must never be tied to a WordPress.org review.
+		expect( message.textContent ).not.toMatch( /review/i );
+	} );
+
+	test( 'renders the credit notice without links when no settings URL exists', () => {
+		const message = document.createElement( 'div' );
+		module.renderAccountActionNotice( message, {
+			type: 'account_action',
+			reason: 'credit_exhausted',
+			action: 'purchase_credits',
+		} );
+
+		expect( message.textContent ).toContain( '$200 in AI usage credits' );
+		expect( message.querySelectorAll( 'a' ) ).toHaveLength( 0 );
+		expect( message.textContent ).not.toMatch( /review/i );
 	} );
 
 	test( 'initializes once only after the visitor opens the launcher', async () => {

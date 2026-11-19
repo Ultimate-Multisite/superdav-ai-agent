@@ -10,14 +10,14 @@ import {
 	PURCHASE_CREDITS_ACTION,
 } from '../../utils/superdav-credit-notice';
 
-const WORDPRESS_ORG_REVIEW_URL =
-	'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post';
-
 /**
  * Resolve translated presentation copy for a semantic account action.
  *
+ * The credit offer must never be tied to a WordPress.org review: the plugin
+ * team treats any reward offered for a review as an invalid (bribed) review.
+ *
  * @param {Object} notice Structured account-action notice.
- * @return {{template: string, primaryActionText: string, secondaryActionText: string, hasCreditOffer: boolean}}
+ * @return {{template: string, primaryActionText: string, hasCreditOffer: boolean}}
  *   Translated notice presentation.
  */
 export function getAccountActionPresentation( notice ) {
@@ -27,11 +27,10 @@ export function getAccountActionPresentation( notice ) {
 	) {
 		return {
 			template: __(
-				'Good news—as an early adopter, use coupon code <strong>EARLY</strong> in your <settingsLink>account settings</settingsLink> to claim $200 in AI usage credits. We only ask that you please leave a review.',
+				'Good news—as an early adopter, use coupon code <strong>EARLY</strong> in your <settingsLink>account settings</settingsLink> to claim $200 in AI usage credits.',
 				'superdav-ai-agent'
 			),
 			primaryActionText: __( 'Redeem EARLY coupon', 'superdav-ai-agent' ),
-			secondaryActionText: __( 'Leave a review', 'superdav-ai-agent' ),
 			hasCreditOffer: true,
 		};
 	}
@@ -45,7 +44,6 @@ export function getAccountActionPresentation( notice ) {
 						'superdav-ai-agent'
 				  ),
 		primaryActionText: __( 'Account settings', 'superdav-ai-agent' ),
-		secondaryActionText: '',
 		hasCreditOffer: false,
 	};
 }
@@ -86,28 +84,16 @@ export default function AccountActionMessage( { notice } ) {
 				role="status"
 			>
 				{ message }
-				{ ( actionUrl || presentation.secondaryActionText ) && (
+				{ actionUrl && (
 					<div className="sd-ai-agent-cr-msg-system-actions">
-						{ actionUrl && (
-							<a
-								className="sd-ai-agent-cr-msg-system-action"
-								href={ actionUrl }
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								{ presentation.primaryActionText }
-							</a>
-						) }
-						{ presentation.secondaryActionText && (
-							<a
-								className="sd-ai-agent-cr-msg-system-action sd-ai-agent-cr-msg-system-action--secondary"
-								href={ WORDPRESS_ORG_REVIEW_URL }
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								{ presentation.secondaryActionText }
-							</a>
-						) }
+						<a
+							className="sd-ai-agent-cr-msg-system-action"
+							href={ actionUrl }
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ presentation.primaryActionText }
+						</a>
 					</div>
 				) }
 			</div>

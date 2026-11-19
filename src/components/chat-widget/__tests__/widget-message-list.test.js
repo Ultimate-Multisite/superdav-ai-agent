@@ -111,15 +111,13 @@ describe( 'WidgetMessageList credit exhaustion notice', () => {
 		const actions = notice.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( actions ).toHaveLength( 2 );
+		expect( actions ).toHaveLength( 1 );
 		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
 		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
 		);
-		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
-		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
-		);
+		// The credit offer must never be tied to a WordPress.org review.
+		expect( notice.textContent ).not.toMatch( /review/i );
 
 		await act( async () => {
 			root.unmount();

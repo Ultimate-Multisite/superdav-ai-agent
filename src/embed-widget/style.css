@@ -310,16 +310,6 @@
 	text-decoration: none;
 }
 
-.sd-ai-agent-embed-credit-action--secondary {
-	background: var(--sdaa-embed-surface);
-	color: var(--sdaa-embed-primary);
-}
-
-.sd-ai-agent-embed-credit-action--secondary:hover,
-.sd-ai-agent-embed-credit-action--secondary:focus {
-	color: var(--sdaa-embed-primary);
-}
-
 .sdaa-embed__input {
 	min-width: 0;
 	max-height: 140px;

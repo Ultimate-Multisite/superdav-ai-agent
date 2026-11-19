@@ -479,34 +479,25 @@ export function renderAccountActionNotice( item, notice ) {
 	}
 	item.appendChild(
 		document.createTextNode(
-			' to claim $200 in AI usage credits. We only ask that you please leave a review.'
+			' to claim $200 in AI usage credits.'
 		)
 	);
 
-	const actions = document.createElement( 'div' );
-	actions.className = 'sd-ai-agent-embed-credit-actions';
-	const actionLinks = [
-		[
-			'Leave a review',
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post',
-			true,
-		],
-	];
-	if ( accountUrl ) {
-		actionLinks.unshift( [ 'Redeem EARLY coupon', accountUrl, false ] );
+	// Never pair the credit offer with a review request: WordPress.org treats
+	// any reward offered for a review as an invalid review.
+	if ( ! accountUrl ) {
+		return;
 	}
 
-	for ( const [ label, url, secondary ] of actionLinks ) {
-		const action = document.createElement( 'a' );
-		action.className = `sd-ai-agent-embed-credit-action${
-			secondary ? ' sd-ai-agent-embed-credit-action--secondary' : ''
-		}`;
-		action.href = url;
-		action.target = '_blank';
-		action.rel = 'noopener noreferrer';
-		action.textContent = label;
-		actions.appendChild( action );
-	}
+	const actions = document.createElement( 'div' );
+	actions.className = 'sd-ai-agent-embed-credit-actions';
+	const action = document.createElement( 'a' );
+	action.className = 'sd-ai-agent-embed-credit-action';
+	action.href = accountUrl;
+	action.target = '_blank';
+	action.rel = 'noopener noreferrer';
+	action.textContent = 'Redeem EARLY coupon';
+	actions.appendChild( action );
 
 	item.appendChild( actions );
 }

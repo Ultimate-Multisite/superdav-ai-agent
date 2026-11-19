@@ -84,7 +84,7 @@ describe( 'AccountActionMessage', () => {
 		const actions = container.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( actions ).toHaveLength( 2 );
+		expect( actions ).toHaveLength( 1 );
 		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
 		);
@@ -93,10 +93,9 @@ describe( 'AccountActionMessage', () => {
 			'noopener noreferrer'
 		);
 		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
-		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
-		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
-		);
+		// The credit offer must never be tied to a WordPress.org review.
+		expect( container.textContent ).not.toMatch( /review/i );
+		expect( container.innerHTML ).not.toContain( 'wordpress.org' );
 
 		const inlineActions = container.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-inline-action'
@@ -127,11 +126,9 @@ describe( 'AccountActionMessage', () => {
 		expect( container.textContent ).not.toContain( '<settingsLink>' );
 		expect(
 			container.querySelectorAll( '.sd-ai-agent-cr-msg-system-action' )
-		).toHaveLength( 1 );
-		expect( container.querySelectorAll( 'a' ) ).toHaveLength( 1 );
-		expect( container.querySelector( 'a' ).textContent ).toBe(
-			'Leave a review'
-		);
+		).toHaveLength( 0 );
+		expect( container.querySelectorAll( 'a' ) ).toHaveLength( 0 );
+		expect( container.textContent ).not.toMatch( /review/i );
 
 		await act( async () => {
 			root.unmount();

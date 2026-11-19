@@ -1,6 +1,6 @@
 === SD AI Agent ===
 Contributors: superdav42
-Tags: ai, ai agent, mcp, automation, gutenberg
+Tags: ai, ai agent, mcp, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
@@ -8,7 +8,7 @@ Stable tag: 1.26.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI agent in wp-admin: build Gutenberg pages, manage plugins and WooCommerce. You approve changes, cap spend and undo any change.
+AI agent in wp-admin: build Gutenberg pages, manage plugins and WooCommerce. You approve changes, cap spend and undo most changes.
 
 == Description ==
 
@@ -26,9 +26,9 @@ You stay in control: choose the included SD AI managed service or your own compa
 * **Publish with fewer handoffs** — work with copy, media, products, comments, settings, and supported plugin tools without jumping between admin screens.
 * **Automate routine work** — schedule prompts or respond to WordPress and WooCommerce events for reports, moderation, reminders, follow-up, and maintenance checks.
 * **Review work before it changes your site** — use read-only or scoped tool profiles, disable tools you do not want available, and approve sensitive actions before they run.
-* **Undo changes** — every change the agent makes is logged with a diff, and you can revert it in one click from the Changes screen.
-* **Cap what it spends** — set daily and monthly budgets; the agent pauses when it reaches them.
-* **Connect other AI clients** — the built-in MCP server (`/wp-json/sd-ai-agent/v1/mcp`) lets MCP clients that can send a WordPress Application Password use the same tools and permissions.
+* **Undo changes** — the agent logs each change with a diff. You can revert most changes in one click from the Changes screen. Some changes, such as deleting a media item or changing product categories, cannot be reverted automatically.
+* **Cap what it spends** — set daily and monthly budgets; with the default pause action, new agent runs are blocked once a cap is reached.
+* **Connect other AI clients** — the built-in MCP server (`/wp-json/sd-ai-agent/v1/mcp`) lets MCP clients that can send a WordPress Application Password call the plugin's tools as the authenticated WordPress user.
 * **Understand usage** — review conversation history, tool activity, exports, token usage, and estimated provider costs.
 
 Generated pages remain ordinary, editable WordPress content. Block changes use native Gutenberg markup and WordPress revisions instead of introducing a proprietary page format.
@@ -144,7 +144,7 @@ The included SD AI managed provider is supported. For local models or other comp
 
 = How much does it cost to use? =
 
-The plugin is free and open source. The managed SD AI service uses account credits: $10 of free credit is added when you activate the plugin, and you can top up in $10 steps after that. Third-party providers apply their own pricing and terms. Daily and monthly spend caps in **AI Agent > Settings** pause the agent when it reaches your limit. To use a local model or another compatible provider, connect its endpoint with [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/). The **Usage** tab records token usage and estimated provider costs when pricing data is available.
+The plugin is free and open source. The managed SD AI service uses account credits: a new site receives $10 of free credit after its first successful registration with the service (attempted on activation, and retryable from the connector page), and you can top up in $10 steps after that. Third-party providers apply their own pricing and terms. Daily and monthly spend caps in **AI Agent > Settings** block new agent runs once a cap is reached, unless the budget action is changed from pause. To use a local model or another compatible provider, connect its endpoint with [Ultimate AI Connector - Compatible Endpoints](https://wordpress.org/plugins/ultimate-ai-connector-compatible-endpoints/). The **Usage** tab records token usage and estimated provider costs when pricing data is available.
 
 = Is my data sent to a third party? =
 

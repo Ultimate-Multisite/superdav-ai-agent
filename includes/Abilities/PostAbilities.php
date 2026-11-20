@@ -1643,7 +1643,7 @@ class PostAbilities {
 					__( 'Changing the status of a published page requires confirm_status_change=true.', 'superdav-ai-agent' ),
 					array(
 						'status'     => 400,
-						'next_steps' => array( 'After the user confirms the status change, retry sd-ai-agent/update-post with confirm_status_change=true.' ),
+						'next_steps' => array( 'After the user confirms the status change, make a separate status-only sd-ai-agent/update-post call with confirm_status_change=true; keep title, content, and excerpt changes in the preview workflow.' ),
 					)
 				);
 			}
@@ -1671,7 +1671,9 @@ class PostAbilities {
 				__( 'No effective post fields were supplied. Empty optional values are ignored to protect existing content; use a block mutator for a focused block edit or send the complete non-empty replacement field.', 'superdav-ai-agent' ),
 				array(
 					'status'     => 400,
-					'next_steps' => array( 'Retry sd-ai-agent/update-post with at least one non-empty replacement field, or use the matching block-mutator ability for a focused block edit.' ),
+					'next_steps' => $ignored_status_change
+						? array( 'After the user confirms the intentional status change, make a status-only sd-ai-agent/update-post call with confirm_status_change=true.' )
+						: array( 'Retry sd-ai-agent/update-post with at least one non-empty replacement field, or use the matching block-mutator ability for a focused block edit.' ),
 				)
 			);
 		}

@@ -433,7 +433,7 @@ final class WooCommerceAbilities {
 							__( 'WooCommerce is no longer active for the approved target site.', 'superdav-ai-agent' ),
 							[
 								'status'     => 409,
-								'next_steps' => [ 'Call sd-ai-agent/commerce-inspect to refresh the site prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.' ],
+								'next_steps' => [ sprintf( 'Run sd-ai-agent/commerce-inspect in approved target site %d context to refresh its prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.', $target_blog_id ) ],
 							]
 							);
 					}
@@ -444,7 +444,7 @@ final class WooCommerceAbilities {
 							__( 'WooCommerce is no longer loaded for the approved target site.', 'superdav-ai-agent' ),
 							[
 								'status'     => 409,
-								'next_steps' => [ 'Call sd-ai-agent/commerce-inspect to refresh the site prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.' ],
+								'next_steps' => [ sprintf( 'Run sd-ai-agent/commerce-inspect in approved target site %d context to refresh its prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.', $target_blog_id ) ],
 							]
 							);
 					}
@@ -1216,6 +1216,7 @@ final class WooCommerceAbilities {
 			'requested_setting_key' => sanitize_key( $setting_key ),
 			'active_vendor_plugins' => $active_vendors,
 			'message'               => __( 'This setting is not a verified built-in commerce setting. Install or enable the required vendor module, then use a dedicated typed vendor ability; this plan will not write an unknown option.', 'superdav-ai-agent' ),
+			'next_steps'            => [ 'Call sd-ai-agent/commerce-inspect to review supported_setting_keys and vendor_plugins, then create a replacement plan without unsupported vendor settings or use a dedicated typed vendor ability.' ],
 		];
 	}
 

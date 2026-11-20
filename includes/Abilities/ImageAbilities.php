@@ -128,7 +128,7 @@ class ImageAbilities {
 			return new WP_Error(
 				'ai_client_unavailable',
 				__( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ),
-				array( 'next_steps' => array( 'Configure an AI provider in Settings > Connectors before calling sd-ai-agent/generate-alt-text again; do not retry until a provider is available.' ) )
+				array( 'next_steps' => array( 'Ensure the WordPress 7.0+ AI Client SDK is loaded so wp_ai_client_prompt() is available before calling sd-ai-agent/generate-alt-text again.' ) )
 			);
 		}
 
@@ -267,7 +267,7 @@ INSTRUCTION;
 			return new WP_Error(
 				'ai_client_unavailable',
 				__( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ),
-				array( 'next_steps' => array( 'Configure an AI provider in Settings > Connectors before calling sd-ai-agent/generate-image-prompt again; do not retry until a provider is available.' ) )
+				array( 'next_steps' => array( 'Ensure the WordPress 7.0+ AI Client SDK is loaded so wp_ai_client_prompt() is available before calling sd-ai-agent/generate-image-prompt again.' ) )
 			);
 		}
 

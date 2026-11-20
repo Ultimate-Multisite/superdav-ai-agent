@@ -53,6 +53,7 @@ class ImageAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ai_client_unavailable', $result->get_error_code() );
+		$this->assertStringContainsString( 'AI Client SDK', $result->get_error_data()['next_steps'][0] );
 	}
 
 	/**

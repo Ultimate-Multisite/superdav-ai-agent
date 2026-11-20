@@ -35,6 +35,7 @@ namespace SdAiAgent\Tools;
 
 use SdAiAgent\Abilities\Js\JsAbilityCatalog;
 use SdAiAgent\Abilities\ToolCapabilities;
+use SdAiAgent\Core\AbilityErrorGuidance;
 use SdAiAgent\Core\AbilityRegistry;
 use SdAiAgent\Core\AbilityVisibility;
 use SdAiAgent\Core\ElementorAbilityCompatibility;
@@ -1106,6 +1107,8 @@ class ToolDiscovery {
 				$payload['hint']                    = 'Copy `example_arguments`, replace each `<placeholder>` with a real value, then call ability-call again. Do not retry with empty arguments.';
 				ModelHealthTracker::record_validation_error();
 			}
+
+			$payload = AbilityErrorGuidance::enrich( $payload, $error_code, $result->get_error_data() );
 
 			// Per-call spin detection: after the second identical failure,
 			// inject a hard stop-and-rethink nudge.

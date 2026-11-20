@@ -680,6 +680,12 @@ final class SettingsController {
 			return $result;
 		}
 
+		// The service's signed push is accepted only after an administrator here
+		// asked for it; see AdvancedInstallController::verify().
+		if ( 'install_advanced' === $action ) {
+			AdvancedPluginManager::record_install_request();
+		}
+
 		return new WP_REST_Response( $result, 200 );
 	}
 

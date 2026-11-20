@@ -389,7 +389,7 @@ describe( 'SuperdavAccountManager', () => {
 		expect( findButton( 'Link a different user' ) ).toBeUndefined();
 	} );
 
-	test( 'offers one-click Advanced install through the sdaiagent.com account action and keeps the manual path', async () => {
+	test( 'offers one-click Advanced install through the sdaiagent.com account action without a GitHub manual path', async () => {
 		const portalWindow = {
 			location: { assign: jest.fn() },
 			close: jest.fn(),
@@ -429,10 +429,11 @@ describe( 'SuperdavAccountManager', () => {
 			await Promise.resolve();
 		} );
 
-		expect( container.textContent ).toContain(
-			'Download the Advanced ZIP from the latest SD AI Agent GitHub release'
+		expect( container.textContent ).not.toContain( 'GitHub' );
+		expect( container.textContent ).not.toContain( 'Upload Plugin' );
+		const install = findButton(
+			'Install and Activate the SD AI Agent Advanced plugin'
 		);
-		const install = findButton( 'Install and activate' );
 		expect( install ).toBeDefined();
 		expect( install.disabled ).toBe( false );
 
@@ -461,7 +462,9 @@ describe( 'SuperdavAccountManager', () => {
 		} );
 
 		expect( container.textContent ).toContain( 'Active — version 1.25.0' );
-		expect( findButton( 'Install and activate' ) ).toBeUndefined();
+		expect(
+			findButton( 'Install and Activate the SD AI Agent Advanced plugin' )
+		).toBeUndefined();
 	} );
 
 	test( 'disables Advanced install when WordPress does not let this administrator change plugins', async () => {
@@ -482,7 +485,10 @@ describe( 'SuperdavAccountManager', () => {
 			await Promise.resolve();
 		} );
 
-		expect( findButton( 'Install and activate' ).disabled ).toBe( true );
+		expect(
+			findButton( 'Install and Activate the SD AI Agent Advanced plugin' )
+				.disabled
+		).toBe( true );
 	} );
 
 	test( 'offers Activate when Advanced is installed but inactive', async () => {
@@ -503,8 +509,12 @@ describe( 'SuperdavAccountManager', () => {
 			await Promise.resolve();
 		} );
 
-		expect( findButton( 'Activate' ) ).toBeDefined();
-		expect( findButton( 'Install and activate' ) ).toBeUndefined();
+		expect(
+			findButton( 'Activate the SD AI Agent Advanced plugin' )
+		).toBeDefined();
+		expect(
+			findButton( 'Install and Activate the SD AI Agent Advanced plugin' )
+		).toBeUndefined();
 	} );
 
 	test( 'shows version drift with the WordPress-managed update action', async () => {

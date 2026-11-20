@@ -536,9 +536,31 @@
 	margin: 0 0 8px;
 }
 
+.sd-ai-agent-superdav-advanced-plugin .description {
+	margin: 0 0 12px;
+	line-height: 1.6;
+}
+
 .sd-ai-agent-superdav-advanced-status {
 	display: block;
-	margin-top: 12px;
+	margin: 16px 0 12px;
+}
+
+.sd-ai-agent-superdav-advanced-plugin .components-button.is-primary {
+	height: auto;
+	min-height: 44px;
+	margin: 4px 0 16px;
+	padding: 10px 24px;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: normal;
+	text-align: center;
+}
+
+.sd-ai-agent-superdav-advanced-plugin .sd-ai-agent-superdav-advanced-help {
+	max-width: 640px;
+	margin-bottom: 0;
 }
 
 .sd-ai-agent-superdav-advanced-actions {

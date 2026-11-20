@@ -550,6 +550,7 @@ final class SettingsControllerTest extends WP_UnitTestCase {
 		$this->assertInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 'sd_ai_agent_install_forbidden', $response->get_error_code() );
 		$this->assertSame( 0, $requests );
+		$this->assertFalse( \SdAiAgent\Core\AdvancedPluginManager::has_pending_install_request() );
 	}
 
 	/** Account actions never send their bearer token to unsafe filtered endpoints. */

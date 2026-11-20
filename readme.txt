@@ -69,7 +69,7 @@ This plugin contacts outside services only when they are needed for a feature yo
 
 The included SD AI provider can register the site and provide AI responses when selected. Activation registration sends a durable installation ID, site URL, plugin version, and WordPress version. AI requests send the conversation messages, system prompt, attached files if any, and tool definitions needed to generate the reply.
 
-When an administrator chooses **Install and activate** for the optional free SD AI Agent Advanced companion, the plugin only opens sdaiagent.com in a new tab, where the administrator confirms. The service then sends a cryptographically signed install command to this site's REST API. The site installs the companion only if the signature, installation ID, site URL, expiry, and package checksum all match; the plugin never downloads or installs it on its own initiative.
+When an administrator chooses **Install and Activate the SD AI Agent Advanced plugin** for the optional free SD AI Agent Advanced companion, the plugin only opens sdaiagent.com in a new tab, where the administrator confirms. The service then sends a cryptographically signed install command to this site's REST API. The site installs the companion only if an administrator on the site started the request within the last 30 minutes and the signature, installation ID, site URL, expiry, and package checksum all match; the plugin never downloads or installs it on its own initiative.
 
 = AI providers (chat completions) =
 

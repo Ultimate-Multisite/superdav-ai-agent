@@ -125,7 +125,8 @@ final class CompletedTurnCompactor {
 	 * @return mixed Original arguments when small, otherwise a compact object.
 	 */
 	public static function compact_arguments( mixed $args ): mixed {
-		$encoded = wp_json_encode( $args );
+		// Measure the object form callers emit; a numeric-keyed list is far shorter as JSON.
+		$encoded = wp_json_encode( is_array( $args ) ? (object) $args : $args );
 		if ( ! is_array( $args ) || ! is_string( $encoded ) || strlen( $encoded ) <= self::MAX_PAYLOAD_BYTES ) {
 			return $args;
 		}
@@ -145,7 +146,7 @@ final class CompletedTurnCompactor {
 			}
 		}
 
-		$compact_json = wp_json_encode( $compact );
+		$compact_json = wp_json_encode( (object) $compact );
 		if ( is_string( $compact_json ) && strlen( $compact_json ) <= self::MAX_PAYLOAD_BYTES ) {
 			return $compact;
 		}
@@ -185,10 +186,11 @@ final class CompletedTurnCompactor {
 			return $arguments;
 		}
 		$decoded = json_decode( $arguments, true );
-		if ( ! is_array( $decoded ) ) {
+		if ( ! is_array( $decoded ) || ! str_starts_with( ltrim( $arguments ), '{' ) ) {
 			return $arguments;
 		}
-		$encoded = wp_json_encode( self::compact_arguments( $decoded ) );
+		// Cast so numeric-keyed objects are not re-encoded as JSON lists.
+		$encoded = wp_json_encode( (object) self::compact_arguments( $decoded ) );
 
 		return is_string( $encoded ) ? $encoded : $arguments;
 	}

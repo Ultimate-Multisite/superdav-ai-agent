@@ -563,8 +563,38 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			'type'      => 'function_call',
 			'call_id'   => $call->getId() ?? 'unknown',
 			'name'      => $call->getName() ?? 'unknown',
-			'arguments' => $this->json_encode_for_api( $call->getArgs() ?? new \stdClass() ),
+			'arguments' => $this->function_call_arguments_json( $call->getArgs() ),
 		);
+	}
+
+	/**
+	 * Encode replayed function-call arguments as a JSON object.
+	 *
+	 * Decoded no-argument calls are empty PHP arrays, which `wp_json_encode()` turns
+	 * into `[]`. OpenAI tolerates that in history, but the managed service can fail a
+	 * conversation over to an Anthropic upstream, which rejects any `tool_use.input`
+	 * that is not an object. Function parameters are always object schemas.
+	 */
+	private function function_call_arguments_json( mixed $args ): string {
+		if ( null === $args || array() === $args || '' === $args ) {
+			return '{}';
+		}
+		if ( is_string( $args ) ) {
+			$decoded = json_decode( $args );
+			if ( $decoded instanceof \stdClass ) {
+				return $args;
+			}
+			$args = null === $decoded && 'null' !== trim( $args ) ? array( 'raw' => $args ) : $decoded;
+		}
+		if ( is_array( $args ) ) {
+			// A list cannot satisfy an object schema; keep its values under numeric keys.
+			return $this->json_encode_for_api( (object) $args );
+		}
+		if ( is_object( $args ) ) {
+			return $this->json_encode_for_api( $args );
+		}
+
+		return null === $args ? '{}' : $this->json_encode_for_api( array( 'value' => $args ) );
 	}
 
 	/**

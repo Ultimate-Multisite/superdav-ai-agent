@@ -88,6 +88,27 @@ final class CompletedTurnCompactorTest extends WP_UnitTestCase {
 		$this->assertSame( $once, CompletedTurnCompactor::compact_result_text( $once ) );
 	}
 
+	/** Compacted argument text stays a JSON object; large non-object text is untouched. */
+	public function test_compacted_argument_text_remains_an_object(): void {
+		$numeric = array();
+		for ( $index = 0; $index < 200; ++$index ) {
+			$numeric[ (string) $index ] = str_repeat( 'n', 100 );
+		}
+		$text = CompletedTurnCompactor::compact_argument_text( (string) wp_json_encode( (object) $numeric ) );
+		$this->assertStringStartsWith( '{', $text );
+		$this->assertInstanceOf( \stdClass::class, json_decode( $text ) );
+
+		$list = (string) wp_json_encode( array_fill( 0, 200, str_repeat( 'l', 100 ) ) );
+		$this->assertSame( $list, CompletedTurnCompactor::compact_argument_text( $list ) );
+
+		// 1000 numeric keys are ~2 KB as a list but ~8 KB as the object actually emitted.
+		$zeros = (string) wp_json_encode( (object) array_fill( 0, 1000, 0 ) );
+		$this->assertGreaterThan( CompletedTurnCompactor::MAX_PAYLOAD_BYTES, strlen( $zeros ) );
+		$bounded = CompletedTurnCompactor::compact_argument_text( $zeros );
+		$this->assertInstanceOf( \stdClass::class, json_decode( $bounded ) );
+		$this->assertLessThanOrEqual( CompletedTurnCompactor::MAX_PAYLOAD_BYTES, strlen( $bounded ) );
+	}
+
 	/** Call IDs are collected only from the completed prefix. */
 	public function test_completed_call_ids_stop_at_the_boundary(): void {
 		$history = array_merge(

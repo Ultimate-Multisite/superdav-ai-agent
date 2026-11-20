@@ -57,6 +57,10 @@ export const initialState = {
 	// { message: string, status: number } or null.
 	bootError: null,
 
+	// Credit upgrade prompt — set when managed SD AI credit runs out so every
+	// chat surface can open the add-credit popup. { sessionId } or null.
+	creditPrompt: null,
+
 	// Bootstrap session flag (t223) — true when the current session is the
 	// AI-driven auto-discovery run. Prevents the empty-state placeholder from
 	// appearing while the agent is actively exploring the site.
@@ -250,6 +254,25 @@ export const actions = {
 	},
 
 	/**
+	 * Open the add-credit popup after managed SD AI credit runs out.
+	 *
+	 * @param {number|string|null} sessionId Session whose request ran out of credit.
+	 * @return {Object} Redux action.
+	 */
+	openCreditPrompt( sessionId = null ) {
+		return { type: 'SET_CREDIT_PROMPT', prompt: { sessionId } };
+	},
+
+	/**
+	 * Close the add-credit popup.
+	 *
+	 * @return {Object} Redux action.
+	 */
+	closeCreditPrompt() {
+		return { type: 'SET_CREDIT_PROMPT', prompt: null };
+	},
+
+	/**
 	 * Clear the boot error and re-attempt initial data fetches.
 	 *
 	 * Before retrying, refresh the REST nonce via wp.apiFetch's built-in
@@ -363,6 +386,14 @@ export const selectors = {
 		return state.bootError;
 	},
 
+	/**
+	 * @param {import('../../types').StoreState} state
+	 * @return {Object|null} Open add-credit prompt { sessionId } or null.
+	 */
+	getCreditPrompt( state ) {
+		return state.creditPrompt ?? null;
+	},
+
 	// Text-to-speech (t084)
 
 	/**
@@ -451,6 +482,8 @@ export function reducer( state, action ) {
 			return { ...state, isBootstrapSession: action.isBootstrap };
 		case 'SET_BOOT_ERROR':
 			return { ...state, bootError: action.error };
+		case 'SET_CREDIT_PROMPT':
+			return { ...state, creditPrompt: action.prompt };
 		case 'SET_TTS_ENABLED':
 			return { ...state, ttsEnabled: action.enabled };
 		case 'SET_TTS_VOICE_URI':

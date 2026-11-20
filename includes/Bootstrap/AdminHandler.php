@@ -16,6 +16,7 @@ namespace SdAiAgent\Bootstrap;
 use SdAiAgent\Abilities\ToolCapabilities;
 use SdAiAgent\Admin\DefaultModelNoticeHandler;
 use SdAiAgent\Admin\FloatingWidget;
+use SdAiAgent\Admin\ReviewRequestNoticeHandler;
 use SdAiAgent\Admin\ThirdPartyAbilityNoticeHandler;
 use SdAiAgent\Admin\UnifiedAdminMenu;
 use SdAiAgent\Core\ActiveJobsCleanupService;
@@ -66,6 +67,8 @@ final class AdminHandler {
 		UnifiedAdminMenu::handleLegacyRedirects();
 		ThirdPartyAbilityNoticeHandler::handle_dismiss();
 		DefaultModelNoticeHandler::handle_dismiss();
+		ReviewRequestNoticeHandler::ensure_activation_timestamp();
+		ReviewRequestNoticeHandler::handle_action();
 		$this->enqueue_superdav_connector_card();
 	}
 
@@ -85,6 +88,14 @@ final class AdminHandler {
 	#[Action( tag: 'admin_notices', priority: 10 )]
 	public function display_default_model_notice(): void {
 		DefaultModelNoticeHandler::maybe_display_notice();
+	}
+
+	/**
+	 * Display the neutral WordPress.org review request after meaningful use.
+	 */
+	#[Action( tag: 'admin_notices', priority: 10 )]
+	public function display_review_request_notice(): void {
+		ReviewRequestNoticeHandler::maybe_display_notice();
 	}
 
 	/**

@@ -776,7 +776,9 @@ export default function SuperdavAccountManager() {
 						</Button>
 					) }
 					<Button
-						variant="primary"
+						variant={
+							purchaseCreditsAvailable ? 'secondary' : 'primary'
+						}
 						onClick={ openCouponModal }
 						disabled={ ! configured }
 					>
@@ -784,7 +786,7 @@ export default function SuperdavAccountManager() {
 					</Button>
 					{ purchaseCreditsAvailable && (
 						<Button
-							variant="secondary"
+							variant="primary"
 							onClick={ () =>
 								openAccountAction( 'purchase_credits' )
 							}

@@ -103,22 +103,18 @@ describe( 'WidgetMessageList credit exhaustion notice', () => {
 
 		expect( notice ).not.toBeNull();
 		expect( notice.textContent ).toContain(
-			'Good news—as an early adopter, use coupon code EARLY'
+			'You’ve used your SD AI credit.'
 		);
-		expect( notice.textContent ).toContain( '$200 in AI usage credits' );
+		expect( notice.textContent ).not.toContain( 'EARLY' );
 		expect( notice.textContent ).not.toMatch( /\b(error|insufficient)\b/i );
 
 		const actions = notice.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( actions ).toHaveLength( 2 );
-		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
+		expect( actions ).toHaveLength( 1 );
+		expect( actions[ 0 ].textContent ).toBe( 'Add credit' );
 		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
 			'https://account.example.test/login'
-		);
-		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
-		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
 		);
 
 		await act( async () => {

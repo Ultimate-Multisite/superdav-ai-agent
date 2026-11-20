@@ -58,7 +58,18 @@ describe( 'AccountActionMessage', () => {
 		document.body.innerHTML = '';
 	} );
 
-	test( 'renders managed-credit notices as account actions', async () => {
+	afterEach( () => {
+		const data = require( '@wordpress/data' );
+		data.useDispatch.mockReset();
+		data.useSelect.mockReset();
+	} );
+
+	test( 'renders managed-credit notices with an Add credit action that opens the popup', async () => {
+		const data = require( '@wordpress/data' );
+		const openCreditPrompt = jest.fn();
+		data.useDispatch.mockReturnValue( { openCreditPrompt } );
+		data.useSelect.mockReturnValue( 42 );
+
 		const { container, root } = await renderAccountActionMessage( {
 			notice: {
 				type: 'account_action',
@@ -74,9 +85,9 @@ describe( 'AccountActionMessage', () => {
 			)
 		).not.toBeNull();
 		expect( container.textContent ).toContain(
-			'Good news—as an early adopter, use coupon code EARLY'
+			'You’ve used your SD AI credit.'
 		);
-		expect( container.textContent ).toContain( '$200 in AI usage credits' );
+		expect( container.textContent ).not.toContain( 'EARLY' );
 		expect( container.textContent ).not.toMatch(
 			/\b(error|rejected|insufficient)\b/i
 		);
@@ -84,53 +95,42 @@ describe( 'AccountActionMessage', () => {
 		const actions = container.querySelectorAll(
 			'.sd-ai-agent-cr-msg-system-action'
 		);
-		expect( actions ).toHaveLength( 2 );
-		expect( actions[ 0 ].getAttribute( 'href' ) ).toBe(
-			'https://account.example.test/login'
-		);
-		expect( actions[ 0 ].getAttribute( 'target' ) ).toBe( '_blank' );
-		expect( actions[ 0 ].getAttribute( 'rel' ) ).toBe(
-			'noopener noreferrer'
-		);
-		expect( actions[ 0 ].textContent ).toBe( 'Redeem EARLY coupon' );
-		expect( actions[ 1 ].textContent ).toBe( 'Leave a review' );
-		expect( actions[ 1 ].getAttribute( 'href' ) ).toBe(
-			'https://wordpress.org/support/plugin/superdav-ai-agent/reviews/#new-post'
-		);
+		expect( actions ).toHaveLength( 1 );
+		expect( actions[ 0 ].tagName ).toBe( 'BUTTON' );
+		expect( actions[ 0 ].textContent ).toBe( 'Add credit' );
 
-		const inlineActions = container.querySelectorAll(
-			'.sd-ai-agent-cr-msg-system-inline-action'
-		);
-		expect( inlineActions ).toHaveLength( 1 );
-		expect( inlineActions[ 0 ].textContent ).toBe( 'account settings' );
-		expect( inlineActions[ 0 ].getAttribute( 'href' ) ).toBe(
-			'https://account.example.test/login'
-		);
+		await act( async () => {
+			actions[ 0 ].click();
+		} );
+		expect( openCreditPrompt ).toHaveBeenCalledWith( 42 );
 
 		await act( async () => {
 			root.unmount();
 		} );
 	} );
 
-	test( 'renders readable translated copy when no action URL is available', async () => {
+	test( 'falls back to the account link when the popup action is unavailable', async () => {
+		const data = require( '@wordpress/data' );
+		data.useDispatch.mockReturnValue( {} );
+		data.useSelect.mockReturnValue( null );
+
 		const { container, root } = await renderAccountActionMessage( {
 			notice: {
 				type: 'account_action',
 				reason: 'credit_exhausted',
 				action: 'purchase_credits',
+				actionUrl: 'https://account.example.test/login',
 			},
 		} );
 
-		expect( container.textContent ).toContain(
-			'Good news—as an early adopter, use coupon code EARLY'
+		const links = container.querySelectorAll( 'a' );
+		expect( links ).toHaveLength( 1 );
+		expect( links[ 0 ].textContent ).toBe( 'Add credit' );
+		expect( links[ 0 ].getAttribute( 'href' ) ).toBe(
+			'https://account.example.test/login'
 		);
-		expect( container.textContent ).not.toContain( '<settingsLink>' );
-		expect(
-			container.querySelectorAll( '.sd-ai-agent-cr-msg-system-action' )
-		).toHaveLength( 1 );
-		expect( container.querySelectorAll( 'a' ) ).toHaveLength( 1 );
-		expect( container.querySelector( 'a' ).textContent ).toBe(
-			'Leave a review'
+		expect( links[ 0 ].getAttribute( 'rel' ) ).toBe(
+			'noopener noreferrer'
 		);
 
 		await act( async () => {

@@ -47,8 +47,8 @@ function normalizeAccountUrl( value ) {
 /**
  * Resolve the best managed-account destination for a credit-exhaustion action.
  *
- * Prefer service-issued account URLs, then the absolute settings URL localized
- * by WordPress for both admin and frontend chat bundles.
+ * Prefer service-issued account URLs, then the SD AI account-tab deep link,
+ * then the generic settings URL localized by WordPress for the chat bundles.
  *
  * @param {Array}  providers     Provider objects from the store.
  * @param {Object} [runtimeData] Localized WordPress runtime configuration.
@@ -68,6 +68,7 @@ export function getSuperdavAccountActionUrl(
 		status.purchase_credits_url,
 		status.account_connect_url,
 		status.account_portal_url,
+		runtimeData?.accountPageUrl,
 		runtimeData?.settingsPageUrl,
 	];
 

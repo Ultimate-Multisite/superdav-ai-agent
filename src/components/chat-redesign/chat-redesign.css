@@ -1031,6 +1031,61 @@ input[type="text"].sdaa-cr-search-input {
 	color: var(--sdaa-primary-dark);
 }
 
+button.sd-ai-agent-cr-msg-system-action {
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+}
+
+/* Add-credit popup (rendered in a body portal, so no --sdaa-* scope). */
+.sd-ai-agent-credit-modal {
+	max-width: 440px;
+}
+
+.sd-ai-agent-credit-modal p {
+	margin: 0 0 12px;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.sd-ai-agent-credit-modal .components-notice {
+	margin: 0 0 12px;
+}
+
+.sd-ai-agent-credit-modal__balance {
+	color: #50575e;
+}
+
+.sd-ai-agent-credit-modal__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.sd-ai-agent-credit-modal p.sd-ai-agent-credit-modal__hint {
+	margin: 10px 0 0;
+	color: #50575e;
+	font-size: 12px;
+	text-align: right;
+}
+
+.sd-ai-agent-credit-modal__coupon-toggle {
+	margin-top: 12px;
+}
+
+.sd-ai-agent-credit-modal__coupon {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.sd-ai-agent-credit-modal__coupon .components-base-control {
+	flex: 1;
+}
+
 /* Tool card */
 .sdaa-cr-tool-card {
 	margin: 0 0 10px;

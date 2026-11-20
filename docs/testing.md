@@ -68,6 +68,13 @@ providers). That is a broken install, not a plugin defect: replace `wp-admin/`,
 `wp-includes/`, and the root core files from an intact copy of the same version,
 then rerun the checksum verification.
 
+WordPress.org publishes checksums only for released versions. A site running a
+development build such as `master` or trunk (the default for `wp-env`) has none,
+so `wp core verify-checksums` fails even when core is intact. On such a site,
+compare `wp-admin/`, `wp-includes/`, and the root core files against an intact
+copy of the same revision (for example with `diff -rq`), or use a
+released-version site for the live run.
+
 Before spending paid requests, confirm the managed service with one minimal
 request. A pre-dispatch `503 managed_service_unavailable` ("temporarily
 unavailable") means the service has no usable upstream credential, and a
@@ -292,14 +299,24 @@ while CI, which provisions trunk on every run, failed 22 tests. When local runs
 pass but CI's trunk PHPUnit fails, provision trunk into a new
 `WP_PHPUNIT_CACHE_DIR` and compare `wp-includes/version.php` before blaming CI.
 
+Setup drops and recreates the test database named by `WP_TESTS_DB_NAME`
+(default `sd_ai_agent_tests`), so provisioning a fresh or session-only cache
+while another run uses that database destroys its fixtures, whatever the table
+prefix. Give the new cache a distinct `WP_TESTS_DB_NAME`, or, when reusing a
+database you already created, run setup with `WP_TESTS_SKIP_DB_CREATE=true`.
+
 Concurrent PHPUnit runs that share one test database and the default
 `wptests_` prefix corrupt each other's fixtures. The symptoms are
 `Unable to create the user/post`, missing options, and schema-version
 mismatches that change from run to run. When workers or other sessions may test
-in parallel, give your session-only cache its own test-table prefix by editing
-`$table_prefix` in that cache's `wp-tests-config.php` (for example
-`qmtests_`). This only isolates test-database runs from each other; it never
-makes a live database safe.
+in parallel, give every concurrent PHPUnit process its own session-only cache
+and its own test-table prefix (for example `qmtests_a_`, `qmtests_b_`), or its
+own database. Workers sharing one cache share its prefix and still overwrite
+each other. Set the same `$table_prefix` in that cache's `wp-tests-config.php`
+and in the core `wp-config.php`: WP-CLI subprocesses (such as `PluginSandbox`
+integration tests) read the core file, and setup writes `wptests_` into it, so
+edit it again after every rerun of setup. This only isolates test-database runs
+from each other; it never makes a live database safe.
 
 The database-guard regressions can also run without WordPress or MySQL:
 

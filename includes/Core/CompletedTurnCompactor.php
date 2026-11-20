@@ -185,10 +185,11 @@ final class CompletedTurnCompactor {
 			return $arguments;
 		}
 		$decoded = json_decode( $arguments, true );
-		if ( ! is_array( $decoded ) ) {
+		if ( ! is_array( $decoded ) || ! str_starts_with( ltrim( $arguments ), '{' ) ) {
 			return $arguments;
 		}
-		$encoded = wp_json_encode( self::compact_arguments( $decoded ) );
+		// Cast so numeric-keyed objects are not re-encoded as JSON lists.
+		$encoded = wp_json_encode( (object) self::compact_arguments( $decoded ) );
 
 		return is_string( $encoded ) ? $encoded : $arguments;
 	}

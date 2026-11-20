@@ -430,6 +430,37 @@ final class SuperdavAiProviderTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Replayed Responses function calls must carry object arguments.
+	 *
+	 * The managed service may fail a conversation over to an Anthropic upstream,
+	 * which rejects `tool_use.input` values that are not objects (for example `[]`).
+	 */
+	public function test_responses_function_call_arguments_are_json_objects(): void {
+		$this->skip_if_sdk_unavailable();
+
+		$model  = new SuperdavAiResponsesToolSearchTextGenerationModel(
+			new ModelMetadata( 'gpt-5.5', 'GPT-5.5', array( CapabilityEnum::textGeneration() ), array() ),
+			SuperdavAiProvider::metadata()
+		);
+		$method = new \ReflectionMethod( $model, 'function_call_to_input_item' );
+		$method->setAccessible( true );
+
+		$cases = array(
+			'empty array'   => array( array(), '{}' ),
+			'null'          => array( null, '{}' ),
+			'assoc array'   => array( array( 'id' => 7 ), '{"id":7}' ),
+			'list'          => array( array( 'a', 'b' ), '{"0":"a","1":"b"}' ),
+			'object string' => array( '{"id":7}', '{"id":7}' ),
+			'list string'   => array( '[]', '{}' ),
+			'invalid json'  => array( '{"id":', '{"raw":"{\"id\":"}' ),
+		);
+		foreach ( $cases as $label => list( $args, $expected ) ) {
+			$item = $method->invoke( $model, new FunctionCall( 'call_1', 'lookup', $args ) );
+			$this->assertSame( $expected, $item['arguments'] ?? null, $label );
+		}
+	}
+
+	/**
 	 * @return array<string, array{0:string, 1:string}>
 	 */
 	public function managed_model_effort_provider(): array {

@@ -89,6 +89,10 @@ final class AdvancedInstallController {
 			return $status;
 		}
 
+		if ( true === ( $status['active'] ?? false ) ) {
+			AdvancedPluginManager::clear_install_request();
+		}
+
 		return new WP_REST_Response(
 			array(
 				'installed' => (bool) ( $status['installed'] ?? false ),
@@ -108,7 +112,7 @@ final class AdvancedInstallController {
 	private function verify( WP_REST_Request $request ): array|WP_Error {
 		$signature = $request->get_header( self::SIGNATURE_HEADER );
 
-		return AdvancedInstallCommand::verify(
+		$command = AdvancedInstallCommand::verify(
 			$request->get_body(),
 			is_string( $signature ) ? trim( $signature ) : '',
 			AdvancedInstallCommand::trusted_public_keys(),
@@ -117,5 +121,20 @@ final class AdvancedInstallController {
 			time(),
 			AdvancedInstallCommand::expected_download_url()
 		);
+
+		if ( $command instanceof WP_Error ) {
+			return $command;
+		}
+
+		// Only install when an administrator on this site started the flow.
+		if ( ! AdvancedPluginManager::has_pending_install_request() ) {
+			return new WP_Error(
+				'sd_ai_agent_install_not_requested',
+				__( 'Start the SD AI Agent Advanced install from the SD AI account screen on this site, then try again.', 'superdav-ai-agent' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return $command;
 	}
 }

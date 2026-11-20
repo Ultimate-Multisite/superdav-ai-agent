@@ -33,7 +33,6 @@ import {
 	extractText,
 	parseSuggestions,
 	isAdvancedInstallSuggestion,
-	ADVANCED_RELEASE_URL,
 } from './message-helpers';
 import { linkifyText } from '../../utils/linkify';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -711,14 +710,14 @@ export function AssistantMessage( {
 								type="button"
 								key={ i }
 								className="sdaa-cr-suggestion-chip"
-								// The model cannot install plugins, so sending an
-								// Advanced install chip as a message does nothing.
-								// Go to the account card's Install button, or to the
-								// release page when the user cannot install plugins.
+								// The model cannot install plugins, so an Advanced
+								// install chip opens the account card's one-click
+								// Install button for administrators. Users who cannot
+								// install plugins get the model's guidance to ask an
+								// administrator.
 								onClick={ () => {
-									if ( ! isAdvancedInstallSuggestion( s ) ) {
-										onSuggestionSelect( s );
-									} else if (
+									if (
+										isAdvancedInstallSuggestion( s ) &&
 										window.sdAiAgentData?.advancedInstallUrl
 									) {
 										window.open(
@@ -727,11 +726,7 @@ export function AssistantMessage( {
 											'_self'
 										);
 									} else {
-										window.open(
-											ADVANCED_RELEASE_URL,
-											'_blank',
-											'noopener'
-										);
+										onSuggestionSelect( s );
 									}
 								} }
 							>

@@ -143,7 +143,7 @@ describe( 'AssistantMessage Advanced install suggestion', () => {
 		} );
 	} );
 
-	test( 'opens the release page instead of messaging the model when no install URL is available', async () => {
+	test( 'never opens GitHub releases when no install URL is available', async () => {
 		const openSpy = jest.spyOn( window, 'open' ).mockReturnValue( null );
 		const onSuggestionSelect = jest.fn();
 		const { container, root } = await renderAssistantMessage( {
@@ -161,19 +161,17 @@ describe( 'AssistantMessage Advanced install suggestion', () => {
 				new MouseEvent( 'click', { bubbles: true } )
 			);
 		} );
-		expect( openSpy ).toHaveBeenCalledWith(
-			'https://github.com/Ultimate-Multisite/superdav-ai-agent/releases/latest',
-			'_blank',
-			'noopener'
+		expect( openSpy ).not.toHaveBeenCalled();
+		expect( onSuggestionSelect ).toHaveBeenCalledWith(
+			'Install SD AI Agent Advanced'
 		);
-		expect( onSuggestionSelect ).not.toHaveBeenCalled();
 
 		await act( async () => {
 			buttons[ 1 ].dispatchEvent(
 				new MouseEvent( 'click', { bubbles: true } )
 			);
 		} );
-		expect( openSpy ).toHaveBeenCalledTimes( 1 );
+		expect( openSpy ).not.toHaveBeenCalled();
 		expect( onSuggestionSelect ).toHaveBeenCalledWith(
 			'Create a staged plugin development plan'
 		);

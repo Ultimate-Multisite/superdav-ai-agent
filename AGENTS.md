@@ -579,8 +579,14 @@ second must report zero failures for the four ability suites.
   that is not authorised by a WordPress capability, because its caller is the SD AI
   service, not a browser. Its `permission_callback` must keep verifying the Ed25519
   signature, installation ID, site URL, expiry, package SHA-256, and single permitted
-  package URL via `AdvancedInstallCommand::verify()` before any handler code runs, and
-  the nonce must stay single-use. Never add another unauthenticated route, never relax
+  package URL via `AdvancedInstallCommand::verify()` before any handler code runs,
+  must require a live administrator install request
+  (`AdvancedPluginManager::has_pending_install_request()`, recorded only when a user
+  who can install plugins mints the `install_advanced` account action), and
+  the nonce must stay single-use. The service does not require the registration-time
+  `verified` flag (plugin registrations are `self_declared`); the push to the
+  canonical URL plus these site-side checks are the proof of control. Never add
+  another unauthenticated route, never relax
   those checks, and never make the dashboard download or install Advanced itself:
   WordPress.org guideline 8 only permits the service-pushed flow. Verify with
   `rg -n "AdvancedInstallCommand::verify|install_from_command" includes/` and

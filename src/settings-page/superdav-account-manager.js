@@ -918,30 +918,21 @@ export default function SuperdavAccountManager() {
 											>
 												{ advancedPlugin.installed
 													? __(
-															'Activate',
+															'Activate the SD AI Agent Advanced plugin',
 															'superdav-ai-agent'
 													  )
 													: __(
-															'Install and activate',
+															'Install and Activate the SD AI Agent Advanced plugin',
 															'superdav-ai-agent'
 													  ) }
 											</Button>
-											<p className="description">
+											<p className="description sd-ai-agent-superdav-advanced-help">
 												{ __(
-													'Opens sdaiagent.com in a new tab to confirm. SD AI then installs Advanced on this site; return here when it finishes.',
+													'Free with your SD AI account. Opens sdaiagent.com in a new tab to confirm, then SD AI installs and activates Advanced on this site. Return here when it finishes.',
 													'superdav-ai-agent'
 												) }
 											</p>
 										</>
-									) }
-								{ ! advancedPlugin.bundled &&
-									! advancedPlugin.installed && (
-										<p className="description">
-											{ __(
-												'Prefer to install manually? Download the Advanced ZIP from the latest SD AI Agent GitHub release, then install it from Plugins > Add New Plugin > Upload Plugin.',
-												'superdav-ai-agent'
-											) }
-										</p>
 									) }
 							</div>
 						</section>

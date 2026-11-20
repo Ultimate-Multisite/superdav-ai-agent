@@ -36,6 +36,9 @@ final class AdvancedPluginManager {
 	private const INSTALL_LOCK_CLAIM = 'sd_ai_agent_advanced_install_lock';
 	private const INSTALL_LOCK_TTL   = 300;
 
+	public const INSTALL_REQUEST_OPTION = 'sd_ai_agent_advanced_install_requested';
+	public const INSTALL_REQUEST_TTL    = 1800;
+
 	private const STATUS_CURRENT              = 'current';
 	private const STATUS_UPDATE_AVAILABLE     = 'update_available';
 	private const STATUS_INCOMPATIBLE         = 'incompatible';
@@ -102,6 +105,30 @@ final class AdvancedPluginManager {
 	/** Whether the current administrator may install and activate plugins. */
 	public static function current_user_can_manage(): bool {
 		return current_user_can( 'install_plugins' ) && current_user_can( 'activate_plugins' );
+	}
+
+	/**
+	 * Remember that an administrator on this site asked SD AI to install Advanced.
+	 *
+	 * The signed push from the service is accepted only while this marker is
+	 * live, so Advanced is never installed unless someone who can install
+	 * plugins on this site started the flow. The window covers the 15-minute
+	 * account-action ticket plus email confirmation.
+	 */
+	public static function record_install_request(): void {
+		update_option( self::INSTALL_REQUEST_OPTION, (string) ( time() + self::INSTALL_REQUEST_TTL ), false );
+	}
+
+	/** Whether an administrator requested an Advanced install recently. */
+	public static function has_pending_install_request(): bool {
+		$expires_at = get_option( self::INSTALL_REQUEST_OPTION, '' );
+
+		return is_numeric( $expires_at ) && (int) $expires_at >= time();
+	}
+
+	/** Forget the install request once Advanced is active. */
+	public static function clear_install_request(): void {
+		delete_option( self::INSTALL_REQUEST_OPTION );
 	}
 
 	/**

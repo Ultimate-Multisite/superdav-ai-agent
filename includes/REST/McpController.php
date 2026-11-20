@@ -27,6 +27,7 @@ use SdAiAgent\Core\AbilityRegistry;
 use SdAiAgent\Core\AbilityVisibility;
 use SdAiAgent\Core\InstructionsAddendum;
 use SdAiAgent\Core\RevisionGuard;
+use SdAiAgent\Core\Settings;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -248,6 +249,10 @@ final class McpController extends XWP_REST_Controller {
 			);
 		}
 
+		if ( self::is_ability_disabled( $ability_name, self::tool_permissions() ) ) {
+			return self::tool_error_response( $tool_name, self::disabled_ability_error( $ability_name ) );
+		}
+
 		// ── If-Match pre-flight (t269) ─────────────────────────────────────────
 		$raw_if_match = $request->get_header( 'if_match' );
 		$header_rev   = IfMatchHeader::parse( is_string( $raw_if_match ) ? $raw_if_match : '' );
@@ -284,20 +289,7 @@ final class McpController extends XWP_REST_Controller {
 		$result = $ability->execute( ! empty( $arguments ) ? $arguments : null );
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_REST_Response(
-				[
-					'protocol_version' => self::MCP_PROTOCOL_VERSION,
-					'tool'             => $tool_name,
-					'isError'          => true,
-					'content'          => [
-						[
-							'type' => 'text',
-							'text' => $result->get_error_message(),
-						],
-					],
-				],
-				200
-			);
+			return self::tool_error_response( $tool_name, $result );
 		}
 
 		$text = is_string( $result ) ? $result : wp_json_encode( $result );
@@ -371,10 +363,15 @@ final class McpController extends XWP_REST_Controller {
 			return [];
 		}
 
-		$abilities = wp_get_abilities();
-		$tools     = [];
+		$abilities   = wp_get_abilities();
+		$permissions = self::tool_permissions();
+		$tools       = [];
 
 		foreach ( $abilities as $ability ) {
+			if ( self::is_ability_disabled( $ability->get_name(), $permissions ) ) {
+				continue;
+			}
+
 			// Only expose abilities the site owner has sanctioned for MCP access.
 			if ( ! AbilityVisibility::for_mcp( $ability ) ) {
 				continue;
@@ -406,6 +403,79 @@ final class McpController extends XWP_REST_Controller {
 		}
 
 		return $tools;
+	}
+
+	/**
+	 * Check whether an ability has been disabled in the site tool permissions.
+	 *
+	 * @param string                $ability_name Ability identifier.
+	 * @param array<string, string> $permissions  Tool permission map.
+	 * @return bool
+	 */
+	private static function is_ability_disabled( string $ability_name, array $permissions ): bool {
+		return 'disabled' === ( $permissions[ $ability_name ] ?? 'auto' );
+	}
+
+	/**
+	 * Return the configured string-valued tool permission map.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function tool_permissions(): array {
+		$permissions = Settings::instance()->get( 'tool_permissions' );
+		if ( ! is_array( $permissions ) ) {
+			return [];
+		}
+
+		$permission_map = [];
+		foreach ( $permissions as $name => $level ) {
+			if ( is_string( $name ) && is_string( $level ) ) {
+				$permission_map[ $name ] = $level;
+			}
+		}
+
+		return $permission_map;
+	}
+
+	/**
+	 * Return the same disabled-ability outcome used by the chat ability path.
+	 *
+	 * @param string $ability_name Ability identifier.
+	 * @return WP_Error
+	 */
+	private static function disabled_ability_error( string $ability_name ): WP_Error {
+		return new WP_Error(
+			'ability_disabled',
+			sprintf(
+				/* translators: %s: ability id */
+				__( 'Ability "%s" is disabled.', 'superdav-ai-agent' ),
+				$ability_name
+			)
+		);
+	}
+
+	/**
+	 * Format an ability failure as an MCP tool-result error.
+	 *
+	 * @param string   $tool_name MCP tool name.
+	 * @param WP_Error $error     Ability error.
+	 * @return WP_REST_Response
+	 */
+	private static function tool_error_response( string $tool_name, WP_Error $error ): WP_REST_Response {
+		return new WP_REST_Response(
+			[
+				'protocol_version' => self::MCP_PROTOCOL_VERSION,
+				'tool'             => $tool_name,
+				'isError'          => true,
+				'content'          => [
+					[
+						'type' => 'text',
+						'text' => $error->get_error_message(),
+					],
+				],
+			],
+			200
+		);
 	}
 
 	/**

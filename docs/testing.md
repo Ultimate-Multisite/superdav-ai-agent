@@ -58,6 +58,30 @@ Install and activate the actual Core and Advanced ZIPs under their canonical
 directories. Configure the chosen provider using the site's normal credential
 settings; do not pass keys as flags or put them in report files.
 
+Run `wp core verify-checksums` on the disposable site before any live run. WP-CLI's
+`wp core download` extracts the `.tar.gz` archive and can truncate core paths
+longer than 100 characters, for example
+`wp-includes/php-ai-client/src/Providers/Http/Contracts/WithRequestAuthenticationInterface.php`.
+The truncated AI Client files make `registerProvider()` throw, so the managed
+provider silently disappears (`wp sd-ai-agent models` reports no configured
+providers). That is a broken install, not a plugin defect: replace `wp-admin/`,
+`wp-includes/`, and the root core files from an intact copy of the same version,
+then rerun the checksum verification.
+
+WordPress.org publishes checksums only for released versions. A site running a
+development build such as `master` or trunk (the default for `wp-env`) has none,
+so `wp core verify-checksums` fails even when core is intact. On such a site,
+compare `wp-admin/`, `wp-includes/`, and the root core files against an intact
+copy of the same revision (for example with `diff -rq`), or use a
+released-version site for the live run.
+
+Before spending paid requests, confirm the managed service with one minimal
+request. A pre-dispatch `503 managed_service_unavailable` ("temporarily
+unavailable") means the service has no usable upstream credential, and a
+`503 responses_outcome_unknown` means its upstream failed. Both are service-side
+outages that also affect released versions. Stop and report instead of rerunning
+scenarios.
+
 Do not install over a source symlink or Docker bind mount. The target's canonical
 `superdav-ai-agent` and `superdav-ai-agent-advanced` directories must be independent
 installed packages, not this checkout. The runner checks package identity, equal
@@ -268,6 +292,31 @@ are rejected; configure `WP_TESTS_DIR` instead.
 
 Use a fresh `WP_PHPUNIT_CACHE_DIR` instead of repurposing an old or unknown
 cache. A different table prefix does not make a live database safe for tests.
+
+The trunk cache is not refreshed automatically. A stale shared trunk cache hid
+the WordPress r65308 change (abilities must declare a registered `category`)
+while CI, which provisions trunk on every run, failed 22 tests. When local runs
+pass but CI's trunk PHPUnit fails, provision trunk into a new
+`WP_PHPUNIT_CACHE_DIR` and compare `wp-includes/version.php` before blaming CI.
+
+Setup drops and recreates the test database named by `WP_TESTS_DB_NAME`
+(default `sd_ai_agent_tests`), so provisioning a fresh or session-only cache
+while another run uses that database destroys its fixtures, whatever the table
+prefix. Give the new cache a distinct `WP_TESTS_DB_NAME`, or, when reusing a
+database you already created, run setup with `WP_TESTS_SKIP_DB_CREATE=true`.
+
+Concurrent PHPUnit runs that share one test database and the default
+`wptests_` prefix corrupt each other's fixtures. The symptoms are
+`Unable to create the user/post`, missing options, and schema-version
+mismatches that change from run to run. When workers or other sessions may test
+in parallel, give every concurrent PHPUnit process its own session-only cache
+and its own test-table prefix (for example `qmtests_a_`, `qmtests_b_`), or its
+own database. Workers sharing one cache share its prefix and still overwrite
+each other. Set the same `$table_prefix` in that cache's `wp-tests-config.php`
+and in the core `wp-config.php`: WP-CLI subprocesses (such as `PluginSandbox`
+integration tests) read the core file, and setup writes `wptests_` into it, so
+edit it again after every rerun of setup. This only isolates test-database runs
+from each other; it never makes a live database safe.
 
 The database-guard regressions can also run without WordPress or MySQL:
 

@@ -2053,7 +2053,10 @@ PROMPT;
 			$this->save_active_job_checkpoint( self::CHECKPOINT_BEFORE_PROVIDER_CALL, $iterations + 1 );
 
 			$this->last_loop_phase = 'provider_call';
-			$result                = $this->send_prompt_with_payload_recovery();
+			$result                = BudgetManager::check_budget();
+			if ( ! is_wp_error( $result ) ) {
+				$result = $this->send_prompt_with_payload_recovery();
+			}
 			$this->last_loop_phase = 'provider_response_received';
 
 			if ( is_wp_error( $result ) ) {
@@ -2249,9 +2252,12 @@ PROMPT;
 						]
 					);
 
-					++$this->iterations_used;
 					$this->last_loop_phase = 'provider_followup_call';
-					$followup_result       = $this->send_prompt_with_payload_recovery();
+					$followup_result       = BudgetManager::check_budget();
+					if ( ! is_wp_error( $followup_result ) ) {
+						++$this->iterations_used;
+						$followup_result = $this->send_prompt_with_payload_recovery();
+					}
 					$this->last_loop_phase = 'provider_followup_response_received';
 
 					if ( is_wp_error( $followup_result ) ) {
@@ -2523,9 +2529,12 @@ PROMPT;
 				]
 			);
 
-			++$this->iterations_used;
 			$this->last_loop_phase = 'provider_fallback_call';
-			$fallback_result       = $this->send_prompt_with_payload_recovery();
+			$fallback_result       = BudgetManager::check_budget();
+			if ( ! is_wp_error( $fallback_result ) ) {
+				++$this->iterations_used;
+				$fallback_result = $this->send_prompt_with_payload_recovery();
+			}
 			$this->last_loop_phase = 'provider_fallback_response_received';
 
 			if ( is_wp_error( $fallback_result ) ) {

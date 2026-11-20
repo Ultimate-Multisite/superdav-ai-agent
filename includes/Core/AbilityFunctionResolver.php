@@ -97,8 +97,12 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$function_id,
 				$function_name,
 				array(
-					'error' => __( 'Not an ability function call', 'superdav-ai-agent' ),
-					'code'  => 'invalid_ability_call',
+					'error'      => __( 'Not an ability function call', 'superdav-ai-agent' ),
+					'code'       => 'invalid_ability_call',
+					'next_steps' => array(
+						'This tool name is not an ability. Use only tool names from the tool list you were given.',
+						'If you need an ability that is not listed, find it with sd-ai-agent/ability-search and run it with sd-ai-agent/ability-call.',
+					),
 				)
 			);
 		}
@@ -137,12 +141,17 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$function_id,
 				$function_name,
 				array(
-					'error' => sprintf(
+					'error'      => sprintf(
 						/* translators: %s: ability name */
 						__( 'Ability "%s" was not specified in the allowed abilities list.', 'superdav-ai-agent' ),
 						$ability_name
 					),
-					'code'  => 'ability_not_allowed',
+					'code'       => 'ability_not_allowed',
+					'next_steps' => array(
+						'This ability is not enabled for this run. Do not call it again.',
+						'Use one of the abilities in your tool list, or search for an enabled alternative with sd-ai-agent/ability-search.',
+						'If no alternative can do the job, tell the user the ability is unavailable.',
+					),
 				)
 			);
 		}
@@ -152,12 +161,16 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$function_id,
 				$function_name,
 				array(
-					'error' => sprintf(
+					'error'      => sprintf(
 						/* translators: %s: ability name */
 						__( 'Ability "%s" not found', 'superdav-ai-agent' ),
 						$ability_name
 					),
-					'code'  => 'ability_not_found',
+					'code'       => 'ability_not_found',
+					'next_steps' => array(
+						'No ability has this name. Do not guess variations of it.',
+						'Find the real ability name with sd-ai-agent/ability-search, then call it with sd-ai-agent/ability-call.',
+					),
 				)
 			);
 		}
@@ -285,6 +298,10 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$response_data = self::enrich_identical_failure_response( $response_data, $ability_name, $args, $error_code, $ability );
 			}
 
+			// Validation failures already carry a corrective hint; every other
+			// exception gets the default next steps for its code.
+			$response_data = AbilityErrorGuidance::enrich( $response_data, $error_code );
+
 			return new FunctionResponse(
 				$function_id,
 				$function_name,
@@ -346,6 +363,12 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 				$response_data = self::enrich_validation_error_response( $response_data, $ability, (string) $result->get_error_message() );
 			}
 
+			// Tell the model what to do next, not just what went wrong. An ability
+			// can supply its own `next_steps` in WP_Error data; otherwise defaults
+			// come from the error-code naming convention. Skipped when the payload
+			// already carries a validation `hint`.
+			$response_data = AbilityErrorGuidance::enrich( $response_data, $error_code, $error_data );
+
 			// Per-call spin detection: after the second identical failure
 			// (same ability + same args + same error code), replace the
 			// hint with a hard nudge that tells the model to stop and
@@ -385,12 +408,18 @@ class AbilityFunctionResolver extends \WP_AI_Client_Ability_Function_Resolver {
 		);
 
 		if ( is_wp_error( $result ) ) {
+			$error_code = (string) $result->get_error_code();
+
 			return new FunctionResponse(
 				$function_id,
 				$function_name,
-				array(
-					'error' => $result->get_error_message(),
-					'code'  => $result->get_error_code(),
+				AbilityErrorGuidance::enrich(
+					array(
+						'error' => $result->get_error_message(),
+						'code'  => $error_code,
+					),
+					$error_code,
+					$result->get_error_data()
 				)
 			);
 		}

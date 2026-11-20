@@ -17,6 +17,23 @@ use WP_UnitTestCase;
  */
 class ImageAbilitiesTest extends WP_UnitTestCase {
 
+	/**
+	 * Missing image input points the model to an ability that can supply one.
+	 */
+	public function test_missing_image_has_specific_recovery_step(): void {
+		$method = new \ReflectionMethod( ImageAbilities::class, 'resolve_image_reference' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( null, [] );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'no_image_provided', $result->get_error_code() );
+		$this->assertSame(
+			'Find or import an image with sd-ai-agent/stock-image or sd-ai-agent/upload-media, then retry with its attachment_id or image_url.',
+			$result->get_error_data()['next_steps'][0]
+		);
+	}
+
 	// ─── handle_generate_alt_text ─────────────────────────────────
 
 	/**

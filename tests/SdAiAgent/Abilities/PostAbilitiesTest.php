@@ -87,6 +87,10 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ai_agent_post_not_found', $result->get_error_code() );
+		$this->assertSame(
+			'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.',
+			$result->get_error_data()['next_steps'][0]
+		);
 	}
 
 	/**

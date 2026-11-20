@@ -1195,7 +1195,8 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.' ) )
 			);
 		}
 
@@ -1203,7 +1204,8 @@ class PostAbilities {
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return new WP_Error(
 				'insufficient_capability',
-				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' )
+				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Choose a post the current user can edit with sd-ai-agent/list-posts, or ask an administrator to grant the required post capability before retrying.' ) )
 			);
 		}
 
@@ -1283,7 +1285,10 @@ class PostAbilities {
 			return new WP_Error(
 				'sd_ai_agent_scheduling_unsupported',
 				__( 'Scheduled publishing requires an explicit future date, which this ability does not support.', 'superdav-ai-agent' ),
-				array( 'status' => 400 )
+				array(
+					'status'     => 400,
+					'next_steps' => array( 'Call sd-ai-agent/create-post with status draft, publish, pending, or private; do not retry with status future.' ),
+				)
 			);
 		}
 
@@ -1522,7 +1527,11 @@ class PostAbilities {
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_agent_empty_post_id',
+				__( 'post_id is required.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts, then retry sd-ai-agent/update-post with post_id.' ) )
+			);
 		}
 
 		// Rate limit check (write bucket, per-post).
@@ -1557,7 +1566,8 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.' ) )
 			);
 		}
 
@@ -1568,7 +1578,8 @@ class PostAbilities {
 			}
 			return new WP_Error(
 				'insufficient_capability',
-				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' )
+				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Choose a post the current user can edit with sd-ai-agent/list-posts, or ask an administrator to grant the required post capability before retrying.' ) )
 			);
 		}
 
@@ -1611,7 +1622,10 @@ class PostAbilities {
 				return new WP_Error(
 					'sd_ai_agent_scheduling_unsupported',
 					__( 'Scheduled publishing requires an explicit future date, which this ability does not support.', 'superdav-ai-agent' ),
-					array( 'status' => 400 )
+					array(
+						'status'     => 400,
+						'next_steps' => array( 'Retry sd-ai-agent/update-post with status draft, publish, pending, private, or trash; do not retry with status future.' ),
+					)
 				);
 			}
 			$unsafe_provider_default = 'publish' === $post->post_status
@@ -1627,7 +1641,10 @@ class PostAbilities {
 				return new WP_Error(
 					'sd_ai_agent_status_change_confirmation_required',
 					__( 'Changing the status of a published page requires confirm_status_change=true.', 'superdav-ai-agent' ),
-					array( 'status' => 400 )
+					array(
+						'status'     => 400,
+						'next_steps' => array( 'After the user confirms the status change, retry sd-ai-agent/update-post with confirm_status_change=true.' ),
+					)
 				);
 			}
 			if ( in_array( $new_status, $allowed_statuses, true ) && $new_status !== $post->post_status && ! $unsafe_provider_default ) {
@@ -1652,7 +1669,10 @@ class PostAbilities {
 			return new WP_Error(
 				'sd_ai_agent_no_effective_post_updates',
 				__( 'No effective post fields were supplied. Empty optional values are ignored to protect existing content; use a block mutator for a focused block edit or send the complete non-empty replacement field.', 'superdav-ai-agent' ),
-				array( 'status' => 400 )
+				array(
+					'status'     => 400,
+					'next_steps' => array( 'Retry sd-ai-agent/update-post with at least one non-empty replacement field, or use the matching block-mutator ability for a focused block edit.' ),
+				)
 			);
 		}
 
@@ -1899,7 +1919,11 @@ class PostAbilities {
 		$site_url = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_agent_empty_post_id',
+				__( 'post_id is required.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts, then retry sd-ai-agent/append-post-content with post_id.' ) )
+			);
 		}
 
 		if ( '' === trim( $content ) ) {
@@ -1932,7 +1956,8 @@ class PostAbilities {
 				return new WP_Error(
 					'ai_agent_post_not_found',
 					/* translators: %d: post ID */
-					sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id )
+					sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id ),
+					array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.' ) )
 				);
 			}
 			return $post;
@@ -1945,7 +1970,10 @@ class PostAbilities {
 			return new WP_Error(
 				'insufficient_capability',
 				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' ),
-				array( 'status' => 403 )
+				array(
+					'status'     => 403,
+					'next_steps' => array( 'Choose a post the current user can edit with sd-ai-agent/list-posts, or ask an administrator to grant the required post capability before retrying.' ),
+				)
 			);
 		}
 
@@ -2040,7 +2068,11 @@ class PostAbilities {
 		$site_url     = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_agent_empty_post_id',
+				__( 'post_id is required.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts, then retry sd-ai-agent/delete-post with post_id.' ) )
+			);
 		}
 
 		$switched = false;
@@ -2068,7 +2100,8 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.' ) )
 			);
 		}
 
@@ -2079,7 +2112,8 @@ class PostAbilities {
 			}
 			return new WP_Error(
 				'insufficient_capability',
-				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' )
+				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Choose a post the current user can edit with sd-ai-agent/list-posts, or ask an administrator to grant the required post capability before retrying.' ) )
 			);
 		}
 
@@ -2122,7 +2156,11 @@ class PostAbilities {
 		$site_url          = $input['site_url'] ?? '';
 
 		if ( ! $post_id ) {
-			return new WP_Error( 'ai_agent_empty_post_id', __( 'post_id is required.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_agent_empty_post_id',
+				__( 'post_id is required.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts, then retry sd-ai-agent/set-featured-image with post_id.' ) )
+			);
 		}
 
 		$switched = false;
@@ -2150,7 +2188,8 @@ class PostAbilities {
 			return new WP_Error(
 				'ai_agent_post_not_found',
 				/* translators: %d: post ID */
-				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id )
+				sprintf( __( 'Post %d not found.', 'superdav-ai-agent' ), $post_id ),
+				array( 'next_steps' => array( 'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.' ) )
 			);
 		}
 
@@ -2161,7 +2200,10 @@ class PostAbilities {
 			return new WP_Error(
 				'insufficient_capability',
 				__( 'You do not have permission to edit this post.', 'superdav-ai-agent' ),
-				array( 'status' => 403 )
+				array(
+					'status'     => 403,
+					'next_steps' => array( 'Choose a post the current user can edit with sd-ai-agent/list-posts, or ask an administrator to grant the required post capability before retrying.' ),
+				)
 			);
 		}
 

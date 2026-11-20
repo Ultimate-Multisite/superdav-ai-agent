@@ -428,11 +428,25 @@ final class WooCommerceAbilities {
 					}
 
 					if ( ! self::is_woocommerce_active_on_current_site() ) {
-						return new WP_Error( 'sd_ai_agent_commerce_prerequisite_changed', __( 'WooCommerce is no longer active for the approved target site.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+						return new WP_Error(
+							'sd_ai_agent_commerce_prerequisite_changed',
+							__( 'WooCommerce is no longer active for the approved target site.', 'superdav-ai-agent' ),
+							[
+								'status'     => 409,
+								'next_steps' => [ 'Call sd-ai-agent/commerce-inspect to refresh the site prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.' ],
+							]
+							);
 					}
 
 					if ( ! self::is_woocommerce_runtime_available() ) {
-						return new WP_Error( 'sd_ai_agent_commerce_prerequisite_changed', __( 'WooCommerce is no longer loaded for the approved target site.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+						return new WP_Error(
+							'sd_ai_agent_commerce_prerequisite_changed',
+							__( 'WooCommerce is no longer loaded for the approved target site.', 'superdav-ai-agent' ),
+							[
+								'status'     => 409,
+								'next_steps' => [ 'Call sd-ai-agent/commerce-inspect to refresh the site prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.' ],
+							]
+							);
 					}
 
 					$operations = self::validate_approved_operations( $plan['operations'] ?? null );
@@ -649,7 +663,14 @@ final class WooCommerceAbilities {
 	private static function normalize_setting_operation( array $operation, int $index ): array|WP_Error {
 		$key = sanitize_key( (string) ( $operation['setting_key'] ?? '' ) );
 		if ( ! isset( self::SUPPORTED_SETTINGS[ $key ] ) ) {
-			return new WP_Error( 'sd_ai_agent_commerce_vendor_prerequisite', __( 'The requested commerce setting is not a verified built-in setting.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_vendor_prerequisite',
+				__( 'The requested commerce setting is not a verified built-in setting.', 'superdav-ai-agent' ),
+				[
+					'status'     => 409,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect to review supported_setting_keys and vendor_plugins, then retry sd-ai-agent/commerce-plan without unsupported vendor settings.' ],
+				]
+				);
 		}
 
 		$value = self::normalize_yes_no_value( $operation['value'] ?? null );
@@ -848,17 +869,38 @@ final class WooCommerceAbilities {
 	 */
 	private static function validate_approved_operations( mixed $raw_operations ): array|WP_Error {
 		if ( ! is_array( $raw_operations ) ) {
-			return new WP_Error( 'sd_ai_agent_commerce_plan_operations_invalid', __( 'The approved commerce plan contains an invalid operation list.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_plan_operations_invalid',
+				__( 'The approved commerce plan contains an invalid operation list.', 'superdav-ai-agent' ),
+				[
+					'status'     => 409,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect, create a new plan with sd-ai-agent/commerce-plan, and obtain fresh approval; do not retry the invalid stored plan.' ],
+				]
+				);
 		}
 
 		$operations = array_values( $raw_operations );
 		$normalized = self::normalize_operations( $operations, [] );
 		if ( is_wp_error( $normalized ) ) {
-			return new WP_Error( 'sd_ai_agent_commerce_plan_operations_invalid', __( 'The approved commerce plan contains an invalid operation.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_plan_operations_invalid',
+				__( 'The approved commerce plan contains an invalid operation.', 'superdav-ai-agent' ),
+				[
+					'status'     => 409,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect, create a new plan with sd-ai-agent/commerce-plan, and obtain fresh approval; do not retry the invalid stored plan.' ],
+				]
+				);
 		}
 
 		if ( [] !== $normalized['prerequisites'] || $normalized['operations'] !== $operations ) {
-			return new WP_Error( 'sd_ai_agent_commerce_plan_operations_invalid', __( 'The approved commerce plan was not stored in its reviewed form.', 'superdav-ai-agent' ), [ 'status' => 409 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_plan_operations_invalid',
+				__( 'The approved commerce plan was not stored in its reviewed form.', 'superdav-ai-agent' ),
+				[
+					'status'     => 409,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect, create a new plan with sd-ai-agent/commerce-plan, and obtain fresh approval; do not retry the invalid stored plan.' ],
+				]
+				);
 		}
 
 		return $normalized['operations'];
@@ -960,19 +1002,40 @@ final class WooCommerceAbilities {
 	 */
 	private static function validate_target_blog_id( int $target_blog_id ): int|WP_Error {
 		if ( 0 === $target_blog_id ) {
-			return new WP_Error( 'sd_ai_agent_commerce_target_required', __( 'An explicit target blog ID is required for commerce configuration.', 'superdav-ai-agent' ), [ 'status' => 400 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_target_required',
+				__( 'An explicit target blog ID is required for commerce configuration.', 'superdav-ai-agent' ),
+				[
+					'status'     => 400,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect on the intended site to get its blog_id, then retry sd-ai-agent/commerce-plan with target_blog_id.' ],
+				]
+				);
 		}
 
 		if ( ! is_multisite() ) {
 			if ( $target_blog_id !== get_current_blog_id() ) {
-				return new WP_Error( 'sd_ai_agent_commerce_target_not_found', __( 'The requested target site is not available in this single-site WordPress installation.', 'superdav-ai-agent' ), [ 'status' => 404 ] );
+				return new WP_Error(
+					'sd_ai_agent_commerce_target_not_found',
+					__( 'The requested target site is not available in this single-site WordPress installation.', 'superdav-ai-agent' ),
+					[
+						'status'     => 404,
+						'next_steps' => [ 'Call sd-ai-agent/commerce-inspect on the intended site and retry sd-ai-agent/commerce-plan with the returned blog_id.' ],
+					]
+					);
 			}
 			return $target_blog_id;
 		}
 
 		$site = get_site( $target_blog_id );
 		if ( null === $site || '1' === $site->deleted || '1' === $site->spam || '1' === $site->archived ) {
-			return new WP_Error( 'sd_ai_agent_commerce_target_not_found', __( 'The requested target site does not exist or is unavailable.', 'superdav-ai-agent' ), [ 'status' => 404 ] );
+			return new WP_Error(
+				'sd_ai_agent_commerce_target_not_found',
+				__( 'The requested target site does not exist or is unavailable.', 'superdav-ai-agent' ),
+				[
+					'status'     => 404,
+					'next_steps' => [ 'Call sd-ai-agent/commerce-inspect on the intended site and retry sd-ai-agent/commerce-plan with the returned blog_id.' ],
+				]
+				);
 		}
 
 		return $target_blog_id;

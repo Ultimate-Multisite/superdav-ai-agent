@@ -125,7 +125,11 @@ class ImageAbilities {
 	 */
 	public static function handle_generate_alt_text( array $input ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			return new WP_Error( 'ai_client_unavailable', __( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_client_unavailable',
+				__( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Configure an AI provider in Settings > Connectors before calling sd-ai-agent/generate-alt-text again; do not retry until a provider is available.' ) )
+			);
 		}
 
 		// @phpstan-ignore-next-line
@@ -179,7 +183,11 @@ INSTRUCTION;
 		}
 
 		if ( empty( $result ) ) {
-			return new WP_Error( 'no_results', __( 'No alt text was generated.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'no_results',
+				__( 'No alt text was generated.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Retry sd-ai-agent/generate-alt-text with a clearer context value, or use a different configured AI provider.' ) )
+			);
 		}
 
 		$alt_text = trim( (string) $result, '"\'.' );
@@ -256,7 +264,11 @@ INSTRUCTION;
 	 */
 	public static function handle_generate_image_prompt( array $input ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			return new WP_Error( 'ai_client_unavailable', __( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'ai_client_unavailable',
+				__( 'wp_ai_client_prompt() is not available.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Configure an AI provider in Settings > Connectors before calling sd-ai-agent/generate-image-prompt again; do not retry until a provider is available.' ) )
+			);
 		}
 
 		// @phpstan-ignore-next-line
@@ -348,7 +360,11 @@ INSTRUCTION;
 		}
 
 		if ( empty( $result ) ) {
-			return new WP_Error( 'no_results', __( 'No image prompt was generated.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'no_results',
+				__( 'No image prompt was generated.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Retry sd-ai-agent/generate-image-prompt with broader content or context, or use a different configured AI provider.' ) )
+			);
 		}
 
 		return sanitize_text_field( trim( (string) $result ) );
@@ -502,14 +518,16 @@ INSTRUCTION;
 		if ( defined( 'WP_DISABLE_UPLOADS' ) && WP_DISABLE_UPLOADS ) {
 			return new WP_Error(
 				'uploads_disabled',
-				__( 'File uploads are disabled on this site.', 'superdav-ai-agent' )
+				__( 'File uploads are disabled on this site.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Ask an administrator to enable file uploads for this site before retrying sd-ai-agent/upload-media; do not retry while uploads remain disabled.' ) )
 			);
 		}
 
 		if ( is_multisite() && function_exists( 'multisite_can_upload' ) && ! multisite_can_upload() ) {
 			return new WP_Error(
 				'uploads_disabled',
-				__( 'File uploads are disabled for this site in a multisite network.', 'superdav-ai-agent' )
+				__( 'File uploads are disabled for this site in a multisite network.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Ask a network administrator to enable uploads for this site before retrying sd-ai-agent/upload-media; do not retry while uploads remain disabled.' ) )
 			);
 		}
 
@@ -761,7 +779,11 @@ INSTRUCTION;
 			return self::download_to_data_uri( $url );
 		}
 
-		return new WP_Error( 'no_image_provided', __( 'Either attachment_id or image_url must be provided.', 'superdav-ai-agent' ) );
+		return new WP_Error(
+			'no_image_provided',
+			__( 'Either attachment_id or image_url must be provided.', 'superdav-ai-agent' ),
+			array( 'next_steps' => array( 'Find or import an image with sd-ai-agent/stock-image or sd-ai-agent/upload-media, then retry with its attachment_id or image_url.' ) )
+		);
 	}
 
 	/**
@@ -784,7 +806,11 @@ INSTRUCTION;
 		}
 
 		if ( ! wp_attachment_is_image( $attachment_id ) ) {
-			return new WP_Error( 'not_an_image', __( 'The specified attachment is not an image.', 'superdav-ai-agent' ) );
+			return new WP_Error(
+				'not_an_image',
+				__( 'The specified attachment is not an image.', 'superdav-ai-agent' ),
+				array( 'next_steps' => array( 'Find or import a valid image with sd-ai-agent/stock-image or sd-ai-agent/upload-media, then retry with that image attachment_id.' ) )
+			);
 		}
 
 		$file_path = get_attached_file( $attachment_id );

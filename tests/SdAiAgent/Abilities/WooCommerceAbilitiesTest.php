@@ -235,6 +235,10 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $approved );
 		$this->assertSame( 'sd_ai_agent_commerce_prerequisite_changed', $approved->get_error_code() );
+		$this->assertSame(
+			'Call sd-ai-agent/commerce-inspect to refresh the site prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.',
+			$approved->get_error_data()['next_steps'][0]
+		);
 		$this->assertSame( $initial_blog_id, get_current_blog_id(), 'Failed execution must restore the caller blog.' );
 		$this->assertFalse( $this->term_exists_for_blog( $this->target_blog_id, 'Inactive Target Category' ) );
 		$this->assertSame( 'yes', $this->get_option_for_blog( $this->target_blog_id, 'woocommerce_enable_coupons' ) );

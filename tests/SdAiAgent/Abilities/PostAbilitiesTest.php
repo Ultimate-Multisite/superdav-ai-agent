@@ -87,6 +87,10 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ai_agent_post_not_found', $result->get_error_code() );
+		$this->assertSame(
+			'Find the post ID with sd-ai-agent/list-posts (filter by title or post_type), then retry with that ID.',
+			$result->get_error_data()['next_steps'][0]
+		);
 	}
 
 	/**
@@ -642,6 +646,8 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 		);
 		$this->assertWPError( $status_only );
 		$this->assertSame( 'sd_ai_agent_no_effective_post_updates', $status_only->get_error_code() );
+		$this->assertStringContainsString( 'status-only', $status_only->get_error_data()['next_steps'][0] );
+		$this->assertStringContainsString( 'confirm_status_change=true', $status_only->get_error_data()['next_steps'][0] );
 
 		$updated = PostAbilities::handle_update_post(
 			[
@@ -698,6 +704,7 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'sd_ai_agent_status_change_confirmation_required', $result->get_error_code() );
+		$this->assertStringContainsString( 'status-only', $result->get_error_data()['next_steps'][0] );
 		$this->assertSame( 'publish', get_post_status( $post_id ) );
 	}
 

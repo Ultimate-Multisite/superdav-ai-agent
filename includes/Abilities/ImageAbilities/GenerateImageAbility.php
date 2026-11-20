@@ -312,13 +312,21 @@ class GenerateImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 					: $last_error->get_error_message();
 			}
 
-			return [
+			$response = [
 				'attachment_id' => 0,
 				'url'           => '',
 				'title'         => '',
 				'alt'           => '',
 				'error'         => $error_message,
 			];
+			if ( $last_error instanceof WP_Error ) {
+				$error_data = $last_error->get_error_data();
+				if ( is_array( $error_data ) && isset( $error_data['next_steps'] ) && is_array( $error_data['next_steps'] ) ) {
+					$response['next_steps'] = array_values( array_filter( $error_data['next_steps'], 'is_string' ) );
+				}
+			}
+
+			return $response;
 		}
 
 		$first = $attachments[0];
@@ -367,7 +375,8 @@ class GenerateImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 			if ( ! self::is_image_generation_supported() ) {
 				return new WP_Error(
 					'provider_unavailable',
-					'AI image generation is not available. Configure an image-capable provider on the Connectors settings page.'
+					'AI image generation is not available. Configure an image-capable provider on the Connectors settings page.',
+					array( 'next_steps' => array( 'Do not retry sd-ai-agent/generate-image until an image-capable provider is configured in Settings > Connectors; use sd-ai-agent/stock-image to source an image meanwhile.' ) )
 				);
 			}
 

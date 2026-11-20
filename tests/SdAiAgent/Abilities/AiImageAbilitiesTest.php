@@ -478,6 +478,8 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertIsArray( $result, 'Success result must be an array.' );
 		$this->assertArrayHasKey( 'attachments', $result, 'Success result must include "attachments" key.' );
+		$this->assertArrayHasKey( 'next_steps', $result, 'Success result must include "next_steps" key.' );
+		$this->assertTrue( rest_validate_value_from_schema( $result, $ability->get_output_schema(), 'output' ) );
 		$this->assertArrayNotHasKey( 'error', $result, 'Success result must not include "error" key.' );
 		$this->assertCount( 1, $result['attachments'], 'Single-variation success must have 1 item in "attachments".' );
 		$this->assertSame( 42, $result['attachment_id'], 'attachment_id must match the first generated attachment.' );

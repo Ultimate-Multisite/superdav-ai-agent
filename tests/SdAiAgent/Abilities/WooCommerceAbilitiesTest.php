@@ -136,6 +136,8 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 'requires_prerequisite', $result['status'] );
 		$this->assertSame( 'vendor_plugin_setting_unsupported', $result['prerequisites'][0]['code'] );
+		$this->assertArrayHasKey( 'next_steps', $result );
+		$this->assertTrue( rest_validate_value_from_schema( $result, wp_get_ability( 'sd-ai-agent/commerce-plan' )->get_output_schema(), 'output' ) );
 		$this->assertArrayNotHasKey( 'approval_request_id', $result );
 	}
 

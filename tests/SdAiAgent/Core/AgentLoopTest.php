@@ -35,6 +35,7 @@ use SdAiAgent\Abilities\KnowledgeAbilities;
 use SdAiAgent\Core\ActiveJobFailureDiagnostic;
 use SdAiAgent\Core\AbilityFunctionResolver;
 use SdAiAgent\Core\AgentLoop;
+use SdAiAgent\Core\BudgetManager;
 use SdAiAgent\Core\ClientAbilityRouter;
 use SdAiAgent\Core\ConversationSerializer;
 use SdAiAgent\Core\ConversationTrimmer;
@@ -170,6 +171,31 @@ final class ScriptedAbilityAgentLoop extends ScriptedAgentLoop {
 	}
 }
 
+/** Scripted loop that crosses the configured spend cap after its first provider call. */
+final class BudgetCappedScriptedAgentLoop extends ScriptedAgentLoop {
+
+	/** Raise the cached spend after the first provider response. */
+	protected function send_prompt( string $provider_id, string $model_id ): GenerativeAiResult|WP_Error {
+		$result = parent::send_prompt( $provider_id, $model_id );
+		if ( 1 === count( $this->requestSizes ) ) {
+			set_transient( BudgetManager::TRANSIENT_DAILY, 1.0, BudgetManager::CACHE_TTL );
+		}
+
+		return $result;
+	}
+
+	/** Return a deterministic tool response so the loop reaches another provider call. */
+	protected function execute_abilities( Message $message ): Message {
+		return new UserMessage(
+			array(
+				new MessagePart(
+					new FunctionResponse( 'budget-test-call', 'wpab__sd-ai-agent__ability-search', array( 'results' => array() ) )
+				),
+			)
+		);
+	}
+}
+
 /** Resolver spy for parent provider/model propagation. */
 final class ProviderContextRecordingResolver extends AbilityFunctionResolver {
 
@@ -229,6 +255,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 		delete_option( 'openai_compat_api_key' );
 		delete_option( SuperdavAiProvider::CREDENTIAL_OPTION );
 		delete_option( Settings::OPTION_NAME );
+		BudgetManager::invalidate_cache();
 		SuperdavJourneyBudgetContext::deactivate();
 		ProviderTraceLogger::clear_runtime_context();
 		remove_all_filters( 'sd_ai_agent_cloud_base_url' );
@@ -838,6 +865,86 @@ class AgentLoopTest extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 	// run() — happy path
 	// -------------------------------------------------------------------------
+
+	/** A run that crosses the daily cap stops before its next provider call. */
+	public function test_run_rechecks_budget_before_each_provider_call(): void {
+		Settings::instance()->update(
+			array(
+				'budget_daily_cap'       => 1.0,
+				'budget_exceeded_action' => 'pause',
+			)
+		);
+		set_transient( BudgetManager::TRANSIENT_DAILY, 0.0, BudgetManager::CACHE_TTL );
+
+		$loop = new BudgetCappedScriptedAgentLoop(
+			'Inspect the site.',
+			array( 'sd-ai-agent/ability-search' ),
+			array(),
+			array( 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model' ),
+			array(
+				$this->create_scripted_result( '', new FunctionCall( 'budget-test-call', 'wpab__sd-ai-agent__ability-search', array( 'query' => 'site' ) ) ),
+				$this->create_scripted_result( 'This response must not be requested.' ),
+			)
+		);
+
+		$result = $loop->run();
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_budget_daily_exceeded', $result->get_error_code() );
+		$this->assertCount( 1, $loop->requestSizes );
+	}
+
+	/** An empty-response follow-up is blocked when the first call reaches the cap. */
+	public function test_run_rechecks_budget_before_empty_response_followup(): void {
+		Settings::instance()->update(
+			array(
+				'budget_daily_cap'       => 1.0,
+				'budget_exceeded_action' => 'pause',
+			)
+		);
+		set_transient( BudgetManager::TRANSIENT_DAILY, 0.0, BudgetManager::CACHE_TTL );
+
+		$loop = new BudgetCappedScriptedAgentLoop(
+			'Inspect the site.',
+			array(),
+			array(),
+			array( 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model' ),
+			array( $this->create_scripted_result( '' ) )
+		);
+
+		$result = $loop->run();
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_budget_daily_exceeded', $result->get_error_code() );
+		$this->assertCount( 1, $loop->requestSizes );
+	}
+
+	/** The final tool-limit fallback is blocked when the first call reaches the cap. */
+	public function test_run_rechecks_budget_before_tool_limit_fallback(): void {
+		Settings::instance()->update(
+			array(
+				'budget_daily_cap'       => 1.0,
+				'budget_exceeded_action' => 'pause',
+			)
+		);
+		set_transient( BudgetManager::TRANSIENT_DAILY, 0.0, BudgetManager::CACHE_TTL );
+
+		$loop = new BudgetCappedScriptedAgentLoop(
+			'Inspect the site.',
+			array( 'sd-ai-agent/ability-search' ),
+			array(),
+			array( 'provider_id' => 'scripted-provider', 'model_id' => 'scripted-model', 'max_iterations' => 1 ),
+			array(
+				$this->create_scripted_result( '', new FunctionCall( 'budget-test-call', 'wpab__sd-ai-agent__ability-search', array() ) ),
+			)
+		);
+
+		$result = $loop->run();
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'sd_ai_agent_budget_daily_exceeded', $result->get_error_code() );
+		$this->assertCount( 1, $loop->requestSizes );
+	}
 
 	/** Script only model decisions; execute the real discovery/bridge/database path. */
 	public function test_category_database_request_runs_read_only_check_before_scripted_report(): void {

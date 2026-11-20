@@ -135,6 +135,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 			}
 
 			$response = $this->send_responses_request( $params );
+			if ( SuperdavAiProvider::PROVIDER_CAPACITY_UNAVAILABLE_CODE === $this->response_error_code( $response ) ) {
+				// The native provider is out of capacity. Rebuild this turn from provider-neutral
+				// SDK history; the service may serve it from another provider at the same tier.
+				// Native state is not acknowledged, so it never mixes with another provider's output.
+				$cursor->clear();
+				return $this->generate_chat_completions_fallback( $prompt );
+			}
 			ResponseUtil::throwIfNotSuccessful( $response );
 
 			$result = $this->parse_response_to_generative_ai_result( $response );
@@ -240,8 +247,13 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 	 * @return Request
 	 */
 	protected function createRequest( HttpMethodEnum $method, string $path, array $headers = array(), mixed $data = null ): Request {
-		$endpoint        = trim( (string) strtok( $path, '?' ), '/' );
-		$request_headers = 'responses' === $endpoint || str_starts_with( $endpoint, 'responses/' )
+		$endpoint     = trim( (string) strtok( $path, '?' ), '/' );
+		$is_responses = 'responses' === $endpoint || str_starts_with( $endpoint, 'responses/' );
+		if ( $is_responses ) {
+			// This client can rebuild a turn portably, so native state may stay on its provider.
+			$headers[ SuperdavAiProvider::CLIENT_CAPABILITIES_HEADER ] = SuperdavAiProvider::CLIENT_CAPABILITIES;
+		}
+		$request_headers = $is_responses
 			? SuperdavAiProvider::with_managed_chat_attribution( $headers )
 			: SuperdavAiProvider::with_session_attribution( $headers );
 

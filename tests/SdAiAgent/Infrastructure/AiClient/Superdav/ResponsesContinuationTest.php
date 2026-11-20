@@ -119,6 +119,45 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 		$this->assertCount( 2, $requests );
 	}
 
+	/**
+	 * Native Responses advertise portable rebuilds; when the native provider is out of
+	 * capacity the turn is rebuilt from SDK history as Chat Completions and native state
+	 * is dropped so another provider's output never mixes into native replay.
+	 */
+	public function test_provider_capacity_rebuilds_the_turn_portably_and_drops_native_state(): void {
+		$requests = array();
+		$history  = array( new UserMessage( array( new MessagePart( 'Find the fixture.' ) ) ) );
+		$first    = $this->model( array( $this->tool_response() ), $requests )->generateTextResult( $history );
+		ConversationSerializer::append_assistant_message( $history, $first->toMessage() );
+		$history[] = new UserMessage( array( new MessagePart( new FunctionResponse( 'call_1', 'lookup', array( 'ok' => true ) ) ) ) );
+		$this->assertTrue( ( new ResponsesContinuation( 123, $this->owner ) )->has_snapshot() );
+
+		$capacity = new Response( 503, array(), wp_json_encode( array( 'error' => array( 'code' => 'provider_capacity_unavailable', 'type' => 'server_error', 'message' => 'At capacity.' ) ) ) );
+		$this->model( array( $capacity, $this->chat_response() ), $requests )->generateTextResult( $history );
+
+		$this->assertCount( 3, $requests );
+		$this->assertSame( 'provider-switch', $requests[0]->getHeaderAsString( SuperdavAiProvider::CLIENT_CAPABILITIES_HEADER ) );
+		$this->assertSame( 'provider-switch', $requests[1]->getHeaderAsString( SuperdavAiProvider::CLIENT_CAPABILITIES_HEADER ) );
+		$this->assertStringEndsWith( '/chat/completions', $requests[2]->getUri() );
+		$this->assertNull( $requests[2]->getHeaderAsString( SuperdavAiProvider::CLIENT_CAPABILITIES_HEADER ) );
+		$this->assertGreaterThanOrEqual( 3, count( $requests[2]->getData()['messages'] ) );
+		$this->assertFalse( ( new ResponsesContinuation( 123, $this->owner ) )->has_snapshot() );
+	}
+
+	/** A background job that fails for provider capacity is rebuilt portably as well. */
+	public function test_background_provider_capacity_failure_rebuilds_portably(): void {
+		remove_filter( 'sd_ai_agent_responses_background_enabled', '__return_false' );
+		$id       = 'resp_bg' . str_repeat( 'c3', 16 );
+		$requests = array();
+		$queued   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'status' => 'queued', 'output' => array() ) ) );
+		$failed   = new Response( 200, array(), wp_json_encode( array( 'id' => $id, 'status' => 'failed', 'output' => array(), 'error' => array( 'code' => 'provider_capacity_unavailable', 'message' => 'At capacity.' ) ) ) );
+		$this->model( array( $queued, $failed, $this->chat_response() ), $requests )
+			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Hello.' ) ) ) ) );
+
+		$this->assertCount( 3, $requests );
+		$this->assertStringEndsWith( '/chat/completions', $requests[2]->getUri() );
+	}
+
 	/** A fresh PHP object loads encrypted native history without storing plaintext. */
 	public function test_cursor_survives_reconstruction_and_replays_native_input(): void {
 		$before = array( array( 'role' => 'user', 'content' => 'private fixture' ) );

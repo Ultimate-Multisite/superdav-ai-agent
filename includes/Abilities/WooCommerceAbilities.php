@@ -190,6 +190,11 @@ final class WooCommerceAbilities {
 						'plan'                => [ 'type' => 'object' ],
 						'prerequisites'       => [ 'type' => 'array' ],
 						'approval_request_id' => [ 'type' => 'integer' ],
+						'next_steps'          => [
+							'type'     => 'array',
+							'items'    => [ 'type' => 'string' ],
+							'maxItems' => 3,
+						],
 					],
 				],
 				'meta'                => [
@@ -316,6 +321,9 @@ final class WooCommerceAbilities {
 				'status'        => 'requires_prerequisite',
 				'plan'          => $plan,
 				'prerequisites' => $prepared['prerequisites'],
+				'next_steps'    => [
+					'Review the complete plan and its prerequisites with the user before applying changes.',
+				],
 			];
 		}
 
@@ -340,6 +348,9 @@ final class WooCommerceAbilities {
 			'approval_request_id' => (int) $approval['id'],
 			'approval_status'     => (string) $approval['status'],
 			'expires_at'          => (string) ( $approval['expires_at'] ?? '' ),
+			'next_steps'          => [
+				'Review the complete plan with the user before requesting approval or applying changes.',
+			],
 		];
 	}
 

@@ -316,6 +316,8 @@ class PostAbilitiesTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'permalink', $result );
 		$this->assertArrayHasKey( 'status', $result );
 		$this->assertArrayHasKey( 'post_type', $result );
+		$this->assertArrayHasKey( 'next_steps', $result );
+		$this->assertTrue( rest_validate_value_from_schema( $result, wp_get_ability( 'sd-ai-agent/create-post' )->get_output_schema(), 'output' ) );
 		$this->assertIsInt( $result['post_id'] );
 		$this->assertGreaterThan( 0, $result['post_id'] );
 	}

@@ -179,6 +179,11 @@ class PostAbilities {
 						'post_type'   => [ 'type' => 'string' ],
 						'revision_id' => [ 'type' => [ 'integer', 'null' ] ],
 						'affected'    => self::affected_output_schema( 'post' ),
+						'next_steps'  => [
+							'type'     => 'array',
+							'items'    => [ 'type' => 'string' ],
+							'maxItems' => 3,
+						],
 					],
 				],
 				'meta'                => [
@@ -1392,6 +1397,12 @@ class PostAbilities {
 		}
 
 		$response['affected'] = self::build_affected_payload( $post_id, $created_post, $permalink, $input, $post_data );
+		if ( 'draft' === $response['status'] ) {
+			$response['next_steps'] = [
+				'Verify the draft content and formatting before any status change.',
+				'Publish only after the user explicitly asks to make the post live.',
+			];
+		}
 
 		return $response;
 	}

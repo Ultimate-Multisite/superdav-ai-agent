@@ -158,6 +158,11 @@ class GenerateImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 				],
 				'error'         => [ 'type' => 'string' ],
 				'tip'           => [ 'type' => 'string' ],
+				'next_steps'    => [
+					'type'     => 'array',
+					'items'    => [ 'type' => 'string' ],
+					'maxItems' => 3,
+				],
 			],
 		];
 	}
@@ -327,6 +332,9 @@ class GenerateImageAbility extends \SdAiAgent\Abilities\AbstractAbility {
 			'tip'           => count( $attachments ) > 1
 				? 'Multiple variations generated. Use attachment_id from each item in the "attachments" array.'
 				: 'Use attachment_id as featured_image_id when calling create-post or update-post.',
+			'next_steps'    => [
+				'Attach the returned attachment_id to the post or block that requested this image.',
+			],
 		];
 	}
 

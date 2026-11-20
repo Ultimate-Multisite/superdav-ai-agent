@@ -40,6 +40,20 @@ final class SuperdavAiProvider extends AbstractApiProvider {
 	public const IDEMPOTENCY_HEADER         = 'Idempotency-Key';
 
 	/**
+	 * Opt-in client capabilities for managed Responses requests.
+	 *
+	 * `provider-switch`: this client rebuilds a turn as portable Chat Completions from
+	 * provider-neutral SDK history when the service answers `provider_capacity_unavailable`,
+	 * so the service keeps native Responses state on its own provider family instead of
+	 * translating it to another provider.
+	 */
+	public const CLIENT_CAPABILITIES_HEADER = 'X-Superdav-Client-Capabilities';
+	public const CLIENT_CAPABILITIES        = 'provider-switch';
+
+	/** Service error code asking the client to resend the turn as portable Chat Completions. */
+	public const PROVIDER_CAPACITY_UNAVAILABLE_CODE = 'provider_capacity_unavailable';
+
+	/**
 	 * Reasoning effort hints for managed Superdav model aliases.
 	 *
 	 * The plugin sends these as OpenAI-compatible `reasoning_effort` custom

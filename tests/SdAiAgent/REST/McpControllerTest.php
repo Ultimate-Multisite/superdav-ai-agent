@@ -24,6 +24,7 @@ declare(strict_types=1);
 
 namespace SdAiAgent\Tests\REST;
 
+use SdAiAgent\Core\Settings;
 use SdAiAgent\REST\McpController;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -57,6 +58,11 @@ class McpControllerTest extends WP_UnitTestCase {
 	 * @var int
 	 */
 	protected int $subscriber_id;
+
+	/**
+	 * Number of times the mock ability execute callback ran.
+	 */
+	private int $mock_execution_count = 0;
 
 	/**
 	 * MCP endpoint route.
@@ -130,7 +136,8 @@ class McpControllerTest extends WP_UnitTestCase {
 						],
 						'required'   => [ 'message' ],
 					],
-					'execute_callback'    => static function ( $args ) {
+					'execute_callback'    => function ( $args ) {
+						++$this->mock_execution_count;
 						return [ 'echo' => $args['message'] ?? 'no-message' ];
 					},
 					'permission_callback' => static function () {
@@ -155,6 +162,8 @@ class McpControllerTest extends WP_UnitTestCase {
 		if ( function_exists( 'wp_unregister_ability' ) ) {
 			wp_unregister_ability( self::MOCK_ABILITY );
 		}
+
+		delete_option( Settings::OPTION_NAME );
 
 		parent::tear_down();
 	}
@@ -274,6 +283,21 @@ class McpControllerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * list_tools omits abilities disabled in tool permissions.
+	 */
+	public function test_list_tools_omits_disabled_ability(): void {
+		Settings::instance()->update(
+			[ 'tool_permissions' => [ self::MOCK_ABILITY => 'disabled' ] ]
+		);
+
+		$response   = $this->dispatch_mcp( [ 'method' => 'list_tools' ] );
+		$data       = $response->get_data();
+		$tool_names = array_column( $data['tools'], 'name' );
+
+		$this->assertNotContains( self::MOCK_MCP_NAME, $tool_names );
+	}
+
+	/**
 	 * Each tool definition has name, description, and inputSchema fields.
 	 */
 	public function test_list_tools_tool_definitions_have_required_fields(): void {
@@ -333,6 +357,32 @@ class McpControllerTest extends WP_UnitTestCase {
 		$this->assertIsArray( $data['content'] );
 		$this->assertNotEmpty( $data['content'] );
 		$this->assertSame( 'text', $data['content'][0]['type'] );
+	}
+
+	/**
+	 * call_tool rejects an ability disabled in tool permissions.
+	 */
+	public function test_call_tool_rejects_disabled_ability(): void {
+		Settings::instance()->update(
+			[ 'tool_permissions' => [ self::MOCK_ABILITY => 'disabled' ] ]
+		);
+
+		$response = $this->dispatch_mcp(
+			[
+				'method' => 'call_tool',
+				'params' => [
+					'name'      => self::MOCK_MCP_NAME,
+					'arguments' => [ 'message' => 'must-not-run' ],
+				],
+			]
+		);
+
+		$this->assertStatus( 200, $response );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['isError'] );
+		$this->assertSame( 'Ability "test-plugin/mock-tool" is disabled.', $data['content'][0]['text'] );
+		$this->assertSame( 0, $this->mock_execution_count, 'Disabled ability must not execute.' );
 	}
 
 	/**

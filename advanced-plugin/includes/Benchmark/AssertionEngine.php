@@ -73,7 +73,7 @@ class AssertionEngine {
 	 * @param string               $type      Assertion type identifier.
 	 * @param array<string, mixed> $assertion Full assertion definition.
 	 * @param array<string, mixed> $context   Runtime context.
-	 * @return array{pass: bool, expected: string, actual: string, detail?: string}
+	 * @return array{pass: bool, expected: string, actual: string, detail?: string, exercised?: bool, recovered?: bool}
 	 */
 	private static function run_one( string $type, array $assertion, array $context ): array {
 		switch ( $type ) {
@@ -978,7 +978,7 @@ class AssertionEngine {
 	 * @param array<int, string>   $tools          Tools expected to fail first.
 	 * @param array<int, string>   $recovery_tools Additional tools accepted for recovery.
 	 * @param array<string, mixed> $context        Runtime context with 'tool_call_log'.
-	 * @return array<string, mixed>
+	 * @return array{pass: bool, expected: string, actual: string, exercised: bool, recovered: bool}
 	 */
 	private static function assert_tool_error_recovered( array $tools, array $recovery_tools, array $context ): array {
 		$failure_seen = false;
@@ -1024,7 +1024,7 @@ class AssertionEngine {
 	 *
 	 * @param array<string, mixed> $context Runtime context with 'tool_call_log'.
 	 * @param int                  $max     Maximum allowed consecutive identical failures.
-	 * @return array<string, mixed>
+	 * @return array{pass: bool, expected: string, actual: string, exercised: bool, recovered: bool}
 	 */
 	private static function assert_max_identical_failures( array $context, int $max ): array {
 		$previous_key = '';
@@ -1073,7 +1073,11 @@ class AssertionEngine {
 		);
 	}
 
-	/** Decode one JSON tool output into an array. */
+	/**
+	 * Decode one JSON tool output into an array.
+	 *
+	 * @return array<mixed, mixed>|null
+	 */
 	private static function decode_tool_output( mixed $output ): ?array {
 		if ( is_string( $output ) ) {
 			$output = json_decode( $output, true );
@@ -1082,7 +1086,11 @@ class AssertionEngine {
 		return is_array( $output ) ? $output : null;
 	}
 
-	/** Whether a decoded output carries both an error and an error code. */
+	/**
+	 * Whether a decoded output carries both an error and an error code.
+	 *
+	 * @param array<mixed, mixed>|null $output Decoded tool output.
+	 */
 	private static function tool_output_failed( ?array $output ): bool {
 		if ( null === $output || ! array_key_exists( 'error', $output ) ) {
 			return false;
@@ -1092,7 +1100,12 @@ class AssertionEngine {
 			|| ( is_array( $output['error'] ) && array_key_exists( 'code', $output['error'] ) );
 	}
 
-	/** Match a direct or dispatcher tool-log entry against candidate ability IDs. */
+	/**
+	 * Match a direct or dispatcher tool-log entry against candidate ability IDs.
+	 *
+	 * @param array<string, mixed> $entry Logged tool call.
+	 * @param array<int, string>   $tools Candidate ability names.
+	 */
 	private static function tool_entry_matches( array $entry, array $tools ): bool {
 		$name = (string) ( $entry['tool'] ?? '' );
 		if ( self::ability_name_matches( $name, $tools ) ) {

@@ -562,6 +562,34 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertFalse( get_user_by( 'login', $command->last_user_login ) );
 	}
 
+	/** An already-existing user scenario creates and cleans up only its owned fixture. */
+	public function test_existing_user_fixture_is_created_and_cleaned(): void {
+		$command  = new TestableBenchmarkCommand();
+		$prepare  = new ReflectionMethod( BenchmarkCommand::class, 'prepare_question_fixtures' );
+		$setup    = $prepare->invoke(
+			$command,
+			array(
+				'setup' => array(
+					'user' => array(
+						'login_prefix' => 'recovery-existing',
+						'email_domain' => 'example.test',
+						'existing'     => true,
+					),
+				),
+			)
+		);
+		$login    = $setup['variables']['{{user_login}}'];
+		$existing = get_user_by( 'login', $login );
+
+		$this->assertNotFalse( $existing );
+		$this->assertSame( array( 'subscriber' ), $existing->roles );
+
+		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_owned_user_fixtures' );
+		$cleanup->invoke( $command );
+
+		$this->assertFalse( get_user_by( 'login', $login ) );
+	}
+
 	/** SDK function names and ability-call wrappers retain ownership evidence. */
 	public function test_owned_user_fixture_accepts_routed_tool_evidence(): void {
 		foreach ( array( 'sdk', 'meta' ) as $mode ) {

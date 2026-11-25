@@ -3651,19 +3651,20 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test the Advanced companion guidance gives administrators the manual installation path.
+	 * Test the Advanced companion guidance sends administrators to the one-click sdaiagent.com install.
 	 */
-	public function test_advanced_companion_guidance_explains_manual_installation(): void {
+	public function test_advanced_companion_guidance_explains_one_click_installation(): void {
 		$builder     = new SystemInstructionBuilder();
 		$guidance    = SystemInstructionBuilder::build_advanced_companion_section();
 		$instruction = $builder->build( array() );
 
 		$this->assertStringContainsString( 'sd_ai_agent_advanced_plugin_required', $guidance );
-		$this->assertStringContainsString( 'latest SD AI Agent GitHub release', $guidance );
-		$this->assertStringContainsString( 'Upload Plugin', $guidance );
+		$this->assertStringContainsString( 'Install and Activate the SD AI Agent Advanced plugin', $guidance );
+		$this->assertStringContainsString( 'Do not point users to GitHub releases', $guidance );
+		$this->assertStringNotContainsString( 'Upload Plugin', $guidance );
 		$this->assertStringContainsString( 'Do not attempt to download, install, activate, or update', $guidance );
 		$this->assertStringContainsString( 'sd_ai_agent_advanced_plugin_required', $instruction );
-		$this->assertStringContainsString( 'latest SD AI Agent GitHub release', $instruction );
+		$this->assertStringContainsString( 'Install and Activate the SD AI Agent Advanced plugin', $instruction );
 	}
 
 	/**

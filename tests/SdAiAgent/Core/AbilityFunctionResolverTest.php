@@ -252,6 +252,30 @@ class AbilityFunctionResolverTest extends WP_UnitTestCase {
 		$payload = $this->normalise_response_payload( $response->getResponse() );
 
 		$this->assertSame( 'ability_not_allowed', $payload['code'] );
+		$this->assertNotEmpty( $payload['next_steps'] );
+		$this->assertStringContainsString( 'ability-search', implode( ' ', $payload['next_steps'] ) );
+	}
+
+	/** A real ability returning a WP_Error gets code-derived next steps in the model-visible payload. */
+	public function test_wp_error_from_real_ability_includes_next_steps(): void {
+		$this->skip_if_resolver_unavailable();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$resolver = new AbilityFunctionResolver( 'sd-ai-agent/file-outline' );
+		$response = $resolver->execute_ability(
+			new FunctionCall(
+				'call_missing_file',
+				\WP_AI_Client_Ability_Function_Resolver::ability_name_to_function_name( 'sd-ai-agent/file-outline' ),
+				array( 'path' => 'themes/does-not-exist/functions.php' )
+			)
+		);
+
+		$payload = $this->normalise_response_payload( $response->getResponse() );
+
+		$this->assertSame( 'sd_ai_agent_file_not_found', $payload['code'] );
+		$this->assertNotEmpty( $payload['next_steps'] );
+		$this->assertStringContainsString( 'not found', implode( ' ', $payload['next_steps'] ) );
+		$this->assertArrayNotHasKey( 'hint', $payload );
 	}
 
 	/** A `parameters` envelope from a provider is normalized before schema validation. */

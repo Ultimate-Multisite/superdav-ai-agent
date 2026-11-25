@@ -100,6 +100,15 @@ class OptionsAbilitiesTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** The Advanced install-request marker is blocked despite the sd_ai_agent_ prefix. */
+	public function test_advanced_install_request_marker_is_write_blocked(): void {
+		$name = \SdAiAgent\Core\AdvancedPluginManager::INSTALL_REQUEST_OPTION;
+
+		$this->assertStringStartsWith( 'sd_ai_agent_', $name );
+		$this->assertContains( $name, OptionsAbilities::get_write_blocklist() );
+		$this->assertFalse( OptionsAbilities::is_write_allowed_option( $name ) );
+	}
+
 	/**
 	 * Non-secret options remain readable.
 	 */

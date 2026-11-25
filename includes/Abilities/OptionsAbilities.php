@@ -127,6 +127,9 @@ class OptionsAbilities {
 		'sd_ai_agent_remote_mcp_secrets',
 		'sd_ai_agent_remote_mcp_oauth_states',
 		'sd_ai_agent_remote_mcp_connections',
+		// Proves an administrator started the signed Advanced install; the agent
+		// must not be able to forge or clear it.
+		\SdAiAgent\Core\AdvancedPluginManager::INSTALL_REQUEST_OPTION,
 	];
 
 	/**

@@ -78,9 +78,11 @@ released-version site for the live run.
 Before spending paid requests, confirm the managed service with one minimal
 request. A pre-dispatch `503 managed_service_unavailable` ("temporarily
 unavailable") means the service has no usable upstream credential, and a
-`503 responses_outcome_unknown` means its upstream failed. Both are service-side
-outages that also affect released versions. Stop and report instead of rerunning
-scenarios.
+`502 responses_outcome_unknown` (the plugin's status when background polling
+ends without a terminal result; an upstream error may supply its own code) means
+its upstream failed. Both are service-side outages that also affect released
+versions. Match on the error code, not only the status, then stop and report
+instead of rerunning scenarios.
 
 Do not install over a source symlink or Docker bind mount. The target's canonical
 `superdav-ai-agent` and `superdav-ai-agent-advanced` directories must be independent
@@ -310,9 +312,11 @@ Concurrent PHPUnit runs that share one test database and the default
 `Unable to create the user/post`, missing options, and schema-version
 mismatches that change from run to run. When workers or other sessions may test
 in parallel, give every concurrent PHPUnit process its own session-only cache
-and its own test-table prefix (for example `qmtests_a_`, `qmtests_b_`), or its
-own database. Workers sharing one cache share its prefix and still overwrite
-each other. Set the same `$table_prefix` in that cache's `wp-tests-config.php`
+and its own test-table prefix (for example `qmtests_a_`, `qmtests_b_`). A
+separate database also needs its own cache, because that cache's
+`wp-tests-config.php` fixes `DB_NAME`; setup refuses an existing cache whose
+`DB_NAME` differs from `WP_TESTS_DB_NAME`. Workers sharing one cache share its
+prefix and database and still overwrite each other. Set the same `$table_prefix` in that cache's `wp-tests-config.php`
 and in the core `wp-config.php`: WP-CLI subprocesses (such as `PluginSandbox`
 integration tests) read the core file, and setup writes `wptests_` into it, so
 edit it again after every rerun of setup. This only isolates test-database runs

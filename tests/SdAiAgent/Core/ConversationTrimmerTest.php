@@ -151,6 +151,30 @@ class ConversationTrimmerTest extends WP_UnitTestCase {
 	/** Provider-measured context adds only the new request bytes at four bytes per token. */
 	public function test_next_request_token_estimate_uses_reported_input_tokens(): void {
 		$this->assertSame( 21024, ConversationTrimmer::estimate_next_request_tokens( 20000, 4096 ) );
+		$this->assertSame( 30000, ConversationTrimmer::estimate_next_request_tokens( 20000, 30000, 3 ) );
+	}
+
+	/** A complete gateway snapshot replaces copied model-window admission math. */
+	public function test_managed_request_budgets_use_last_gateway_admission_snapshot(): void {
+		add_filter( 'sd_ai_agent_provider_request_max_bytes', static fn(): int => 999999 );
+		add_filter( 'sd_ai_agent_provider_request_safety_margin_bytes', static fn(): int => 2048 );
+		$context = array(
+			'context_estimate_tokens'     => 50000,
+			'context_limit_tokens'        => 200000,
+			'output_reserve_tokens'       => 16384,
+			'input_token_bytes_per_token' => 3,
+			'request_bytes'               => 100000,
+		);
+
+		// The next request may add exactly the gateway's remaining input capacity.
+		$this->assertSame( 500848, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro', false, $context ) );
+		$this->assertSame( 500848, ConversationTrimmer::get_request_envelope_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro', false, $context ) );
+		$this->assertSame( 165254, ConversationTrimmer::get_request_compaction_token_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro', $context ) );
+
+		// Missing or partial snapshots retain the current model-metadata fallback.
+		$this->assertSame( 550848, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro' ) );
+		unset( $context['context_limit_tokens'] );
+		$this->assertSame( 550848, ConversationTrimmer::get_request_byte_budget( 'sd-ai-agent-cloud', 'superdav-chat-pro', false, $context ) );
 	}
 
 	/**

@@ -970,6 +970,12 @@ namespace WordPress\AiClient\Providers\OpenAiCompatibleImplementation {
 		/** @param list<\WordPress\AiClient\Messages\DTO\Message> $prompt Prompt messages. */
 		public function generateTextResult( array $prompt ): \WordPress\AiClient\Results\DTO\GenerativeAiResult { return new \WordPress\AiClient\Results\DTO\GenerativeAiResult(); }
 
+		/** Parse a compatible provider response into the SDK result DTO. */
+		protected function parseResponseToGenerativeAiResult( \WordPress\AiClient\Providers\Http\DTO\Response $response ): \WordPress\AiClient\Results\DTO\GenerativeAiResult { return new \WordPress\AiClient\Results\DTO\GenerativeAiResult(); }
+
+		/** Throw when a compatible provider response is unsuccessful. */
+		protected function throwIfNotSuccessful( \WordPress\AiClient\Providers\Http\DTO\Response $response ): void {}
+
 		/**
 		 * @param array<int, \WordPress\AiClient\Messages\DTO\Message> $messages
 		 * @return array<int, array<string, mixed>>

@@ -126,7 +126,11 @@ class ScriptedAgentLoop extends AgentLoop {
 		$history = $history_property->getValue( $this );
 		if ( is_array( $history ) ) {
 			/** @var Message[] $history */
-			$this->requestSizes[] = ConversationTrimmer::estimate_total_bytes( $history );
+			$request_bytes       = ConversationTrimmer::estimate_total_bytes( $history );
+			$this->requestSizes[] = $request_bytes;
+			$current_bytes        = new \ReflectionProperty( AgentLoop::class, 'current_provider_request_bytes' );
+			$current_bytes->setAccessible( true );
+			$current_bytes->setValue( $this, $request_bytes );
 		}
 
 		$result = array_shift( $this->scriptedResults );
@@ -788,7 +792,7 @@ class AgentLoopTest extends WP_UnitTestCase {
 	}
 
 	/** Build a deterministic SDK result for scripted provider recovery tests. */
-	private function create_scripted_result( string $reply, ?FunctionCall $function_call = null ): GenerativeAiResult {
+	private function create_scripted_result( string $reply, ?FunctionCall $function_call = null, array $additional_data = array() ): GenerativeAiResult {
 		$provider_metadata = new ProviderMetadata(
 			'scripted-provider',
 			'Scripted Provider',
@@ -812,7 +816,8 @@ class AgentLoopTest extends WP_UnitTestCase {
 			array( $candidate ),
 			new TokenUsage( 10, 5, 15 ),
 			$provider_metadata,
-			$model_metadata
+			$model_metadata,
+			$additional_data
 		);
 	}
 
@@ -2700,6 +2705,48 @@ class AgentLoopTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Gateway admission headers govern whether a following managed request compacts. */
+	public function test_gateway_context_estimate_controls_following_request_compaction(): void {
+		$run = function ( int $estimate ): ScriptedAbilityAgentLoop {
+			$history = array(
+				new UserMessage( array( new MessagePart( 'Inspect the site.' ) ) ),
+				new ModelMessage( array( new MessagePart( 'I will inspect it.' ) ) ),
+				new UserMessage( array( new MessagePart( str_repeat( 'Prior completed evidence. ', 11000 ) ) ) ),
+			);
+			$context = array(
+				'superdav_context_admission' => array(
+					'context_estimate_tokens'     => $estimate,
+					'context_limit_tokens'        => 200000,
+					'output_reserve_tokens'       => 16384,
+					'input_token_bytes_per_token' => 3,
+				),
+			);
+
+			$loop = new ScriptedAbilityAgentLoop(
+				'Continue.',
+				array( 'sd-ai-agent/ability-search' ),
+				$history,
+				array( 'provider_id' => 'sd-ai-agent-cloud', 'model_id' => 'superdav-chat-pro' ),
+				array(
+					$this->create_scripted_result( '', new FunctionCall( 'context-call', 'wpab__sd-ai-agent__ability-search', array( 'query' => 'site' ) ), $context ),
+					$this->create_scripted_result( 'Done.' ),
+				),
+				new UserMessage( array( new MessagePart( new FunctionResponse( 'context-call', 'wpab__sd-ai-agent__ability-search', array( 'results' => array() ) ) ) ) )
+			);
+			$loop->run();
+
+			return $loop;
+		};
+
+		$admitted = $run( 50000 );
+		$this->assertCount( 2, $admitted->requestSizes );
+		$this->assertGreaterThan( ConversationTrimmer::COMPACT_MAX_BYTES, $admitted->requestSizes[1] );
+
+		$compacted = $run( 180000 );
+		$this->assertCount( 2, $compacted->requestSizes );
+		$this->assertLessThanOrEqual( ConversationTrimmer::COMPACT_MAX_BYTES, $compacted->requestSizes[1] );
+	}
+
 	/** Compact a large discovery/list turn while retaining intent and product identities. */
 	public function test_managed_compaction_retains_coupon_intent_and_product_ids(): void {
 		$schema  = array( 'type' => 'object', 'properties' => array( 'details' => array( 'type' => 'string', 'description' => str_repeat( 'schema detail ', 1600 ) ) ) );
@@ -2773,6 +2820,43 @@ class AgentLoopTest extends WP_UnitTestCase {
 			static fn( array $entry ): bool => 'provider_payload_recovery' === ( $entry['type'] ?? '' )
 		);
 		$this->assertCount( 1, $recoveries );
+	}
+
+	/** A managed max-token rejection reduces the retry by the exact overage plus headroom. */
+	public function test_managed_max_tokens_rejection_uses_reported_overage_for_retry(): void {
+		$message      = str_repeat( 'Current managed request evidence. ', 4000 );
+		$request_size = ConversationTrimmer::estimate_total_bytes( array( new UserMessage( array( new MessagePart( $message ) ) ) ) );
+		$overage      = 190000 - ( 200000 - 16384 );
+		$reduction    = (int) ceil( $overage * 1.05 ) * 3;
+		$loop         = new ScriptedAgentLoop(
+			$message,
+			array(),
+			array(),
+			array( 'provider_id' => 'sd-ai-agent-cloud', 'model_id' => 'superdav-chat-pro' ),
+			array(
+				new WP_Error(
+					'sd_ai_agent_provider_gateway_rejection',
+					'The request exceeded the managed context limit.',
+					array(
+						'status_code'                => 400,
+						'provider_error_code'        => 'max_tokens_exceeded',
+						'context_estimate_tokens'    => 190000,
+						'context_limit_tokens'       => 200000,
+						'output_reserve_tokens'      => 16384,
+						'request_bytes'              => $request_size + 1000,
+						'request_size_source'        => 'complete_envelope',
+					)
+				),
+				$this->create_scripted_result( 'Recovered from the exact overage.' ),
+			)
+		);
+
+		$result = $loop->run();
+
+		$this->assertIsArray( $result );
+		$this->assertCount( 2, $loop->requestSizes );
+		$this->assertLessThanOrEqual( $loop->requestSizes[0] - $reduction, $loop->requestSizes[1] );
+		$this->assertSame( 'Recovered from the exact overage.', $result['reply'] );
 	}
 
 	/** A failed measured local retry must not request another compaction loop. */

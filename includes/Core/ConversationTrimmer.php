@@ -1638,12 +1638,13 @@ class ConversationTrimmer {
 	/**
 	 * Resolve the configured provider request byte budget.
 	 *
-	 * @param string $provider_id Runtime-selected provider ID.
-	 * @param string $model_id    Runtime-selected model ID.
-	 * @param bool   $native_responses Whether deferred schemas need a separate native context check.
+	 * @param string                    $provider_id Runtime-selected provider ID.
+	 * @param string                    $model_id    Runtime-selected model ID.
+	 * @param bool                      $native_responses Whether deferred schemas need a separate native context check.
+	 * @param array<string, mixed>|null $managed_context Last complete gateway admission snapshot.
 	 * @return int Effective request byte budget.
 	 */
-	public static function get_request_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false ): int {
+	public static function get_request_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false, ?array $managed_context = null ): int {
 		// @phpstan-ignore-next-line
 		$configured = (int) Settings::instance()->get( 'provider_request_max_bytes' );
 		if ( $configured <= 0 ) {
@@ -1665,21 +1666,54 @@ class ConversationTrimmer {
 		// Native deferred catalogs occupy HTTP bytes without all entering model
 		// context. Keep the configured body cap; the service checks native context.
 		if ( ! $native_responses && self::is_managed_superdav_chat_model( $provider_id, $model_id ) ) {
-			$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
-			$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
-			$input_budget   = max( 1024, $context_window - $output_limit );
-			$filtered       = min( $filtered, $input_budget * self::get_managed_input_token_bytes_per_token( $model_id ) );
+			$reported = self::normalize_managed_context( $managed_context );
+			if ( null !== $reported ) {
+				$remaining_tokens = max( 0, $reported['context_limit_tokens'] - $reported['output_reserve_tokens'] - $reported['context_estimate_tokens'] );
+				$reported_budget  = $reported['request_bytes'] + $remaining_tokens * $reported['input_token_bytes_per_token'];
+				$filtered         = min( $filtered, $reported_budget );
+			} else {
+				$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
+				$output_limit   = Settings::get_max_output_tokens_for_model( $model_id );
+				$input_budget   = max( 1024, $context_window - $output_limit );
+				$filtered       = min( $filtered, $input_budget * self::get_managed_input_token_bytes_per_token( $model_id ) );
+			}
 		}
 
 		return max( 1024, $filtered );
 	}
 
 	/** Resolve the managed gateway input-token byte ratio for a model. */
-	private static function get_managed_input_token_bytes_per_token( string $model_id ): int {
+	public static function get_managed_input_token_bytes_per_token( string $model_id ): int {
 		$entry = ModelCapabilityRegistry::get( $model_id );
 		$ratio = (int) ( $entry['input_token_bytes_per_token'] ?? 0 );
 
 		return $ratio > 0 ? $ratio : self::MANAGED_INPUT_TOKEN_BYTES_PER_TOKEN_FALLBACK;
+	}
+
+	/**
+	 * Validate the complete admission snapshot reported by the managed gateway.
+	 *
+	 * @param array<string, mixed>|null $context Raw per-response admission values.
+	 * @return array{context_estimate_tokens:int,context_limit_tokens:int,output_reserve_tokens:int,input_token_bytes_per_token:int,request_bytes:int}|null
+	 */
+	private static function normalize_managed_context( ?array $context ): ?array {
+		if ( null === $context ) {
+			return null;
+		}
+
+		$keys = array( 'context_estimate_tokens', 'context_limit_tokens', 'output_reserve_tokens', 'input_token_bytes_per_token', 'request_bytes' );
+		foreach ( $keys as $key ) {
+			if ( ! isset( $context[ $key ] ) || ! is_int( $context[ $key ] ) || $context[ $key ] < 0 ) {
+				return null;
+			}
+		}
+
+		if ( 0 === $context['context_limit_tokens'] || 0 === $context['input_token_bytes_per_token'] ) {
+			return null;
+		}
+
+		/** @var array{context_estimate_tokens:int,context_limit_tokens:int,output_reserve_tokens:int,input_token_bytes_per_token:int,request_bytes:int} $context */
+		return $context;
 	}
 
 	/** Whether the provider/model pair is a managed Superdav chat model. */
@@ -1713,13 +1747,22 @@ class ConversationTrimmer {
 	 * body guard. The latter remains authoritative because it sees provider-
 	 * specific serialization that is unavailable to the trimmer.
 	 *
-	 * @param string $provider_id Runtime-selected provider ID.
-	 * @param string $model_id    Runtime-selected model ID.
-	 * @param bool   $native_responses Whether this envelope uses native Responses tool search.
+	 * @param string                    $provider_id Runtime-selected provider ID.
+	 * @param string                    $model_id    Runtime-selected model ID.
+	 * @param bool                      $native_responses Whether this envelope uses native Responses tool search.
+	 * @param array<string, mixed>|null $managed_context Last complete gateway admission snapshot.
 	 * @return int Effective full-envelope byte budget.
 	 */
-	public static function get_request_envelope_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false ): int {
-		$request_limit = self::get_request_byte_budget( $provider_id, $model_id, $native_responses );
+	public static function get_request_envelope_byte_budget( string $provider_id = '', string $model_id = '', bool $native_responses = false, ?array $managed_context = null ): int {
+		$request_limit = self::get_request_byte_budget( $provider_id, $model_id, $native_responses, $managed_context );
+		if ( ! $native_responses && self::is_managed_superdav_chat_model( $provider_id, $model_id ) && null !== self::normalize_managed_context( $managed_context ) ) {
+			$generic_http_limit = self::get_request_byte_budget( $provider_id, $model_id, true );
+			if ( $request_limit < $generic_http_limit ) {
+				// The gateway snapshot already measures admission directly. Retain
+				// the safety margin only when the generic HTTP cap is the tighter limit.
+				return max( 1024, $request_limit );
+			}
+		}
 		$safety_margin = self::resolve_request_safety_margin_bytes( $request_limit, $provider_id, $model_id );
 
 		return max( 1024, $request_limit - $safety_margin );
@@ -1782,10 +1825,23 @@ class ConversationTrimmer {
 		return max( 256, $filtered );
 	}
 
-	/** Resolve the context threshold used to begin managed-provider compaction. */
-	public static function get_request_compaction_token_budget( string $provider_id = '', string $model_id = '' ): int {
+	/**
+	 * Resolve the context threshold used to begin managed-provider compaction.
+	 *
+	 * @param string                    $provider_id    Runtime-selected provider ID.
+	 * @param string                    $model_id       Runtime-selected model ID.
+	 * @param array<string, mixed>|null $managed_context Last complete gateway admission snapshot.
+	 */
+	public static function get_request_compaction_token_budget( string $provider_id = '', string $model_id = '', ?array $managed_context = null ): int {
 		if ( ! self::is_managed_superdav_chat_model( $provider_id, $model_id ) ) {
 			return self::get_request_token_budget( $provider_id, $model_id );
+		}
+
+		$reported = self::normalize_managed_context( $managed_context );
+		if ( null !== $reported ) {
+			$reported_input_limit = max( 0, $reported['context_limit_tokens'] - $reported['output_reserve_tokens'] );
+
+			return max( 256, (int) floor( $reported_input_limit * self::MANAGED_ADMISSION_COMPACTION_SHARE ) );
 		}
 
 		$context_window = Settings::MODEL_CONTEXT_WINDOWS[ $model_id ];
@@ -1802,8 +1858,10 @@ class ConversationTrimmer {
 	}
 
 	/** Estimate a following request from a provider-measured context and new bytes. */
-	public static function estimate_next_request_tokens( int $last_input_tokens, int $new_bytes ): int {
-		return max( 0, $last_input_tokens ) + (int) ceil( max( 0, $new_bytes ) / self::ESTIMATED_BYTES_PER_REPORTED_TOKEN );
+	public static function estimate_next_request_tokens( int $last_input_tokens, int $new_bytes, int $input_token_bytes_per_token = self::ESTIMATED_BYTES_PER_REPORTED_TOKEN ): int {
+		$ratio = max( 1, $input_token_bytes_per_token );
+
+		return max( 0, $last_input_tokens ) + (int) ceil( max( 0, $new_bytes ) / $ratio );
 	}
 
 	/**

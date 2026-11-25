@@ -14,6 +14,7 @@ use SdAiAgent\Core\ProviderTraceLogger;
 use SdAiAgent\Infrastructure\AiClient\Superdav\ResponsesContinuation;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiResponsesToolSearchTextGenerationModel;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Files\DTO\File;
 use WordPress\AiClient\Messages\DTO\UserMessage;
@@ -101,6 +102,73 @@ final class ResponsesContinuationTest extends WP_UnitTestCase {
 			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Again.' ) ) ) ) );
 		$this->assertCount( 3, $requests );
 		$this->assertStringEndsWith( '/responses', $requests[2]->getUri() );
+	}
+
+	/** Native responses expose the managed gateway's actual admission metrics. */
+	public function test_response_admission_headers_are_exposed_as_additional_data(): void {
+		$requests = array();
+		$headers  = array(
+			'x-superdav-context-estimate-tokens'       => '50000',
+			'x-superdav-context-limit-tokens'          => '200000',
+			'x-superdav-output-reserve-tokens'         => '16384',
+			'x-superdav-input-token-bytes-per-token'   => '3',
+		);
+		$response = new Response(
+			200,
+			$headers,
+			wp_json_encode(
+				array(
+					'id'     => 'resp_context',
+					'status' => 'completed',
+					'output' => array(
+						array( 'type' => 'message', 'role' => 'assistant', 'content' => array( array( 'type' => 'output_text', 'text' => 'Found it.' ) ) ),
+					),
+				)
+			)
+		);
+
+		$result = $this->model( array( $response ), $requests )
+			->generateTextResult( array( new UserMessage( array( new MessagePart( 'Hello.' ) ) ) ) );
+
+		$this->assertSame(
+			array(
+				'context_estimate_tokens'     => 50000,
+				'context_limit_tokens'        => 200000,
+				'output_reserve_tokens'       => 16384,
+				'input_token_bytes_per_token' => 3,
+			),
+			$result->getAdditionalData()['superdav_context_admission'] ?? null
+		);
+	}
+
+	/** Max-token response bodies retain only the safe scalars needed for one retry. */
+	public function test_max_token_error_body_exposes_retry_admission_metrics(): void {
+		$response = new Response(
+			400,
+			array(),
+			wp_json_encode(
+				array(
+					'error' => array(
+						'code'                    => 'max_tokens_exceeded',
+						'context_estimate_tokens' => 190000,
+						'context_limit_tokens'    => 200000,
+						'output_reserve_tokens'   => 16384,
+					),
+				)
+			)
+		);
+
+		SuperdavAiTextGenerationModel::capture_context_limit_error( $response );
+
+		$this->assertSame(
+			array(
+				'context_estimate_tokens' => 190000,
+				'context_limit_tokens'    => 200000,
+				'output_reserve_tokens'   => 16384,
+			),
+			SuperdavAiTextGenerationModel::consume_context_limit_error()
+		);
+		$this->assertNull( SuperdavAiTextGenerationModel::consume_context_limit_error() );
 	}
 
 	/** A failed background job surfaces as a provider error and never advances the cursor. */

@@ -588,6 +588,28 @@ class AiImageAbilitiesTest extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'attachments', $result );
 	}
 
+	/** Provider recovery guidance remains visible in the ability response. */
+	public function test_execute_callback_failure_returns_provider_next_steps(): void {
+		$ability = $this->getMockBuilder( GenerateImageAbility::class )
+			->setConstructorArgs( [ 'sd-ai-agent/generate-image' ] )
+			->onlyMethods( [ 'generate_and_import' ] )
+			->getMock();
+
+		$ability->method( 'generate_and_import' )
+			->willReturn(
+				new \WP_Error(
+					'provider_unavailable',
+					'Provider unavailable.',
+					[ 'next_steps' => [ 'Use sd-ai-agent/stock-image while the provider is unavailable.' ] ]
+				)
+			);
+
+		$result = $ability->run( [ 'prompt' => 'A test image.' ] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( [ 'Use sd-ai-agent/stock-image while the provider is unavailable.' ], $result['next_steps'] );
+	}
+
 	/**
 	 * Provenance metadata is saved on generated attachments.
 	 *

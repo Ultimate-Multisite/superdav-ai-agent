@@ -1162,6 +1162,43 @@ class ToolDiscoveryTest extends WP_UnitTestCase {
 		$this->assertNotEmpty( $result['example_arguments'] );
 	}
 
+	/** Explicit target guidance survives the ability-call dispatcher. */
+	public function test_ability_call_preserves_target_error_next_steps(): void {
+		$this->register_test_ability(
+			'test-plugin/error-guidance',
+			[
+				'label'               => 'Error Guidance',
+				'description'         => 'Returns an error with explicit recovery guidance.',
+				'category'            => 'third-party',
+				'execute_callback'    => static function (): \WP_Error {
+					return new \WP_Error(
+						'test_prerequisite_missing',
+						'Test prerequisite is missing.',
+						[ 'next_steps' => [ 'Configure the test prerequisite before retrying.' ] ]
+					);
+				},
+				'permission_callback' => static fn (): bool => true,
+				'meta'                => [
+					'annotations' => [
+						'readonly'    => true,
+						'destructive' => false,
+					],
+				],
+			]
+		);
+
+		$result = ToolDiscovery::handle_ability_call(
+			[
+				'ability'   => 'test-plugin/error-guidance',
+				'arguments' => [],
+			]
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( [ 'Configure the test prerequisite before retrying.' ], $result['next_steps'] );
+	}
+
 	public function test_ability_call_injects_nudge_after_two_identical_failures(): void {
 		$args = array();
 

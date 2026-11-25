@@ -136,6 +136,7 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 'requires_prerequisite', $result['status'] );
 		$this->assertSame( 'vendor_plugin_setting_unsupported', $result['prerequisites'][0]['code'] );
+		$this->assertStringContainsString( 'commerce-inspect', $result['prerequisites'][0]['next_steps'][0] );
 		$this->assertArrayHasKey( 'next_steps', $result );
 		$this->assertTrue( rest_validate_value_from_schema( $result, wp_get_ability( 'sd-ai-agent/commerce-plan' )->get_output_schema(), 'output' ) );
 		$this->assertArrayNotHasKey( 'approval_request_id', $result );
@@ -235,6 +236,10 @@ class WooCommerceAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $approved );
 		$this->assertSame( 'sd_ai_agent_commerce_prerequisite_changed', $approved->get_error_code() );
+		$this->assertSame(
+			'Run sd-ai-agent/commerce-inspect in approved target site ' . $this->target_blog_id . ' context to refresh its prerequisites, then create and approve a new plan with sd-ai-agent/commerce-plan; do not retry the stale approved plan.',
+			$approved->get_error_data()['next_steps'][0]
+		);
 		$this->assertSame( $initial_blog_id, get_current_blog_id(), 'Failed execution must restore the caller blog.' );
 		$this->assertFalse( $this->term_exists_for_blog( $this->target_blog_id, 'Inactive Target Category' ) );
 		$this->assertSame( 'yes', $this->get_option_for_blog( $this->target_blog_id, 'woocommerce_enable_coupons' ) );

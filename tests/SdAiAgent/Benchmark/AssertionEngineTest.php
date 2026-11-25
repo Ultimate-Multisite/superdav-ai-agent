@@ -528,6 +528,85 @@ PHP
 		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
 	}
 
+	/** A JSON error followed by a successful listed recovery call passes. */
+	public function test_tool_error_recovered_accepts_later_success(): void {
+		$result = $this->run_recovery_assertion(
+			array(
+				array(
+					'tool'   => 'sd-ai-agent/update-post',
+					'input'  => array( 'post_id' => 999999 ),
+					'output' => wp_json_encode( array( 'error' => 'Post not found', 'code' => 'post_not_found' ) ),
+				),
+				array(
+					'tool'   => 'sd-ai-agent/list-posts',
+					'input'  => array( 'search' => 'Recovery Fixture' ),
+					'output' => wp_json_encode( array( 'posts' => array( array( 'id' => 42 ) ) ) ),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['passed'], (string) wp_json_encode( $result ) );
+		$this->assertTrue( $result['results'][0]['exercised'] );
+		$this->assertTrue( $result['results'][0]['recovered'] );
+	}
+
+	/** A failed call without a later success remains unrecovered. */
+	public function test_tool_error_recovered_rejects_unrecovered_failure(): void {
+		$result = $this->run_recovery_assertion(
+			array(
+				array(
+					'tool'   => 'sd-ai-agent/update-post',
+					'input'  => array( 'post_id' => 999999 ),
+					'output' => wp_json_encode( array( 'error' => 'Post not found', 'code' => 'post_not_found' ) ),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( 'failure observed without later recovery', $result['results'][0]['actual'] );
+	}
+
+	/** A scenario that never produced an error cannot pass recovery scoring. */
+	public function test_tool_error_recovered_requires_observed_failure(): void {
+		$result = $this->run_recovery_assertion(
+			array(
+				array(
+					'tool'   => 'sd-ai-agent/update-post',
+					'input'  => array( 'post_id' => 42 ),
+					'output' => wp_json_encode( array( 'post_id' => 42 ) ),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( 'no failure observed', $result['results'][0]['actual'] );
+		$this->assertFalse( $result['results'][0]['exercised'] );
+	}
+
+	/** Identical consecutive failures are bounded while changed inputs reset the streak. */
+	public function test_max_identical_failures_rejects_excessive_repetition(): void {
+		$failure = wp_json_encode( array( 'error' => 'Post not found', 'code' => 'post_not_found' ) );
+		$result  = AssertionEngine::run(
+			array(
+				array(
+					'type' => 'max_identical_failures',
+					'max'  => 2,
+				),
+			),
+			array(
+				'tool_call_log' => array(
+					array( 'tool' => 'sd-ai-agent/update-post', 'input' => array( 'post_id' => 1 ), 'output' => $failure ),
+					array( 'tool' => 'sd-ai-agent/update-post', 'input' => array( 'post_id' => 2 ), 'output' => $failure ),
+					array( 'tool' => 'sd-ai-agent/update-post', 'input' => array( 'post_id' => 2 ), 'output' => $failure ),
+					array( 'tool' => 'sd-ai-agent/update-post', 'input' => array( 'post_id' => 2 ), 'output' => $failure ),
+				),
+			)
+		);
+
+		$this->assertSame( 1, $result['failed'], (string) wp_json_encode( $result ) );
+		$this->assertStringContainsString( '3 identical failures', $result['results'][0]['actual'] );
+	}
+
 	/**
 	 * Run the SEO output assertion against a supplied tool-call log.
 	 *
@@ -541,6 +620,25 @@ PHP
 					'type'          => 'tool_output_contains',
 					'tools'         => array( 'sd-ai-agent/seo-analyze-content' ),
 					'required_keys' => array( 'post_id', 'recommendations' ),
+				),
+			),
+			array( 'tool_call_log' => $tool_call_log )
+		);
+	}
+
+	/**
+	 * Run the recovery assertion against a supplied tool-call log.
+	 *
+	 * @param array<int, array<string, mixed>> $tool_call_log Tool-call entries.
+	 * @return array<string, mixed>
+	 */
+	private function run_recovery_assertion( array $tool_call_log ): array {
+		return AssertionEngine::run(
+			array(
+				array(
+					'type'           => 'tool_error_recovered',
+					'tools'          => array( 'sd-ai-agent/update-post' ),
+					'recovery_tools' => array( 'sd-ai-agent/list-posts' ),
 				),
 			),
 			array( 'tool_call_log' => $tool_call_log )

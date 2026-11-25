@@ -346,6 +346,37 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertFalse( $summary['ranking_eligible'] );
 	}
 
+	/** Recovery summaries expose exercise/recovery state and remain unranked. */
+	public function test_recovery_summary_is_not_ranking_eligible(): void {
+		$command = new TestableBenchmarkCommand();
+		$method  = new ReflectionMethod( BenchmarkCommand::class, 'summarize_question_result' );
+		$summary = $method->invoke(
+			$command,
+			array(
+				'question_id'         => 'rec-001',
+				'status'              => 'passed',
+				'benchmark_dimension' => 'recovery',
+				'assertions'          => array(
+					'passed' => 1,
+					'failed' => 0,
+					'total'  => 1,
+					'results' => array(
+						array(
+							'type'      => 'tool_error_recovered',
+							'pass'      => true,
+							'exercised' => true,
+							'recovered' => true,
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertTrue( $summary['recovery_exercised'] );
+		$this->assertTrue( $summary['recovered'] );
+		$this->assertFalse( $summary['ranking_eligible'] );
+	}
+
 	/** Suite ranking requires functional evidence for every included question. */
 	public function test_suite_ranking_rejects_invocation_only_questions(): void {
 		$command = new TestableBenchmarkCommand();
@@ -362,6 +393,9 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 		$totals['questions_functionally_assessed'] = 2;
 		$this->assertTrue( $method->invoke( $command, $totals, 'complete' ) );
+
+		$totals['recovery_questions'] = 1;
+		$this->assertFalse( $method->invoke( $command, $totals, 'complete' ) );
 	}
 
 	/**

@@ -63,6 +63,24 @@ class BenchmarkSuiteTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Recovery questions are isolated from capability ranking and use recovery evidence. */
+	public function test_recovery_questions_declare_dimension_and_assertions(): void {
+		$questions = BenchmarkSuite::get_questions( 'recovery-v1' );
+
+		$this->assertCount( 20, $questions );
+		foreach ( $questions as $question ) {
+			$this->assertSame( 'recovery', $question['benchmark_dimension'] ?? '' );
+			$types = array_column( (array) ( $question['assertions'] ?? array() ), 'type' );
+			$this->assertNotEmpty( array_intersect( array( 'tool_error_recovered', 'max_identical_failures' ), $types ) );
+
+			foreach ( (array) ( $question['assertions'] ?? array() ) as $assertion ) {
+				foreach ( array_merge( (array) ( $assertion['tools'] ?? array() ), (array) ( $assertion['recovery_tools'] ?? array() ) ) as $tool ) {
+					$this->assertStringNotContainsString( (string) $tool, (string) ( $question['prompt'] ?? '' ) );
+				}
+			}
+		}
+	}
+
 	/**
 	 * Test developer option controls use only the benchmark-owned namespace.
 	 */

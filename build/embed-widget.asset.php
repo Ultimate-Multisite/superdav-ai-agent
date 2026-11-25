@@ -7,4 +7,4 @@ declare(strict_types=1);
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
-return array('dependencies' => array(), 'version' => 'f3db39db3b2a051a684f');
+return array('dependencies' => array(), 'version' => '8ef757df49ae9fd8faeb');

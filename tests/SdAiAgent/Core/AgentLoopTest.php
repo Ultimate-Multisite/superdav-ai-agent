@@ -1558,6 +1558,40 @@ class AgentLoopTest extends WP_UnitTestCase {
 		$this->assertCount( 2, $retry_entries );
 	}
 
+	/** A third consecutive failed recovery stops without saving another replayable state. */
+	public function test_provider_recovery_stops_after_three_consecutive_failures(): void {
+		$this->skip_if_sdk_unavailable();
+		$session_id = Database::create_session(
+			array(
+				'user_id' => 1,
+				'title'   => 'Provider recovery cap',
+			)
+		);
+		$call_count = 0;
+		$this->mock_ai_response_sequence(
+			array(
+				array(
+					'status'  => 502,
+					'message' => 'Bad Gateway',
+					'body'    => wp_json_encode( array( 'error' => array( 'message' => 'Bad gateway' ) ) ),
+				),
+			),
+			$call_count
+		);
+		$options                                  = $this->no_sleep_retry_options( 1 );
+		$options['session_id']                    = $session_id;
+		$options['consecutive_provider_failures'] = 2;
+
+		$result = ( new AgentLoop( 'Retry once', array(), array(), $options ) )->run();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'sd_ai_agent_provider_recovery_exhausted', $result->get_error_code() );
+		$this->assertSame( 'The service is down. We will fix it. Nothing is lost.', $result->get_error_message() );
+		$this->assertSame( ActiveJobFailureDiagnostic::REASON_PROVIDER_RECOVERY_EXHAUSTED, ActiveJobFailureDiagnostic::reason_from_error( $result ) );
+		$this->assertNull( Database::load_and_clear_paused_state( $session_id ) );
+		$this->assertSame( 1, $call_count );
+	}
+
 	public function test_provider_failure_context_preserves_only_safe_error_classification(): void {
 		$error = new \WP_Error(
 			'provider_http_error',

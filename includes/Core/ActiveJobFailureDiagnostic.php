@@ -55,6 +55,9 @@ final class ActiveJobFailureDiagnostic {
 	/** Automatic resume budget was exhausted without a durable completion. */
 	public const REASON_RESUME_EXHAUSTED = 'resume_exhausted';
 
+	/** Repeated provider recovery attempts failed without any intervening user turn. */
+	public const REASON_PROVIDER_RECOVERY_EXHAUSTED = 'provider_recovery_exhausted';
+
 	/** A caught loop exception left durable continuation state. */
 	public const REASON_LOOP_EXCEPTION = 'loop_exception';
 
@@ -73,6 +76,7 @@ final class ActiveJobFailureDiagnostic {
 		self::REASON_APPROVAL_WAIT,
 		self::REASON_APPROVAL_EXPIRED,
 		self::REASON_RESUME_EXHAUSTED,
+		self::REASON_PROVIDER_RECOVERY_EXHAUSTED,
 		self::REASON_LOOP_EXCEPTION,
 		self::REASON_UNKNOWN,
 	);
@@ -161,6 +165,10 @@ final class ActiveJobFailureDiagnostic {
 		$provider_id         = sanitize_key( $provider_id );
 		$status_code         = (int) ( $data['status_code'] ?? ProviderErrorClassifier::extract_status_code( $error ) );
 		$provider_error_code = sanitize_key( (string) ( $data['provider_error_code'] ?? '' ) );
+
+		if ( ! empty( $data['provider_recovery_exhausted'] ) || 'sd_ai_agent_provider_recovery_exhausted' === $code ) {
+			return self::REASON_PROVIDER_RECOVERY_EXHAUSTED;
+		}
 
 		if (
 			ProviderErrorClassifier::FAILURE_CLASS_GATEWAY_REJECTION === ( $data['failure_class'] ?? '' ) ||
@@ -276,6 +284,7 @@ final class ActiveJobFailureDiagnostic {
 			self::REASON_APPROVAL_WAIT => __( 'This job is waiting for approval before it can continue.', 'superdav-ai-agent' ),
 			self::REASON_APPROVAL_EXPIRED => __( 'The pending approval expired before it could be completed. Review the conversation and start a continuation.', 'superdav-ai-agent' ),
 			self::REASON_RESUME_EXHAUSTED => __( 'The job could not make progress after its automatic recovery attempts. Start a continuation from the saved conversation.', 'superdav-ai-agent' ),
+			self::REASON_PROVIDER_RECOVERY_EXHAUSTED => __( 'The service is down. We will fix it. Nothing is lost.', 'superdav-ai-agent' ),
 			self::REASON_LOOP_EXCEPTION => __( 'The background job stopped unexpectedly. Start a continuation from the saved conversation or contact support with the correlation ID.', 'superdav-ai-agent' ),
 			default => __( 'The background agent job could not finish. Retry the request, or contact support with the correlation ID if the problem continues.', 'superdav-ai-agent' ),
 		};
@@ -344,6 +353,7 @@ final class ActiveJobFailureDiagnostic {
 			self::REASON_APPROVAL_WAIT => 'approve_review',
 			self::REASON_APPROVAL_EXPIRED,
 			self::REASON_RESUME_EXHAUSTED,
+			self::REASON_PROVIDER_RECOVERY_EXHAUSTED,
 			self::REASON_LOOP_EXCEPTION => 'continuation',
 			default => 'contact_support',
 		};

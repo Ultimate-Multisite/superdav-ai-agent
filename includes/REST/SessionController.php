@@ -1894,18 +1894,52 @@ final class SessionController {
 				return true;
 			}
 		}
-		$messages   = is_array( $messages ) ? $messages : array();
-		$messages[] = array(
-			'role'       => 'model',
-			'parts'      => array(
+		$messages         = is_array( $messages ) ? $messages : array();
+		$message_hash     = hash( 'sha256', $message );
+		$last_index       = array_key_last( $messages );
+		$provider_error   = in_array(
+			(string) ( $diagnostic['reason'] ?? '' ),
+			array(
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_TIMEOUT,
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_RECOVERY_EXHAUSTED,
+			),
+			true
+		);
+		$last_message     = null !== $last_index && is_array( $messages[ $last_index ] ?? null ) ? $messages[ $last_index ] : array();
+		$last_diagnostic  = is_array( $last_message['diagnostic'] ?? null ) ? $last_message['diagnostic'] : array();
+		$last_text        = (string) ( $last_message['parts'][0]['text'] ?? '' );
+		$matches_previous = $provider_error
+			&& 'model' === ( $last_message['role'] ?? '' )
+			&& (string) ( $last_diagnostic['reason'] ?? '' ) === (string) ( $diagnostic['reason'] ?? '' )
+			&& ( hash_equals( (string) ( $last_diagnostic['message_hash'] ?? '' ), $message_hash ) || $last_text === $message );
+
+		if ( $matches_previous && null !== $last_index ) {
+			$occurrences                           = max( 1, (int) ( $last_diagnostic['occurrences'] ?? 1 ) ) + 1;
+			$diagnostic['occurrences']             = $occurrences;
+			$diagnostic['message_hash']            = $message_hash;
+			$messages[ $last_index ]['parts']      = array(
 				array(
 					'type' => 'text',
-					'text' => $message,
+					'text' => self::format_provider_failure_message( $message, $diagnostic, $occurrences ),
 				),
-			),
-			'diagnostic' => $diagnostic,
-		);
-		$encoded    = wp_json_encode( $messages );
+			);
+			$messages[ $last_index ]['diagnostic'] = $diagnostic;
+		} else {
+			$diagnostic['occurrences']  = 1;
+			$diagnostic['message_hash'] = $message_hash;
+			$messages[]                 = array(
+				'role'       => 'model',
+				'parts'      => array(
+					array(
+						'type' => 'text',
+						'text' => $provider_error ? self::format_provider_failure_message( $message, $diagnostic, 1 ) : $message,
+					),
+				),
+				'diagnostic' => $diagnostic,
+			);
+		}
+		$encoded = wp_json_encode( $messages );
 		if ( ! is_string( $encoded ) ) {
 			return false;
 		}
@@ -1927,6 +1961,23 @@ final class SessionController {
 				ActiveJobRepository::table_name(),
 				$row->id
 			)
+		);
+	}
+
+	/**
+	 * Build prompt-free provider failure copy with support correlation and a collapse count.
+	 *
+	 * @param string               $message     Customer-safe failure message.
+	 * @param array<string, mixed> $diagnostic Public diagnostic envelope.
+	 * @param int                  $occurrences Number of collapsed failures.
+	 */
+	private static function format_provider_failure_message( string $message, array $diagnostic, int $occurrences ): string {
+		return sprintf(
+			/* translators: 1: failure message, 2: support correlation ID, 3: occurrence count */
+			__( '%1$s Support ID: %2$s. Occurrences: %3$d.', 'superdav-ai-agent' ),
+			$message,
+			(string) ( $diagnostic['correlation_id'] ?? 'job-unknown' ),
+			max( 1, $occurrences )
 		);
 	}
 
@@ -4229,7 +4280,8 @@ final class SessionController {
 					'completion' => 0,
 				);
 
-				$resume_options['mutation_policy_context'] = is_array( $state ) ? ( $state['mutation_policy_context'] ?? array() ) : array();
+				$resume_options['mutation_policy_context']       = is_array( $state ) ? ( $state['mutation_policy_context'] ?? array() ) : array();
+				$resume_options['consecutive_provider_failures'] = is_array( $state ) ? max( 0, (int) ( $state['consecutive_provider_failures'] ?? 0 ) ) : 0;
 
 				$loop   = new AgentLoop( '', array(), $resume_history, $resume_options );
 				$result = $loop->resume_from_checkpoint( (int) ( is_array( $state ) ? ( $state['iterations_remaining'] ?? 100 ) : 100 ) );

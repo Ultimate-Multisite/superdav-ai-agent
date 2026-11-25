@@ -107,6 +107,14 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 				),
 				ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
 			),
+			'provider recovery exhausted' => array(
+				new \WP_Error(
+					'sd_ai_agent_provider_recovery_exhausted',
+					'The service is down. We will fix it. Nothing is lost.',
+					array( 'status_code' => 502, 'provider_recovery_exhausted' => true )
+				),
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_RECOVERY_EXHAUSTED,
+			),
 			'gateway rejection'         => array(
 				new \WP_Error(
 					'provider_http_error',
@@ -246,6 +254,7 @@ class ActiveJobFailureDiagnosticTest extends WP_UnitTestCase {
 			ActiveJobFailureDiagnostic::REASON_APPROVAL_WAIT              => array( 'approve_review', true ),
 			ActiveJobFailureDiagnostic::REASON_APPROVAL_EXPIRED           => array( 'continuation', false ),
 			ActiveJobFailureDiagnostic::REASON_RESUME_EXHAUSTED           => array( 'continuation', false ),
+			ActiveJobFailureDiagnostic::REASON_PROVIDER_RECOVERY_EXHAUSTED => array( 'continuation', false ),
 			ActiveJobFailureDiagnostic::REASON_LOOP_EXCEPTION             => array( 'continuation', false ),
 			ActiveJobFailureDiagnostic::REASON_UNKNOWN                    => array( 'contact_support', true ),
 		);

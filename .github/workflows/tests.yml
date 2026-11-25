@@ -3,13 +3,6 @@ name: Tests
 on:
   pull_request:
     branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'TODO.md'
-      - 'todo/**'
-      - 'LICENSE'
-      - '.editorconfig'
   workflow_dispatch:
 
 concurrency:
@@ -17,8 +10,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The required checks below must always report. A workflow-level `paths-ignore`
+  # leaves them "expected" forever on docs-only PRs, so the workflow always starts
+  # and docs-only PRs skip the jobs instead (a skipped job satisfies a required
+  # check). The jobs run unless this job positively reports `code=false`, so a
+  # classifier failure runs the full checks rather than silently skipping them.
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Classify changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "${EVENT_NAME}" != "pull_request" ]; then
+            echo "code=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          code="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' \
+            | bash .github/scripts/classify-changes.sh)"
+          echo "Code changes: ${code}"
+          echo "code=${code}" >> "${GITHUB_OUTPUT}"
+
   phpunit:
     name: PHPUnit
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     # Plugin requires WP 7.0+; trunk is the only pre-release target.
     # Allow failures since the API may still be in flux.
@@ -76,6 +107,8 @@ jobs:
   # PHPCS + PHPStan merged into a single job to avoid duplicate Composer installs.
   static-analysis:
     name: Static Analysis (PHPCS + PHPStan)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
 
     steps:

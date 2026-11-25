@@ -7,8 +7,10 @@ namespace SdAiAgent\Infrastructure\AiClient\Superdav;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Providers\Http\DTO\Request;
+use WordPress\AiClient\Providers\Http\DTO\Response;
 use WordPress\AiClient\Providers\Http\Enums\HttpMethodEnum;
 use WordPress\AiClient\Providers\OpenAiCompatibleImplementation\AbstractOpenAiCompatibleTextGenerationModel;
+use WordPress\AiClient\Results\DTO\GenerativeAiResult;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,6 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * OpenAI-compatible text generation model for the Superdav AI service.
  */
 final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGenerationModel {
+
+	/** Response metadata key consumed by AgentLoop. */
+	public const CONTEXT_ADMISSION_DATA_KEY = 'superdav_context_admission';
+
+	/** @var array{context_estimate_tokens:int,context_limit_tokens:int,output_reserve_tokens:int}|null */
+	private static ?array $last_context_limit_error = null;
 
 	/** @var string Hash identifying a conversation for provider prompt-cache reuse. */
 	private string $prompt_cache_key = '';
@@ -97,6 +105,9 @@ final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGe
 		if ( 'chat/completions' === trim( $path, '/' ) && is_array( $data ) && '' !== $this->prompt_cache_key ) {
 			$data['prompt_cache_key'] = $this->prompt_cache_key;
 		}
+		if ( 'chat/completions' === trim( $path, '/' ) ) {
+			self::$last_context_limit_error = null;
+		}
 
 		if ( 'chat/completions' === trim( $path, '/' ) && is_array( $data ) && ! array_key_exists( 'reasoning_effort', $data ) ) {
 			$model_id = isset( $data['model'] ) && is_string( $data['model'] ) ? $data['model'] : '';
@@ -111,6 +122,105 @@ final class SuperdavAiTextGenerationModel extends AbstractOpenAiCompatibleTextGe
 			: SuperdavAiProvider::with_session_attribution( $headers );
 
 		return new Request( $method, SuperdavAiProvider::url( $path ), $request_headers, $data, $this->getRequestOptions() );
+	}
+
+	/** Add gateway admission headers to the SDK result's provider-specific data. */
+	protected function parseResponseToGenerativeAiResult( Response $response ): GenerativeAiResult {
+		$result          = parent::parseResponseToGenerativeAiResult( $response );
+		$additional_data = $result->getAdditionalData();
+		$context_data    = self::context_admission_data( $response );
+		if ( ! empty( $context_data ) ) {
+			$additional_data[ self::CONTEXT_ADMISSION_DATA_KEY ] = $context_data;
+		}
+
+		return new GenerativeAiResult(
+			$result->getId(),
+			$result->getCandidates(),
+			$result->getTokenUsage(),
+			$this->providerMetadata(),
+			$this->metadata(),
+			$additional_data
+		);
+	}
+
+	/** Capture safe scalar admission details before the SDK throws for a 400 response. */
+	protected function throwIfNotSuccessful( Response $response ): void {
+		if ( ! $response->isSuccessful() ) {
+			self::capture_context_limit_error( $response );
+		}
+
+		parent::throwIfNotSuccessful( $response );
+	}
+
+	/**
+	 * Read valid non-negative integer admission headers from a provider response.
+	 *
+	 * @return array<string, int>
+	 */
+	public static function context_admission_data( Response $response ): array {
+		$headers = array(
+			'context_estimate_tokens'     => 'x-superdav-context-estimate-tokens',
+			'context_limit_tokens'        => 'x-superdav-context-limit-tokens',
+			'output_reserve_tokens'       => 'x-superdav-output-reserve-tokens',
+			'input_token_bytes_per_token' => 'x-superdav-input-token-bytes-per-token',
+		);
+		$data    = array();
+		foreach ( $headers as $key => $header ) {
+			$value = self::non_negative_integer( $response->getHeaderAsString( $header ) );
+			if ( null === $value ) {
+				return array();
+			}
+			$data[ $key ] = $value;
+		}
+
+		return $data;
+	}
+
+	/** Clear stale failure state before a native Responses request. */
+	public static function clear_context_limit_error(): void {
+		self::$last_context_limit_error = null;
+	}
+
+	/** Capture a max-token rejection from either managed text endpoint. */
+	public static function capture_context_limit_error( Response $response ): void {
+		$data  = $response->getData();
+		$error = is_array( $data['error'] ?? null ) ? $data['error'] : $data;
+		if ( ! is_array( $error ) || 'max_tokens_exceeded' !== (string) ( $error['code'] ?? '' ) ) {
+			return;
+		}
+
+		$estimate = self::non_negative_integer( $error['context_estimate_tokens'] ?? null );
+		$limit    = self::non_negative_integer( $error['context_limit_tokens'] ?? null );
+		$reserve  = self::non_negative_integer( $error['output_reserve_tokens'] ?? null );
+		if ( null === $estimate || null === $limit || null === $reserve ) {
+			return;
+		}
+
+		self::$last_context_limit_error = array(
+			'context_estimate_tokens' => $estimate,
+			'context_limit_tokens'    => $limit,
+			'output_reserve_tokens'   => $reserve,
+		);
+	}
+
+	/** Return and clear the most recent managed max-token rejection. */
+	public static function consume_context_limit_error(): ?array {
+		$error                          = self::$last_context_limit_error;
+		self::$last_context_limit_error = null;
+
+		return $error;
+	}
+
+	/** Parse an integer scalar and clamp negative values to zero. */
+	private static function non_negative_integer( mixed $value ): ?int {
+		if ( is_int( $value ) ) {
+			return max( 0, $value );
+		}
+		if ( ! is_string( $value ) || ! preg_match( '/^-?\d+$/', trim( $value ) ) ) {
+			return null;
+		}
+
+		return max( 0, (int) trim( $value ) );
 	}
 
 	/**

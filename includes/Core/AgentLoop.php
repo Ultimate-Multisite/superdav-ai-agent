@@ -36,6 +36,7 @@ use SdAiAgent\Core\RolePermissions;
 use WP_Error;
 use SdAiAgent\Core\CredentialResolver;
 use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiProvider;
+use SdAiAgent\Infrastructure\AiClient\Superdav\SuperdavAiTextGenerationModel;
 use WordPress\AiClient\Messages\DTO\Message;
 use WordPress\AiClient\Messages\DTO\MessagePart;
 use WordPress\AiClient\Messages\DTO\ModelMessage;
@@ -277,6 +278,21 @@ PROMPT;
 
 	/** @var int History bytes sent with the provider response tracked above. */
 	private int $last_provider_request_bytes = 0;
+
+	/** @var int Gateway admission estimate from the most recent managed response. */
+	private int $last_gateway_context_estimate_tokens = 0;
+
+	/** @var int Gateway context limit from the most recent managed response. */
+	private int $last_gateway_context_limit_tokens = 0;
+
+	/** @var int Gateway output reserve from the most recent managed response. */
+	private int $last_gateway_output_reserve_tokens = 0;
+
+	/** @var int Gateway admission byte ratio from the most recent managed response. */
+	private int $last_gateway_input_token_bytes_per_token = 0;
+
+	/** @var int History bytes sent with the managed response tracked above. */
+	private int $last_gateway_request_bytes = 0;
 
 	/** @var int History bytes for the provider request currently in flight. */
 	private int $current_provider_request_bytes = 0;
@@ -2693,10 +2709,11 @@ PROMPT;
 	 * @return \WordPress\AiClient\Results\DTO\GenerativeAiResult|WP_Error
 	 */
 	private function send_prompt_with_payload_recovery_request(): GenerativeAiResult|WP_Error {
-		$provider_id  = $this->resolve_provider_id();
-		$model_id     = $this->resolve_effective_model_id( $provider_id );
-		$byte_budget  = ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
-		$token_budget = ConversationTrimmer::get_request_token_budget( $provider_id, $model_id );
+		$provider_id     = $this->resolve_provider_id();
+		$model_id        = $this->resolve_effective_model_id( $provider_id );
+		$managed_context = $this->managed_gateway_context();
+		$byte_budget     = ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id, false, $managed_context );
+		$token_budget    = ConversationTrimmer::get_request_token_budget( $provider_id, $model_id );
 
 		$this->history = ConversationTrimmer::trim_to_budget( $this->history, $byte_budget, $token_budget );
 		$before_bytes  = ConversationTrimmer::estimate_total_bytes( $this->history );
@@ -2741,6 +2758,17 @@ PROMPT;
 		$provider_recovery_history      = null;
 		$provider_recovery_paused_state = null;
 		$result                         = $this->send_prompt( $provider_id, $model_id );
+		$context_limit_error            = SuperdavAiTextGenerationModel::consume_context_limit_error();
+		if ( is_wp_error( $result ) && is_array( $context_limit_error ) ) {
+			$error_data = $result->get_error_data();
+			$result->add_data(
+				array_merge(
+					is_array( $error_data ) ? $error_data : array(),
+					$context_limit_error,
+					array( 'provider_error_code' => 'max_tokens_exceeded' )
+				)
+			);
+		}
 		if ( is_wp_error( $result ) && $this->is_local_payload_limit_error( $result )
 			&& empty( $this->abilities ) && $this->native_full_catalog && $this->should_use_native_tool_search()
 		) {
@@ -2770,10 +2798,11 @@ PROMPT;
 		$complete_envelope_tokens = is_array( $source_data ) && 'complete_envelope' === ( $source_data['request_size_source'] ?? '' )
 			? max( 0, (int) ( $source_data['request_tokens_estimate'] ?? 0 ) )
 			: 0;
+		$payload_status_code      = is_array( $source_data ) ? max( 0, (int) ( $source_data['status_code'] ?? 413 ) ) : 413;
 		ProviderTraceLogger::record_payload_limit(
 			$provider_id,
 			$model_id,
-			413,
+			$payload_status_code,
 			$complete_envelope_bytes > 0 ? $complete_envelope_bytes : $before_bytes,
 			$complete_envelope_tokens > 0 ? $complete_envelope_tokens : $before_tokens,
 			$byte_budget,
@@ -2799,9 +2828,23 @@ PROMPT;
 		$retry_budget      = max( 1, (int) floor( $byte_budget * 0.95 ) );
 		$target_bytes      = max( 1, min( (int) floor( $before_bytes * 0.6 ), $retry_budget - $envelope_overhead ) );
 		$target_tokens     = max( 1, (int) floor( $before_tokens * 0.6 ) );
-		$reduced           = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
-		$after_bytes       = ConversationTrimmer::estimate_total_bytes( $reduced );
-		$after_tokens      = ConversationTrimmer::estimate_total_tokens( $reduced );
+		if ( is_array( $source_data ) && 'max_tokens_exceeded' === (string) ( $source_data['provider_error_code'] ?? '' ) ) {
+			$estimate = max( 0, (int) ( $source_data['context_estimate_tokens'] ?? 0 ) );
+			$limit    = max( 0, (int) ( $source_data['context_limit_tokens'] ?? 0 ) );
+			$reserve  = max( 0, (int) ( $source_data['output_reserve_tokens'] ?? 0 ) );
+			$overage  = max( 0, $estimate - max( 0, $limit - $reserve ) );
+			if ( $estimate > 0 && $limit > 0 && $overage > 0 ) {
+				$ratio            = $this->last_gateway_input_token_bytes_per_token > 0
+					? $this->last_gateway_input_token_bytes_per_token
+					: ConversationTrimmer::get_managed_input_token_bytes_per_token( $model_id );
+				$reduction_tokens = (int) ceil( $overage * 1.05 );
+				$target_bytes     = max( 1, $before_bytes - $reduction_tokens * $ratio );
+				$target_tokens    = max( 1, $before_tokens );
+			}
+		}
+		$reduced      = ConversationTrimmer::trim_to_budget( $this->history, $target_bytes, $target_tokens );
+		$after_bytes  = ConversationTrimmer::estimate_total_bytes( $reduced );
+		$after_tokens = ConversationTrimmer::estimate_total_tokens( $reduced );
 		if ( $after_bytes >= $before_bytes ) {
 			$compacted_reduction = ConversationTrimmer::compact_serialized_history(
 				$this->serialize_history(),
@@ -2829,7 +2872,7 @@ PROMPT;
 		$this->message_log[]         = array(
 			'type'               => 'provider_payload_recovery',
 			'message'            => __( 'The request exceeded its size limit. Retrying once with reduced conversation history.', 'superdav-ai-agent' ),
-			'status_code'        => 413,
+			'status_code'        => $payload_status_code,
 			'request_size_class' => ProviderTraceLogger::classify_request_size( $before_bytes ),
 			'fallback_attempted' => true,
 			'payload_reduced'    => true,
@@ -2884,6 +2927,25 @@ PROMPT;
 	}
 
 	/**
+	 * Return the complete gateway admission snapshot for this session.
+	 *
+	 * @return array{context_estimate_tokens:int,context_limit_tokens:int,output_reserve_tokens:int,input_token_bytes_per_token:int,request_bytes:int}|null
+	 */
+	private function managed_gateway_context(): ?array {
+		if ( $this->last_gateway_context_limit_tokens <= 0 || $this->last_gateway_input_token_bytes_per_token <= 0 ) {
+			return null;
+		}
+
+		return array(
+			'context_estimate_tokens'     => $this->last_gateway_context_estimate_tokens,
+			'context_limit_tokens'        => $this->last_gateway_context_limit_tokens,
+			'output_reserve_tokens'       => $this->last_gateway_output_reserve_tokens,
+			'input_token_bytes_per_token' => $this->last_gateway_input_token_bytes_per_token,
+			'request_bytes'               => $this->last_gateway_request_bytes,
+		);
+	}
+
+	/**
 	 * Reuse deterministic compact context after an automatic retry needed it.
 	 *
 	 * Long setup runs commonly contain one genuine user turn followed by many
@@ -2907,14 +2969,21 @@ PROMPT;
 		$provider_id               = $this->resolve_provider_id();
 		$model_id                  = $this->resolve_effective_model_id( $provider_id );
 		$request_bytes             = ConversationTrimmer::estimate_total_bytes( $this->history );
+		$managed_context           = $this->managed_gateway_context();
 		$managed_pressure          = 'sd-ai-agent-cloud' === $provider_id
 			&& in_array( $model_id, array( 'superdav-chat-fast', 'superdav-chat-pro', 'superdav-chat-standard', 'superdav-chat-strong' ), true )
-			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id );
-		$reported_context_pressure = $this->last_provider_input_tokens > 0
-			&& ConversationTrimmer::estimate_next_request_tokens(
-				$this->last_provider_input_tokens,
-				max( 0, $request_bytes - $this->last_provider_request_bytes )
-			) > ConversationTrimmer::get_request_compaction_token_budget( $provider_id, $model_id );
+			&& $request_bytes > ConversationTrimmer::get_request_envelope_byte_budget( $provider_id, $model_id, false, $managed_context );
+		$reported_context_pressure = null !== $managed_context
+			? ConversationTrimmer::estimate_next_request_tokens(
+				$this->last_gateway_context_estimate_tokens,
+				max( 0, $request_bytes - $this->last_gateway_request_bytes ),
+				$this->last_gateway_input_token_bytes_per_token
+			) > ConversationTrimmer::get_request_compaction_token_budget( $provider_id, $model_id, $managed_context )
+			: $this->last_provider_input_tokens > 0
+				&& ConversationTrimmer::estimate_next_request_tokens(
+					$this->last_provider_input_tokens,
+					max( 0, $request_bytes - $this->last_provider_request_bytes )
+				) > ConversationTrimmer::get_request_compaction_token_budget( $provider_id, $model_id );
 
 		// A newest tool-response cluster cannot always be dropped by turn-based
 		// trimming. Compact a provider-only copy before the managed gateway sees
@@ -3123,7 +3192,10 @@ PROMPT;
 		}
 
 		$data = $error->get_error_data();
-		return is_array( $data ) && 413 === (int) ( $data['status_code'] ?? 0 );
+		return is_array( $data ) && (
+			413 === (int) ( $data['status_code'] ?? 0 )
+			|| 'max_tokens_exceeded' === (string) ( $data['provider_error_code'] ?? '' )
+		);
 	}
 
 	/** Whether a payload-limit error was produced by the local request guard. */
@@ -6636,8 +6708,28 @@ PROMPT;
 			$usage         = $result->getTokenUsage();
 			$prompt_tokens = max( 0, $usage->getPromptTokens() );
 
-			$this->token_usage['prompt']     += $prompt_tokens;
-			$this->token_usage['completion'] += max( 0, $usage->getCompletionTokens() );
+			$this->token_usage['prompt']                   += $prompt_tokens;
+			$this->token_usage['completion']               += max( 0, $usage->getCompletionTokens() );
+			$this->last_gateway_context_estimate_tokens     = 0;
+			$this->last_gateway_context_limit_tokens        = 0;
+			$this->last_gateway_output_reserve_tokens       = 0;
+			$this->last_gateway_input_token_bytes_per_token = 0;
+			$this->last_gateway_request_bytes               = 0;
+			$additional_data                                = $result->getAdditionalData();
+			$gateway_context                                = $additional_data[ SuperdavAiTextGenerationModel::CONTEXT_ADMISSION_DATA_KEY ] ?? null;
+			if ( is_array( $gateway_context ) ) {
+				$estimate = $gateway_context['context_estimate_tokens'] ?? null;
+				$limit    = $gateway_context['context_limit_tokens'] ?? null;
+				$reserve  = $gateway_context['output_reserve_tokens'] ?? null;
+				$ratio    = $gateway_context['input_token_bytes_per_token'] ?? null;
+				if ( is_int( $estimate ) && is_int( $limit ) && is_int( $reserve ) && is_int( $ratio ) && $estimate >= 0 && $limit > 0 && $reserve >= 0 && $ratio > 0 ) {
+					$this->last_gateway_context_estimate_tokens     = $estimate;
+					$this->last_gateway_context_limit_tokens        = $limit;
+					$this->last_gateway_output_reserve_tokens       = $reserve;
+					$this->last_gateway_input_token_bytes_per_token = $ratio;
+					$this->last_gateway_request_bytes               = $this->current_provider_request_bytes;
+				}
+			}
 			// Internal compaction state only: message_log entries are shown as chat
 			// activity, so provider context usage is not logged there.
 			if ( $prompt_tokens > 0 ) {

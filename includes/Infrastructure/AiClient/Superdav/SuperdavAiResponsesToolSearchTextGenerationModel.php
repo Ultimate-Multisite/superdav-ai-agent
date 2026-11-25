@@ -134,6 +134,7 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				}
 			}
 
+			SuperdavAiTextGenerationModel::clear_context_limit_error();
 			$response = $this->send_responses_request( $params );
 			if ( SuperdavAiProvider::PROVIDER_CAPACITY_UNAVAILABLE_CODE === $this->response_error_code( $response ) ) {
 				// The native provider is out of capacity. Rebuild this turn from provider-neutral
@@ -141,6 +142,9 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 				// Native state is not acknowledged, so it never mixes with another provider's output.
 				$cursor->clear();
 				return $this->generate_chat_completions_fallback( $prompt );
+			}
+			if ( ! $response->isSuccessful() ) {
+				SuperdavAiTextGenerationModel::capture_context_limit_error( $response );
 			}
 			ResponseUtil::throwIfNotSuccessful( $response );
 
@@ -825,13 +829,19 @@ final class SuperdavAiResponsesToolSearchTextGenerationModel extends AbstractApi
 		$candidate     = new Candidate( new ModelMessage( $parts ), $finish_reason );
 		$usage         = $this->parse_token_usage( is_array( $data['usage'] ?? null ) ? $data['usage'] : array() );
 
+		$additional_data = array( 'responses_output' => $output );
+		$context_data    = SuperdavAiTextGenerationModel::context_admission_data( $response );
+		if ( ! empty( $context_data ) ) {
+			$additional_data[ SuperdavAiTextGenerationModel::CONTEXT_ADMISSION_DATA_KEY ] = $context_data;
+		}
+
 		return new GenerativeAiResult(
 			isset( $data['id'] ) && is_string( $data['id'] ) ? $data['id'] : '',
 			array( $candidate ),
 			$usage,
 			$this->providerMetadata(),
 			$this->metadata(),
-			array( 'responses_output' => $output )
+			$additional_data
 		);
 	}
 

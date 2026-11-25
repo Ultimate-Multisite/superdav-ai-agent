@@ -30,6 +30,37 @@ use WP_UnitTestCase;
 
 class SessionControllerTest extends WP_UnitTestCase {
 
+	/** Consecutive provider failures collapse into one correlated saved message. */
+	public function test_terminal_provider_failures_collapse_with_count_and_latest_correlation(): void {
+		$session_id = $this->create_session();
+		$controller = new SessionController( new Database() );
+		$persist    = new \ReflectionMethod( SessionController::class, 'persist_terminal_diagnostic_to_session' );
+		$message    = ActiveJobFailureDiagnostic::message_for( ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE );
+
+		foreach ( array( '11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222' ) as $job_id ) {
+			$this->assertNotFalse( ActiveJobRepository::create( $session_id, $job_id, 1, 'queued' ) );
+			$diagnostic = ActiveJobRepository::record_failure(
+				$job_id,
+				'error',
+				ActiveJobFailureDiagnostic::REASON_PROVIDER_UNAVAILABLE,
+				array( 'status_code' => 502 )
+			);
+			$row = ActiveJobRepository::get_by_job_id( $job_id );
+			$this->assertNotNull( $row );
+			$this->assertTrue( $persist->invoke( $controller, $row, $message, ActiveJobFailureDiagnostic::to_rest( $diagnostic ) ) );
+			ActiveJobRepository::delete( $job_id );
+		}
+
+		$session  = ( new Database() )->get_session( $session_id );
+		$messages = json_decode( (string) $session->messages, true );
+
+		$this->assertCount( 1, $messages );
+		$this->assertSame( 2, $messages[0]['diagnostic']['occurrences'] );
+		$this->assertSame( 'job-' . substr( hash( 'sha256', '22222222-2222-4222-8222-222222222222' ), 0, 12 ), $messages[0]['diagnostic']['correlation_id'] );
+		$this->assertStringContainsString( 'Occurrences: 2', $messages[0]['parts'][0]['text'] );
+		$this->assertStringContainsString( $messages[0]['diagnostic']['correlation_id'], $messages[0]['parts'][0]['text'] );
+	}
+
 	protected WP_REST_Server $server;
 
 	private int $admin_id;

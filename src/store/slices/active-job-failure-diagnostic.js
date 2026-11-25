@@ -17,6 +17,8 @@ const ACTIVE_JOB_FAILURE_REASONS = [
 	'local_payload_guard',
 	'upstream_payload_rejection',
 	'provider_timeout',
+	'provider_unavailable',
+	'provider_recovery_exhausted',
 	'gateway_rejection',
 	'credit_exhausted',
 	'worker_terminated',
@@ -131,7 +133,15 @@ export function getFailureDiagnostic( diagnostic ) {
  * @return {string} Customer-safe failure message.
  */
 export function getActiveJobFailureMessage( diagnostic ) {
-	const { reason } = normalizeActiveJobFailureDiagnostic( diagnostic );
+	const { reason, correlation_id: correlationId } =
+		normalizeActiveJobFailureDiagnostic( diagnostic );
+	const withSupportId = ( message ) =>
+		correlationId
+			? `${ message } ${ __(
+					'Support ID:',
+					'superdav-ai-agent'
+			  ) } ${ correlationId }.`
+			: message;
 
 	switch ( reason ) {
 		case 'local_payload_guard':
@@ -145,9 +155,25 @@ export function getActiveJobFailureMessage( diagnostic ) {
 				'superdav-ai-agent'
 			);
 		case 'provider_timeout':
-			return __(
-				'The AI provider timed out before finishing. Retry the request shortly.',
-				'superdav-ai-agent'
+			return withSupportId(
+				__(
+					'The AI provider timed out before finishing. Retry the request shortly.',
+					'superdav-ai-agent'
+				)
+			);
+		case 'provider_unavailable':
+			return withSupportId(
+				__(
+					'The AI provider is temporarily unavailable. Retry the request shortly. If the problem continues, contact support with the correlation ID.',
+					'superdav-ai-agent'
+				)
+			);
+		case 'provider_recovery_exhausted':
+			return withSupportId(
+				__(
+					'The service is down. We will fix it. Nothing is lost.',
+					'superdav-ai-agent'
+				)
 			);
 		case 'gateway_rejection':
 			return __(

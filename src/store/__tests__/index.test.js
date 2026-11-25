@@ -811,6 +811,23 @@ describe( 'actions', () => {
 		expect( message ).not.toContain( 'PRIVATE_PROVIDER' );
 	} );
 
+	test( 'provider recovery failures expose the support ID and terminal outage copy', () => {
+		const unavailable = getActiveJobFailureMessage( {
+			reason: 'provider_unavailable',
+			correlation_id: 'job-1234abcd5678',
+		} );
+		const exhausted = getActiveJobFailureMessage( {
+			reason: 'provider_recovery_exhausted',
+			correlation_id: 'job-abcdef123456',
+		} );
+
+		expect( unavailable ).toContain( 'job-1234abcd5678' );
+		expect( exhausted ).toContain(
+			'The service is down. We will fix it. Nothing is lost.'
+		);
+		expect( exhausted ).toContain( 'job-abcdef123456' );
+	} );
+
 	test.each( [ 'saved', 'stale', 'reload-error' ] )(
 		'pollJob binds terminal usage to the saved current answer (%s)',
 		async ( outcome ) => {

@@ -96,6 +96,9 @@ class AgentLoop {
 	/** Managed-service backoff schedule: 31 seconds before the final attempt. */
 	private const MANAGED_PROVIDER_RETRY_DELAYS = array( 1, 2, 4, 8, 16 );
 
+	/** Maximum consecutive failed manual recoveries before requiring a fresh user turn. */
+	private const PROVIDER_RECOVERY_MAX_FAILURES = 3;
+
 	/** Durable checkpoint phase saved before a provider call is attempted. */
 	public const CHECKPOINT_BEFORE_PROVIDER_CALL = 'before_provider_call';
 
@@ -315,6 +318,9 @@ PROMPT;
 
 	/** @var bool Whether default managed-provider delays receive bounded positive jitter. */
 	private bool $provider_retry_jitter = false;
+
+	/** @var int Number of consecutive provider failures carried across manual recovery jobs. */
+	private int $consecutive_provider_failures = 0;
 
 	/** @var list<string> Per-agent Tier 1 tool override (empty = use global default). */
 	private array $agent_tier_1_tools = array();
@@ -607,9 +613,13 @@ PROMPT;
 		// @phpstan-ignore-next-line -- Test/job callers may lower attempts or delays; managed production calls tolerate short outages by default.
 		$this->provider_retry_max_attempts = max( 1, (int) ( $options['provider_retry_max_attempts'] ?? $default_retry_attempts ) );
 		// Explicit schedules remain exact unless their caller also opts into jitter.
-		$this->provider_retry_jitter = array_key_exists( 'provider_retry_jitter', $options )
+		$this->provider_retry_jitter         = array_key_exists( 'provider_retry_jitter', $options )
 			? ! empty( $options['provider_retry_jitter'] )
 			: $is_managed_provider && ! $has_retry_delay_override;
+		$this->consecutive_provider_failures = min(
+			self::PROVIDER_RECOVERY_MAX_FAILURES,
+			max( 0, (int) ( $options['consecutive_provider_failures'] ?? 0 ) )
+		);
 		// @phpstan-ignore-next-line -- Values are normalised below to non-negative integer seconds.
 		$retry_delays = $options['provider_retry_delays'] ?? $default_retry_delays;
 		if ( is_array( $retry_delays ) ) {
@@ -3925,20 +3935,24 @@ PROMPT;
 			$message .= ' ' . $hint;
 		}
 
-		if ( $this->session_id > 0 ) {
+		$consecutive_failures = $this->consecutive_provider_failures + 1;
+		$recovery_exhausted   = $consecutive_failures >= self::PROVIDER_RECOVERY_MAX_FAILURES;
+
+		if ( $this->session_id > 0 && ! $recovery_exhausted ) {
 			$paused_state = array(
-				'history'                 => $serialized_history,
-				'tool_call_log'           => $this->tool_call_log,
-				'message_log'             => $this->message_log,
-				'token_usage'             => $this->token_usage,
-				'model_id'                => $this->model_id,
-				'provider_id'             => $this->provider_id,
-				'client_abilities'        => $this->client_abilities,
-				'agent_slug'              => $this->agent_slug,
-				'page_context'            => $this->checkpoint_page_context(),
-				'iterations_remaining'    => max( 1, (int) $this->max_iterations - $this->iterations_used ),
-				'exit_reason'             => 'provider_retry_failed',
-				'mutation_policy_context' => $this->mutation_policy_context,
+				'history'                       => $serialized_history,
+				'tool_call_log'                 => $this->tool_call_log,
+				'message_log'                   => $this->message_log,
+				'token_usage'                   => $this->token_usage,
+				'model_id'                      => $this->model_id,
+				'provider_id'                   => $this->provider_id,
+				'client_abilities'              => $this->client_abilities,
+				'agent_slug'                    => $this->agent_slug,
+				'page_context'                  => $this->checkpoint_page_context(),
+				'iterations_remaining'          => max( 1, (int) $this->max_iterations - $this->iterations_used ),
+				'exit_reason'                   => 'provider_retry_failed',
+				'consecutive_provider_failures' => $consecutive_failures,
+				'mutation_policy_context'       => $this->mutation_policy_context,
 			);
 
 			Database::save_paused_state(
@@ -3948,16 +3962,19 @@ PROMPT;
 		}
 
 		return new WP_Error(
-			'sd_ai_agent_provider_retry_failed',
-			$message,
+			$recovery_exhausted ? 'sd_ai_agent_provider_recovery_exhausted' : 'sd_ai_agent_provider_retry_failed',
+			$recovery_exhausted
+				? __( 'The service is down. We will fix it. Nothing is lost.', 'superdav-ai-agent' )
+				: $message,
 			$this->with_result_logs(
 				array_merge(
 					[
-						'tool_calls'      => $this->tool_call_log,
-						'token_usage'     => $this->token_usage,
-						'iterations_used' => $this->iterations_used,
-						'history'         => $serialized_history,
-						'elapsed_seconds' => $elapsed_seconds,
+						'tool_calls'                  => $this->tool_call_log,
+						'token_usage'                 => $this->token_usage,
+						'iterations_used'             => $this->iterations_used,
+						'history'                     => $serialized_history,
+						'elapsed_seconds'             => $elapsed_seconds,
+						'provider_recovery_exhausted' => $recovery_exhausted,
 					],
 					$this->provider_failure_context( $error, $status_code, $provider_id, $model_id, $attempts )
 				)

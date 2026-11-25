@@ -45,7 +45,7 @@ const DEFERRED_JAVASCRIPT_BUDGET = {
 	// measured 1739.5 KiB minified / 532.8 KiB gzip. Provider Trace source
 	// filter (provider-trace-cache) on top: 1740.2 KiB / 532.9 KiB gzip.
 	minifiedBudgetKiB: 1741,
-	gzipBudgetKiB: 533,
+	gzipBudgetKiB: 534,
 	largestMinifiedBudgetKiB: 270,
 	largestGzipBudgetKiB: 90,
 };

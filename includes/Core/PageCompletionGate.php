@@ -122,6 +122,20 @@ final class PageCompletionGate {
 	private string $last_failure = '';
 
 	/**
+	 * Maximum consecutive reports that fail only because the page could not be
+	 * rendered in the browser (iframe timeout, blocked frame). Editing the page
+	 * cannot repair that, so the loop stops re-injecting the repair prompt.
+	 */
+	public const MAX_RENDER_INFRASTRUCTURE_FAILURES = 2;
+
+	/**
+	 * Consecutive reports whose only blocking findings were render failures.
+	 *
+	 * @var int
+	 */
+	private int $render_infrastructure_failures = 0;
+
+	/**
 	 * @param string        $profile              Quality profile for this agent.
 	 * @param array<string> $client_ability_names Client ability names available in this run.
 	 * @param callable|null $home_url_resolver    Optional testable homepage URL resolver.
@@ -292,7 +306,7 @@ final class PageCompletionGate {
 
 	/** Whether the loop should spend another repair/validation turn. */
 	public function requires_repair(): bool {
-		return $this->is_required() && ! $this->publish_failed && ! $this->passed && $this->client_validator_available;
+		return $this->is_required() && ! $this->publish_failed && ! $this->passed && $this->client_validator_available && ! $this->render_unverifiable();
 	}
 
 	/** Whether AgentLoop should dispatch the exact gate-owned browser call. */
@@ -538,6 +552,10 @@ final class PageCompletionGate {
 			return '';
 		}
 
+		if ( $this->render_unverifiable() ) {
+			return __( 'I wrote the page, but I could not publish it. The automatic check that previews the page in the browser did not finish loading, twice in a row, and changing the page text cannot fix that. Your live site has not changed and nothing is lost. Please start a new chat and ask me to publish again. If it happens again, tell your site support.', 'superdav-ai-agent' );
+		}
+
 		$reason      = '' !== $this->last_failure ? ' ' . $this->last_failure : '';
 		$has_preview = ! empty( $this->get_preview_targets() );
 		if ( $this->deterministic_report_passed && ! $this->visual_review_passed ) {
@@ -583,6 +601,7 @@ final class PageCompletionGate {
 			'client_validator_present'    => $this->client_validator_available,
 			'deterministic_report_passed' => $this->deterministic_report_passed,
 			'report_received'             => $this->report_received,
+			'render_unverifiable'         => $this->render_unverifiable(),
 			'visual_review_required'      => $this->requires_visual_review(),
 			'visual_review_passed'        => $this->visual_review_passed,
 			'public_smoke_only'           => $this->public_smoke_only,
@@ -730,12 +749,18 @@ final class PageCompletionGate {
 
 		if ( ! $this->report_covers_required_surface( $response, $expected ) ) {
 			$this->last_failure = 'The page-quality report was partial, stale, unrenderable, or contained blocking quality violations.';
+			if ( $this->report_failed_only_on_render( $response ) ) {
+				++$this->render_infrastructure_failures;
+			} else {
+				$this->render_infrastructure_failures = 0;
+			}
 			return;
 		}
 
-		$this->deterministic_report_passed = true;
-		$this->passed                      = ! $this->requires_visual_review();
-		$this->last_failure                = $this->passed
+		$this->render_infrastructure_failures = 0;
+		$this->deterministic_report_passed    = true;
+		$this->passed                         = ! $this->requires_visual_review();
+		$this->last_failure                   = $this->passed
 			? ''
 			: 'Deterministic browser checks passed, but the Setup Assistant has not submitted a passing screenshot-based visual critique.';
 	}
@@ -957,6 +982,36 @@ final class PageCompletionGate {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Whether every blocking finding in a report is a render failure.
+	 *
+	 * @param array<string,mixed> $response Browser report.
+	 */
+	private function report_failed_only_on_render( array $response ): bool {
+		$groups = array( $response );
+		foreach ( (array) ( $response['reports'] ?? array() ) as $report ) {
+			if ( is_array( $report ) ) {
+				$groups[] = $report;
+			}
+		}
+
+		$codes = array();
+		foreach ( $groups as $group ) {
+			foreach ( (array) ( $group['violations'] ?? array() ) as $violation ) {
+				if ( is_array( $violation ) && 'error' === ( $violation['severity'] ?? 'error' ) ) {
+					$codes[] = (string) ( $violation['code'] ?? '' );
+				}
+			}
+		}
+
+		return ! empty( $codes ) && array() === array_diff( array_unique( $codes ), array( 'frontend_render_failed' ) );
+	}
+
+	/** Whether repeated render failures mean more page edits cannot help. */
+	private function render_unverifiable(): bool {
+		return $this->render_infrastructure_failures >= self::MAX_RENDER_INFRASTRUCTURE_FAILURES;
 	}
 
 	/** Invalidate any prior report and advance the mutation token. */

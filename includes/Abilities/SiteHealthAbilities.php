@@ -1120,6 +1120,10 @@ class SiteHealthAbilities {
 							'description' => 'Health status: healthy, broken, or unreachable',
 							'enum'        => [ 'healthy', 'broken', 'unreachable' ],
 						],
+						'note'   => [
+							'type'        => 'string',
+							'description' => 'Present when the probe could not run; explains what the status means.',
+						],
 					],
 				],
 				'meta'                => [
@@ -1148,6 +1152,6 @@ class SiteHealthAbilities {
 	public static function handle_site_loopback_check( array $input = [] ) {
 		$health_check = new \SdAiAgent\Core\Health\PostMutationHealthCheck();
 
-		return [ 'status' => $health_check->get_status() ];
+		return \SdAiAgent\Core\Health\PostMutationHealthCheck::describe( $health_check->get_status() );
 	}
 }

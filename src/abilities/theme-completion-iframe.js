@@ -8,8 +8,33 @@
 
 import { validateScreenshotUrl } from './screenshot';
 
-/** How long to wait for an iframe page to load. */
-const IFRAME_LOAD_TIMEOUT = 15000;
+/**
+ * How long to wait for the iframe `load` event. Phones on slow mobile networks
+ * can need well over 15 seconds to finish every font and image.
+ */
+const IFRAME_LOAD_TIMEOUT = 30000;
+
+/**
+ * Whether the iframe already holds a parsed, same-origin page. The `load` event
+ * waits for every subresource, so a slow network can delay it long after the
+ * page is usable; a parsed document is enough to inspect.
+ *
+ * @param {HTMLIFrameElement} iframe Iframe being loaded.
+ * @return {boolean} True when the document body exists and parsing finished.
+ */
+function hasParsedDocument( iframe ) {
+	try {
+		const doc = iframe.contentDocument;
+		return (
+			!! doc &&
+			!! doc.body &&
+			doc.readyState !== 'loading' &&
+			doc.location.href !== 'about:blank'
+		);
+	} catch ( err ) {
+		return false;
+	}
+}
 
 /** Extra settle time after the iframe load event. */
 const IFRAME_SETTLE_DELAY = 1500;
@@ -72,6 +97,10 @@ export async function loadSameOriginIframe( args ) {
 
 		const loadPromise = new Promise( ( resolveLoad, rejectLoad ) => {
 			const timer = setTimeout( () => {
+				if ( hasParsedDocument( iframe ) ) {
+					resolveLoad();
+					return;
+				}
 				rejectLoad( new Error( 'Iframe load timed out.' ) );
 			}, IFRAME_LOAD_TIMEOUT );
 

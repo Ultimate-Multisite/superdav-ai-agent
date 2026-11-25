@@ -650,4 +650,38 @@ class PostMutationHealthCheckTest extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Error::class, HealthEndpoint::check_loopback_permission( new WP_REST_Request( 'GET', '/sd-ai-agent/v1/_health' ) ) );
 	}
+
+	/**
+	 * A non-loopback caller is allowed only with the current health token.
+	 *
+	 * Native tenant runtimes have no loopback listener, so the probe reaches the
+	 * endpoint through the public URL.
+	 */
+	public function test_health_endpoint_accepts_only_the_current_token_from_public_address(): void {
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+		set_transient( PostMutationHealthCheck::TOKEN_TRANSIENT, 'current-token', 300 );
+
+		$request = new WP_REST_Request( 'GET', '/sd-ai-agent/v1/_health' );
+		$this->assertInstanceOf( WP_Error::class, HealthEndpoint::check_loopback_permission( $request ) );
+
+		$request->set_header( HealthEndpoint::TOKEN_HEADER, 'wrong-token' );
+		$this->assertInstanceOf( WP_Error::class, HealthEndpoint::check_loopback_permission( $request ) );
+
+		$request->set_header( HealthEndpoint::TOKEN_HEADER, 'current-token' );
+		$this->assertTrue( HealthEndpoint::check_loopback_permission( $request ) );
+
+		delete_transient( PostMutationHealthCheck::TOKEN_TRANSIENT );
+		$this->assertInstanceOf( WP_Error::class, HealthEndpoint::check_loopback_permission( $request ) );
+	}
+
+	/**
+	 * An unreachable probe is explained as "unknown", never as a host fault.
+	 */
+	public function test_describe_adds_note_only_for_unreachable(): void {
+		$this->assertSame( array( 'status' => 'healthy' ), PostMutationHealthCheck::describe( 'healthy' ) );
+
+		$unreachable = PostMutationHealthCheck::describe( 'unreachable' );
+		$this->assertSame( 'unreachable', $unreachable['status'] );
+		$this->assertStringContainsString( 'Do not ask the user to contact their host', $unreachable['note'] );
+	}
 }

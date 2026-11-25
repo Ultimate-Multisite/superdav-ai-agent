@@ -4,7 +4,7 @@ Tags: ai, ai agent, mcp, automation, connector
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.26.0
+Stable tag: 1.26.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -178,6 +178,15 @@ SD AI Agent uses the native WordPress AI Client SDK and Abilities API. These API
 3. Changes review workspace showing the completed page-editing workflow and its recorded updates.
 
 == Changelog ==
+
+= 1.26.1 =
+Version 1.26.1 - Released on 2026-11-25
+- Fix: When the browser preview of a page keeps timing out, stop retrying the same repair, leave the live page unchanged and tell the user plainly to start a new chat and try again.
+- Fix: Wait up to 30 seconds for the page preview and accept a page that has loaded even when slow images or fonts delay the final signal, so phones on slow networks can publish.
+- Fix: The site health check now works on hosts with no loopback listener, and an inconclusive result is reported as unknown instead of a host fault.
+- Improved: Rebuild managed turns portably when the native provider is at capacity, recheck the budget before provider calls, and size managed requests from gateway context estimates.
+- Improved: Add next steps to successful ability results, handle self-closing block comments, and send replayed function-call arguments as JSON objects.
+- Improved: Clearer one-click Advanced install with no GitHub release path.
 
 = 1.26.0 =
 Version 1.26.0 - Released on 2026-11-08

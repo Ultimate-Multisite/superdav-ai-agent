@@ -256,11 +256,15 @@ export const actions = {
 	/**
 	 * Open the add-credit popup after managed SD AI credit runs out.
 	 *
-	 * @param {number|string|null} sessionId Session whose request ran out of credit.
+	 * @param {number|string|null} sessionId    Session whose request ran out of credit.
+	 * @param {number|null}        messageIndex Failed user-message index.
 	 * @return {Object} Redux action.
 	 */
-	openCreditPrompt( sessionId = null ) {
-		return { type: 'SET_CREDIT_PROMPT', prompt: { sessionId } };
+	openCreditPrompt( sessionId = null, messageIndex = null ) {
+		return {
+			type: 'SET_CREDIT_PROMPT',
+			prompt: { sessionId, messageIndex },
+		};
 	},
 
 	/**

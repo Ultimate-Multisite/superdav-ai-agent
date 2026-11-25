@@ -424,9 +424,15 @@ export function endpoint( apiBase, path ) {
 export function getAccountSettingsUrl( apiBase ) {
 	try {
 		const apiUrl = new URL( apiBase, window.location.href );
-		const rootPath = apiUrl.pathname.replace( /\/wp-json(?:\/.*)?$/, '' );
+		const restRoute = apiUrl.searchParams.get( 'rest_route' );
+		const usesPlainRestRoute = restRoute?.startsWith( '/sd-ai-agent/v1' );
+		const rootPath = usesPlainRestRoute
+			? apiUrl.pathname
+					.replace( /\/index\.php\/?$/, '' )
+					.replace( /\/$/, '' )
+			: apiUrl.pathname.replace( /\/wp-json(?:\/.*)?$/, '' );
 
-		if ( rootPath === apiUrl.pathname ) {
+		if ( ! usesPlainRestRoute && rootPath === apiUrl.pathname ) {
 			return '';
 		}
 

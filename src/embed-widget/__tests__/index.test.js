@@ -59,6 +59,13 @@ describe( 'embed widget', () => {
 			'https://example.test/subsite/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings'
 		);
 		expect(
+			module.getAccountSettingsUrl(
+				'https://example.test/subsite/index.php?rest_route=/sd-ai-agent/v1'
+			)
+		).toBe(
+			'https://example.test/subsite/wp-admin/admin.php?page=sd-ai-agent&tab=superdav-account#/settings'
+		);
+		expect(
 			module.getAccountSettingsUrl( 'https://example.test/api' )
 		).toBe( '' );
 	} );

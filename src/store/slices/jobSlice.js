@@ -1073,7 +1073,26 @@ export const actions = {
 							if ( isCreditNotice ) {
 								// Lead with the add-credit popup; the inline
 								// notice stays in the transcript as a fallback.
-								dispatch.openCreditPrompt?.( sessionId );
+								const messages =
+									select.getCurrentSessionMessages?.() || [];
+								let messageIndex = -1;
+								for (
+									let i = messages.length - 1;
+									i >= 0;
+									i--
+								) {
+									if (
+										messages[ i ]?.role === 'user' &&
+										! messages[ i ]?.queued
+									) {
+										messageIndex = i;
+										break;
+									}
+								}
+								dispatch.openCreditPrompt?.(
+									sessionId,
+									messageIndex >= 0 ? messageIndex : null
+								);
 							}
 							if ( ! isDurablePlan && ! isCreditNotice ) {
 								if ( canCompactConversation ) {

@@ -19,11 +19,12 @@ const CreditUpgradeModal = lazy( () => import( './index' ) );
  * @return {JSX.Element|null} Popup, or nothing when no prompt is open.
  */
 export default function CreditUpgradePrompt() {
-	const { prompt, currentSessionId } = useSelect( ( sel ) => {
+	const { prompt, currentSessionId, isSending } = useSelect( ( sel ) => {
 		const store = sel( STORE_NAME );
 		return {
 			prompt: store.getCreditPrompt?.() || null,
 			currentSessionId: store.getCurrentSessionId(),
+			isSending: store.isSending(),
 		};
 	}, [] );
 	const { closeCreditPrompt, retryLastMessage, fetchProviders } =
@@ -46,10 +47,11 @@ export default function CreditUpgradePrompt() {
 					canContinue
 						? () => {
 								closeCreditPrompt();
-								retryLastMessage();
+								retryLastMessage( prompt.messageIndex );
 						  }
 						: null
 				}
+				continueDisabled={ isSending }
 			/>
 		</Suspense>
 	);

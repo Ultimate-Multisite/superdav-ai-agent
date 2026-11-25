@@ -527,6 +527,47 @@ describe( 'actions', () => {
 		expect( dispatch.streamMessage ).not.toHaveBeenCalled();
 	} );
 
+	test( 'retryLastMessage retries the failed request without dropping later queued messages', async () => {
+		const queuedMessage = {
+			role: 'user',
+			parts: [ { text: 'Run this later' } ],
+			queued: true,
+		};
+		const dispatch = {
+			appendMessage: jest.fn(),
+			truncateMessagesTo: jest.fn(),
+			setStreamError: jest.fn(),
+			streamMessage: jest.fn(),
+		};
+		const select = {
+			isSending: jest.fn( () => false ),
+			getCurrentSessionMessages: jest.fn( () => [
+				{ role: 'user', parts: [ { text: 'Failed request' } ] },
+				{ role: 'system', parts: [ { text: 'Credit exhausted' } ] },
+				queuedMessage,
+			] ),
+			getLastUserMessage: jest.fn( () => 'fallback' ),
+		};
+
+		await actions.retryLastMessage( 0 )( { dispatch, select } );
+
+		expect( dispatch.truncateMessagesTo ).toHaveBeenCalledWith( 0 );
+		expect( dispatch.streamMessage ).toHaveBeenCalledWith(
+			'Failed request',
+			[]
+		);
+		expect( dispatch.appendMessage ).toHaveBeenCalledWith( queuedMessage );
+	} );
+
+	test( 'retryLastMessage does nothing while another request is active', async () => {
+		const dispatch = { streamMessage: jest.fn() };
+		const select = { isSending: jest.fn( () => true ) };
+
+		await actions.retryLastMessage( 0 )( { dispatch, select } );
+
+		expect( dispatch.streamMessage ).not.toHaveBeenCalled();
+	} );
+
 	test( 'retryLastMessage resumes a recoverable job without replaying the user turn', async () => {
 		const dispatch = {
 			resumeRecoverableJob: jest.fn(),

@@ -80,16 +80,18 @@ function getAccountPageUrl() {
 /**
  * Add-credit popup.
  *
- * @param {Object}        props               Component props.
- * @param {Function}      props.onClose       Close the popup.
- * @param {Function}      props.onCreditAdded Called once new credit is detected.
- * @param {Function|null} props.onContinue    Resume the request, when possible.
+ * @param {Object}        props                  Component props.
+ * @param {Function}      props.onClose          Close the popup.
+ * @param {Function}      props.onCreditAdded    Called once new credit is detected.
+ * @param {Function|null} props.onContinue       Resume the request, when possible.
+ * @param {boolean}       props.continueDisabled Whether another request is active.
  * @return {JSX.Element} Popup.
  */
 export default function CreditUpgradeModal( {
 	onClose,
 	onCreditAdded,
 	onContinue,
+	continueDisabled = false,
 } ) {
 	const isBillingAdmin = canManageBilling();
 	const accountPageUrl = getAccountPageUrl();
@@ -101,6 +103,8 @@ export default function CreditUpgradeModal( {
 	const [ balance, setBalance ] = useState( null );
 	const [ showCoupon, setShowCoupon ] = useState( false );
 	const [ couponCode, setCouponCode ] = useState( '' );
+	const [ checkoutUrl, setCheckoutUrl ] = useState( '' );
+	const [ baselineStatus, setBaselineStatus ] = useState( 'loading' );
 	const baselineRef = useRef( null );
 	const checkingRef = useRef( false );
 
@@ -126,9 +130,10 @@ export default function CreditUpgradeModal( {
 				const current = getBalance( account );
 				baselineRef.current = current;
 				setBalance( current );
+				setBaselineStatus( current === null ? 'error' : 'ready' );
 			} )
 			.catch( () => {
-				// The popup still works; the later check falls back to > 0.
+				setBaselineStatus( 'error' );
 			} );
 	}, [ isBillingAdmin ] );
 
@@ -149,8 +154,12 @@ export default function CreditUpgradeModal( {
 					method: 'POST',
 				} );
 				const current = getBalance( account );
-				const baseline = baselineRef.current ?? 0;
-				if ( current !== null && current > baseline ) {
+				const baseline = baselineRef.current;
+				if (
+					baseline !== null &&
+					current !== null &&
+					current > baseline
+				) {
 					markCreditAdded( account );
 					return;
 				}
@@ -213,6 +222,20 @@ export default function CreditUpgradeModal( {
 		setNotice( null );
 
 		try {
+			if ( baselineRef.current === null ) {
+				const account = await apiFetch( {
+					path: ACCOUNT_PATH,
+					method: 'POST',
+				} );
+				const current = getBalance( account );
+				if ( current === null ) {
+					throw new Error( 'unknown_starting_balance' );
+				}
+				baselineRef.current = current;
+				setBalance( current );
+				setBaselineStatus( 'ready' );
+			}
+
 			const result = await apiFetch( {
 				path: `${ ACCOUNT_PATH }/action`,
 				method: 'POST',
@@ -222,22 +245,27 @@ export default function CreditUpgradeModal( {
 				throw new Error( 'invalid_account_action' );
 			}
 
+			setCheckoutUrl( result.url );
 			if ( checkoutWindow ) {
 				checkoutWindow.location.assign( result.url );
-			} else {
-				window.open( result.url, '_blank', 'noopener' );
 			}
 			setStep( 'checkout' );
 		} catch {
 			if ( checkoutWindow ) {
 				checkoutWindow.close();
 			}
+			const baselineUnknown = baselineRef.current === null;
 			setNotice( {
-				status: 'error',
-				message: __(
-					'Checkout could not be opened. Try again, or add credit from your SD AI account settings.',
-					'superdav-ai-agent'
-				),
+				status: baselineUnknown ? 'warning' : 'error',
+				message: baselineUnknown
+					? __(
+							'Your current balance could not be confirmed, so checkout was not started. Try again, or add credit from your SD AI account settings.',
+							'superdav-ai-agent'
+					  )
+					: __(
+							'Checkout could not be opened. Try again, or add credit from your SD AI account settings.',
+							'superdav-ai-agent'
+					  ),
 				showAccountLink: true,
 			} );
 		} finally {
@@ -365,7 +393,11 @@ export default function CreditUpgradeModal( {
 							<Button variant="tertiary" onClick={ onClose }>
 								{ __( 'Close', 'superdav-ai-agent' ) }
 							</Button>
-							<Button variant="primary" onClick={ onContinue }>
+							<Button
+								variant="primary"
+								onClick={ onContinue }
+								disabled={ continueDisabled }
+							>
 								{ __(
 									'Continue my request',
 									'superdav-ai-agent'
@@ -390,11 +422,25 @@ export default function CreditUpgradeModal( {
 					) }
 				</p>
 				{ noticeElement }
+				{ checkoutUrl && (
+					<p>
+						<a
+							href={ checkoutUrl }
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ __(
+								'Open secure checkout',
+								'superdav-ai-agent'
+							) }
+						</a>
+					</p>
+				) }
 				<div className="sd-ai-agent-credit-modal__actions">
 					<Button
 						variant="tertiary"
 						onClick={ openCheckout }
-						disabled={ !! busy }
+						disabled={ !! busy || baselineStatus === 'loading' }
 					>
 						{ __( 'Reopen checkout', 'superdav-ai-agent' ) }
 					</Button>
@@ -402,7 +448,7 @@ export default function CreditUpgradeModal( {
 						variant="primary"
 						onClick={ () => checkBalance() }
 						isBusy={ busy === 'check' }
-						disabled={ !! busy }
+						disabled={ !! busy || baselineStatus === 'loading' }
 					>
 						{ __( 'I’ve added credit', 'superdav-ai-agent' ) }
 					</Button>
@@ -440,7 +486,7 @@ export default function CreditUpgradeModal( {
 						variant="primary"
 						onClick={ openCheckout }
 						isBusy={ busy === 'checkout' }
-						disabled={ !! busy }
+						disabled={ !! busy || baselineStatus === 'loading' }
 					>
 						{ __( 'Add credit', 'superdav-ai-agent' ) }
 					</Button>

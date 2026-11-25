@@ -1039,10 +1039,15 @@ export const actions = {
 	 * delete unrelated messages if the session was reloaded or the failure shape
 	 * differs from the expected user+system pair.
 	 *
+	 * @param {number|null} messageIndex Failed user-message index, when known.
 	 * @return {Function} Redux thunk.
 	 */
-	retryLastMessage() {
+	retryLastMessage( messageIndex = null ) {
 		return async ( { dispatch, select } ) => {
+			if ( select.isSending?.() ) {
+				return;
+			}
+
 			const pendingActionCard = select.getPendingActionCard?.();
 			if ( pendingActionCard?.type === 'resume_recoverable_job' ) {
 				dispatch.resumeRecoverableJob();
@@ -1050,9 +1055,17 @@ export const actions = {
 			}
 
 			const messages = select.getCurrentSessionMessages() || [];
-			let userIndex = -1;
-			for ( let i = messages.length - 1; i >= 0; i-- ) {
-				if ( messages[ i ]?.role === 'user' ) {
+			let userIndex =
+				Number.isInteger( messageIndex ) &&
+				messages[ messageIndex ]?.role === 'user' &&
+				! messages[ messageIndex ]?.queued
+					? messageIndex
+					: -1;
+			for ( let i = messages.length - 1; userIndex < 0 && i >= 0; i-- ) {
+				if (
+					messages[ i ]?.role === 'user' &&
+					! messages[ i ]?.queued
+				) {
 					userIndex = i;
 					break;
 				}
@@ -1073,6 +1086,11 @@ export const actions = {
 			if ( ! messageText && attachments.length === 0 ) {
 				return;
 			}
+			const queuedMessages = messages
+				.slice( userIndex + 1 )
+				.filter(
+					( message ) => message?.role === 'user' && message?.queued
+				);
 
 			// Remove the failed user message and any local error messages after it,
 			// then resend through the normal stream path so provider/model selection is
@@ -1080,6 +1098,9 @@ export const actions = {
 			dispatch.truncateMessagesTo( userIndex );
 			dispatch.setStreamError( false );
 			dispatch.streamMessage( messageText, attachments );
+			queuedMessages.forEach( ( message ) =>
+				dispatch.appendMessage( message )
+			);
 		};
 	},
 

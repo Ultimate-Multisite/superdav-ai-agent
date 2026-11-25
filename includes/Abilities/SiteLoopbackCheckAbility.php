@@ -73,6 +73,10 @@ class SiteLoopbackCheckAbility extends WP_Ability {
 					'description' => 'Health status: healthy, broken, or unreachable',
 					'enum'        => [ 'healthy', 'broken', 'unreachable' ],
 				],
+				'note'   => [
+					'type'        => 'string',
+					'description' => 'Present when the probe could not run; explains what the status means.',
+				],
 			],
 		];
 	}
@@ -86,7 +90,7 @@ class SiteLoopbackCheckAbility extends WP_Ability {
 	protected function execute_callback( $input ) {
 		$health_check = new PostMutationHealthCheck();
 
-		return [ 'status' => $health_check->get_status() ];
+		return PostMutationHealthCheck::describe( $health_check->get_status() );
 	}
 
 	/**

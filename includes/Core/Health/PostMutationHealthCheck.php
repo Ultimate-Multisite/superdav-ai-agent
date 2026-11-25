@@ -81,11 +81,7 @@ class PostMutationHealthCheck {
 		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 		$response = wp_remote_get(
 			$health_url,
-			[
-				'timeout'     => 10,
-				'redirection' => 0,
-				'sslverify'   => false,
-			]
+			$this->request_args( 10 )
 		);
 
 		$status = is_wp_error( $response )
@@ -113,14 +109,53 @@ class PostMutationHealthCheck {
 		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 		$response = wp_remote_get(
 			$health_url,
-			[
-				'timeout'     => 10,
-				'redirection' => 0,
-				'sslverify'   => false,
-			]
+			$this->request_args( 10 )
 		);
 
 		return is_wp_error( $response ) ? self::STATUS_UNREACHABLE : $this->classify_response( $response );
+	}
+
+	/**
+	 * Transient holding the short-lived health token.
+	 */
+	public const TOKEN_TRANSIENT = 'sd_ai_agent_health_token';
+
+	/**
+	 * Build the request arguments for a health probe.
+	 *
+	 * The probe carries a short-lived token so the health endpoint can answer a
+	 * request that reaches it through the site's public URL. Native tenant
+	 * runtimes have no loopback listener, so REMOTE_ADDR never looks like
+	 * loopback there. The token only unlocks a route that returns
+	 * {"success":true}.
+	 *
+	 * @param int $timeout Request timeout in seconds.
+	 * @return array{timeout: int, redirection: int, sslverify: bool, headers: array<string, string>} Arguments for wp_remote_get().
+	 */
+	private function request_args( int $timeout ): array {
+		return [
+			'timeout'     => $timeout,
+			'redirection' => 0,
+			'sslverify'   => false,
+			'headers'     => [ HealthEndpoint::TOKEN_HEADER => $this->health_token() ],
+		];
+	}
+
+	/**
+	 * Get (or create) the short-lived health token.
+	 *
+	 * @return string Token value.
+	 */
+	private function health_token(): string {
+		$token = get_transient( self::TOKEN_TRANSIENT );
+		if ( is_string( $token ) && '' !== $token ) {
+			return $token;
+		}
+
+		$token = wp_generate_password( 32, false, false );
+		set_transient( self::TOKEN_TRANSIENT, $token, 5 * MINUTE_IN_SECONDS );
+
+		return $token;
 	}
 
 	/**
@@ -147,6 +182,26 @@ class PostMutationHealthCheck {
 		return str_contains( wp_remote_retrieve_body( $response ), '"success":true' )
 			? self::STATUS_HEALTHY
 			: self::STATUS_BROKEN;
+	}
+
+	/**
+	 * Describe a health status for an agent-facing result.
+	 *
+	 * "unreachable" means the probe could not run, not that the site is down. The
+	 * note stops the model from telling the user to contact their host.
+	 *
+	 * @param string $status One of the health statuses.
+	 * @return array<string, string> Result with status and, when useful, a note.
+	 */
+	public static function describe( string $status ): array {
+		if ( self::STATUS_UNREACHABLE !== $status ) {
+			return [ 'status' => $status ];
+		}
+
+		return [
+			'status' => $status,
+			'note'   => 'The health probe could not connect, so the site state is unknown. This is not evidence that the site is down. Do not ask the user to contact their host; check the page with fetch-url instead.',
+		];
 	}
 
 	/**
@@ -203,11 +258,7 @@ class PostMutationHealthCheck {
 			// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$response = wp_remote_get(
 				$url,
-				[
-					'timeout'     => 5,
-					'redirection' => 0,
-					'sslverify'   => false,
-				]
+				$this->request_args( 5 )
 			);
 			if ( is_wp_error( $response ) ) {
 				continue;

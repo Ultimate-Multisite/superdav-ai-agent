@@ -401,6 +401,60 @@ class PageCompletionGateTest extends WP_UnitTestCase {
 		$this->assertFalse( $gate->is_required() );
 	}
 
+	/** Repeated browser render timeouts stop the repair loop with a plain notice. */
+	public function test_repeated_render_failures_stop_repair_loop(): void {
+		$gate = $this->gate( PageCompletionGate::PROFILE_SETUP );
+		$this->record_page( $gate, 41, self::PAGE_URL, 101 );
+
+		for ( $attempt = 1; $attempt <= PageCompletionGate::MAX_RENDER_INFRASTRUCTURE_FAILURES; $attempt++ ) {
+			$inputs  = $gate->get_expected_report_inputs();
+			$reports = array();
+			foreach ( $inputs['viewports'] as $viewport ) {
+				$reports[] = array(
+					'post_id'       => 41,
+					'revision_id'   => 101,
+					'requested_url' => self::PAGE_URL,
+					'final_url'     => self::PAGE_URL,
+					'role'          => 'page',
+					'render_mode'   => 'public',
+					'viewport'      => $viewport,
+					'success'       => false,
+					'violations'    => array(
+						array(
+							'code'     => 'frontend_render_failed',
+							'severity' => 'error',
+							'evidence' => 'Iframe load timed out.',
+						),
+					),
+					'warnings'      => array(),
+				);
+			}
+			$gate->record_tool_call( PageCompletionGate::CLIENT_ABILITY, $inputs );
+			$gate->record_tool_response(
+				PageCompletionGate::CLIENT_ABILITY,
+				array(
+					'success'       => true,
+					'complete'      => true,
+					'passed'        => false,
+					'profile'       => $inputs['profile'],
+					'quality_token' => $inputs['quality_token'],
+					'render_mode'   => $inputs['render_mode'],
+					'viewports'     => $inputs['viewports'],
+					'reports'       => $reports,
+				)
+			);
+
+			if ( $attempt < PageCompletionGate::MAX_RENDER_INFRASTRUCTURE_FAILURES ) {
+				$this->assertTrue( $gate->requires_repair() );
+				$this->record_page( $gate, 41, self::PAGE_URL, 101 + $attempt );
+			}
+		}
+
+		$this->assertFalse( $gate->requires_repair() );
+		$this->assertTrue( $gate->get_status()['render_unverifiable'] );
+		$this->assertStringContainsString( 'start a new chat', $gate->get_terminal_notice() );
+	}
+
 	private function gate( string $profile ): PageCompletionGate {
 		return new PageCompletionGate(
 			$profile,

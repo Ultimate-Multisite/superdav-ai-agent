@@ -50,6 +50,8 @@ class BenchmarkSuite {
 		'file_contains',
 		'wp_cli_command',
 		'tool_output_contains',
+		'tool_error_recovered',
+		'max_identical_failures',
 		'post_exists',
 		'option_value_matches',
 		'taxonomy_registered',
@@ -123,6 +125,12 @@ class BenchmarkSuite {
 				'name'           => 'Abilities Coverage — Credentialed (GA/GSC)',
 				'description'    => 'Exercises Google Analytics and Search Console abilities. Without live credentials these test graceful degradation rather than real data.',
 				'question_count' => count( self::get_abilities_credentialed_questions() ),
+			),
+			array(
+				'slug'           => 'recovery-v1',
+				'name'           => 'Agent Error Recovery v1',
+				'description'    => 'Measures whether the agent changes approach after failed ability calls instead of repeating or stopping incorrectly.',
+				'question_count' => count( self::get_recovery_questions() ),
 			),
 		);
 	}
@@ -213,6 +221,14 @@ class BenchmarkSuite {
 					'name'        => 'Abilities Coverage — Credentialed',
 					'description' => 'GA/GSC ability coverage (graceful degradation).',
 					'questions'   => self::get_abilities_credentialed_questions(),
+				);
+
+			case 'recovery-v1':
+				return array(
+					'slug'        => 'recovery-v1',
+					'name'        => 'Agent Error Recovery v1',
+					'description' => 'Recovery from deterministic ability failures.',
+					'questions'   => self::get_recovery_questions(),
 				);
 
 			default:
@@ -2285,6 +2301,91 @@ class BenchmarkSuite {
 					),
 				),
 			),
+		);
+	}
+
+	/**
+	 * Error-recovery scenarios. Prompts describe user intent without naming tools.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function get_recovery_questions(): array {
+		$questions = array(
+			array( 'rec-001', 'target_not_found', 'Update the draft titled "Recovery Fixture 001" by appending "Recovered after lookup" to its content.', array( 'sd-ai-agent/update-post' ), array( 'sd-ai-agent/list-posts', 'sd-ai-agent/get-post' ), 'draft' ),
+			array( 'rec-002', 'target_not_found', 'Return the complete content of the draft titled "Recovery Fixture 002". Use its title to locate the correct record.', array( 'sd-ai-agent/get-post' ), array( 'sd-ai-agent/list-posts' ), 'draft' ),
+			array( 'rec-003', 'target_not_found', 'Rename the draft titled "Recovery Fixture 003" to "Recovery Fixture 003 Found".', array( 'sd-ai-agent/update-post' ), array( 'sd-ai-agent/list-posts', 'sd-ai-agent/get-post' ), 'draft' ),
+			array( 'rec-004', 'target_not_found', 'Summarize the draft titled "Recovery Fixture 004" and include its current database ID in the response.', array( 'sd-ai-agent/get-post' ), array( 'sd-ai-agent/list-posts' ), 'draft' ),
+			array( 'rec-005', 'malformed_argument', 'Audit the SEO of the draft titled "Recovery Fixture 005" for the phrase "error recovery" and report the recommendations.', array( 'sd-ai-agent/seo-analyze-content' ), array( 'sd-ai-agent/list-posts' ), 'draft' ),
+			array( 'rec-006', 'malformed_argument', 'Review the response headers for the documentation page written as example dot com slash docs. Correct the address format if the first request rejects it.', array( 'sd-ai-agent/analyze-headers' ), array( 'sd-ai-agent/fetch-url' ), '' ),
+			array( 'rec-007', 'malformed_argument', 'Search the site content for the phrase "recovery benchmark". If the initial query shape is rejected, correct it and try once more.', array( 'sd-ai-agent/content-search' ), array(), '' ),
+			array( 'rec-008', 'malformed_argument', 'Show the five newest draft posts. If the first filter format is invalid, correct the filter rather than repeating it.', array( 'sd-ai-agent/list-posts' ), array(), '' ),
+			array( 'rec-009', 'integration_not_configured', 'Report traffic totals for the last seven days. If analytics is not connected, state that clearly and stop.', array( 'sd-ai-agent/ga-traffic-summary' ), array(), 'stop' ),
+			array( 'rec-010', 'integration_not_configured', 'Report the top search queries for the last 28 days. If search performance data is not connected, state that clearly and stop.', array( 'sd-ai-agent/gsc-top-queries' ), array(), 'stop' ),
+			array( 'rec-011', 'integration_not_configured', 'Search the local knowledge base for "recovery benchmark". If no collection is configured, explain that once without retrying.', array( 'sd-ai-agent/knowledge-search' ), array(), 'stop' ),
+			array( 'rec-012', 'integration_not_configured', 'Search the public web for the latest WordPress release. If no search provider is configured, report that once without retrying.', array( 'sd-ai-agent/internet-search' ), array(), 'stop' ),
+			array( 'rec-013', 'already_exists', 'Create a subscriber account using login {{user_login}} and email {{user_email}}. If it already exists, fetch the current account instead of repeating creation.', array( 'sd-ai-agent/create-user' ), array( 'sd-ai-agent/list-users' ), 'user' ),
+			array( 'rec-014', 'already_exists', 'Add the existing identity {{user_login}} as a subscriber with email {{user_email}}. When creation is rejected, report its current account details.', array( 'sd-ai-agent/create-user' ), array( 'sd-ai-agent/list-users' ), 'user' ),
+			array( 'rec-015', 'already_exists', 'Provision a subscriber named {{user_login}} at {{user_email}}. Do not retry creation if WordPress says the account already exists; look it up.', array( 'sd-ai-agent/create-user' ), array( 'sd-ai-agent/list-users' ), 'user' ),
+			array( 'rec-016', 'already_exists', 'Ensure there is a subscriber account for {{user_login}} using {{user_email}}. If it is already present, inspect the existing record and finish.', array( 'sd-ai-agent/create-user' ), array( 'sd-ai-agent/list-users' ), 'user' ),
+			array( 'rec-017', 'capability_denied', 'Confirm whether the protected auth_key option exists without revealing its value. If direct access is denied, use a safe options overview and explain the protection.', array( 'sd-ai-agent/get-option' ), array( 'sd-ai-agent/list-options' ), '' ),
+			array( 'rec-018', 'capability_denied', 'Confirm whether the protected nonce_key option exists without revealing its value. If direct access is denied, use a safe options overview and explain the protection.', array( 'sd-ai-agent/get-option' ), array( 'sd-ai-agent/list-options' ), '' ),
+			array( 'rec-019', 'capability_denied', 'Confirm whether the protected secure_auth_salt option exists without revealing its value. If direct access is denied, use a safe options overview and explain the protection.', array( 'sd-ai-agent/get-option' ), array( 'sd-ai-agent/list-options' ), '' ),
+			array( 'rec-020', 'capability_denied', 'Confirm whether the protected logged_in_salt option exists without revealing its value. If direct access is denied, use a safe options overview and explain the protection.', array( 'sd-ai-agent/get-option' ), array( 'sd-ai-agent/list-options' ), '' ),
+		);
+
+		return array_map(
+			static function ( array $scenario ): array {
+				[ $id, $category, $prompt, $tools, $recovery_tools, $fixture ] = $scenario;
+				$assertions = array(
+					array(
+						'type'        => 'max_identical_failures',
+						'max'         => 'stop' === $fixture ? 1 : 2,
+						'description' => 'identical failing calls are not repeated',
+					),
+				);
+
+				if ( 'stop' !== $fixture ) {
+					array_unshift(
+						$assertions,
+						array(
+							'type'           => 'tool_error_recovered',
+							'tools'          => $tools,
+							'recovery_tools' => $recovery_tools,
+							'description'    => 'failed ability call is followed by a successful recovery',
+						)
+					);
+				}
+
+				$question = array(
+					'id'                  => $id,
+					'category'            => $category,
+					'benchmark_dimension' => 'recovery',
+					'max_turns'           => 10,
+					'prompt'              => $prompt,
+					'assertions'          => $assertions,
+				);
+
+				if ( 'draft' === $fixture ) {
+					$number            = substr( $id, -3 );
+					$question['setup'] = array(
+						'draft_post' => array(
+							'title'   => 'Recovery Fixture ' . $number,
+							'content' => 'Deterministic recovery benchmark fixture ' . $number . '.',
+						),
+					);
+				} elseif ( 'user' === $fixture ) {
+					$question['setup'] = array(
+						'user' => array(
+							'login_prefix' => str_replace( '-', '', $id ) . '-user',
+							'email_domain' => 'example.test',
+							'existing'     => true,
+						),
+					);
+				}
+
+				return $question;
+			},
+			$questions
 		);
 	}
 }

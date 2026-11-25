@@ -312,6 +312,9 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'postconditions_passed'           => 0,
 			'postconditions_failed'           => 0,
 			'graceful_degradation_questions'  => 0,
+			'recovery_questions'              => 0,
+			'recovery_exercised'              => 0,
+			'recovery_recovered'              => 0,
 			'errors'                          => 0,
 			'provider_errors'                 => 0,
 			'fixture_errors'                  => 0,
@@ -405,7 +408,17 @@ class BenchmarkCommand extends WP_CLI_Command {
 				WP_CLI::error( $write_result->get_error_message() );
 			}
 
-			$question_summaries[] = $this->summarize_question_result( $result );
+			$question_summary = $this->summarize_question_result( $result );
+			if ( 'recovery' === ( $result['benchmark_dimension'] ?? '' ) ) {
+				++$totals['recovery_questions'];
+				if ( ! empty( $question_summary['recovery_exercised'] ) ) {
+					++$totals['recovery_exercised'];
+				}
+				if ( ! empty( $question_summary['recovered'] ) ) {
+					++$totals['recovery_recovered'];
+				}
+			}
+			$question_summaries[] = $question_summary;
 
 			WP_CLI::log( '│  Status: ' . $status );
 			WP_CLI::log( '└─ Log: ' . $log_file );
@@ -445,6 +458,10 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'questions_composite'             => $totals['questions_composite'],
 			'questions_mixed'                 => $totals['questions_mixed'],
 			'graceful_degradation_questions'  => $totals['graceful_degradation_questions'],
+			'recovery_questions'              => $totals['recovery_questions'],
+			'recovery_exercised'              => $totals['recovery_exercised'],
+			'recovery_recovered'              => $totals['recovery_recovered'],
+			'recovery_score'                  => $totals['recovery_exercised'] > 0 ? round( ( $totals['recovery_recovered'] / $totals['recovery_exercised'] ) * 100 ) : null,
 			'run_status'                      => $run_status,
 			'ranking_eligible'                => $this->is_ranking_eligible( $totals, $run_status ),
 			'execution_profile'               => $this->execution_profile_metadata,
@@ -1132,6 +1149,21 @@ class BenchmarkCommand extends WP_CLI_Command {
 			$functional_status = 'graceful_degradation';
 		}
 
+		$recovery_assertions = array_values(
+			array_filter(
+				(array) ( $assertions['results'] ?? array() ),
+				static fn( mixed $assertion ): bool => is_array( $assertion ) && in_array( (string) ( $assertion['type'] ?? '' ), array( 'tool_error_recovered', 'max_identical_failures' ), true )
+			)
+		);
+		$recovery_exercised  = count( array_filter( $recovery_assertions, static fn( array $assertion ): bool => ! empty( $assertion['exercised'] ) ) ) > 0;
+		$error_recovery      = array_values( array_filter( $recovery_assertions, static fn( array $assertion ): bool => 'tool_error_recovered' === ( $assertion['type'] ?? '' ) ) );
+		$recovered           = $recovery_exercised && count(
+			array_filter(
+				empty( $error_recovery ) ? $recovery_assertions : $error_recovery,
+				static fn( array $assertion ): bool => ! empty( $assertion['recovered'] )
+			)
+		) > 0;
+
 		return array(
 			'question_id'             => (string) ( $result['question_id'] ?? '' ),
 			'category'                => (string) ( $result['category'] ?? '' ),
@@ -1145,6 +1177,8 @@ class BenchmarkCommand extends WP_CLI_Command {
 			'postconditions_total'    => (int) ( $coverage['postcondition_total'] ?? 0 ),
 			'functional_status'       => $functional_status,
 			'benchmark_dimension'     => $dimension,
+			'recovery_exercised'      => 'recovery' === $dimension && $recovery_exercised,
+			'recovered'               => 'recovery' === $dimension && $recovered,
 			'ranking_eligible'        => 'capability' === $dimension && $assessed && empty( $result['provider_error'] ) && 'deferred' !== ( $result['status'] ?? '' ),
 			'turns_used'              => (int) ( $result['turns_used'] ?? 0 ),
 			'elapsed_ms'              => (int) ( $result['elapsed_ms'] ?? 0 ),
@@ -1388,6 +1422,7 @@ class BenchmarkCommand extends WP_CLI_Command {
 		return $questions > 0
 			&& $questions === (int) ( $totals['questions_functionally_assessed'] ?? 0 )
 			&& 0 === (int) ( $totals['graceful_degradation_questions'] ?? 0 )
+			&& 0 === (int) ( $totals['recovery_questions'] ?? 0 )
 			&& ( (int) ( $totals['postconditions_passed'] ?? 0 ) + (int) ( $totals['postconditions_failed'] ?? 0 ) ) > 0;
 	}
 
@@ -1543,11 +1578,31 @@ class BenchmarkCommand extends WP_CLI_Command {
 				return new \WP_Error( 'sd_ai_agent_benchmark_user_fixture_collision', 'Generated benchmark user fixture already exists.' );
 			}
 
-			$email                                 = $login . '@' . $domain;
-			$this->pending_user_fixtures[ $login ] = wp_generate_uuid4();
-			$variables['{{user_login}}']           = $login;
-			$variables['{{user_email}}']           = $email;
-			$setup_log['user']                     = array(
+			$email                       = $login . '@' . $domain;
+			$variables['{{user_login}}'] = $login;
+			$variables['{{user_email}}'] = $email;
+			if ( ! empty( $user['existing'] ) ) {
+				$user_id = wp_create_user( $login, wp_generate_password( 24 ), $email );
+				if ( is_wp_error( $user_id ) ) {
+					return $user_id;
+				}
+
+				$fixture_user = get_user_by( 'id', $user_id );
+				if ( ! $fixture_user ) {
+					return new \WP_Error( 'sd_ai_agent_benchmark_user_fixture_create_failed', 'Created benchmark user fixture could not be loaded.' );
+				}
+
+				$fixture_user->set_role( 'subscriber' );
+				$owner = wp_generate_uuid4();
+				update_user_meta( (int) $user_id, '_sd_ai_agent_benchmark_owner', $owner );
+				$this->owned_user_fixtures[ (int) $user_id ] = array(
+					'login' => $login,
+					'owner' => $owner,
+				);
+			} else {
+				$this->pending_user_fixtures[ $login ] = wp_generate_uuid4();
+			}
+			$setup_log['user'] = array(
 				'login' => $login,
 				'email' => $email,
 			);

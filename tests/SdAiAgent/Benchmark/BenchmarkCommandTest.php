@@ -346,6 +346,37 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertFalse( $summary['ranking_eligible'] );
 	}
 
+	/** Recovery summaries expose exercise/recovery state and remain unranked. */
+	public function test_recovery_summary_is_not_ranking_eligible(): void {
+		$command = new TestableBenchmarkCommand();
+		$method  = new ReflectionMethod( BenchmarkCommand::class, 'summarize_question_result' );
+		$summary = $method->invoke(
+			$command,
+			array(
+				'question_id'         => 'rec-001',
+				'status'              => 'passed',
+				'benchmark_dimension' => 'recovery',
+				'assertions'          => array(
+					'passed' => 1,
+					'failed' => 0,
+					'total'  => 1,
+					'results' => array(
+						array(
+							'type'      => 'tool_error_recovered',
+							'pass'      => true,
+							'exercised' => true,
+							'recovered' => true,
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertTrue( $summary['recovery_exercised'] );
+		$this->assertTrue( $summary['recovered'] );
+		$this->assertFalse( $summary['ranking_eligible'] );
+	}
+
 	/** Suite ranking requires functional evidence for every included question. */
 	public function test_suite_ranking_rejects_invocation_only_questions(): void {
 		$command = new TestableBenchmarkCommand();
@@ -362,6 +393,9 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 
 		$totals['questions_functionally_assessed'] = 2;
 		$this->assertTrue( $method->invoke( $command, $totals, 'complete' ) );
+
+		$totals['recovery_questions'] = 1;
+		$this->assertFalse( $method->invoke( $command, $totals, 'complete' ) );
 	}
 
 	/**
@@ -526,6 +560,34 @@ class BenchmarkCommandTest extends WP_UnitTestCase {
 		$this->assertSame( 4, $result['assertions']['passed'] );
 		$this->assertStringStartsWith( 'as010-user-', $command->last_user_login );
 		$this->assertFalse( get_user_by( 'login', $command->last_user_login ) );
+	}
+
+	/** An already-existing user scenario creates and cleans up only its owned fixture. */
+	public function test_existing_user_fixture_is_created_and_cleaned(): void {
+		$command  = new TestableBenchmarkCommand();
+		$prepare  = new ReflectionMethod( BenchmarkCommand::class, 'prepare_question_fixtures' );
+		$setup    = $prepare->invoke(
+			$command,
+			array(
+				'setup' => array(
+					'user' => array(
+						'login_prefix' => 'recovery-existing',
+						'email_domain' => 'example.test',
+						'existing'     => true,
+					),
+				),
+			)
+		);
+		$login    = $setup['variables']['{{user_login}}'];
+		$existing = get_user_by( 'login', $login );
+
+		$this->assertNotFalse( $existing );
+		$this->assertSame( array( 'subscriber' ), $existing->roles );
+
+		$cleanup = new ReflectionMethod( BenchmarkCommand::class, 'cleanup_owned_user_fixtures' );
+		$cleanup->invoke( $command );
+
+		$this->assertFalse( get_user_by( 'login', $login ) );
 	}
 
 	/** SDK function names and ability-call wrappers retain ownership evidence. */

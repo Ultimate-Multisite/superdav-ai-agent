@@ -73,7 +73,7 @@ class AssertionEngine {
 	 * @param string               $type      Assertion type identifier.
 	 * @param array<string, mixed> $assertion Full assertion definition.
 	 * @param array<string, mixed> $context   Runtime context.
-	 * @return array{pass: bool, expected: string, actual: string, detail?: string}
+	 * @return array{pass: bool, expected: string, actual: string, detail?: string, exercised?: bool, recovered?: bool}
 	 */
 	private static function run_one( string $type, array $assertion, array $context ): array {
 		switch ( $type ) {
@@ -159,6 +159,19 @@ class AssertionEngine {
 					self::normalize_string_list( $assertion['tools'] ?? array() ),
 					self::normalize_string_list( $assertion['required_keys'] ?? array() ),
 					$context
+				);
+
+			case 'tool_error_recovered':
+				return self::assert_tool_error_recovered(
+					self::normalize_string_list( $assertion['tools'] ?? array() ),
+					self::normalize_string_list( $assertion['recovery_tools'] ?? array() ),
+					$context
+				);
+
+			case 'max_identical_failures':
+				return self::assert_max_identical_failures(
+					$context,
+					max( 0, (int) ( $assertion['max'] ?? 2 ) )
 				);
 
 			case 'tool_called_or_user_exists':
@@ -957,6 +970,156 @@ class AssertionEngine {
 			'expected' => 'tool output containing keys [' . implode( ', ', $required_keys ) . ']',
 			'actual'   => empty( $missing ) ? 'no matching tool output found' : 'missing keys: ' . implode( ', ', $missing ),
 		);
+	}
+
+	/**
+	 * Assert that a failed target call was followed by a successful recovery call.
+	 *
+	 * @param array<int, string>   $tools          Tools expected to fail first.
+	 * @param array<int, string>   $recovery_tools Additional tools accepted for recovery.
+	 * @param array<string, mixed> $context        Runtime context with 'tool_call_log'.
+	 * @return array{pass: bool, expected: string, actual: string, exercised: bool, recovered: bool}
+	 */
+	private static function assert_tool_error_recovered( array $tools, array $recovery_tools, array $context ): array {
+		$failure_seen = false;
+		$accepted     = array_values( array_unique( array_merge( $tools, $recovery_tools ) ) );
+
+		foreach ( (array) ( $context['tool_call_log'] ?? array() ) as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$matches_target   = self::tool_entry_matches( $entry, $tools );
+			$matches_accepted = self::tool_entry_matches( $entry, $accepted );
+			$output           = self::decode_tool_output( $entry['output'] ?? null );
+			$failed           = self::tool_output_failed( $output );
+
+			if ( $matches_target && $failed ) {
+				$failure_seen = true;
+				continue;
+			}
+
+			if ( $failure_seen && $matches_accepted && null !== $output && ! $failed && false !== ( $output['success'] ?? true ) ) {
+				return array(
+					'pass'      => true,
+					'expected'  => 'a failed target call followed by a successful recovery call',
+					'actual'    => 'failure recovered by a later successful call',
+					'exercised' => true,
+					'recovered' => true,
+				);
+			}
+		}
+
+		return array(
+			'pass'      => false,
+			'expected'  => 'a failed target call followed by a successful recovery call',
+			'actual'    => $failure_seen ? 'failure observed without later recovery' : 'no failure observed',
+			'exercised' => $failure_seen,
+			'recovered' => false,
+		);
+	}
+
+	/**
+	 * Assert that an identical failing call is not repeated too many times in a row.
+	 *
+	 * @param array<string, mixed> $context Runtime context with 'tool_call_log'.
+	 * @param int                  $max     Maximum allowed consecutive identical failures.
+	 * @return array{pass: bool, expected: string, actual: string, exercised: bool, recovered: bool}
+	 */
+	private static function assert_max_identical_failures( array $context, int $max ): array {
+		$previous_key = '';
+		$streak       = 0;
+		$highest      = 0;
+		$exercised    = false;
+
+		foreach ( (array) ( $context['tool_call_log'] ?? array() ) as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				$previous_key = '';
+				$streak       = 0;
+				continue;
+			}
+
+			$output = self::decode_tool_output( $entry['output'] ?? null );
+			if ( ! self::tool_output_failed( $output ) ) {
+				$previous_key = '';
+				$streak       = 0;
+				continue;
+			}
+
+			$exercised = true;
+			$key       = (string) ( $entry['tool'] ?? '' ) . '|' . (string) wp_json_encode( $entry['input'] ?? array() );
+			$streak    = $key === $previous_key ? $streak + 1 : 1;
+			$highest   = max( $highest, $streak );
+
+			if ( $streak > $max ) {
+				return array(
+					'pass'      => false,
+					'expected'  => sprintf( 'no more than %d identical failure(s) in a row', $max ),
+					'actual'    => sprintf( '%d identical failures in a row', $streak ),
+					'exercised' => true,
+					'recovered' => false,
+				);
+			}
+
+			$previous_key = $key;
+		}
+
+		return array(
+			'pass'      => true,
+			'expected'  => sprintf( 'no more than %d identical failure(s) in a row', $max ),
+			'actual'    => sprintf( 'maximum identical failure streak was %d', $highest ),
+			'exercised' => $exercised,
+			'recovered' => $exercised,
+		);
+	}
+
+	/**
+	 * Decode one JSON tool output into an array.
+	 *
+	 * @return array<mixed, mixed>|null
+	 */
+	private static function decode_tool_output( mixed $output ): ?array {
+		if ( is_string( $output ) ) {
+			$output = json_decode( $output, true );
+		}
+
+		return is_array( $output ) ? $output : null;
+	}
+
+	/**
+	 * Whether a decoded output carries both an error and an error code.
+	 *
+	 * @param array<mixed, mixed>|null $output Decoded tool output.
+	 */
+	private static function tool_output_failed( ?array $output ): bool {
+		if ( null === $output || ! array_key_exists( 'error', $output ) ) {
+			return false;
+		}
+
+		return array_key_exists( 'code', $output )
+			|| ( is_array( $output['error'] ) && array_key_exists( 'code', $output['error'] ) );
+	}
+
+	/**
+	 * Match a direct or dispatcher tool-log entry against candidate ability IDs.
+	 *
+	 * @param array<string, mixed> $entry Logged tool call.
+	 * @param array<int, string>   $tools Candidate ability names.
+	 */
+	private static function tool_entry_matches( array $entry, array $tools ): bool {
+		$name = (string) ( $entry['tool'] ?? '' );
+		if ( self::ability_name_matches( $name, $tools ) ) {
+			return true;
+		}
+
+		if ( self::ability_name_matches( $name, array( 'sd-ai-agent/ability-call' ) ) ) {
+			$input = (array) ( $entry['input'] ?? array() );
+			$inner = (string) ( $input['ability'] ?? $input['ability_name'] ?? $input['name'] ?? '' );
+
+			return self::ability_name_matches( $inner, $tools );
+		}
+
+		return false;
 	}
 
 	/**

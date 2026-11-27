@@ -179,6 +179,30 @@ class PagePreviewWorkspaceTest extends WP_UnitTestCase {
 		$this->assertSame( 'Live copy', get_post( $post_id )->post_content );
 	}
 
+	/** A new chat adopts the same user's AI preview staged by an earlier chat. */
+	public function test_new_session_adopts_preview_from_earlier_session(): void {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_content' => 'Live copy',
+			)
+		);
+		PagePreviewWorkspace::deactivate();
+		PagePreviewWorkspace::activate( PageCompletionGate::PROFILE_INCREMENTAL, 111, '', true );
+		$first = PagePreviewWorkspace::stage_fields( $post_id, array( 'post_content' => 'Session A preview' ), null, array( 'post_content' ) );
+		$this->assertIsArray( $first );
+
+		PagePreviewWorkspace::deactivate();
+		PagePreviewWorkspace::activate( PageCompletionGate::PROFILE_INCREMENTAL, 222, '', true );
+		$second = PagePreviewWorkspace::stage_fields( $post_id, array( 'post_title' => 'Gemhost' ), null, array( 'post_title' ) );
+
+		$this->assertIsArray( $second );
+		$this->assertSame( $first['workspace_id'], $second['workspace_id'] );
+		$this->assertSame( 'Live copy', get_post( $post_id )->post_content );
+		$this->assertSame( 'Session A preview', PagePreviewWorkspace::get_working_post( $post_id )->post_content );
+	}
+
 	/** One run cannot accumulate a non-atomic set of unrelated page previews. */
 	public function test_second_published_page_is_rejected_until_first_finishes(): void {
 		$first = self::factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_content' => 'First live' ) );

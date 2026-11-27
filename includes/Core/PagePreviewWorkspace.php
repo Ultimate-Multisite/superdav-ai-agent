@@ -530,7 +530,8 @@ final class PagePreviewWorkspace {
 		$metadata = get_metadata( 'post', $autosave->ID, self::META_KEY, true );
 		$owned    = is_array( $metadata )
 			&& self::FORMAT_VERSION === (int) ( $metadata['format_version'] ?? 0 )
-			&& self::context_id() === (string) ( $metadata['context_id'] ?? '' )
+			&& '' !== self::context_id()
+			&& '' !== (string) ( $metadata['context_id'] ?? '' )
 			&& get_current_user_id() === (int) ( $metadata['user_id'] ?? 0 )
 			&& $post_id === (int) ( $metadata['parent_id'] ?? 0 );
 		if ( ! $owned ) {
@@ -549,6 +550,9 @@ final class PagePreviewWorkspace {
 				$normalized_metadata[ $key ] = $value;
 			}
 		}
+		// Adopt a same-user AI preview staged by an earlier chat or job. The new
+		// context stamp is persisted when the next preview write stores metadata.
+		$normalized_metadata['context_id'] = self::context_id();
 
 		return array(
 			'parent'   => $parent,
